@@ -1,1 +1,1 @@
-from .validator import Parser
+from .validator import Parser, Validator

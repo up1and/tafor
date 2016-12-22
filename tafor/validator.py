@@ -20,7 +20,8 @@ class Parser(object):
                     'vis': r'\b(9999|[5-9]000|[01234][0-9]00|0[0-7]50)\b',
                     'wx1': r'\b(NSW|IC|FG|BR|SA|DU|HZ|FU|VA|SQ|PO|FC|TS|FZFG|BLSN|BLSA|BLDU|DRSN|DRSA|DRDU|MIFG|BCFG|PRFG)\b',
                     'wx2': r'\b([-+]?)(DZ|RA|SN|SG|PL|DS|SS|TSRA|TSSN|TSPL|TSGR|TSGS|SHRA|SHSN|SHGR|SHGS|FZRA|FZDZ)\b',
-                    'cloud': r'\b(NSC|VV/{3}|VV\d{3}|(FEW|SCT|BKN|OVC)\d{3}(CB|TCU)?)\b',
+                    'cloud': r'\bNSC|(?P<cover>FEW|SCT|BKN|OVC)(?P<height>\d{3})(?P<cb>CB|TCU)?\b',
+                    'vv':r'\b(VV/{3}|VV\d{3})\b',
                     'tmax': r'\b(TXM?(\d{2})/(\d{2})Z)\b',
                     'tmin': r'\b(TNM?(\d{2})/(\d{2})Z)\b',
                     'cavok': r'\bCAVOK\b',
@@ -96,7 +97,7 @@ class Validator(object):
         风：
         1.当预报平均地面风向的变化大于等于 60°，且平均风速在变化前和（或）变化后大于等于 5m/s 时
         2.当预报平均地面风速的变化大于等于 5m/s 时
-        3.当预报平均地面风风速变差（阵风）增加大于等于 5m/s，且平均风速在变化前和（或）变化后大于等于 8m/s 时  ***有异议
+        3.当预报平均地面风风速变差（阵风）增加(或减少)大于等于 5m/s，且平均风速在变化前和（或）变化后大于等于 8m/s 时  ***有异议
         """
         regex_wind = re.compile(Parser.regex_taf['common']['wind'])
         wind1 = regex_wind.match(str_wind1).groupdict()
@@ -105,8 +106,10 @@ class Validator(object):
         speed1 = int(wind1['speed'])
         speed2 = int(wind2['speed'])
 
-        print(wind1)
-        print(wind2)
+        gust1 = int(wind1['gust']) if wind1['gust'] else None
+        gust2 = int(wind2['gust']) if wind2['gust'] else None
+
+        # print(wind1, wind2)
 
         def direction():
             # 有一个风向为 VRB, 返回 True
@@ -134,30 +137,109 @@ class Validator(object):
         #     if int(wind['gust']) - int(wind['speed']) < 5:
         #         return False
 
-        # 第一条
+        # 1.当预报平均地面风向的变化大于等于 60°，且平均风速在变化前和（或）变化后大于等于 5m/s 时
         if direction() and max(speed1, speed2) >= 5:
             return True
 
-        # 第二条
+        # 2.当预报平均地面风速的变化大于等于 5m/s 时
         if abs(speed1 - speed2) >= 5:
             return True
 
-        # 第三条
-        if wind1['gust'] and wind2['gust'] and int(wind2['gust']) - int(wind1['gust']) >= 5 and max(speed1, speed2) >=8:
+        # 3.当预报平均地面风风速变差（阵风）增加(或减少)大于等于 5m/s，且平均风速在变化前和（或）变化后大于等于 8m/s 时
+        if gust1 and gust2 and abs(gust1 - gust2) >= 5 and max(speed1, speed2) >=8:
             return True
 
+        return False
 
 
     @staticmethod
-    def vis(vis1, vis2):
-        pass
+    def vis(vis1, vis2, thresholds=None):
+        """
+        当预报主导能见度上升并达到或经过下列一个或多个数值，或下降并经过下列一个或多个数值时：
+        1. 150 m、350 m、600 m、800 m、1500 m 或 3000 m
+        2. 5000 m（当有大量的按目视飞行规则的飞行时） # 我们没有
+
+        """
+        trend = 'down' if vis1 > vis2 else 'up'
+
+        # print(vis1, vis2, trend)
+
+        thresholds = thresholds if thresholds else [150, 350, 600, 800, 1500, 3000, 5000]
+        for threshold in thresholds:
+            if trend == 'up':
+                if vis1 < threshold <= vis2:
+                    return True
+            if trend == 'down':
+                if vis2 < threshold < vis1:
+                    return True
+
+        return False
+
+        
 
     @staticmethod
     def weather(wx1, wx2):
-        pass
+        """
+        天气现象：
+           1. 当预报下列一种或几种天气现象开始、终止或强度变化时：
+              冻降水
+              中或大的降水（包括阵性降水）包括雷暴
+              尘暴
+              沙暴
+
+           2. 当预报下列一种或几种天气现象开始、终止时
+              冻雾
+              低吹尘、低吹沙或低吹雪
+              高吹尘、高吹沙或高吹雪
+              雷暴（伴或不伴有降水）
+              飑
+              漏斗云（陆龙卷或水龙卷）
+        """
+        # regex = r'(BR|HZ|FU|DU|-RA|-SN)'
+        # 特殊情况 NSW 未考虑
+
+        regex = r'((?P<intensity>[+-])?(?P<wx1>DZ|RA|SN|SG|PL|DS|SS|SHRA|SHSN|SHGR|SHGS|FZRA|FZDZ|TSRA|TSSN|TSPL|TSGR|TSGS|TSSH)|(?P<wx2>SQ|PO|FC|TS|FZFG|BLSN|BLSA|BLDU|DRSN|DRSA|DRDU))'
+
+        match1 = re.search(regex, wx1)
+        match2 = re.search(regex, wx2)
+
+        # print(match1, match2)
+
+        if match1 and match2:
+            if match1.group() == match2.group():
+                return False
+
+        return True
 
     @staticmethod
-    def cloud(cloud1, cloud2):
-        pass
+    def clouds(cloud1, cloud2):
+        '''   
+          当预报BKN或OVC云量的最低云层的云高抬升并达到或经过下列一个或多个数值，或降低并经过下列一个或多个数值时：
+            1. 30 m、60 m、150 m 或 300 m
+            2. 450 m（在有大量的按目视飞行规则的飞行时）
 
-print(Validator.wind('36010MPS', '36005MPS'))
+          当预报低于450 m的云层或云块的量的变化满足下列条件之一时：
+            1. 从SCT或更少到BKN、OVC
+            2. 从BKN、OVC到SCT或更少
+
+          当预报积雨云将发展或消失时
+        '''
+        regex = Parser.regex_taf['common']['cloud']
+        thresholds = [1, 2, 5, 10, 15]
+
+        # 同为NSC
+        if cloud1 == 'NSC' and cloud2 == 'NSC':
+            return False
+
+        # 有积雨云CB
+        match1 = re.finditer(regex, cloud1)
+        match2 = re.finditer(regex, cloud2)
+        print(match1)
+        print(match2)
+        for i in match2:
+            print(i.groupdict())
+
+
+
+
+print(Validator.clouds('SCT020', 'SCT010 FEW023CB'))
