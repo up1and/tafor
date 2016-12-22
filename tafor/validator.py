@@ -12,11 +12,11 @@ class Parser(object):
         },
 
         'common': { 
-                    'taf': r'\b(TAF)\b',
-                    'cccc': r'\b([A-Z]{4})\b',
-                    'timez': r'\b(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])Z\b',
+                    'taf': r'\b(?P<taf>TAF)\b',
+                    'icao': r'\b(?P<icao>[A-Z]{4})\b',
+                    'timez': r'\b(?P<month>0[1-9]|[12][0-9]|3[0-1])(?P<day>[01][0-9]|2[0-3])(?P<hour>[0-5][0-9])Z\b',
                     'period': r'\b(0[1-9]|[12][0-9]|3[0-1])(0009|0312|0615|0918|1221|1524|1803|2106|0024|0606|1212|1818)\b',
-                    'wind': r'\b(?:00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)(?:G(0[1-9]|[1-4][0-9]|P49))?)MPS\b',
+                    'wind': r'\b(?:00000|(?P<direction>VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(?P<speed>0[1-9]|[1-4][0-9]|P49)(?:G(?P<gust>0[1-9]|[1-4][0-9]|P49))?)MPS\b',
                     'vis': r'\b(9999|[5-9]000|[01234][0-9]00|0[0-7]50)\b',
                     'wx1': r'\b(NSW|IC|FG|BR|SA|DU|HZ|FU|VA|SQ|PO|FC|TS|FZFG|BLSN|BLSA|BLDU|DRSN|DRSA|DRDU|MIFG|BCFG|PRFG)\b',
                     'wx2': r'\b([-+]?)(DZ|RA|SN|SG|PL|DS|SS|TSRA|TSSN|TSPL|TSGR|TSGS|SHRA|SHSN|SHGR|SHGS|FZRA|FZDZ)\b',
@@ -89,16 +89,75 @@ class Parser(object):
 
 class Validator(object):
     """docstring for Validator"""
+
     @staticmethod
-    def wind(self):
+    def wind(str_wind1, str_wind2):
+        """
+        风：
+        1.当预报平均地面风向的变化大于等于 60°，且平均风速在变化前和（或）变化后大于等于 5m/s 时
+        2.当预报平均地面风速的变化大于等于 5m/s 时
+        3.当预报平均地面风风速变差（阵风）增加大于等于 5m/s，且平均风速在变化前和（或）变化后大于等于 8m/s 时  ***有异议
+        """
+        regex_wind = re.compile(Parser.regex_taf['common']['wind'])
+        wind1 = regex_wind.match(str_wind1).groupdict()
+        wind2 = regex_wind.match(str_wind2).groupdict()
+
+        speed1 = int(wind1['speed'])
+        speed2 = int(wind2['speed'])
+
+        print(wind1)
+        print(wind2)
+
+        def direction():
+            # 有一个风向为 VRB, 返回 True
+            if 'VRB' in (wind1['direction'], wind2['direction']):
+                return True
+
+            direction1 = int(wind1['direction'])
+            direction2 = int(wind2['direction'])
+
+            # 计算夹角
+            # 风向变化大于180度
+            if abs(direction1 - direction2) > 180:
+                angle = min(direction1, direction2) + 360 - max(direction1, direction2)
+            else:
+                angle = abs(direction1 - direction2)
+
+            # print(angle)
+
+            if angle < 60:
+                return False
+
+            return True
+
+        # def gust(wind):
+        #     if int(wind['gust']) - int(wind['speed']) < 5:
+        #         return False
+
+        # 第一条
+        if direction() and max(speed1, speed2) >= 5:
+            return True
+
+        # 第二条
+        if abs(speed1 - speed2) >= 5:
+            return True
+
+        # 第三条
+        if wind1['gust'] and wind2['gust'] and int(wind2['gust']) - int(wind1['gust']) >= 5 and max(speed1, speed2) >=8:
+            return True
+
+
+
+    @staticmethod
+    def vis(vis1, vis2):
         pass
 
     @staticmethod
-    def vis(self):
+    def weather(wx1, wx2):
         pass
 
     @staticmethod
-    def cloud(self):
+    def cloud(cloud1, cloud2):
         pass
 
-
+print(Validator.wind('36010MPS', '36005MPS'))
