@@ -1,0 +1,6 @@
+<!DOCTYPE RCC><RCC version="1.0">
+    <qresource>
+        <file alias="sunny.png">../icons/sunny.png</file>
+        <file alias="setting.png">../icons/setting.png</file>
+    </qresource>
+</RCC>
