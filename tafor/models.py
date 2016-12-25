@@ -24,9 +24,10 @@ class Tafor(Base):
 
     schedule = relationship('Schedule')
 
-    def __init__(self, tt=None, rpt=None):
+    def __init__(self, tt, rpt, raw_rpt=None):
         self.tt = tt
         self.rpt = rpt
+        self.raw_rpt = raw_rpt
 
     def __repr__(self):
         return '<TAF %r %r>' % (self.tt, self.rpt)
@@ -40,13 +41,14 @@ class Schedule(Base):
     tt = Column(String(2))
     rpt = Column(String(255))
     create_time = Column(DateTime, default=datetime.datetime.utcnow)
-    send_time = Column(DateTime)
+    schedule_time = Column(DateTime)
 
     tafor_id = Column(Integer, ForeignKey('tafor.id'))
 
-    def __init__(self, tt=None, rpt=None):
+    def __init__(self, tt, rpt, schedule_time):
         self.tt = tt
         self.rpt = rpt
+        self.schedule_time = schedule_time
 
     def __repr__(self):
         return '<Schedule TAF %r %r>' % (self.tt, self.rpt)

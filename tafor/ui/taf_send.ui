@@ -15,10 +15,10 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="sizeConstraint">
-    <enum>QLayout::SetFixedSize</enum>
+    <enum>QLayout::SetDefaultConstraint</enum>
    </property>
    <item>
-    <widget class="QTextBrowser" name="rpt_content"/>
+    <widget class="QTextBrowser" name="message_container"/>
    </item>
    <item>
     <widget class="QDialogButtonBox" name="post_box">

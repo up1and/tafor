@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
+import datetime
 
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-import datetime
 from utils import TAF
 from validator import Parser
+from models import Session, Tafor, Schedule
 from ui import Ui_taf_edit, Ui_taf_send
 
 
@@ -15,7 +16,7 @@ class TAFEditBase(QDialog, Ui_taf_edit.Ui_TAFEdit):
     主窗口
     """
 
-    message = pyqtSignal('QString')
+    message = pyqtSignal(dict)
 
     def __init__(self, parent=None):
         """
@@ -23,6 +24,7 @@ class TAFEditBase(QDialog, Ui_taf_edit.Ui_TAFEdit):
         """
         super(TAFEditBase, self).__init__(parent)
         self.setupUi(self)
+        self.setAttribute(Qt.WA_DeleteOnClose)
         self.validate()
         self.setStyleSheet("QLineEdit {width: 50px;} QGroupBox {border:none;}")
         
@@ -43,6 +45,7 @@ class TAFEditBase(QDialog, Ui_taf_edit.Ui_TAFEdit):
 
         # self.taf_next.setEnabled(False)
         self.taf_next.clicked.connect(self.assemble)
+        self.taf_period.setEnabled(False)
 
         self.time = datetime.datetime.utcnow()
 
@@ -53,12 +56,13 @@ class TAFEditBase(QDialog, Ui_taf_edit.Ui_TAFEdit):
         # self.test()
 
     def set_taf_period(self):
-        if self.type_fc.isChecked():
-            tt = 'FC'
-        elif self.type_ft.isChecked():
-            tt = 'FT'
-        taf = TAF(tt, self.time)
-        self.taf_period.setText(self.time.strftime('%d') + taf.get_period())
+        if self.taf_date.text() and (self.type_fc.isChecked() or self.type_ft.isChecked()):
+            if self.type_fc.isChecked():
+                self.tt = 'FC'
+            elif self.type_ft.isChecked():
+                self.tt = 'FT'
+            taf = TAF(self.tt, self.time)
+            self.taf_period.setText(self.time.strftime('%d') + taf.get_period())
 
     def set_cavok(self, checked):
         if checked:
@@ -83,6 +87,9 @@ class TAFEditBase(QDialog, Ui_taf_edit.Ui_TAFEdit):
     def validate(self):
         regex = Parser.regex_taf['edit']
         # print(regex)
+
+        valid_date = QRegExpValidator(QRegExp(regex['time']))
+        self.taf_date.setValidator(valid_date)
 
         valid_wind = QRegExpValidator(QRegExp(regex['wind']))
         self.taf_wind.setValidator(valid_wind)
@@ -141,12 +148,8 @@ class TAFEditBase(QDialog, Ui_taf_edit.Ui_TAFEdit):
         else:
             rpt_group = prefix_group + [vis, wx1, wx2, cloud1, cloud2, cloud3, cb] + temp_group
             self.rpt = ' '.join(rpt_group)
-            self.rpt = ' '.join(self.rpt.split())
+        self.rpt = ' '.join(self.rpt.split()) + '='
         
-        send = TAFSend(self)
-        send.show()
-        self.message.connect(send.result)
-        self.message.emit(self.rpt)
         
 
 
@@ -160,32 +163,109 @@ class TAFEdit(TAFEditBase):
         self.taf_date.setText(self.time.strftime('%d%H%M'))
         self.taf_date.setEnabled(False)
 
-        self.taf_period.setEnabled(False)
+    def assemble(self):
+        super(TAFEdit, self).assemble()
+        send = TAFSend(self)
+        send.show()
+        send_data = {'tt': self.tt, 'rpt':self.rpt}
+        self.message.connect(send.process)
+        self.message.emit(send_data)
+
 
 class ScheduleTAFEdit(TAFEditBase):
 
     def __init__(self, parent=None):
         super(ScheduleTAFEdit, self).__init__(parent)
         self.setWindowTitle("定时任务")
+
+        self.type_fc.clicked.connect(self.set_taf_period)
+        self.type_ft.clicked.connect(self.set_taf_period)
+        self.taf_date.editingFinished.connect(self.schedule_time)
+        self.taf_date.editingFinished.connect(self.set_taf_period)
         
+    def assemble(self):
+        super(ScheduleTAFEdit, self).assemble()
+        send = ScheduleTAFSend(self)
+        send.show()
+        send_data = {'tt': self.tt, 'rpt':self.rpt, 'sch_time': self.time,}
+        self.message.connect(send.process)
+        self.message.emit(send_data)
+
+    def schedule_time(self):
+        date = self.taf_date.text()
+        now = datetime.datetime.utcnow()
+
+        day = int(date[0:2])
+        hour = int(date[2:4])
+        minute = int(date[4:])
+
+        def _sch_time(time):
+            year = time.year
+            month = time.month
+            return datetime.datetime(year, month, day, hour, minute)
+
+        tmp_time = now
+        while _sch_time(tmp_time) < now:
+            tmp_time = tmp_time + datetime.timedelta(days=1)
+
+        sch_time = _sch_time(tmp_time)
+        self.time = sch_time
+        return sch_time
 
 
-class TAFSend(QDialog, Ui_taf_send.Ui_TAFSend):
+class TAFSendBase(QDialog, Ui_taf_send.Ui_TAFSend):
 
     def __init__(self, parent=None):
         """
         初始化主窗口
         """
-        super(TAFSend, self).__init__(parent)
+        super(TAFSendBase, self).__init__(parent)
         self.setupUi(self)
+        self.setAttribute(Qt.WA_DeleteOnClose)
+
+        # self.message = 'TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR='
+        # self.message_container.setText(self.message)
+        # self.tt = 'FC'
+
+        self.db = Session()
+
+    def process(self, message):
+        self.message = message
+        self.message_container.setText(self.message['rpt'])
+        print(self.message)
+
+
+
+class TAFSend(TAFSendBase):
+
+    def __init__(self, parent=None):
+        super(TAFSend, self).__init__(parent)
 
     def accept(self):
-        print('post')
-        self.close()
+        item = Tafor(tt=self.tt, rpt=self.message)
+        self.db.add(item)
+        self.db.commit()
+        print(item.send_time)
+        # self.close()
 
-    def result(self, message):
-        self.rpt_content.setText(message)
 
+class ScheduleTAFSend(TAFSendBase):
+
+    def __init__(self, parent=None):
+        super(ScheduleTAFSend, self).__init__(parent)
+        self.table = Schedule
+
+        self.setWindowTitle("定时任务")
+
+        # 测试数据
+        self.schedule_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=1)
+
+    def accept(self):
+        item = Schedule(tt=self.tt, rpt=self.message, schedule_time=self.schedule_time)
+        self.db.add(item)
+        self.db.commit()
+        print(item.schedule_time)
+        # self.close()
 
 
 
