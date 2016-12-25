@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 from ui import Ui_main, main_rc
-from taf import TAFWizard
+from taf import TAFEdit, ScheduleTAFEdit
 # from models import session, Tafor, Schedule
 
 __version__ = "1.0.0"
@@ -23,7 +23,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.setupUi(self)
 
         # 连接TAF对话框
-        self.taf_action.triggered.connect(TAFWizard(self).show)
+        self.taf_action.triggered.connect(TAFEdit(self).show)
 
         # 连接设置对话框的槽
         # self.setting_action.triggered.connect(SettingDialog(self).show)
@@ -55,6 +55,11 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         """
         print(checked)
 
+    def keyPressEvent(self, event):
+        # if event.key() == Qt.Key_Escape:
+        if event.modifiers() == (Qt.ShiftModifier | Qt.ControlModifier) and event.key() == Qt.Key_P:
+            ScheduleTAFEdit(self).show()
+        
  
     def about(self):
         QMessageBox.about(self, u"预报报文发布软件",

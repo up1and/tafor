@@ -14,7 +14,7 @@ class Parser(object):
         'common': { 
                     'taf': r'\b(?P<taf>TAF)\b',
                     'icao': r'\b(?P<icao>[A-Z]{4})\b',
-                    'timez': r'\b(?P<month>0[1-9]|[12][0-9]|3[0-1])(?P<day>[01][0-9]|2[0-3])(?P<hour>[0-5][0-9])Z\b',
+                    'timez': r'\b(?P<day>0[1-9]|[12][0-9]|3[0-1])(?P<hour>[01][0-9]|2[0-3])(?P<minute>[0-5][0-9])Z\b',
                     'period': r'\b(0[1-9]|[12][0-9]|3[0-1])(0009|0312|0615|0918|1221|1524|1803|2106|0024|0606|1212|1818)\b',
                     'wind': r'\b(?:00000|(?P<direction>VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(?P<speed>0[1-9]|[1-4][0-9]|P49)(?:G(?P<gust>0[1-9]|[1-4][0-9]|P49))?)MPS\b',
                     'vis': r'\b(9999|[5-9]000|[01234][0-9]00|0[0-7]50)\b',
@@ -31,6 +31,17 @@ class Parser(object):
                     'prob': r'\b(PROB[34]0)\b',
                     'sign': r'\b(BECMG|FM|TEMPO|PROB)\b',
                     'interval':r'\b([01][0-9]|2[0-3])([01][0-9]|2[0-3])\b',
+        },
+
+        'edit':{
+                'time': r'(?P<day>0[1-9]|[12][0-9]|3[0-1])(?P<hour>[01][0-9]|2[0-3])(?P<minute>[0-5][0-9])',
+                'wind': r'00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)',
+                'gust': r'(0[1-9]|[1-4][0-9]|P49)',
+                'vis': r'(9999|[5-9]000|[01234][0-9]00|0[0-7]50)',
+                'cloud': r'(FEW|SCT|BKN|OVC)(0[0-4][0-9]|050)',
+                'temp': r'M?([0-5][0-9])([01][0-9]|2[0-3])',
+
+
         },
 
         'split': r'(BECMG|FM|TEMPO|PROB[34]0\sTEMPO)\b',
@@ -242,4 +253,4 @@ class Validator(object):
 
 
 
-print(Validator.clouds('SCT020', 'SCT010 FEW023CB'))
+# print(Validator.clouds('SCT020', 'SCT010 FEW023CB'))
