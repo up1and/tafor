@@ -51,7 +51,7 @@ class Schedule(Base):
         self.schedule_time = schedule_time
 
     def __repr__(self):
-        return '<Schedule TAF %r %r>' % (self.tt, self.rpt)
+        return '<Schedule TAF %r %r %r>' % (self.tt, self.rpt, self.schedule_time)
 
 # 初始化数据库连接:
 engine = create_engine('sqlite:///./db.sqlite3', echo=False)

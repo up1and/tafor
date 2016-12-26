@@ -242,7 +242,7 @@ class TAFSend(TAFSendBase):
         super(TAFSend, self).__init__(parent)
 
     def accept(self):
-        item = Tafor(tt=self.tt, rpt=self.message)
+        item = Tafor(tt=self.message['tt'], rpt=self.message['rpt'])
         self.db.add(item)
         self.db.commit()
         print(item.send_time)
@@ -261,7 +261,7 @@ class ScheduleTAFSend(TAFSendBase):
         self.schedule_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=1)
 
     def accept(self):
-        item = Schedule(tt=self.tt, rpt=self.message, schedule_time=self.schedule_time)
+        item = Schedule(tt=self.message['tt'], rpt=self.message['rpt'], schedule_time=self.message['sch_time'])
         self.db.add(item)
         self.db.commit()
         print(item.schedule_time)
