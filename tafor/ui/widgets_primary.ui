@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Form</class>
+ <widget class="QWidget" name="Form">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1024</width>
+    <height>196</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QGridLayout" name="main_layout">
+     <item row="3" column="5">
+      <widget class="QComboBox" name="taf_weather1_combobox"/>
+     </item>
+     <item row="3" column="6">
+      <widget class="QComboBox" name="taf_weather2_combobox"/>
+     </item>
+     <item row="6" column="10">
+      <widget class="QLineEdit" name="taf_temp_min"/>
+     </item>
+     <item row="4" column="7">
+      <widget class="QCheckBox" name="taf_skc">
+       <property name="text">
+        <string>SKC</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="1">
+      <widget class="QCheckBox" name="tempo1_checkbox">
+       <property name="text">
+        <string>TEMPO1</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="9">
+      <widget class="QLabel" name="taf_cloud3_label">
+       <property name="text">
+        <string>云组3</string>
+       </property>
+       <property name="buddy">
+        <cstring>taf_cloud3</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="4">
+      <widget class="QLineEdit" name="taf_vis"/>
+     </item>
+     <item row="6" column="0">
+      <widget class="QCheckBox" name="becmg2_checkbox">
+       <property name="text">
+        <string>BECMG2</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="7">
+      <widget class="QLabel" name="taf_cloud1_label">
+       <property name="text">
+        <string>云组1</string>
+       </property>
+       <property name="buddy">
+        <cstring>taf_cloud1</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="8">
+      <widget class="QLineEdit" name="taf_cloud2"/>
+     </item>
+     <item row="2" column="8">
+      <widget class="QLabel" name="taf_cloud2_label">
+       <property name="text">
+        <string>云组2</string>
+       </property>
+       <property name="buddy">
+        <cstring>taf_cloud2</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="8">
+      <widget class="QCheckBox" name="taf_nsc">
+       <property name="text">
+        <string>NSC</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="3">
+      <widget class="QLineEdit" name="taf_gust"/>
+     </item>
+     <item row="5" column="10">
+      <widget class="QLabel" name="taf_temp_min_label">
+       <property name="text">
+        <string>最低温</string>
+       </property>
+       <property name="buddy">
+        <cstring>taf_temp_min</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="0">
+      <widget class="QCheckBox" name="becmg3_checkbox">
+       <property name="text">
+        <string>BECMG3</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="4">
+      <widget class="QLabel" name="taf_vis_label">
+       <property name="text">
+        <string>能见度</string>
+       </property>
+       <property name="buddy">
+        <cstring>taf_vis</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="5">
+      <widget class="QLabel" name="taf_weather1_label">
+       <property name="text">
+        <string>天气现象1</string>
+       </property>
+       <property name="buddy">
+        <cstring>taf_weather1_combobox</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="3">
+      <widget class="QLabel" name="taf_gust_label">
+       <property name="text">
+        <string>阵风</string>
+       </property>
+       <property name="buddy">
+        <cstring>taf_gust</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLineEdit" name="taf_date"/>
+     </item>
+     <item row="4" column="4">
+      <widget class="QCheckBox" name="taf_cavok">
+       <property name="text">
+        <string>CAVOK</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="7">
+      <widget class="QLineEdit" name="taf_cloud1"/>
+     </item>
+     <item row="5" column="0">
+      <widget class="QCheckBox" name="becmg1_checkbox">
+       <property name="text">
+        <string>BECMG1</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="taf_date_label">
+       <property name="text">
+        <string>日期</string>
+       </property>
+       <property name="buddy">
+        <cstring>taf_date</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QLabel" name="taf_period_label">
+       <property name="text">
+        <string>时段</string>
+       </property>
+       <property name="buddy">
+        <cstring>taf_period</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="10">
+      <widget class="QLabel" name="taf_cb_label">
+       <property name="text">
+        <string>积雨云</string>
+       </property>
+       <property name="buddy">
+        <cstring>taf_cb</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="2">
+      <widget class="QLabel" name="taf_wind_label">
+       <property name="text">
+        <string>风向风速</string>
+       </property>
+       <property name="buddy">
+        <cstring>taf_wind</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="2">
+      <widget class="QLineEdit" name="taf_wind"/>
+     </item>
+     <item row="5" column="9">
+      <widget class="QLabel" name="taf_temp_max_label">
+       <property name="text">
+        <string>最高温</string>
+       </property>
+       <property name="buddy">
+        <cstring>taf_temp_max</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="9">
+      <widget class="QLineEdit" name="taf_cloud3"/>
+     </item>
+     <item row="6" column="9">
+      <widget class="QLineEdit" name="taf_temp_max"/>
+     </item>
+     <item row="2" column="6">
+      <widget class="QLabel" name="taf_weather2_label">
+       <property name="text">
+        <string>天气现象2</string>
+       </property>
+       <property name="buddy">
+        <cstring>taf_weather2_combobox</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="1">
+      <widget class="QCheckBox" name="tempo2_checkbox">
+       <property name="text">
+        <string>TEMPO2</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QLineEdit" name="taf_period"/>
+     </item>
+     <item row="3" column="10">
+      <widget class="QLineEdit" name="taf_cb"/>
+     </item>
+     <item row="0" column="0" colspan="2">
+      <widget class="QGroupBox" name="group_type">
+       <property name="title">
+        <string/>
+       </property>
+       <layout class="QGridLayout" name="gridLayout_6">
+        <item row="0" column="0">
+         <widget class="QRadioButton" name="type_fc">
+          <property name="text">
+           <string>FC</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QRadioButton" name="type_ft">
+          <property name="text">
+           <string>FT</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item row="0" column="4" colspan="7">
+      <widget class="QGroupBox" name="group_cls">
+       <property name="title">
+        <string/>
+       </property>
+       <layout class="QGridLayout" name="gridLayout_5">
+        <item row="0" column="0">
+         <widget class="QRadioButton" name="cls_normal">
+          <property name="text">
+           <string>正常报</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QRadioButton" name="cls_cor">
+          <property name="text">
+           <string>更正报</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="2">
+         <widget class="QComboBox" name="cls_cor_combobox"/>
+        </item>
+        <item row="0" column="3">
+         <widget class="QRadioButton" name="cls_amd">
+          <property name="text">
+           <string>修订报</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="4">
+         <widget class="QComboBox" name="cls_amd_combobox"/>
+        </item>
+        <item row="0" column="5">
+         <widget class="QRadioButton" name="cls_cnl">
+          <property name="text">
+           <string>取消报</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="6">
+         <widget class="QComboBox" name="cls_cnl_combobox"/>
+        </item>
+       </layout>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <tabstops>
+  <tabstop>type_fc</tabstop>
+  <tabstop>type_ft</tabstop>
+  <tabstop>cls_normal</tabstop>
+  <tabstop>cls_cor</tabstop>
+  <tabstop>cls_cor_combobox</tabstop>
+  <tabstop>cls_amd</tabstop>
+  <tabstop>cls_amd_combobox</tabstop>
+  <tabstop>cls_cnl</tabstop>
+  <tabstop>cls_cnl_combobox</tabstop>
+  <tabstop>taf_date</tabstop>
+  <tabstop>taf_period</tabstop>
+  <tabstop>taf_wind</tabstop>
+  <tabstop>taf_gust</tabstop>
+  <tabstop>taf_vis</tabstop>
+  <tabstop>taf_weather1_combobox</tabstop>
+  <tabstop>taf_weather2_combobox</tabstop>
+  <tabstop>taf_cloud1</tabstop>
+  <tabstop>taf_cloud2</tabstop>
+  <tabstop>taf_cloud3</tabstop>
+  <tabstop>taf_cb</tabstop>
+  <tabstop>taf_cavok</tabstop>
+  <tabstop>taf_skc</tabstop>
+  <tabstop>taf_nsc</tabstop>
+  <tabstop>taf_temp_max</tabstop>
+  <tabstop>taf_temp_min</tabstop>
+  <tabstop>becmg1_checkbox</tabstop>
+  <tabstop>becmg2_checkbox</tabstop>
+  <tabstop>becmg3_checkbox</tabstop>
+  <tabstop>tempo1_checkbox</tabstop>
+  <tabstop>tempo2_checkbox</tabstop>
+ </tabstops>
+ <resources/>
+ <connections/>
+</ui>

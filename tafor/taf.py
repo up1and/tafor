@@ -9,6 +9,7 @@ from utils import TAF
 from validator import Parser
 from models import Session, Tafor, Schedule
 from ui import Ui_taf_edit, Ui_taf_send
+from widgets import TAFWidgetsPrimary
 
 
 class TAFEditBase(QDialog, Ui_taf_edit.Ui_TAFEdit):
@@ -25,27 +26,30 @@ class TAFEditBase(QDialog, Ui_taf_edit.Ui_TAFEdit):
         super(TAFEditBase, self).__init__(parent)
         self.setupUi(self)
         self.setAttribute(Qt.WA_DeleteOnClose)
-        self.validate()
+        # self.validate()
         self.setStyleSheet("QLineEdit {width: 50px;} QGroupBox {border:none;}")
+
+        self.primary = TAFWidgetsPrimary()
+        self.main.addWidget(self.primary)
         
-        self.becmg1_frame.hide()
-        self.becmg2_frame.hide()
-        self.becmg3_frame.hide()
-        self.tempo1_frame.hide()
-        self.tempo2_frame.hide()
+        # self.becmg1_frame.hide()
+        # self.becmg2_frame.hide()
+        # self.becmg3_frame.hide()
+        # self.tempo1_frame.hide()
+        # self.tempo2_frame.hide()
 
-        self.becmg1_checkbox.toggled.connect(self.becmg1_frame.setVisible)
-        self.becmg2_checkbox.toggled.connect(self.becmg2_frame.setVisible)
-        self.becmg3_checkbox.toggled.connect(self.becmg3_frame.setVisible)
+        # self.becmg1_checkbox.toggled.connect(self.becmg1_frame.setVisible)
+        # self.becmg2_checkbox.toggled.connect(self.becmg2_frame.setVisible)
+        # self.becmg3_checkbox.toggled.connect(self.becmg3_frame.setVisible)
 
-        self.tempo1_checkbox.toggled.connect(self.tempo1_frame.setVisible)
-        self.tempo2_checkbox.toggled.connect(self.tempo2_frame.setVisible)
+        # self.tempo1_checkbox.toggled.connect(self.tempo1_frame.setVisible)
+        # self.tempo2_checkbox.toggled.connect(self.tempo2_frame.setVisible)
 
-        self.taf_cavok.clicked.connect(self.set_cavok)
+        # self.taf_cavok.clicked.connect(self.set_cavok)
 
         # self.taf_next.setEnabled(False)
-        self.taf_next.clicked.connect(self.assemble)
-        self.taf_period.setEnabled(False)
+        # self.taf_next.clicked.connect(self.assemble)
+        # self.taf_period.setEnabled(False)
 
         self.time = datetime.datetime.utcnow()
 
@@ -157,11 +161,11 @@ class TAFEdit(TAFEditBase):
 
     def __init__(self, parent=None):
         super(TAFEdit, self).__init__(parent)
-        self.type_fc.clicked.connect(self.set_taf_period)
-        self.type_ft.clicked.connect(self.set_taf_period)
+        # self.type_fc.clicked.connect(self.set_taf_period)
+        # self.type_ft.clicked.connect(self.set_taf_period)
 
-        self.taf_date.setText(self.time.strftime('%d%H%M'))
-        self.taf_date.setEnabled(False)
+        # self.taf_date.setText(self.time.strftime('%d%H%M'))
+        # self.taf_date.setEnabled(False)
 
     def assemble(self):
         super(TAFEdit, self).assemble()
