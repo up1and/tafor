@@ -12,49 +12,6 @@ from ui import Ui_taf_send
 from widgets import TAFWidgetsPrimary, TAFWidgetsBecmg, TAFWidgetsTempo
 
 
-# class TAFEditBase(QDialog, Ui_taf_edit.Ui_TAFEdit):
-#     """
-#     主窗口
-#     """
-
-#     message = pyqtSignal(dict)
-
-#     def __init__(self, parent=None):
-#         """
-#         初始化主窗口
-#         """
-#         super(TAFEditBase, self).__init__(parent)
-#         self.setupUi(self)
-#         self.setAttribute(Qt.WA_DeleteOnClose)
-#         # self.validate()
-#         self.setStyleSheet("QLineEdit {width: 50px;} QGroupBox {border:none;}")
-
-#         self.primary = TAFWidgetsPrimary()
-#         self.main.addWidget(self.primary)
-
-#         # self.taf_cavok.clicked.connect(self.set_cavok)
-
-#         # self.taf_next.setEnabled(False)
-#         # self.taf_next.clicked.connect(self.assemble)
-#         # self.taf_period.setEnabled(False)
-
-#         self.time = datetime.datetime.utcnow()
-
-#         # self.one_second_timer = QTimer()
-#         # self.one_second_timer.timeout.connect(self.enbale_next_button)
-#         # self.one_second_timer.start(1 * 1000)
-
-#         # self.test()
-
-#     def set_taf_period(self):
-#         if self.taf_date.text() and (self.type_fc.isChecked() or self.type_ft.isChecked()):
-#             if self.type_fc.isChecked():
-#                 self.tt = 'FC'
-#             elif self.type_ft.isChecked():
-#                 self.tt = 'FT'
-#             taf = TAF(self.tt, self.time)
-#             self.taf_period.setText(self.time.strftime('%d') + taf.get_period())
-
 
 #     def enbale_next_button(self):
 #         if self.taf_date.text() and self.taf_period.text() and self.taf_wind.text():
@@ -64,35 +21,13 @@ from widgets import TAFWidgetsPrimary, TAFWidgetsBecmg, TAFWidgetsTempo
 #                 if self.taf_cloud1.text() or self.taf_cloud2.text() or self.taf_cloud3.text() or self.taf_cb.text() or self.taf_nsc.isChecked():
 #                     self.taf_next.setEnabled(True)
 
-#     def assemble(self):
-#         taf = 'TAF'
-#         icao = 'ZJHK'
-#         timez = self.taf_date.text() + 'Z'
-#         period = self.taf_period.text()
-#         wind = ''.join([self.taf_wind.text(), 'G', self.taf_gust.text(), 'MPS']) if self.taf_gust.text() else ''.join([self.taf_wind.text(), 'MPS'])
-#         vis = self.taf_vis.text()
-#         wx1 = self.taf_weather1_combobox.currentText()
-#         wx2 = self.taf_weather2_combobox.currentText()
-#         cloud1 = self.taf_cloud1.text()
-#         cloud2 = self.taf_cloud2.text()
-#         cloud3 = self.taf_cloud3.text()
-#         cb = self.taf_cb.text()
-#         tmax = ''.join(['TX', self.taf_temp_max.text()[0:-2], '/', self.taf_temp_max.text()[-2:], 'Z'])
-#         tmin = ''.join(['TN', self.taf_temp_min.text()[0:-2], '/', self.taf_temp_min.text()[-2:], 'Z'])
-
-#         prefix_group = [taf, icao, timez, period, wind]
-#         temp_group = [tmax, tmin]
-#         if self.taf_cavok.isChecked():
-#             rpt_group = prefix_group + ['CAVOK'] + temp_group
-#             self.rpt = ' '.join(rpt_group)
-#         else:
-#             rpt_group = prefix_group + [vis, wx1, wx2, cloud1, cloud2, cloud3, cb] + temp_group
-#             self.rpt = ' '.join(rpt_group)
-#         self.rpt = ' '.join(self.rpt.split()) + '='
         
 
 class TAFEditBase(QDialog):
     """docstring for TAF"""
+
+    signal_send = pyqtSignal(dict)
+
     def __init__(self, parent=None):
         super(TAFEditBase, self).__init__(parent)
         self.setAttribute(Qt.WA_DeleteOnClose)
@@ -141,6 +76,8 @@ class TAFEditBase(QDialog):
         self.primary.tempo1_checkbox.toggled.connect(self.widget_tempo1.setVisible)
         self.primary.tempo2_checkbox.toggled.connect(self.widget_tempo2.setVisible)
 
+        self.next_button.clicked.connect(self.assemble_message)
+
     def set_taf_period(self):
         if self.primary.date.text() and (self.primary.fc.isChecked() or self.primary.ft.isChecked()):
             if self.primary.fc.isChecked():
@@ -148,35 +85,19 @@ class TAFEditBase(QDialog):
             elif self.primary.ft.isChecked():
                 self.tt = 'FT'
             taf_period = current_taf_period(self.tt, self.time)
-            self.period.setText(self.time.strftime('%d') + taf_period)
+            self.primary.period.setText(self.time.strftime('%d') + taf_period)
 
-    # def generate_message(self):
-    #     taf = 'TAF'
-    #     icao = 'ZJHK'
-    #     timez = self.taf_date.text() + 'Z'
-    #     period = self.taf_period.text()
-    #     wind = ''.join([self.taf_wind.text(), 'G', self.taf_gust.text(), 'MPS']) if self.taf_gust.text() else ''.join([self.taf_wind.text(), 'MPS'])
-    #     vis = self.taf_vis.text()
-    #     wx1 = self.taf_weather1_combobox.currentText()
-    #     wx2 = self.taf_weather2_combobox.currentText()
-    #     cloud1 = self.taf_cloud1.text()
-    #     cloud2 = self.taf_cloud2.text()
-    #     cloud3 = self.taf_cloud3.text()
-    #     cb = self.taf_cb.text()
-    #     tmax = ''.join(['TX', self.taf_temp_max.text()[0:-2], '/', self.taf_temp_max.text()[-2:], 'Z'])
-    #     tmin = ''.join(['TN', self.taf_temp_min.text()[0:-2], '/', self.taf_temp_min.text()[-2:], 'Z'])
-
-    #     prefix_group = [taf, icao, timez, period, wind]
-    #     temp_group = [tmax, tmin]
-    #     if self.taf_cavok.isChecked():
-    #         rpt_group = prefix_group + ['CAVOK'] + temp_group
-    #         self.rpt = ' '.join(rpt_group)
-    #     else:
-    #         rpt_group = prefix_group + [vis, wx1, wx2, cloud1, cloud2, cloud3, cb] + temp_group
-    #         self.rpt = ' '.join(rpt_group)
-    #     self.rpt = ' '.join(self.rpt.split()) + '='
-
-
+    def assemble_message(self):
+        primary_msg = self.widget_primary.message()
+        becmg1_msg = self.widget_becmg1.message() if self.primary.becmg1_checkbox.isChecked() else ''
+        becmg2_msg = self.widget_becmg2.message() if self.primary.becmg2_checkbox.isChecked() else ''
+        becmg3_msg = self.widget_becmg3.message() if self.primary.becmg3_checkbox.isChecked() else ''
+        tempo1_msg = self.widget_tempo1.message() if self.primary.tempo1_checkbox.isChecked() else ''
+        tempo2_msg = self.widget_tempo2.message() if self.primary.tempo2_checkbox.isChecked() else ''
+        self.rpt = '\n'.join([primary_msg, becmg1_msg, becmg2_msg, becmg3_msg, tempo1_msg, tempo2_msg])
+        self.rpt = ' '.join(self.rpt.split())
+        print(self.rpt)
+        self.preview()
 
 
 
@@ -184,19 +105,19 @@ class TAFEdit(TAFEditBase):
 
     def __init__(self, parent=None):
         super(TAFEdit, self).__init__(parent)
-        # self.type_fc.clicked.connect(self.set_taf_period)
-        # self.type_ft.clicked.connect(self.set_taf_period)
+        self.primary.fc.clicked.connect(self.set_taf_period)
+        self.primary.ft.clicked.connect(self.set_taf_period)
 
-        # self.taf_date.setText(self.time.strftime('%d%H%M'))
-        # self.taf_date.setEnabled(False)
+        self.time = datetime.datetime.utcnow()
+        self.primary.date.setText(self.time.strftime('%d%H%M'))
+        self.primary.date.setEnabled(False)
 
-    def assemble(self):
-        super(TAFEdit, self).assemble()
+    def preview(self):
         send = TAFSend(self)
         send.show()
         send_data = {'tt': self.tt, 'rpt':self.rpt}
-        self.message.connect(send.process)
-        self.message.emit(send_data)
+        self.signal_send.connect(send.process)
+        self.signal_send.emit(send_data)
 
 
 class ScheduleTAFEdit(TAFEditBase):
@@ -215,8 +136,8 @@ class ScheduleTAFEdit(TAFEditBase):
         send = ScheduleTAFSend(self)
         send.show()
         send_data = {'tt': self.tt, 'rpt':self.rpt, 'sch_time': self.time,}
-        self.message.connect(send.process)
-        self.message.emit(send_data)
+        self.signal_send.connect(send.process)
+        self.signal_send.emit(send_data)
 
     def schedule_time(self):
         date = self.taf_date.text()
@@ -301,7 +222,7 @@ class ScheduleTAFSend(TAFSendBase):
 if __name__ == "__main__":
     import sys
     app = QApplication(sys.argv)
-    ui = TAFEditBase()
+    ui = TAFEdit()
     ui.show()
     sys.exit(app.exec_())
     

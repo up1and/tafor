@@ -110,7 +110,6 @@ class TAFWidgetsMixin(QtCore.QObject):
         else:
             msg_list = [wind, vis, wx1, wx2, cloud1, cloud2, cloud3, cb]
         self.msg = ' '.join(msg_list)
-        self.msg = ' '.join(self.msg.split())
         # print(self.msg)
 
 
@@ -127,6 +126,8 @@ class TAFWidgetsPrimary(QtWidgets.QWidget, TAFWidgetsMixin):
         self.ui.cavok.clicked.connect(self.set_cavok)
         self.ui.skc.clicked.connect(self.set_skc_nsc)
         self.ui.nsc.clicked.connect(self.set_skc_nsc)
+
+        self.ui.period.setEnabled(False)
 
 
     def validate(self):
@@ -148,9 +149,12 @@ class TAFWidgetsPrimary(QtWidgets.QWidget, TAFWidgetsMixin):
         icao = 'ZJHK'
         timez = self.ui.date.text() + 'Z'
         period = self.ui.period.text()
-        msg_list = ['TAF', icao, timez, period, self.msg]
+        tmax = ''.join(['TX', self.ui.tmax.text(), '/', self.ui.tmax_time.text(), 'Z'])
+        tmin = ''.join(['TN', self.ui.tmin.text(), '/', self.ui.tmax_time.text(), 'Z'])
+        msg_list = ['TAF', icao, timez, period, self.msg, tmax, tmin]
         self.msg = ' '.join(msg_list)
         # print(self.msg)
+        return self.msg
 
 
 
@@ -177,6 +181,7 @@ class TAFWidgetsBecmg(QtWidgets.QWidget, TAFWidgetsMixin):
         msg_list = ['BECMG', interval, self.msg]
         self.msg = ' '.join(msg_list)
         # print(self.msg)
+        return self.msg
 
 
 class TAFWidgetsTempo(QtWidgets.QWidget, TAFWidgetsMixin):
@@ -200,6 +205,7 @@ class TAFWidgetsTempo(QtWidgets.QWidget, TAFWidgetsMixin):
             msg_list = ['TEMPO', interval, self.msg]
         self.msg = ' '.join(msg_list)
         # print(self.msg)
+        return self.msg
 
 
 if __name__ == "__main__":
