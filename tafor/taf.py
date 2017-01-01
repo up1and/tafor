@@ -5,156 +5,179 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-from utils import TAF
+from utils import current_taf_period
 from validator import Parser
 from models import Session, Tafor, Schedule
-from ui import Ui_taf_edit, Ui_taf_send
-from widgets import TAFWidgetsPrimary
+from ui import Ui_taf_send
+from widgets import TAFWidgetsPrimary, TAFWidgetsBecmg, TAFWidgetsTempo
 
 
-class TAFEditBase(QDialog, Ui_taf_edit.Ui_TAFEdit):
-    """
-    主窗口
-    """
+# class TAFEditBase(QDialog, Ui_taf_edit.Ui_TAFEdit):
+#     """
+#     主窗口
+#     """
 
-    message = pyqtSignal(dict)
+#     message = pyqtSignal(dict)
 
-    def __init__(self, parent=None):
-        """
-        初始化主窗口
-        """
-        super(TAFEditBase, self).__init__(parent)
-        self.setupUi(self)
-        self.setAttribute(Qt.WA_DeleteOnClose)
-        # self.validate()
-        self.setStyleSheet("QLineEdit {width: 50px;} QGroupBox {border:none;}")
+#     def __init__(self, parent=None):
+#         """
+#         初始化主窗口
+#         """
+#         super(TAFEditBase, self).__init__(parent)
+#         self.setupUi(self)
+#         self.setAttribute(Qt.WA_DeleteOnClose)
+#         # self.validate()
+#         self.setStyleSheet("QLineEdit {width: 50px;} QGroupBox {border:none;}")
 
-        self.primary = TAFWidgetsPrimary()
-        self.main.addWidget(self.primary)
+#         self.primary = TAFWidgetsPrimary()
+#         self.main.addWidget(self.primary)
+
+#         # self.taf_cavok.clicked.connect(self.set_cavok)
+
+#         # self.taf_next.setEnabled(False)
+#         # self.taf_next.clicked.connect(self.assemble)
+#         # self.taf_period.setEnabled(False)
+
+#         self.time = datetime.datetime.utcnow()
+
+#         # self.one_second_timer = QTimer()
+#         # self.one_second_timer.timeout.connect(self.enbale_next_button)
+#         # self.one_second_timer.start(1 * 1000)
+
+#         # self.test()
+
+#     def set_taf_period(self):
+#         if self.taf_date.text() and (self.type_fc.isChecked() or self.type_ft.isChecked()):
+#             if self.type_fc.isChecked():
+#                 self.tt = 'FC'
+#             elif self.type_ft.isChecked():
+#                 self.tt = 'FT'
+#             taf = TAF(self.tt, self.time)
+#             self.taf_period.setText(self.time.strftime('%d') + taf.get_period())
+
+
+#     def enbale_next_button(self):
+#         if self.taf_date.text() and self.taf_period.text() and self.taf_wind.text():
+#             if self.taf_cavok.isChecked():
+#                 self.taf_next.setEnabled(True)
+#             elif self.taf_vis.text():
+#                 if self.taf_cloud1.text() or self.taf_cloud2.text() or self.taf_cloud3.text() or self.taf_cb.text() or self.taf_nsc.isChecked():
+#                     self.taf_next.setEnabled(True)
+
+#     def assemble(self):
+#         taf = 'TAF'
+#         icao = 'ZJHK'
+#         timez = self.taf_date.text() + 'Z'
+#         period = self.taf_period.text()
+#         wind = ''.join([self.taf_wind.text(), 'G', self.taf_gust.text(), 'MPS']) if self.taf_gust.text() else ''.join([self.taf_wind.text(), 'MPS'])
+#         vis = self.taf_vis.text()
+#         wx1 = self.taf_weather1_combobox.currentText()
+#         wx2 = self.taf_weather2_combobox.currentText()
+#         cloud1 = self.taf_cloud1.text()
+#         cloud2 = self.taf_cloud2.text()
+#         cloud3 = self.taf_cloud3.text()
+#         cb = self.taf_cb.text()
+#         tmax = ''.join(['TX', self.taf_temp_max.text()[0:-2], '/', self.taf_temp_max.text()[-2:], 'Z'])
+#         tmin = ''.join(['TN', self.taf_temp_min.text()[0:-2], '/', self.taf_temp_min.text()[-2:], 'Z'])
+
+#         prefix_group = [taf, icao, timez, period, wind]
+#         temp_group = [tmax, tmin]
+#         if self.taf_cavok.isChecked():
+#             rpt_group = prefix_group + ['CAVOK'] + temp_group
+#             self.rpt = ' '.join(rpt_group)
+#         else:
+#             rpt_group = prefix_group + [vis, wx1, wx2, cloud1, cloud2, cloud3, cb] + temp_group
+#             self.rpt = ' '.join(rpt_group)
+#         self.rpt = ' '.join(self.rpt.split()) + '='
         
-        # self.becmg1_frame.hide()
-        # self.becmg2_frame.hide()
-        # self.becmg3_frame.hide()
-        # self.tempo1_frame.hide()
-        # self.tempo2_frame.hide()
 
-        # self.becmg1_checkbox.toggled.connect(self.becmg1_frame.setVisible)
-        # self.becmg2_checkbox.toggled.connect(self.becmg2_frame.setVisible)
-        # self.becmg3_checkbox.toggled.connect(self.becmg3_frame.setVisible)
+class TAFEditBase(QDialog):
+    """docstring for TAF"""
+    def __init__(self, parent=None):
+        super(TAFEditBase, self).__init__(parent)
+        self.setAttribute(Qt.WA_DeleteOnClose)
 
-        # self.tempo1_checkbox.toggled.connect(self.tempo1_frame.setVisible)
-        # self.tempo2_checkbox.toggled.connect(self.tempo2_frame.setVisible)
+        self.init_ui()
+        self.bind_signal()
 
-        # self.taf_cavok.clicked.connect(self.set_cavok)
+    def init_ui(self):
+        window = QWidget(self)
+        layout = QVBoxLayout(window)
+        layout.setSizeConstraint(QLayout.SetFixedSize)
+        self.widget_primary = TAFWidgetsPrimary()
+        self.widget_becmg1, self.widget_becmg2, self.widget_becmg3 = TAFWidgetsBecmg('BECMG1'), TAFWidgetsBecmg('BECMG2'), TAFWidgetsBecmg('BECMG3')
+        self.widget_tempo1, self.widget_tempo2 = TAFWidgetsTempo('TEMPO1'), TAFWidgetsTempo('TEMPO2')
+        self.next_button = QPushButton()
+        self.next_button.setText("下一步")
+        layout.addWidget(self.widget_primary)
+        layout.addWidget(self.widget_becmg1)
+        layout.addWidget(self.widget_becmg2)
+        layout.addWidget(self.widget_becmg3)
+        layout.addWidget(self.widget_tempo1)
+        layout.addWidget(self.widget_tempo2)
+        layout.addWidget(self.next_button, 0, Qt.AlignRight|Qt.AlignBottom)
+        self.setLayout(layout)
 
-        # self.taf_next.setEnabled(False)
-        # self.taf_next.clicked.connect(self.assemble)
-        # self.taf_period.setEnabled(False)
+        self.setStyleSheet("QLineEdit {width: 50px;} QComboBox {width: 50px}")
 
-        self.time = datetime.datetime.utcnow()
+        self.widget_becmg1.hide()
+        self.widget_becmg2.hide()
+        self.widget_becmg3.hide()
+        self.widget_tempo1.hide()
+        self.widget_tempo2.hide()
 
-        # self.one_second_timer = QTimer()
-        # self.one_second_timer.timeout.connect(self.enbale_next_button)
-        # self.one_second_timer.start(1 * 1000)
+        self.primary = self.widget_primary.ui
+        self.becmg1 = self.widget_becmg1.ui
+        self.becmg2 = self.widget_becmg2.ui
+        self.becmg3 = self.widget_becmg3.ui
+        self.tempo1 = self.widget_tempo1.ui
+        self.tempo2 = self.widget_tempo2.ui
 
-        # self.test()
+    def bind_signal(self):
+
+        self.primary.becmg1_checkbox.toggled.connect(self.widget_becmg1.setVisible)
+        self.primary.becmg2_checkbox.toggled.connect(self.widget_becmg2.setVisible)
+        self.primary.becmg3_checkbox.toggled.connect(self.widget_becmg3.setVisible)
+        self.primary.tempo1_checkbox.toggled.connect(self.widget_tempo1.setVisible)
+        self.primary.tempo2_checkbox.toggled.connect(self.widget_tempo2.setVisible)
 
     def set_taf_period(self):
-        if self.taf_date.text() and (self.type_fc.isChecked() or self.type_ft.isChecked()):
-            if self.type_fc.isChecked():
+        if self.primary.date.text() and (self.primary.fc.isChecked() or self.primary.ft.isChecked()):
+            if self.primary.fc.isChecked():
                 self.tt = 'FC'
-            elif self.type_ft.isChecked():
+            elif self.primary.ft.isChecked():
                 self.tt = 'FT'
-            taf = TAF(self.tt, self.time)
-            self.taf_period.setText(self.time.strftime('%d') + taf.get_period())
+            taf_period = current_taf_period(self.tt, self.time)
+            self.period.setText(self.time.strftime('%d') + taf_period)
 
-    def set_cavok(self, checked):
-        if checked:
-            self.taf_vis.clear()
-            self.taf_vis.setEnabled(False)
-            self.taf_cloud1.clear()
-            self.taf_cloud1.setEnabled(False)
-            self.taf_cloud2.clear()
-            self.taf_cloud2.setEnabled(False)
-            self.taf_cloud3.clear()
-            self.taf_cloud3.setEnabled(False)
-            self.taf_cb.clear()
-            self.taf_cb.setEnabled(False)
-        else:
-            self.taf_vis.setEnabled(True)
-            self.taf_cloud1.setEnabled(True)
-            self.taf_cloud2.setEnabled(True)
-            self.taf_cloud3.setEnabled(True)
-            self.taf_cb.setEnabled(True)
+    # def generate_message(self):
+    #     taf = 'TAF'
+    #     icao = 'ZJHK'
+    #     timez = self.taf_date.text() + 'Z'
+    #     period = self.taf_period.text()
+    #     wind = ''.join([self.taf_wind.text(), 'G', self.taf_gust.text(), 'MPS']) if self.taf_gust.text() else ''.join([self.taf_wind.text(), 'MPS'])
+    #     vis = self.taf_vis.text()
+    #     wx1 = self.taf_weather1_combobox.currentText()
+    #     wx2 = self.taf_weather2_combobox.currentText()
+    #     cloud1 = self.taf_cloud1.text()
+    #     cloud2 = self.taf_cloud2.text()
+    #     cloud3 = self.taf_cloud3.text()
+    #     cb = self.taf_cb.text()
+    #     tmax = ''.join(['TX', self.taf_temp_max.text()[0:-2], '/', self.taf_temp_max.text()[-2:], 'Z'])
+    #     tmin = ''.join(['TN', self.taf_temp_min.text()[0:-2], '/', self.taf_temp_min.text()[-2:], 'Z'])
+
+    #     prefix_group = [taf, icao, timez, period, wind]
+    #     temp_group = [tmax, tmin]
+    #     if self.taf_cavok.isChecked():
+    #         rpt_group = prefix_group + ['CAVOK'] + temp_group
+    #         self.rpt = ' '.join(rpt_group)
+    #     else:
+    #         rpt_group = prefix_group + [vis, wx1, wx2, cloud1, cloud2, cloud3, cb] + temp_group
+    #         self.rpt = ' '.join(rpt_group)
+    #     self.rpt = ' '.join(self.rpt.split()) + '='
 
 
-    def validate(self):
-        regex = Parser.regex_taf['edit']
-        # print(regex)
 
-        valid_date = QRegExpValidator(QRegExp(regex['time']))
-        self.taf_date.setValidator(valid_date)
-
-        valid_wind = QRegExpValidator(QRegExp(regex['wind']))
-        self.taf_wind.setValidator(valid_wind)
-
-        valid_gust = QRegExpValidator(QRegExp(regex['gust']))
-        self.taf_gust.setValidator(valid_gust)
-
-        valid_vis = QRegExpValidator(QRegExp(regex['vis']))
-        self.taf_vis.setValidator(valid_vis)
-
-        valid_cloud = QRegExpValidator(QRegExp(regex['cloud']))
-        self.taf_cloud1.setValidator(valid_cloud)
-        self.taf_cloud2.setValidator(valid_cloud)
-        self.taf_cloud3.setValidator(valid_cloud)
-        self.taf_cb.setValidator(valid_cloud)
-
-        valid_temp = QRegExpValidator(QRegExp(regex['temp']))
-        self.taf_temp_max.setValidator(valid_temp)
-        self.taf_temp_min.setValidator(valid_temp)
-
-        wx1 = ['', 'BR', 'FG', 'SA', 'DU', 'HZ', 'FU', 'VA', 'SQ', 'PO', 'FC', 'TS', 'FZFG', 'BLSN', 'BLSA', 'BLDU', 'DRSN', 'DRSA', 'DRDU', 'MIFG', 'BCFG', 'PRFG', 'NSW']
-        self.taf_weather1_combobox.addItems(wx1)
-
-        wx2 = ['', 'DZ', 'RA', 'SN', 'SG', 'PL', 'DS', 'SS', 'TSRA', 'TSSN', 'TSPL', 'TSGR', 'TSGS', 'SHRA', 'SHSN', 'SHGR', 'SHGS', 'FZRA', 'FZDZ']
-        self.taf_weather2_combobox.addItems(wx2)
-
-    def enbale_next_button(self):
-        if self.taf_date.text() and self.taf_period.text() and self.taf_wind.text():
-            if self.taf_cavok.isChecked():
-                self.taf_next.setEnabled(True)
-            elif self.taf_vis.text():
-                if self.taf_cloud1.text() or self.taf_cloud2.text() or self.taf_cloud3.text() or self.taf_cb.text() or self.taf_nsc.isChecked():
-                    self.taf_next.setEnabled(True)
-
-    def assemble(self):
-        taf = 'TAF'
-        icao = 'ZJHK'
-        timez = self.taf_date.text() + 'Z'
-        period = self.taf_period.text()
-        wind = ''.join([self.taf_wind.text(), 'G', self.taf_gust.text(), 'MPS']) if self.taf_gust.text() else ''.join([self.taf_wind.text(), 'MPS'])
-        vis = self.taf_vis.text()
-        wx1 = self.taf_weather1_combobox.currentText()
-        wx2 = self.taf_weather2_combobox.currentText()
-        cloud1 = self.taf_cloud1.text()
-        cloud2 = self.taf_cloud2.text()
-        cloud3 = self.taf_cloud3.text()
-        cb = self.taf_cb.text()
-        tmax = ''.join(['TX', self.taf_temp_max.text()[0:-2], '/', self.taf_temp_max.text()[-2:], 'Z'])
-        tmin = ''.join(['TN', self.taf_temp_min.text()[0:-2], '/', self.taf_temp_min.text()[-2:], 'Z'])
-
-        prefix_group = [taf, icao, timez, period, wind]
-        temp_group = [tmax, tmin]
-        if self.taf_cavok.isChecked():
-            rpt_group = prefix_group + ['CAVOK'] + temp_group
-            self.rpt = ' '.join(rpt_group)
-        else:
-            rpt_group = prefix_group + [vis, wx1, wx2, cloud1, cloud2, cloud3, cb] + temp_group
-            self.rpt = ' '.join(rpt_group)
-        self.rpt = ' '.join(self.rpt.split()) + '='
-        
-        
 
 
 class TAFEdit(TAFEditBase):
@@ -274,10 +297,11 @@ class ScheduleTAFSend(TAFSendBase):
 
 
 
+
 if __name__ == "__main__":
     import sys
     app = QApplication(sys.argv)
-    ui = TAFEdit()
+    ui = TAFEditBase()
     ui.show()
     sys.exit(app.exec_())
     

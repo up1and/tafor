@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\ui\widgets_becmg.ui'
+# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\ui\widgets_becmg.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -85,11 +85,11 @@ class Ui_Form(object):
         self.wind = QtWidgets.QLineEdit(Form)
         self.wind.setObjectName("wind")
         self.layout.addWidget(self.wind, 2, 5, 1, 1)
-        self.tempo_title = QtWidgets.QLabel(Form)
-        self.tempo_title.setMinimumSize(QtCore.QSize(90, 0))
-        self.tempo_title.setStyleSheet("color: rgb(120, 120, 120);")
-        self.tempo_title.setObjectName("tempo_title")
-        self.layout.addWidget(self.tempo_title, 2, 0, 1, 1)
+        self.name = QtWidgets.QLabel(Form)
+        self.name.setMinimumSize(QtCore.QSize(76, 0))
+        self.name.setStyleSheet("color: rgb(120, 120, 120);")
+        self.name.setObjectName("name")
+        self.layout.addWidget(self.name, 2, 0, 1, 1)
         self.verticalLayout.addLayout(self.layout)
         self.cloud3_label.setBuddy(self.cloud3)
         self.wind_label.setBuddy(self.wind)
@@ -133,7 +133,7 @@ class Ui_Form(object):
         self.skc.setText(_translate("Form", "SKC"))
         self.weather1_label.setText(_translate("Form", "天气现象1"))
         self.cb_label.setText(_translate("Form", "积雨云"))
-        self.tempo_title.setText(_translate("Form", "BECMG"))
+        self.name.setText(_translate("Form", "BECMG"))
 
 
 if __name__ == "__main__":
