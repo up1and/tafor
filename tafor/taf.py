@@ -11,17 +11,7 @@ from models import Session, Tafor, Schedule
 from ui import Ui_taf_send
 from widgets import TAFWidgetsPrimary, TAFWidgetsBecmg, TAFWidgetsTempo
 
-
-
-#     def enbale_next_button(self):
-#         if self.taf_date.text() and self.taf_period.text() and self.taf_wind.text():
-#             if self.taf_cavok.isChecked():
-#                 self.taf_next.setEnabled(True)
-#             elif self.taf_vis.text():
-#                 if self.taf_cloud1.text() or self.taf_cloud2.text() or self.taf_cloud3.text() or self.taf_cb.text() or self.taf_nsc.isChecked():
-#                     self.taf_next.setEnabled(True)
-
-        
+ 
 
 class TAFEditBase(QDialog):
     """docstring for TAF"""
@@ -70,13 +60,49 @@ class TAFEditBase(QDialog):
 
     def bind_signal(self):
 
-        self.primary.becmg1_checkbox.toggled.connect(self.widget_becmg1.setVisible)
-        self.primary.becmg2_checkbox.toggled.connect(self.widget_becmg2.setVisible)
-        self.primary.becmg3_checkbox.toggled.connect(self.widget_becmg3.setVisible)
-        self.primary.tempo1_checkbox.toggled.connect(self.widget_tempo1.setVisible)
-        self.primary.tempo2_checkbox.toggled.connect(self.widget_tempo2.setVisible)
+        self.primary.becmg1_checkbox.toggled.connect(self.add_becmg_and_tempo)
+        self.primary.becmg2_checkbox.toggled.connect(self.add_becmg_and_tempo)
+        self.primary.becmg3_checkbox.toggled.connect(self.add_becmg_and_tempo)
+        self.primary.tempo1_checkbox.toggled.connect(self.add_becmg_and_tempo)
+        self.primary.tempo2_checkbox.toggled.connect(self.add_becmg_and_tempo)
 
         self.next_button.clicked.connect(self.assemble_message)
+
+    def add_becmg_and_tempo(self):
+        # BECMG
+        if self.primary.becmg1_checkbox.isChecked():
+            self.widget_becmg1.setVisible(True)
+        else:
+            self.widget_becmg1.setVisible(False)
+            self.widget_becmg2.setVisible(False)
+            self.widget_becmg3.setVisible(False)
+            self.primary.becmg2_checkbox.setChecked(False)
+            self.primary.becmg3_checkbox.setChecked(False)
+
+        if self.primary.becmg2_checkbox.isChecked():
+            self.widget_becmg2.setVisible(True)
+        else:
+            self.widget_becmg2.setVisible(False)
+            self.widget_becmg3.setVisible(False)
+            self.primary.becmg3_checkbox.setChecked(False)
+
+        if self.primary.becmg3_checkbox.isChecked():
+            self.widget_becmg3.setVisible(True)
+        else:
+            self.widget_becmg3.setVisible(False)
+
+        # TEMPO
+        if self.primary.tempo1_checkbox.isChecked():
+            self.widget_tempo1.setVisible(True)
+        else:
+            self.widget_tempo1.setVisible(False)
+            self.widget_tempo2.setVisible(False)
+            self.primary.tempo2_checkbox.setChecked(False)
+
+        if self.primary.tempo2_checkbox.isChecked():
+            self.widget_tempo2.setVisible(True)
+        else:
+            self.widget_tempo2.setVisible(False)
 
     def set_taf_period(self):
         if self.primary.date.text() and (self.primary.fc.isChecked() or self.primary.ft.isChecked()):
@@ -131,7 +157,7 @@ class ScheduleTAFEdit(TAFEditBase):
         self.taf_date.editingFinished.connect(self.schedule_time)
         self.taf_date.editingFinished.connect(self.set_taf_period)
         
-    def assemble(self):
+    def preview(self):
         super(ScheduleTAFEdit, self).assemble()
         send = ScheduleTAFSend(self)
         send.show()

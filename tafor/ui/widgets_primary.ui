@@ -16,68 +16,15 @@
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <layout class="QGridLayout" name="main_layout">
-     <item row="3" column="5">
-      <widget class="QComboBox" name="weather1"/>
-     </item>
-     <item row="2" column="3">
-      <widget class="QLabel" name="gust_label">
+     <item row="2" column="8">
+      <widget class="QLabel" name="cloud2_label">
        <property name="text">
-        <string>阵风</string>
+        <string>云组2</string>
        </property>
        <property name="buddy">
-        <cstring>gust</cstring>
+        <cstring>cloud2</cstring>
        </property>
       </widget>
-     </item>
-     <item row="2" column="4">
-      <widget class="QLabel" name="vis_label">
-       <property name="text">
-        <string>能见度</string>
-       </property>
-       <property name="buddy">
-        <cstring>vis</cstring>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="3">
-      <widget class="QLineEdit" name="gust"/>
-     </item>
-     <item row="8" column="0">
-      <widget class="QCheckBox" name="becmg3_checkbox">
-       <property name="text">
-        <string>BECMG3</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="5">
-      <widget class="QLabel" name="weather1_label">
-       <property name="text">
-        <string>天气现象1</string>
-       </property>
-       <property name="buddy">
-        <cstring>weather1</cstring>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="8">
-      <widget class="QCheckBox" name="nsc">
-       <property name="text">
-        <string>NSC</string>
-       </property>
-      </widget>
-     </item>
-     <item row="5" column="10">
-      <widget class="QLabel" name="temp_min_label">
-       <property name="text">
-        <string>最低温</string>
-       </property>
-       <property name="buddy">
-        <cstring>tmin</cstring>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="6">
-      <widget class="QComboBox" name="weather2"/>
      </item>
      <item row="2" column="7">
       <widget class="QLabel" name="cloud1_label">
@@ -88,6 +35,9 @@
         <cstring>cloud1</cstring>
        </property>
       </widget>
+     </item>
+     <item row="3" column="6">
+      <widget class="QComboBox" name="weather2"/>
      </item>
      <item row="6" column="0">
       <widget class="QCheckBox" name="becmg2_checkbox">
@@ -121,109 +71,72 @@
        <property name="text">
         <string>SKC</string>
        </property>
-      </widget>
-     </item>
-     <item row="3" column="8">
-      <widget class="QLineEdit" name="cloud2"/>
-     </item>
-     <item row="2" column="8">
-      <widget class="QLabel" name="cloud2_label">
-       <property name="text">
-        <string>云组2</string>
-       </property>
-       <property name="buddy">
-        <cstring>cloud2</cstring>
-       </property>
+       <attribute name="buttonGroup">
+        <string notr="true">cavok_group</string>
+       </attribute>
       </widget>
      </item>
      <item row="3" column="7">
       <widget class="QLineEdit" name="cloud1"/>
      </item>
-     <item row="5" column="0">
-      <widget class="QCheckBox" name="becmg1_checkbox">
-       <property name="text">
-        <string>BECMG1</string>
-       </property>
-      </widget>
+     <item row="3" column="8">
+      <widget class="QLineEdit" name="cloud2"/>
      </item>
-     <item row="2" column="0">
-      <widget class="QLabel" name="date_label">
+     <item row="3" column="3">
+      <widget class="QLineEdit" name="gust"/>
+     </item>
+     <item row="5" column="10">
+      <widget class="QLabel" name="temp_min_label">
        <property name="text">
-        <string>日期</string>
+        <string>最低温</string>
        </property>
        <property name="buddy">
-        <cstring>date</cstring>
+        <cstring>tmin</cstring>
        </property>
       </widget>
      </item>
-     <item row="2" column="1">
-      <widget class="QLabel" name="period_label">
+     <item row="4" column="8">
+      <widget class="QCheckBox" name="nsc">
        <property name="text">
-        <string>时段</string>
+        <string>NSC</string>
+       </property>
+       <attribute name="buttonGroup">
+        <string notr="true">cavok_group</string>
+       </attribute>
+      </widget>
+     </item>
+     <item row="3" column="5">
+      <widget class="QComboBox" name="weather1"/>
+     </item>
+     <item row="2" column="3">
+      <widget class="QLabel" name="gust_label">
+       <property name="text">
+        <string>阵风</string>
        </property>
        <property name="buddy">
-        <cstring>period</cstring>
+        <cstring>gust</cstring>
        </property>
       </widget>
      </item>
-     <item row="2" column="10">
-      <widget class="QLabel" name="cb_label">
+     <item row="2" column="4">
+      <widget class="QLabel" name="vis_label">
        <property name="text">
-        <string>积雨云</string>
+        <string>能见度</string>
        </property>
        <property name="buddy">
-        <cstring>cb</cstring>
+        <cstring>vis</cstring>
        </property>
       </widget>
      </item>
-     <item row="2" column="2">
-      <widget class="QLabel" name="wind_label">
+     <item row="2" column="5">
+      <widget class="QLabel" name="weather1_label">
        <property name="text">
-        <string>风向风速</string>
+        <string>天气现象1</string>
        </property>
        <property name="buddy">
-        <cstring>wind</cstring>
+        <cstring>weather1</cstring>
        </property>
       </widget>
-     </item>
-     <item row="3" column="2">
-      <widget class="QLineEdit" name="wind"/>
-     </item>
-     <item row="5" column="9">
-      <widget class="QLabel" name="temp_max_label">
-       <property name="text">
-        <string>最高温</string>
-       </property>
-       <property name="buddy">
-        <cstring>tmax</cstring>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="9">
-      <widget class="QLineEdit" name="cloud3"/>
-     </item>
-     <item row="2" column="6">
-      <widget class="QLabel" name="weather2_label">
-       <property name="text">
-        <string>天气现象2</string>
-       </property>
-       <property name="buddy">
-        <cstring>weather2</cstring>
-       </property>
-      </widget>
-     </item>
-     <item row="6" column="1">
-      <widget class="QCheckBox" name="tempo2_checkbox">
-       <property name="text">
-        <string>TEMPO2</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="1">
-      <widget class="QLineEdit" name="period"/>
-     </item>
-     <item row="3" column="10">
-      <widget class="QLineEdit" name="cb"/>
      </item>
      <item row="0" column="0" colspan="2">
       <widget class="QGroupBox" name="group_type">
@@ -247,6 +160,132 @@
         </item>
        </layout>
       </widget>
+     </item>
+     <item row="3" column="10">
+      <widget class="QLineEdit" name="cb"/>
+     </item>
+     <item row="2" column="10">
+      <widget class="QLabel" name="cb_label">
+       <property name="text">
+        <string>积雨云</string>
+       </property>
+       <property name="buddy">
+        <cstring>cb</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="0">
+      <widget class="QCheckBox" name="becmg1_checkbox">
+       <property name="text">
+        <string>BECMG1</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="9">
+      <widget class="QLabel" name="temp_max_label">
+       <property name="text">
+        <string>最高温</string>
+       </property>
+       <property name="buddy">
+        <cstring>tmax</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="date_label">
+       <property name="text">
+        <string>日期</string>
+       </property>
+       <property name="buddy">
+        <cstring>date</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="2">
+      <widget class="QLineEdit" name="wind"/>
+     </item>
+     <item row="2" column="2">
+      <widget class="QLabel" name="wind_label">
+       <property name="text">
+        <string>风向风速</string>
+       </property>
+       <property name="buddy">
+        <cstring>wind</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="9">
+      <widget class="QLineEdit" name="cloud3"/>
+     </item>
+     <item row="3" column="1">
+      <widget class="QLineEdit" name="period"/>
+     </item>
+     <item row="6" column="1">
+      <widget class="QCheckBox" name="tempo2_checkbox">
+       <property name="text">
+        <string>TEMPO2</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QLabel" name="period_label">
+       <property name="text">
+        <string>时段</string>
+       </property>
+       <property name="buddy">
+        <cstring>period</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="6">
+      <widget class="QLabel" name="weather2_label">
+       <property name="text">
+        <string>天气现象2</string>
+       </property>
+       <property name="buddy">
+        <cstring>weather2</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="4">
+      <widget class="QCheckBox" name="cavok">
+       <property name="text">
+        <string>CAVOK</string>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+       <attribute name="buttonGroup">
+        <string notr="true">cavok_group</string>
+       </attribute>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLineEdit" name="date"/>
+     </item>
+     <item row="6" column="10">
+      <layout class="QFormLayout" name="tmin_layout">
+       <item row="0" column="0">
+        <widget class="QLineEdit" name="tmin">
+         <property name="maximumSize">
+          <size>
+           <width>40</width>
+           <height>16777215</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLineEdit" name="tmin_time">
+         <property name="maximumSize">
+          <size>
+           <width>40</width>
+           <height>16777215</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
      <item row="0" column="4" colspan="7">
       <widget class="QGroupBox" name="group_cls">
@@ -297,16 +336,6 @@
        </layout>
       </widget>
      </item>
-     <item row="3" column="0">
-      <widget class="QLineEdit" name="date"/>
-     </item>
-     <item row="4" column="4">
-      <widget class="QCheckBox" name="cavok">
-       <property name="text">
-        <string>CAVOK</string>
-       </property>
-      </widget>
-     </item>
      <item row="6" column="9">
       <layout class="QFormLayout" name="tmax_layout">
        <item row="0" column="0">
@@ -331,29 +360,12 @@
        </item>
       </layout>
      </item>
-     <item row="6" column="10">
-      <layout class="QFormLayout" name="tmin_layout">
-       <item row="0" column="0">
-        <widget class="QLineEdit" name="tmin">
-         <property name="maximumSize">
-          <size>
-           <width>40</width>
-           <height>16777215</height>
-          </size>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QLineEdit" name="tmin_time">
-         <property name="maximumSize">
-          <size>
-           <width>40</width>
-           <height>16777215</height>
-          </size>
-         </property>
-        </widget>
-       </item>
-      </layout>
+     <item row="7" column="0">
+      <widget class="QCheckBox" name="becmg3_checkbox">
+       <property name="text">
+        <string>BECMG3</string>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>
@@ -389,10 +401,16 @@
   <tabstop>tmin_time</tabstop>
   <tabstop>becmg1_checkbox</tabstop>
   <tabstop>becmg2_checkbox</tabstop>
-  <tabstop>becmg3_checkbox</tabstop>
   <tabstop>tempo1_checkbox</tabstop>
   <tabstop>tempo2_checkbox</tabstop>
  </tabstops>
  <resources/>
  <connections/>
+ <buttongroups>
+  <buttongroup name="cavok_group">
+   <property name="exclusive">
+    <bool>false</bool>
+   </property>
+  </buttongroup>
+ </buttongroups>
 </ui>

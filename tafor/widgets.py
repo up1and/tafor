@@ -13,15 +13,24 @@ class TAFWidgetsMixin(QtCore.QObject):
         # self.one_second_timer.timeout.connect(self.message)
         # self.one_second_timer.start(1 * 1000)
 
+    def bind_signal(self):
 
-    def set_cavok(self, checked):
-        if checked:
-            self.ui.vis.clear()
-            self.ui.vis.setEnabled(False)
-            self.ui.weather1.setEnabled(False)
-            self.ui.weather1.clear()
-            self.ui.weather2.setEnabled(False)
-            self.ui.weather2.clear()
+        if hasattr(self.ui, 'cavok'):
+            self.ui.cavok.toggled.connect(self.set_cavok)
+            self.ui.skc.toggled.connect(self.set_skc)
+            self.ui.nsc.toggled.connect(self.set_nsc)
+        else:
+            self.ui.prob30.toggled.connect(self.set_prob30)
+            self.ui.prob40.toggled.connect(self.set_prob40)
+
+
+    def clouds(self, enbale):
+        if enbale:
+            self.ui.cloud1.setEnabled(True)
+            self.ui.cloud2.setEnabled(True)
+            self.ui.cloud3.setEnabled(True)
+            self.ui.cb.setEnabled(True)
+        else:
             self.ui.cloud1.clear()
             self.ui.cloud1.setEnabled(False)
             self.ui.cloud2.clear()
@@ -30,30 +39,47 @@ class TAFWidgetsMixin(QtCore.QObject):
             self.ui.cloud3.setEnabled(False)
             self.ui.cb.clear()
             self.ui.cb.setEnabled(False)
+
+
+    def set_cavok(self, checked):
+        if checked:
+            self.ui.skc.setChecked(False)
+            self.ui.nsc.setChecked(False)
+
+            self.ui.vis.clear()
+            self.ui.vis.setEnabled(False)
+            self.ui.weather1.setEnabled(False)
+            self.ui.weather2.setEnabled(False)
+            self.clouds(False)
         else:
             self.ui.vis.setEnabled(True)
             self.ui.weather1.setEnabled(True)
             self.ui.weather2.setEnabled(True)
-            self.ui.cloud1.setEnabled(True)
-            self.ui.cloud2.setEnabled(True)
-            self.ui.cloud3.setEnabled(True)
-            self.ui.cb.setEnabled(True)
+            self.clouds(True)
 
-    def set_skc_nsc(self, checked):
+    def set_skc(self, checked):
         if checked:
-            self.ui.cloud1.clear()
-            self.ui.cloud1.setEnabled(False)
-            self.ui.cloud2.clear()
-            self.ui.cloud2.setEnabled(False)
-            self.ui.cloud3.clear()
-            self.ui.cloud3.setEnabled(False)
-            self.ui.cb.clear()
-            self.ui.cb.setEnabled(False)
+            self.ui.cavok.setChecked(False)
+            self.ui.nsc.setChecked(False)
+            self.clouds(False)
         else:
-            self.ui.cloud1.setEnabled(True)
-            self.ui.cloud2.setEnabled(True)
-            self.ui.cloud3.setEnabled(True)
-            self.ui.cb.setEnabled(True)
+            self.clouds(True)
+
+    def set_nsc(self, checked):
+        if checked:
+            self.ui.cavok.setChecked(False)
+            self.ui.skc.setChecked(False)
+            self.clouds(False)
+        else:
+            self.clouds(True)
+
+    def set_prob30(self, checked):
+        if checked:
+            self.ui.prob40.setChecked(False)
+        
+    def set_prob40(self, checked):
+        if checked:
+            self.ui.prob30.setChecked(False)
 
     def validate(self):
         valid_wind = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['wind']))
@@ -70,10 +96,6 @@ class TAFWidgetsMixin(QtCore.QObject):
         self.ui.cloud2.setValidator(valid_cloud)
         self.ui.cloud3.setValidator(valid_cloud)
         self.ui.cb.setValidator(valid_cloud)
-
-        # valid_temp = QtGui.QRegExpValidator(QRegExp(regex['temp']))
-        # self.taf_temp_max.setValidator(valid_temp)
-        # self.taf_temp_min.setValidator(valid_temp)
 
         wx1 = ['', 'BR', 'FG', 'SA', 'DU', 'HZ', 'FU', 'VA', 'SQ', 'PO', 'FC', 'TS', 'FZFG', 'BLSN', 'BLSA', 'BLDU', 'DRSN', 'DRSA', 'DRDU', 'MIFG', 'BCFG', 'PRFG', 'NSW']
         self.ui.weather1.addItems(wx1)
@@ -123,12 +145,17 @@ class TAFWidgetsPrimary(QtWidgets.QWidget, TAFWidgetsMixin):
 
         self.validate()
 
-        self.ui.cavok.clicked.connect(self.set_cavok)
-        self.ui.skc.clicked.connect(self.set_skc_nsc)
-        self.ui.nsc.clicked.connect(self.set_skc_nsc)
+        # self.ui.cavok.clicked.connect(self.set_cavok)
+        # self.ui.skc.clicked.connect(self.set_skc_nsc)
+        # self.ui.nsc.clicked.connect(self.set_skc_nsc)
 
         self.ui.period.setEnabled(False)
 
+        # self.timer = QtCore.QTimer()
+        # self.timer.timeout.connect(self.enbale_next)
+        # self.timer.start(1 * 1000)
+
+        self.bind_signal()
 
     def validate(self):
         super(TAFWidgetsPrimary, self).validate()
@@ -150,11 +177,25 @@ class TAFWidgetsPrimary(QtWidgets.QWidget, TAFWidgetsMixin):
         timez = self.ui.date.text() + 'Z'
         period = self.ui.period.text()
         tmax = ''.join(['TX', self.ui.tmax.text(), '/', self.ui.tmax_time.text(), 'Z'])
-        tmin = ''.join(['TN', self.ui.tmin.text(), '/', self.ui.tmax_time.text(), 'Z'])
+        tmin = ''.join(['TN', self.ui.tmin.text(), '/', self.ui.tmin_time.text(), 'Z'])
         msg_list = ['TAF', icao, timez, period, self.msg, tmax, tmin]
         self.msg = ' '.join(msg_list)
         # print(self.msg)
         return self.msg
+
+    def enbale_next(self):
+        # 允许下一步
+        self.ui.next = False
+        required = (self.ui.date.text(), self.ui.period.text(), self.ui.wind.text(), self.ui.tmax.text(), self.ui.tmax_time.text(), self.ui.tmin.text(), self.ui.tmin_time.text())
+        if all(required):
+            if self.ui.cavok.isChecked():
+                self.ui.next = True
+            elif self.ui.vis.text():
+                if self.ui.nsc.text() or self.ui.skc.text():
+                    self.ui.next = True
+                elif self.ui.cloud1.text() or self.ui.cloud2.text() or self.ui.cloud3.text() or self.ui.cb.text() or self.ui.nsc.isChecked():
+                    self.ui.next = True
+        print(self.ui.next)
 
 
 
@@ -168,11 +209,11 @@ class TAFWidgetsBecmg(QtWidgets.QWidget, TAFWidgetsMixin):
 
         self.validate()
 
-        self.ui.cavok.clicked.connect(self.set_cavok)
-        self.ui.skc.clicked.connect(self.set_skc_nsc)
-        self.ui.nsc.clicked.connect(self.set_skc_nsc)
+        # self.ui.cavok.clicked.connect(self.set_cavok)
+        # self.ui.skc.clicked.connect(self.set_skc_nsc)
+        # self.ui.nsc.clicked.connect(self.set_skc_nsc)
 
-        self.message()
+        self.bind_signal()
 
 
     def message(self):
@@ -194,6 +235,8 @@ class TAFWidgetsTempo(QtWidgets.QWidget, TAFWidgetsMixin):
 
         self.validate()
 
+        self.bind_signal()
+
     def message(self):
         super(TAFWidgetsTempo, self).message()
         interval = self.ui.interval.text()
@@ -211,6 +254,6 @@ class TAFWidgetsTempo(QtWidgets.QWidget, TAFWidgetsMixin):
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    widget = TAFWidgetsPrimary()
+    widget = TAFWidgetsTempo()
     widget.show()
     sys.exit(app.exec_())

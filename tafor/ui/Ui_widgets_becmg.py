@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\ui\widgets_becmg.ui'
+# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\ui\widgets_becmg.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -51,9 +51,14 @@ class Ui_Form(object):
         self.layout.addWidget(self.cloud1_label, 0, 10, 1, 1)
         self.cavok = QtWidgets.QCheckBox(Form)
         self.cavok.setObjectName("cavok")
+        self.cavok_group = QtWidgets.QButtonGroup(Form)
+        self.cavok_group.setObjectName("cavok_group")
+        self.cavok_group.setExclusive(False)
+        self.cavok_group.addButton(self.cavok)
         self.layout.addWidget(self.cavok, 3, 7, 1, 1)
         self.nsc = QtWidgets.QCheckBox(Form)
         self.nsc.setObjectName("nsc")
+        self.cavok_group.addButton(self.nsc)
         self.layout.addWidget(self.nsc, 3, 11, 1, 1)
         self.gust = QtWidgets.QLineEdit(Form)
         self.gust.setObjectName("gust")
@@ -63,6 +68,7 @@ class Ui_Form(object):
         self.layout.addWidget(self.cloud3, 2, 12, 1, 1)
         self.skc = QtWidgets.QCheckBox(Form)
         self.skc.setObjectName("skc")
+        self.cavok_group.addButton(self.skc)
         self.layout.addWidget(self.skc, 3, 10, 1, 1)
         self.cloud2 = QtWidgets.QLineEdit(Form)
         self.cloud2.setObjectName("cloud2")

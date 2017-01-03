@@ -110,6 +110,9 @@
        <property name="text">
         <string>CAVOK</string>
        </property>
+       <attribute name="buttonGroup">
+        <string notr="true">cavok_group</string>
+       </attribute>
       </widget>
      </item>
      <item row="3" column="11">
@@ -117,6 +120,9 @@
        <property name="text">
         <string>NSC</string>
        </property>
+       <attribute name="buttonGroup">
+        <string notr="true">cavok_group</string>
+       </attribute>
       </widget>
      </item>
      <item row="2" column="6">
@@ -130,6 +136,9 @@
        <property name="text">
         <string>SKC</string>
        </property>
+       <attribute name="buttonGroup">
+        <string notr="true">cavok_group</string>
+       </attribute>
       </widget>
      </item>
      <item row="2" column="11">
@@ -204,4 +213,11 @@
  </tabstops>
  <resources/>
  <connections/>
+ <buttongroups>
+  <buttongroup name="cavok_group">
+   <property name="exclusive">
+    <bool>false</bool>
+   </property>
+  </buttongroup>
+ </buttongroups>
 </ui>

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\ui\widgets_tempo.ui'
+# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\ui\widgets_tempo.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -59,7 +59,14 @@ class Ui_Form(object):
         self.cloud2.setObjectName("cloud2")
         self.layout.addWidget(self.cloud2, 2, 11, 1, 1)
         self.prob40 = QtWidgets.QCheckBox(Form)
+        self.prob40.setEnabled(True)
+        self.prob40.setAutoExclusive(True)
+        self.prob40.setTristate(False)
         self.prob40.setObjectName("prob40")
+        self.prob_group = QtWidgets.QButtonGroup(Form)
+        self.prob_group.setObjectName("prob_group")
+        self.prob_group.setExclusive(False)
+        self.prob_group.addButton(self.prob40)
         self.layout.addWidget(self.prob40, 3, 5, 1, 1)
         self.gust = QtWidgets.QLineEdit(Form)
         self.gust.setObjectName("gust")
@@ -71,7 +78,9 @@ class Ui_Form(object):
         self.cloud3.setObjectName("cloud3")
         self.layout.addWidget(self.cloud3, 2, 12, 1, 1)
         self.prob30 = QtWidgets.QCheckBox(Form)
+        self.prob30.setAutoExclusive(True)
         self.prob30.setObjectName("prob30")
+        self.prob_group.addButton(self.prob30)
         self.layout.addWidget(self.prob30, 3, 4, 1, 1)
         self.weather1 = QtWidgets.QComboBox(Form)
         self.weather1.setObjectName("weather1")

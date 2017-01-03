@@ -109,9 +109,21 @@
      </item>
      <item row="3" column="5">
       <widget class="QCheckBox" name="prob40">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
        <property name="text">
         <string>PROB40</string>
        </property>
+       <property name="autoExclusive">
+        <bool>true</bool>
+       </property>
+       <property name="tristate">
+        <bool>false</bool>
+       </property>
+       <attribute name="buttonGroup">
+        <string notr="true">prob_group</string>
+       </attribute>
       </widget>
      </item>
      <item row="2" column="6">
@@ -135,6 +147,12 @@
        <property name="text">
         <string>PROB30</string>
        </property>
+       <property name="autoExclusive">
+        <bool>true</bool>
+       </property>
+       <attribute name="buttonGroup">
+        <string notr="true">prob_group</string>
+       </attribute>
       </widget>
      </item>
      <item row="2" column="8">
@@ -196,4 +214,11 @@
  </tabstops>
  <resources/>
  <connections/>
+ <buttongroups>
+  <buttongroup name="prob_group">
+   <property name="exclusive">
+    <bool>false</bool>
+   </property>
+  </buttongroup>
+ </buttongroups>
 </ui>
