@@ -18,15 +18,33 @@
     <item>
      <widget class="QTabWidget" name="main_tab">
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
+      </property>
+      <property name="movable">
+       <bool>true</bool>
       </property>
       <widget class="QWidget" name="tab_recent">
        <attribute name="title">
         <string>RECENT</string>
        </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_4">
+       <layout class="QVBoxLayout" name="recent_layout">
+        <property name="sizeConstraint">
+         <enum>QLayout::SetFixedSize</enum>
+        </property>
         <item>
-         <widget class="QTextBrowser" name="recent_text"/>
+         <layout class="QVBoxLayout" name="verticalLayout_5">
+          <item>
+           <widget class="QLabel" name="clock_label">
+            <property name="styleSheet">
+             <string notr="true">color: rgb(102, 102, 102);
+font: 18pt &quot;Calibri&quot;;</string>
+            </property>
+            <property name="text">
+             <string>CLOCK</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
        </layout>
       </widget>
@@ -37,6 +55,9 @@
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
          <widget class="QTableWidget" name="taf_table">
+          <property name="editTriggers">
+           <set>QAbstractItemView::NoEditTriggers</set>
+          </property>
           <column>
            <property name="text">
             <string>类型</string>
@@ -49,7 +70,12 @@
           </column>
           <column>
            <property name="text">
-            <string>查询结果</string>
+            <string>发布时间</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>查询</string>
            </property>
           </column>
           <column>
@@ -97,7 +123,7 @@
    </property>
    <widget class="QMenu" name="post_menu">
     <property name="title">
-     <string>发报</string>
+     <string>编发</string>
     </property>
     <addaction name="taf_action"/>
     <addaction name="sigmet_action"/>
@@ -123,7 +149,7 @@
   <widget class="QStatusBar" name="statusbar"/>
   <action name="taf_action">
    <property name="text">
-    <string>TAF</string>
+    <string>预报</string>
    </property>
   </action>
   <action name="trend_action">
@@ -133,7 +159,7 @@
   </action>
   <action name="sigmet_action">
    <property name="text">
-    <string>SIGMET</string>
+    <string>重要气象情报</string>
    </property>
   </action>
   <action name="setting_action">

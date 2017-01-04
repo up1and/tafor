@@ -2,5 +2,11 @@
     <qresource>
         <file alias="sunny.png">../icons/sunny.png</file>
         <file alias="setting.png">../icons/setting.png</file>
+        <file alias="check.png">../icons/check.png</file>
+        <file alias="clock.png">../icons/clock.png</file>
+        <file alias="warn.png">../icons/warn.png</file>
+        <file alias="fine.png">../icons/fine.png</file>
+        <file alias="inspection.png">../icons/inspection.png</file>
+        <file alias="schedule.png">../icons/schedule.png</file>
     </qresource>
 </RCC>

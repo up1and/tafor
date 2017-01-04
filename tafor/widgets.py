@@ -1,6 +1,6 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from ui import Ui_widgets_primary, Ui_widgets_becmg, Ui_widgets_tempo
+from ui import Ui_widgets_primary, Ui_widgets_becmg, Ui_widgets_tempo, Ui_widgets_recent_item
 from validator import Parser
 
 class TAFWidgetsMixin(QtCore.QObject):
@@ -250,10 +250,31 @@ class TAFWidgetsTempo(QtWidgets.QWidget, TAFWidgetsMixin):
         # print(self.msg)
         return self.msg
 
+class WidgetsItem(QtWidgets.QWidget):
+    """docstring for WidgetsItem"""
+    def __init__(self, item = None):
+        super(WidgetsItem, self).__init__()
+        self.ui = Ui_widgets_recent_item.Ui_Form()
+        self.ui.setupUi(self)
+
+        self.item = item
+        if self.item is not None:
+            self.update_data()
+
+    def update_data(self):
+        self.ui.type.setText(self.item.tt)
+        self.ui.send_time.setText(self.item.send_time.strftime("%Y-%m-%d %H:%M:%S"))
+        self.ui.rpt.setText(self.item.rpt)
+        if self.item.confirm_time:
+            self.ui.check.setText('√')
+        else:
+            self.ui.check.setText('×')
+        
+
 
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    widget = TAFWidgetsTempo()
+    widget = WidgetsItem()
     widget.show()
     sys.exit(app.exec_())
