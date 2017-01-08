@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\ui\widgets_recent_item.ui'
+# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\ui\widgets_recent_item.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -11,39 +11,25 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
-        Form.resize(991, 139)
+        Form.resize(549, 142)
         self.verticalLayout = QtWidgets.QVBoxLayout(Form)
         self.verticalLayout.setObjectName("verticalLayout")
-        self.item_widget = QtWidgets.QWidget(Form)
-        self.item_widget.setObjectName("item_widget")
-        self.horizontalLayout = QtWidgets.QHBoxLayout(self.item_widget)
-        self.horizontalLayout.setSizeConstraint(QtWidgets.QLayout.SetDefaultConstraint)
-        self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.type_label = QtWidgets.QLabel(self.item_widget)
-        self.type_label.setObjectName("type_label")
-        self.horizontalLayout.addWidget(self.type_label)
-        self.type = QtWidgets.QLabel(self.item_widget)
-        self.type.setObjectName("type")
-        self.horizontalLayout.addWidget(self.type)
-        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
-        self.horizontalLayout.addItem(spacerItem)
-        self.send_time_label = QtWidgets.QLabel(self.item_widget)
-        self.send_time_label.setObjectName("send_time_label")
-        self.horizontalLayout.addWidget(self.send_time_label)
-        self.send_time = QtWidgets.QLabel(self.item_widget)
-        self.send_time.setObjectName("send_time")
-        self.horizontalLayout.addWidget(self.send_time)
-        self.check_label = QtWidgets.QLabel(self.item_widget)
-        self.check_label.setObjectName("check_label")
-        self.horizontalLayout.addWidget(self.check_label)
-        self.check = QtWidgets.QLabel(self.item_widget)
+        self.groupBox = QtWidgets.QGroupBox(Form)
+        self.groupBox.setObjectName("groupBox")
+        self.gridLayout = QtWidgets.QGridLayout(self.groupBox)
+        self.gridLayout.setSizeConstraint(QtWidgets.QLayout.SetDefaultConstraint)
+        self.gridLayout.setObjectName("gridLayout")
+        self.check = QtWidgets.QLabel(self.groupBox)
         self.check.setObjectName("check")
-        self.horizontalLayout.addWidget(self.check)
-        self.verticalLayout.addWidget(self.item_widget)
-        self.rpt = QtWidgets.QLabel(Form)
+        self.gridLayout.addWidget(self.check, 0, 1, 1, 1, QtCore.Qt.AlignRight)
+        self.send_time = QtWidgets.QLabel(self.groupBox)
+        self.send_time.setObjectName("send_time")
+        self.gridLayout.addWidget(self.send_time, 0, 0, 1, 1)
+        self.rpt = QtWidgets.QLabel(self.groupBox)
+        self.rpt.setStyleSheet("font: 12pt \"微软雅黑\";")
         self.rpt.setObjectName("rpt")
-        self.verticalLayout.addWidget(self.rpt)
+        self.gridLayout.addWidget(self.rpt, 3, 0, 1, 2)
+        self.verticalLayout.addWidget(self.groupBox)
 
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
@@ -51,13 +37,10 @@ class Ui_Form(object):
     def retranslateUi(self, Form):
         _translate = QtCore.QCoreApplication.translate
         Form.setWindowTitle(_translate("Form", "Form"))
-        self.type_label.setText(_translate("Form", "类型"))
-        self.type.setText(_translate("Form", "tt"))
-        self.send_time_label.setText(_translate("Form", "发布时间"))
-        self.send_time.setText(_translate("Form", "time"))
-        self.check_label.setText(_translate("Form", "检查"))
+        self.groupBox.setTitle(_translate("Form", "FC"))
         self.check.setText(_translate("Form", "√"))
-        self.rpt.setText(_translate("Form", "报文内容"))
+        self.send_time.setText(_translate("Form", "time"))
+        self.rpt.setText(_translate("Form", "rpt"))
 
 
 if __name__ == "__main__":

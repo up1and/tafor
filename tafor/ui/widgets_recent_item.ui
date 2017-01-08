@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>991</width>
-    <height>139</height>
+    <width>549</width>
+    <height>142</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,74 +15,39 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QWidget" name="item_widget" native="true">
-     <layout class="QHBoxLayout" name="horizontalLayout">
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string>FC</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout">
       <property name="sizeConstraint">
        <enum>QLayout::SetDefaultConstraint</enum>
       </property>
-      <item>
-       <widget class="QLabel" name="type_label">
-        <property name="text">
-         <string>类型</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="type">
-        <property name="text">
-         <string>tt</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item>
-       <widget class="QLabel" name="send_time_label">
-        <property name="text">
-         <string>发布时间</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="send_time">
-        <property name="text">
-         <string>time</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="check_label">
-        <property name="text">
-         <string>检查</string>
-        </property>
-       </widget>
-      </item>
-      <item>
+      <item row="0" column="1" alignment="Qt::AlignRight">
        <widget class="QLabel" name="check">
         <property name="text">
          <string>√</string>
         </property>
        </widget>
       </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="send_time">
+        <property name="text">
+         <string>time</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0" colspan="2">
+       <widget class="QLabel" name="rpt">
+        <property name="styleSheet">
+         <string notr="true">font: 12pt &quot;微软雅黑&quot;;</string>
+        </property>
+        <property name="text">
+         <string>rpt</string>
+        </property>
+       </widget>
+      </item>
      </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QLabel" name="rpt">
-     <property name="text">
-      <string>报文内容</string>
-     </property>
     </widget>
    </item>
   </layout>

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1024</width>
-    <height>768</height>
+    <width>857</width>
+    <height>662</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -31,21 +31,6 @@
         <property name="sizeConstraint">
          <enum>QLayout::SetFixedSize</enum>
         </property>
-        <item>
-         <layout class="QVBoxLayout" name="verticalLayout_5">
-          <item>
-           <widget class="QLabel" name="clock_label">
-            <property name="styleSheet">
-             <string notr="true">color: rgb(102, 102, 102);
-font: 18pt &quot;Calibri&quot;;</string>
-            </property>
-            <property name="text">
-             <string>CLOCK</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
        </layout>
       </widget>
       <widget class="QWidget" name="tab_taf">
@@ -117,7 +102,7 @@ font: 18pt &quot;Calibri&quot;;</string>
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1024</width>
+     <width>857</width>
      <height>23</height>
     </rect>
    </property>

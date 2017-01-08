@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\ui\main.ui'
+# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\ui\main.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1024, 768)
+        MainWindow.resize(857, 662)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
@@ -25,14 +25,6 @@ class Ui_MainWindow(object):
         self.recent_layout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
         self.recent_layout.setContentsMargins(0, 0, 0, 0)
         self.recent_layout.setObjectName("recent_layout")
-        self.verticalLayout_5 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_5.setObjectName("verticalLayout_5")
-        self.clock_label = QtWidgets.QLabel(self.tab_recent)
-        self.clock_label.setStyleSheet("color: rgb(102, 102, 102);\n"
-"font: 18pt \"Calibri\";")
-        self.clock_label.setObjectName("clock_label")
-        self.verticalLayout_5.addWidget(self.clock_label)
-        self.recent_layout.addLayout(self.verticalLayout_5)
         self.main_tab.addTab(self.tab_recent, "")
         self.tab_taf = QtWidgets.QWidget()
         self.tab_taf.setObjectName("tab_taf")
@@ -74,7 +66,7 @@ class Ui_MainWindow(object):
         self.verticalLayout.addWidget(self.main_tab)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1024, 23))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 857, 23))
         self.menubar.setObjectName("menubar")
         self.post_menu = QtWidgets.QMenu(self.menubar)
         self.post_menu.setObjectName("post_menu")
@@ -116,7 +108,6 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
-        self.clock_label.setText(_translate("MainWindow", "CLOCK"))
         self.main_tab.setTabText(self.main_tab.indexOf(self.tab_recent), _translate("MainWindow", "RECENT"))
         item = self.taf_table.horizontalHeaderItem(0)
         item.setText(_translate("MainWindow", "类型"))

@@ -8,7 +8,7 @@ from PyQt5.QtCore import *
 from ui import Ui_main, main_rc
 from taf import TAFEdit, ScheduleTAFEdit
 from models import Tafor, Schedule, Session
-from widgets import WidgetsItem
+from widgets import WidgetsItem, WidgetsClock
 
 __version__ = "1.0.0"
 
@@ -46,19 +46,27 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         # 链接系统托盘的槽
         # self.tray.activated.connect(self.restore_window)
 
-        # 自动发送报文的计时器
-        self.auto_send_timer = QTimer()
-        self.auto_send_timer.timeout.connect(self.auto_send)
-        self.auto_send_timer.start(15 * 1000) # 15 秒
+        # 添加模块
 
-        self.clock_timer = QTimer()
-        self.clock_timer.timeout.connect(self.clock)
-        self.clock_timer.start(1 * 1000)
+        self.widget_clock = WidgetsClock()
+        self.recent_layout.addWidget(self.widget_clock)
+
+        self.widget_fc = WidgetsItem()
+        self.recent_layout.addWidget(self.widget_fc)
+
+        self.widget_ft = WidgetsItem()
+        self.recent_layout.addWidget(self.widget_ft)
 
         self.db = Session()
 
         self.update_taf_table()
         self.update_recent()
+
+
+        # 自动发送报文的计时器
+        self.auto_send_timer = QTimer()
+        self.auto_send_timer.timeout.connect(self.auto_send)
+        self.auto_send_timer.start(15 * 1000) # 15 秒
 
 
     @pyqtSlot("bool")
@@ -150,16 +158,15 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         fc = self.db.query(Tafor).filter_by(tt='FC').order_by(Tafor.send_time.desc()).first()
         ft = self.db.query(Tafor).filter_by(tt='FT').order_by(Tafor.send_time.desc()).first()
         # print(fc)
-        self.recent_fc = WidgetsItem(fc)
-        self.recent_layout.addWidget(self.recent_fc)
+        if fc:
+            self.widget_fc.set_item(fc)
+        else:
+            self.widget_fc.hide()
 
-        self.recent_ft = WidgetsItem(ft)
-        self.recent_layout.addWidget(self.recent_ft)
-    
-    def clock(self):
-        utc = datetime.datetime.utcnow()
-        utc_string = utc.strftime('%Y-%m-%d %H:%M:%S')
-        self.clock_label.setText('<b>' + utc_string)
+        if ft:
+            self.widget_ft.set_item(fc)
+        else:
+            self.widget_ft.hide()
 
 
     def about(self):

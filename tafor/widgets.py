@@ -1,3 +1,5 @@
+import datetime
+
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ui import Ui_widgets_primary, Ui_widgets_becmg, Ui_widgets_tempo, Ui_widgets_recent_item
@@ -252,29 +254,46 @@ class TAFWidgetsTempo(QtWidgets.QWidget, TAFWidgetsMixin):
 
 class WidgetsItem(QtWidgets.QWidget):
     """docstring for WidgetsItem"""
-    def __init__(self, item = None):
+    def __init__(self):
         super(WidgetsItem, self).__init__()
         self.ui = Ui_widgets_recent_item.Ui_Form()
         self.ui.setupUi(self)
 
-        self.item = item
-        if self.item is not None:
-            self.update_data()
-
-    def update_data(self):
-        self.ui.type.setText(self.item.tt)
-        self.ui.send_time.setText(self.item.send_time.strftime("%Y-%m-%d %H:%M:%S"))
-        self.ui.rpt.setText(self.item.rpt)
-        if self.item.confirm_time:
+    def set_item(self, item):
+        self.ui.groupBox.setTitle(item.tt)
+        self.ui.send_time.setText(item.send_time.strftime("%Y-%m-%d %H:%M:%S"))
+        self.ui.rpt.setText(item.rpt)
+        if item.confirm_time:
             self.ui.check.setText('√')
         else:
             self.ui.check.setText('×')
+
+
+class WidgetsClock(WidgetsItem):
+    """docstring for WidgetsClock"""
+    def __init__(self):
+        super(WidgetsClock, self).__init__()
+
+        self.update()
+
+        # 计时器
+        self.clock_timer = QtCore.QTimer()
+        self.clock_timer.timeout.connect(self.update)
+        self.clock_timer.start(1 * 1000)
+
+    def update(self):
+        utc = datetime.datetime.utcnow()
+        self.ui.groupBox.setTitle('')
+        self.ui.send_time.setText('')
+        self.ui.rpt.setText('世界时  ' + utc.strftime("%Y-%m-%d %H:%M:%S"))
+        self.ui.check.setText('')
+        self.ui.groupBox.setStyleSheet("QGroupBox {border: none;}")
         
 
 
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    widget = WidgetsItem()
+    widget = WidgetsClock()
     widget.show()
     sys.exit(app.exec_())
