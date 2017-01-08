@@ -29,34 +29,27 @@ class TAFEditBase(QDialog):
         window = QWidget(self)
         layout = QVBoxLayout(window)
         layout.setSizeConstraint(QLayout.SetFixedSize)
-        self.widget_primary = TAFWidgetsPrimary()
-        self.widget_becmg1, self.widget_becmg2, self.widget_becmg3 = TAFWidgetsBecmg('BECMG1'), TAFWidgetsBecmg('BECMG2'), TAFWidgetsBecmg('BECMG3')
-        self.widget_tempo1, self.widget_tempo2 = TAFWidgetsTempo('TEMPO1'), TAFWidgetsTempo('TEMPO2')
+        self.primary = TAFWidgetsPrimary()
+        self.becmg1, self.becmg2, self.becmg3 = TAFWidgetsBecmg('BECMG1'), TAFWidgetsBecmg('BECMG2'), TAFWidgetsBecmg('BECMG3')
+        self.tempo1, self.tempo2 = TAFWidgetsTempo('TEMPO1'), TAFWidgetsTempo('TEMPO2')
         self.next_button = QPushButton()
         self.next_button.setText("下一步")
-        layout.addWidget(self.widget_primary)
-        layout.addWidget(self.widget_becmg1)
-        layout.addWidget(self.widget_becmg2)
-        layout.addWidget(self.widget_becmg3)
-        layout.addWidget(self.widget_tempo1)
-        layout.addWidget(self.widget_tempo2)
+        layout.addWidget(self.primary)
+        layout.addWidget(self.becmg1)
+        layout.addWidget(self.becmg2)
+        layout.addWidget(self.becmg3)
+        layout.addWidget(self.tempo1)
+        layout.addWidget(self.tempo2)
         layout.addWidget(self.next_button, 0, Qt.AlignRight|Qt.AlignBottom)
         self.setLayout(layout)
 
         self.setStyleSheet("QLineEdit {width: 50px;} QComboBox {width: 50px}")
 
-        self.widget_becmg1.hide()
-        self.widget_becmg2.hide()
-        self.widget_becmg3.hide()
-        self.widget_tempo1.hide()
-        self.widget_tempo2.hide()
-
-        self.primary = self.widget_primary.ui
-        self.becmg1 = self.widget_becmg1.ui
-        self.becmg2 = self.widget_becmg2.ui
-        self.becmg3 = self.widget_becmg3.ui
-        self.tempo1 = self.widget_tempo1.ui
-        self.tempo2 = self.widget_tempo2.ui
+        self.becmg1.hide()
+        self.becmg2.hide()
+        self.becmg3.hide()
+        self.tempo1.hide()
+        self.tempo2.hide()
 
     def bind_signal(self):
 
@@ -71,38 +64,38 @@ class TAFEditBase(QDialog):
     def add_becmg_and_tempo(self):
         # BECMG
         if self.primary.becmg1_checkbox.isChecked():
-            self.widget_becmg1.setVisible(True)
+            self.becmg1.setVisible(True)
         else:
-            self.widget_becmg1.setVisible(False)
-            self.widget_becmg2.setVisible(False)
-            self.widget_becmg3.setVisible(False)
+            self.becmg1.setVisible(False)
+            self.becmg2.setVisible(False)
+            self.becmg3.setVisible(False)
             self.primary.becmg2_checkbox.setChecked(False)
             self.primary.becmg3_checkbox.setChecked(False)
 
         if self.primary.becmg2_checkbox.isChecked():
-            self.widget_becmg2.setVisible(True)
+            self.becmg2.setVisible(True)
         else:
-            self.widget_becmg2.setVisible(False)
-            self.widget_becmg3.setVisible(False)
+            self.becmg2.setVisible(False)
+            self.becmg3.setVisible(False)
             self.primary.becmg3_checkbox.setChecked(False)
 
         if self.primary.becmg3_checkbox.isChecked():
-            self.widget_becmg3.setVisible(True)
+            self.becmg3.setVisible(True)
         else:
-            self.widget_becmg3.setVisible(False)
+            self.becmg3.setVisible(False)
 
         # TEMPO
         if self.primary.tempo1_checkbox.isChecked():
-            self.widget_tempo1.setVisible(True)
+            self.tempo1.setVisible(True)
         else:
-            self.widget_tempo1.setVisible(False)
-            self.widget_tempo2.setVisible(False)
+            self.tempo1.setVisible(False)
+            self.tempo2.setVisible(False)
             self.primary.tempo2_checkbox.setChecked(False)
 
         if self.primary.tempo2_checkbox.isChecked():
-            self.widget_tempo2.setVisible(True)
+            self.tempo2.setVisible(True)
         else:
-            self.widget_tempo2.setVisible(False)
+            self.tempo2.setVisible(False)
 
     def set_taf_period(self):
         if self.primary.date.text() and (self.primary.fc.isChecked() or self.primary.ft.isChecked()):
@@ -115,12 +108,12 @@ class TAFEditBase(QDialog):
 
 
     def assemble_message(self):
-        primary_msg = self.widget_primary.message()
-        becmg1_msg = self.widget_becmg1.message() if self.primary.becmg1_checkbox.isChecked() else ''
-        becmg2_msg = self.widget_becmg2.message() if self.primary.becmg2_checkbox.isChecked() else ''
-        becmg3_msg = self.widget_becmg3.message() if self.primary.becmg3_checkbox.isChecked() else ''
-        tempo1_msg = self.widget_tempo1.message() if self.primary.tempo1_checkbox.isChecked() else ''
-        tempo2_msg = self.widget_tempo2.message() if self.primary.tempo2_checkbox.isChecked() else ''
+        primary_msg = self.primary.message()
+        becmg1_msg = self.becmg1.message() if self.primary.becmg1_checkbox.isChecked() else ''
+        becmg2_msg = self.becmg2.message() if self.primary.becmg2_checkbox.isChecked() else ''
+        becmg3_msg = self.becmg3.message() if self.primary.becmg3_checkbox.isChecked() else ''
+        tempo1_msg = self.tempo1.message() if self.primary.tempo1_checkbox.isChecked() else ''
+        tempo2_msg = self.tempo2.message() if self.primary.tempo2_checkbox.isChecked() else ''
         self.rpt = '\n'.join([primary_msg, becmg1_msg, becmg2_msg, becmg3_msg, tempo1_msg, tempo2_msg])
         self.rpt = ' '.join(self.rpt.split())
         print(self.rpt)
