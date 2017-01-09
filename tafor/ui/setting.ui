@@ -61,7 +61,7 @@
         <enum>QFrame::Plain</enum>
        </property>
        <property name="currentIndex">
-        <number>1</number>
+        <number>2</number>
        </property>
        <widget class="QWidget" name="message_page">
         <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -388,7 +388,11 @@
                </widget>
               </item>
               <item row="1" column="1">
-               <widget class="QLineEdit" name="number"/>
+               <widget class="QLineEdit" name="number">
+                <property name="placeholderText">
+                 <string>1</string>
+                </property>
+               </widget>
               </item>
               <item row="2" column="1">
                <spacer name="horizontalSpacer_3">
@@ -445,7 +449,7 @@
             <item>
              <widget class="QTabWidget" name="tabWidget">
               <property name="currentIndex">
-               <number>0</number>
+               <number>3</number>
               </property>
               <widget class="QWidget" name="tab_taf">
                <attribute name="title">
@@ -467,7 +471,11 @@
                </attribute>
                <layout class="QVBoxLayout" name="verticalLayout_7">
                 <item>
-                 <widget class="QTextEdit" name="sigmet_addr"/>
+                 <widget class="QTextEdit" name="sigmet_addr">
+                  <property name="placeholderText">
+                   <string>发报地址请以空格分隔</string>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </widget>
@@ -477,17 +485,25 @@
                </attribute>
                <layout class="QVBoxLayout" name="verticalLayout_8">
                 <item>
-                 <widget class="QTextEdit" name="airmet_addr"/>
+                 <widget class="QTextEdit" name="airmet_addr">
+                  <property name="placeholderText">
+                   <string>发报地址请以空格分隔</string>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </widget>
               <widget class="QWidget" name="tab_trend">
                <attribute name="title">
-                <string>趋势</string>
+                <string>TREND</string>
                </attribute>
                <layout class="QVBoxLayout" name="verticalLayout_9">
                 <item>
-                 <widget class="QTextEdit" name="trend_addr"/>
+                 <widget class="QTextEdit" name="trend_addr">
+                  <property name="placeholderText">
+                   <string>发报地址请以空格分隔</string>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </widget>
@@ -505,7 +521,7 @@
            <property name="title">
             <string>监控数据源</string>
            </property>
-           <layout class="QGridLayout" name="gridLayout_3">
+           <layout class="QGridLayout" name="gridLayout_2">
             <item row="0" column="0">
              <widget class="QRadioButton" name="sydb">
               <property name="text">
@@ -531,18 +547,18 @@
            <property name="title">
             <string>闹钟和音量</string>
            </property>
-           <layout class="QGridLayout" name="gridLayout_6">
+           <layout class="QFormLayout" name="formLayout_5">
             <item row="0" column="0">
              <widget class="QCheckBox" name="clock">
               <property name="text">
-               <string>启用</string>
+               <string>启用    </string>
               </property>
              </widget>
             </item>
             <item row="1" column="0">
              <widget class="QLabel" name="clock_time_label">
               <property name="text">
-               <string>闹铃时间</string>
+               <string>闹铃时间        </string>
               </property>
              </widget>
             </item>
@@ -643,7 +659,7 @@
             <item row="1" column="0">
              <widget class="QLabel" name="warn_taf_time_label">
               <property name="text">
-               <string>提醒时间</string>
+               <string>提醒时间        </string>
               </property>
              </widget>
             </item>
@@ -730,7 +746,11 @@
              <enum>QLayout::SetMaximumSize</enum>
             </property>
             <item row="0" column="0">
-             <widget class="QLineEdit" name="import_path"/>
+             <widget class="QLineEdit" name="import_path">
+              <property name="placeholderText">
+               <string>PATH</string>
+              </property>
+             </widget>
             </item>
             <item row="1" column="2">
              <widget class="QPushButton" name="export_button">
@@ -761,7 +781,11 @@
              </widget>
             </item>
             <item row="1" column="0">
-             <widget class="QLineEdit" name="export_path"/>
+             <widget class="QLineEdit" name="export_path">
+              <property name="placeholderText">
+               <string>PATH</string>
+              </property>
+             </widget>
             </item>
            </layout>
           </widget>
