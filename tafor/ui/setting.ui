@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Dialog</class>
+ <widget class="QDialog" name="Dialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>661</width>
+    <height>406</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QWidget" name="left_Widget" native="true">
+       <property name="maximumSize">
+        <size>
+         <width>120</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <layout class="QVBoxLayout" name="leftbox">
+        <item>
+         <widget class="QLineEdit" name="lineEdit"/>
+        </item>
+        <item>
+         <widget class="QListWidget" name="listWidget">
+          <item>
+           <property name="text">
+            <string>常规</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>通信</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>监控</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>高级设置</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item>
+      <widget class="QStackedWidget" name="stackedWidget">
+       <property name="frameShadow">
+        <enum>QFrame::Plain</enum>
+       </property>
+       <property name="currentIndex">
+        <number>2</number>
+       </property>
+       <widget class="QWidget" name="page1">
+        <layout class="QVBoxLayout" name="verticalLayout_2">
+         <item>
+          <widget class="QGroupBox" name="groupBox">
+           <property name="title">
+            <string>综合</string>
+           </property>
+           <layout class="QFormLayout" name="formLayout">
+            <item row="0" column="0">
+             <widget class="QLabel" name="label">
+              <property name="text">
+               <string>站点</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QLineEdit" name="lineEdit_2"/>
+            </item>
+           </layout>
+           <zorder>verticalLayoutWidget</zorder>
+           <zorder>label</zorder>
+           <zorder>lineEdit_2</zorder>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="groupBox_2">
+           <property name="title">
+            <string>备份</string>
+           </property>
+           <layout class="QFormLayout" name="formLayout_2">
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_5">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QPushButton" name="pushButton">
+              <property name="text">
+               <string>生成备份文件</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QPushButton" name="pushButton_2">
+              <property name="text">
+               <string>从备份文件恢复</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="page2">
+        <layout class="QVBoxLayout" name="verticalLayout_4">
+         <item>
+          <widget class="QGroupBox" name="groupBox_3">
+           <property name="title">
+            <string>串口参数</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout">
+            <item row="0" column="1">
+             <widget class="QLineEdit" name="lineEdit_3"/>
+            </item>
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_2">
+              <property name="text">
+               <string>波特率</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="label_6">
+              <property name="text">
+               <string>奇偶校验位</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QComboBox" name="comboBox"/>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_7">
+              <property name="text">
+               <string>停止位</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLineEdit" name="lineEdit_4"/>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="groupBox_4">
+           <property name="title">
+            <string>TAF 发报地址</string>
+           </property>
+           <layout class="QFormLayout" name="formLayout_3">
+            <item row="0" column="0" colspan="2">
+             <widget class="QTextEdit" name="textEdit"/>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="groupBox_5">
+           <property name="title">
+            <string>SIGMET 发报地址</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_2">
+            <item row="0" column="0">
+             <widget class="QTextEdit" name="textEdit_2"/>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="page_3">
+        <layout class="QVBoxLayout" name="verticalLayout_5">
+         <item>
+          <widget class="QGroupBox" name="groupBox_6">
+           <property name="title">
+            <string>声音</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_3">
+            <item row="0" column="0">
+             <widget class="QCheckBox" name="checkBox">
+              <property name="text">
+               <string>声音提醒</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="groupBox_7">
+           <property name="title">
+            <string>电话</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_4">
+            <item row="0" column="0">
+             <widget class="QCheckBox" name="checkBox_2">
+              <property name="text">
+               <string>电话告警</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QComboBox" name="comboBox_2"/>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="page3">
+        <layout class="QVBoxLayout" name="verticalLayout_6">
+         <item>
+          <widget class="QGroupBox" name="groupBox_8">
+           <property name="title">
+            <string>其他</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>Dialog</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>236</x>
+     <y>396</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>157</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>Dialog</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>304</x>
+     <y>396</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>286</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>listWidget</sender>
+   <signal>currentRowChanged(int)</signal>
+   <receiver>stackedWidget</receiver>
+   <slot>setCurrentIndex(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>120</x>
+     <y>125</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>145</x>
+     <y>124</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>
