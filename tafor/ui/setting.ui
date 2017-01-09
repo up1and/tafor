@@ -6,18 +6,18 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>661</width>
-    <height>406</height>
+    <width>563</width>
+    <height>433</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>设置</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout">
+    <layout class="QHBoxLayout" name="main">
      <item>
-      <widget class="QWidget" name="left_Widget" native="true">
+      <widget class="QWidget" name="left_side" native="true">
        <property name="maximumSize">
         <size>
          <width>120</width>
@@ -26,13 +26,13 @@
        </property>
        <layout class="QVBoxLayout" name="leftbox">
         <item>
-         <widget class="QLineEdit" name="lineEdit"/>
+         <widget class="QLineEdit" name="search"/>
         </item>
         <item>
-         <widget class="QListWidget" name="listWidget">
+         <widget class="QListWidget" name="menu">
           <item>
            <property name="text">
-            <string>常规</string>
+            <string>编报</string>
            </property>
           </item>
           <item>
@@ -47,7 +47,7 @@
           </item>
           <item>
            <property name="text">
-            <string>高级设置</string>
+            <string>常规</string>
            </property>
           </item>
          </widget>
@@ -56,148 +56,74 @@
       </widget>
      </item>
      <item>
-      <widget class="QStackedWidget" name="stackedWidget">
+      <widget class="QStackedWidget" name="stacked">
        <property name="frameShadow">
         <enum>QFrame::Plain</enum>
        </property>
        <property name="currentIndex">
-        <number>2</number>
+        <number>1</number>
        </property>
-       <widget class="QWidget" name="page1">
+       <widget class="QWidget" name="message_page">
         <layout class="QVBoxLayout" name="verticalLayout_2">
          <item>
-          <widget class="QGroupBox" name="groupBox">
+          <widget class="QGroupBox" name="prefix_group">
            <property name="title">
-            <string>综合</string>
+            <string>前缀</string>
            </property>
            <layout class="QFormLayout" name="formLayout">
             <item row="0" column="0">
-             <widget class="QLabel" name="label">
+             <widget class="QLabel" name="icao_label">
               <property name="text">
-               <string>站点</string>
+               <string>机场代码</string>
               </property>
              </widget>
             </item>
             <item row="0" column="1">
-             <widget class="QLineEdit" name="lineEdit_2"/>
-            </item>
-           </layout>
-           <zorder>verticalLayoutWidget</zorder>
-           <zorder>label</zorder>
-           <zorder>lineEdit_2</zorder>
-          </widget>
-         </item>
-         <item>
-          <widget class="QGroupBox" name="groupBox_2">
-           <property name="title">
-            <string>备份</string>
-           </property>
-           <layout class="QFormLayout" name="formLayout_2">
-            <item row="0" column="0">
-             <widget class="QLabel" name="label_5">
-              <property name="text">
-               <string/>
+             <widget class="QLineEdit" name="icao">
+              <property name="placeholderText">
+               <string>ZJHK</string>
               </property>
              </widget>
             </item>
             <item row="1" column="0">
-             <widget class="QPushButton" name="pushButton">
+             <widget class="QLabel" name="intelligence_label">
               <property name="text">
-               <string>生成备份文件</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="0">
-             <widget class="QPushButton" name="pushButton_2">
-              <property name="text">
-               <string>从备份文件恢复</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-       <widget class="QWidget" name="page2">
-        <layout class="QVBoxLayout" name="verticalLayout_4">
-         <item>
-          <widget class="QGroupBox" name="groupBox_3">
-           <property name="title">
-            <string>串口参数</string>
-           </property>
-           <layout class="QGridLayout" name="gridLayout">
-            <item row="0" column="1">
-             <widget class="QLineEdit" name="lineEdit_3"/>
-            </item>
-            <item row="0" column="0">
-             <widget class="QLabel" name="label_2">
-              <property name="text">
-               <string>波特率</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="0">
-             <widget class="QLabel" name="label_6">
-              <property name="text">
-               <string>奇偶校验位</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="1">
-             <widget class="QComboBox" name="comboBox"/>
-            </item>
-            <item row="1" column="0">
-             <widget class="QLabel" name="label_7">
-              <property name="text">
-               <string>停止位</string>
+               <string>气象情报</string>
               </property>
              </widget>
             </item>
             <item row="1" column="1">
-             <widget class="QLineEdit" name="lineEdit_4"/>
+             <widget class="QLineEdit" name="intelligence">
+              <property name="placeholderText">
+               <string>CI35</string>
+              </property>
+             </widget>
             </item>
-           </layout>
-          </widget>
-         </item>
-         <item>
-          <widget class="QGroupBox" name="groupBox_4">
-           <property name="title">
-            <string>TAF 发报地址</string>
-           </property>
-           <layout class="QFormLayout" name="formLayout_3">
-            <item row="0" column="0" colspan="2">
-             <widget class="QTextEdit" name="textEdit"/>
-            </item>
-           </layout>
-          </widget>
-         </item>
-         <item>
-          <widget class="QGroupBox" name="groupBox_5">
-           <property name="title">
-            <string>SIGMET 发报地址</string>
-           </property>
-           <layout class="QGridLayout" name="gridLayout_2">
-            <item row="0" column="0">
-             <widget class="QTextEdit" name="textEdit_2"/>
-            </item>
-           </layout>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-       <widget class="QWidget" name="page_3">
-        <layout class="QVBoxLayout" name="verticalLayout_5">
-         <item>
-          <widget class="QGroupBox" name="groupBox_6">
-           <property name="title">
-            <string>声音</string>
-           </property>
-           <layout class="QGridLayout" name="gridLayout_3">
-            <item row="0" column="0">
-             <widget class="QCheckBox" name="checkBox">
+            <item row="2" column="0">
+             <widget class="QLabel" name="fir_label">
               <property name="text">
-               <string>声音提醒</string>
+               <string>监视台责任区</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QLineEdit" name="fir">
+              <property name="placeholderText">
+               <string>ZJSA SANYA FIR</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0">
+             <widget class="QLabel" name="trend_label">
+              <property name="text">
+               <string>趋势识别码</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1">
+             <widget class="QLineEdit" name="trend">
+              <property name="placeholderText">
+               <string>TREND</string>
               </property>
              </widget>
             </item>
@@ -205,33 +131,639 @@
           </widget>
          </item>
          <item>
-          <widget class="QGroupBox" name="groupBox_7">
+          <widget class="QGroupBox" name="weather_group">
            <property name="title">
-            <string>电话</string>
+            <string>天气现象备案</string>
            </property>
-           <layout class="QGridLayout" name="gridLayout_4">
+           <layout class="QGridLayout" name="gridLayout">
             <item row="0" column="0">
-             <widget class="QCheckBox" name="checkBox_2">
+             <layout class="QHBoxLayout" name="wx1_edit_layout">
+              <item>
+               <widget class="QLineEdit" name="weather1">
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="placeholderText">
+                 <string>有强度变化的天气现象</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="weather1_add_button">
+                <property name="maximumSize">
+                 <size>
+                  <width>25</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>+</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="weather1_del_button">
+                <property name="maximumSize">
+                 <size>
+                  <width>25</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>—</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item row="1" column="1">
+             <widget class="QListWidget" name="weather2_list">
+              <item>
+               <property name="text">
+                <string>BR</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QListWidget" name="weather1_list">
+              <item>
+               <property name="text">
+                <string>+TSRA</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <layout class="QHBoxLayout" name="horizontalLayout_4">
+              <item>
+               <widget class="QLineEdit" name="weather2">
+                <property name="placeholderText">
+                 <string>无强度变化的天气现象</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="weather2_add_button">
+                <property name="maximumSize">
+                 <size>
+                  <width>25</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>+</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="weather2_del_button">
+                <property name="maximumSize">
+                 <size>
+                  <width>25</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>—</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="communication_page">
+        <layout class="QVBoxLayout" name="verticalLayout_4">
+         <item>
+          <layout class="QHBoxLayout" name="top_layout">
+           <item>
+            <widget class="QGroupBox" name="serial_group">
+             <property name="title">
+              <string>串口参数</string>
+             </property>
+             <layout class="QFormLayout" name="formLayout_3">
+              <item row="0" column="0">
+               <widget class="QLabel" name="port_label">
+                <property name="text">
+                 <string>端口</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QLineEdit" name="port">
+                <property name="placeholderText">
+                 <string>COM1</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="baudrate_label">
+                <property name="text">
+                 <string>波特率</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QLineEdit" name="baudrate">
+                <property name="placeholderText">
+                 <string>9600</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="0">
+               <widget class="QLabel" name="parity_label">
+                <property name="text">
+                 <string>校验位</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="1">
+               <widget class="QComboBox" name="parity">
+                <item>
+                 <property name="text">
+                  <string>NONE</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>EVEN</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>ODD</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item row="3" column="0">
+               <widget class="QLabel" name="bytesize_label">
+                <property name="text">
+                 <string>数据位</string>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="1">
+               <widget class="QComboBox" name="bytesize">
+                <item>
+                 <property name="text">
+                  <string>5</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>6</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>7</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>8</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item row="4" column="0">
+               <widget class="QLabel" name="stopbits_label">
+                <property name="text">
+                 <string>停止位</string>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="1">
+               <widget class="QComboBox" name="stopbits">
+                <item>
+                 <property name="text">
+                  <string>1</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>1.5</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>2</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QGroupBox" name="other_group">
+             <property name="title">
+              <string>其他</string>
+             </property>
+             <layout class="QFormLayout" name="formLayout_7">
+              <item row="0" column="0">
+               <widget class="QLabel" name="line_label">
+                <property name="text">
+                 <string>线路冠字</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QLineEdit" name="line">
+                <property name="placeholderText">
+                 <string>YMA</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="number_label">
+                <property name="text">
+                 <string>流水号</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QLineEdit" name="number"/>
+              </item>
+              <item row="2" column="1">
+               <spacer name="horizontalSpacer_3">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item row="3" column="1">
+               <widget class="QLineEdit" name="request_addr">
+                <property name="placeholderText">
+                 <string>ZGGGYZYX</string>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="0">
+               <widget class="QLabel" name="request_addr_label">
+                <property name="text">
+                 <string>请求地址</string>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="1">
+               <widget class="QLineEdit" name="user_addr">
+                <property name="placeholderText">
+                 <string>ZJHKYMYX</string>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="0">
+               <widget class="QLabel" name="user_addr_label">
+                <property name="text">
+                 <string>用户单位</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="send_addr_group">
+           <property name="title">
+            <string>发报地址</string>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_10">
+            <item>
+             <widget class="QTabWidget" name="tabWidget">
+              <property name="currentIndex">
+               <number>0</number>
+              </property>
+              <widget class="QWidget" name="tab_taf">
+               <attribute name="title">
+                <string>TAF</string>
+               </attribute>
+               <layout class="QVBoxLayout" name="verticalLayout_3">
+                <item>
+                 <widget class="QTextEdit" name="taf_addr">
+                  <property name="placeholderText">
+                   <string>发报地址请以空格分隔</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+              <widget class="QWidget" name="tab_sigmet">
+               <attribute name="title">
+                <string>SIGMET</string>
+               </attribute>
+               <layout class="QVBoxLayout" name="verticalLayout_7">
+                <item>
+                 <widget class="QTextEdit" name="sigmet_addr"/>
+                </item>
+               </layout>
+              </widget>
+              <widget class="QWidget" name="tab_airmet">
+               <attribute name="title">
+                <string>AIRMET</string>
+               </attribute>
+               <layout class="QVBoxLayout" name="verticalLayout_8">
+                <item>
+                 <widget class="QTextEdit" name="airmet_addr"/>
+                </item>
+               </layout>
+              </widget>
+              <widget class="QWidget" name="tab_trend">
+               <attribute name="title">
+                <string>趋势</string>
+               </attribute>
+               <layout class="QVBoxLayout" name="verticalLayout_9">
+                <item>
+                 <widget class="QTextEdit" name="trend_addr"/>
+                </item>
+               </layout>
+              </widget>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="monitor_page">
+        <layout class="QVBoxLayout" name="verticalLayout_5">
+         <item>
+          <widget class="QGroupBox" name="db_source_group">
+           <property name="title">
+            <string>监控数据源</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_3">
+            <item row="0" column="0">
+             <widget class="QRadioButton" name="sydb">
               <property name="text">
-               <string>电话告警</string>
+               <string>三亚区管数据库</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QRadioButton" name="web">
+              <property name="text">
+               <string>中南综合信息服务系统</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="clock_group">
+           <property name="title">
+            <string>闹钟和音量</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_6">
+            <item row="0" column="0">
+             <widget class="QCheckBox" name="clock">
+              <property name="text">
+               <string>启用</string>
               </property>
              </widget>
             </item>
             <item row="1" column="0">
-             <widget class="QComboBox" name="comboBox_2"/>
+             <widget class="QLabel" name="clock_time_label">
+              <property name="text">
+               <string>闹铃时间</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLineEdit" name="clock_time">
+              <property name="maximumSize">
+               <size>
+                <width>120</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="placeholderText">
+               <string>时间单位分钟</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="clock_volume_label">
+              <property name="text">
+               <string>音量</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QSlider" name="clock_volume">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="sound_group">
+           <property name="title">
+            <string>声音提醒和音量</string>
+           </property>
+           <layout class="QFormLayout" name="formLayout_2">
+            <item row="0" column="0">
+             <widget class="QCheckBox" name="warn_taf">
+              <property name="text">
+               <string>报文迟发</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QSlider" name="warn_taf_volume">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QCheckBox" name="warn_trend">
+              <property name="text">
+               <string>趋势预报</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QSlider" name="warn_trend_volume">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QCheckBox" name="warn_sigmet">
+              <property name="text">
+               <string>重要气象情报</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QSlider" name="warn_sigmet_volume">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="phone_group">
+           <property name="title">
+            <string>电话</string>
+           </property>
+           <layout class="QFormLayout" name="formLayout_4">
+            <item row="0" column="0">
+             <widget class="QCheckBox" name="phone_warn_taf">
+              <property name="text">
+               <string>报文迟发</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="warn_taf_time_label">
+              <property name="text">
+               <string>提醒时间</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLineEdit" name="warn_taf_time">
+              <property name="maximumSize">
+               <size>
+                <width>120</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="placeholderText">
+               <string>时间单位分钟</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="phone_number_label">
+              <property name="text">
+               <string>电话</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QComboBox" name="phone_number">
+              <property name="maximumSize">
+               <size>
+                <width>120</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <item>
+               <property name="text">
+                <string>预报室</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>陈彬</string>
+               </property>
+              </item>
+             </widget>
             </item>
            </layout>
           </widget>
          </item>
         </layout>
        </widget>
-       <widget class="QWidget" name="page3">
+       <widget class="QWidget" name="convention_page">
         <layout class="QVBoxLayout" name="verticalLayout_6">
+         <property name="sizeConstraint">
+          <enum>QLayout::SetDefaultConstraint</enum>
+         </property>
          <item>
-          <widget class="QGroupBox" name="groupBox_8">
+          <widget class="QGroupBox" name="convention_group">
            <property name="title">
-            <string>其他</string>
+            <string>常规</string>
            </property>
+           <layout class="QFormLayout" name="formLayout_8">
+            <item row="0" column="0">
+             <widget class="QCheckBox" name="run_on_start">
+              <property name="text">
+               <string>开机自动启动</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QCheckBox" name="close_to_minimize">
+              <property name="text">
+               <string>关闭时最小化到系统托盘</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="backup_group">
+           <property name="title">
+            <string>备份</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_5">
+            <property name="sizeConstraint">
+             <enum>QLayout::SetMaximumSize</enum>
+            </property>
+            <item row="0" column="0">
+             <widget class="QLineEdit" name="import_path"/>
+            </item>
+            <item row="1" column="2">
+             <widget class="QPushButton" name="export_button">
+              <property name="text">
+               <string>导出</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="2">
+             <widget class="QPushButton" name="import_button">
+              <property name="text">
+               <string>导入</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QPushButton" name="import_explore">
+              <property name="text">
+               <string>浏览</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QPushButton" name="export_explore">
+              <property name="text">
+               <string>浏览</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLineEdit" name="export_path"/>
+            </item>
+           </layout>
           </widget>
          </item>
         </layout>
@@ -241,28 +773,77 @@
     </layout>
    </item>
    <item>
-    <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
+    <widget class="QDialogButtonBox" name="button_box">
      <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+      <set>QDialogButtonBox::Apply|QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
      </property>
     </widget>
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>search</tabstop>
+  <tabstop>menu</tabstop>
+  <tabstop>icao</tabstop>
+  <tabstop>intelligence</tabstop>
+  <tabstop>fir</tabstop>
+  <tabstop>trend</tabstop>
+  <tabstop>weather1</tabstop>
+  <tabstop>weather1_add_button</tabstop>
+  <tabstop>weather1_del_button</tabstop>
+  <tabstop>weather1_list</tabstop>
+  <tabstop>weather2</tabstop>
+  <tabstop>weather2_add_button</tabstop>
+  <tabstop>weather2_del_button</tabstop>
+  <tabstop>weather2_list</tabstop>
+  <tabstop>port</tabstop>
+  <tabstop>baudrate</tabstop>
+  <tabstop>parity</tabstop>
+  <tabstop>bytesize</tabstop>
+  <tabstop>stopbits</tabstop>
+  <tabstop>line</tabstop>
+  <tabstop>number</tabstop>
+  <tabstop>request_addr</tabstop>
+  <tabstop>user_addr</tabstop>
+  <tabstop>tabWidget</tabstop>
+  <tabstop>taf_addr</tabstop>
+  <tabstop>sigmet_addr</tabstop>
+  <tabstop>airmet_addr</tabstop>
+  <tabstop>trend_addr</tabstop>
+  <tabstop>sydb</tabstop>
+  <tabstop>web</tabstop>
+  <tabstop>clock</tabstop>
+  <tabstop>clock_time</tabstop>
+  <tabstop>clock_volume</tabstop>
+  <tabstop>warn_taf</tabstop>
+  <tabstop>warn_taf_volume</tabstop>
+  <tabstop>warn_trend</tabstop>
+  <tabstop>warn_trend_volume</tabstop>
+  <tabstop>warn_sigmet</tabstop>
+  <tabstop>warn_sigmet_volume</tabstop>
+  <tabstop>phone_warn_taf</tabstop>
+  <tabstop>warn_taf_time</tabstop>
+  <tabstop>phone_number</tabstop>
+  <tabstop>run_on_start</tabstop>
+  <tabstop>close_to_minimize</tabstop>
+  <tabstop>import_path</tabstop>
+  <tabstop>import_explore</tabstop>
+  <tabstop>import_button</tabstop>
+  <tabstop>export_path</tabstop>
+  <tabstop>export_explore</tabstop>
+  <tabstop>export_button</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>
-   <sender>buttonBox</sender>
+   <sender>button_box</sender>
    <signal>accepted()</signal>
    <receiver>Dialog</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>236</x>
-     <y>396</y>
+     <x>245</x>
+     <y>423</y>
     </hint>
     <hint type="destinationlabel">
      <x>157</x>
@@ -271,14 +852,14 @@
    </hints>
   </connection>
   <connection>
-   <sender>buttonBox</sender>
+   <sender>button_box</sender>
    <signal>rejected()</signal>
    <receiver>Dialog</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>304</x>
-     <y>396</y>
+     <x>313</x>
+     <y>423</y>
     </hint>
     <hint type="destinationlabel">
      <x>286</x>
@@ -287,14 +868,14 @@
    </hints>
   </connection>
   <connection>
-   <sender>listWidget</sender>
+   <sender>menu</sender>
    <signal>currentRowChanged(int)</signal>
-   <receiver>stackedWidget</receiver>
+   <receiver>stacked</receiver>
    <slot>setCurrentIndex(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>120</x>
-     <y>125</y>
+     <x>91</x>
+     <y>170</y>
     </hint>
     <hint type="destinationlabel">
      <x>145</x>

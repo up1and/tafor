@@ -7,6 +7,7 @@ from PyQt5.QtCore import *
 
 from ui import Ui_main, main_rc
 from taf import TAFEdit, ScheduleTAFEdit
+from setting import SettingDialog
 from models import Tafor, Schedule, Session
 from widgets import WidgetsItem, WidgetsClock
 
@@ -28,7 +29,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.taf_action.triggered.connect(TAFEdit(self).show)
 
         # 连接设置对话框的槽
-        # self.setting_action.triggered.connect(SettingDialog(self).show)
+        self.setting_action.triggered.connect(SettingDialog(self).show)
         self.setting_action.setIcon(QIcon(':/setting.png'))
 
         # 连接关于信息的槽
@@ -177,10 +178,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
                 <p>联系邮箱 <a href="mailto:piratecb@gmail.com">piratecb@gmail.com</a>
                 """ % (__version__))
 
-
-
-class SettingDialog(object):
-    pass
 
 
 if __name__ == "__main__":
