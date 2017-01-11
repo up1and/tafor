@@ -53,6 +53,22 @@ class Schedule(Base):
     def __repr__(self):
         return '<Schedule TAF %r %r %r>' % (self.tt, self.rpt, self.schedule_time)
 
+class User(Base):
+
+    __tablename__ = 'user'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(8))
+    phone_number = Column(String(20))
+
+    def __init__(self, name, phone_number):
+        self.name = name
+        self.phone_number = phone_number
+
+    def __repr__(self):
+        return '<User %r %r>' % (self.name, self.phone_number)
+
+
 # 初始化数据库连接:
 engine = create_engine('sqlite:///./db.sqlite3', echo=False)
 # 创建DBSession类型:

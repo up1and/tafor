@@ -184,6 +184,9 @@ if __name__ == "__main__":
     import sys
     app = QApplication(sys.argv)
     ui = MainWindow()
+    QCoreApplication.setOrganizationName("Up1and")
+    QCoreApplication.setOrganizationDomain("up1and.in")
+    QCoreApplication.setApplicationName("Tafor")
     ui.show()
     sys.exit(app.exec_())
     

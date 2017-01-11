@@ -6,9 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>563</width>
-    <height>433</height>
+    <width>600</width>
+    <height>471</height>
    </rect>
+  </property>
+  <property name="acceptDrops">
+   <bool>true</bool>
   </property>
   <property name="windowTitle">
    <string>设置</string>
@@ -32,6 +35,11 @@
          <widget class="QListWidget" name="menu">
           <item>
            <property name="text">
+            <string>常规</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
             <string>编报</string>
            </property>
           </item>
@@ -47,7 +55,7 @@
           </item>
           <item>
            <property name="text">
-            <string>常规</string>
+            <string>联系人</string>
            </property>
           </item>
          </widget>
@@ -61,8 +69,92 @@
         <enum>QFrame::Plain</enum>
        </property>
        <property name="currentIndex">
-        <number>2</number>
+        <number>4</number>
        </property>
+       <widget class="QWidget" name="convention_page">
+        <layout class="QVBoxLayout" name="verticalLayout_6">
+         <property name="sizeConstraint">
+          <enum>QLayout::SetDefaultConstraint</enum>
+         </property>
+         <item>
+          <widget class="QGroupBox" name="convention_group">
+           <property name="title">
+            <string>常规</string>
+           </property>
+           <layout class="QFormLayout" name="formLayout_8">
+            <item row="0" column="0">
+             <widget class="QCheckBox" name="run_on_start">
+              <property name="text">
+               <string>开机自动启动</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QCheckBox" name="close_to_minimize">
+              <property name="text">
+               <string>关闭时最小化到系统托盘</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="backup_group">
+           <property name="title">
+            <string>备份</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_5">
+            <property name="sizeConstraint">
+             <enum>QLayout::SetMaximumSize</enum>
+            </property>
+            <item row="0" column="0">
+             <widget class="QLineEdit" name="import_path">
+              <property name="placeholderText">
+               <string>PATH</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="2">
+             <widget class="QPushButton" name="export_button">
+              <property name="text">
+               <string>导出</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="2">
+             <widget class="QPushButton" name="import_button">
+              <property name="text">
+               <string>导入</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QPushButton" name="import_explore">
+              <property name="text">
+               <string>浏览</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QPushButton" name="export_explore">
+              <property name="text">
+               <string>浏览</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLineEdit" name="export_path">
+              <property name="placeholderText">
+               <string>PATH</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
        <widget class="QWidget" name="message_page">
         <layout class="QVBoxLayout" name="verticalLayout_2">
          <item>
@@ -114,14 +206,14 @@
              </widget>
             </item>
             <item row="3" column="0">
-             <widget class="QLabel" name="trend_label">
+             <widget class="QLabel" name="trend_sign_label">
               <property name="text">
                <string>趋势识别码</string>
               </property>
              </widget>
             </item>
             <item row="3" column="1">
-             <widget class="QLineEdit" name="trend">
+             <widget class="QLineEdit" name="trend_sign">
               <property name="placeholderText">
                <string>TREND</string>
               </property>
@@ -137,74 +229,19 @@
            </property>
            <layout class="QGridLayout" name="gridLayout">
             <item row="0" column="0">
-             <layout class="QHBoxLayout" name="wx1_edit_layout">
+             <layout class="QHBoxLayout" name="add_wx1_layout">
               <item>
                <widget class="QLineEdit" name="weather1">
                 <property name="text">
                  <string/>
                 </property>
                 <property name="placeholderText">
-                 <string>有强度变化的天气现象</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="weather1_add_button">
-                <property name="maximumSize">
-                 <size>
-                  <width>25</width>
-                  <height>16777215</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>+</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="weather1_del_button">
-                <property name="maximumSize">
-                 <size>
-                  <width>25</width>
-                  <height>16777215</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>—</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item row="1" column="1">
-             <widget class="QListWidget" name="weather2_list">
-              <item>
-               <property name="text">
-                <string>BR</string>
-               </property>
-              </item>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QListWidget" name="weather1_list">
-              <item>
-               <property name="text">
-                <string>+TSRA</string>
-               </property>
-              </item>
-             </widget>
-            </item>
-            <item row="0" column="1">
-             <layout class="QHBoxLayout" name="horizontalLayout_4">
-              <item>
-               <widget class="QLineEdit" name="weather2">
-                <property name="placeholderText">
                  <string>无强度变化的天气现象</string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QPushButton" name="weather2_add_button">
+               <widget class="QPushButton" name="add_weather1_button">
                 <property name="maximumSize">
                  <size>
                   <width>25</width>
@@ -217,7 +254,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QPushButton" name="weather2_del_button">
+               <widget class="QPushButton" name="del_weather1_button">
                 <property name="maximumSize">
                  <size>
                   <width>25</width>
@@ -230,6 +267,57 @@
                </widget>
               </item>
              </layout>
+            </item>
+            <item row="0" column="1">
+             <layout class="QHBoxLayout" name="add_wx2_layout">
+              <item>
+               <widget class="QLineEdit" name="weather2">
+                <property name="placeholderText">
+                 <string>有强度变化的天气现象</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="add_weather2_button">
+                <property name="maximumSize">
+                 <size>
+                  <width>25</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>+</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="del_weather2_button">
+                <property name="maximumSize">
+                 <size>
+                  <width>25</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>—</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item row="1" column="0">
+             <widget class="QListWidget" name="weather1_list">
+              <property name="dragDropMode">
+               <enum>QAbstractItemView::InternalMove</enum>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QListWidget" name="weather2_list">
+              <property name="dragDropMode">
+               <enum>QAbstractItemView::InternalMove</enum>
+              </property>
+             </widget>
             </item>
            </layout>
           </widget>
@@ -441,7 +529,7 @@
           </layout>
          </item>
          <item>
-          <widget class="QGroupBox" name="send_addr_group">
+          <widget class="QGroupBox" name="address_group">
            <property name="title">
             <string>发报地址</string>
            </property>
@@ -449,7 +537,7 @@
             <item>
              <widget class="QTabWidget" name="tabWidget">
               <property name="currentIndex">
-               <number>3</number>
+               <number>0</number>
               </property>
               <widget class="QWidget" name="tab_taf">
                <attribute name="title">
@@ -457,7 +545,7 @@
                </attribute>
                <layout class="QVBoxLayout" name="verticalLayout_3">
                 <item>
-                 <widget class="QTextEdit" name="taf_addr">
+                 <widget class="QTextEdit" name="taf">
                   <property name="placeholderText">
                    <string>发报地址请以空格分隔</string>
                   </property>
@@ -471,7 +559,7 @@
                </attribute>
                <layout class="QVBoxLayout" name="verticalLayout_7">
                 <item>
-                 <widget class="QTextEdit" name="sigmet_addr">
+                 <widget class="QTextEdit" name="sigmet">
                   <property name="placeholderText">
                    <string>发报地址请以空格分隔</string>
                   </property>
@@ -485,7 +573,7 @@
                </attribute>
                <layout class="QVBoxLayout" name="verticalLayout_8">
                 <item>
-                 <widget class="QTextEdit" name="airmet_addr">
+                 <widget class="QTextEdit" name="airmet">
                   <property name="placeholderText">
                    <string>发报地址请以空格分隔</string>
                   </property>
@@ -499,7 +587,7 @@
                </attribute>
                <layout class="QVBoxLayout" name="verticalLayout_9">
                 <item>
-                 <widget class="QTextEdit" name="trend_addr">
+                 <widget class="QTextEdit" name="trend">
                   <property name="placeholderText">
                    <string>发报地址请以空格分隔</string>
                   </property>
@@ -571,7 +659,7 @@
                </size>
               </property>
               <property name="placeholderText">
-               <string>时间单位分钟</string>
+               <string>单位分钟</string>
               </property>
              </widget>
             </item>
@@ -672,35 +760,36 @@
                </size>
               </property>
               <property name="placeholderText">
-               <string>时间单位分钟</string>
+               <string>单位分钟</string>
               </property>
              </widget>
             </item>
             <item row="2" column="0">
-             <widget class="QLabel" name="phone_number_label">
+             <widget class="QLabel" name="call_service_url_label">
               <property name="text">
-               <string>电话</string>
+               <string>请求地址</string>
               </property>
              </widget>
             </item>
             <item row="2" column="1">
-             <widget class="QComboBox" name="phone_number">
-              <property name="maximumSize">
-               <size>
-                <width>120</width>
-                <height>16777215</height>
-               </size>
+             <widget class="QLineEdit" name="call_service_url">
+              <property name="placeholderText">
+               <string>URL</string>
               </property>
-              <item>
-               <property name="text">
-                <string>预报室</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>陈彬</string>
-               </property>
-              </item>
+             </widget>
+            </item>
+            <item row="3" column="0">
+             <widget class="QLabel" name="call_service_auth_label">
+              <property name="text">
+               <string>认证</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1">
+             <widget class="QLineEdit" name="call_service_auth">
+              <property name="placeholderText">
+               <string>AUTH</string>
+              </property>
              </widget>
             </item>
            </layout>
@@ -708,84 +797,97 @@
          </item>
         </layout>
        </widget>
-       <widget class="QWidget" name="convention_page">
-        <layout class="QVBoxLayout" name="verticalLayout_6">
-         <property name="sizeConstraint">
-          <enum>QLayout::SetDefaultConstraint</enum>
-         </property>
+       <widget class="QWidget" name="contract_page">
+        <layout class="QVBoxLayout" name="verticalLayout_11">
          <item>
-          <widget class="QGroupBox" name="convention_group">
+          <widget class="QGroupBox" name="contract_group">
            <property name="title">
-            <string>常规</string>
+            <string>联系人</string>
            </property>
-           <layout class="QFormLayout" name="formLayout_8">
-            <item row="0" column="0">
-             <widget class="QCheckBox" name="run_on_start">
-              <property name="text">
-               <string>开机自动启动</string>
+           <layout class="QVBoxLayout" name="verticalLayout_12">
+            <item>
+             <layout class="QHBoxLayout" name="add_person_layout">
+              <item>
+               <widget class="QLineEdit" name="person_name">
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="placeholderText">
+                 <string>姓名</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="person_phone_number">
+                <property name="placeholderText">
+                 <string>电话</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="add_person_button">
+                <property name="maximumSize">
+                 <size>
+                  <width>25</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>+</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="del_person_button">
+                <property name="maximumSize">
+                 <size>
+                  <width>25</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>—</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <widget class="QTableWidget" name="contract_table">
+              <property name="editTriggers">
+               <set>QAbstractItemView::NoEditTriggers</set>
               </property>
+              <property name="selectionBehavior">
+               <enum>QAbstractItemView::SelectRows</enum>
+              </property>
+              <attribute name="horizontalHeaderStretchLastSection">
+               <bool>true</bool>
+              </attribute>
+              <column>
+               <property name="text">
+                <string>姓名</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>电话</string>
+               </property>
+              </column>
              </widget>
             </item>
-            <item row="1" column="0">
-             <widget class="QCheckBox" name="close_to_minimize">
-              <property name="text">
-               <string>关闭时最小化到系统托盘</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-         </item>
-         <item>
-          <widget class="QGroupBox" name="backup_group">
-           <property name="title">
-            <string>备份</string>
-           </property>
-           <layout class="QGridLayout" name="gridLayout_5">
-            <property name="sizeConstraint">
-             <enum>QLayout::SetMaximumSize</enum>
-            </property>
-            <item row="0" column="0">
-             <widget class="QLineEdit" name="import_path">
-              <property name="placeholderText">
-               <string>PATH</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="2">
-             <widget class="QPushButton" name="export_button">
-              <property name="text">
-               <string>导出</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="2">
-             <widget class="QPushButton" name="import_button">
-              <property name="text">
-               <string>导入</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="1">
-             <widget class="QPushButton" name="import_explore">
-              <property name="text">
-               <string>浏览</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="1">
-             <widget class="QPushButton" name="export_explore">
-              <property name="text">
-               <string>浏览</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QLineEdit" name="export_path">
-              <property name="placeholderText">
-               <string>PATH</string>
-              </property>
-             </widget>
+            <item>
+             <layout class="QHBoxLayout" name="select_contract_layout">
+              <item>
+               <widget class="QLabel" name="select_contract_label">
+                <property name="text">
+                 <string>当前设置告警号码</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="select_contract"/>
+              </item>
+             </layout>
             </item>
            </layout>
           </widget>
@@ -811,14 +913,14 @@
   <tabstop>icao</tabstop>
   <tabstop>intelligence</tabstop>
   <tabstop>fir</tabstop>
-  <tabstop>trend</tabstop>
+  <tabstop>trend_sign</tabstop>
   <tabstop>weather1</tabstop>
-  <tabstop>weather1_add_button</tabstop>
-  <tabstop>weather1_del_button</tabstop>
+  <tabstop>add_weather1_button</tabstop>
+  <tabstop>del_weather1_button</tabstop>
   <tabstop>weather1_list</tabstop>
   <tabstop>weather2</tabstop>
-  <tabstop>weather2_add_button</tabstop>
-  <tabstop>weather2_del_button</tabstop>
+  <tabstop>add_weather2_button</tabstop>
+  <tabstop>del_weather2_button</tabstop>
   <tabstop>weather2_list</tabstop>
   <tabstop>port</tabstop>
   <tabstop>baudrate</tabstop>
@@ -830,10 +932,10 @@
   <tabstop>request_addr</tabstop>
   <tabstop>user_addr</tabstop>
   <tabstop>tabWidget</tabstop>
-  <tabstop>taf_addr</tabstop>
-  <tabstop>sigmet_addr</tabstop>
-  <tabstop>airmet_addr</tabstop>
-  <tabstop>trend_addr</tabstop>
+  <tabstop>taf</tabstop>
+  <tabstop>sigmet</tabstop>
+  <tabstop>airmet</tabstop>
+  <tabstop>trend</tabstop>
   <tabstop>sydb</tabstop>
   <tabstop>web</tabstop>
   <tabstop>clock</tabstop>
@@ -847,7 +949,6 @@
   <tabstop>warn_sigmet_volume</tabstop>
   <tabstop>phone_warn_taf</tabstop>
   <tabstop>warn_taf_time</tabstop>
-  <tabstop>phone_number</tabstop>
   <tabstop>run_on_start</tabstop>
   <tabstop>close_to_minimize</tabstop>
   <tabstop>import_path</tabstop>
@@ -866,8 +967,8 @@
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>245</x>
-     <y>423</y>
+     <x>254</x>
+     <y>487</y>
     </hint>
     <hint type="destinationlabel">
      <x>157</x>
@@ -882,8 +983,8 @@
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>313</x>
-     <y>423</y>
+     <x>322</x>
+     <y>487</y>
     </hint>
     <hint type="destinationlabel">
      <x>286</x>
@@ -907,5 +1008,24 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>button_box</sender>
+   <signal>clicked(QAbstractButton*)</signal>
+   <receiver>Dialog</receiver>
+   <slot>save()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>497</x>
+     <y>478</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>492</x>
+     <y>506</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
+ <slots>
+  <slot>save()</slot>
+ </slots>
 </ui>

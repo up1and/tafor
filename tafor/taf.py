@@ -6,7 +6,6 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 from utils import current_taf_period
-from validator import Parser
 from models import Session, Tafor, Schedule
 from ui import Ui_taf_send
 from widgets import TAFWidgetsPrimary, TAFWidgetsBecmg, TAFWidgetsTempo
