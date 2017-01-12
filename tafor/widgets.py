@@ -126,7 +126,7 @@ class TAFWidgetsMixin(QtCore.QObject):
         cloud3 = self.cloud3.text()
         cb = self.cb.text()
 
-        if hasattr(self.ui, 'cavok'):
+        if hasattr(self, 'cavok'):
             if self.cavok.isChecked():
                 msg_list = [wind, 'CAVOK']
             elif self.skc.isChecked():
@@ -137,7 +137,7 @@ class TAFWidgetsMixin(QtCore.QObject):
                 msg_list = [wind, vis, wx1, wx2, cloud1, cloud2, cloud3, cb]
         else:
             msg_list = [wind, vis, wx1, wx2, cloud1, cloud2, cloud3, cb]
-        self.msg = ' '.join(msg_list)
+        self.msg = ' '.join(filter(None, msg_list))
         # print(self.msg)
 
 
@@ -243,12 +243,11 @@ class TAFWidgetsTempo(QtWidgets.QWidget, Ui_widgets_tempo.Ui_Form, TAFWidgetsMix
     def message(self):
         super(TAFWidgetsTempo, self).message()
         interval = self.interval.text()
+        msg_list = ['TEMPO', interval, self.msg]
         if self.prob30.isChecked():
-            msg_list = ['PROB30', 'TEMPO', interval, self.msg]
-        elif self.prob40.isChecked():
-            msg_list = ['PROB40', 'TEMPO', interval, self.msg]
-        else:
-            msg_list = ['TEMPO', interval, self.msg]
+            msg_list.insert(0, 'PROB30')
+        if self.prob40.isChecked():
+            msg_list.insert(0, 'PROB40')
         self.msg = ' '.join(msg_list)
         # print(self.msg)
         return self.msg

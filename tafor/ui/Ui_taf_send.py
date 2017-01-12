@@ -41,7 +41,6 @@ class Ui_TAFSend(object):
         self.verticalLayout.addWidget(self.button_box)
 
         self.retranslateUi(TAFSend)
-        self.button_box.accepted.connect(TAFSend.accept)
         self.button_box.rejected.connect(TAFSend.reject)
         QtCore.QMetaObject.connectSlotsByName(TAFSend)
 

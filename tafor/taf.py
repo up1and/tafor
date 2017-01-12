@@ -113,8 +113,8 @@ class TAFEditBase(QDialog):
         becmg3_msg = self.becmg3.message() if self.primary.becmg3_checkbox.isChecked() else ''
         tempo1_msg = self.tempo1.message() if self.primary.tempo1_checkbox.isChecked() else ''
         tempo2_msg = self.tempo2.message() if self.primary.tempo2_checkbox.isChecked() else ''
-        self.rpt = '\n'.join([primary_msg, becmg1_msg, becmg2_msg, becmg3_msg, tempo1_msg, tempo2_msg])
-        self.rpt = ' '.join(self.rpt.split())
+        msg_list = [primary_msg, becmg1_msg, becmg2_msg, becmg3_msg, tempo1_msg, tempo2_msg]
+        self.rpt = '\n'.join(filter(None, msg_list)) + '='
         print(self.rpt)
         self.preview()
 
@@ -201,6 +201,7 @@ class TAFSendBase(QDialog, Ui_taf_send.Ui_TAFSend):
 
         self.button_box.button(QDialogButtonBox.Ok).setText("Send")
         # self.button_box.addButton("TEST", QDialogButtonBox.ActionRole)
+        self.button_box.accepted.connect(self.send)
 
         self.raw_group.hide()
 
@@ -214,6 +215,9 @@ class TAFSendBase(QDialog, Ui_taf_send.Ui_TAFSend):
         self.rpt.setText(self.message['rpt'])
         print(self.message)
 
+    def send(self):
+        print('send')
+
 
 
 class TAFSend(TAFSendBase):
@@ -223,7 +227,7 @@ class TAFSend(TAFSendBase):
 
         self.setWindowIcon(QIcon(':/fine.png'))
 
-    def accept(self):
+    def save(self):
         item = Tafor(tt=self.message['tt'], rpt=self.message['rpt'])
         self.db.add(item)
         self.db.commit()
@@ -243,7 +247,7 @@ class ScheduleTAFSend(TAFSendBase):
         # 测试数据
         self.schedule_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=1)
 
-    def accept(self):
+    def save(self):
         item = Schedule(tt=self.message['tt'], rpt=self.message['rpt'], schedule_time=self.message['sch_time'])
         self.db.add(item)
         self.db.commit()
@@ -257,7 +261,7 @@ class ScheduleTAFSend(TAFSendBase):
 if __name__ == "__main__":
     import sys
     app = QApplication(sys.argv)
-    ui = TAFSend()
+    ui = TAFEdit()
     ui.show()
     sys.exit(app.exec_())
     
