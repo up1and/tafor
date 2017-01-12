@@ -34,15 +34,15 @@ class Ui_TAFSend(object):
         self.raw.setObjectName("raw")
         self.verticalLayout_3.addWidget(self.raw)
         self.verticalLayout.addWidget(self.raw_group)
-        self.post_box = QtWidgets.QDialogButtonBox(TAFSend)
-        self.post_box.setOrientation(QtCore.Qt.Horizontal)
-        self.post_box.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
-        self.post_box.setObjectName("post_box")
-        self.verticalLayout.addWidget(self.post_box)
+        self.button_box = QtWidgets.QDialogButtonBox(TAFSend)
+        self.button_box.setOrientation(QtCore.Qt.Horizontal)
+        self.button_box.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
+        self.button_box.setObjectName("button_box")
+        self.verticalLayout.addWidget(self.button_box)
 
         self.retranslateUi(TAFSend)
-        self.post_box.accepted.connect(TAFSend.accept)
-        self.post_box.rejected.connect(TAFSend.reject)
+        self.button_box.accepted.connect(TAFSend.accept)
+        self.button_box.rejected.connect(TAFSend.reject)
         QtCore.QMetaObject.connectSlotsByName(TAFSend)
 
     def retranslateUi(self, TAFSend):

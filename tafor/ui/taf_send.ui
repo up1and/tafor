@@ -65,7 +65,7 @@ p, li { white-space: pre-wrap; }
     </widget>
    </item>
    <item>
-    <widget class="QDialogButtonBox" name="post_box">
+    <widget class="QDialogButtonBox" name="button_box">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
@@ -79,7 +79,7 @@ p, li { white-space: pre-wrap; }
  <resources/>
  <connections>
   <connection>
-   <sender>post_box</sender>
+   <sender>button_box</sender>
    <signal>accepted()</signal>
    <receiver>TAFSend</receiver>
    <slot>accept()</slot>
@@ -95,7 +95,7 @@ p, li { white-space: pre-wrap; }
    </hints>
   </connection>
   <connection>
-   <sender>post_box</sender>
+   <sender>button_box</sender>
    <signal>rejected()</signal>
    <receiver>TAFSend</receiver>
    <slot>reject()</slot>

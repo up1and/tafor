@@ -199,6 +199,11 @@ class TAFSendBase(QDialog, Ui_taf_send.Ui_TAFSend):
         self.setupUi(self)
         self.setAttribute(Qt.WA_DeleteOnClose)
 
+        self.button_box.button(QDialogButtonBox.Ok).setText("Send")
+        # self.button_box.addButton("TEST", QDialogButtonBox.ActionRole)
+
+        self.raw_group.hide()
+
         # self.message = 'TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR='
         # self.raw.setText(self.message)
 
