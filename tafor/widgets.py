@@ -1,3 +1,4 @@
+import json
 import datetime
 
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -10,6 +11,7 @@ class TAFWidgetsMixin(QtCore.QObject):
     def __init__(self):
         super(TAFWidgetsMixin, self).__init__()
         self.regex = Parser.regex_taf['edit']
+        self.setting = QtCore.QSettings('Up1and', 'Tafor')
 
         # self.one_second_timer = QtCore.QTimer()
         # self.one_second_timer.timeout.connect(self.message)
@@ -99,11 +101,11 @@ class TAFWidgetsMixin(QtCore.QObject):
         self.cloud3.setValidator(valid_cloud)
         self.cb.setValidator(valid_cloud)
 
-        wx1 = ['', 'BR', 'FG', 'SA', 'DU', 'HZ', 'FU', 'VA', 'SQ', 'PO', 'FC', 'TS', 'FZFG', 'BLSN', 'BLSA', 'BLDU', 'DRSN', 'DRSA', 'DRDU', 'MIFG', 'BCFG', 'PRFG', 'NSW']
-        self.weather1.addItems(wx1)
+        weather1_list = [''] + json.loads(self.setting.value('message/weather1'))
+        self.weather1.addItems(weather1_list)
 
-        wx2 = ['', 'DZ', 'RA', 'SN', 'SG', 'PL', 'DS', 'SS', 'TSRA', 'TSSN', 'TSPL', 'TSGR', 'TSGS', 'SHRA', 'SHSN', 'SHGR', 'SHGS', 'FZRA', 'FZDZ']
-        self.weather2.addItems(wx2)
+        weather2_list = [''] + json.loads(self.setting.value('message/weather2'))
+        self.weather2.addItems(weather2_list)
 
     def test_message(self):
         pass
