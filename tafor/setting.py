@@ -200,6 +200,9 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Dialog):
         val = self.setting.value(path)
         target = getattr(self, target)
 
+        if val is None:
+            return 0
+
         if mold == 'text':
             target.setText(val)
 
@@ -223,8 +226,9 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Dialog):
 
         if mold == 'phone_number':
             person = self.db.query(User).filter_by(phone_number=val).first()
-            index = target.findText(person.name, QtCore.Qt.MatchFixedString)
-            target.setCurrentIndex(index)
+            if person:
+                index = target.findText(person.name, QtCore.Qt.MatchFixedString)
+                target.setCurrentIndex(index)
 
     def set_value(self, path, target, mold='text'):
         target = getattr(self, target)
@@ -251,7 +255,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Dialog):
         if mold == 'phone_number':
             name = target.currentText()
             person = self.db.query(User).filter_by(name=name).first()
-            val = person.phone_number
+            val = person.phone_number if person else ''
 
         self.setting.setValue(path, val)
 
