@@ -165,7 +165,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.widget_fc.hide()
 
         if ft:
-            self.widget_ft.set_item(fc)
+            self.widget_ft.set_item(ft)
         else:
             self.widget_ft.hide()
 
