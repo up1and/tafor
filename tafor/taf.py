@@ -200,14 +200,13 @@ class TAFSendBase(QDialog, Ui_taf_send.Ui_TAFSend):
         self.setAttribute(Qt.WA_DeleteOnClose)
 
         # self.message = 'TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR='
-        # self.message_container.setText(self.message)
-        # self.tt = 'FC'
+        # self.raw.setText(self.message)
 
         self.db = Session()
 
     def process(self, message):
         self.message = message
-        self.message_container.setText(self.message['rpt'])
+        self.rpt.setText(self.message['rpt'])
         print(self.message)
 
 
@@ -253,7 +252,7 @@ class ScheduleTAFSend(TAFSendBase):
 if __name__ == "__main__":
     import sys
     app = QApplication(sys.argv)
-    ui = ScheduleTAFEdit()
+    ui = TAFSend()
     ui.show()
     sys.exit(app.exec_())
     

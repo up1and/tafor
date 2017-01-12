@@ -18,7 +18,7 @@
     <item>
      <widget class="QTabWidget" name="main_tab">
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
       <property name="movable">
        <bool>true</bool>
@@ -40,6 +40,9 @@
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
          <widget class="QTableWidget" name="taf_table">
+          <property name="frameShadow">
+           <enum>QFrame::Raised</enum>
+          </property>
           <property name="editTriggers">
            <set>QAbstractItemView::NoEditTriggers</set>
           </property>
@@ -79,6 +82,9 @@
        <layout class="QVBoxLayout" name="verticalLayout_3">
         <item>
          <widget class="QTableWidget" name="metar_table">
+          <property name="frameShadow">
+           <enum>QFrame::Raised</enum>
+          </property>
           <column>
            <property name="text">
             <string>类型</string>

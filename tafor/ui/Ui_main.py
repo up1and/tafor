@@ -32,6 +32,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_2.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.taf_table = QtWidgets.QTableWidget(self.tab_taf)
+        self.taf_table.setFrameShadow(QtWidgets.QFrame.Raised)
         self.taf_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.taf_table.setObjectName("taf_table")
         self.taf_table.setColumnCount(5)
@@ -54,6 +55,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_3.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.metar_table = QtWidgets.QTableWidget(self.tab_metar)
+        self.metar_table.setFrameShadow(QtWidgets.QFrame.Raised)
         self.metar_table.setObjectName("metar_table")
         self.metar_table.setColumnCount(2)
         self.metar_table.setRowCount(0)
@@ -102,7 +104,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.help_menu.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.main_tab.setCurrentIndex(0)
+        self.main_tab.setCurrentIndex(2)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
