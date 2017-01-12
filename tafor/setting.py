@@ -10,7 +10,7 @@ from ui import Ui_setting, main_rc
 def to_bool(value):
     # QSetting 读取的值是 str false
     # 转换 str false bool False   str true bool True
-    return value.lower() in ('true')
+    return value if isinstance(value, bool) else value.lower() in ('true')
 
 
 class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Dialog):
