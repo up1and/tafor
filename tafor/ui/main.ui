@@ -18,7 +18,7 @@
     <item>
      <widget class="QTabWidget" name="main_tab">
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
       <property name="movable">
        <bool>true</bool>

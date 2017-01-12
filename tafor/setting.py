@@ -135,6 +135,8 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Dialog):
 
         self.set_value('monitor/db/sydb', 'sydb', 'bool')
         self.set_value('monitor/db/web', 'web', 'bool')
+        self.set_value('monitor/db/sydb_url', 'sydb_url')
+        self.set_value('monitor/db/web_url', 'web_url')
 
         self.set_value('monitor/clock/clock', 'clock', 'bool')
         self.set_value('monitor/clock/clock_time', 'clock_time')
@@ -183,6 +185,8 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Dialog):
 
         self.load_value('monitor/db/sydb', 'sydb', 'bool')
         self.load_value('monitor/db/web', 'web', 'bool')
+        self.load_value('monitor/db/sydb_url', 'sydb_url')
+        self.load_value('monitor/db/web_url', 'web_url')
 
         self.load_value('monitor/clock/clock', 'clock', 'bool')
         self.load_value('monitor/clock/clock_time', 'clock_time')

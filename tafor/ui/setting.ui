@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>600</width>
-    <height>471</height>
+    <width>622</width>
+    <height>489</height>
    </rect>
   </property>
   <property name="acceptDrops">
@@ -609,7 +609,7 @@
            <property name="title">
             <string>监控数据源</string>
            </property>
-           <layout class="QGridLayout" name="gridLayout_2">
+           <layout class="QFormLayout" name="formLayout_6">
             <item row="0" column="0">
              <widget class="QRadioButton" name="sydb">
               <property name="text">
@@ -621,11 +621,17 @@
              </widget>
             </item>
             <item row="0" column="1">
+             <widget class="QLineEdit" name="sydb_url"/>
+            </item>
+            <item row="1" column="0">
              <widget class="QRadioButton" name="web">
               <property name="text">
                <string>中南综合信息服务系统</string>
               </property>
              </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLineEdit" name="web_url"/>
             </item>
            </layout>
           </widget>
@@ -936,8 +942,6 @@
   <tabstop>sigmet</tabstop>
   <tabstop>airmet</tabstop>
   <tabstop>trend</tabstop>
-  <tabstop>sydb</tabstop>
-  <tabstop>web</tabstop>
   <tabstop>clock</tabstop>
   <tabstop>clock_time</tabstop>
   <tabstop>clock_volume</tabstop>
