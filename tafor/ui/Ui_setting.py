@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\ui\setting.ui'
+# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\ui\setting.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -437,17 +437,16 @@ class Ui_Dialog(object):
         self.main.addWidget(self.stacked)
         self.verticalLayout.addLayout(self.main)
         self.button_box = QtWidgets.QDialogButtonBox(Dialog)
-        self.button_box.setStandardButtons(QtWidgets.QDialogButtonBox.Apply|QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
+        self.button_box.setStandardButtons(QtWidgets.QDialogButtonBox.Apply|QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok|QtWidgets.QDialogButtonBox.Reset)
         self.button_box.setObjectName("button_box")
         self.verticalLayout.addWidget(self.button_box)
 
         self.retranslateUi(Dialog)
-        self.stacked.setCurrentIndex(4)
+        self.stacked.setCurrentIndex(0)
         self.tabWidget.setCurrentIndex(0)
         self.button_box.accepted.connect(Dialog.accept)
         self.button_box.rejected.connect(Dialog.reject)
         self.menu.currentRowChanged['int'].connect(self.stacked.setCurrentIndex)
-        self.button_box.clicked['QAbstractButton*'].connect(Dialog.save)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
         Dialog.setTabOrder(self.search, self.menu)
         Dialog.setTabOrder(self.menu, self.icao)

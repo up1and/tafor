@@ -42,6 +42,13 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Dialog):
         self.add_person_button.clicked.connect(self.add_person)
         self.del_person_button.clicked.connect(self.del_person)
 
+        self.button_box.button(QtWidgets.QDialogButtonBox.Reset).clicked.connect(self.load)
+        self.button_box.button(QtWidgets.QDialogButtonBox.Apply).clicked.connect(self.save)
+        self.button_box.accepted.connect(self.save)
+
+    def reset(self):
+        print('a')
+
     def set_validator(self):
         regex = Parser.regex_taf['common']
         # valid_wx1 = QtGui.QRegExpValidator(QtCore.QRegExp(regex['wx1']))

@@ -101,10 +101,12 @@ class TAFWidgetsMixin(QtCore.QObject):
         self.cloud3.setValidator(valid_cloud)
         self.cb.setValidator(valid_cloud)
 
-        weather1_list = [''] + json.loads(self.setting.value('message/weather1'))
+        weather1 = self.setting.value('message/weather1')
+        weather1_list = [''] + json.loads(weather1) if weather1 else ['']
         self.weather1.addItems(weather1_list)
 
-        weather2_list = [''] + json.loads(self.setting.value('message/weather2'))
+        weather2 = self.setting.value('message/weather2')
+        weather2_list = [''] + json.loads(weather2) if weather1 else ['']
         self.weather2.addItems(weather2_list)
 
     def test_message(self):
