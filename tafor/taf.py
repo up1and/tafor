@@ -9,6 +9,7 @@ from utils import current_taf_period
 from models import Session, Tafor, Schedule
 from ui import Ui_taf_send
 from widgets import TAFWidgetsPrimary, TAFWidgetsBecmg, TAFWidgetsTempo
+from validator import Parser
 
  
 
@@ -115,7 +116,8 @@ class TAFEditBase(QDialog):
         tempo2_msg = self.tempo2.message() if self.primary.tempo2_checkbox.isChecked() else ''
         msg_list = [primary_msg, becmg1_msg, becmg2_msg, becmg3_msg, tempo1_msg, tempo2_msg]
         self.rpt = '\n'.join(filter(None, msg_list)) + '='
-        print(self.rpt)
+        self.rpt_time = self.primary.date.text()
+        print(self.rpt, self.rpt_time)
         self.preview()
 
 
@@ -138,7 +140,7 @@ class TAFEdit(TAFEditBase):
     def preview(self):
         send = TAFSend(self)
         send.show()
-        send_data = {'tt': self.tt, 'rpt':self.rpt}
+        send_data = {'tt': self.tt, 'rpt': self.rpt, 'time': self.rpt_time}
         self.signal_send.connect(send.process)
         self.signal_send.emit(send_data)
 
@@ -205,15 +207,30 @@ class TAFSendBase(QDialog, Ui_taf_send.Ui_TAFSend):
 
         self.raw_group.hide()
 
-        # self.message = 'TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR='
-        # self.raw.setText(self.message)
-
         self.db = Session()
+        self.setting = QSettings('Up1and', 'Tafor')
+
+        self.test()
 
     def process(self, message):
         self.message = message
         self.rpt.setText(self.message['rpt'])
         print(self.message)
+
+    def test(self):
+        self.message = dict()
+        self.message['rpt'] = 'TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR='
+        self.message['tt'] = 'FC'
+        self.message['time'] = '150726'
+        self.raw_group.show()
+
+        intelligence = self.setting.value('message/intelligence')
+        icao = self.setting.value('message/icao')
+        self.rpt_head = ' '.join([self.message['tt']+intelligence, icao, self.message['time']]) + '\n'
+        self.rpt.setText(self.rpt_head + self.message['rpt'])
+
+        
+
 
     def send(self):
         print('send')
@@ -261,7 +278,7 @@ class ScheduleTAFSend(TAFSendBase):
 if __name__ == "__main__":
     import sys
     app = QApplication(sys.argv)
-    ui = TAFEdit()
+    ui = TAFSend()
     ui.show()
     sys.exit(app.exec_())
     
