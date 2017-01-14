@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\ui\setting.ui'
+# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\ui\setting.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
-        Dialog.resize(622, 489)
+        Dialog.resize(622, 501)
         Dialog.setAcceptDrops(True)
         self.verticalLayout = QtWidgets.QVBoxLayout(Dialog)
         self.verticalLayout.setObjectName("verticalLayout")
@@ -218,12 +218,12 @@ class Ui_Dialog(object):
         self.other_group.setObjectName("other_group")
         self.formLayout_7 = QtWidgets.QFormLayout(self.other_group)
         self.formLayout_7.setObjectName("formLayout_7")
-        self.line_label = QtWidgets.QLabel(self.other_group)
-        self.line_label.setObjectName("line_label")
-        self.formLayout_7.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.line_label)
-        self.line = QtWidgets.QLineEdit(self.other_group)
-        self.line.setObjectName("line")
-        self.formLayout_7.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.line)
+        self.channel_label = QtWidgets.QLabel(self.other_group)
+        self.channel_label.setObjectName("channel_label")
+        self.formLayout_7.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.channel_label)
+        self.channel = QtWidgets.QLineEdit(self.other_group)
+        self.channel.setObjectName("channel")
+        self.formLayout_7.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.channel)
         self.number_label = QtWidgets.QLabel(self.other_group)
         self.number_label.setObjectName("number_label")
         self.formLayout_7.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.number_label)
@@ -448,7 +448,7 @@ class Ui_Dialog(object):
         self.verticalLayout.addWidget(self.button_box)
 
         self.retranslateUi(Dialog)
-        self.stacked.setCurrentIndex(0)
+        self.stacked.setCurrentIndex(2)
         self.tabWidget.setCurrentIndex(0)
         self.button_box.accepted.connect(Dialog.accept)
         self.button_box.rejected.connect(Dialog.reject)
@@ -472,8 +472,8 @@ class Ui_Dialog(object):
         Dialog.setTabOrder(self.baudrate, self.parity)
         Dialog.setTabOrder(self.parity, self.bytesize)
         Dialog.setTabOrder(self.bytesize, self.stopbits)
-        Dialog.setTabOrder(self.stopbits, self.line)
-        Dialog.setTabOrder(self.line, self.number)
+        Dialog.setTabOrder(self.stopbits, self.channel)
+        Dialog.setTabOrder(self.channel, self.number)
         Dialog.setTabOrder(self.number, self.request_addr)
         Dialog.setTabOrder(self.request_addr, self.user_addr)
         Dialog.setTabOrder(self.user_addr, self.tabWidget)
@@ -562,8 +562,8 @@ class Ui_Dialog(object):
         self.stopbits.setItemText(1, _translate("Dialog", "1.5"))
         self.stopbits.setItemText(2, _translate("Dialog", "2"))
         self.other_group.setTitle(_translate("Dialog", "其他"))
-        self.line_label.setText(_translate("Dialog", "线路冠字"))
-        self.line.setPlaceholderText(_translate("Dialog", "YMA"))
+        self.channel_label.setText(_translate("Dialog", "线路冠字"))
+        self.channel.setPlaceholderText(_translate("Dialog", "YMA"))
         self.number_label.setText(_translate("Dialog", "流水号"))
         self.number.setPlaceholderText(_translate("Dialog", "1"))
         self.request_addr.setPlaceholderText(_translate("Dialog", "ZGGGYZYX"))

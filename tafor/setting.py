@@ -123,7 +123,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Dialog):
         self.set_value('communication/serial/bytesize', 'bytesize', 'combox')
         self.set_value('communication/serial/stopbits', 'stopbits', 'combox')
 
-        self.set_value('communication/other/line', 'line')
+        self.set_value('communication/other/channel', 'channel')
         self.set_value('communication/other/number', 'number')
         self.set_value('communication/other/request_addr', 'request_addr')
         self.set_value('communication/other/user_addr', 'user_addr')
@@ -173,7 +173,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Dialog):
         self.load_value('communication/serial/bytesize', 'bytesize', 'combox')
         self.load_value('communication/serial/stopbits', 'stopbits', 'combox')
 
-        self.load_value('communication/other/line', 'line')
+        self.load_value('communication/other/channel', 'channel')
         self.load_value('communication/other/number', 'number')
         self.load_value('communication/other/request_addr', 'request_addr')
         self.load_value('communication/other/user_addr', 'user_addr')

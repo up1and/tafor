@@ -222,18 +222,33 @@ class TAFSendBase(QDialog, Ui_taf_send.Ui_TAFSend):
         self.message['rpt'] = 'TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR='
         self.message['tt'] = 'FC'
         self.message['time'] = '150726'
-        self.raw_group.show()
+        #self.raw_group.show()
 
         intelligence = self.setting.value('message/intelligence')
         icao = self.setting.value('message/icao')
-        self.rpt_head = ' '.join([self.message['tt']+intelligence, icao, self.message['time']]) + '\n'
-        self.rpt.setText(self.rpt_head + self.message['rpt'])
+        self.rpt_head = ' '.join([self.message['tt']+intelligence, icao, self.message['time']])
+        self.rpt.setText('\n'.join([self.rpt_head, self.message['rpt']]))
 
+        channel = self.setting.value('communication/other/channel')
+        number = self.setting.value('communication/other/number').zfill(4)
+        self.aftn_zczc = ' '.join(['ZCZC', channel+number])
+
+        taf_address = self.setting.value('communication/address/taf')
+        self.aftn_adress = ' '.join(['GG', taf_address])
+
+        user_address = self.setting.value('communication/other/user_addr')
+        self.aftn_time = ' '.join([self.message['time'], user_address])
+
+        self.aftn_nnnn = 'NNNN'
+
+        self.message['raw'] = '\n'.join([self.aftn_zczc, self.aftn_adress, self.aftn_time, self.rpt_head, self.message['rpt'], self.aftn_nnnn])
+        self.raw.setText(self.message['raw'])
         
 
 
     def send(self):
-        print('send')
+        self.raw_group.show()
+        self.button_box.button(QDialogButtonBox.Ok).setEnabled(False)
 
 
 
