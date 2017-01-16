@@ -1,6 +1,9 @@
+import re
 import datetime
 
 from PyQt5 import QtCore
+
+from validator import Parser
 
 
 class TAF(object):
@@ -91,7 +94,11 @@ class AFTNMessage(object):
     def _rpt_head(self):
         intelligence = self.setting.value('message/intelligence')
         icao = self.setting.value('message/icao')
-        self.rpt_head = ' '.join([self.message['tt']+intelligence, icao, self.message['time']])
+
+        timez_regex = Parser.regex_taf['common']['timez']
+        self.aftn_time = re.search(timez_regex, self.message['rpt']).group()[0:6]
+
+        self.rpt_head = ' '.join([self.message['tt'] + intelligence, icao, self.aftn_time])
 
     def rpt_with_head(self):
         return '\n'.join([self.rpt_head, self.message['rpt']])
@@ -105,7 +112,7 @@ class AFTNMessage(object):
         addresses = self.divide_address(send_address)
 
         # 定值
-        self.aftn_time = ' '.join([self.message['time'], user_address])
+        self.aftn_time = ' '.join([self.aftn_time, user_address])
         self.aftn_nnnn = 'NNNN'
 
         aftn_message = []
@@ -133,7 +140,6 @@ if __name__ == '__main__':
     message = dict()
     message['rpt'] = 'TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR='
     message['tt'] = 'FC'
-    message['time'] = '150726'
     aftn = AFTNMessage(message)
     # print(aftn.rpt_with_head())
     for i in aftn.raw():
