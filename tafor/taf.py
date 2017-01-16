@@ -60,6 +60,7 @@ class TAFEditBase(QDialog):
         self.primary.tempo2_checkbox.toggled.connect(self.add_becmg_and_tempo)
 
         self.next_button.clicked.connect(self.assemble_message)
+        self.next_button.clicked.connect(self.send_message)
 
     def add_becmg_and_tempo(self):
         # BECMG
@@ -116,10 +117,6 @@ class TAFEditBase(QDialog):
         tempo2_msg = self.tempo2.message() if self.primary.tempo2_checkbox.isChecked() else ''
         msg_list = [primary_msg, becmg1_msg, becmg2_msg, becmg3_msg, tempo1_msg, tempo2_msg]
         self.rpt = '\n'.join(filter(None, msg_list)) + '='
-        self.rpt_time = self.primary.date.text()
-        print(self.rpt, self.rpt_time)
-        self.preview()
-
 
 
 class TAFEdit(TAFEditBase):
@@ -137,12 +134,12 @@ class TAFEdit(TAFEditBase):
         self.primary.date.setText(self.time.strftime('%d%H%M'))
         self.primary.date.setEnabled(False)
 
-    def preview(self):
+    def send_message(self):
         send = TAFSend(self)
         send.show()
-        send_data = {'tt': self.tt, 'rpt': self.rpt, 'time': self.rpt_time}
-        self.signal_send.connect(send.process)
-        self.signal_send.emit(send_data)
+        message = {'tt': self.tt, 'rpt': self.rpt}
+        self.signal_send.connect(send.receive_from_edit)
+        self.signal_send.emit(message)
 
 
 class ScheduleTAFEdit(TAFEditBase):
@@ -159,12 +156,12 @@ class ScheduleTAFEdit(TAFEditBase):
         self.primary.date.editingFinished.connect(self.set_taf_period)
         self.primary.date.editingFinished.connect(self.change_window_title)
         
-    def preview(self):
+    def send_message(self):
         send = ScheduleTAFSend(self)
         send.show()
-        send_data = {'tt': self.tt, 'rpt':self.rpt, 'sch_time': self.time,}
-        self.signal_send.connect(send.process)
-        self.signal_send.emit(send_data)
+        message = {'tt': self.tt, 'rpt':self.rpt, 'sch_time': self.time}
+        self.signal_send.connect(send.receive_from_edit)
+        self.signal_send.emit(message)
 
     def schedule_time(self):
         date = self.primary.date.text()
@@ -203,31 +200,23 @@ class TAFSendBase(QDialog, Ui_taf_send.Ui_TAFSend):
 
         self.button_box.button(QDialogButtonBox.Ok).setText("Send")
         # self.button_box.addButton("TEST", QDialogButtonBox.ActionRole)
-        self.button_box.accepted.connect(self.send)
 
         self.raw_group.hide()
 
         self.db = Session()
         self.setting = QSettings('Up1and', 'Tafor')
 
-        message = dict()
-        message['rpt'] = 'TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR='
-        message['tt'] = 'FC'
-        message['time'] = '150726'
+        # 测试数据
+        # message = dict()
+        # message['rpt'] = 'TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR='
+        # message['tt'] = 'FC'
+        # self.aftn = AFTNMessage(message)
+        # self.rpt.setText(self.aftn.rpt_with_head())
 
+    def receive_from_edit(self, message):
         self.aftn = AFTNMessage(message)
-
         self.rpt.setText(self.aftn.rpt_with_head())
-
-    def process(self, message):
-        self.message = message
-        self.rpt.setText(self.message['rpt'])
-        print(self.message)
-
-    def send(self):
-        self.raw.setText('\n\n\n\n'.join(self.aftn.raw()))
-        self.raw_group.show()
-        self.button_box.button(QDialogButtonBox.Ok).setEnabled(False)
+        print(message)
 
 
 
@@ -237,13 +226,19 @@ class TAFSend(TAFSendBase):
         super(TAFSend, self).__init__(parent)
 
         self.setWindowIcon(QIcon(':/fine.png'))
+        self.button_box.accepted.connect(self.send)
+        self.button_box.accepted.connect(self.save)
 
     def save(self):
         item = Tafor(tt=self.message['tt'], rpt=self.message['rpt'])
         self.db.add(item)
         self.db.commit()
         print(item.send_time)
-        # self.close()
+
+    def send(self):
+        self.raw.setText('\n\n\n\n'.join(self.aftn.raw()))
+        self.raw_group.show()
+        self.button_box.button(QDialogButtonBox.Ok).setEnabled(False)
 
 
 class ScheduleTAFSend(TAFSendBase):
@@ -252,8 +247,11 @@ class ScheduleTAFSend(TAFSendBase):
         super(ScheduleTAFSend, self).__init__(parent)
         self.table = Schedule
 
-        self.setWindowTitle("定时任务")
+        self.setWindowTitle('定时任务')
         self.setWindowIcon(QIcon(':/schedule.png'))
+
+        # self.button_box.accepted.connect(self.save)
+        self.button_box.accepted.connect(self.accept)
 
         # 测试数据
         self.schedule_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=1)
@@ -263,7 +261,6 @@ class ScheduleTAFSend(TAFSendBase):
         self.db.add(item)
         self.db.commit()
         print(item.schedule_time)
-        # self.close()
 
 
 
@@ -272,7 +269,7 @@ class ScheduleTAFSend(TAFSendBase):
 if __name__ == "__main__":
     import sys
     app = QApplication(sys.argv)
-    ui = TAFSend()
+    ui = ScheduleTAFSend()
     ui.show()
     sys.exit(app.exec_())
     
