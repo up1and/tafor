@@ -5,7 +5,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-from utils import AFTNMessage, current_taf_period
+from utils import AFTNMessage, TAFPeriod
 from models import Session, Tafor, Schedule
 from ui import Ui_taf_send
 from widgets import TAFWidgetsPrimary, TAFWidgetsBecmg, TAFWidgetsTempo
@@ -98,14 +98,14 @@ class TAFEditBase(QDialog):
         else:
             self.tempo2.setVisible(False)
 
-    def set_taf_period(self):
+    def set_period(self):
         if self.primary.date.text() and (self.primary.fc.isChecked() or self.primary.ft.isChecked()):
             if self.primary.fc.isChecked():
                 self.tt = 'FC'
             elif self.primary.ft.isChecked():
                 self.tt = 'FT'
-            taf_period = current_taf_period(self.tt, self.time)
-            self.primary.period.setText(self.time.strftime('%d') + taf_period)
+            period = TAFPeriod(self.tt, self.time)
+            self.primary.period.setText(period.warn())
 
 
     def assemble_message(self):
@@ -127,8 +127,8 @@ class TAFEdit(TAFEditBase):
         self.setWindowTitle("编发报文")
         self.setWindowIcon(QIcon(':/fine.png'))
 
-        self.primary.fc.clicked.connect(self.set_taf_period)
-        self.primary.ft.clicked.connect(self.set_taf_period)
+        self.primary.fc.clicked.connect(self.set_period)
+        self.primary.ft.clicked.connect(self.set_period)
 
         self.time = datetime.datetime.utcnow()
         self.primary.date.setText(self.time.strftime('%d%H%M'))
@@ -150,10 +150,10 @@ class ScheduleTAFEdit(TAFEditBase):
         self.setWindowTitle("定时任务")
         self.setWindowIcon(QIcon(':/schedule.png'))
 
-        self.primary.fc.clicked.connect(self.set_taf_period)
-        self.primary.ft.clicked.connect(self.set_taf_period)
+        self.primary.fc.clicked.connect(self.set_period)
+        self.primary.ft.clicked.connect(self.set_period)
         self.primary.date.editingFinished.connect(self.schedule_time)
-        self.primary.date.editingFinished.connect(self.set_taf_period)
+        self.primary.date.editingFinished.connect(self.set_period)
         self.primary.date.editingFinished.connect(self.change_window_title)
         
     def send_message(self):
@@ -269,7 +269,7 @@ class ScheduleTAFSend(TAFSendBase):
 if __name__ == "__main__":
     import sys
     app = QApplication(sys.argv)
-    ui = ScheduleTAFSend()
+    ui = TAFEdit()
     ui.show()
     sys.exit(app.exec_())
     

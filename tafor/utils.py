@@ -5,17 +5,13 @@ from PyQt5 import QtCore
 
 from validator import Parser
 
-
-class TAF(object):
-    """
-    检查预报报文
-    _period() 判断该时期要发的报文 return string
-    """
-
-    def __init__(self, tt, time):
-        self.now = time
-        start_of_the_day = datetime.datetime(self.now.year, self.now.month, self.now.day)
-        self.tt = tt.upper()
+class TAFPeriod(object):
+    """docstring for TAFPeriod"""
+    def __init__(self, tt, time=datetime.datetime.utcnow()):
+        super(TAFPeriod, self).__init__()
+        self.tt = tt
+        self.time = time
+        start_of_the_day = datetime.datetime(self.time.year, self.time.month, self.time.day)
         self.start_time= dict()
         self.start_time['FC'] = {
                     '0312': start_of_the_day + datetime.timedelta(hours=1),
@@ -33,47 +29,31 @@ class TAF(object):
                     '1818': start_of_the_day + datetime.timedelta(hours=13),
                     '0024': start_of_the_day + datetime.timedelta(hours=19),
                     }
-        self.interval_time = {'FC': datetime.timedelta(hours=3), 'FT': datetime.timedelta(hours=6)}
 
-    def get_period(self):
-        # 盲区 00 - 01 人肉添加
-        default_period = {'FC': '0009', 'FT': '0024'}
-        period = default_period[self.tt]
-        for key,value in self.start_time[self.tt].items():
-            if value < self.now < value + self.interval_time[self.tt]:
+    def current(self):
+        increment = {'FC': datetime.timedelta(minutes=50), 'FT': datetime.timedelta(hours=2, minutes=50)}
+        period = self._find_period(increment)
+        return self._with_day(period)
+
+    def warn(self):
+        increment = {'FC': datetime.timedelta(hours=3), 'FT': datetime.timedelta(hours=6)}
+        default = {'FC': '0009', 'FT': '0024'} # 00 - 01 时次人肉添加
+        find = self._find_period(increment)
+        period = find if find else default[self.tt]
+        return self._with_day(period)
+
+    def _find_period(self, increment):
+        for key, start in self.start_time[self.tt].items():
+            if start <= self.time <= start + increment[self.tt]:
                 period = key
                 return period
-        return period
 
-def current_taf_period(tt, time):
-    start_of_the_day = datetime.datetime(time.year, time.month, time.day)
-    tt = tt.upper()
-
-    start_time= dict()
-    start_time['FC'] = {
-                '0312': start_of_the_day + datetime.timedelta(hours=1),
-                '0615': start_of_the_day + datetime.timedelta(hours=4),
-                '0918': start_of_the_day + datetime.timedelta(hours=7),
-                '1221': start_of_the_day + datetime.timedelta(hours=10),
-                '1524': start_of_the_day + datetime.timedelta(hours=13),
-                '1803': start_of_the_day + datetime.timedelta(hours=16),
-                '2106': start_of_the_day + datetime.timedelta(hours=19),
-                '0009': start_of_the_day + datetime.timedelta(hours=22),
-                }
-    start_time['FT'] = {
-                '0606': start_of_the_day + datetime.timedelta(hours=1),
-                '1212': start_of_the_day + datetime.timedelta(hours=7),
-                '1818': start_of_the_day + datetime.timedelta(hours=13),
-                '0024': start_of_the_day + datetime.timedelta(hours=19),
-                }
-    interval_time = {'FC': datetime.timedelta(hours=3), 'FT': datetime.timedelta(hours=6)}
-    default_period = {'FC': '0009', 'FT': '0024'}
-    period = default_period[tt]
-    for key,value in start_time[tt].items():
-        if value < time < value + interval_time[tt]:
-            period = key
-            return period
-    return period
+    def _with_day(self, period):
+        if period is None:
+            return None
+        else:
+            time = self.time + datetime.timedelta(days=1) if period in ('0009', '0024') else self.time
+            return str(time.day).zfill(2) + period
 
 
 def chunks(lists, n):
@@ -134,14 +114,14 @@ class AFTNMessage(object):
 
 
 if __name__ == '__main__':
-    # period = current_taf_period('FT', datetime.datetime.utcnow())
-    # print(period)
+    taf = TAFPeriod('FT')
+    print(taf.current())
 
-    message = dict()
-    message['rpt'] = 'TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR='
-    message['tt'] = 'FC'
-    aftn = AFTNMessage(message)
-    # print(aftn.rpt_with_head())
-    for i in aftn.raw():
-        print(i)
-        print('   ')
+    # message = dict()
+    # message['rpt'] = 'TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR='
+    # message['tt'] = 'FC'
+    # aftn = AFTNMessage(message)
+    # # print(aftn.rpt_with_head())
+    # for i in aftn.raw():
+    #     print(i)
+    #     print('   ')
