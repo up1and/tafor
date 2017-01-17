@@ -122,6 +122,10 @@ class TAFEditBase(QDialog):
         msg_list = [primary_msg, becmg1_msg, becmg2_msg, becmg3_msg, tempo1_msg, tempo2_msg]
         self.rpt = '\n'.join(filter(None, msg_list)) + '='
 
+    def update_date(self):
+        self.time = datetime.datetime.utcnow()
+        self.primary.date.setText(self.time.strftime('%d%H%M'))
+
 
 class TAFEdit(TAFEditBase):
 
@@ -141,10 +145,6 @@ class TAFEdit(TAFEditBase):
         self.signal_send.connect(send.receive_from_edit)
         self.signal_send.emit(message)
 
-    def update_date(self):
-        self.time = datetime.datetime.utcnow()
-        self.primary.date.setText(self.time.strftime('%d%H%M'))
-
 
 class ScheduleTAFEdit(TAFEditBase):
 
@@ -157,6 +157,8 @@ class ScheduleTAFEdit(TAFEditBase):
         self.primary.date.editingFinished.connect(self.schedule_time)
         self.primary.date.editingFinished.connect(self.set_period)
         self.primary.date.editingFinished.connect(self.change_window_title)
+
+        self.next_button.clicked.disconnect(self.update_date)
         
     def send_message(self):
         send = ScheduleTAFSend(self)
@@ -188,9 +190,6 @@ class ScheduleTAFEdit(TAFEditBase):
 
     def change_window_title(self):
         self.setWindowTitle("定时任务   " + self.time.strftime('%Y-%m-%d %H:%M'))
-
-    def update_date(self):
-        pass
 
 
 class TAFSendBase(QDialog, Ui_taf_send.Ui_TAFSend):
