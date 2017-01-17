@@ -1,4 +1,3 @@
-import re
 import datetime
 
 from PyQt5 import QtCore
@@ -69,19 +68,6 @@ class AFTNMessage(object):
         self.message = message
         self.cls = cls
         self.setting = QtCore.QSettings('Up1and', 'Tafor')
-        self._rpt_head()
-
-    def _rpt_head(self):
-        intelligence = self.setting.value('message/intelligence')
-        icao = self.setting.value('message/icao')
-
-        timez_regex = Parser.regex_taf['common']['timez']
-        self.aftn_time = re.search(timez_regex, self.message['rpt']).group()[0:6]
-
-        self.rpt_head = ' '.join([self.message['tt'] + intelligence, icao, self.aftn_time])
-
-    def rpt_with_head(self):
-        return '\n'.join([self.rpt_head, self.message['rpt']])
 
     def raw(self):
         channel = self.setting.value('communication/other/channel')
@@ -90,16 +76,18 @@ class AFTNMessage(object):
         user_address = self.setting.value('communication/other/user_addr')
 
         addresses = self.divide_address(send_address)
+        # 第三项为时间组
+        time = self.message['head'].split()[2]
 
         # 定值
-        self.aftn_time = ' '.join([self.aftn_time, user_address])
+        self.aftn_time = ' '.join([time, user_address])
         self.aftn_nnnn = 'NNNN'
 
         aftn_message = []
         for address in addresses:
             self.aftn_zczc = ' '.join(['ZCZC', channel + str(number).zfill(4)])
             self.aftn_adress = ' '.join(['GG'] + address)
-            items = [self.aftn_zczc, self.aftn_adress, self.aftn_time, self.rpt_head, self.message['rpt'], self.aftn_nnnn]
+            items = [self.aftn_zczc, self.aftn_adress, self.aftn_time, self.message['head'], self.message['rpt'], self.aftn_nnnn]
             aftn_message.append('\n'.join(items))
             number += 1
 
@@ -114,14 +102,14 @@ class AFTNMessage(object):
 
 
 if __name__ == '__main__':
-    taf = TAFPeriod('FT')
-    print(taf.current())
+    # taf = TAFPeriod('FT')
+    # print(taf.current())
 
-    # message = dict()
-    # message['rpt'] = 'TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR='
-    # message['tt'] = 'FC'
-    # aftn = AFTNMessage(message)
-    # # print(aftn.rpt_with_head())
-    # for i in aftn.raw():
-    #     print(i)
-    #     print('   ')
+    message = dict()
+    message['rpt'] = 'TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR='
+    message['head'] = 'FCCI35 ZJHK 150726'
+    aftn = AFTNMessage(message)
+    # print(aftn.rpt_with_head())
+    for i in aftn.raw():
+        print(i)
+        print('   ')

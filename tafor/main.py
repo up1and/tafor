@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 from ui import Ui_main, main_rc
-from taf import TAFEdit, ScheduleTAFEdit
+from taf import TAFEdit, ScheduleTAFEdit, ScheduleTAFSend
 from setting import SettingDialog
 from models import Tafor, Schedule, Session
 from widgets import WidgetsItem, WidgetsClock
@@ -66,7 +66,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         # 自动发送报文的计时器
         self.auto_send_timer = QTimer()
-        self.auto_send_timer.timeout.connect(self.auto_send)
+        self.auto_send_timer.timeout.connect(ScheduleTAFSend(self).auto_send)
         self.auto_send_timer.start(15 * 1000) # 15 秒
 
 
@@ -84,32 +84,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         if event.modifiers() == (Qt.ShiftModifier | Qt.ControlModifier) and event.key() == Qt.Key_P:
             ScheduleTAFEdit(self).show()
 
-    def auto_send(self):
-        sch_queue = self.db.query(Schedule).filter_by(tafor_id=None).order_by(Schedule.schedule_time).all()
-        now = datetime.datetime.utcnow()
-        send_status = False
-
-        for sch in sch_queue:
-            #print(sch)
-
-            if sch.schedule_time <= now:
-                # print(sch)
-                item = Tafor(tt=sch.tt, rpt=sch.rpt)
-                self.db.add(item)
-                self.db.flush()
-                sch.tafor_id = item.id
-                self.db.merge(sch)
-                self.db.commit()
-
-                send_status = True
-
-        print(sch_queue)
-        
-        if send_status:
-            self.update_taf_table()
-            print('auto_send')
-        else:
-            print('nothing to do')
 
     def update_taf_table(self):
         items = self.db.query(Tafor).order_by(Tafor.send_time.desc()).all()

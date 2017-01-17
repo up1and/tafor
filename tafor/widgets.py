@@ -149,18 +149,18 @@ class TAFWidgetsPrimary(QtWidgets.QWidget, Ui_widgets_primary.Ui_Form, TAFWidget
         self.setupUi(self)
 
         self.validate()
-
-        # self.cavok.clicked.connect(self.set_cavok)
-        # self.skc.clicked.connect(self.set_skc_nsc)
-        # self.nsc.clicked.connect(self.set_skc_nsc)
-
         self.period.setEnabled(False)
+        self.ccc.setEnabled(False)
+        self.aaa.setEnabled(False)
+        self.aaa_cnl.setEnabled(False)
 
         # self.timer = QtCore.QTimer()
         # self.timer.timeout.connect(self.enbale_next)
         # self.timer.start(1 * 1000)
 
         self.bind_signal()
+
+        self.setting = QtCore.QSettings('Up1and', 'Tafor')
 
     def validate(self):
         super(TAFWidgetsPrimary, self).validate()
@@ -178,15 +178,32 @@ class TAFWidgetsPrimary(QtWidgets.QWidget, Ui_widgets_primary.Ui_Form, TAFWidget
 
     def message(self):
         super(TAFWidgetsPrimary, self).message()
-        icao = 'ZJHK'
+        amd = 'AMD' if self.amd.isChecked() else ''
+        cor = 'COR' if self.cor.isChecked() else ''
+        icao = self.setting.value('message/icao')
         timez = self.date.text() + 'Z'
         period = self.period.text()
         tmax = ''.join(['TX', self.tmax.text(), '/', self.tmax_time.text(), 'Z'])
         tmin = ''.join(['TN', self.tmin.text(), '/', self.tmin_time.text(), 'Z'])
-        msg_list = ['TAF', icao, timez, period, self.msg, tmax, tmin]
-        self.msg = ' '.join(msg_list)
-        # print(self.msg)
+        msg_list = ['TAF', amd, cor, icao, timez, period, self.msg, tmax, tmin]
+        self.msg = ' '.join(filter(None, msg_list))
         return self.msg
+
+    def head(self):
+        intelligence = self.setting.value('message/intelligence')
+        icao = self.setting.value('message/icao')
+        time = self.date.text()
+        tt = ''
+        if self.fc.isChecked():
+            tt = 'FC'
+        elif self.ft.isChecked():
+            tt = 'FT'
+
+        ccc = self.ccc.text() if self.cor.isChecked() else ''
+        aaa = self.aaa.text() if self.amd.isChecked() else ''
+        aaa_cnl = self.aaa_cnl.text() if self.cnl.isChecked() else ''
+        msg_list = [tt + intelligence, icao, time, ccc, aaa, aaa_cnl]
+        return ' '.join(filter(None, msg_list))
 
     def enbale_next(self):
         # 允许下一步

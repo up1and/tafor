@@ -17,6 +17,7 @@ class Tafor(Base):
     # 表的结构:
     id = Column(Integer, primary_key=True)
     tt = Column(String(2))
+    head = Column(String(255))
     rpt = Column(String(255))
     raw_rpt = Column(String(255))
     send_time = Column(DateTime, default=datetime.datetime.utcnow)
@@ -24,8 +25,9 @@ class Tafor(Base):
 
     schedule = relationship('Schedule')
 
-    def __init__(self, tt, rpt, raw_rpt=None):
+    def __init__(self, tt, head, rpt, raw_rpt=None):
         self.tt = tt
+        self.head = head
         self.rpt = rpt
         self.raw_rpt = raw_rpt
 
@@ -45,8 +47,9 @@ class Schedule(Base):
 
     tafor_id = Column(Integer, ForeignKey('tafor.id'))
 
-    def __init__(self, tt, rpt, schedule_time):
+    def __init__(self, tt, head, rpt, schedule_time):
         self.tt = tt
+        self.head = head
         self.rpt = rpt
         self.schedule_time = schedule_time
 

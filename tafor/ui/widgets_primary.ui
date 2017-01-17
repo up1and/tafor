@@ -287,55 +287,6 @@
        </item>
       </layout>
      </item>
-     <item row="0" column="4" colspan="7">
-      <widget class="QGroupBox" name="group_cls">
-       <property name="title">
-        <string/>
-       </property>
-       <layout class="QGridLayout" name="gridLayout_5">
-        <item row="0" column="0">
-         <widget class="QRadioButton" name="normal">
-          <property name="text">
-           <string>正常报</string>
-          </property>
-          <property name="checked">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="1">
-         <widget class="QRadioButton" name="cor">
-          <property name="text">
-           <string>更正报</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="2">
-         <widget class="QComboBox" name="cor_combobox"/>
-        </item>
-        <item row="0" column="3">
-         <widget class="QRadioButton" name="amd">
-          <property name="text">
-           <string>修订报</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="4">
-         <widget class="QComboBox" name="amd_combobox"/>
-        </item>
-        <item row="0" column="5">
-         <widget class="QRadioButton" name="cnl">
-          <property name="text">
-           <string>取消报</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="6">
-         <widget class="QComboBox" name="cnl_combobox"/>
-        </item>
-       </layout>
-      </widget>
-     </item>
      <item row="6" column="9">
       <layout class="QFormLayout" name="tmax_layout">
        <item row="0" column="0">
@@ -367,6 +318,55 @@
        </property>
       </widget>
      </item>
+     <item row="0" column="5" colspan="6">
+      <widget class="QGroupBox" name="group_cls">
+       <property name="title">
+        <string/>
+       </property>
+       <layout class="QGridLayout" name="gridLayout_5">
+        <item row="0" column="0">
+         <widget class="QRadioButton" name="normal_button">
+          <property name="text">
+           <string>正常报</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="3">
+         <widget class="QRadioButton" name="amd">
+          <property name="text">
+           <string>修订报</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QRadioButton" name="cor">
+          <property name="text">
+           <string>更正报</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="5">
+         <widget class="QRadioButton" name="cnl">
+          <property name="text">
+           <string>取消报</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="6">
+         <widget class="QLineEdit" name="aaa_cnl"/>
+        </item>
+        <item row="0" column="4">
+         <widget class="QLineEdit" name="aaa"/>
+        </item>
+        <item row="0" column="2">
+         <widget class="QLineEdit" name="ccc"/>
+        </item>
+       </layout>
+      </widget>
+     </item>
     </layout>
    </item>
   </layout>
@@ -374,13 +374,10 @@
  <tabstops>
   <tabstop>fc</tabstop>
   <tabstop>ft</tabstop>
-  <tabstop>normal</tabstop>
+  <tabstop>normal_button</tabstop>
   <tabstop>cor</tabstop>
-  <tabstop>cor_combobox</tabstop>
   <tabstop>amd</tabstop>
-  <tabstop>amd_combobox</tabstop>
   <tabstop>cnl</tabstop>
-  <tabstop>cnl_combobox</tabstop>
   <tabstop>date</tabstop>
   <tabstop>period</tabstop>
   <tabstop>wind</tabstop>

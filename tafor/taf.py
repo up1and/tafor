@@ -62,6 +62,10 @@ class TAFEditBase(QDialog):
         self.primary.fc.clicked.connect(self.set_period)
         self.primary.ft.clicked.connect(self.set_period)
 
+        self.primary.cor.toggled.connect(self.set_ccc)
+        self.primary.amd.toggled.connect(self.set_aaa)
+        self.primary.cnl.toggled.connect(self.set_aaa_cnl)
+
         self.next_button.clicked.connect(self.update_date)
         self.next_button.clicked.connect(self.assemble_message)
         self.next_button.clicked.connect(self.send_message)
@@ -111,6 +115,34 @@ class TAFEditBase(QDialog):
             period = TAFPeriod(self.tt, self.time)
             self.primary.period.setText(period.warn())
 
+    def set_ccc(self, checked):
+        self.primary.ccc.setEnabled(checked)
+        if checked:
+            self.primary.ccc.setText('CCA')
+        else:
+            self.primary.ccc.clear()
+
+    def set_aaa(self, checked):
+        self.primary.aaa.setEnabled(checked)
+        if checked:
+            self.primary.aaa.setText('AAA')
+        else:
+            self.primary.aaa.clear()
+
+    def set_aaa_cnl(self, checked):
+        self.primary.aaa_cnl.setEnabled(checked)
+        if checked:
+            self.primary.aaa_cnl.setText('AAA')
+        else:
+            self.primary.aaa_cnl.clear()
+
+    def _calc_revision_number(self, sign):
+        init_number = 1
+        if sign == 'COR':
+            pass
+        elif sign == 'AMD':
+            pass
+
 
     def assemble_message(self):
         primary_msg = self.primary.message()
@@ -121,6 +153,7 @@ class TAFEditBase(QDialog):
         tempo2_msg = self.tempo2.message() if self.primary.tempo2_checkbox.isChecked() else ''
         msg_list = [primary_msg, becmg1_msg, becmg2_msg, becmg3_msg, tempo1_msg, tempo2_msg]
         self.rpt = '\n'.join(filter(None, msg_list)) + '='
+        self.head = self.primary.head()
 
     def update_date(self):
         self.time = datetime.datetime.utcnow()
@@ -141,7 +174,7 @@ class TAFEdit(TAFEditBase):
     def send_message(self):
         send = TAFSend(self)
         send.show()
-        message = {'tt': self.tt, 'rpt': self.rpt}
+        message = {'rpt': self.rpt, 'head': self.head}
         self.signal_send.connect(send.receive_from_edit)
         self.signal_send.emit(message)
 
@@ -163,7 +196,7 @@ class ScheduleTAFEdit(TAFEditBase):
     def send_message(self):
         send = ScheduleTAFSend(self)
         send.show()
-        message = {'tt': self.tt, 'rpt':self.rpt, 'sch_time': self.time}
+        message = {'head': self.head, 'rpt':self.rpt, 'sch_time': self.time}
         self.signal_send.connect(send.receive_from_edit)
         self.signal_send.emit(message)
 
@@ -218,9 +251,10 @@ class TAFSendBase(QDialog, Ui_taf_send.Ui_TAFSend):
         # self.rpt.setText(self.aftn.rpt_with_head())
 
     def receive_from_edit(self, message):
-        self.aftn = AFTNMessage(message)
-        self.rpt.setText(self.aftn.rpt_with_head())
-        print(message)
+        self.message = message
+        rpt_with_head = '\n'.join([self.message['head'], self.message['rpt']])
+        self.rpt.setText(rpt_with_head)
+        print(self.message)
 
 
 
@@ -231,15 +265,16 @@ class TAFSend(TAFSendBase):
 
         self.setWindowIcon(QIcon(':/fine.png'))
         self.button_box.accepted.connect(self.send)
-        self.button_box.accepted.connect(self.save)
+        # self.button_box.accepted.connect(self.save)
 
     def save(self):
-        item = Tafor(tt=self.message['tt'], rpt=self.message['rpt'])
+        item = Tafor(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'])
         self.db.add(item)
         self.db.commit()
         print(item.send_time)
 
     def send(self):
+        self.aftn = AFTNMessage(self.message)
         self.raw.setText('\n\n\n\n'.join(self.aftn.raw()))
         self.raw_group.show()
         self.button_box.button(QDialogButtonBox.Ok).setEnabled(False)
@@ -258,13 +293,41 @@ class ScheduleTAFSend(TAFSendBase):
         self.button_box.accepted.connect(self.accept)
 
         # 测试数据
-        self.schedule_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=1)
+        # self.schedule_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=1)
 
     def save(self):
-        item = Schedule(tt=self.message['tt'], rpt=self.message['rpt'], schedule_time=self.message['sch_time'])
+        item = Schedule(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'], schedule_time=self.message['sch_time'])
         self.db.add(item)
         self.db.commit()
         print(item.schedule_time)
+
+    def auto_send(self):
+        db = Session()
+        sch_queue = db.query(Schedule).filter_by(tafor_id=None).order_by(Schedule.schedule_time).all()
+        now = datetime.datetime.utcnow()
+        send_status = False
+
+        for sch in sch_queue:
+            #print(sch)
+
+            if sch.schedule_time <= now:
+                # print(sch)
+                item = Tafor(tt=sch.tt, head=sch.head, rpt=sch.rpt)
+                self.db.add(item)
+                self.db.flush()
+                sch.tafor_id = item.id
+                self.db.merge(sch)
+                self.db.commit()
+
+                send_status = True
+
+        print(sch_queue)
+        
+        if send_status:
+            self.update_taf_table()
+            print('auto_send')
+        else:
+            print('nothing to do')
 
 
 
@@ -273,7 +336,7 @@ class ScheduleTAFSend(TAFSendBase):
 if __name__ == "__main__":
     import sys
     app = QApplication(sys.argv)
-    ui = ScheduleTAFEdit()
+    ui = TAFEdit()
     ui.show()
     sys.exit(app.exec_())
     
