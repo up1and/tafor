@@ -59,6 +59,10 @@ class TAFEditBase(QDialog):
         self.primary.tempo1_checkbox.toggled.connect(self.add_becmg_and_tempo)
         self.primary.tempo2_checkbox.toggled.connect(self.add_becmg_and_tempo)
 
+        self.primary.fc.clicked.connect(self.set_period)
+        self.primary.ft.clicked.connect(self.set_period)
+
+        self.next_button.clicked.connect(self.update_date)
         self.next_button.clicked.connect(self.assemble_message)
         self.next_button.clicked.connect(self.send_message)
 
@@ -127,12 +131,8 @@ class TAFEdit(TAFEditBase):
         self.setWindowTitle("编发报文")
         self.setWindowIcon(QIcon(':/fine.png'))
 
-        self.primary.fc.clicked.connect(self.set_period)
-        self.primary.ft.clicked.connect(self.set_period)
-
-        self.time = datetime.datetime.utcnow()
-        self.primary.date.setText(self.time.strftime('%d%H%M'))
         self.primary.date.setEnabled(False)
+        self.update_date()
 
     def send_message(self):
         send = TAFSend(self)
@@ -140,6 +140,10 @@ class TAFEdit(TAFEditBase):
         message = {'tt': self.tt, 'rpt': self.rpt}
         self.signal_send.connect(send.receive_from_edit)
         self.signal_send.emit(message)
+
+    def update_date(self):
+        self.time = datetime.datetime.utcnow()
+        self.primary.date.setText(self.time.strftime('%d%H%M'))
 
 
 class ScheduleTAFEdit(TAFEditBase):
@@ -150,8 +154,6 @@ class ScheduleTAFEdit(TAFEditBase):
         self.setWindowTitle("定时任务")
         self.setWindowIcon(QIcon(':/schedule.png'))
 
-        self.primary.fc.clicked.connect(self.set_period)
-        self.primary.ft.clicked.connect(self.set_period)
         self.primary.date.editingFinished.connect(self.schedule_time)
         self.primary.date.editingFinished.connect(self.set_period)
         self.primary.date.editingFinished.connect(self.change_window_title)
@@ -186,6 +188,9 @@ class ScheduleTAFEdit(TAFEditBase):
 
     def change_window_title(self):
         self.setWindowTitle("定时任务   " + self.time.strftime('%Y-%m-%d %H:%M'))
+
+    def update_date(self):
+        pass
 
 
 class TAFSendBase(QDialog, Ui_taf_send.Ui_TAFSend):
@@ -269,7 +274,7 @@ class ScheduleTAFSend(TAFSendBase):
 if __name__ == "__main__":
     import sys
     app = QApplication(sys.argv)
-    ui = TAFEdit()
+    ui = ScheduleTAFEdit()
     ui.show()
     sys.exit(app.exec_())
     
