@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import datetime
 
 from PyQt5.QtGui import *
@@ -310,12 +311,11 @@ class TAFSend(TAFSendBase):
         self.button_box.accepted.connect(self.save)
 
     def save(self):
-        import main
-        item = Tafor(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'])
+        item = Tafor(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'], raw=json.dumps(self.aftn.raw()))
         self.db.add(item)
         self.db.commit()
-        print(item, 'save')
-        self.signal_send.connect(main.MainWindow(self).update)
+        print('Save', item)
+        # self.signal_send.connect(main.MainWindow(self).update)
         self.signal_send.emit()
 
     def send(self):
@@ -334,7 +334,7 @@ class ScheduleTAFSend(TAFSendBase):
         self.setWindowTitle('定时任务')
         self.setWindowIcon(QIcon(':/schedule.png'))
 
-        # self.button_box.accepted.connect(self.save)
+        self.button_box.accepted.connect(self.save)
         self.button_box.accepted.connect(self.accept)
 
         # 测试数据
@@ -344,7 +344,7 @@ class ScheduleTAFSend(TAFSendBase):
         item = Schedule(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'], schedule_time=self.message['sch_time'])
         self.db.add(item)
         self.db.commit()
-        print(item.schedule_time)
+        print('Save Schedule', item.schedule_time)
 
     def auto_send(self):
         db = Session()
@@ -357,7 +357,9 @@ class ScheduleTAFSend(TAFSendBase):
 
             if sch.schedule_time <= now:
                 # print(sch)
-                item = Tafor(tt=sch.tt, head=sch.head, rpt=sch.rpt)
+                message = {'head': sch.head, 'rpt': sch.rpt}
+                aftn = AFTNMessage(message)
+                item = Tafor(tt=sch.tt, head=sch.head, rpt=sch.rpt, raw=json.dumps(aftn.raw()))
                 self.db.add(item)
                 self.db.flush()
                 sch.tafor_id = item.id
@@ -366,13 +368,11 @@ class ScheduleTAFSend(TAFSendBase):
 
                 send_status = True
 
-        print(sch_queue)
+        print('Queue to send', sch_queue)
         
         if send_status:
-            self.update_taf_table()
-            print('auto_send')
-        else:
-            print('nothing to do')
+            # self.update_taf_table()
+            print('Auto Send')
 
 
 

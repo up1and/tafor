@@ -61,15 +61,14 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         # 自动发送报文的计时器
         self.auto_send_timer = QTimer()
         self.auto_send_timer.timeout.connect(ScheduleTAFSend(self).auto_send)
-        self.auto_send_timer.start(15 * 1000) # 15 秒
-
+        self.auto_send_timer.start(30 * 1000)
         # 时钟计时器
         self.clock_timer = QTimer()
         self.clock_timer.timeout.connect(self.update_utc_time)
         self.clock_timer.start(1 * 1000)
 
         self.warn_timer = QTimer()
-        self.warn_timer.timeout.connect(self.update_current_taf)
+        self.warn_timer.timeout.connect(self.update)
         self.warn_timer.start(60 * 1000)
 
         self.update()
@@ -97,6 +96,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.update_recent()
         self.update_utc_time()
         self.update_current_taf()
+
+        print('Update GUI')
 
     def update_taf_table(self):
         items = self.db.query(Tafor).order_by(Tafor.send_time.desc()).all()
@@ -155,8 +156,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.widget_ft.set_item(ft)
         else:
             self.widget_ft.hide()
-
-        print('update_recent')
 
     def update_utc_time(self):
         utc = datetime.datetime.utcnow()
