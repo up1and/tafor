@@ -278,7 +278,8 @@ class WidgetsItem(QtWidgets.QWidget, Ui_widgets_recent_item.Ui_Form):
     def set_item(self, item):
         self.groupBox.setTitle(item.tt)
         self.send_time.setText(item.send_time.strftime("%Y-%m-%d %H:%M:%S"))
-        self.rpt.setText('\n'.join([item.head, item.rpt]))
+        rpt_with_head = filter(None, [item.head, item.rpt])
+        self.rpt.setText('\n'.join(rpt_with_head))
         if item.confirm_time:
             self.check.setText('√')
         else:

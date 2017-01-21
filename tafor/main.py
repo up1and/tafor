@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 from ui import Ui_main, main_rc
-from taf import TAFEdit, ScheduleTAFEdit, ScheduleTAFSend
+from taf import TAFEdit, ScheduleTAFEdit, ScheduleTAFSend, TAFSend
 from setting import SettingDialog
 from models import Tafor, Schedule, Session
 from widgets import WidgetsItem
@@ -74,6 +74,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.update()
 
+        # TAFSend(self).signal_send.connect(self.update)
+
 
     @pyqtSlot("bool")
     def on_warn_action_triggered(self, checked):
@@ -95,7 +97,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.update_recent()
         self.update_utc_time()
         self.update_current_taf()
-
 
     def update_taf_table(self):
         items = self.db.query(Tafor).order_by(Tafor.send_time.desc()).all()
@@ -155,16 +156,26 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         else:
             self.widget_ft.hide()
 
+        print('update_recent')
+
     def update_utc_time(self):
         utc = datetime.datetime.utcnow()
         self.utc_time.setText('世界时  ' + utc.strftime("%Y-%m-%d %H:%M:%S"))
 
     def update_current_taf(self):
-        period_fc = TAFPeriod('FC').warn()
-        self.current_fc.setText('FC' + period_fc[2:])
+        fc_period = TAFPeriod('FC')
+        if fc_period.is_existed():
+            fc_text = ''
+        else:
+            fc_text = 'FC' + fc_period.warn()[2:]
+        self.current_fc.setText(fc_text)
 
-        period_ft = TAFPeriod('FT').warn()
-        self.current_ft.setText('FT' + period_ft[2:])
+        ft_period = TAFPeriod('FT')
+        if ft_period.is_existed():
+            ft_text = ''
+        else:
+            ft_text = 'FT' + ft_period.warn()[2:]
+        self.current_ft.setText(ft_text)
 
 
     def about(self):

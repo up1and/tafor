@@ -1,7 +1,7 @@
 import datetime
 
 from PyQt5 import QtCore
-
+from models import Session, Tafor
 from validator import Parser
 
 class TAFPeriod(object):
@@ -28,11 +28,17 @@ class TAFPeriod(object):
                     '1818': start_of_the_day + datetime.timedelta(hours=13),
                     '0024': start_of_the_day + datetime.timedelta(hours=19),
                     }
+        self.db = Session()
 
     def current(self):
         increment = {'FC': datetime.timedelta(minutes=50), 'FT': datetime.timedelta(hours=2, minutes=50)}
         period = self._find_period(increment)
         return self._with_day(period)
+
+    def is_existed(self):
+        time_limit = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+        recent = self.db.query(Tafor).filter(Tafor.rpt.contains(self.warn()), Tafor.send_time > time_limit).all()
+        return recent
 
     def warn(self):
         increment = {'FC': datetime.timedelta(hours=3), 'FT': datetime.timedelta(hours=6)}

@@ -16,7 +16,7 @@ from validator import Parser
 class TAFEditBase(QDialog):
     """docstring for TAF"""
 
-    signal_send = pyqtSignal(dict)
+    signal_preview = pyqtSignal(dict)
 
     def __init__(self, parent=None):
         super(TAFEditBase, self).__init__(parent)
@@ -54,22 +54,23 @@ class TAFEditBase(QDialog):
 
     def bind_signal(self):
 
-        self.primary.becmg1_checkbox.toggled.connect(self.add_becmg_and_tempo)
-        self.primary.becmg2_checkbox.toggled.connect(self.add_becmg_and_tempo)
-        self.primary.becmg3_checkbox.toggled.connect(self.add_becmg_and_tempo)
-        self.primary.tempo1_checkbox.toggled.connect(self.add_becmg_and_tempo)
-        self.primary.tempo2_checkbox.toggled.connect(self.add_becmg_and_tempo)
+        self.primary.becmg1_checkbox.clicked.connect(self.add_becmg_and_tempo)
+        self.primary.becmg2_checkbox.clicked.connect(self.add_becmg_and_tempo)
+        self.primary.becmg3_checkbox.clicked.connect(self.add_becmg_and_tempo)
+        self.primary.tempo1_checkbox.clicked.connect(self.add_becmg_and_tempo)
+        self.primary.tempo2_checkbox.clicked.connect(self.add_becmg_and_tempo)
 
-        self.primary.fc.clicked.connect(self.dispatch)
-        self.primary.ft.clicked.connect(self.dispatch)
+        self.primary.fc.clicked.connect(self.update_message_type)
+        self.primary.ft.clicked.connect(self.update_message_type)
 
-        self.primary.cor.toggled.connect(self.set_ccc)
-        self.primary.amd.toggled.connect(self.set_aaa)
-        self.primary.cnl.toggled.connect(self.set_aaa_cnl)
+        self.primary.normal.clicked.connect(self.update_message_type)
+        self.primary.cor.clicked.connect(self.update_message_type)
+        self.primary.amd.clicked.connect(self.update_message_type)
+        self.primary.cnl.clicked.connect(self.update_message_type)
 
         self.next_button.clicked.connect(self.update_date)
         self.next_button.clicked.connect(self.assemble_message)
-        self.next_button.clicked.connect(self.send_message)
+        self.next_button.clicked.connect(self.preview_message)
 
     def add_becmg_and_tempo(self):
         # BECMG
@@ -107,7 +108,7 @@ class TAFEditBase(QDialog):
         else:
             self.tempo2.setVisible(False)
 
-    def dispatch(self):
+    def update_message_type(self):
         if self.primary.fc.isChecked():
             self.tt = 'FC'
 
@@ -117,44 +118,53 @@ class TAFEditBase(QDialog):
         if self.primary.date.text():
             if self.primary.normal.isChecked():
                 self._set_current_period()
+
+                self.primary.ccc.clear()
+                self.primary.ccc.setEnabled(False)
+                self.primary.aaa.clear()
+                self.primary.aaa.setEnabled(False)
+                self.primary.aaa_cnl.clear()
+                self.primary.aaa_cnl.setEnabled(False)
             else:
                 self._set_amd_period()
 
+                if self.primary.cor.isChecked():
+                    self.primary.ccc.setEnabled(True)
+                    order = self._calc_revision_number('COR')
+                    self.primary.ccc.setText(order)
+                else:
+                    self.primary.ccc.clear()
+                    self.primary.ccc.setEnabled(False)
+
+                if self.primary.amd.isChecked():
+                    self.primary.aaa.setEnabled(True)
+                    order = self._calc_revision_number('AMD')
+                    self.primary.aaa.setText(order)
+                else:
+                    self.primary.aaa.clear()
+                    self.primary.aaa.setEnabled(False)
+
+                if self.primary.cnl.isChecked():
+                    self.primary.aaa_cnl.setEnabled(True)
+                    order = self._calc_revision_number('AMD')
+                    self.primary.aaa_cnl.setText(order)
+                else:
+                    self.primary.aaa_cnl.clear()
+                    self.primary.aaa_cnl.setEnabled(False)
+
 
     def _set_current_period(self):
-        self.current_period = TAFPeriod(self.tt, self.time).current()
-        self.primary.period.setText(self.current_period)
+        period = TAFPeriod(self.tt, self.time)
+        self.current_period = period.current()
+
+        if period.is_existed():
+            self.primary.period.setText('')
+        else:
+            self.primary.period.setText(self.current_period)
 
     def _set_amd_period(self):
         self.amd_period = TAFPeriod(self.tt, self.time).warn()
         self.primary.period.setText(self.amd_period)
-
-    def set_ccc(self, checked):
-        self.dispatch()
-        self.primary.ccc.setEnabled(checked)
-        if checked:
-            order = self._calc_revision_number('COR')
-            self.primary.ccc.setText(order)
-        else:
-            self.primary.ccc.clear()
-
-    def set_aaa(self, checked):
-        self.dispatch()
-        self.primary.aaa.setEnabled(checked)
-        if checked:
-            order = self._calc_revision_number('AMD')
-            self.primary.aaa.setText(order)
-        else:
-            self.primary.aaa.clear()
-
-    def set_aaa_cnl(self, checked):
-        self.dispatch()
-        self.primary.aaa_cnl.setEnabled(checked)
-        if checked:
-            order = self._calc_revision_number('AMD')
-            self.primary.aaa_cnl.setText(order)
-        else:
-            self.primary.aaa_cnl.clear()
 
     def _calc_revision_number(self, sign):
         time_limit = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
@@ -197,13 +207,14 @@ class TAFEdit(TAFEditBase):
 
         self.primary.date.setEnabled(False)
         self.update_date()
+        self.update_message_type()
 
-    def send_message(self):
+    def preview_message(self):
         send = TAFSend(self)
         send.show()
         message = {'rpt': self.rpt, 'head': self.head}
-        self.signal_send.connect(send.receive_from_edit)
-        self.signal_send.emit(message)
+        self.signal_preview.connect(send.receive_from_edit)
+        self.signal_preview.emit(message)
 
 
 class ScheduleTAFEdit(TAFEditBase):
@@ -214,18 +225,20 @@ class ScheduleTAFEdit(TAFEditBase):
         self.setWindowTitle("定时任务")
         self.setWindowIcon(QIcon(':/schedule.png'))
 
+        self.primary.group_cls.hide()
+
         self.primary.date.editingFinished.connect(self.schedule_time)
-        self.primary.date.editingFinished.connect(self.set_period)
+        self.primary.date.editingFinished.connect(self._set_amd_period)
         self.primary.date.editingFinished.connect(self.change_window_title)
 
         self.next_button.clicked.disconnect(self.update_date)
         
-    def send_message(self):
+    def preview_message(self):
         send = ScheduleTAFSend(self)
         send.show()
         message = {'head': self.head, 'rpt':self.rpt, 'sch_time': self.time}
-        self.signal_send.connect(send.receive_from_edit)
-        self.signal_send.emit(message)
+        self.signal_preview.connect(send.receive_from_edit)
+        self.signal_preview.emit(message)
 
     def schedule_time(self):
         date = self.primary.date.text()
@@ -287,6 +300,8 @@ class TAFSendBase(QDialog, Ui_taf_send.Ui_TAFSend):
 
 class TAFSend(TAFSendBase):
 
+    signal_send = pyqtSignal()
+
     def __init__(self, parent=None):
         super(TAFSend, self).__init__(parent)
 
@@ -295,10 +310,13 @@ class TAFSend(TAFSendBase):
         self.button_box.accepted.connect(self.save)
 
     def save(self):
+        import main
         item = Tafor(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'])
         self.db.add(item)
         self.db.commit()
         print(item, 'save')
+        self.signal_send.connect(main.MainWindow(self).update)
+        self.signal_send.emit()
 
     def send(self):
         self.aftn = AFTNMessage(self.message)
