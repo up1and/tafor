@@ -24,6 +24,7 @@ class TAFEditBase(QDialog):
 
         self.init_ui()
         self.bind_signal()
+        self.db = Session()
 
     def init_ui(self):
         window = QWidget(self)
@@ -59,8 +60,8 @@ class TAFEditBase(QDialog):
         self.primary.tempo1_checkbox.toggled.connect(self.add_becmg_and_tempo)
         self.primary.tempo2_checkbox.toggled.connect(self.add_becmg_and_tempo)
 
-        self.primary.fc.clicked.connect(self.set_period)
-        self.primary.ft.clicked.connect(self.set_period)
+        self.primary.fc.clicked.connect(self.dispatch)
+        self.primary.ft.clicked.connect(self.dispatch)
 
         self.primary.cor.toggled.connect(self.set_ccc)
         self.primary.amd.toggled.connect(self.set_aaa)
@@ -106,42 +107,68 @@ class TAFEditBase(QDialog):
         else:
             self.tempo2.setVisible(False)
 
-    def set_period(self):
-        if self.primary.date.text() and (self.primary.fc.isChecked() or self.primary.ft.isChecked()):
-            if self.primary.fc.isChecked():
-                self.tt = 'FC'
-            elif self.primary.ft.isChecked():
-                self.tt = 'FT'
-            period = TAFPeriod(self.tt, self.time)
-            self.primary.period.setText(period.warn())
+    def dispatch(self):
+        if self.primary.fc.isChecked():
+            self.tt = 'FC'
+
+        if self.primary.ft.isChecked():
+            self.tt = 'FT'
+
+        if self.primary.date.text():
+            if self.primary.normal.isChecked():
+                self._set_current_period()
+            else:
+                self._set_amd_period()
+
+
+    def _set_current_period(self):
+        self.current_period = TAFPeriod(self.tt, self.time).current()
+        self.primary.period.setText(self.current_period)
+
+    def _set_amd_period(self):
+        self.amd_period = TAFPeriod(self.tt, self.time).warn()
+        self.primary.period.setText(self.amd_period)
 
     def set_ccc(self, checked):
+        self.dispatch()
         self.primary.ccc.setEnabled(checked)
         if checked:
-            self.primary.ccc.setText('CCA')
+            order = self._calc_revision_number('COR')
+            self.primary.ccc.setText(order)
         else:
             self.primary.ccc.clear()
 
     def set_aaa(self, checked):
+        self.dispatch()
         self.primary.aaa.setEnabled(checked)
         if checked:
-            self.primary.aaa.setText('AAA')
+            order = self._calc_revision_number('AMD')
+            self.primary.aaa.setText(order)
         else:
             self.primary.aaa.clear()
 
     def set_aaa_cnl(self, checked):
+        self.dispatch()
         self.primary.aaa_cnl.setEnabled(checked)
         if checked:
-            self.primary.aaa_cnl.setText('AAA')
+            order = self._calc_revision_number('AMD')
+            self.primary.aaa_cnl.setText(order)
         else:
             self.primary.aaa_cnl.clear()
 
     def _calc_revision_number(self, sign):
-        init_number = 1
+        time_limit = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+        query = self.db.query(Tafor).filter(Tafor.rpt.contains(self.amd_period), Tafor.send_time > time_limit)
         if sign == 'COR':
-            pass
+            items = query.filter(Tafor.rpt.contains('COR')).all()
+            print(items)
+            order = chr(ord('A') + len(items))
+            return 'CC' + order
         elif sign == 'AMD':
-            pass
+            items = query.filter(Tafor.rpt.contains('AMD')).all()
+            print(items)
+            order = chr(ord('A') + len(items))
+            return 'AA' + order
 
 
     def assemble_message(self):
@@ -265,13 +292,13 @@ class TAFSend(TAFSendBase):
 
         self.setWindowIcon(QIcon(':/fine.png'))
         self.button_box.accepted.connect(self.send)
-        # self.button_box.accepted.connect(self.save)
+        self.button_box.accepted.connect(self.save)
 
     def save(self):
         item = Tafor(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'])
         self.db.add(item)
         self.db.commit()
-        print(item.send_time)
+        print(item, 'save')
 
     def send(self):
         self.aftn = AFTNMessage(self.message)

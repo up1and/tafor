@@ -149,6 +149,9 @@
           <property name="text">
            <string>FC</string>
           </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
          </widget>
         </item>
         <item row="0" column="1">
@@ -325,7 +328,7 @@
        </property>
        <layout class="QGridLayout" name="gridLayout_5">
         <item row="0" column="0">
-         <widget class="QRadioButton" name="normal_button">
+         <widget class="QRadioButton" name="normal">
           <property name="text">
            <string>正常报</string>
           </property>
@@ -374,7 +377,7 @@
  <tabstops>
   <tabstop>fc</tabstop>
   <tabstop>ft</tabstop>
-  <tabstop>normal_button</tabstop>
+  <tabstop>normal</tabstop>
   <tabstop>cor</tabstop>
   <tabstop>amd</tabstop>
   <tabstop>cnl</tabstop>

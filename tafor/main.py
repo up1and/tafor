@@ -9,7 +9,8 @@ from ui import Ui_main, main_rc
 from taf import TAFEdit, ScheduleTAFEdit, ScheduleTAFSend
 from setting import SettingDialog
 from models import Tafor, Schedule, Session
-from widgets import WidgetsItem, WidgetsClock
+from widgets import WidgetsItem
+from utils import TAFPeriod
 
 __version__ = "1.0.0"
 
@@ -49,9 +50,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         # 添加模块
 
-        self.widget_clock = WidgetsClock()
-        self.recent_layout.addWidget(self.widget_clock)
-
         self.widget_fc = WidgetsItem()
         self.recent_layout.addWidget(self.widget_fc)
 
@@ -60,14 +58,21 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.db = Session()
 
-        self.update_taf_table()
-        self.update_recent()
-
-
         # 自动发送报文的计时器
         self.auto_send_timer = QTimer()
         self.auto_send_timer.timeout.connect(ScheduleTAFSend(self).auto_send)
         self.auto_send_timer.start(15 * 1000) # 15 秒
+
+        # 时钟计时器
+        self.clock_timer = QTimer()
+        self.clock_timer.timeout.connect(self.update_utc_time)
+        self.clock_timer.start(1 * 1000)
+
+        self.warn_timer = QTimer()
+        self.warn_timer.timeout.connect(self.update_current_taf)
+        self.warn_timer.start(60 * 1000)
+
+        self.update()
 
 
     @pyqtSlot("bool")
@@ -83,6 +88,13 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def keyPressEvent(self, event):
         if event.modifiers() == (Qt.ShiftModifier | Qt.ControlModifier) and event.key() == Qt.Key_P:
             ScheduleTAFEdit(self).show()
+
+
+    def update(self):
+        self.update_taf_table()
+        self.update_recent()
+        self.update_utc_time()
+        self.update_current_taf()
 
 
     def update_taf_table(self):
@@ -142,6 +154,17 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.widget_ft.set_item(ft)
         else:
             self.widget_ft.hide()
+
+    def update_utc_time(self):
+        utc = datetime.datetime.utcnow()
+        self.utc_time.setText('世界时  ' + utc.strftime("%Y-%m-%d %H:%M:%S"))
+
+    def update_current_taf(self):
+        period_fc = TAFPeriod('FC').warn()
+        self.current_fc.setText('FC' + period_fc[2:])
+
+        period_ft = TAFPeriod('FT').warn()
+        self.current_ft.setText('FT' + period_ft[2:])
 
 
     def about(self):

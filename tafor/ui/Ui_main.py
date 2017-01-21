@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\ui\main.ui'
+# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\ui\main.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(857, 662)
+        MainWindow.resize(882, 600)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
@@ -25,6 +25,26 @@ class Ui_MainWindow(object):
         self.recent_layout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
         self.recent_layout.setContentsMargins(0, 0, 0, 0)
         self.recent_layout.setObjectName("recent_layout")
+        self.tips = QtWidgets.QWidget(self.tab_recent)
+        self.tips.setMinimumSize(QtCore.QSize(840, 0))
+        self.tips.setObjectName("tips")
+        self.tips_layout = QtWidgets.QHBoxLayout(self.tips)
+        self.tips_layout.setContentsMargins(10, 20, 10, 20)
+        self.tips_layout.setObjectName("tips_layout")
+        self.utc_time = QtWidgets.QLabel(self.tips)
+        self.utc_time.setObjectName("utc_time")
+        self.tips_layout.addWidget(self.utc_time)
+        self.current_fc = QtWidgets.QLabel(self.tips)
+        self.current_fc.setMaximumSize(QtCore.QSize(60, 16777215))
+        self.current_fc.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.current_fc.setObjectName("current_fc")
+        self.tips_layout.addWidget(self.current_fc)
+        self.current_ft = QtWidgets.QLabel(self.tips)
+        self.current_ft.setMaximumSize(QtCore.QSize(60, 16777215))
+        self.current_ft.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.current_ft.setObjectName("current_ft")
+        self.tips_layout.addWidget(self.current_ft)
+        self.recent_layout.addWidget(self.tips)
         self.main_tab.addTab(self.tab_recent, "")
         self.tab_taf = QtWidgets.QWidget()
         self.tab_taf.setObjectName("tab_taf")
@@ -68,7 +88,7 @@ class Ui_MainWindow(object):
         self.verticalLayout.addWidget(self.main_tab)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 857, 23))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 882, 23))
         self.menubar.setObjectName("menubar")
         self.post_menu = QtWidgets.QMenu(self.menubar)
         self.post_menu.setObjectName("post_menu")
@@ -110,6 +130,9 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        self.utc_time.setText(_translate("MainWindow", "time"))
+        self.current_fc.setText(_translate("MainWindow", "FC"))
+        self.current_ft.setText(_translate("MainWindow", "FT"))
         self.main_tab.setTabText(self.main_tab.indexOf(self.tab_recent), _translate("MainWindow", "RECENT"))
         item = self.taf_table.horizontalHeaderItem(0)
         item.setText(_translate("MainWindow", "类型"))

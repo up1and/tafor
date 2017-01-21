@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\ui\widgets_primary.ui'
+# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\ui\widgets_primary.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -78,6 +78,7 @@ class Ui_Form(object):
         self.gridLayout_6 = QtWidgets.QGridLayout(self.group_type)
         self.gridLayout_6.setObjectName("gridLayout_6")
         self.fc = QtWidgets.QRadioButton(self.group_type)
+        self.fc.setChecked(True)
         self.fc.setObjectName("fc")
         self.gridLayout_6.addWidget(self.fc, 0, 0, 1, 1)
         self.ft = QtWidgets.QRadioButton(self.group_type)
@@ -158,10 +159,10 @@ class Ui_Form(object):
         self.group_cls.setObjectName("group_cls")
         self.gridLayout_5 = QtWidgets.QGridLayout(self.group_cls)
         self.gridLayout_5.setObjectName("gridLayout_5")
-        self.normal_button = QtWidgets.QRadioButton(self.group_cls)
-        self.normal_button.setChecked(True)
-        self.normal_button.setObjectName("normal_button")
-        self.gridLayout_5.addWidget(self.normal_button, 0, 0, 1, 1)
+        self.normal = QtWidgets.QRadioButton(self.group_cls)
+        self.normal.setChecked(True)
+        self.normal.setObjectName("normal")
+        self.gridLayout_5.addWidget(self.normal, 0, 0, 1, 1)
         self.amd = QtWidgets.QRadioButton(self.group_cls)
         self.amd.setObjectName("amd")
         self.gridLayout_5.addWidget(self.amd, 0, 3, 1, 1)
@@ -199,8 +200,8 @@ class Ui_Form(object):
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
         Form.setTabOrder(self.fc, self.ft)
-        Form.setTabOrder(self.ft, self.normal_button)
-        Form.setTabOrder(self.normal_button, self.cor)
+        Form.setTabOrder(self.ft, self.normal)
+        Form.setTabOrder(self.normal, self.cor)
         Form.setTabOrder(self.cor, self.amd)
         Form.setTabOrder(self.amd, self.cnl)
         Form.setTabOrder(self.cnl, self.date)
@@ -252,7 +253,7 @@ class Ui_Form(object):
         self.weather2_label.setText(_translate("Form", "天气现象2"))
         self.cavok.setText(_translate("Form", "CAVOK"))
         self.becmg3_checkbox.setText(_translate("Form", "BECMG3"))
-        self.normal_button.setText(_translate("Form", "正常报"))
+        self.normal.setText(_translate("Form", "正常报"))
         self.amd.setText(_translate("Form", "修订报"))
         self.cor.setText(_translate("Form", "更正报"))
         self.cnl.setText(_translate("Form", "取消报"))

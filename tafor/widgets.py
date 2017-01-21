@@ -278,32 +278,11 @@ class WidgetsItem(QtWidgets.QWidget, Ui_widgets_recent_item.Ui_Form):
     def set_item(self, item):
         self.groupBox.setTitle(item.tt)
         self.send_time.setText(item.send_time.strftime("%Y-%m-%d %H:%M:%S"))
-        self.rpt.setText(item.rpt)
+        self.rpt.setText('\n'.join([item.head, item.rpt]))
         if item.confirm_time:
             self.check.setText('√')
         else:
             self.check.setText('×')
-
-
-class WidgetsClock(WidgetsItem):
-    """docstring for WidgetsClock"""
-    def __init__(self):
-        super(WidgetsClock, self).__init__()
-
-        self.update()
-
-        # 计时器
-        self.clock_timer = QtCore.QTimer()
-        self.clock_timer.timeout.connect(self.update)
-        self.clock_timer.start(1 * 1000)
-
-    def update(self):
-        utc = datetime.datetime.utcnow()
-        self.groupBox.setTitle('')
-        self.send_time.setText('')
-        self.rpt.setText('世界时  ' + utc.strftime("%Y-%m-%d %H:%M:%S"))
-        self.check.setText('')
-        self.groupBox.setStyleSheet("QGroupBox {border: none;}")
         
 
 
