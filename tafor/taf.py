@@ -12,7 +12,7 @@ from ui import Ui_taf_send
 from widgets import TAFWidgetsPrimary, TAFWidgetsBecmg, TAFWidgetsTempo
 from validator import Parser
 
- 
+
 
 class TAFEditBase(QDialog):
     """docstring for TAF"""
@@ -21,8 +21,6 @@ class TAFEditBase(QDialog):
 
     def __init__(self, parent=None):
         super(TAFEditBase, self).__init__(parent)
-        #self.setAttribute(Qt.WA_DeleteOnClose)
-
         self.init_ui()
         self.bind_signal()
         self.db = Session()
@@ -69,7 +67,6 @@ class TAFEditBase(QDialog):
         self.primary.amd.clicked.connect(self.update_message_type)
         self.primary.cnl.clicked.connect(self.update_message_type)
 
-        self.next_button.clicked.connect(self.update_date)
         self.next_button.clicked.connect(self.assemble_message)
         self.next_button.clicked.connect(self.preview_message)
 
@@ -207,15 +204,12 @@ class TAFEdit(TAFEditBase):
         self.setWindowIcon(QIcon(':/fine.png'))
 
         self.primary.date.setEnabled(False)
-        self.update_date()
         self.update_message_type()
 
     def preview_message(self):
-        send = TAFSend(self)
-        send.show()
         message = {'rpt': self.rpt, 'head': self.head}
-        self.signal_preview.connect(send.receive_from_edit)
         self.signal_preview.emit(message)
+        print('Emit', message)
 
 
 class ScheduleTAFEdit(TAFEditBase):
@@ -226,20 +220,18 @@ class ScheduleTAFEdit(TAFEditBase):
         self.setWindowTitle("定时任务")
         self.setWindowIcon(QIcon(':/schedule.png'))
 
+        self.update_message_type()
+
         self.primary.group_cls.hide()
 
         self.primary.date.editingFinished.connect(self.schedule_time)
         self.primary.date.editingFinished.connect(self._set_amd_period)
         self.primary.date.editingFinished.connect(self.change_window_title)
-
-        self.next_button.clicked.disconnect(self.update_date)
         
     def preview_message(self):
-        send = ScheduleTAFSend(self)
-        send.show()
         message = {'head': self.head, 'rpt':self.rpt, 'sch_time': self.time}
-        self.signal_preview.connect(send.receive_from_edit)
         self.signal_preview.emit(message)
+        print('Emit', message)
 
     def schedule_time(self):
         date = self.primary.date.text()
@@ -274,7 +266,6 @@ class TAFSendBase(QDialog, Ui_taf_send.Ui_TAFSend):
         """
         super(TAFSendBase, self).__init__(parent)
         self.setupUi(self)
-        self.setAttribute(Qt.WA_DeleteOnClose)
 
         self.button_box.button(QDialogButtonBox.Ok).setText("Send")
         # self.button_box.addButton("TEST", QDialogButtonBox.ActionRole)
@@ -291,11 +282,10 @@ class TAFSendBase(QDialog, Ui_taf_send.Ui_TAFSend):
         # self.aftn = AFTNMessage(message)
         # self.rpt.setText(self.aftn.rpt_with_head())
 
-    def receive_from_edit(self, message):
+    def receive_message(self, message):
         self.message = message
         rpt_with_head = '\n'.join([self.message['head'], self.message['rpt']])
         self.rpt.setText(rpt_with_head)
-        print(self.message)
 
 
 
@@ -315,7 +305,6 @@ class TAFSend(TAFSendBase):
         self.db.add(item)
         self.db.commit()
         print('Save', item)
-        # self.signal_send.connect(main.MainWindow(self).update)
         self.signal_send.emit()
 
     def send(self):

@@ -26,11 +26,29 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         QMainWindow.__init__(self, parent)
         self.setupUi(self)
 
-        # 连接TAF对话框
-        self.taf_action.triggered.connect(TAFEdit(self).show)
+        # 初始TAF对话框
+        self.dialog_taf_edit = TAFEdit(self)
+        self.dialog_sch_taf_edit = ScheduleTAFEdit(self)
+        self.dialog_taf_send = TAFSend(self)
+        self.dialog_sch_taf_send = ScheduleTAFSend(self)
+
+        # 连接TAF对话框信号
+        self.dialog_taf_edit.signal_preview.connect(self.handle_taf_edit)
+        self.dialog_taf_send.signal_send.connect(self.update)
+
+        self.dialog_sch_taf_edit.signal_preview.connect(self.handle_sch_taf_edit)
+
+        # 连接菜单信号
+        self.taf_action.triggered.connect(self.dialog_taf_edit.show)
+
+        # 添加定时任务菜单
+        # self.sch_taf_action = QAction(self)
+        # self.post_menu.addAction(self.sch_taf_action)
+        # self.sch_taf_action.setText('定时任务')
+        # self.sch_taf_action.triggered.connect(self.dialog_sch_taf_edit.show)
 
         # 连接设置对话框的槽
-        self.setting_action.triggered.connect(SettingDialog(self).show)
+        self.setting_action.triggered.connect(SettingDialog(self).exec_)
         self.setting_action.setIcon(QIcon(':/setting.png'))
 
         # 连接关于信息的槽
@@ -60,11 +78,12 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         # 自动发送报文的计时器
         self.auto_send_timer = QTimer()
-        self.auto_send_timer.timeout.connect(ScheduleTAFSend(self).auto_send)
+        self.auto_send_timer.timeout.connect(self.dialog_sch_taf_send.auto_send)
         self.auto_send_timer.start(30 * 1000)
         # 时钟计时器
         self.clock_timer = QTimer()
         self.clock_timer.timeout.connect(self.update_utc_time)
+        self.clock_timer.timeout.connect(self.dialog_taf_edit.update_date)
         self.clock_timer.start(1 * 1000)
 
         self.warn_timer = QTimer()
@@ -73,7 +92,15 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.update()
 
-        # TAFSend(self).signal_send.connect(self.update)
+    def handle_taf_edit(self, message):
+        print('Receive', message)
+        self.dialog_taf_send.receive_message(message)
+        self.dialog_taf_send.show()
+
+    def handle_sch_taf_edit(self, message):
+        print('Receive', message)
+        self.dialog_sch_taf_send.receive_message(message)
+        self.dialog_sch_taf_send.show()
 
 
     @pyqtSlot("bool")
@@ -88,7 +115,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def keyPressEvent(self, event):
         if event.modifiers() == (Qt.ShiftModifier | Qt.ControlModifier) and event.key() == Qt.Key_P:
-            ScheduleTAFEdit(self).show()
+            self.dialog_sch_taf_edit.show()
 
 
     def update(self):
