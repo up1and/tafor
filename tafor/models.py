@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 import datetime
 
 from sqlalchemy import Column, Integer, String, DateTime, create_engine
@@ -72,9 +73,9 @@ class User(Base):
     def __repr__(self):
         return '<User %r %r>' % (self.name, self.phone_number)
 
-
+db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'db.sqlite3'))
 # 初始化数据库连接:
-engine = create_engine('sqlite:///./db.sqlite3', echo=False)
+engine = create_engine('sqlite:///' + db_path, echo=False)
 # 创建DBSession类型:
 Session = sessionmaker(bind=engine)
 

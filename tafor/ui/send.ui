@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>TAFSend</class>
- <widget class="QDialog" name="TAFSend">
+ <class>send</class>
+ <widget class="QDialog" name="send">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>发布 TAF 报文</string>
+   <string>发布报文</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="sizeConstraint">
@@ -99,7 +99,7 @@ p, li { white-space: pre-wrap; }
   <connection>
    <sender>button_box</sender>
    <signal>rejected()</signal>
-   <receiver>TAFSend</receiver>
+   <receiver>send</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">

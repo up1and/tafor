@@ -1,10 +1,8 @@
 import json
-
 from PyQt5 import QtCore, QtGui, QtWidgets
-
-from validator import Parser
+from ui import Ui_preference, main_rc
 from models import User, Session
-from ui import Ui_setting, main_rc
+from config import db, setting
 
 
 def to_bool(value):
@@ -13,24 +11,16 @@ def to_bool(value):
     return value if isinstance(value, bool) else value.lower() in ('true')
 
 
-class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Dialog):
-    """docstring for SettingDialog"""
+class PreferenceDialog(QtWidgets.QDialog, Ui_preference.Ui_preference):
+    """docstring for PreferenceDialog"""
     def __init__(self, parent=None):
-        super(SettingDialog, self).__init__(parent)
+        super(PreferenceDialog, self).__init__(parent)
         self.setupUi(self)
-
         self.setWindowIcon(QtGui.QIcon(':/setting.png'))
 
         self.bind_signal()
-        self.set_validator()
-
-        self.setting = QtCore.QSettings('Up1and', 'Tafor')
-
-        self.db = Session()
-
         self.update_contract()
         self.load()
-        
 
     def bind_signal(self):
         self.add_weather1_button.clicked.connect(lambda: self.add_weather('weather1'))
@@ -49,11 +39,6 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Dialog):
     def reset(self):
         print('a')
 
-    def set_validator(self):
-        regex = Parser.regex_taf['common']
-        # valid_wx1 = QtGui.QRegExpValidator(QtCore.QRegExp(regex['wx1']))
-        # self.weather1.setValidator(valid_wx1)
-
     def add_weather(self, weather):
         line = getattr(self, weather)
         if line.text():
@@ -69,8 +54,8 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Dialog):
         number = self.person_phone_number.text()
         if name and number:
             person = User(name, number)
-            self.db.add(person)
-            self.db.commit()
+            db.add(person)
+            db.commit()
 
         self.update_contract()
 
@@ -78,20 +63,20 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Dialog):
         row = self.contract_table.currentRow()
         name = self.contract_table.item(row, 0).text()
 
-        person = self.db.query(User).filter_by(name=name).first()
-        self.db.delete(person)
-        self.db.commit()
+        person = db.query(User).filter_by(name=name).first()
+        db.delete(person)
+        db.commit()
 
         self.update_contract()
 
     def edit_person(self, row):
         # row = self.contract_table.currentRow()
         # name = self.contract_table.item(row, 0).text()
-        # person = self.db.query(User).filter_by(name=name).first()
+        # person = db.query(User).filter_by(name=name).first()
         print(row.text())
 
     def update_contract(self):
-        items = self.db.query(User).all()
+        items = db.query(User).all()
         self.contract_table.setRowCount(len(items))
 
         for row, item in enumerate(items):
@@ -208,7 +193,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Dialog):
 
     def load_value(self, path, target, mold='text'):
 
-        val = self.setting.value(path)
+        val = setting.value(path)
         target = getattr(self, target)
 
         if val is None:
@@ -236,7 +221,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Dialog):
                 pass
 
         if mold == 'phone_number':
-            person = self.db.query(User).filter_by(phone_number=val).first()
+            person = db.query(User).filter_by(phone_number=val).first()
             if person:
                 index = target.findText(person.name, QtCore.Qt.MatchFixedString)
                 target.setCurrentIndex(index)
@@ -265,17 +250,17 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Dialog):
 
         if mold == 'phone_number':
             name = target.currentText()
-            person = self.db.query(User).filter_by(name=name).first()
+            person = db.query(User).filter_by(name=name).first()
             val = person.phone_number if person else ''
 
-        self.setting.setValue(path, val)
+        setting.setValue(path, val)
 
 
 
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    ui = SettingDialog()
+    ui = PreferenceDialog()
     ui.show()
     sys.exit(app.exec_())
     

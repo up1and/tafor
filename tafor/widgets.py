@@ -4,14 +4,14 @@ import datetime
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ui import Ui_widgets_primary, Ui_widgets_becmg, Ui_widgets_tempo, Ui_widgets_recent_item
-from validator import Parser
+from config import setting
+from utils import Parser, REGEX_TAF
 
 class TAFWidgetsMixin(QtCore.QObject):
     """docstring for TAFWidgetsMixin"""
     def __init__(self):
         super(TAFWidgetsMixin, self).__init__()
-        self.regex = Parser.regex_taf['edit']
-        self.setting = QtCore.QSettings('Up1and', 'Tafor')
+        self.regex = REGEX_TAF['edit']
 
         # self.one_second_timer = QtCore.QTimer()
         # self.one_second_timer.timeout.connect(self.message)
@@ -101,11 +101,11 @@ class TAFWidgetsMixin(QtCore.QObject):
         self.cloud3.setValidator(valid_cloud)
         self.cb.setValidator(valid_cloud)
 
-        weather1 = self.setting.value('message/weather1')
+        weather1 = setting.value('message/weather1')
         weather1_list = [''] + json.loads(weather1) if weather1 else ['']
         self.weather1.addItems(weather1_list)
 
-        weather2 = self.setting.value('message/weather2')
+        weather2 = setting.value('message/weather2')
         weather2_list = [''] + json.loads(weather2) if weather1 else ['']
         self.weather2.addItems(weather2_list)
 
@@ -160,8 +160,6 @@ class TAFWidgetsPrimary(QtWidgets.QWidget, Ui_widgets_primary.Ui_Form, TAFWidget
 
         self.bind_signal()
 
-        self.setting = QtCore.QSettings('Up1and', 'Tafor')
-
     def validate(self):
         super(TAFWidgetsPrimary, self).validate()
 
@@ -180,7 +178,7 @@ class TAFWidgetsPrimary(QtWidgets.QWidget, Ui_widgets_primary.Ui_Form, TAFWidget
         super(TAFWidgetsPrimary, self).message()
         amd = 'AMD' if self.amd.isChecked() else ''
         cor = 'COR' if self.cor.isChecked() else ''
-        icao = self.setting.value('message/icao')
+        icao = setting.value('message/icao')
         timez = self.date.text() + 'Z'
         period = self.period.text()
         tmax = ''.join(['TX', self.tmax.text(), '/', self.tmax_time.text(), 'Z'])
@@ -190,8 +188,8 @@ class TAFWidgetsPrimary(QtWidgets.QWidget, Ui_widgets_primary.Ui_Form, TAFWidget
         return self.msg
 
     def head(self):
-        intelligence = self.setting.value('message/intelligence')
-        icao = self.setting.value('message/icao')
+        intelligence = setting.value('message/intelligence')
+        icao = setting.value('message/icao')
         time = self.date.text()
         tt = ''
         if self.fc.isChecked():

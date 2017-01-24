@@ -6,12 +6,10 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-from utils import AFTNMessage, TAFPeriod
-from models import Session, Tafor, Schedule
-from ui import Ui_taf_send
 from widgets import TAFWidgetsPrimary, TAFWidgetsBecmg, TAFWidgetsTempo
-from validator import Parser
-
+from utils import AFTNMessage, TAFPeriod, Parser, REGEX_TAF
+from models import Tafor, Schedule
+from config import db
 
 
 class TAFEditBase(QDialog):
@@ -23,7 +21,6 @@ class TAFEditBase(QDialog):
         super(TAFEditBase, self).__init__(parent)
         self.init_ui()
         self.bind_signal()
-        self.db = Session()
 
     def init_ui(self):
         window = QWidget(self)
@@ -166,7 +163,7 @@ class TAFEditBase(QDialog):
 
     def _calc_revision_number(self, sign):
         time_limit = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        query = self.db.query(Tafor).filter(Tafor.rpt.contains(self.amd_period), Tafor.send_time > time_limit)
+        query = db.query(Tafor).filter(Tafor.rpt.contains(self.amd_period), Tafor.send_time > time_limit)
         if sign == 'COR':
             items = query.filter(Tafor.rpt.contains('COR')).all()
             print(items)
@@ -256,114 +253,6 @@ class ScheduleTAFEdit(TAFEditBase):
 
     def change_window_title(self):
         self.setWindowTitle("定时任务   " + self.time.strftime('%Y-%m-%d %H:%M'))
-
-
-class TAFSendBase(QDialog, Ui_taf_send.Ui_TAFSend):
-
-    def __init__(self, parent=None):
-        """
-        初始化主窗口
-        """
-        super(TAFSendBase, self).__init__(parent)
-        self.setupUi(self)
-
-        self.button_box.button(QDialogButtonBox.Ok).setText("Send")
-        # self.button_box.addButton("TEST", QDialogButtonBox.ActionRole)
-
-        self.raw_group.hide()
-
-        self.db = Session()
-        self.setting = QSettings('Up1and', 'Tafor')
-
-        # 测试数据
-        # message = dict()
-        # message['rpt'] = 'TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR='
-        # message['tt'] = 'FC'
-        # self.aftn = AFTNMessage(message)
-        # self.rpt.setText(self.aftn.rpt_with_head())
-
-    def receive_message(self, message):
-        self.message = message
-        rpt_with_head = '\n'.join([self.message['head'], self.message['rpt']])
-        self.rpt.setText(rpt_with_head)
-
-
-
-class TAFSend(TAFSendBase):
-
-    signal_send = pyqtSignal()
-
-    def __init__(self, parent=None):
-        super(TAFSend, self).__init__(parent)
-
-        self.setWindowIcon(QIcon(':/fine.png'))
-        self.button_box.accepted.connect(self.send)
-        self.button_box.accepted.connect(self.save)
-
-    def save(self):
-        item = Tafor(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'], raw=json.dumps(self.aftn.raw()))
-        self.db.add(item)
-        self.db.commit()
-        print('Save', item)
-        self.signal_send.emit()
-
-    def send(self):
-        self.aftn = AFTNMessage(self.message)
-        self.raw.setText('\n\n\n\n'.join(self.aftn.raw()))
-        self.raw_group.show()
-        self.button_box.button(QDialogButtonBox.Ok).setEnabled(False)
-
-
-class ScheduleTAFSend(TAFSendBase):
-
-    def __init__(self, parent=None):
-        super(ScheduleTAFSend, self).__init__(parent)
-        self.table = Schedule
-
-        self.setWindowTitle('定时任务')
-        self.setWindowIcon(QIcon(':/schedule.png'))
-
-        self.button_box.accepted.connect(self.save)
-        self.button_box.accepted.connect(self.accept)
-
-        # 测试数据
-        # self.schedule_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=1)
-
-    def save(self):
-        item = Schedule(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'], schedule_time=self.message['sch_time'])
-        self.db.add(item)
-        self.db.commit()
-        print('Save Schedule', item.schedule_time)
-
-    def auto_send(self):
-        db = Session()
-        sch_queue = db.query(Schedule).filter_by(tafor_id=None).order_by(Schedule.schedule_time).all()
-        now = datetime.datetime.utcnow()
-        send_status = False
-
-        for sch in sch_queue:
-            #print(sch)
-
-            if sch.schedule_time <= now:
-                # print(sch)
-                message = {'head': sch.head, 'rpt': sch.rpt}
-                aftn = AFTNMessage(message)
-                item = Tafor(tt=sch.tt, head=sch.head, rpt=sch.rpt, raw=json.dumps(aftn.raw()))
-                self.db.add(item)
-                self.db.flush()
-                sch.tafor_id = item.id
-                self.db.merge(sch)
-                self.db.commit()
-
-                send_status = True
-
-        print('Queue to send', sch_queue)
-        
-        if send_status:
-            # self.update_taf_table()
-            print('Auto Send')
-
-
 
 
 

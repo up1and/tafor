@@ -2,58 +2,58 @@
 
 import re
 
+REGEX_TAF = {
+    'extra': {
+                'ttaaii': r'(FC|FT)CI\d{2}\b',
+                'time': r'(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])\b',
+    },
+
+    'common': { 
+                'taf': r'\b(?P<taf>TAF)\b',
+                'icao': r'\b(?P<icao>[A-Z]{4})\b',
+                'timez': r'\b(?P<day>0[1-9]|[12][0-9]|3[0-1])(?P<hour>[01][0-9]|2[0-3])(?P<minute>[0-5][0-9])Z\b',
+                'period': r'\b(0[1-9]|[12][0-9]|3[0-1])(0009|0312|0615|0918|1221|1524|1803|2106|0024|0606|1212|1818)\b',
+                'wind': r'\b(?:00000|(?P<direction>VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(?P<speed>0[1-9]|[1-4][0-9]|P49)(?:G(?P<gust>0[1-9]|[1-4][0-9]|P49))?)MPS\b',
+                'vis': r'\b(9999|[5-9]000|[01234][0-9]00|0[0-7]50)\b',
+                'wx1': r'\b(NSW|IC|FG|BR|SA|DU|HZ|FU|VA|SQ|PO|FC|TS|FZFG|BLSN|BLSA|BLDU|DRSN|DRSA|DRDU|MIFG|BCFG|PRFG)\b',
+                'wx2': r'\b([-+]?)(DZ|RA|SN|SG|PL|DS|SS|TSRA|TSSN|TSPL|TSGR|TSGS|SHRA|SHSN|SHGR|SHGS|FZRA|FZDZ)\b',
+                'cloud': r'\bNSC|(?P<cover>FEW|SCT|BKN|OVC)(?P<height>\d{3})(?P<cb>CB|TCU)?\b',
+                'vv':r'\b(VV/{3}|VV\d{3})\b',
+                'tmax': r'\b(TXM?(\d{2})/(\d{2})Z)\b',
+                'tmin': r'\b(TNM?(\d{2})/(\d{2})Z)\b',
+                'cavok': r'\bCAVOK\b',
+                'amd': r'\bAMD\b',
+                'cor': r'\bCOR\b',
+                'order': r'\b(CC|AA)([A-Z])\b',
+                'prob': r'\b(PROB[34]0)\b',
+                'sign': r'\b(BECMG|FM|TEMPO|PROB)\b',
+                'interval':r'\b([01][0-9]|2[0-3])([01][0-9]|2[0-3])\b',
+    },
+
+    'edit':{
+            # 'time': r'(?P<day>0[1-9]|[12][0-9]|3[0-1])(?P<hour>[01][0-9]|2[0-3])(?P<minute>[0-5][0-9])',
+            'date': r'(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])',
+            'wind': r'00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)',
+            'gust': r'(0[1-9]|[1-4][0-9]|P49)',
+            'vis': r'(9999|[5-9]000|[01234][0-9]00|0[0-7]50)',
+            'cloud': r'(FEW|SCT|BKN|OVC)(0[0-4][0-9]|050)',
+            'temp': r'M?([0-5][0-9])',
+            'hours': r'([01][0-9]|2[0-3])',
+
+    },
+
+    'split': r'(BECMG|FM|TEMPO|PROB[34]0\sTEMPO)\b',
+}
+
 class Parser(object):
     """docstring for Validator"""
-
-    regex_taf = {
-        'extra': {
-                    'ttaaii': r'(FC|FT)CI\d{2}\b',
-                    'time': r'(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])\b',
-        },
-
-        'common': { 
-                    'taf': r'\b(?P<taf>TAF)\b',
-                    'icao': r'\b(?P<icao>[A-Z]{4})\b',
-                    'timez': r'\b(?P<day>0[1-9]|[12][0-9]|3[0-1])(?P<hour>[01][0-9]|2[0-3])(?P<minute>[0-5][0-9])Z\b',
-                    'period': r'\b(0[1-9]|[12][0-9]|3[0-1])(0009|0312|0615|0918|1221|1524|1803|2106|0024|0606|1212|1818)\b',
-                    'wind': r'\b(?:00000|(?P<direction>VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(?P<speed>0[1-9]|[1-4][0-9]|P49)(?:G(?P<gust>0[1-9]|[1-4][0-9]|P49))?)MPS\b',
-                    'vis': r'\b(9999|[5-9]000|[01234][0-9]00|0[0-7]50)\b',
-                    'wx1': r'\b(NSW|IC|FG|BR|SA|DU|HZ|FU|VA|SQ|PO|FC|TS|FZFG|BLSN|BLSA|BLDU|DRSN|DRSA|DRDU|MIFG|BCFG|PRFG)\b',
-                    'wx2': r'\b([-+]?)(DZ|RA|SN|SG|PL|DS|SS|TSRA|TSSN|TSPL|TSGR|TSGS|SHRA|SHSN|SHGR|SHGS|FZRA|FZDZ)\b',
-                    'cloud': r'\bNSC|(?P<cover>FEW|SCT|BKN|OVC)(?P<height>\d{3})(?P<cb>CB|TCU)?\b',
-                    'vv':r'\b(VV/{3}|VV\d{3})\b',
-                    'tmax': r'\b(TXM?(\d{2})/(\d{2})Z)\b',
-                    'tmin': r'\b(TNM?(\d{2})/(\d{2})Z)\b',
-                    'cavok': r'\bCAVOK\b',
-                    'amd': r'\bAMD\b',
-                    'cor': r'\bCOR\b',
-                    'order': r'\b(CC|AA)([A-Z])\b',
-                    'prob': r'\b(PROB[34]0)\b',
-                    'sign': r'\b(BECMG|FM|TEMPO|PROB)\b',
-                    'interval':r'\b([01][0-9]|2[0-3])([01][0-9]|2[0-3])\b',
-        },
-
-        'edit':{
-                # 'time': r'(?P<day>0[1-9]|[12][0-9]|3[0-1])(?P<hour>[01][0-9]|2[0-3])(?P<minute>[0-5][0-9])',
-                'date': r'(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])',
-                'wind': r'00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)',
-                'gust': r'(0[1-9]|[1-4][0-9]|P49)',
-                'vis': r'(9999|[5-9]000|[01234][0-9]00|0[0-7]50)',
-                'cloud': r'(FEW|SCT|BKN|OVC)(0[0-4][0-9]|050)',
-                'temp': r'M?([0-5][0-9])',
-                'hours': r'([01][0-9]|2[0-3])',
-
-        },
-
-        'split': r'(BECMG|FM|TEMPO|PROB[34]0\sTEMPO)\b',
-    }
 
     def __init__(self, message=''):
         self.message = message.replace('=', '')
         self.classify()
 
     def classify(self):
-        self.message_list = re.split(self.regex_taf['split'], self.message)
+        self.message_list = re.split(REGEX_TAF['split'], self.message)
         self.primary = self.message_list[0]
         self.becmg = list()
         self.tempo = list()
@@ -73,7 +73,7 @@ class Parser(object):
 
     def regex(self, message):
         pieces = dict()
-        for key, ruler in self.regex_taf['common'].items():
+        for key, ruler in REGEX_TAF['common'].items():
             # print(key, re)
             if key == 'cloud':
                 matches = re.findall(ruler, message)
@@ -111,7 +111,7 @@ class Validator(object):
         2.当预报平均地面风速的变化大于等于 5m/s 时
         3.当预报平均地面风风速变差（阵风）增加(或减少)大于等于 5m/s，且平均风速在变化前和（或）变化后大于等于 8m/s 时  ***有异议
         """
-        regex_wind = re.compile(Parser.regex_taf['common']['wind'])
+        regex_wind = re.compile(REGEX_TAF['common']['wind'])
         wind1 = regex_wind.match(str_wind1).groupdict()
         wind2 = regex_wind.match(str_wind2).groupdict()
 
@@ -236,7 +236,7 @@ class Validator(object):
 
           当预报积雨云将发展或消失时
         '''
-        regex = Parser.regex_taf['common']['cloud']
+        regex = REGEX_TAF['common']['cloud']
         thresholds = [1, 2, 5, 10, 15]
 
         # 同为NSC

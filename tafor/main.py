@@ -6,13 +6,13 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 from ui import Ui_main, main_rc
-from taf import TAFEdit, ScheduleTAFEdit, ScheduleTAFSend, TAFSend
-from setting import SettingDialog
+from taf import TAFEdit, ScheduleTAFEdit
+from send import ScheduleTAFSend, TAFSend
+from preference import PreferenceDialog
 from models import Tafor, Schedule, Session
 from widgets import WidgetsItem
 from utils import TAFPeriod
-
-__version__ = "1.0.0"
+from config import __version__
 
 
 class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
@@ -48,7 +48,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         # self.sch_taf_action.triggered.connect(self.dialog_sch_taf_edit.show)
 
         # 连接设置对话框的槽
-        self.setting_action.triggered.connect(SettingDialog(self).exec_)
+        self.setting_action.triggered.connect(PreferenceDialog(self).exec_)
         self.setting_action.setIcon(QIcon(':/setting.png'))
 
         # 连接关于信息的槽
