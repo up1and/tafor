@@ -150,7 +150,7 @@ class TAFEditBase(QDialog):
 
     def _set_current_period(self):
         period = TAFPeriod(self.tt, self.time)
-        self.current_period = period.current()
+        self.current_period = period.warn()
 
         if period.is_existed():
             self.primary.period.setText('')

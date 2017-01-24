@@ -9,10 +9,11 @@ from ui import Ui_main, main_rc
 from taf import TAFEdit, ScheduleTAFEdit
 from send import ScheduleTAFSend, TAFSend
 from preference import PreferenceDialog
-from models import Tafor, Schedule, Session
+from schedule import ScheduleTable
+from models import Tafor, Schedule
 from widgets import WidgetsItem
 from utils import TAFPeriod
-from config import __version__
+from config import db, __version__
 
 
 class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
@@ -32,11 +33,14 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.dialog_taf_send = TAFSend(self)
         self.dialog_sch_taf_send = ScheduleTAFSend(self)
 
+        self.dialog_sch_table = ScheduleTable(self)
+
         # 连接TAF对话框信号
         self.dialog_taf_edit.signal_preview.connect(self.handle_taf_edit)
         self.dialog_taf_send.signal_send.connect(self.update)
 
         self.dialog_sch_taf_edit.signal_preview.connect(self.handle_sch_taf_edit)
+        self.dialog_sch_taf_send.signal_send.connect(self.dialog_sch_table.show)
 
         # 连接菜单信号
         self.taf_action.triggered.connect(self.dialog_taf_edit.show)
@@ -74,8 +78,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.widget_ft = WidgetsItem()
         self.recent_layout.addWidget(self.widget_ft)
 
-        self.db = Session()
-
         # 自动发送报文的计时器
         self.auto_send_timer = QTimer()
         self.auto_send_timer.timeout.connect(self.dialog_sch_taf_send.auto_send)
@@ -88,6 +90,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.warn_timer = QTimer()
         self.warn_timer.timeout.connect(self.update)
+        self.warn_timer.timeout.connect(self.dialog_sch_table.update)
         self.warn_timer.start(60 * 1000)
 
         self.update()
@@ -114,8 +117,11 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         print(checked)
 
     def keyPressEvent(self, event):
-        if event.modifiers() == (Qt.ShiftModifier | Qt.ControlModifier) and event.key() == Qt.Key_P:
-            self.dialog_sch_taf_edit.show()
+        if event.modifiers() == (Qt.ShiftModifier | Qt.ControlModifier):
+            if event.key() == Qt.Key_P:
+                self.dialog_sch_taf_edit.show()
+            if event.key() == Qt.Key_T:
+                self.dialog_sch_table.show()
 
 
     def update(self):
@@ -127,7 +133,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         print('Update GUI')
 
     def update_taf_table(self):
-        items = self.db.query(Tafor).order_by(Tafor.send_time.desc()).all()
+        items = db.query(Tafor).order_by(Tafor.send_time.desc()).all()
         if len(items) > 12:
             items = items[0:12]
         header = self.taf_table.horizontalHeader()
@@ -171,8 +177,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         raise NotImplemented
 
     def update_recent(self):
-        fc = self.db.query(Tafor).filter_by(tt='FC').order_by(Tafor.send_time.desc()).first()
-        ft = self.db.query(Tafor).filter_by(tt='FT').order_by(Tafor.send_time.desc()).first()
+        fc = db.query(Tafor).filter_by(tt='FC').order_by(Tafor.send_time.desc()).first()
+        ft = db.query(Tafor).filter_by(tt='FT').order_by(Tafor.send_time.desc()).first()
         # print(fc)
         if fc:
             self.widget_fc.set_item(fc)

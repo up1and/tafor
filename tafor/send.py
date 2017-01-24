@@ -1,4 +1,5 @@
 import json
+import datetime
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -9,6 +10,8 @@ from utils import AFTNMessage
 
 
 class SendBase(QtWidgets.QDialog, Ui_send.Ui_send):
+
+    signal_send = QtCore.pyqtSignal()
 
     def __init__(self, parent=None):
         """
@@ -29,8 +32,6 @@ class SendBase(QtWidgets.QDialog, Ui_send.Ui_send):
 
 
 class TAFSend(SendBase):
-
-    signal_send = QtCore.pyqtSignal()
 
     def __init__(self, parent=None):
         super(TAFSend, self).__init__(parent)
@@ -73,9 +74,9 @@ class ScheduleTAFSend(SendBase):
         db.add(item)
         db.commit()
         print('Save Schedule', item.schedule_time)
+        self.signal_send.emit()
 
     def auto_send(self):
-        db = Session()
         sch_queue = db.query(Schedule).filter_by(tafor_id=None).order_by(Schedule.schedule_time).all()
         now = datetime.datetime.utcnow()
         send_status = False
