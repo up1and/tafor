@@ -21,6 +21,8 @@ class TAFEditBase(QDialog):
         super(TAFEditBase, self).__init__(parent)
         self.init_ui()
         self.bind_signal()
+        self.update_date()
+        self.update_message_type()
 
     def init_ui(self):
         window = QWidget(self)
@@ -30,6 +32,7 @@ class TAFEditBase(QDialog):
         self.becmg1, self.becmg2, self.becmg3 = TAFWidgetsBecmg('BECMG1'), TAFWidgetsBecmg('BECMG2'), TAFWidgetsBecmg('BECMG3')
         self.tempo1, self.tempo2 = TAFWidgetsTempo('TEMPO1'), TAFWidgetsTempo('TEMPO2')
         self.next_button = QPushButton()
+        self.next_button.setEnabled(False)
         self.next_button.setText("下一步")
         layout.addWidget(self.primary)
         layout.addWidget(self.becmg1)
@@ -64,6 +67,38 @@ class TAFEditBase(QDialog):
         self.primary.amd.clicked.connect(self.update_message_type)
         self.primary.cnl.clicked.connect(self.update_message_type)
 
+        self.primary.tmax_time.editingFinished.connect(lambda :self._check_temp_time_in_duration(self.primary.tmax_time))
+        self.primary.tmin_time.editingFinished.connect(lambda :self._check_temp_time_in_duration(self.primary.tmin_time))
+
+        self.primary.tmax.editingFinished.connect(self._check_temp_correct)
+        self.primary.tmin.editingFinished.connect(self._check_temp_correct)
+
+        self.becmg1.interval.editingFinished.connect(lambda :self._check_interval(self.becmg1.interval))
+        self.becmg2.interval.editingFinished.connect(lambda :self._check_interval(self.becmg2.interval))
+        self.becmg3.interval.editingFinished.connect(lambda :self._check_interval(self.becmg3.interval))
+
+        self.tempo1.interval.editingFinished.connect(lambda :self._check_interval(self.tempo1.interval, tempo=True))
+        self.tempo2.interval.editingFinished.connect(lambda :self._check_interval(self.tempo2.interval, tempo=True))
+
+        # 设置下一步按钮
+        self.primary.date.editingFinished.connect(self._enbale_next_button)
+        self.primary.period.editingFinished.connect(self._enbale_next_button)
+        self.primary.wind.editingFinished.connect(self._enbale_next_button)
+        self.primary.tmax.editingFinished.connect(self._enbale_next_button)
+        self.primary.tmax_time.editingFinished.connect(self._enbale_next_button)
+        self.primary.tmin.editingFinished.connect(self._enbale_next_button)
+        self.primary.tmin_time.editingFinished.connect(self._enbale_next_button)
+        self.primary.vis.editingFinished.connect(self._enbale_next_button)
+        self.primary.cloud1.editingFinished.connect(self._enbale_next_button)
+        self.primary.cloud2.editingFinished.connect(self._enbale_next_button)
+        self.primary.cloud3.editingFinished.connect(self._enbale_next_button)
+        self.primary.cb.editingFinished.connect(self._enbale_next_button)
+
+        self.primary.cavok.clicked.connect(self._enbale_next_button)
+        self.primary.nsc.clicked.connect(self._enbale_next_button)
+        self.primary.skc.clicked.connect(self._enbale_next_button)
+
+        # 下一步
         self.next_button.clicked.connect(self.assemble_message)
         self.next_button.clicked.connect(self.preview_message)
 
@@ -147,6 +182,8 @@ class TAFEditBase(QDialog):
                     self.primary.aaa_cnl.clear()
                     self.primary.aaa_cnl.setEnabled(False)
 
+            self._period_duration()
+
 
     def _set_current_period(self):
         period = TAFPeriod(self.tt, self.time)
@@ -175,6 +212,63 @@ class TAFEditBase(QDialog):
             order = chr(ord('A') + len(items))
             return 'AA' + order
 
+    def _period_duration(self):
+        period = self.primary.period.text()
+        if len(period) == 6:
+            self.period_duration = self._calc_duration(period[2:4], period[4:6])
+            print('period ', self.period_duration)
+            return self.period_duration
+
+    def _check_temp_time_in_duration(self, line):
+        temp_time = datetime.datetime(self.time.year, self.time.month, self.time.day, int(line.text()))
+        condition = self.period_duration['start'] <= temp_time <= self.period_duration['end']
+        if not condition:
+            line.clear()
+
+    def _check_temp_correct(self):
+        tmax = self.primary.tmax.text()
+        tmin = self.primary.tmin.text()
+        if tmax and tmin:
+            if int(tmax) <= int(tmin):
+                self.primary.tmin.clear()
+
+    def _calc_duration(self, start, end):
+        duration = dict()
+        start = int(start)
+        end = 0 if end == '24' else int(end)
+        base_time = datetime.datetime(self.time.year, self.time.month, self.time.day)
+
+        duration['start'] = base_time + datetime.timedelta(hours=start)
+
+        if start < end:
+            duration['end'] = base_time + datetime.timedelta(hours=end)
+        else:
+            duration['end'] = base_time + datetime.timedelta(days=1, hours=end)
+
+        return duration
+
+    def _check_interval(self, line, tempo=False):
+        if tempo and self.tt == 'FC':
+            interval = 4
+        elif tempo and self.tt == 'FT':
+            interval = 6
+        else:
+            interval = 2
+
+        duration = self._calc_duration(line.text()[0:2], line.text()[2:4])
+        if duration['start'] < self.period_duration['start'] or self.period_duration['end'] < duration['start']:
+            line.clear()
+            print('start interval time is not corret')
+
+        if duration['end'] < self.period_duration['start'] or self.period_duration['end'] < duration['end']:
+            line.clear()
+            print('end interval time is not corret')
+
+        if duration['end'] - duration['start'] > datetime.timedelta(hours=interval):
+            line.clear()
+            print('more than ', interval, ' hours')
+
+        print('interval ', duration)
 
     def assemble_message(self):
         primary_msg = self.primary.message()
@@ -191,6 +285,23 @@ class TAFEditBase(QDialog):
         self.time = datetime.datetime.utcnow()
         self.primary.date.setText(self.time.strftime('%d%H%M'))
 
+    def _enbale_next_button(self):
+        # 允许下一步
+        enbale = False
+        required = (self.primary.date.text(), self.primary.period.text(), self.primary.wind.text(), self.primary.tmax.text(), self.primary.tmax_time.text(), self.primary.tmin.text(), self.primary.tmin_time.text())
+        if all(required):
+            print(1)
+            if self.primary.cavok.isChecked():
+                enbale = True
+            elif self.primary.vis.text():
+                if self.primary.nsc.isChecked() or self.primary.skc.isChecked():
+                    enbale = True
+                elif any((self.primary.cloud1.text(), self.primary.cloud2.text(), self.primary.cloud3.text(), self.primary.cb.text())):
+                    enbale = True
+
+        self.next_button.setEnabled(enbale)
+        print(enbale)
+
 
 class TAFEdit(TAFEditBase):
 
@@ -201,7 +312,6 @@ class TAFEdit(TAFEditBase):
         self.setWindowIcon(QIcon(':/fine.png'))
 
         self.primary.date.setEnabled(False)
-        self.update_message_type()
 
     def preview_message(self):
         message = {'rpt': self.rpt, 'head': self.head}
@@ -216,8 +326,6 @@ class ScheduleTAFEdit(TAFEditBase):
 
         self.setWindowTitle("定时任务")
         self.setWindowIcon(QIcon(':/schedule.png'))
-
-        self.update_message_type()
 
         self.primary.group_cls.hide()
 

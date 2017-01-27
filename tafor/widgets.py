@@ -162,10 +162,6 @@ class TAFWidgetsPrimary(QtWidgets.QWidget, Ui_widgets_primary.Ui_Form, TAFWidget
         self.aaa.setEnabled(False)
         self.aaa_cnl.setEnabled(False)
 
-        # self.timer = QtCore.QTimer()
-        # self.timer.timeout.connect(self.enbale_next)
-        # self.timer.start(1 * 1000)
-
         self.bind_signal()
 
     def validate(self):
@@ -205,25 +201,11 @@ class TAFWidgetsPrimary(QtWidgets.QWidget, Ui_widgets_primary.Ui_Form, TAFWidget
         elif self.ft.isChecked():
             tt = 'FT'
 
-        ccc = self.ccc.text() if self.cor.isChecked() else ''
-        aaa = self.aaa.text() if self.amd.isChecked() else ''
-        aaa_cnl = self.aaa_cnl.text() if self.cnl.isChecked() else ''
+        ccc = self.ccc.text() if self.cor.isChecked() else None
+        aaa = self.aaa.text() if self.amd.isChecked() else None
+        aaa_cnl = self.aaa_cnl.text() if self.cnl.isChecked() else None
         msg_list = [tt + intelligence, icao, time, ccc, aaa, aaa_cnl]
         return ' '.join(filter(None, msg_list))
-
-    def enbale_next(self):
-        # 允许下一步
-        self.next = False
-        required = (self.date.text(), self.period.text(), self.wind.text(), self.tmax.text(), self.tmax_time.text(), self.tmin.text(), self.tmin_time.text())
-        if all(required):
-            if self.cavok.isChecked():
-                self.next = True
-            elif self.vis.text():
-                if self.nsc.text() or self.skc.text():
-                    self.next = True
-                elif self.cloud1.text() or self.cloud2.text() or self.cloud3.text() or self.cb.text() or self.nsc.isChecked():
-                    self.next = True
-        print(self.next)
 
 
 
@@ -242,6 +224,11 @@ class TAFWidgetsBecmg(QtWidgets.QWidget, Ui_widgets_becmg.Ui_Form, TAFWidgetsMix
 
         self.bind_signal()
 
+    def validate(self):
+        super(TAFWidgetsBecmg, self).validate()
+
+        valid_interval = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['interval']))
+        self.interval.setValidator(valid_interval)
 
     def message(self):
         super(TAFWidgetsBecmg, self).message()
