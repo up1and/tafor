@@ -27,6 +27,11 @@ class TAFWidgetsMixin(QtCore.QObject):
             self.prob30.toggled.connect(self.set_prob30)
             self.prob40.toggled.connect(self.set_prob40)
 
+        self.cloud1.textEdited.connect(lambda:self._upper_text(self.cloud1))
+        self.cloud2.textEdited.connect(lambda:self._upper_text(self.cloud2))
+        self.cloud3.textEdited.connect(lambda:self._upper_text(self.cloud3))
+        self.cb.textEdited.connect(lambda:self._upper_text(self.cb))
+
 
     def clouds(self, enbale):
         if enbale:
@@ -86,8 +91,8 @@ class TAFWidgetsMixin(QtCore.QObject):
             self.prob30.setChecked(False)
 
     def validate(self):
-        valid_wind = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['wind']))
-        self.wind.setValidator(valid_wind)
+        self.valid_wind = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['wind']))
+        self.wind.setValidator(self.valid_wind)
 
         valid_gust = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['gust']))
         self.gust.setValidator(valid_gust)
@@ -95,7 +100,7 @@ class TAFWidgetsMixin(QtCore.QObject):
         valid_vis = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['vis']))
         self.vis.setValidator(valid_vis)
 
-        valid_cloud = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['cloud']))
+        valid_cloud = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['cloud'], QtCore.Qt.CaseInsensitive))
         self.cloud1.setValidator(valid_cloud)
         self.cloud2.setValidator(valid_cloud)
         self.cloud3.setValidator(valid_cloud)
@@ -109,36 +114,39 @@ class TAFWidgetsMixin(QtCore.QObject):
         weather2_list = [''] + json.loads(weather2) if weather1 else ['']
         self.weather2.addItems(weather2_list)
 
-    def test_message(self):
-        pass
-
     def message(self):
-        if self.wind.text():
-            wind = ''.join([self.wind.text(), 'G', self.gust.text(), 'MPS']) if self.gust.text() else ''.join([self.wind.text(), 'MPS'])
-        else:
-            wind = ''
+        wind = self.wind.text() if self.wind.hasAcceptableInput() else None
+        gust = self.gust.text() if self.gust.hasAcceptableInput() else None
 
-        vis = self.vis.text()
+        if wind:
+            winds = ''.join([wind, 'G', gust, 'MPS']) if gust else ''.join([wind, 'MPS'])
+        else:
+            winds = None
+
+        vis = self.vis.text() if self.vis.hasAcceptableInput() else None
         wx1 = self.weather1.currentText()
         wx2 = self.weather2.currentText()
-        cloud1 = self.cloud1.text()
-        cloud2 = self.cloud2.text()
-        cloud3 = self.cloud3.text()
-        cb = self.cb.text()
+        cloud1 = self.cloud1.text() if self.cloud1.hasAcceptableInput() else None
+        cloud2 = self.cloud2.text() if self.cloud2.hasAcceptableInput() else None
+        cloud3 = self.cloud3.text() if self.cloud3.hasAcceptableInput() else None
+        cb = self.cb.text() if self.cb.hasAcceptableInput() else None
 
         if hasattr(self, 'cavok'):
             if self.cavok.isChecked():
-                msg_list = [wind, 'CAVOK']
+                msg_list = [winds, 'CAVOK']
             elif self.skc.isChecked():
-                msg_list = [wind, vis, wx1, wx2, 'SKC']
+                msg_list = [winds, vis, wx1, wx2, 'SKC']
             elif self.nsc.isChecked():
-                msg_list = [wind, vis, wx1, wx2, 'NSC']
+                msg_list = [winds, vis, wx1, wx2, 'NSC']
             else:
-                msg_list = [wind, vis, wx1, wx2, cloud1, cloud2, cloud3, cb]
+                msg_list = [winds, vis, wx1, wx2, cloud1, cloud2, cloud3, cb]
         else:
-            msg_list = [wind, vis, wx1, wx2, cloud1, cloud2, cloud3, cb]
+            msg_list = [winds, vis, wx1, wx2, cloud1, cloud2, cloud3, cb]
         self.msg = ' '.join(filter(None, msg_list))
         # print(self.msg)
+
+    def _upper_text(self, line):
+        line.setText(line.text().upper())
 
 
 
