@@ -250,6 +250,12 @@ class TAFWidgetsTempo(QtWidgets.QWidget, Ui_widgets_tempo.Ui_Form, TAFWidgetsMix
 
         self.bind_signal()
 
+    def validate(self):
+        super(TAFWidgetsTempo, self).validate()
+
+        valid_interval = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['interval']))
+        self.interval.setValidator(valid_interval)
+
     def message(self):
         super(TAFWidgetsTempo, self).message()
         interval = self.interval.text()

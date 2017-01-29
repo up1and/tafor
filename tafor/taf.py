@@ -247,6 +247,13 @@ class TAFEditBase(QDialog):
 
         return duration
 
+    def _calc_interval(self, start, end):
+        duration = self._calc_duration(start, end)
+        if duration['start'] < self.period_duration['start']:
+            duration['start'] += datetime.timedelta(days=1)
+            duration['end'] += datetime.timedelta(days=1)
+        return duration
+
     def _check_interval(self, line, tempo=False):
         if tempo and self.tt == 'FC':
             interval = 4
@@ -255,7 +262,7 @@ class TAFEditBase(QDialog):
         else:
             interval = 2
 
-        duration = self._calc_duration(line.text()[0:2], line.text()[2:4])
+        duration = self._calc_interval(line.text()[0:2], line.text()[2:4])
         if duration['start'] < self.period_duration['start'] or self.period_duration['end'] < duration['start']:
             line.clear()
             print('start interval time is not corret')
