@@ -59,6 +59,12 @@ class TAFEditBase(QDialog):
         self.primary.tempo1_checkbox.clicked.connect(self.add_becmg_and_tempo)
         self.primary.tempo2_checkbox.clicked.connect(self.add_becmg_and_tempo)
 
+        self.primary.becmg1_checkbox.clicked.connect(self.becmg1._check_required)
+        self.primary.becmg2_checkbox.clicked.connect(self.becmg2._check_required)
+        self.primary.becmg3_checkbox.clicked.connect(self.becmg3._check_required)
+        self.primary.tempo1_checkbox.clicked.connect(self.tempo1._check_required)
+        self.primary.tempo2_checkbox.clicked.connect(self.tempo2._check_required)
+
         self.primary.fc.clicked.connect(self.update_message_type)
         self.primary.ft.clicked.connect(self.update_message_type)
 
@@ -80,23 +86,12 @@ class TAFEditBase(QDialog):
         self.tempo1.interval.editingFinished.connect(lambda :self._check_interval(self.tempo1.interval, tempo=True))
         self.tempo2.interval.editingFinished.connect(lambda :self._check_interval(self.tempo2.interval, tempo=True))
 
-        # 设置下一步按钮
-        self.primary.date.editingFinished.connect(self._enbale_next_button)
-        self.primary.period.editingFinished.connect(self._enbale_next_button)
-        self.primary.wind.editingFinished.connect(self._enbale_next_button)
-        self.primary.tmax.editingFinished.connect(self._enbale_next_button)
-        self.primary.tmax_time.editingFinished.connect(self._enbale_next_button)
-        self.primary.tmin.editingFinished.connect(self._enbale_next_button)
-        self.primary.tmin_time.editingFinished.connect(self._enbale_next_button)
-        self.primary.vis.editingFinished.connect(self._enbale_next_button)
-        self.primary.cloud1.editingFinished.connect(self._enbale_next_button)
-        self.primary.cloud2.editingFinished.connect(self._enbale_next_button)
-        self.primary.cloud3.editingFinished.connect(self._enbale_next_button)
-        self.primary.cb.editingFinished.connect(self._enbale_next_button)
-
-        self.primary.cavok.clicked.connect(self._enbale_next_button)
-        self.primary.nsc.clicked.connect(self._enbale_next_button)
-        self.primary.skc.clicked.connect(self._enbale_next_button)
+        self.primary.signal_required.connect(self._enbale_next_button)
+        self.becmg1.signal_required.connect(self._enbale_next_button)
+        self.becmg2.signal_required.connect(self._enbale_next_button)
+        self.becmg3.signal_required.connect(self._enbale_next_button)
+        self.tempo1.signal_required.connect(self._enbale_next_button)
+        self.tempo2.signal_required.connect(self._enbale_next_button)
 
         # 下一步
         self.next_button.clicked.connect(self.assemble_message)
@@ -183,7 +178,6 @@ class TAFEditBase(QDialog):
                     self.primary.aaa_cnl.setEnabled(False)
 
             self._period_duration()
-
 
     def _set_current_period(self):
         period = TAFPeriod(self.tt, self.time)
@@ -294,20 +288,29 @@ class TAFEditBase(QDialog):
 
     def _enbale_next_button(self):
         # 允许下一步
-        enbale = False
-        required = (self.primary.date.text(), self.primary.period.text(), self.primary.wind.text(), self.primary.tmax.text(), self.primary.tmax_time.text(), self.primary.tmin.text(), self.primary.tmin_time.text())
-        if all(required):
-            print(1)
-            if self.primary.cavok.isChecked():
-                enbale = True
-            elif self.primary.vis.text():
-                if self.primary.nsc.isChecked() or self.primary.skc.isChecked():
-                    enbale = True
-                elif any((self.primary.cloud1.text(), self.primary.cloud2.text(), self.primary.cloud3.text(), self.primary.cb.text())):
-                    enbale = True
+        required_widgets = [self.primary.required]
+
+        if self.primary.becmg1_checkbox.isChecked():
+            required_widgets.append(self.becmg1.required)
+
+        if self.primary.becmg2_checkbox.isChecked():
+            required_widgets.append(self.becmg2.required)
+
+        if self.primary.becmg3_checkbox.isChecked():
+            required_widgets.append(self.becmg3.required)
+
+        if self.primary.tempo1_checkbox.isChecked():
+            required_widgets.append(self.tempo1.required)
+
+        if self.primary.tempo2_checkbox.isChecked():
+            required_widgets.append(self.tempo2.required)
+
+        enbale = all(required_widgets)
+
+        print(required_widgets)
 
         self.next_button.setEnabled(enbale)
-        print(enbale)
+
 
 
 class TAFEdit(TAFEditBase):

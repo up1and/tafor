@@ -7,10 +7,13 @@ from ui import Ui_widgets_primary, Ui_widgets_becmg, Ui_widgets_tempo, Ui_widget
 from config import setting
 from utils import Parser, REGEX_TAF
 
-class TAFWidgetsMixin(QtCore.QObject):
-    """docstring for TAFWidgetsMixin"""
+class TAFWidgetsBase(QtWidgets.QWidget):
+    """docstring for TAFWidgetsBase"""
+
+    signal_required = QtCore.pyqtSignal(bool)
+
     def __init__(self):
-        super(TAFWidgetsMixin, self).__init__()
+        super(TAFWidgetsBase, self).__init__()
         self.regex = REGEX_TAF['edit']
 
         # self.one_second_timer = QtCore.QTimer()
@@ -23,6 +26,9 @@ class TAFWidgetsMixin(QtCore.QObject):
             self.cavok.toggled.connect(self.set_cavok)
             self.skc.toggled.connect(self.set_skc)
             self.nsc.toggled.connect(self.set_nsc)
+            self.cavok.clicked.connect(self._check_required)
+            self.nsc.clicked.connect(self._check_required)
+            self.skc.clicked.connect(self._check_required)
         else:
             self.prob30.toggled.connect(self.set_prob30)
             self.prob40.toggled.connect(self.set_prob40)
@@ -31,6 +37,13 @@ class TAFWidgetsMixin(QtCore.QObject):
         self.cloud2.textEdited.connect(lambda:self._upper_text(self.cloud2))
         self.cloud3.textEdited.connect(lambda:self._upper_text(self.cloud3))
         self.cb.textEdited.connect(lambda:self._upper_text(self.cb))
+
+        self.wind.textChanged.connect(self._check_required)
+        self.vis.textChanged.connect(self._check_required)
+        self.cloud1.textChanged.connect(self._check_required)
+        self.cloud2.textChanged.connect(self._check_required)
+        self.cloud3.textChanged.connect(self._check_required)
+        self.cb.textChanged.connect(self._check_required)
 
 
     def clouds(self, enbale):
@@ -148,9 +161,12 @@ class TAFWidgetsMixin(QtCore.QObject):
     def _upper_text(self, line):
         line.setText(line.text().upper())
 
+    def _check_required(self):
+        raise NotImplemented
 
 
-class TAFWidgetsPrimary(QtWidgets.QWidget, Ui_widgets_primary.Ui_Form, TAFWidgetsMixin):
+
+class TAFWidgetsPrimary(TAFWidgetsBase, Ui_widgets_primary.Ui_Form):
 
     def __init__(self):
         super(TAFWidgetsPrimary, self).__init__()
@@ -177,6 +193,46 @@ class TAFWidgetsPrimary(QtWidgets.QWidget, Ui_widgets_primary.Ui_Form, TAFWidget
         valid_temp_hours = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['hours']))
         self.tmax_time.setValidator(valid_temp_hours)
         self.tmin_time.setValidator(valid_temp_hours)
+
+    def bind_signal(self):
+        super(TAFWidgetsPrimary, self).bind_signal()
+
+        # 设置下一步按钮
+        self.date.textChanged.connect(self._check_required)
+        self.period.textChanged.connect(self._check_required)
+        self.tmax.textChanged.connect(self._check_required)
+        self.tmax_time.textChanged.connect(self._check_required)
+        self.tmin.textChanged.connect(self._check_required)
+        self.tmin_time.textChanged.connect(self._check_required)
+
+    def _check_required(self):
+        self.required = False
+        must_required = (
+                        self.date.hasAcceptableInput(), 
+                        self.period.hasAcceptableInput(), 
+                        self.wind.hasAcceptableInput(), 
+                        self.tmax.hasAcceptableInput(), 
+                        self.tmax_time.hasAcceptableInput(), 
+                        self.tmin.hasAcceptableInput(), 
+                        self.tmin_time.hasAcceptableInput()
+                        )
+        one_required = (
+                        self.nsc.isChecked(), 
+                        self.skc.isChecked(), 
+                        self.cloud1.hasAcceptableInput(), 
+                        self.cloud2.hasAcceptableInput(), 
+                        self.cloud3.hasAcceptableInput(), 
+                        self.cb.hasAcceptableInput()
+                        )
+        
+        if all(must_required):
+            if self.cavok.isChecked():
+                self.required = True
+            elif self.vis.hasAcceptableInput() and any(one_required):
+                self.required = True
+
+        self.signal_required.emit(self.required)
+
 
     def message(self):
         super(TAFWidgetsPrimary, self).message()
@@ -209,7 +265,7 @@ class TAFWidgetsPrimary(QtWidgets.QWidget, Ui_widgets_primary.Ui_Form, TAFWidget
 
 
 
-class TAFWidgetsBecmg(QtWidgets.QWidget, Ui_widgets_becmg.Ui_Form, TAFWidgetsMixin):
+class TAFWidgetsBecmg(TAFWidgetsBase, Ui_widgets_becmg.Ui_Form):
 
     def __init__(self, name='becmg'):
         super(TAFWidgetsBecmg, self).__init__()
@@ -230,6 +286,13 @@ class TAFWidgetsBecmg(QtWidgets.QWidget, Ui_widgets_becmg.Ui_Form, TAFWidgetsMix
         valid_interval = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['interval']))
         self.interval.setValidator(valid_interval)
 
+    def bind_signal(self):
+        super(TAFWidgetsBecmg, self).bind_signal()
+
+        self.interval.textChanged.connect(self._check_required)
+        self.weather1.currentIndexChanged.connect(self._check_required)
+        self.weather2.currentIndexChanged.connect(self._check_required)
+
     def message(self):
         super(TAFWidgetsBecmg, self).message()
         interval = self.interval.text()
@@ -238,8 +301,29 @@ class TAFWidgetsBecmg(QtWidgets.QWidget, Ui_widgets_becmg.Ui_Form, TAFWidgetsMix
         # print(self.msg)
         return self.msg
 
+    def _check_required(self):
+        self.required = False
+        one_required = (
+                        self.nsc.isChecked(), 
+                        self.skc.isChecked(),
+                        self.cavok.isChecked(), 
+                        self.wind.hasAcceptableInput(), 
+                        self.vis.hasAcceptableInput(), 
+                        self.weather1.currentText(),
+                        self.weather2.currentText(),
+                        self.cloud1.hasAcceptableInput(), 
+                        self.cloud2.hasAcceptableInput(), 
+                        self.cloud3.hasAcceptableInput(), 
+                        self.cb.hasAcceptableInput()
+                        )
 
-class TAFWidgetsTempo(QtWidgets.QWidget, Ui_widgets_tempo.Ui_Form, TAFWidgetsMixin):
+        if self.interval.hasAcceptableInput() and any(one_required):
+            self.required = True
+
+        self.signal_required.emit(self.required)
+
+
+class TAFWidgetsTempo(TAFWidgetsBase, Ui_widgets_tempo.Ui_Form):
 
     def __init__(self, name='tempo'):
         super(TAFWidgetsTempo, self).__init__()
@@ -256,6 +340,13 @@ class TAFWidgetsTempo(QtWidgets.QWidget, Ui_widgets_tempo.Ui_Form, TAFWidgetsMix
         valid_interval = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['interval']))
         self.interval.setValidator(valid_interval)
 
+    def bind_signal(self):
+        super(TAFWidgetsTempo, self).bind_signal()
+
+        self.interval.textChanged.connect(self._check_required)
+        self.weather1.currentIndexChanged.connect(self._check_required)
+        self.weather2.currentIndexChanged.connect(self._check_required)
+
     def message(self):
         super(TAFWidgetsTempo, self).message()
         interval = self.interval.text()
@@ -267,6 +358,25 @@ class TAFWidgetsTempo(QtWidgets.QWidget, Ui_widgets_tempo.Ui_Form, TAFWidgetsMix
         self.msg = ' '.join(msg_list)
         # print(self.msg)
         return self.msg
+
+    def _check_required(self):
+        self.required = False
+        one_required = (
+                        self.wind.hasAcceptableInput(), 
+                        self.vis.hasAcceptableInput(), 
+                        self.weather1.currentText(),
+                        self.weather2.currentText(),
+                        self.cloud1.hasAcceptableInput(), 
+                        self.cloud2.hasAcceptableInput(), 
+                        self.cloud3.hasAcceptableInput(), 
+                        self.cb.hasAcceptableInput()
+                        )
+
+        if self.interval.hasAcceptableInput() and any(one_required):
+            self.required = True
+
+        self.signal_required.emit(self.required)
+
 
 class WidgetsItem(QtWidgets.QWidget, Ui_widgets_recent_item.Ui_Form):
     """docstring for WidgetsItem"""
