@@ -356,20 +356,14 @@ class ScheduleTAFEdit(TAFEditBase):
         hour = int(date[2:4])
         minute = int(date[4:])
 
-        def _sch_time(time):
-            year = time.year
-            month = time.month
-            try:
-                return datetime.datetime(year, month, day, hour, minute)
-            except ValueError as e:
-                return datetime.datetime(year, month+1, day, hour, minute)
+        try:
+            sch_time = datetime.datetime(now.year, now.month, day, hour, minute)
+            if sch_time < now:
+                sch_time = datetime.datetime(now.year, now.month+1, day, hour, minute)
+            return sch_time
+        except ValueError as e:
+            return datetime.datetime(now.year, now.month+2, day, hour, minute)
 
-        tmp_time = now
-        while _sch_time(tmp_time) < now:
-            tmp_time = tmp_time + datetime.timedelta(days=1)
-
-        sch_time = _sch_time(tmp_time)
-        self.time = sch_time
         return sch_time
 
     def change_window_title(self):
