@@ -307,7 +307,7 @@ class TAFEditBase(QDialog):
 
         enbale = all(required_widgets)
 
-        print(required_widgets)
+        print('required', required_widgets)
 
         self.next_button.setEnabled(enbale)
 
@@ -359,7 +359,10 @@ class ScheduleTAFEdit(TAFEditBase):
         def _sch_time(time):
             year = time.year
             month = time.month
-            return datetime.datetime(year, month, day, hour, minute)
+            try:
+                return datetime.datetime(year, month, day, hour, minute)
+            except ValueError as e:
+                return datetime.datetime(year, month+1, day, hour, minute)
 
         tmp_time = now
         while _sch_time(tmp_time) < now:
@@ -377,7 +380,7 @@ class ScheduleTAFEdit(TAFEditBase):
 if __name__ == "__main__":
     import sys
     app = QApplication(sys.argv)
-    ui = TAFEdit()
+    ui = ScheduleTAFEdit()
     ui.show()
     sys.exit(app.exec_())
     

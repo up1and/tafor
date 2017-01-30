@@ -142,7 +142,9 @@ class TAFWidgetsBase(QtWidgets.QWidget):
         cloud1 = self.cloud1.text() if self.cloud1.hasAcceptableInput() else None
         cloud2 = self.cloud2.text() if self.cloud2.hasAcceptableInput() else None
         cloud3 = self.cloud3.text() if self.cloud3.hasAcceptableInput() else None
-        cb = self.cb.text() if self.cb.hasAcceptableInput() else None
+        cb = self.cb.text() + 'CB' if self.cb.hasAcceptableInput() else None
+
+        clouds = sorted(filter(None, [cloud1, cloud2, cloud3, cb]), key=lambda cloud: int(cloud[3:6]))
 
         if hasattr(self, 'cavok'):
             if self.cavok.isChecked():
@@ -152,9 +154,9 @@ class TAFWidgetsBase(QtWidgets.QWidget):
             elif self.nsc.isChecked():
                 msg_list = [winds, vis, wx1, wx2, 'NSC']
             else:
-                msg_list = [winds, vis, wx1, wx2, cloud1, cloud2, cloud3, cb]
+                msg_list = [winds, vis, wx1, wx2] + clouds
         else:
-            msg_list = [winds, vis, wx1, wx2, cloud1, cloud2, cloud3, cb]
+            msg_list = [winds, vis, wx1, wx2] + clouds
         self.msg = ' '.join(filter(None, msg_list))
         # print(self.msg)
 
@@ -198,7 +200,7 @@ class TAFWidgetsPrimary(TAFWidgetsBase, Ui_widgets_primary.Ui_Form):
         super(TAFWidgetsPrimary, self).bind_signal()
 
         # 设置下一步按钮
-        self.date.textChanged.connect(self._check_required)
+        self.date.textEdited.connect(self._check_required)
         self.period.textChanged.connect(self._check_required)
         self.tmax.textChanged.connect(self._check_required)
         self.tmax_time.textChanged.connect(self._check_required)
