@@ -211,7 +211,7 @@ class PreferenceDialog(QtWidgets.QDialog, Ui_preference.Ui_preference):
             target.setCurrentIndex(index)
 
         if mold == 'slider':
-            target.setValue(val)
+            target.setValue(int(val))
 
         if mold == 'list':
             try:
