@@ -142,7 +142,7 @@ class TAFEditBase(QDialog):
 
         if self.primary.date.text():
             if self.primary.normal.isChecked():
-                self._set_current_period()
+                self._set_period()
 
                 self.primary.ccc.clear()
                 self.primary.ccc.setEnabled(False)
@@ -179,17 +179,19 @@ class TAFEditBase(QDialog):
 
             self._period_duration()
 
-    def _set_current_period(self):
+    def _set_period(self, sch=False):
         period = TAFPeriod(self.tt, self.time)
-        self.current_period = period.warn()
 
-        if period.is_existed():
+        self._period = period.current() if sch else period.warn()
+
+        if self._period and period.is_existed(self._period):
             self.primary.period.setText('')
         else:
-            self.primary.period.setText(self.current_period)
+            self.primary.period.setText(self._period)
 
     def _set_amd_period(self):
-        self.amd_period = TAFPeriod(self.tt, self.time).warn()
+        period = TAFPeriod(self.tt, self.time)
+        self.amd_period = period.warn()
         self.primary.period.setText(self.amd_period)
 
     def _calc_revision_number(self, sign):
@@ -214,8 +216,13 @@ class TAFEditBase(QDialog):
             return self.period_duration
 
     def _check_temp_time_in_duration(self, line):
-        temp_time = datetime.datetime(self.time.year, self.time.month, self.time.day, int(line.text()))
+        temp_time = self._calc_duration(line.text(), 0)['start']
+
+        if temp_time < self.period_duration['start']:
+            temp_time += datetime.timedelta(days=1) 
+
         condition = self.period_duration['start'] <= temp_time <= self.period_duration['end']
+        print('Check temp', self.period_duration, temp_time)
         if not condition:
             line.clear()
 
@@ -340,8 +347,9 @@ class ScheduleTAFEdit(TAFEditBase):
         self.primary.group_cls.hide()
 
         self.primary.date.editingFinished.connect(self.schedule_time)
-        self.primary.date.editingFinished.connect(self._set_amd_period)
+        self.primary.date.editingFinished.connect(lambda :self._set_period(sch=True))
         self.primary.date.editingFinished.connect(self.change_window_title)
+        self.primary.date.editingFinished.connect(self._period_duration)
         
     def preview_message(self):
         message = {'head': self.head, 'rpt':self.rpt, 'sch_time': self.time}
@@ -357,14 +365,13 @@ class ScheduleTAFEdit(TAFEditBase):
         minute = int(date[4:])
 
         try:
-            sch_time = datetime.datetime(now.year, now.month, day, hour, minute)
-            if sch_time < now:
-                sch_time = datetime.datetime(now.year, now.month+1, day, hour, minute)
-            return sch_time
+            self.time = datetime.datetime(now.year, now.month, day, hour, minute)
+            if self.time < now:
+                self.time = datetime.datetime(now.year, now.month+1, day, hour, minute)
+            return self.time
         except ValueError as e:
-            return datetime.datetime(now.year, now.month+2, day, hour, minute)
-
-        return sch_time
+            self.time = datetime.datetime(now.year, now.month+2, day, hour, minute)
+            return self.time
 
     def change_window_title(self):
         self.setWindowTitle("定时任务   " + self.time.strftime('%Y-%m-%d %H:%M'))
@@ -374,7 +381,7 @@ class ScheduleTAFEdit(TAFEditBase):
 if __name__ == "__main__":
     import sys
     app = QApplication(sys.argv)
-    ui = ScheduleTAFEdit()
+    ui = TAFEdit()
     ui.show()
     sys.exit(app.exec_())
     

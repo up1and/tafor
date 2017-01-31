@@ -166,6 +166,16 @@ class TAFWidgetsBase(QtWidgets.QWidget):
     def _check_required(self):
         raise NotImplemented
 
+    def clear(self):
+        self.wind.clear()
+        self.gust.clear()
+        self.vis.clear()
+        self.weather1.clear()
+        self.weather2.clear()
+        self.cloud1.clear()
+        self.cloud2.clear()
+        self.cloud3.clear()
+        self.cb.clear()
 
 
 class TAFWidgetsPrimary(TAFWidgetsBase, Ui_widgets_primary.Ui_Form):
@@ -211,7 +221,7 @@ class TAFWidgetsPrimary(TAFWidgetsBase, Ui_widgets_primary.Ui_Form):
         self.required = False
         must_required = (
                         self.date.hasAcceptableInput(), 
-                        self.period.hasAcceptableInput(), 
+                        self.period.text(), 
                         self.wind.hasAcceptableInput(), 
                         self.tmax.hasAcceptableInput(), 
                         self.tmax_time.hasAcceptableInput(), 
@@ -264,6 +274,10 @@ class TAFWidgetsPrimary(TAFWidgetsBase, Ui_widgets_primary.Ui_Form):
         aaa_cnl = self.aaa_cnl.text() if self.cnl.isChecked() else None
         msg_list = [tt + intelligence, icao, time, ccc, aaa, aaa_cnl]
         return ' '.join(filter(None, msg_list))
+
+    def clear(self):
+        super(TAFWidgetsPrimary, self).clear()
+        print('clear')
 
 
 

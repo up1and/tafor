@@ -40,7 +40,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.dialog_taf_send.signal_send.connect(self.update)
 
         self.dialog_sch_taf_edit.signal_preview.connect(self.handle_sch_taf_edit)
-        self.dialog_sch_taf_send.signal_send.connect(self.dialog_sch_table.show)
+        self.dialog_sch_taf_send.signal_send.connect(self.handle_sch_taf_send)
 
         # 连接菜单信号
         self.taf_action.triggered.connect(self.dialog_taf_edit.show)
@@ -104,6 +104,12 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         print('Receive', message)
         self.dialog_sch_taf_send.receive_message(message)
         self.dialog_sch_taf_send.show()
+
+    def handle_sch_taf_send(self):
+        self.dialog_sch_taf_edit.hide()
+        self.dialog_sch_taf_send.hide()
+        self.dialog_sch_table.show()
+        self.dialog_sch_table.update()
 
 
     @pyqtSlot("bool")
@@ -196,14 +202,14 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def update_current_taf(self):
         fc_period = TAFPeriod('FC')
-        if fc_period.is_existed():
+        if fc_period.is_existed(fc_period.warn()):
             fc_text = ''
         else:
             fc_text = 'FC' + fc_period.warn()[2:]
         self.current_fc.setText(fc_text)
 
         ft_period = TAFPeriod('FT')
-        if ft_period.is_existed():
+        if ft_period.is_existed(ft_period.warn()):
             ft_text = ''
         else:
             ft_text = 'FT' + ft_period.warn()[2:]
