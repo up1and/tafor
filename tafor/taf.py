@@ -53,17 +53,17 @@ class TAFEditBase(QDialog):
 
     def bind_signal(self):
 
-        self.primary.becmg1_checkbox.clicked.connect(self.add_becmg_and_tempo)
-        self.primary.becmg2_checkbox.clicked.connect(self.add_becmg_and_tempo)
-        self.primary.becmg3_checkbox.clicked.connect(self.add_becmg_and_tempo)
-        self.primary.tempo1_checkbox.clicked.connect(self.add_becmg_and_tempo)
-        self.primary.tempo2_checkbox.clicked.connect(self.add_becmg_and_tempo)
+        self.primary.becmg1_checkbox.toggled.connect(self.add_becmg_and_tempo)
+        self.primary.becmg2_checkbox.toggled.connect(self.add_becmg_and_tempo)
+        self.primary.becmg3_checkbox.toggled.connect(self.add_becmg_and_tempo)
+        self.primary.tempo1_checkbox.toggled.connect(self.add_becmg_and_tempo)
+        self.primary.tempo2_checkbox.toggled.connect(self.add_becmg_and_tempo)
 
-        self.primary.becmg1_checkbox.clicked.connect(self.becmg1._check_required)
-        self.primary.becmg2_checkbox.clicked.connect(self.becmg2._check_required)
-        self.primary.becmg3_checkbox.clicked.connect(self.becmg3._check_required)
-        self.primary.tempo1_checkbox.clicked.connect(self.tempo1._check_required)
-        self.primary.tempo2_checkbox.clicked.connect(self.tempo2._check_required)
+        self.primary.becmg1_checkbox.toggled.connect(self.becmg1._check_required)
+        self.primary.becmg2_checkbox.toggled.connect(self.becmg2._check_required)
+        self.primary.becmg3_checkbox.toggled.connect(self.becmg3._check_required)
+        self.primary.tempo1_checkbox.toggled.connect(self.tempo1._check_required)
+        self.primary.tempo2_checkbox.toggled.connect(self.tempo2._check_required)
 
         self.primary.fc.clicked.connect(self.update_message_type)
         self.primary.ft.clicked.connect(self.update_message_type)
@@ -72,6 +72,8 @@ class TAFEditBase(QDialog):
         self.primary.cor.clicked.connect(self.update_message_type)
         self.primary.amd.clicked.connect(self.update_message_type)
         self.primary.cnl.clicked.connect(self.update_message_type)
+
+        # self.primary.period.textChanged.connect(self.clear)
 
         self.primary.tmax_time.editingFinished.connect(lambda :self._check_temp_time_in_duration(self.primary.tmax_time))
         self.primary.tmin_time.editingFinished.connect(lambda :self._check_temp_time_in_duration(self.primary.tmin_time))
@@ -317,6 +319,14 @@ class TAFEditBase(QDialog):
         print('required', required_widgets)
 
         self.next_button.setEnabled(enbale)
+
+    def clear(self):
+        self.primary.clear()
+        self.becmg1.clear()
+        self.becmg2.clear()
+        self.becmg3.clear()
+        self.tempo1.clear()
+        self.tempo2.clear()
 
 
 

@@ -277,7 +277,21 @@ class TAFWidgetsPrimary(TAFWidgetsBase, Ui_widgets_primary.Ui_Form):
 
     def clear(self):
         super(TAFWidgetsPrimary, self).clear()
-        print('clear')
+
+        self.becmg1_checkbox.setChecked(False)
+        self.becmg2_checkbox.setChecked(False)
+        self.becmg3_checkbox.setChecked(False)
+        self.tempo1_checkbox.setChecked(False)
+        self.tempo2_checkbox.setChecked(False)
+
+        self.cavok.setChecked(False)
+        self.skc.setChecked(False)
+        self.nsc.setChecked(False)
+
+        self.tmax.clear()
+        self.tmax_time.clear()
+        self.tmin.clear()
+        self.tmin_time.clear()
 
 
 
@@ -338,6 +352,15 @@ class TAFWidgetsBecmg(TAFWidgetsBase, Ui_widgets_becmg.Ui_Form):
 
         self.signal_required.emit(self.required)
 
+    def clear(self):
+        super(TAFWidgetsBecmg, self).clear()
+
+        self.interval.clear()
+
+        self.cavok.setChecked(False)
+        self.skc.setChecked(False)
+        self.nsc.setChecked(False)
+
 
 class TAFWidgetsTempo(TAFWidgetsBase, Ui_widgets_tempo.Ui_Form):
 
@@ -392,6 +415,14 @@ class TAFWidgetsTempo(TAFWidgetsBase, Ui_widgets_tempo.Ui_Form):
             self.required = True
 
         self.signal_required.emit(self.required)
+
+    def clear(self):
+        super(TAFWidgetsTempo, self).clear()
+
+        self.interval.clear()
+
+        self.prob30.setChecked(False)
+        self.prob40.setChecked(False)
 
 
 class WidgetsItem(QtWidgets.QWidget, Ui_widgets_recent_item.Ui_Form):
