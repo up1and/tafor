@@ -42,6 +42,9 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.dialog_sch_taf_edit.signal_preview.connect(self.handle_sch_taf_edit)
         self.dialog_sch_taf_send.signal_send.connect(self.handle_sch_taf_send)
 
+        self.dialog_taf_send.button_box.rejected.connect(self.dialog_taf_edit.show)
+        self.dialog_taf_send.button_box.accepted.connect(self.dialog_taf_edit.close)
+
         # 连接菜单信号
         self.taf_action.triggered.connect(self.dialog_taf_edit.show)
 
@@ -97,6 +100,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def handle_taf_edit(self, message):
         print('Receive', message)
+        self.dialog_taf_edit.hide()
         self.dialog_taf_send.receive_message(message)
         self.dialog_taf_send.show()
 

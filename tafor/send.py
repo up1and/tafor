@@ -12,6 +12,7 @@ from utils import AFTNMessage
 class SendBase(QtWidgets.QDialog, Ui_send.Ui_send):
 
     signal_send = QtCore.pyqtSignal()
+    signal_close = QtCore.pyqtSignal()
 
     def __init__(self, parent=None):
         """
@@ -29,6 +30,13 @@ class SendBase(QtWidgets.QDialog, Ui_send.Ui_send):
         rpt_with_head = '\n'.join([self.message['head'], self.message['rpt']])
         self.rpt.setText(rpt_with_head)
 
+    def closeEvent(self, event):
+        if self.button_box.button(QtWidgets.QDialogButtonBox.Ok).isEnbale():
+            event.accepted()
+        else:
+            event.ignore()
+
+        self.signal_close.emit()
 
 
 class TAFSend(SendBase):
@@ -114,14 +122,14 @@ if __name__ == "__main__":
     message['head'] = 'FCCI35 ZJHK 150726'
 
     # TAF Send
-    # ui = TAFSend()
-    # ui.receive_message(message)
+    ui = TAFSend()
+    ui.receive_message(message)
 
     # Schedule TAF Send
-    message['sch_time'] = datetime.datetime.utcnow() + datetime.timedelta(minutes=1)
+    # message['sch_time'] = datetime.datetime.utcnow() + datetime.timedelta(minutes=1)
 
-    ui = ScheduleTAFSend()
-    ui.receive_message(message)
+    # ui = ScheduleTAFSend()
+    # ui.receive_message(message)
 
     ui.show()
     sys.exit(app.exec_())

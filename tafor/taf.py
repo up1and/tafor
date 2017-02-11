@@ -73,7 +73,7 @@ class TAFEditBase(QDialog):
         self.primary.amd.clicked.connect(self.update_message_type)
         self.primary.cnl.clicked.connect(self.update_message_type)
 
-        # self.primary.period.textChanged.connect(self.clear)
+        self.primary.period.textChanged.connect(self.clear)
 
         self.primary.tmax_time.editingFinished.connect(lambda :self._check_temp_time_in_duration(self.primary.tmax_time))
         self.primary.tmin_time.editingFinished.connect(lambda :self._check_temp_time_in_duration(self.primary.tmin_time))
@@ -327,6 +327,9 @@ class TAFEditBase(QDialog):
         self.becmg3.clear()
         self.tempo1.clear()
         self.tempo2.clear()
+
+    def closeEvent(self, event):
+        self.clear()
 
 
 
