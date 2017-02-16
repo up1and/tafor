@@ -25,6 +25,10 @@ class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
         self.update_contract()
         self.load()
 
+        # 禁用项
+        self.close_to_minimize.setEnabled(False)
+        self.close_to_minimize.setChecked(True)
+
     def bind_signal(self):
         self.add_weather1_button.clicked.connect(lambda: self.add_weather('weather1'))
         self.add_weather2_button.clicked.connect(lambda: self.add_weather('weather2'))

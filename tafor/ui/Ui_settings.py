@@ -428,6 +428,7 @@ class Ui_Settings(object):
         item = QtWidgets.QTableWidgetItem()
         self.contract_table.setHorizontalHeaderItem(1, item)
         self.contract_table.horizontalHeader().setStretchLastSection(True)
+        self.contract_table.verticalHeader().setVisible(False)
         self.verticalLayout_12.addWidget(self.contract_table)
         self.select_contract_layout = QtWidgets.QHBoxLayout()
         self.select_contract_layout.setObjectName("select_contract_layout")
@@ -448,7 +449,7 @@ class Ui_Settings(object):
         self.verticalLayout.addWidget(self.button_box)
 
         self.retranslateUi(Settings)
-        self.stacked.setCurrentIndex(0)
+        self.stacked.setCurrentIndex(4)
         self.tabWidget.setCurrentIndex(0)
         self.button_box.accepted.connect(Settings.accept)
         self.button_box.rejected.connect(Settings.reject)

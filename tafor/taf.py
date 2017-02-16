@@ -330,6 +330,7 @@ class TAFEditBase(QDialog):
 
     def closeEvent(self, event):
         self.clear()
+        self.update_message_type()
 
 
 

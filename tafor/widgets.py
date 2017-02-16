@@ -15,7 +15,7 @@ class TAFWidgetsBase(QtWidgets.QWidget):
     def __init__(self):
         super(TAFWidgetsBase, self).__init__()
         self.regex = REGEX_TAF['edit']
-
+        self.required = False
         # self.one_second_timer = QtCore.QTimer()
         # self.one_second_timer.timeout.connect(self.message)
         # self.one_second_timer.start(1 * 1000)

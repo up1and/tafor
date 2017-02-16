@@ -26,6 +26,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         super(MainWindow, self).__init__(parent)
         self.setupUi(self)
 
+        # 初始化剪贴板
+        self.clip = QtWidgets.QApplication.clipboard()
+
         # 初始TAF对话框
         self.taf_edit_dialog = TAFEdit(self)
         self.sch_taf_edit_dialog = ScheduleTAFEdit(self)
@@ -41,14 +44,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.sch_taf_edit_dialog.signal_preview.connect(self.handle_sch_taf_edit)
         self.sch_taf_send_dialog.signal_send.connect(self.handle_sch_taf_send)
 
-        self.taf_send_dialog.button_box.rejected.connect(self.taf_edit_dialog.show)
-        self.taf_send_dialog.button_box.accepted.connect(self.taf_edit_dialog.close)
+        self.taf_send_dialog.signal_back.connect(self.taf_edit_dialog.show)
+        self.taf_send_dialog.signal_close.connect(self.taf_edit_dialog.close)
 
         # 连接菜单信号
         self.taf_action.triggered.connect(self.taf_edit_dialog.show)
 
-        # 添加定时任务菜单
-        # self.sch_taf_action = QAction(self)
+        # # 添加定时任务菜单
+        # self.sch_taf_action = QtWidgets.QAction(self)
         # self.post_menu.addAction(self.sch_taf_action)
         # self.sch_taf_action.setText('定时任务')
         # self.sch_taf_action.triggered.connect(self.sch_taf_edit_dialog.show)
@@ -69,6 +72,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         # 连接切换联系人的槽
         self.contracts_action_group.triggered.connect(self.change_phone_number)
         self.contracts_action_group.triggered.connect(self.setting_dialog.update_contract)
+
+        # 连接报文表格复制的槽
+        self.taf_table.itemDoubleClicked.connect(self.copy_select_item)
 
         # 设置主窗口文字图标
         self.setWindowTitle('预报发报软件')
@@ -164,6 +170,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             setting.setValue('monitor/phone/select_phone_number', phone_number)
             self.alarm_status.setText('告警开启')
 
+    def copy_select_item(self, item):
+        self.clip.setText(item.text())
+        self.statusbar.showMessage('已复制  ' + item.text())
+
     def handle_taf_edit(self, message):
         print('Receive', message)
         self.taf_edit_dialog.hide()
@@ -206,14 +216,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             event.ignore()
             self.hide()
         else:
-            # self.taf_edit_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-            # self.sch_taf_edit_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-            # self.taf_send_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-            # self.sch_taf_send_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-            # self.sch_table_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-
+            self.taf_edit_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            self.sch_taf_edit_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            self.taf_send_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            self.sch_taf_send_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            self.sch_table_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
             self.setting_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+
+            self.taf_edit_dialog.close()
+            self.sch_taf_edit_dialog.close()
+            self.taf_send_dialog.close()
+            self.sch_taf_send_dialog.close()
+            self.sch_table_dialog.close()
             self.setting_dialog.close()
+
             self.tray.hide()
             event.accept()
 
@@ -317,8 +333,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
     def about(self):
         QtWidgets.QMessageBox.about(self, u"预报报文发布软件",
                 u"""<b>预报报文发布软件</b> v %s
-                <p>暂无
+                <p>本软件用于智能发布预报报文、趋势报文、重要气象情报、低空气象情报，监控预报报文，以声音或电话的方式返回告警
                 <p>本项目遵循 GPL-2.0 协议 
+                <p>项目源码 <a href="http://git.oschina.net/piratecb/tafor">http://git.oschina.net/piratecb/tafor</a>
                 <p>联系邮箱 <a href="mailto:piratecb@gmail.com">piratecb@gmail.com</a>
                 """ % (__version__))
 

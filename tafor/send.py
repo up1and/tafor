@@ -13,6 +13,7 @@ class SendBase(QtWidgets.QDialog, Ui_send.Ui_Send):
 
     signal_send = QtCore.pyqtSignal()
     signal_close = QtCore.pyqtSignal()
+    signal_back = QtCore.pyqtSignal()
 
     def __init__(self, parent=None):
         """
@@ -23,6 +24,9 @@ class SendBase(QtWidgets.QDialog, Ui_send.Ui_Send):
 
         self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setText("Send")
         # self.button_box.addButton("TEST", QDialogButtonBox.ActionRole)
+        self.rejected.connect(self.cancel_signal)
+        self.signal_close.connect(self.clear)
+
         self.raw_group.hide()
 
     def receive_message(self, message):
@@ -31,12 +35,21 @@ class SendBase(QtWidgets.QDialog, Ui_send.Ui_Send):
         self.rpt.setText(rpt_with_head)
 
     def closeEvent(self, event):
-        if self.button_box.button(QtWidgets.QDialogButtonBox.Ok).isEnabled():
-            event.accept()
-        else:
-            event.ignore()
+        if event.spontaneous():
+            self.cancel_signal()
 
-        self.signal_close.emit()
+    def cancel_signal(self):
+        if self.button_box.button(QtWidgets.QDialogButtonBox.Ok).isEnabled():
+            self.signal_back.emit()
+            print('emit back')
+        else:
+            self.signal_close.emit()
+            print('emit close')
+
+    def clear(self):
+        self.rpt.setText('')
+        self.raw_group.hide()
+        self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(True)
 
 
 class TAFSend(SendBase):
