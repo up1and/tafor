@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>schedule</class>
- <widget class="QDialog" name="schedule">
+ <class>Schedule</class>
+ <widget class="QDialog" name="Schedule">
   <property name="geometry">
    <rect>
     <x>0</x>

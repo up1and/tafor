@@ -8,13 +8,13 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_schedule(object):
-    def setupUi(self, schedule):
-        schedule.setObjectName("schedule")
-        schedule.resize(950, 243)
-        self.verticalLayout = QtWidgets.QVBoxLayout(schedule)
+class Ui_Schedule(object):
+    def setupUi(self, Schedule):
+        Schedule.setObjectName("Schedule")
+        Schedule.resize(950, 243)
+        self.verticalLayout = QtWidgets.QVBoxLayout(Schedule)
         self.verticalLayout.setObjectName("verticalLayout")
-        self.sch_table = QtWidgets.QTableWidget(schedule)
+        self.sch_table = QtWidgets.QTableWidget(Schedule)
         self.sch_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.sch_table.setObjectName("sch_table")
         self.sch_table.setColumnCount(4)
@@ -29,28 +29,28 @@ class Ui_schedule(object):
         self.sch_table.setHorizontalHeaderItem(3, item)
         self.verticalLayout.addWidget(self.sch_table)
 
-        self.retranslateUi(schedule)
-        QtCore.QMetaObject.connectSlotsByName(schedule)
+        self.retranslateUi(Schedule)
+        QtCore.QMetaObject.connectSlotsByName(Schedule)
 
-    def retranslateUi(self, schedule):
+    def retranslateUi(self, Schedule):
         _translate = QtCore.QCoreApplication.translate
-        schedule.setWindowTitle(_translate("schedule", "定时任务列表"))
+        Schedule.setWindowTitle(_translate("Schedule", "定时任务列表"))
         item = self.sch_table.horizontalHeaderItem(0)
-        item.setText(_translate("schedule", "类型"))
+        item.setText(_translate("Schedule", "类型"))
         item = self.sch_table.horizontalHeaderItem(1)
-        item.setText(_translate("schedule", "报文内容"))
+        item.setText(_translate("Schedule", "报文内容"))
         item = self.sch_table.horizontalHeaderItem(2)
-        item.setText(_translate("schedule", "执行时间"))
+        item.setText(_translate("Schedule", "执行时间"))
         item = self.sch_table.horizontalHeaderItem(3)
-        item.setText(_translate("schedule", "添加时间"))
+        item.setText(_translate("Schedule", "添加时间"))
 
 
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    schedule = QtWidgets.QDialog()
-    ui = Ui_schedule()
-    ui.setupUi(schedule)
-    schedule.show()
+    Schedule = QtWidgets.QDialog()
+    ui = Ui_Schedule()
+    ui.setupUi(Schedule)
+    Schedule.show()
     sys.exit(app.exec_())
 

@@ -1,22 +1,25 @@
 import json
 from PyQt5 import QtCore, QtGui, QtWidgets
-from ui import Ui_preference, main_rc
+from ui import Ui_settings, main_rc
 from models import User, Session
 from config import db, setting
 
 
 def to_bool(value):
-    # QSetting 读取的值是 str false
-    # 转换 str false bool False   str true bool True
+    # QSetting 读取的值是字符串类型的 false
+    # 转换字符串 false 为布尔值 False   字符串 true 为布尔值 True
     return value if isinstance(value, bool) else value.lower() in ('true')
 
 
-class PreferenceDialog(QtWidgets.QDialog, Ui_preference.Ui_preference):
-    """docstring for PreferenceDialog"""
+class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
+    """docstring for SettingDialog"""
     def __init__(self, parent=None):
-        super(PreferenceDialog, self).__init__(parent)
+        super(SettingDialog, self).__init__(parent)
         self.setupUi(self)
         self.setWindowIcon(QtGui.QIcon(':/setting.png'))
+
+        # 开机自动启动设置
+        self.auto_run_setting = QtCore.QSettings('HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run', QtCore.QSettings.NativeFormat)
 
         self.bind_signal()
         self.update_contract()
@@ -69,12 +72,6 @@ class PreferenceDialog(QtWidgets.QDialog, Ui_preference.Ui_preference):
 
         self.update_contract()
 
-    def edit_person(self, row):
-        # row = self.contract_table.currentRow()
-        # name = self.contract_table.item(row, 0).text()
-        # person = db.query(User).filter_by(name=name).first()
-        print(row.text())
-
     def update_contract(self):
         items = db.query(User).all()
         self.contract_table.setRowCount(len(items))
@@ -92,7 +89,13 @@ class PreferenceDialog(QtWidgets.QDialog, Ui_preference.Ui_preference):
 
 
     def save(self):
-        self.set_value('convention/run_on_start', 'run_on_start', 'bool')
+        import sys
+
+        if self.run_on_start.isChecked():
+            self.auto_run_setting.setValue("Tafor.exe", sys.argv[0])
+        else:
+            self.auto_run_setting.remove("Tafor.exe")
+
         self.set_value('convention/close_to_minimize', 'close_to_minimize', 'bool')
 
         self.set_value('message/icao', 'icao')
@@ -142,7 +145,8 @@ class PreferenceDialog(QtWidgets.QDialog, Ui_preference.Ui_preference):
         self.set_value('monitor/phone/select_phone_number', 'select_contract', 'phone_number')
 
     def load(self):
-        self.load_value('convention/run_on_start', 'run_on_start', 'bool')
+        self.run_on_start.setChecked(self.auto_run_setting.contains("Tafor.exe"))
+
         self.load_value('convention/close_to_minimize', 'close_to_minimize', 'bool')
 
         self.load_value('message/icao', 'icao')
@@ -260,7 +264,7 @@ class PreferenceDialog(QtWidgets.QDialog, Ui_preference.Ui_preference):
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    ui = PreferenceDialog()
+    ui = SettingDialog()
     ui.show()
     sys.exit(app.exec_())
     

@@ -9,7 +9,7 @@ from config import db, setting
 from utils import AFTNMessage
 
 
-class SendBase(QtWidgets.QDialog, Ui_send.Ui_send):
+class SendBase(QtWidgets.QDialog, Ui_send.Ui_Send):
 
     signal_send = QtCore.pyqtSignal()
     signal_close = QtCore.pyqtSignal()
@@ -31,8 +31,8 @@ class SendBase(QtWidgets.QDialog, Ui_send.Ui_send):
         self.rpt.setText(rpt_with_head)
 
     def closeEvent(self, event):
-        if self.button_box.button(QtWidgets.QDialogButtonBox.Ok).isEnbale():
-            event.accepted()
+        if self.button_box.button(QtWidgets.QDialogButtonBox.Ok).isEnabled():
+            event.accept()
         else:
             event.ignore()
 

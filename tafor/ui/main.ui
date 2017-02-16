@@ -180,19 +180,27 @@
      <string>编发</string>
     </property>
     <addaction name="taf_action"/>
-    <addaction name="sigmet_action"/>
     <addaction name="trend_action"/>
+    <addaction name="sigmet_action"/>
+    <addaction name="separator"/>
+    <addaction name="quit_action"/>
    </widget>
    <widget class="QMenu" name="setting_menu">
     <property name="title">
-     <string>设置</string>
+     <string>选项</string>
     </property>
-    <addaction name="warn_action"/>
+    <widget class="QMenu" name="contracts_menu">
+     <property name="title">
+      <string>联系人</string>
+     </property>
+     <addaction name="contract_no"/>
+    </widget>
+    <addaction name="contracts_menu"/>
     <addaction name="setting_action"/>
    </widget>
    <widget class="QMenu" name="help_menu">
     <property name="title">
-     <string>关于</string>
+     <string>帮助</string>
     </property>
     <addaction name="about_action"/>
    </widget>
@@ -208,7 +216,7 @@
   </action>
   <action name="trend_action">
    <property name="text">
-    <string>趋势</string>
+    <string>趋势预报</string>
    </property>
   </action>
   <action name="sigmet_action">
@@ -218,23 +226,45 @@
   </action>
   <action name="setting_action">
    <property name="text">
-    <string>首选项</string>
+    <string>设置</string>
    </property>
   </action>
   <action name="about_action">
    <property name="text">
-    <string>帮助</string>
+    <string>关于</string>
    </property>
   </action>
-  <action name="warn_action">
+  <action name="quit_action">
+   <property name="text">
+    <string>退出</string>
+   </property>
+  </action>
+  <action name="contract_no">
    <property name="checkable">
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>告警</string>
+    <string>无</string>
    </property>
   </action>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>quit_action</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>440</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

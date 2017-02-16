@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>send</class>
- <widget class="QDialog" name="send">
+ <class>Send</class>
+ <widget class="QDialog" name="Send">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -99,7 +99,7 @@ p, li { white-space: pre-wrap; }
   <connection>
    <sender>button_box</sender>
    <signal>rejected()</signal>
-   <receiver>send</receiver>
+   <receiver>Send</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">

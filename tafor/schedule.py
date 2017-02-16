@@ -7,14 +7,14 @@ from models import Schedule
 from config import db
 
 
-class ScheduleTable(QtWidgets.QDialog, Ui_schedule.Ui_schedule):
+class ScheduleTable(QtWidgets.QDialog, Ui_schedule.Ui_Schedule):
     """docstring for ScheduleTable"""
     def __init__(self, parent=None):
-        super(ScheduleTable, self).__init__()
+        super(ScheduleTable, self).__init__(parent)
         self.setupUi(self)
-        self.update()
+        self.update_gui()
 
-    def update(self):
+    def update_gui(self):
         items = db.query(Schedule).filter(Schedule.tafor_id == None).order_by(Schedule.schedule_time.desc()).all()
         header = self.sch_table.horizontalHeader()
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
@@ -48,7 +48,7 @@ class ScheduleTable(QtWidgets.QDialog, Ui_schedule.Ui_schedule):
         db.delete(item)
         db.commit()
 
-        self.update()
+        self.update_gui()
         print('Del', item)
 
     def copy_select_item(self):

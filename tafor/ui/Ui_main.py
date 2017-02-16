@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\ui\main.ui'
+# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\ui\main.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -94,6 +94,8 @@ class Ui_MainWindow(object):
         self.post_menu.setObjectName("post_menu")
         self.setting_menu = QtWidgets.QMenu(self.menubar)
         self.setting_menu.setObjectName("setting_menu")
+        self.contracts_menu = QtWidgets.QMenu(self.setting_menu)
+        self.contracts_menu.setObjectName("contracts_menu")
         self.help_menu = QtWidgets.QMenu(self.menubar)
         self.help_menu.setObjectName("help_menu")
         MainWindow.setMenuBar(self.menubar)
@@ -110,13 +112,18 @@ class Ui_MainWindow(object):
         self.setting_action.setObjectName("setting_action")
         self.about_action = QtWidgets.QAction(MainWindow)
         self.about_action.setObjectName("about_action")
-        self.warn_action = QtWidgets.QAction(MainWindow)
-        self.warn_action.setCheckable(True)
-        self.warn_action.setObjectName("warn_action")
+        self.quit_action = QtWidgets.QAction(MainWindow)
+        self.quit_action.setObjectName("quit_action")
+        self.contract_no = QtWidgets.QAction(MainWindow)
+        self.contract_no.setCheckable(True)
+        self.contract_no.setObjectName("contract_no")
         self.post_menu.addAction(self.taf_action)
-        self.post_menu.addAction(self.sigmet_action)
         self.post_menu.addAction(self.trend_action)
-        self.setting_menu.addAction(self.warn_action)
+        self.post_menu.addAction(self.sigmet_action)
+        self.post_menu.addSeparator()
+        self.post_menu.addAction(self.quit_action)
+        self.contracts_menu.addAction(self.contract_no)
+        self.setting_menu.addAction(self.contracts_menu.menuAction())
         self.setting_menu.addAction(self.setting_action)
         self.help_menu.addAction(self.about_action)
         self.menubar.addAction(self.post_menu.menuAction())
@@ -125,6 +132,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
         self.main_tab.setCurrentIndex(0)
+        self.quit_action.triggered.connect(MainWindow.close)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -151,14 +159,16 @@ class Ui_MainWindow(object):
         item.setText(_translate("MainWindow", "报文内容"))
         self.main_tab.setTabText(self.main_tab.indexOf(self.tab_metar), _translate("MainWindow", "METAR"))
         self.post_menu.setTitle(_translate("MainWindow", "编发"))
-        self.setting_menu.setTitle(_translate("MainWindow", "设置"))
-        self.help_menu.setTitle(_translate("MainWindow", "关于"))
+        self.setting_menu.setTitle(_translate("MainWindow", "选项"))
+        self.contracts_menu.setTitle(_translate("MainWindow", "联系人"))
+        self.help_menu.setTitle(_translate("MainWindow", "帮助"))
         self.taf_action.setText(_translate("MainWindow", "预报"))
-        self.trend_action.setText(_translate("MainWindow", "趋势"))
+        self.trend_action.setText(_translate("MainWindow", "趋势预报"))
         self.sigmet_action.setText(_translate("MainWindow", "重要气象情报"))
-        self.setting_action.setText(_translate("MainWindow", "首选项"))
-        self.about_action.setText(_translate("MainWindow", "帮助"))
-        self.warn_action.setText(_translate("MainWindow", "告警"))
+        self.setting_action.setText(_translate("MainWindow", "设置"))
+        self.about_action.setText(_translate("MainWindow", "关于"))
+        self.quit_action.setText(_translate("MainWindow", "退出"))
+        self.contract_no.setText(_translate("MainWindow", "无"))
 
 
 if __name__ == "__main__":
