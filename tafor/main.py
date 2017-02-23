@@ -11,7 +11,7 @@ from settings import SettingDialog
 from schedule import ScheduleTable
 from models import Tafor, Schedule, User
 from widgets import WidgetsItem
-from utils import TAFPeriod
+from utils import TAFPeriod, str2bool
 from config import db, setting, __version__
 
 
@@ -97,9 +97,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.auto_send_timer = QtCore.QTimer()
         self.auto_send_timer.timeout.connect(self.sch_taf_send_dialog.auto_send)
         self.auto_send_timer.start(30 * 1000)
+
         # 时钟计时器
         self.clock_timer = QtCore.QTimer()
         self.clock_timer.timeout.connect(self.update_utc_time)
+        self.clock_timer.timeout.connect(self.update_tray_tips)
+        self.clock_timer.timeout.connect(self.update_current_taf)
         self.clock_timer.timeout.connect(self.taf_edit_dialog.update_date)
         self.clock_timer.start(1 * 1000)
 
@@ -135,18 +138,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.tray.setIcon(QtGui.QIcon(':/sunny.png'))
         self.tray.show()
 
+        self.update_tray_tips()
+
         # 连接系统托盘的槽
         self.tray.activated.connect(self.restore_window)
 
         self.tray_menu = QtWidgets.QMenu(self)
 
-        self.alarm_status = QtWidgets.QAction(self)
-        self.alarm_status.setEnabled(False)
-        status_text = '告警开启' if setting.value('monitor/phone/phone_warn_taf') else '告警关闭'
-        self.alarm_status.setText(status_text)
-        
-        self.tray_menu.addAction(self.alarm_status)
-        self.tray_menu.addSeparator()
         self.tray_menu.addAction(self.contracts_menu.menuAction())
         self.tray_menu.addAction(self.setting_action)
         self.tray_menu.addAction(self.about_action)
@@ -160,7 +158,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
         if self.contract_no == target:
             setting.setValue('monitor/phone/phone_warn_taf', False)
-            self.alarm_status.setText('告警关闭')
         else:
             name = target.text()
             person = db.query(User).filter_by(name=name).first()
@@ -168,7 +165,21 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
             setting.setValue('monitor/phone/phone_warn_taf', True)
             setting.setValue('monitor/phone/select_phone_number', phone_number)
-            self.alarm_status.setText('告警开启')
+        
+        self.update_tray_tips()
+
+    def update_tray_tips(self):
+        alarm_status = str2bool(setting.value('monitor/phone/phone_warn_taf'))
+
+        title = '预报发报软件 v' + __version__
+        taf_text = self.next_taf('FC') + ' ' + self.next_taf('FT')
+        alarm_text = '告警状态：开启' if alarm_status else '告警状态：关闭'
+        phone_text = '告警电话：' + setting.value('monitor/phone/select_phone_number') if alarm_status else None
+
+        message_list = filter(None, [title, alarm_text, phone_text, taf_text])
+        message = '\n'.join(message_list)
+
+        self.tray.setToolTip(message)
 
     def copy_select_item(self, item):
         self.clip.setText(item.text())
@@ -315,19 +326,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.utc_time.setText('世界时  ' + utc.strftime("%Y-%m-%d %H:%M:%S"))
 
     def update_current_taf(self):
-        fc_period = TAFPeriod('FC')
-        if fc_period.is_existed(fc_period.warn()):
-            fc_text = ''
-        else:
-            fc_text = 'FC' + fc_period.warn()[2:]
-        self.current_fc.setText(fc_text)
+        self.current_fc.setText(self.next_taf('FC'))
+        self.current_ft.setText(self.next_taf('FT'))
 
-        ft_period = TAFPeriod('FT')
-        if ft_period.is_existed(ft_period.warn()):
-            ft_text = ''
+    def next_taf(self, tt):
+        taf = TAFPeriod(tt)
+        if taf.is_existed(taf.warn()):
+            text = ''
         else:
-            ft_text = 'FT' + ft_period.warn()[2:]
-        self.current_ft.setText(ft_text)
+            text = tt + taf.warn()[2:]
+        return text
 
 
     def about(self):
