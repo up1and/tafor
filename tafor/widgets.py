@@ -4,7 +4,7 @@ import datetime
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ui import Ui_widgets_primary, Ui_widgets_becmg, Ui_widgets_tempo, Ui_widgets_recent_item
-from config import setting
+from config import setting, log
 from utils import Parser, REGEX_TAF
 
 class TAFWidgetsBase(QtWidgets.QWidget):
@@ -158,7 +158,7 @@ class TAFWidgetsBase(QtWidgets.QWidget):
         else:
             msg_list = [winds, vis, wx1, wx2] + clouds
         self.msg = ' '.join(filter(None, msg_list))
-        # print(self.msg)
+        # log.debug(self.msg)
 
     def _upper_text(self, line):
         line.setText(line.text().upper())
@@ -328,7 +328,7 @@ class TAFWidgetsBecmg(TAFWidgetsBase, Ui_widgets_becmg.Ui_Form):
         interval = self.interval.text()
         msg_list = ['BECMG', interval, self.msg]
         self.msg = ' '.join(msg_list)
-        # print(self.msg)
+        # log.debug(self.msg)
         return self.msg
 
     def _check_required(self):
@@ -395,7 +395,7 @@ class TAFWidgetsTempo(TAFWidgetsBase, Ui_widgets_tempo.Ui_Form):
         if self.prob40.isChecked():
             msg_list.insert(0, 'PROB40')
         self.msg = ' '.join(msg_list)
-        # print(self.msg)
+        # log.debug(self.msg)
         return self.msg
 
     def _check_required(self):

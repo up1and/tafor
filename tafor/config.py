@@ -1,3 +1,4 @@
+import sys
 import logging
 
 from PyQt5 import QtCore
@@ -8,3 +9,29 @@ __version__ = "1.0.0"
 
 db = Session()
 setting = QtCore.QSettings('Up1and', 'Tafor')
+
+def setup_log(debug=False):
+    log_level = logging.DEBUG if debug else logging.INFO
+
+    _format = '[%(asctime)s] %(name)s %(levelname)s %(message)s'
+    formatter = logging.Formatter(_format)
+
+    # set stdout
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(logging.DEBUG)
+    ch.setFormatter(formatter)
+
+    # set log file
+    fh = logging.FileHandler('log.log')
+    fh.setLevel(log_level)
+    fh.setFormatter(formatter)
+
+    # log
+    log = logging.getLogger(__name__)
+    log.setLevel(log_level)
+    log.addHandler(ch)
+    log.addHandler(fh)
+
+    return log
+
+log = setup_log(debug=True)

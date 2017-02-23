@@ -4,7 +4,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ui import Ui_schedule
 from models import Schedule
-from config import db
+from config import db, log
 
 
 class ScheduleTable(QtWidgets.QDialog, Ui_schedule.Ui_Schedule):
@@ -49,7 +49,7 @@ class ScheduleTable(QtWidgets.QDialog, Ui_schedule.Ui_Schedule):
         db.commit()
 
         self.update_gui()
-        print('Del', item)
+        log.debug('Del', item)
 
     def copy_select_item(self):
         print('Copy')

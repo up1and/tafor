@@ -12,7 +12,7 @@ from schedule import ScheduleTable
 from models import Tafor, Schedule, User
 from widgets import WidgetsItem
 from utils import TAFPeriod, str2bool
-from config import db, setting, __version__
+from config import db, setting, log, __version__
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
@@ -186,13 +186,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.statusbar.showMessage('已复制  ' + item.text())
 
     def handle_taf_edit(self, message):
-        print('Receive', message)
+        log.debug('receive from taf edit ' + message)
         self.taf_edit_dialog.hide()
         self.taf_send_dialog.receive_message(message)
         self.taf_send_dialog.show()
 
     def handle_sch_taf_edit(self, message):
-        print('Receive', message)
+        log.debug('receive from sch taf edit ' + message)
         self.sch_taf_send_dialog.receive_message(message)
         self.sch_taf_send_dialog.show()
 
@@ -261,7 +261,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.update_utc_time()
         self.update_current_taf()
 
-        print('Update GUI')
+        log.debug('Update GUI')
 
     def update_taf_table(self):
         items = db.query(Tafor).order_by(Tafor.send_time.desc()).all()
@@ -310,7 +310,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
     def update_recent(self):
         fc = db.query(Tafor).filter_by(tt='FC').order_by(Tafor.send_time.desc()).first()
         ft = db.query(Tafor).filter_by(tt='FT').order_by(Tafor.send_time.desc()).first()
-        # print(fc)
+
         if fc:
             self.widget_fc.set_item(fc)
         else:

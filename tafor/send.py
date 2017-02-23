@@ -5,7 +5,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ui import Ui_send
 from models import Tafor, Schedule
-from config import db, setting
+from config import db, setting, log
 from utils import AFTNMessage
 
 
@@ -41,10 +41,10 @@ class SendBase(QtWidgets.QDialog, Ui_send.Ui_Send):
     def cancel_signal(self):
         if self.button_box.button(QtWidgets.QDialogButtonBox.Ok).isEnabled():
             self.signal_back.emit()
-            print('emit back')
+            log.debug('emit back')
         else:
             self.signal_close.emit()
-            print('emit close')
+            log.debug('emit close')
 
     def clear(self):
         self.rpt.setText('')
@@ -65,7 +65,7 @@ class TAFSend(SendBase):
         item = Tafor(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'], raw=json.dumps(self.aftn.raw()))
         db.add(item)
         db.commit()
-        print('Save', item)
+        log.debug('Save', item)
         self.signal_send.emit()
 
     def send(self):
@@ -94,7 +94,7 @@ class ScheduleTAFSend(SendBase):
         item = Schedule(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'], schedule_time=self.message['sch_time'])
         db.add(item)
         db.commit()
-        print('Save Schedule', item.schedule_time)
+        log.debug('Save Schedule', item.schedule_time)
         self.signal_send.emit()
 
     def auto_send(self):
@@ -103,10 +103,9 @@ class ScheduleTAFSend(SendBase):
         send_status = False
 
         for sch in sch_queue:
-            #print(sch)
 
             if sch.schedule_time <= now:
-                # print(sch)
+
                 message = {'head': sch.head, 'rpt': sch.rpt}
                 aftn = AFTNMessage(message)
                 item = Tafor(tt=sch.tt, head=sch.head, rpt=sch.rpt, raw=json.dumps(aftn.raw()))
@@ -118,11 +117,11 @@ class ScheduleTAFSend(SendBase):
 
                 send_status = True
 
-        print('Queue to send', sch_queue)
+        print('Queue to send', str(sch_queue))
         
         if send_status:
             # self.update_taf_table()
-            print('Auto Send')
+            log.debug('Auto Send')
 
 
 if __name__ == "__main__":

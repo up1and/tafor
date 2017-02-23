@@ -9,7 +9,7 @@ from PyQt5.QtCore import *
 from widgets import TAFWidgetsPrimary, TAFWidgetsBecmg, TAFWidgetsTempo
 from utils import AFTNMessage, TAFPeriod, Parser, REGEX_TAF
 from models import Tafor, Schedule
-from config import db
+from config import db, log
 
 
 class TAFEditBase(QDialog):
@@ -201,12 +201,12 @@ class TAFEditBase(QDialog):
         query = db.query(Tafor).filter(Tafor.rpt.contains(self.amd_period), Tafor.send_time > time_limit)
         if sign == 'COR':
             items = query.filter(Tafor.rpt.contains('COR')).all()
-            print(items)
+            log.debug(items)
             order = chr(ord('A') + len(items))
             return 'CC' + order
         elif sign == 'AMD':
             items = query.filter(Tafor.rpt.contains('AMD')).all()
-            print(items)
+            log.debug(items)
             order = chr(ord('A') + len(items))
             return 'AA' + order
 
@@ -214,7 +214,7 @@ class TAFEditBase(QDialog):
         period = self.primary.period.text()
         if len(period) == 6:
             self.period_duration = self._calc_duration(period[2:4], period[4:6])
-            print('period ', self.period_duration)
+            log.debug('period_duration ', self.period_duration)
             return self.period_duration
 
     def _check_temp_time_in_duration(self, line):
@@ -224,7 +224,7 @@ class TAFEditBase(QDialog):
             temp_time += datetime.timedelta(days=1) 
 
         condition = self.period_duration['start'] <= temp_time <= self.period_duration['end']
-        print('Check temp', self.period_duration, temp_time)
+        log.debug('Check temp', self.period_duration, temp_time)
         if not condition:
             line.clear()
 
@@ -268,17 +268,17 @@ class TAFEditBase(QDialog):
         duration = self._calc_interval(line.text()[0:2], line.text()[2:4])
         if duration['start'] < self.period_duration['start'] or self.period_duration['end'] < duration['start']:
             line.clear()
-            print('start interval time is not corret')
+            log.info('start interval time is not corret')
 
         if duration['end'] < self.period_duration['start'] or self.period_duration['end'] < duration['end']:
             line.clear()
-            print('end interval time is not corret')
+            log.info('end interval time is not corret')
 
         if duration['end'] - duration['start'] > datetime.timedelta(hours=interval):
             line.clear()
-            print('more than ', interval, ' hours')
+            log.info('more than ', interval, ' hours')
 
-        print('interval ', duration)
+        log.debug('interval ', duration)
 
     def assemble_message(self):
         primary_msg = self.primary.message()
@@ -316,7 +316,7 @@ class TAFEditBase(QDialog):
 
         enbale = all(required_widgets)
 
-        print('required', required_widgets)
+        # log.debug('required', ' '.join(required_widgets))
 
         self.next_button.setEnabled(enbale)
 
@@ -347,7 +347,7 @@ class TAFEdit(TAFEditBase):
     def preview_message(self):
         message = {'rpt': self.rpt, 'head': self.head}
         self.signal_preview.emit(message)
-        print('Emit', message)
+        log.debug('Emit', message)
 
 
 class ScheduleTAFEdit(TAFEditBase):
@@ -368,7 +368,7 @@ class ScheduleTAFEdit(TAFEditBase):
     def preview_message(self):
         message = {'head': self.head, 'rpt':self.rpt, 'sch_time': self.time}
         self.signal_preview.emit(message)
-        print('Emit', message)
+        log.debug('Emit', message)
 
     def schedule_time(self):
         date = self.primary.date.text()

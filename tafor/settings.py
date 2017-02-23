@@ -3,12 +3,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from ui import Ui_settings, main_rc
 from models import User, Session
 from config import db, setting
-
-
-def to_bool(value):
-    # QSetting 读取的值是字符串类型的 false
-    # 转换字符串 false 为布尔值 False   字符串 true 为布尔值 True
-    return value if isinstance(value, bool) else value.lower() in ('true')
+from utils import str2bool
 
 
 class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
@@ -211,7 +206,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
             target.setText(val)
 
         if mold == 'bool':
-            val = to_bool(val)
+            val = str2bool(val)
             target.setChecked(val)
 
         if mold == 'combox':
