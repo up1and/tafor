@@ -201,12 +201,12 @@ class TAFEditBase(QDialog):
         query = db.query(Tafor).filter(Tafor.rpt.contains(self.amd_period), Tafor.send_time > time_limit)
         if sign == 'COR':
             items = query.filter(Tafor.rpt.contains('COR')).all()
-            log.debug(items)
+            print(items)
             order = chr(ord('A') + len(items))
             return 'CC' + order
         elif sign == 'AMD':
             items = query.filter(Tafor.rpt.contains('AMD')).all()
-            log.debug(items)
+            print(items)
             order = chr(ord('A') + len(items))
             return 'AA' + order
 
@@ -214,7 +214,7 @@ class TAFEditBase(QDialog):
         period = self.primary.period.text()
         if len(period) == 6:
             self.period_duration = self._calc_duration(period[2:4], period[4:6])
-            log.debug('period_duration ', self.period_duration)
+            print('period_duration ', self.period_duration)
             return self.period_duration
 
     def _check_temp_time_in_duration(self, line):
@@ -224,7 +224,7 @@ class TAFEditBase(QDialog):
             temp_time += datetime.timedelta(days=1) 
 
         condition = self.period_duration['start'] <= temp_time <= self.period_duration['end']
-        log.debug('Check temp', self.period_duration, temp_time)
+        print('Check temp', self.period_duration, temp_time)
         if not condition:
             line.clear()
 
@@ -347,7 +347,7 @@ class TAFEdit(TAFEditBase):
     def preview_message(self):
         message = {'rpt': self.rpt, 'head': self.head}
         self.signal_preview.emit(message)
-        log.debug('Emit', message)
+        print('Emit', message)
 
 
 class ScheduleTAFEdit(TAFEditBase):
@@ -368,7 +368,7 @@ class ScheduleTAFEdit(TAFEditBase):
     def preview_message(self):
         message = {'head': self.head, 'rpt':self.rpt, 'sch_time': self.time}
         self.signal_preview.emit(message)
-        log.debug('Emit', message)
+        print('Emit', message)
 
     def schedule_time(self):
         date = self.primary.date.text()

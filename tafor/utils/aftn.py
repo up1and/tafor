@@ -54,7 +54,7 @@ if __name__ == '__main__':
     message['rpt'] = 'TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR='
     message['head'] = 'FCCI35 ZJHK 150726'
     aftn = AFTNMessage(message)
-    # print(aftn.rpt_with_head())
+    # aftn.raw()
     for i in aftn.raw():
         print(i)
         print('   ')

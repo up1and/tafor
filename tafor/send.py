@@ -65,7 +65,7 @@ class TAFSend(SendBase):
         item = Tafor(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'], raw=json.dumps(self.aftn.raw()))
         db.add(item)
         db.commit()
-        log.debug('Save', item)
+        print('Save', item)
         self.signal_send.emit()
 
     def send(self):
@@ -73,6 +73,7 @@ class TAFSend(SendBase):
         self.raw.setText('\n\n\n\n'.join(self.aftn.raw()))
         self.raw_group.show()
         self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
+        print(self.aftn.raw())
 
 
 class ScheduleTAFSend(SendBase):
@@ -94,7 +95,7 @@ class ScheduleTAFSend(SendBase):
         item = Schedule(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'], schedule_time=self.message['sch_time'])
         db.add(item)
         db.commit()
-        log.debug('Save Schedule', item.schedule_time)
+        print('Save Schedule', item.schedule_time)
         self.signal_send.emit()
 
     def auto_send(self):

@@ -186,13 +186,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.statusbar.showMessage('已复制  ' + item.text())
 
     def handle_taf_edit(self, message):
-        log.debug('receive from taf edit ' + message)
+        log.debug('receive from taf edit ' + str(message))
         self.taf_edit_dialog.hide()
         self.taf_send_dialog.receive_message(message)
         self.taf_send_dialog.show()
 
     def handle_sch_taf_edit(self, message):
-        log.debug('receive from sch taf edit ' + message)
+        log.debug('receive from sch taf edit ' + str(message))
         self.sch_taf_send_dialog.receive_message(message)
         self.sch_taf_send_dialog.show()
 
