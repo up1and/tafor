@@ -3,17 +3,17 @@ import datetime
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from tafor.widgets.ui import Ui_widgets_primary, Ui_widgets_becmg, Ui_widgets_tempo, Ui_widgets_recent_item
+from tafor.widgets.ui import Ui_widget_primary, Ui_widget_becmg, Ui_widget_tempo, Ui_widget_trend, Ui_widget_recent_item
 from tafor import setting, log
 from tafor.utils import Parser, REGEX_TAF
 
-class TAFWidgetsBase(QtWidgets.QWidget):
-    """docstring for TAFWidgetsBase"""
+class EditWidgetBase(QtWidgets.QWidget):
+    """docstring for EditWidgetBase"""
 
     signal_required = QtCore.pyqtSignal(bool)
 
     def __init__(self):
-        super(TAFWidgetsBase, self).__init__()
+        super(EditWidgetBase, self).__init__()
         self.regex = REGEX_TAF['edit']
         self.required = False
         # self.one_second_timer = QtCore.QTimer()
@@ -178,10 +178,10 @@ class TAFWidgetsBase(QtWidgets.QWidget):
         self.cb.clear()
 
 
-class TAFWidgetsPrimary(TAFWidgetsBase, Ui_widgets_primary.Ui_Form):
+class TAFWidgetPrimary(EditWidgetBase, Ui_widget_primary.Ui_Form):
 
     def __init__(self):
-        super(TAFWidgetsPrimary, self).__init__()
+        super(TAFWidgetPrimary, self).__init__()
         self.setupUi(self)
 
         self.validate()
@@ -193,7 +193,7 @@ class TAFWidgetsPrimary(TAFWidgetsBase, Ui_widgets_primary.Ui_Form):
         self.bind_signal()
 
     def validate(self):
-        super(TAFWidgetsPrimary, self).validate()
+        super(TAFWidgetPrimary, self).validate()
 
         valid_date = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['date']))
         self.date.setValidator(valid_date)
@@ -207,7 +207,7 @@ class TAFWidgetsPrimary(TAFWidgetsBase, Ui_widgets_primary.Ui_Form):
         self.tmin_time.setValidator(valid_temp_hours)
 
     def bind_signal(self):
-        super(TAFWidgetsPrimary, self).bind_signal()
+        super(TAFWidgetPrimary, self).bind_signal()
 
         # 设置下一步按钮
         self.date.textEdited.connect(self._check_required)
@@ -247,7 +247,7 @@ class TAFWidgetsPrimary(TAFWidgetsBase, Ui_widgets_primary.Ui_Form):
 
 
     def message(self):
-        super(TAFWidgetsPrimary, self).message()
+        super(TAFWidgetPrimary, self).message()
         amd = 'AMD' if self.amd.isChecked() else ''
         cor = 'COR' if self.cor.isChecked() else ''
         icao = setting.value('message/icao')
@@ -276,7 +276,7 @@ class TAFWidgetsPrimary(TAFWidgetsBase, Ui_widgets_primary.Ui_Form):
         return ' '.join(filter(None, msg_list))
 
     def clear(self):
-        super(TAFWidgetsPrimary, self).clear()
+        super(TAFWidgetPrimary, self).clear()
 
         self.becmg1_checkbox.setChecked(False)
         self.becmg2_checkbox.setChecked(False)
@@ -294,11 +294,10 @@ class TAFWidgetsPrimary(TAFWidgetsBase, Ui_widgets_primary.Ui_Form):
         self.tmin_time.clear()
 
 
-
-class TAFWidgetsBecmg(TAFWidgetsBase, Ui_widgets_becmg.Ui_Form):
+class TAFWidgetBecmg(EditWidgetBase, Ui_widget_becmg.Ui_Form):
 
     def __init__(self, name='becmg'):
-        super(TAFWidgetsBecmg, self).__init__()
+        super(TAFWidgetBecmg, self).__init__()
         self.setupUi(self)
         self.name.setText(name)
 
@@ -311,20 +310,20 @@ class TAFWidgetsBecmg(TAFWidgetsBase, Ui_widgets_becmg.Ui_Form):
         self.bind_signal()
 
     def validate(self):
-        super(TAFWidgetsBecmg, self).validate()
+        super(TAFWidgetBecmg, self).validate()
 
         valid_interval = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['interval']))
         self.interval.setValidator(valid_interval)
 
     def bind_signal(self):
-        super(TAFWidgetsBecmg, self).bind_signal()
+        super(TAFWidgetBecmg, self).bind_signal()
 
         self.interval.textChanged.connect(self._check_required)
         self.weather1.currentIndexChanged.connect(self._check_required)
         self.weather2.currentIndexChanged.connect(self._check_required)
 
     def message(self):
-        super(TAFWidgetsBecmg, self).message()
+        super(TAFWidgetBecmg, self).message()
         interval = self.interval.text()
         msg_list = ['BECMG', interval, self.msg]
         self.msg = ' '.join(msg_list)
@@ -353,7 +352,7 @@ class TAFWidgetsBecmg(TAFWidgetsBase, Ui_widgets_becmg.Ui_Form):
         self.signal_required.emit(self.required)
 
     def clear(self):
-        super(TAFWidgetsBecmg, self).clear()
+        super(TAFWidgetBecmg, self).clear()
 
         self.interval.clear()
 
@@ -362,10 +361,10 @@ class TAFWidgetsBecmg(TAFWidgetsBase, Ui_widgets_becmg.Ui_Form):
         self.nsc.setChecked(False)
 
 
-class TAFWidgetsTempo(TAFWidgetsBase, Ui_widgets_tempo.Ui_Form):
+class TAFWidgetTempo(EditWidgetBase, Ui_widget_tempo.Ui_Form):
 
     def __init__(self, name='tempo'):
-        super(TAFWidgetsTempo, self).__init__()
+        super(TAFWidgetTempo, self).__init__()
         self.setupUi(self)
         self.name.setText(name)
 
@@ -374,20 +373,20 @@ class TAFWidgetsTempo(TAFWidgetsBase, Ui_widgets_tempo.Ui_Form):
         self.bind_signal()
 
     def validate(self):
-        super(TAFWidgetsTempo, self).validate()
+        super(TAFWidgetTempo, self).validate()
 
         valid_interval = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['interval']))
         self.interval.setValidator(valid_interval)
 
     def bind_signal(self):
-        super(TAFWidgetsTempo, self).bind_signal()
+        super(TAFWidgetTempo, self).bind_signal()
 
         self.interval.textChanged.connect(self._check_required)
         self.weather1.currentIndexChanged.connect(self._check_required)
         self.weather2.currentIndexChanged.connect(self._check_required)
 
     def message(self):
-        super(TAFWidgetsTempo, self).message()
+        super(TAFWidgetTempo, self).message()
         interval = self.interval.text()
         msg_list = ['TEMPO', interval, self.msg]
         if self.prob30.isChecked():
@@ -417,7 +416,7 @@ class TAFWidgetsTempo(TAFWidgetsBase, Ui_widgets_tempo.Ui_Form):
         self.signal_required.emit(self.required)
 
     def clear(self):
-        super(TAFWidgetsTempo, self).clear()
+        super(TAFWidgetTempo, self).clear()
 
         self.interval.clear()
 
@@ -425,10 +424,22 @@ class TAFWidgetsTempo(TAFWidgetsBase, Ui_widgets_tempo.Ui_Form):
         self.prob40.setChecked(False)
 
 
-class WidgetsItem(QtWidgets.QWidget, Ui_widgets_recent_item.Ui_Form):
-    """docstring for WidgetsItem"""
+class TrendWidget(EditWidgetBase, Ui_widget_trend.Ui_Form):
+
     def __init__(self):
-        super(WidgetsItem, self).__init__()
+        super(TrendWidget, self).__init__()
+        self.setupUi(self)
+        self.validate()
+        self.bind_signal()
+
+    def _check_required(self):
+        print('check')
+
+
+class RecentItem(QtWidgets.QWidget, Ui_widget_recent_item.Ui_Form):
+    """docstring for RecentItem"""
+    def __init__(self):
+        super(RecentItem, self).__init__()
         self.setupUi(self)
 
     def set_item(self, item):
@@ -441,11 +452,3 @@ class WidgetsItem(QtWidgets.QWidget, Ui_widgets_recent_item.Ui_Form):
         else:
             self.check.setText('×')
         
-
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    widget = TAFWidgetsPrimary()
-    widget.show()
-    sys.exit(app.exec_())

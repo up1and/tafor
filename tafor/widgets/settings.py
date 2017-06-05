@@ -258,12 +258,3 @@ class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
 
         setting.setValue(path, val)
 
-
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    ui = SettingDialog()
-    ui.show()
-    sys.exit(app.exec_())
-    

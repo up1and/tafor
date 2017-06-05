@@ -6,7 +6,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-from tafor.widgets.components import TAFWidgetsPrimary, TAFWidgetsBecmg, TAFWidgetsTempo
+from tafor.widgets.common import TAFWidgetPrimary, TAFWidgetBecmg, TAFWidgetTempo
 from tafor.utils import TAFPeriod, Parser, REGEX_TAF
 from tafor.models import Tafor, Task
 from tafor import db, log
@@ -28,9 +28,9 @@ class TAFEditBase(QDialog):
         window = QWidget(self)
         layout = QVBoxLayout(window)
         layout.setSizeConstraint(QLayout.SetFixedSize)
-        self.primary = TAFWidgetsPrimary()
-        self.becmg1, self.becmg2, self.becmg3 = TAFWidgetsBecmg('BECMG1'), TAFWidgetsBecmg('BECMG2'), TAFWidgetsBecmg('BECMG3')
-        self.tempo1, self.tempo2 = TAFWidgetsTempo('TEMPO1'), TAFWidgetsTempo('TEMPO2')
+        self.primary = TAFWidgetPrimary()
+        self.becmg1, self.becmg2, self.becmg3 = TAFWidgetBecmg('BECMG1'), TAFWidgetBecmg('BECMG2'), TAFWidgetBecmg('BECMG3')
+        self.tempo1, self.tempo2 = TAFWidgetTempo('TEMPO1'), TAFWidgetTempo('TEMPO2')
         self.next_button = QPushButton()
         self.next_button.setEnabled(False)
         self.next_button.setText("下一步")
@@ -390,12 +390,3 @@ class TaskTAFEdit(TAFEditBase):
     def change_window_title(self):
         self.setWindowTitle("定时任务   " + self.time.strftime('%Y-%m-%d %H:%M'))
 
-
-
-if __name__ == "__main__":
-    import sys
-    app = QApplication(sys.argv)
-    ui = TAFEdit()
-    ui.show()
-    sys.exit(app.exec_())
-    

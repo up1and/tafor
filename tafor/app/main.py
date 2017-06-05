@@ -6,11 +6,12 @@ from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 
 from tafor.widgets.ui import Ui_main, main_rc
 from tafor.widgets.taf import TAFEdit, TaskTAFEdit
+from tafor.widgets.trend import TrendEdit
 from tafor.widgets.send import TaskTAFSend, TAFSend
 from tafor.widgets.settings import SettingDialog
 from tafor.widgets.tasks import TaskTable
 from tafor.models import Tafor, Task, User
-from tafor.widgets.components import WidgetsItem
+from tafor.widgets.common import RecentItem
 from tafor.utils import TAFPeriod, force_bool
 from tafor import db, setting, log, __version__
 
@@ -32,6 +33,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         # 初始TAF对话框
         self.taf_edit_dialog = TAFEdit(self)
         self.sch_taf_edit_dialog = TaskTAFEdit(self)
+        self.trend_edit_dialog = TrendEdit(self)
         self.taf_send_dialog = TAFSend(self)
         self.task_taf_send_dialog = TaskTAFSend(self)
         self.task_table_dialog = TaskTable(self)
@@ -49,6 +51,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
         # 连接菜单信号
         self.taf_action.triggered.connect(self.taf_edit_dialog.show)
+        self.trend_action.triggered.connect(self.trend_edit_dialog.show)
 
         # # 添加定时任务菜单
         # self.sch_taf_action = QtWidgets.QAction(self)
@@ -87,11 +90,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.set_sys_tray()
 
         # 添加模块
-        self.widget_fc = WidgetsItem()
-        self.recent_layout.addWidget(self.widget_fc)
+        self.recent_fc = RecentItem()
+        self.recent_layout.addWidget(self.recent_fc)
 
-        self.widget_ft = WidgetsItem()
-        self.recent_layout.addWidget(self.widget_ft)
+        self.recent_ft = RecentItem()
+        self.recent_layout.addWidget(self.recent_ft)
 
         # 自动发送报文的计时器
         self.auto_sentr = QtCore.QTimer()
@@ -312,14 +315,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         ft = db.query(Tafor).filter_by(tt='FT').order_by(Tafor.sent.desc()).first()
 
         if fc:
-            self.widget_fc.set_item(fc)
+            self.recent_fc.set_item(fc)
         else:
-            self.widget_fc.hide()
+            self.recent_fc.hide()
 
         if ft:
-            self.widget_ft.set_item(ft)
+            self.recent_ft.set_item(ft)
         else:
-            self.widget_ft.hide()
+            self.recent_ft.hide()
 
     def update_utc_time(self):
         utc = datetime.datetime.utcnow()

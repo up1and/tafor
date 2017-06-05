@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\widgets\ui\main.ui'
+# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\widgets\ui\main.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -163,7 +163,7 @@ class Ui_MainWindow(object):
         self.contracts_menu.setTitle(_translate("MainWindow", "联系人"))
         self.help_menu.setTitle(_translate("MainWindow", "帮助"))
         self.taf_action.setText(_translate("MainWindow", "预报"))
-        self.trend_action.setText(_translate("MainWindow", "趋势预报"))
+        self.trend_action.setText(_translate("MainWindow", "趋势"))
         self.sigmet_action.setText(_translate("MainWindow", "重要气象情报"))
         self.setting_action.setText(_translate("MainWindow", "设置"))
         self.about_action.setText(_translate("MainWindow", "关于"))
