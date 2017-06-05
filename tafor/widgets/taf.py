@@ -6,10 +6,10 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-from widgets import TAFWidgetsPrimary, TAFWidgetsBecmg, TAFWidgetsTempo
-from utils import AFTNMessage, TAFPeriod, Parser, REGEX_TAF
-from models import Tafor, Schedule
-from config import db, log
+from tafor.widgets.components import TAFWidgetsPrimary, TAFWidgetsBecmg, TAFWidgetsTempo
+from tafor.utils import TAFPeriod, Parser, REGEX_TAF
+from tafor.models import Tafor, Task
+from tafor import db, log
 
 
 class TAFEditBase(QDialog):
@@ -198,15 +198,15 @@ class TAFEditBase(QDialog):
 
     def _calc_revision_number(self, sign):
         time_limit = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        query = db.query(Tafor).filter(Tafor.rpt.contains(self.amd_period), Tafor.send_time > time_limit)
+        query = db.query(Tafor).filter(Tafor.rpt.contains(self.amd_period), Tafor.sent > time_limit)
         if sign == 'COR':
             items = query.filter(Tafor.rpt.contains('COR')).all()
-            print(items)
+            log.debug(items)
             order = chr(ord('A') + len(items))
             return 'CC' + order
         elif sign == 'AMD':
             items = query.filter(Tafor.rpt.contains('AMD')).all()
-            print(items)
+            log.debug(items)
             order = chr(ord('A') + len(items))
             return 'AA' + order
 
@@ -214,7 +214,7 @@ class TAFEditBase(QDialog):
         period = self.primary.period.text()
         if len(period) == 6:
             self.period_duration = self._calc_duration(period[2:4], period[4:6])
-            print('period_duration ', self.period_duration)
+            log.debug('period_duration ', self.period_duration)
             return self.period_duration
 
     def _check_temp_time_in_duration(self, line):
@@ -224,7 +224,7 @@ class TAFEditBase(QDialog):
             temp_time += datetime.timedelta(days=1) 
 
         condition = self.period_duration['start'] <= temp_time <= self.period_duration['end']
-        print('Check temp', self.period_duration, temp_time)
+        log.debug('Check temp', self.period_duration['start'], temp_time)
         if not condition:
             line.clear()
 
@@ -347,30 +347,30 @@ class TAFEdit(TAFEditBase):
     def preview_message(self):
         message = {'rpt': self.rpt, 'head': self.head}
         self.signal_preview.emit(message)
-        print('Emit', message)
+        log.debug('Emit', message)
 
 
-class ScheduleTAFEdit(TAFEditBase):
+class TaskTAFEdit(TAFEditBase):
 
     def __init__(self, parent=None):
-        super(ScheduleTAFEdit, self).__init__(parent)
+        super(TaskTAFEdit, self).__init__(parent)
 
         self.setWindowTitle("定时任务")
         self.setWindowIcon(QIcon(':/schedule.png'))
 
         self.primary.group_cls.hide()
 
-        self.primary.date.editingFinished.connect(self.schedule_time)
+        self.primary.date.editingFinished.connect(self.task_time)
         self.primary.date.editingFinished.connect(lambda :self._set_period(sch=True))
         self.primary.date.editingFinished.connect(self.change_window_title)
         self.primary.date.editingFinished.connect(self._period_duration)
         
     def preview_message(self):
-        message = {'head': self.head, 'rpt':self.rpt, 'sch_time': self.time}
+        message = {'head': self.head, 'rpt':self.rpt, 'plan': self.time}
         self.signal_preview.emit(message)
-        print('Emit', message)
+        log.debug('Emit', message)
 
-    def schedule_time(self):
+    def task_time(self):
         date = self.primary.date.text()
         now = datetime.datetime.utcnow()
 

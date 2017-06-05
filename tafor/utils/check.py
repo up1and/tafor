@@ -1,10 +1,8 @@
 import datetime
 
-try:
-    from .context import Tafor, setting, db
-except SystemError:
-    from context import Tafor, setting, db
-    
+from tafor import setting, db
+from tafor.models import Tafor
+
 
 class TAFPeriod(object):
     """docstring for TAFPeriod"""
@@ -38,7 +36,7 @@ class TAFPeriod(object):
 
     def is_existed(self, period_with_day):
         time_limit = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        recent = db.query(Tafor).filter(Tafor.rpt.contains(period_with_day), Tafor.send_time > time_limit).all()
+        recent = db.query(Tafor).filter(Tafor.rpt.contains(period_with_day), Tafor.sent > time_limit).all()
         return recent
 
     def warn(self):

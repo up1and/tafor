@@ -1,9 +1,9 @@
 import json
 from PyQt5 import QtCore, QtGui, QtWidgets
-from ui import Ui_settings, main_rc
-from models import User, Session
-from config import db, setting
-from utils import str2bool
+from tafor.widgets.ui import Ui_settings, main_rc
+from tafor.models import User
+from tafor import db, setting
+from tafor.utils import force_bool
 
 
 class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
@@ -206,7 +206,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
             target.setText(val)
 
         if mold == 'bool':
-            val = str2bool(val)
+            val = force_bool(val)
             target.setChecked(val)
 
         if mold == 'combox':

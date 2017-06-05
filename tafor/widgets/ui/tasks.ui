@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Schedule</class>
- <widget class="QDialog" name="Schedule">
+ <class>Tasks</class>
+ <widget class="QDialog" name="Tasks">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -15,7 +15,7 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QTableWidget" name="sch_table">
+    <widget class="QTableWidget" name="tasks_table">
      <property name="editTriggers">
       <set>QAbstractItemView::NoEditTriggers</set>
      </property>

@@ -7,24 +7,23 @@ from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 
+from config import Config
+
+
 # 创建对象的基类:
 Base = declarative_base()
 
-# 定义User对象:
 class Tafor(Base):
-    # 表的名字:
-    __tablename__ = 'tafor'
-
-    # 表的结构:
+    __tablename__ = 'tafors'
     id = Column(Integer, primary_key=True)
     tt = Column(String(2))
     head = Column(String(255))
     rpt = Column(String(255))
     raw = Column(String(255))
-    send_time = Column(DateTime, default=datetime.datetime.utcnow)
-    confirm_time = Column(DateTime)
+    sent = Column(DateTime, default=datetime.datetime.utcnow)
+    confirmed = Column(DateTime)
 
-    schedule = relationship('Schedule')
+    # task = relationship('tasks', lazy='dynamic')
 
     def __init__(self, tt, head, rpt, raw=None):
         self.tt = tt
@@ -36,32 +35,28 @@ class Tafor(Base):
         return '<TAF %r %r>' % (self.tt, self.rpt)
 
 
-class Schedule(Base):
-
-    __tablename__ = 'schedule'
-
+class Task(Base):
+    __tablename__ = 'tasks'
     id = Column(Integer, primary_key=True)
     tt = Column(String(2))
     head = Column(String(255))
     rpt = Column(String(255))
-    create_time = Column(DateTime, default=datetime.datetime.utcnow)
-    schedule_time = Column(DateTime)
+    created = Column(DateTime, default=datetime.datetime.utcnow)
+    plan = Column(DateTime)
 
-    tafor_id = Column(Integer, ForeignKey('tafor.id'))
+    tafor_id = Column(Integer, ForeignKey('tafors.id'))
 
-    def __init__(self, tt, head, rpt, schedule_time):
+    def __init__(self, tt, head, rpt, plan):
         self.tt = tt
         self.head = head
         self.rpt = rpt
-        self.schedule_time = schedule_time
+        self.plan = plan
 
     def __repr__(self):
-        return '<Schedule TAF %r %r %r>' % (self.tt, self.rpt, self.schedule_time)
+        return '<Task TAF %r %r %r>' % (self.tt, self.rpt, self.plan)
 
 class User(Base):
-
-    __tablename__ = 'user'
-
+    __tablename__ = 'users'
     id = Column(Integer, primary_key=True)
     name = Column(String(8))
     phone_number = Column(String(20))
@@ -73,11 +68,10 @@ class User(Base):
     def __repr__(self):
         return '<User %r %r>' % (self.name, self.phone_number)
 
-db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'db.sqlite3'))
+
 # 初始化数据库连接:
-engine = create_engine('sqlite:///' + db_path, echo=False)
+engine = create_engine(Config.SQLALCHEMY_DATABASE_URI, echo=False)
 # 创建DBSession类型:
 Session = sessionmaker(bind=engine)
-
 # 创建表
 Base.metadata.create_all(engine)

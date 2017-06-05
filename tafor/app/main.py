@@ -4,15 +4,15 @@ import datetime
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 
-from ui import Ui_main, main_rc
-from taf import TAFEdit, ScheduleTAFEdit
-from send import ScheduleTAFSend, TAFSend
-from settings import SettingDialog
-from schedule import ScheduleTable
-from models import Tafor, Schedule, User
-from widgets import WidgetsItem
-from utils import TAFPeriod, str2bool
-from config import db, setting, log, __version__
+from tafor.widgets.ui import Ui_main, main_rc
+from tafor.widgets.taf import TAFEdit, TaskTAFEdit
+from tafor.widgets.send import TaskTAFSend, TAFSend
+from tafor.widgets.settings import SettingDialog
+from tafor.widgets.tasks import TaskTable
+from tafor.models import Tafor, Task, User
+from tafor.widgets.components import WidgetsItem
+from tafor.utils import TAFPeriod, force_bool
+from tafor import db, setting, log, __version__
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
@@ -31,10 +31,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
         # 初始TAF对话框
         self.taf_edit_dialog = TAFEdit(self)
-        self.sch_taf_edit_dialog = ScheduleTAFEdit(self)
+        self.sch_taf_edit_dialog = TaskTAFEdit(self)
         self.taf_send_dialog = TAFSend(self)
-        self.sch_taf_send_dialog = ScheduleTAFSend(self)
-        self.sch_table_dialog = ScheduleTable(self)
+        self.task_taf_send_dialog = TaskTAFSend(self)
+        self.task_table_dialog = TaskTable(self)
         self.setting_dialog = SettingDialog(self)
 
         # 连接TAF对话框信号
@@ -42,7 +42,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.taf_send_dialog.signal_send.connect(self.update_gui)
 
         self.sch_taf_edit_dialog.signal_preview.connect(self.handle_sch_taf_edit)
-        self.sch_taf_send_dialog.signal_send.connect(self.handle_sch_taf_send)
+        self.task_taf_send_dialog.signal_send.connect(self.handle_sch_taf_send)
 
         self.taf_send_dialog.signal_back.connect(self.taf_edit_dialog.show)
         self.taf_send_dialog.signal_close.connect(self.taf_edit_dialog.close)
@@ -94,9 +94,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.recent_layout.addWidget(self.widget_ft)
 
         # 自动发送报文的计时器
-        self.auto_send_timer = QtCore.QTimer()
-        self.auto_send_timer.timeout.connect(self.sch_taf_send_dialog.auto_send)
-        self.auto_send_timer.start(30 * 1000)
+        self.auto_sentr = QtCore.QTimer()
+        self.auto_sentr.timeout.connect(self.task_taf_send_dialog.auto_send)
+        self.auto_sentr.start(30 * 1000)
 
         # 时钟计时器
         self.clock_timer = QtCore.QTimer()
@@ -108,7 +108,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
         self.warn_timer = QtCore.QTimer()
         self.warn_timer.timeout.connect(self.update_gui)
-        self.warn_timer.timeout.connect(self.sch_table_dialog.update_gui)
+        self.warn_timer.timeout.connect(self.task_table_dialog.update_gui)
         self.warn_timer.start(60 * 1000)
 
         self.update_gui()
@@ -169,7 +169,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.update_tray_tips()
 
     def update_tray_tips(self):
-        alarm_status = str2bool(setting.value('monitor/phone/phone_warn_taf'))
+        alarm_status = force_bool(setting.value('monitor/phone/phone_warn_taf'))
 
         title = '预报发报软件 v' + __version__
         taf_text = self.next_taf('FC') + ' ' + self.next_taf('FT')
@@ -186,21 +186,21 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.statusbar.showMessage('已复制  ' + item.text())
 
     def handle_taf_edit(self, message):
-        log.debug('receive from taf edit ' + str(message))
+        log.debug('receive from taf edit ' + message['rpt'])
         self.taf_edit_dialog.hide()
         self.taf_send_dialog.receive_message(message)
         self.taf_send_dialog.show()
 
     def handle_sch_taf_edit(self, message):
-        log.debug('receive from sch taf edit ' + str(message))
-        self.sch_taf_send_dialog.receive_message(message)
-        self.sch_taf_send_dialog.show()
+        log.debug('receive from sch taf edit ' + message['rpt'])
+        self.task_taf_send_dialog.receive_message(message)
+        self.task_taf_send_dialog.show()
 
     def handle_sch_taf_send(self):
         self.sch_taf_edit_dialog.hide()
-        self.sch_taf_send_dialog.hide()
-        self.sch_table_dialog.show()
-        self.sch_table_dialog.update_gui()
+        self.task_taf_send_dialog.hide()
+        self.task_table_dialog.show()
+        self.task_table_dialog.update_gui()
 
     def event(self, event):
         """
@@ -220,7 +220,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             if event.key() == QtCore.Qt.Key_P:
                 self.sch_taf_edit_dialog.show()
             if event.key() == QtCore.Qt.Key_T:
-                self.sch_table_dialog.show()
+                self.task_table_dialog.show()
 
     def closeEvent(self, event):
         if event.spontaneous():
@@ -230,15 +230,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             self.taf_edit_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
             self.sch_taf_edit_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
             self.taf_send_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-            self.sch_taf_send_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-            self.sch_table_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            self.task_taf_send_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            self.task_table_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
             self.setting_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
             self.taf_edit_dialog.close()
             self.sch_taf_edit_dialog.close()
             self.taf_send_dialog.close()
-            self.sch_taf_send_dialog.close()
-            self.sch_table_dialog.close()
+            self.task_taf_send_dialog.close()
+            self.task_table_dialog.close()
             self.setting_dialog.close()
 
             self.tray.hide()
@@ -264,7 +264,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         log.debug('Update GUI')
 
     def update_taf_table(self):
-        items = db.query(Tafor).order_by(Tafor.send_time.desc()).all()
+        items = db.query(Tafor).order_by(Tafor.sent.desc()).all()
         if len(items) > 12:
             items = items[0:12]
         header = self.taf_table.horizontalHeader()
@@ -278,11 +278,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         for row, item in enumerate(items):
             self.taf_table.setItem(row, 0,  QtWidgets.QTableWidgetItem(item.tt))
             self.taf_table.setItem(row, 1,  QtWidgets.QTableWidgetItem(item.rpt))
-            if item.send_time:
-                send_time = item.send_time.strftime("%Y-%m-%d %H:%M:%S")
-                self.taf_table.setItem(row, 2,  QtWidgets.QTableWidgetItem(send_time))
+            if item.sent:
+                sent = item.sent.strftime("%Y-%m-%d %H:%M:%S")
+                self.taf_table.setItem(row, 2,  QtWidgets.QTableWidgetItem(sent))
 
-            if item.confirm_time:
+            if item.confirmed:
                 check_item = QtWidgets.QTableWidgetItem('√')
                 # check_item.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
                 # check_item.setIcon(QIcon(':/check.png'))
@@ -293,11 +293,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
                 # check_item.setIcon(QIcon(':/warn.png'))
                 self.taf_table.setItem(row, 3, check_item)
 
-            if item.schedule:
-                schedule_item = QtWidgets.QTableWidgetItem('√')
-                # schedule_item.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-                # schedule_item.setIcon(QIcon(':/clock.png'))
-                self.taf_table.setItem(row, 4, schedule_item)
+            # if item.task:
+            #     task_item = QtWidgets.QTableWidgetItem('√')
+            #     # schedule_item.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+            #     # schedule_item.setIcon(QIcon(':/clock.png'))
+            #     self.taf_table.setItem(row, 4, task_item)
 
 
         #self.taf_table.setStyleSheet("QTableWidget::item {padding: 5px 0;}")
@@ -308,8 +308,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         raise NotImplemented
 
     def update_recent(self):
-        fc = db.query(Tafor).filter_by(tt='FC').order_by(Tafor.send_time.desc()).first()
-        ft = db.query(Tafor).filter_by(tt='FT').order_by(Tafor.send_time.desc()).first()
+        fc = db.query(Tafor).filter_by(tt='FC').order_by(Tafor.sent.desc()).first()
+        ft = db.query(Tafor).filter_by(tt='FT').order_by(Tafor.sent.desc()).first()
 
         if fc:
             self.widget_fc.set_item(fc)
@@ -368,6 +368,8 @@ def main():
         window = MainWindow()
         window.show()
         sys.exit(app.exec_())
+    except Exception as e:
+        raise e
     finally:  
         local_server.close()
 
