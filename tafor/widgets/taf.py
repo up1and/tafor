@@ -75,25 +75,25 @@ class TAFEditBase(QDialog):
 
         self.primary.period.textChanged.connect(self.clear)
 
-        self.primary.tmax_time.editingFinished.connect(lambda :self._check_temp_time_in_duration(self.primary.tmax_time))
-        self.primary.tmin_time.editingFinished.connect(lambda :self._check_temp_time_in_duration(self.primary.tmin_time))
+        self.primary.tmax_time.editingFinished.connect(lambda :self.verify_temperature_hour(self.primary.tmax_time))
+        self.primary.tmin_time.editingFinished.connect(lambda :self.verify_temperature_hour(self.primary.tmin_time))
 
-        self.primary.tmax.editingFinished.connect(self._check_temp_correct)
-        self.primary.tmin.editingFinished.connect(self._check_temp_correct)
+        self.primary.tmax.editingFinished.connect(self.verify_temperature)
+        self.primary.tmin.editingFinished.connect(self.verify_temperature)
 
-        self.becmg1.interval.editingFinished.connect(lambda :self._check_interval(self.becmg1.interval))
-        self.becmg2.interval.editingFinished.connect(lambda :self._check_interval(self.becmg2.interval))
-        self.becmg3.interval.editingFinished.connect(lambda :self._check_interval(self.becmg3.interval))
+        self.becmg1.interval.editingFinished.connect(lambda :self.verify_amend_interval(self.becmg1.interval))
+        self.becmg2.interval.editingFinished.connect(lambda :self.verify_amend_interval(self.becmg2.interval))
+        self.becmg3.interval.editingFinished.connect(lambda :self.verify_amend_interval(self.becmg3.interval))
 
-        self.tempo1.interval.editingFinished.connect(lambda :self._check_interval(self.tempo1.interval, tempo=True))
-        self.tempo2.interval.editingFinished.connect(lambda :self._check_interval(self.tempo2.interval, tempo=True))
+        self.tempo1.interval.editingFinished.connect(lambda :self.verify_amend_interval(self.tempo1.interval, tempo=True))
+        self.tempo2.interval.editingFinished.connect(lambda :self.verify_amend_interval(self.tempo2.interval, tempo=True))
 
-        self.primary.signal_required.connect(self._enbale_next_button)
-        self.becmg1.signal_required.connect(self._enbale_next_button)
-        self.becmg2.signal_required.connect(self._enbale_next_button)
-        self.becmg3.signal_required.connect(self._enbale_next_button)
-        self.tempo1.signal_required.connect(self._enbale_next_button)
-        self.tempo2.signal_required.connect(self._enbale_next_button)
+        self.primary.signal_required.connect(self.enbale_next_button)
+        self.becmg1.signal_required.connect(self.enbale_next_button)
+        self.becmg2.signal_required.connect(self.enbale_next_button)
+        self.becmg3.signal_required.connect(self.enbale_next_button)
+        self.tempo1.signal_required.connect(self.enbale_next_button)
+        self.tempo2.signal_required.connect(self.enbale_next_button)
 
         # 下一步
         self.next_button.clicked.connect(self.assemble_message)
@@ -144,7 +144,7 @@ class TAFEditBase(QDialog):
 
         if self.primary.date.text():
             if self.primary.normal.isChecked():
-                self._set_period()
+                self.set_normal_period()
 
                 self.primary.ccc.clear()
                 self.primary.ccc.setEnabled(False)
@@ -153,11 +153,11 @@ class TAFEditBase(QDialog):
                 self.primary.aaa_cnl.clear()
                 self.primary.aaa_cnl.setEnabled(False)
             else:
-                self._set_amd_period()
+                self.set_amend_period()
 
                 if self.primary.cor.isChecked():
                     self.primary.ccc.setEnabled(True)
-                    order = self._calc_revision_number('COR')
+                    order = self.get_amend_number('COR')
                     self.primary.ccc.setText(order)
                 else:
                     self.primary.ccc.clear()
@@ -165,7 +165,7 @@ class TAFEditBase(QDialog):
 
                 if self.primary.amd.isChecked():
                     self.primary.aaa.setEnabled(True)
-                    order = self._calc_revision_number('AMD')
+                    order = self.get_amend_number('AMD')
                     self.primary.aaa.setText(order)
                 else:
                     self.primary.aaa.clear()
@@ -173,70 +173,49 @@ class TAFEditBase(QDialog):
 
                 if self.primary.cnl.isChecked():
                     self.primary.aaa_cnl.setEnabled(True)
-                    order = self._calc_revision_number('AMD')
+                    order = self.get_amend_number('AMD')
                     self.primary.aaa_cnl.setText(order)
                 else:
                     self.primary.aaa_cnl.clear()
                     self.primary.aaa_cnl.setEnabled(False)
 
-            self._period_duration()
+            self.period_duration = self.get_period_duration()
 
-    def _set_period(self, sch=False):
+    def set_normal_period(self, is_task=False):
         period = TAFPeriod(self.tt, self.time)
 
-        self._period = period.current() if sch else period.warn()
+        current_period = period.current() if is_task else period.warn()
 
-        if self._period and period.is_existed(self._period):
+        if current_period and period.is_existed(current_period) or not self.primary.date.hasAcceptableInput():
             self.primary.period.setText('')
         else:
-            self.primary.period.setText(self._period)
+            self.primary.period.setText(current_period)
 
-    def _set_amd_period(self):
+    def set_amend_period(self):
         period = TAFPeriod(self.tt, self.time)
         self.amd_period = period.warn()
         self.primary.period.setText(self.amd_period)
 
-    def _calc_revision_number(self, sign):
-        time_limit = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        query = db.query(Tafor).filter(Tafor.rpt.contains(self.amd_period), Tafor.sent > time_limit)
+    def get_amend_number(self, sign):
+        expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+        query = db.query(Tafor).filter(Tafor.rpt.contains(self.amd_period), Tafor.sent > expired)
         if sign == 'COR':
             items = query.filter(Tafor.rpt.contains('COR')).all()
-            log.debug(items)
             order = chr(ord('A') + len(items))
             return 'CC' + order
         elif sign == 'AMD':
             items = query.filter(Tafor.rpt.contains('AMD')).all()
-            log.debug(items)
             order = chr(ord('A') + len(items))
             return 'AA' + order
 
-    def _period_duration(self):
+    def get_period_duration(self):
         period = self.primary.period.text()
         if len(period) == 6:
-            self.period_duration = self._calc_duration(period[2:4], period[4:6])
-            log.debug('period_duration ', self.period_duration)
-            return self.period_duration
+            duration = self._get_duration(period[2:4], period[4:6])
+            return duration
 
-    def _check_temp_time_in_duration(self, line):
-        temp_time = self._calc_duration(line.text(), 0)['start']
-
-        if temp_time < self.period_duration['start']:
-            temp_time += datetime.timedelta(days=1) 
-
-        condition = self.period_duration['start'] <= temp_time <= self.period_duration['end']
-        log.debug('Check temp', self.period_duration['start'], temp_time)
-        if not condition:
-            line.clear()
-
-    def _check_temp_correct(self):
-        tmax = self.primary.tmax.text()
-        tmin = self.primary.tmin.text()
-        if tmax and tmin:
-            if int(tmax) <= int(tmin):
-                self.primary.tmin.clear()
-
-    def _calc_duration(self, start, end):
-        duration = dict()
+    def _get_duration(self, start, end):
+        duration = {}
         start = int(start)
         end = 0 if end == '24' else int(end)
         base_time = datetime.datetime(self.time.year, self.time.month, self.time.day)
@@ -248,16 +227,42 @@ class TAFEditBase(QDialog):
         else:
             duration['end'] = base_time + datetime.timedelta(days=1, hours=end)
 
+        log.debug(' '.join([
+            'Duration',
+            duration['start'].strftime('%Y-%m-%d %H:%M:%S'),
+            duration['end'].strftime('%Y-%m-%d %H:%M:%S')
+        ]))
+
         return duration
 
-    def _calc_interval(self, start, end):
-        duration = self._calc_duration(start, end)
+    def _get_amend_interval(self, start, end):
+        duration = self._get_duration(start, end)
         if duration['start'] < self.period_duration['start']:
             duration['start'] += datetime.timedelta(days=1)
             duration['end'] += datetime.timedelta(days=1)
         return duration
 
-    def _check_interval(self, line, tempo=False):
+    def verify_temperature_hour(self, line):
+        if self.period_duration is not None:
+            temp_hour = self._get_duration(line.text(), 0)['start']
+            
+            if temp_hour < self.period_duration['start']:
+                temp_hour += datetime.timedelta(days=1) 
+
+            valid = self.period_duration['start'] <= temp_hour <= self.period_duration['end']
+            log.debug('Verify temperature hour ' + str(valid))
+
+            if not valid:
+                line.clear()
+
+    def verify_temperature(self):
+        tmax = self.primary.tmax.text()
+        tmin = self.primary.tmin.text()
+        if tmax and tmin:
+            if int(tmax) <= int(tmin):
+                self.primary.tmin.clear()
+
+    def verify_amend_interval(self, line, tempo=False):
         if tempo and self.tt == 'FC':
             interval = 4
         elif tempo and self.tt == 'FT':
@@ -265,20 +270,18 @@ class TAFEditBase(QDialog):
         else:
             interval = 2
 
-        duration = self._calc_interval(line.text()[0:2], line.text()[2:4])
+        duration = self._get_amend_interval(line.text()[0:2], line.text()[2:4])
         if duration['start'] < self.period_duration['start'] or self.period_duration['end'] < duration['start']:
             line.clear()
-            log.info('start interval time is not corret')
+            log.info('Start interval time is not corret ' + duration['start'].strftime('%Y-%m-%d %H:%M:%S'))
 
         if duration['end'] < self.period_duration['start'] or self.period_duration['end'] < duration['end']:
             line.clear()
-            log.info('end interval time is not corret')
+            log.info('End interval time is not corret' + duration['end'].strftime('%Y-%m-%d %H:%M:%S'))
 
         if duration['end'] - duration['start'] > datetime.timedelta(hours=interval):
             line.clear()
-            log.info('more than ', interval, ' hours')
-
-        log.debug('interval ', duration)
+            log.info('More than ' + str(interval) + ' hours')
 
     def assemble_message(self):
         primary_msg = self.primary.message()
@@ -295,7 +298,7 @@ class TAFEditBase(QDialog):
         self.time = datetime.datetime.utcnow()
         self.primary.date.setText(self.time.strftime('%d%H%M'))
 
-    def _enbale_next_button(self):
+    def enbale_next_button(self):
         # 允许下一步
         required_widgets = [self.primary.required]
 
@@ -361,9 +364,9 @@ class TaskTAFEdit(TAFEditBase):
         self.primary.group_cls.hide()
 
         self.primary.date.editingFinished.connect(self.task_time)
-        self.primary.date.editingFinished.connect(lambda :self._set_period(sch=True))
+        self.primary.date.editingFinished.connect(lambda :self.set_normal_period(is_task=True))
         self.primary.date.editingFinished.connect(self.change_window_title)
-        self.primary.date.editingFinished.connect(self._period_duration)
+        self.primary.date.editingFinished.connect(self.get_period_duration)
         
     def preview_message(self):
         message = {'head': self.head, 'rpt':self.rpt, 'plan': self.time}
@@ -382,9 +385,12 @@ class TaskTAFEdit(TAFEditBase):
             self.time = datetime.datetime(now.year, now.month, day, hour, minute)
             if self.time < now:
                 self.time = datetime.datetime(now.year, now.month+1, day, hour, minute)
-            return self.time
+
         except ValueError as e:
             self.time = datetime.datetime(now.year, now.month+2, day, hour, minute)
+
+        finally:
+            log.debug(' '.join(['Task time', self.time.strftime('%Y-%m-%d %H:%M:%S')]))
             return self.time
 
     def change_window_title(self):

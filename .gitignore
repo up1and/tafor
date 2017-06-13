@@ -39,3 +39,4 @@ nosetests.xml
 db.sqlite3
 _eric6project/
 .vscode
+.python-version

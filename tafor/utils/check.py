@@ -35,8 +35,8 @@ class TAFPeriod(object):
         return self._with_day(period)
 
     def is_existed(self, period_with_day):
-        time_limit = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        recent = db.query(Tafor).filter(Tafor.rpt.contains(period_with_day), Tafor.sent > time_limit).all()
+        expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+        recent = db.query(Tafor).filter(Tafor.rpt.contains(period_with_day), Tafor.sent > expired).all()
         return recent
 
     def warn(self):

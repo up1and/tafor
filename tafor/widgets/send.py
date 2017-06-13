@@ -109,7 +109,7 @@ class TAFSend(SendBase):
         item = Tafor(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'], raw=json.dumps(self.aftn.raw()))
         db.add(item)
         db.commit()
-        log.debug('Save', item)
+        log.debug('Save ' + item.rpt)
         self.signal_send.emit()
 
     def send(self):
@@ -160,11 +160,11 @@ class TaskTAFSend(SendBase):
 
                 send_status = True
 
-        log.debug('Queue to send', ' '.join(task.rpt for task in tasks))
+        log.debug('Tasks ' + ' '.join(task.rpt for task in tasks))
         
         if send_status:
             # self.update_taf_table()
-            log.debug('Auto Send')
+            log.debug('Task complete')
 
 
 if __name__ == "__main__":
