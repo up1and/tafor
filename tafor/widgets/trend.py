@@ -8,7 +8,7 @@ from PyQt5.QtCore import *
 
 from tafor.widgets.common import TrendWidget
 from tafor.utils import TAFPeriod, Parser, REGEX_TAF
-from tafor.models import Tafor, Task
+from tafor.models import Trend
 from tafor import db, log
 
 
@@ -38,13 +38,16 @@ class TrendEdit(QDialog):
 
     def bind_signal(self):
 
+        self.trend.signal_required.connect(self.enbale_next_button)
+
         # 下一步
         # self.next_button.clicked.connect(self.assemble_message)
         # self.next_button.clicked.connect(self.preview_message)
-        pass
 
-    def _enbale_next_button(self):
-        pass
+    def enbale_next_button(self):
+        enbale = self.trend.required
+        log.debug('Trend required ' + str(enbale))
+        self.next_button.setEnabled(enbale)
 
     def clear(self):
         pass

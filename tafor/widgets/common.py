@@ -26,9 +26,9 @@ class EditWidgetBase(QtWidgets.QWidget):
             self.cavok.toggled.connect(self.set_cavok)
             self.skc.toggled.connect(self.set_skc)
             self.nsc.toggled.connect(self.set_nsc)
-            self.cavok.clicked.connect(self._check_required)
-            self.nsc.clicked.connect(self._check_required)
-            self.skc.clicked.connect(self._check_required)
+            self.cavok.clicked.connect(self.check_required)
+            self.nsc.clicked.connect(self.check_required)
+            self.skc.clicked.connect(self.check_required)
         else:
             self.prob30.toggled.connect(self.set_prob30)
             self.prob40.toggled.connect(self.set_prob40)
@@ -38,12 +38,12 @@ class EditWidgetBase(QtWidgets.QWidget):
         self.cloud3.textEdited.connect(lambda:self._upper_text(self.cloud3))
         self.cb.textEdited.connect(lambda:self._upper_text(self.cb))
 
-        self.wind.textChanged.connect(self._check_required)
-        self.vis.textChanged.connect(self._check_required)
-        self.cloud1.textChanged.connect(self._check_required)
-        self.cloud2.textChanged.connect(self._check_required)
-        self.cloud3.textChanged.connect(self._check_required)
-        self.cb.textChanged.connect(self._check_required)
+        self.wind.textChanged.connect(self.check_required)
+        self.vis.textChanged.connect(self.check_required)
+        self.cloud1.textChanged.connect(self.check_required)
+        self.cloud2.textChanged.connect(self.check_required)
+        self.cloud3.textChanged.connect(self.check_required)
+        self.cb.textChanged.connect(self.check_required)
 
 
     def clouds(self, enbale):
@@ -163,7 +163,7 @@ class EditWidgetBase(QtWidgets.QWidget):
     def _upper_text(self, line):
         line.setText(line.text().upper())
 
-    def _check_required(self):
+    def check_required(self):
         raise NotImplemented
 
     def clear(self):
@@ -210,14 +210,14 @@ class TAFWidgetPrimary(EditWidgetBase, Ui_widget_primary.Ui_Form):
         super(TAFWidgetPrimary, self).bind_signal()
 
         # 设置下一步按钮
-        self.date.textEdited.connect(self._check_required)
-        self.period.textChanged.connect(self._check_required)
-        self.tmax.textChanged.connect(self._check_required)
-        self.tmax_time.textChanged.connect(self._check_required)
-        self.tmin.textChanged.connect(self._check_required)
-        self.tmin_time.textChanged.connect(self._check_required)
+        self.date.textEdited.connect(self.check_required)
+        self.period.textChanged.connect(self.check_required)
+        self.tmax.textChanged.connect(self.check_required)
+        self.tmax_time.textChanged.connect(self.check_required)
+        self.tmin.textChanged.connect(self.check_required)
+        self.tmin_time.textChanged.connect(self.check_required)
 
-    def _check_required(self):
+    def check_required(self):
         self.required = False
         must_required = (
                         self.date.hasAcceptableInput(), 
@@ -318,9 +318,9 @@ class TAFWidgetBecmg(EditWidgetBase, Ui_widget_becmg.Ui_Form):
     def bind_signal(self):
         super(TAFWidgetBecmg, self).bind_signal()
 
-        self.interval.textChanged.connect(self._check_required)
-        self.weather1.currentIndexChanged.connect(self._check_required)
-        self.weather2.currentIndexChanged.connect(self._check_required)
+        self.interval.textChanged.connect(self.check_required)
+        self.weather1.currentIndexChanged.connect(self.check_required)
+        self.weather2.currentIndexChanged.connect(self.check_required)
 
     def message(self):
         super(TAFWidgetBecmg, self).message()
@@ -330,7 +330,7 @@ class TAFWidgetBecmg(EditWidgetBase, Ui_widget_becmg.Ui_Form):
         # log.debug(self.msg)
         return self.msg
 
-    def _check_required(self):
+    def check_required(self):
         self.required = False
         one_required = (
                         self.nsc.isChecked(), 
@@ -381,9 +381,9 @@ class TAFWidgetTempo(EditWidgetBase, Ui_widget_tempo.Ui_Form):
     def bind_signal(self):
         super(TAFWidgetTempo, self).bind_signal()
 
-        self.interval.textChanged.connect(self._check_required)
-        self.weather1.currentIndexChanged.connect(self._check_required)
-        self.weather2.currentIndexChanged.connect(self._check_required)
+        self.interval.textChanged.connect(self.check_required)
+        self.weather1.currentIndexChanged.connect(self.check_required)
+        self.weather2.currentIndexChanged.connect(self.check_required)
 
     def message(self):
         super(TAFWidgetTempo, self).message()
@@ -397,7 +397,7 @@ class TAFWidgetTempo(EditWidgetBase, Ui_widget_tempo.Ui_Form):
         # log.debug(self.msg)
         return self.msg
 
-    def _check_required(self):
+    def check_required(self):
         self.required = False
         one_required = (
                         self.wind.hasAcceptableInput(), 
@@ -432,8 +432,101 @@ class TrendWidget(EditWidgetBase, Ui_widget_trend.Ui_Form):
         self.validate()
         self.bind_signal()
 
-    def _check_required(self):
-        print('check')
+    def bind_signal(self):
+        super(TrendWidget, self).bind_signal()
+
+        self.nosig.toggled.connect(self.set_nosig)
+        self.at.toggled.connect(self.set_at)
+        self.fm.toggled.connect(self.set_fm)
+        self.tl.toggled.connect(self.set_tl)
+
+        self.nosig.clicked.connect(self.check_required)
+        self.at.clicked.connect(self.check_required)
+        self.fm.clicked.connect(self.check_required)
+        self.tl.clicked.connect(self.check_required)
+
+    def validate(self):
+        super(TrendWidget, self).validate()
+
+        valid_period = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['interval']))
+        self.period.setValidator(valid_period)
+
+    def set_nosig(self, checked):
+        boolean = not checked
+
+        self.group_prefix.setEnabled(boolean)
+        self.group_type.setEnabled(boolean)
+
+        self.period.setEnabled(boolean)
+        self.wind.setEnabled(boolean)
+        self.gust.setEnabled(boolean)
+        self.vis.setEnabled(boolean)
+        self.weather1.setEnabled(boolean)
+        self.weather2.setEnabled(boolean)
+        self.cloud1.setEnabled(boolean)
+        self.cloud2.setEnabled(boolean)
+        self.cloud3.setEnabled(boolean)
+        self.cb.setEnabled(boolean)
+
+        self.cavok.setEnabled(boolean)
+        self.skc.setEnabled(boolean)
+        self.nsc.setEnabled(boolean)
+
+
+    def set_at(self, checked):
+        if checked:
+            self.fm.setChecked(False)
+            self.tl.setChecked(False)
+            self.period.setEnabled(True)
+        else:
+            self.period.setEnabled(False)
+
+    def set_fm(self, checked):
+        if checked:
+            self.at.setChecked(False)
+            self.tl.setChecked(False)
+            self.period.setEnabled(True)
+        else:
+            self.period.setEnabled(False)
+
+    def set_tl(self, checked):
+        if checked:
+            self.fm.setChecked(False)
+            self.at.setChecked(False)
+            self.period.setEnabled(True)
+        else:
+            self.period.setEnabled(False)
+
+    def check_required(self):
+        self.required = False
+        one_required = (
+            self.wind.hasAcceptableInput(), 
+            self.vis.hasAcceptableInput(), 
+            self.weather1.currentText(),
+            self.weather2.currentText(),
+            self.cloud1.hasAcceptableInput(), 
+            self.cloud2.hasAcceptableInput(), 
+            self.cloud3.hasAcceptableInput(), 
+            self.cb.hasAcceptableInput()
+        )
+
+        prefix_checked = (
+            self.at.isChecked(),
+            self.fm.isChecked(),
+            self.tl.isChecked()
+        )
+
+        if self.nosig.isChecked():
+            self.required = True
+
+        if any(one_required):
+            if any(prefix_checked):
+                if self.period.hasAcceptableInput():
+                    self.required = True
+            else:
+                self.required = True
+
+        self.signal_required.emit(self.required)
 
 
 class RecentItem(QtWidgets.QWidget, Ui_widget_recent_item.Ui_Form):

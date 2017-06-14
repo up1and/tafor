@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\widgets\ui\widget_trend.ui'
+# Form implementation generated from reading ui file '/Users/Upland/Work/tafor/tafor/widgets/ui/widget_trend.ui'
 #
-# Created by: PyQt5 UI code generator 5.6
+# Created by: PyQt5 UI code generator 5.7
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
-        Form.resize(868, 164)
+        Form.resize(868, 185)
         self.verticalLayout = QtWidgets.QVBoxLayout(Form)
         self.verticalLayout.setObjectName("verticalLayout")
         self.main_layout = QtWidgets.QGridLayout()
@@ -76,6 +76,7 @@ class Ui_Form(object):
         self.period_label.setObjectName("period_label")
         self.main_layout.addWidget(self.period_label, 2, 1, 1, 1)
         self.period = QtWidgets.QLineEdit(Form)
+        self.period.setEnabled(False)
         self.period.setObjectName("period")
         self.main_layout.addWidget(self.period, 3, 1, 1, 1)
         self.group_type = QtWidgets.QGroupBox(Form)

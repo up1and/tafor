@@ -59,11 +59,11 @@ class TAFEditBase(QDialog):
         self.primary.tempo1_checkbox.toggled.connect(self.add_becmg_and_tempo)
         self.primary.tempo2_checkbox.toggled.connect(self.add_becmg_and_tempo)
 
-        self.primary.becmg1_checkbox.toggled.connect(self.becmg1._check_required)
-        self.primary.becmg2_checkbox.toggled.connect(self.becmg2._check_required)
-        self.primary.becmg3_checkbox.toggled.connect(self.becmg3._check_required)
-        self.primary.tempo1_checkbox.toggled.connect(self.tempo1._check_required)
-        self.primary.tempo2_checkbox.toggled.connect(self.tempo2._check_required)
+        self.primary.becmg1_checkbox.toggled.connect(self.becmg1.check_required)
+        self.primary.becmg2_checkbox.toggled.connect(self.becmg2.check_required)
+        self.primary.becmg3_checkbox.toggled.connect(self.becmg3.check_required)
+        self.primary.tempo1_checkbox.toggled.connect(self.tempo1.check_required)
+        self.primary.tempo2_checkbox.toggled.connect(self.tempo2.check_required)
 
         self.primary.fc.clicked.connect(self.update_message_type)
         self.primary.ft.clicked.connect(self.update_message_type)
@@ -245,7 +245,7 @@ class TAFEditBase(QDialog):
     def verify_temperature_hour(self, line):
         if self.period_duration is not None:
             temp_hour = self._get_duration(line.text(), 0)['start']
-            
+
             if temp_hour < self.period_duration['start']:
                 temp_hour += datetime.timedelta(days=1) 
 
@@ -319,7 +319,7 @@ class TAFEditBase(QDialog):
 
         enbale = all(required_widgets)
 
-        # log.debug('required', ' '.join(required_widgets))
+        # log.debug('TAF required ' + ' '.join(map(str, required_widgets)))
 
         self.next_button.setEnabled(enbale)
 

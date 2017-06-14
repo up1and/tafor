@@ -55,6 +55,21 @@ class Task(Base):
     def __repr__(self):
         return '<Task TAF %r %r %r>' % (self.tt, self.rpt, self.plan)
 
+class Trend(Base):
+    __tablename__ = 'trends'
+    id = Column(Integer, primary_key=True)
+    rpt = Column(String(255))
+    raw = Column(String(255))
+    sent = Column(DateTime, default=datetime.datetime.utcnow)
+
+    def __init__(self, rpt, raw=None):
+        self.tt = tt
+        self.rpt = rpt
+        self.raw = raw
+
+    def __repr__(self):
+        return '<Trend %r %r>' % (self.rpt)
+
 class User(Base):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True)

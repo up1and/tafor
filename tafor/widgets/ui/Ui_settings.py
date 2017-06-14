@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\widgets\ui\settings.ui'
+# Form implementation generated from reading ui file '/Users/Upland/Work/tafor/tafor/widgets/ui/settings.ui'
 #
-# Created by: PyQt5 UI code generator 5.6
+# Created by: PyQt5 UI code generator 5.7
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Settings(object):
     def setupUi(self, Settings):
         Settings.setObjectName("Settings")
-        Settings.resize(622, 501)
+        Settings.resize(622, 605)
         Settings.setAcceptDrops(True)
         self.verticalLayout = QtWidgets.QVBoxLayout(Settings)
         self.verticalLayout.setObjectName("verticalLayout")
@@ -230,6 +230,9 @@ class Ui_Settings(object):
         self.number = QtWidgets.QLineEdit(self.other_group)
         self.number.setObjectName("number")
         self.formLayout_7.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.number)
+        self.reset_number_button = QtWidgets.QPushButton(self.other_group)
+        self.reset_number_button.setObjectName("reset_number_button")
+        self.formLayout_7.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.reset_number_button)
         self.request_addr_label = QtWidgets.QLabel(self.other_group)
         self.request_addr_label.setObjectName("request_addr_label")
         self.formLayout_7.setWidget(3, QtWidgets.QFormLayout.LabelRole, self.request_addr_label)
@@ -242,8 +245,6 @@ class Ui_Settings(object):
         self.user_addr = QtWidgets.QLineEdit(self.other_group)
         self.user_addr.setObjectName("user_addr")
         self.formLayout_7.setWidget(4, QtWidgets.QFormLayout.FieldRole, self.user_addr)
-        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
-        self.formLayout_7.setItem(2, QtWidgets.QFormLayout.FieldRole, spacerItem)
         self.top_layout.addWidget(self.other_group)
         self.verticalLayout_4.addLayout(self.top_layout)
         self.address_group = QtWidgets.QGroupBox(self.communication_page)
@@ -449,7 +450,7 @@ class Ui_Settings(object):
         self.verticalLayout.addWidget(self.button_box)
 
         self.retranslateUi(Settings)
-        self.stacked.setCurrentIndex(4)
+        self.stacked.setCurrentIndex(2)
         self.tabWidget.setCurrentIndex(0)
         self.button_box.accepted.connect(Settings.accept)
         self.button_box.rejected.connect(Settings.reject)
@@ -567,6 +568,7 @@ class Ui_Settings(object):
         self.channel.setPlaceholderText(_translate("Settings", "YMA"))
         self.number_label.setText(_translate("Settings", "流水号"))
         self.number.setPlaceholderText(_translate("Settings", "1"))
+        self.reset_number_button.setText(_translate("Settings", "复位"))
         self.request_addr_label.setText(_translate("Settings", "请求地址"))
         self.request_addr.setPlaceholderText(_translate("Settings", "ZGGGYZYX"))
         self.user_addr_label.setText(_translate("Settings", "用户单位"))
