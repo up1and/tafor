@@ -452,25 +452,25 @@ class TrendWidget(EditWidgetBase, Ui_widget_trend.Ui_Form):
         self.period.setValidator(valid_period)
 
     def set_nosig(self, checked):
-        boolean = not checked
+        status = not checked
 
-        self.group_prefix.setEnabled(boolean)
-        self.group_type.setEnabled(boolean)
+        self.group_prefix.setEnabled(status)
+        self.group_type.setEnabled(status)
 
-        self.period.setEnabled(boolean)
-        self.wind.setEnabled(boolean)
-        self.gust.setEnabled(boolean)
-        self.vis.setEnabled(boolean)
-        self.weather1.setEnabled(boolean)
-        self.weather2.setEnabled(boolean)
-        self.cloud1.setEnabled(boolean)
-        self.cloud2.setEnabled(boolean)
-        self.cloud3.setEnabled(boolean)
-        self.cb.setEnabled(boolean)
+        self.period.setEnabled(status)
+        self.wind.setEnabled(status)
+        self.gust.setEnabled(status)
+        self.vis.setEnabled(status)
+        self.weather1.setEnabled(status)
+        self.weather2.setEnabled(status)
+        self.cloud1.setEnabled(status)
+        self.cloud2.setEnabled(status)
+        self.cloud3.setEnabled(status)
+        self.cb.setEnabled(status)
 
-        self.cavok.setEnabled(boolean)
-        self.skc.setEnabled(boolean)
-        self.nsc.setEnabled(boolean)
+        self.cavok.setEnabled(status)
+        self.skc.setEnabled(status)
+        self.nsc.setEnabled(status)
 
 
     def set_at(self, checked):

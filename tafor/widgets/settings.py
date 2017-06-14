@@ -34,12 +34,15 @@ class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
         self.add_person_button.clicked.connect(self.add_person)
         self.del_person_button.clicked.connect(self.del_person)
 
+        self.reset_number_button.clicked.connect(self.reset_serial_number)
+
         self.button_box.button(QtWidgets.QDialogButtonBox.Reset).clicked.connect(self.load)
         self.button_box.button(QtWidgets.QDialogButtonBox.Apply).clicked.connect(self.save)
         self.button_box.accepted.connect(self.save)
 
-    def reset(self):
-        print('a')
+    def reset_serial_number(self):
+        setting.setValue('communication/other/number', '0')
+        self.number.setText('0')
 
     def add_weather(self, weather):
         line = getattr(self, weather)

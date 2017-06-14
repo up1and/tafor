@@ -36,7 +36,9 @@ nosetests.xml
 # Custom
 *.log
 *.e4p
+*.autosave
 db.sqlite3
 _eric6project/
+.eric6project/
 .vscode
 .python-version

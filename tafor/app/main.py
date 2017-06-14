@@ -107,6 +107,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.clock_timer.timeout.connect(self.update_tray_tips)
         self.clock_timer.timeout.connect(self.update_current_taf)
         self.clock_timer.timeout.connect(self.taf_edit_dialog.update_date)
+        self.clock_timer.timeout.connect(self.reset_serial_number)
         self.clock_timer.start(1 * 1000)
 
         self.warn_timer = QtCore.QTimer()
@@ -331,6 +332,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
     def update_current_taf(self):
         self.current_fc.setText(self.next_taf('FC'))
         self.current_ft.setText(self.next_taf('FT'))
+
+    def reset_serial_number(self):
+        utc = datetime.datetime.utcnow()
+        if utc.hour == 0 and utc.minute == 0 and utc.second == 0:
+            self.setting_dialog.reset_number()
+            log.debug('Reset serial number')
 
     def next_taf(self, tt):
         taf = TAFPeriod(tt)
