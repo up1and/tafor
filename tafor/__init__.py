@@ -1,15 +1,11 @@
 import sys
 import logging
+
 from PyQt5 import QtCore
 from tafor.models import Session
 
+
 __version__ = "1.0.0"
-
-
-def create_app(config_name):
-    app = None
-
-    return app
 
 
 def setup_log(debug=False):
@@ -36,8 +32,10 @@ def setup_log(debug=False):
 
     return log
 
-log = setup_log(debug=True)
-
 setting = QtCore.QSettings('Up1and', 'Tafor')
+
+debug = setting.value('convention/debug')
+
+log = setup_log(debug=debug)
 
 db = Session()

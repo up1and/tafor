@@ -69,7 +69,7 @@
         <enum>QFrame::Plain</enum>
        </property>
        <property name="currentIndex">
-        <number>2</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="convention_page">
         <layout class="QVBoxLayout" name="verticalLayout_6">
@@ -82,17 +82,24 @@
             <string>常规</string>
            </property>
            <layout class="QFormLayout" name="formLayout_8">
-            <item row="0" column="0">
+            <item row="1" column="0">
              <widget class="QCheckBox" name="run_on_start">
               <property name="text">
                <string>开机自动启动</string>
               </property>
              </widget>
             </item>
-            <item row="1" column="0">
+            <item row="2" column="0">
              <widget class="QCheckBox" name="close_to_minimize">
               <property name="text">
                <string>关闭时最小化到系统托盘</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0">
+             <widget class="QCheckBox" name="debug_mode">
+              <property name="text">
+               <string>启用调试模式</string>
               </property>
              </widget>
             </item>

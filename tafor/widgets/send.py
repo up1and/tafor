@@ -4,7 +4,7 @@ import datetime
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from tafor.widgets.ui import Ui_send
-from tafor.models import Tafor, Task
+from tafor.models import Tafor, Task, Trend
 from tafor import db, setting, log
 
 
@@ -16,10 +16,11 @@ def chunks(lists, n):
 
 class AFTNMessage(object):
     """docstring for AFTNMessage"""
-    def __init__(self, message, cls='taf'):
+    def __init__(self, message, cls='taf', time=None):
         super(AFTNMessage, self).__init__()
         self.message = message
         self.cls = cls
+        self.time = datetime.datetime.utcnow() if time is None else time
 
     def raw(self):
         channel = setting.value('communication/other/channel')
@@ -28,8 +29,7 @@ class AFTNMessage(object):
         user_address = setting.value('communication/other/user_addr')
 
         addresses = self.divide_address(send_address)
-        # 第三项为时间组
-        time = self.message['head'].split()[2]
+        time = self.time.strftime('%d%H%M')
 
         # 定值
         self.aftn_time = ' '.join([time, user_address])
@@ -39,7 +39,7 @@ class AFTNMessage(object):
         for address in addresses:
             self.aftn_zczc = ' '.join(['ZCZC', channel + str(number).zfill(4)])
             self.aftn_adress = ' '.join(['GG'] + address)
-            items = [self.aftn_zczc, self.aftn_adress, self.aftn_time, self.message['head'], self.message['rpt'], self.aftn_nnnn]
+            items = [self.aftn_zczc, self.aftn_adress, self.aftn_time, self.message, self.aftn_nnnn]
             aftn_message.append('\n'.join(items))
             number += 1
 
@@ -73,10 +73,9 @@ class SendBase(QtWidgets.QDialog, Ui_send.Ui_Send):
 
         self.raw_group.hide()
 
-    def receive_message(self, message):
+    def receive(self, message):
         self.message = message
-        rpt_with_head = '\n'.join([self.message['head'], self.message['rpt']])
-        self.rpt.setText(rpt_with_head)
+        self.rpt.setText(self.message['full'])
 
     def closeEvent(self, event):
         if event.spontaneous():
@@ -85,10 +84,10 @@ class SendBase(QtWidgets.QDialog, Ui_send.Ui_Send):
     def cancel_signal(self):
         if self.button_box.button(QtWidgets.QDialogButtonBox.Ok).isEnabled():
             self.signal_back.emit()
-            log.debug('emit back')
+            log.debug('Back to edit')
         else:
             self.signal_close.emit()
-            log.debug('emit close')
+            log.debug('Close send dialog')
 
     def clear(self):
         self.rpt.setText('')
@@ -113,7 +112,7 @@ class TAFSend(SendBase):
         self.signal_send.emit()
 
     def send(self):
-        self.aftn = AFTNMessage(self.message)
+        self.aftn = AFTNMessage(self.message['full'])
         self.raw.setText('\n\n\n\n'.join(self.aftn.raw()))
         self.raw_group.show()
         self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
@@ -149,8 +148,8 @@ class TaskTAFSend(SendBase):
 
             if task.plan <= now:
 
-                message = {'head': task.head, 'rpt': task.rpt}
-                aftn = AFTNMessage(message)
+                message = '\n'.join([task.head, task.rpt])
+                aftn = AFTNMessage(message, time=task.plan)
                 item = Tafor(tt=task.tt, head=task.head, rpt=task.rpt, raw=json.dumps(aftn.raw()))
                 db.add(item)
                 db.flush()
@@ -167,25 +166,31 @@ class TaskTAFSend(SendBase):
             log.debug('Task complete')
 
 
-if __name__ == "__main__":
-    import sys
-    import datetime
-    app = QtWidgets.QApplication(sys.argv)
+class TrendSend(SendBase):
 
-    message = dict()
-    message['rpt'] = 'TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR='
-    message['head'] = 'FCCI35 ZJHK 150726'
+    def __init__(self, parent=None):
+        super(TrendSend, self).__init__(parent)
 
-    # TAF Send
-    ui = TAFSend()
-    ui.receive_message(message)
+        self.setWindowIcon(QtGui.QIcon(':/fine.png'))
+        self.button_box.accepted.connect(self.send)
+        self.button_box.accepted.connect(self.save)
 
-    # Task TAF Send
-    # message['sch_time'] = datetime.datetime.utcnow() + datetime.timedelta(minutes=1)
+    def receive(self, message):
+        self.message = message
+        self.rpt.setText(self.message['rpt'])
 
-    # ui = TaskTAFSend()
-    # ui.receive_message(message)
+    def save(self):
+        item = Trend(sign=self.message['sign'], rpt=self.message['rpt'], raw=json.dumps(self.aftn.raw()))
+        db.add(item)
+        db.commit()
+        log.debug('Save ' + item.rpt)
+        self.signal_send.emit()
 
-    ui.show()
-    sys.exit(app.exec_())
+    def send(self):
+        self.aftn = AFTNMessage(self.message['full'], 'trend')
+        self.raw.setText('\n\n\n\n'.join(self.aftn.raw()))
+        self.raw_group.show()
+        self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
+
+
     

@@ -333,18 +333,18 @@ class TAFWidgetBecmg(EditWidgetBase, Ui_widget_becmg.Ui_Form):
     def check_required(self):
         self.required = False
         one_required = (
-                        self.nsc.isChecked(), 
-                        self.skc.isChecked(),
-                        self.cavok.isChecked(), 
-                        self.wind.hasAcceptableInput(), 
-                        self.vis.hasAcceptableInput(), 
-                        self.weather1.currentText(),
-                        self.weather2.currentText(),
-                        self.cloud1.hasAcceptableInput(), 
-                        self.cloud2.hasAcceptableInput(), 
-                        self.cloud3.hasAcceptableInput(), 
-                        self.cb.hasAcceptableInput()
-                        )
+            self.nsc.isChecked(), 
+            self.skc.isChecked(),
+            self.cavok.isChecked(), 
+            self.wind.hasAcceptableInput(), 
+            self.vis.hasAcceptableInput(), 
+            self.weather1.currentText(),
+            self.weather2.currentText(),
+            self.cloud1.hasAcceptableInput(), 
+            self.cloud2.hasAcceptableInput(), 
+            self.cloud3.hasAcceptableInput(), 
+            self.cb.hasAcceptableInput()
+        )
 
         if self.interval.hasAcceptableInput() and any(one_required):
             self.required = True
@@ -400,15 +400,15 @@ class TAFWidgetTempo(EditWidgetBase, Ui_widget_tempo.Ui_Form):
     def check_required(self):
         self.required = False
         one_required = (
-                        self.wind.hasAcceptableInput(), 
-                        self.vis.hasAcceptableInput(), 
-                        self.weather1.currentText(),
-                        self.weather2.currentText(),
-                        self.cloud1.hasAcceptableInput(), 
-                        self.cloud2.hasAcceptableInput(), 
-                        self.cloud3.hasAcceptableInput(), 
-                        self.cb.hasAcceptableInput()
-                        )
+            self.wind.hasAcceptableInput(), 
+            self.vis.hasAcceptableInput(), 
+            self.weather1.currentText(),
+            self.weather2.currentText(),
+            self.cloud1.hasAcceptableInput(), 
+            self.cloud2.hasAcceptableInput(), 
+            self.cloud3.hasAcceptableInput(), 
+            self.cb.hasAcceptableInput()
+        )
 
         if self.interval.hasAcceptableInput() and any(one_required):
             self.required = True
@@ -448,6 +448,7 @@ class TrendWidget(EditWidgetBase, Ui_widget_trend.Ui_Form):
     def validate(self):
         super(TrendWidget, self).validate()
 
+        # 还未验证输入个数
         valid_period = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['interval']))
         self.period.setValidator(valid_period)
 
@@ -500,6 +501,9 @@ class TrendWidget(EditWidgetBase, Ui_widget_trend.Ui_Form):
     def check_required(self):
         self.required = False
         one_required = (
+            self.nsc.isChecked(), 
+            self.skc.isChecked(),
+            self.cavok.isChecked(), 
             self.wind.hasAcceptableInput(), 
             self.vis.hasAcceptableInput(), 
             self.weather1.currentText(),
@@ -528,6 +532,51 @@ class TrendWidget(EditWidgetBase, Ui_widget_trend.Ui_Form):
 
         self.signal_required.emit(self.required)
 
+    def message(self):
+        super(TrendWidget, self).message()
+
+        if self.nosig.isChecked():
+            self.msg = 'NOSIG'
+        else:
+            msg_list = []
+
+            if self.becmg.isChecked():
+                trend_type = 'BECMG'
+            if self.tempo.isChecked():
+                trend_type = 'TEMPO'
+
+            msg_list.append(trend_type)
+
+            if any((self.at.isChecked(), self.fm.isChecked(), self.tl.isChecked())):
+                if self.at.isChecked():
+                    trend_prefix = 'AT'
+                if self.fm.isChecked():
+                    trend_prefix = 'FM'
+                if self.tl.isChecked():
+                    trend_prefix = 'TL'
+
+                period = trend_prefix + self.period.text()
+                msg_list.append(period)
+
+            msg_list.append(self.msg)
+            self.msg = ' '.join(msg_list)
+
+        return self.msg
+
+    def clear(self):
+        super(TrendWidget, self).clear()
+
+        self.at.setChecked(False)
+        self.fm.setChecked(False)
+        self.tl.setChecked(False)
+        self.nosig.setChecked(False)
+
+        self.cavok.setChecked(False)
+        self.skc.setChecked(False)
+        self.nsc.setChecked(False)
+
+        self.period.setEnabled(False)
+        self.period.clear()
 
 class RecentItem(QtWidgets.QWidget, Ui_widget_recent_item.Ui_Form):
     """docstring for RecentItem"""

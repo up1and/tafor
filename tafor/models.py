@@ -58,12 +58,13 @@ class Task(Base):
 class Trend(Base):
     __tablename__ = 'trends'
     id = Column(Integer, primary_key=True)
+    sign = Column(String(16))
     rpt = Column(String(255))
     raw = Column(String(255))
     sent = Column(DateTime, default=datetime.datetime.utcnow)
 
-    def __init__(self, rpt, raw=None):
-        self.tt = tt
+    def __init__(self, sign, rpt, raw=None):
+        self.sign = sign
         self.rpt = rpt
         self.raw = raw
 

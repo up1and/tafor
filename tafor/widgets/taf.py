@@ -348,9 +348,9 @@ class TAFEdit(TAFEditBase):
         self.primary.date.setEnabled(False)
 
     def preview_message(self):
-        message = {'rpt': self.rpt, 'head': self.head}
+        message = {'head': self.head, 'rpt':self.rpt, 'full': '\n'.join([self.head, self.rpt])}
         self.signal_preview.emit(message)
-        log.debug('Emit', message)
+        log.debug('TAF Edit ' + message['full'])
 
 
 class TaskTAFEdit(TAFEditBase):
@@ -369,7 +369,7 @@ class TaskTAFEdit(TAFEditBase):
         self.primary.date.editingFinished.connect(self.get_period_duration)
         
     def preview_message(self):
-        message = {'head': self.head, 'rpt':self.rpt, 'plan': self.time}
+        message = {'head': self.head, 'rpt':self.rpt, 'full': '\n'.join([self.head, self.rpt]), 'plan': self.time}
         self.signal_preview.emit(message)
         log.debug('Emit', message)
 

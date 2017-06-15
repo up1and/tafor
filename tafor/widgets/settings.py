@@ -99,6 +99,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
             self.auto_run_setting.remove("Tafor.exe")
 
         self.set_value('convention/close_to_minimize', 'close_to_minimize', 'bool')
+        self.set_value('convention/debug', 'debug_mode', 'bool')
 
         self.set_value('message/icao', 'icao')
         self.set_value('message/intelligence', 'intelligence')
@@ -150,6 +151,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
         self.run_on_start.setChecked(self.auto_run_setting.contains("Tafor.exe"))
 
         self.load_value('convention/close_to_minimize', 'close_to_minimize', 'bool')
+        self.load_value('convention/debug', 'debug_mode', 'bool')
 
         self.load_value('message/icao', 'icao')
         self.load_value('message/intelligence', 'intelligence')

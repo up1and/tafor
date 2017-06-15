@@ -9,7 +9,7 @@ from PyQt5.QtCore import *
 from tafor.widgets.common import TrendWidget
 from tafor.utils import TAFPeriod, Parser, REGEX_TAF
 from tafor.models import Trend
-from tafor import db, log
+from tafor import db, setting, log
 
 
 class TrendEdit(QDialog):
@@ -21,6 +21,9 @@ class TrendEdit(QDialog):
         super(TrendEdit, self).__init__(parent)
         self.init_ui()
         self.bind_signal()
+        
+        self.setWindowTitle("编发趋势")
+        self.setWindowIcon(QIcon(':/fine.png'))
 
     def init_ui(self):
         window = QWidget(self)
@@ -41,16 +44,26 @@ class TrendEdit(QDialog):
         self.trend.signal_required.connect(self.enbale_next_button)
 
         # 下一步
-        # self.next_button.clicked.connect(self.assemble_message)
-        # self.next_button.clicked.connect(self.preview_message)
+        self.next_button.clicked.connect(self.assemble_message)
+        self.next_button.clicked.connect(self.preview_message)
 
     def enbale_next_button(self):
         enbale = self.trend.required
         log.debug('Trend required ' + str(enbale))
         self.next_button.setEnabled(enbale)
 
+    def assemble_message(self):
+        message = self.trend.message()
+        self.rpt = message + '='
+        self.sign = setting.value('message/trend_sign')
+
+    def preview_message(self):
+        message = {'sign': self.sign, 'rpt': self.rpt, 'full': ' '.join([self.sign, self.rpt])}
+        self.signal_preview.emit(message)
+        log.debug('Emit', message)
+
     def clear(self):
-        pass
+        self.trend.clear()
 
 
     def closeEvent(self, event):

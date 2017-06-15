@@ -7,7 +7,7 @@ from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 from tafor.widgets.ui import Ui_main, main_rc
 from tafor.widgets.taf import TAFEdit, TaskTAFEdit
 from tafor.widgets.trend import TrendEdit
-from tafor.widgets.send import TaskTAFSend, TAFSend
+from tafor.widgets.send import TaskTAFSend, TAFSend, TrendSend
 from tafor.widgets.settings import SettingDialog
 from tafor.widgets.tasks import TaskTable
 from tafor.models import Tafor, Task, User
@@ -32,32 +32,39 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
         # 初始TAF对话框
         self.taf_edit_dialog = TAFEdit(self)
-        self.sch_taf_edit_dialog = TaskTAFEdit(self)
+        self.task_taf_edit_dialog = TaskTAFEdit(self)
         self.trend_edit_dialog = TrendEdit(self)
+
         self.taf_send_dialog = TAFSend(self)
         self.task_taf_send_dialog = TaskTAFSend(self)
+        self.trend_send_dialog = TrendSend(self)
+
         self.task_table_dialog = TaskTable(self)
         self.setting_dialog = SettingDialog(self)
 
         # 连接TAF对话框信号
         self.taf_edit_dialog.signal_preview.connect(self.handle_taf_edit)
         self.taf_send_dialog.signal_send.connect(self.update_gui)
-
-        self.sch_taf_edit_dialog.signal_preview.connect(self.handle_sch_taf_edit)
-        self.task_taf_send_dialog.signal_send.connect(self.handle_sch_taf_send)
-
         self.taf_send_dialog.signal_back.connect(self.taf_edit_dialog.show)
         self.taf_send_dialog.signal_close.connect(self.taf_edit_dialog.close)
+
+        self.task_taf_edit_dialog.signal_preview.connect(self.handle_task_taf_edit)
+        self.task_taf_send_dialog.signal_send.connect(self.handle_task_taf_send)
+
+        self.trend_edit_dialog.signal_preview.connect(self.handle_trend_edit)
+        self.trend_send_dialog.signal_send.connect(self.update_gui)
+        self.trend_send_dialog.signal_back.connect(self.trend_edit_dialog.show)
+        self.trend_send_dialog.signal_close.connect(self.trend_edit_dialog.close)
 
         # 连接菜单信号
         self.taf_action.triggered.connect(self.taf_edit_dialog.show)
         self.trend_action.triggered.connect(self.trend_edit_dialog.show)
 
         # # 添加定时任务菜单
-        # self.sch_taf_action = QtWidgets.QAction(self)
-        # self.post_menu.addAction(self.sch_taf_action)
-        # self.sch_taf_action.setText('定时任务')
-        # self.sch_taf_action.triggered.connect(self.sch_taf_edit_dialog.show)
+        # self.task_taf_action = QtWidgets.QAction(self)
+        # self.post_menu.addAction(self.task_taf_action)
+        # self.task_taf_action.setText('定时任务')
+        # self.task_taf_action.triggered.connect(self.task_taf_edit_dialog.show)
 
         # 连接设置对话框的槽
         self.setting_action.triggered.connect(self.setting_dialog.exec_)
@@ -190,18 +197,24 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.statusbar.showMessage('已复制  ' + item.text())
 
     def handle_taf_edit(self, message):
-        log.debug('receive from taf edit ' + message['rpt'])
+        log.debug('Receive from taf edit ' + message['full'])
         self.taf_edit_dialog.hide()
-        self.taf_send_dialog.receive_message(message)
+        self.taf_send_dialog.receive(message)
         self.taf_send_dialog.show()
 
-    def handle_sch_taf_edit(self, message):
-        log.debug('receive from sch taf edit ' + message['rpt'])
-        self.task_taf_send_dialog.receive_message(message)
+    def handle_task_taf_edit(self, message):
+        log.debug('Receive from task taf edit ' + message['full'])
+        self.task_taf_send_dialog.receive(message)
         self.task_taf_send_dialog.show()
 
-    def handle_sch_taf_send(self):
-        self.sch_taf_edit_dialog.hide()
+    def handle_trend_edit(self, message):
+        log.debug('Receive from task taf edit ' + message['full'])
+        self.trend_edit_dialog.hide()
+        self.trend_send_dialog.receive(message)
+        self.trend_send_dialog.show()
+
+    def handle_task_taf_send(self):
+        self.task_taf_edit_dialog.hide()
         self.task_taf_send_dialog.hide()
         self.task_table_dialog.show()
         self.task_table_dialog.update_gui()
@@ -222,7 +235,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
     def keyPressEvent(self, event):
         if event.modifiers() == (QtCore.Qt.ShiftModifier | QtCore.Qt.ControlModifier):
             if event.key() == QtCore.Qt.Key_P:
-                self.sch_taf_edit_dialog.show()
+                self.task_taf_edit_dialog.show()
             if event.key() == QtCore.Qt.Key_T:
                 self.task_table_dialog.show()
 
@@ -232,14 +245,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             self.hide()
         else:
             self.taf_edit_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-            self.sch_taf_edit_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            self.task_taf_edit_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
             self.taf_send_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
             self.task_taf_send_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
             self.task_table_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
             self.setting_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
             self.taf_edit_dialog.close()
-            self.sch_taf_edit_dialog.close()
+            self.task_taf_edit_dialog.close()
             self.taf_send_dialog.close()
             self.task_taf_send_dialog.close()
             self.task_table_dialog.close()
