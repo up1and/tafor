@@ -38,6 +38,7 @@ nosetests.xml
 *.e4p
 *.autosave
 db.sqlite3
+sample.html
 _eric6project/
 .eric6project/
 .vscode
