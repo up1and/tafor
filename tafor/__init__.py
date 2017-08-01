@@ -1,3 +1,4 @@
+import os
 import sys
 import logging
 
@@ -6,6 +7,8 @@ from tafor.models import Session
 
 
 __version__ = "1.0.0"
+
+basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 def setup_log(debug=False):

@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+import os
 import datetime
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
+from PyQt5.QtMultimedia import QSound, QSoundEffect
 
 from tafor.widgets.ui import Ui_main, main_rc
 from tafor.widgets.taf import TAFEdit, TaskTAFEdit
@@ -13,7 +15,7 @@ from tafor.widgets.tasks import TaskTable
 from tafor.models import Tafor, Task, User
 from tafor.widgets.common import RecentItem
 from tafor.utils import TAFPeriod, force_bool
-from tafor import db, setting, log, __version__
+from tafor import db, setting, log, basedir, __version__
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
@@ -103,10 +105,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.recent_ft = RecentItem()
         self.recent_layout.addWidget(self.recent_ft)
 
+        # 载入声音
+        self.sound_ring = self.load_sound('ring')
+        self.sound_notify = self.load_sound('notify')
+        self.sound_alarm = self.load_sound('alarm')
+        self.sound_trend = self.load_sound('trend')
+
         # 自动发送报文的计时器
-        self.auto_sentr = QtCore.QTimer()
-        self.auto_sentr.timeout.connect(self.task_taf_send_dialog.auto_send)
-        self.auto_sentr.start(30 * 1000)
+        self.auto_sent = QtCore.QTimer()
+        self.auto_sent.timeout.connect(self.task_taf_send_dialog.auto_send)
+        self.auto_sent.start(30 * 1000)
 
         # 时钟计时器
         self.clock_timer = QtCore.QTimer()
@@ -115,6 +123,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.clock_timer.timeout.connect(self.update_current_taf)
         self.clock_timer.timeout.connect(self.taf_edit_dialog.update_date)
         self.clock_timer.timeout.connect(self.reset_serial_number)
+        self.clock_timer.timeout.connect(self.play)
         self.clock_timer.start(1 * 1000)
 
         self.warn_timer = QtCore.QTimer()
@@ -218,6 +227,29 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.task_taf_send_dialog.hide()
         self.task_table_dialog.show()
         self.task_table_dialog.update_gui()
+
+    def load_sound(self, name):
+        sounds = {
+            'alarm': 'alarm.wav',
+            'notify': 'notify.wav',
+            'ring': 'ring.wav',
+            'trend': 'trend.wav'
+        }
+
+        file = os.path.join(basedir, 'sounds', sounds[name])
+
+        effect = QSoundEffect()
+        effect.setSource(QtCore.QUrl.fromLocalFile(file))
+        effect.setLoopCount(QSoundEffect.Infinite)
+        # effect.setVolume(0.25)
+
+        return effect
+
+    def play(self):
+        # if not self.sound_alarm.isPlaying():
+        #     self.sound_alarm.play()
+        pass
+
 
     def event(self, event):
         """
