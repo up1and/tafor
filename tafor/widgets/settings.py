@@ -1,8 +1,8 @@
 import json
 from PyQt5 import QtCore, QtGui, QtWidgets
 from tafor.widgets.ui import Ui_settings, main_rc
-from tafor.models import User
-from tafor import db, setting
+from tafor.models import Session, User
+from tafor import setting
 from tafor.utils import force_bool
 
 
@@ -12,6 +12,8 @@ class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
         super(SettingDialog, self).__init__(parent)
         self.setupUi(self)
         self.setWindowIcon(QtGui.QIcon(':/setting.png'))
+
+        self.db = Session()
 
         # 开机自动启动设置
         self.auto_run_setting = QtCore.QSettings('HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run', QtCore.QSettings.NativeFormat)
@@ -59,8 +61,8 @@ class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
         number = self.person_phone_number.text()
         if name and number:
             person = User(name, number)
-            db.add(person)
-            db.commit()
+            self.db.add(person)
+            self.db.commit()
 
         self.update_contract()
 
@@ -68,14 +70,14 @@ class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
         row = self.contract_table.currentRow()
         name = self.contract_table.item(row, 0).text()
 
-        person = db.query(User).filter_by(name=name).first()
-        db.delete(person)
-        db.commit()
+        person = self.db.query(User).filter_by(name=name).first()
+        self.db.delete(person)
+        self.db.commit()
 
         self.update_contract()
 
     def update_contract(self):
-        items = db.query(User).all()
+        items = self.db.query(User).all()
         self.contract_table.setRowCount(len(items))
 
         for row, item in enumerate(items):
@@ -229,7 +231,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
                 pass
 
         if mold == 'phone_number':
-            person = db.query(User).filter_by(phone_number=val).first()
+            person = self.db.query(User).filter_by(phone_number=val).first()
             if person:
                 index = target.findText(person.name, QtCore.Qt.MatchFixedString)
                 target.setCurrentIndex(index)
@@ -258,7 +260,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
 
         if mold == 'phone_number':
             name = target.currentText()
-            person = db.query(User).filter_by(name=name).first()
+            person = self.db.query(User).filter_by(name=name).first()
             val = person.phone_number if person else ''
 
         setting.setValue(path, val)

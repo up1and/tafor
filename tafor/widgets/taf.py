@@ -7,9 +7,9 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 from tafor.widgets.common import TAFWidgetPrimary, TAFWidgetBecmg, TAFWidgetTempo
-from tafor.utils import TAFPeriod, Parser, REGEX_TAF
-from tafor.models import Tafor, Task
-from tafor import db, log
+from tafor.utils import CheckTAF, Parser, REGEX_TAF
+from tafor.models import Session, Tafor, Task
+from tafor import log
 
 
 class TAFEditBase(QDialog):
@@ -19,6 +19,9 @@ class TAFEditBase(QDialog):
 
     def __init__(self, parent=None):
         super(TAFEditBase, self).__init__(parent)
+
+        self.db = Session()
+
         self.init_ui()
         self.bind_signal()
         self.update_date()
@@ -182,23 +185,23 @@ class TAFEditBase(QDialog):
             self.period_duration = self.get_period_duration()
 
     def set_normal_period(self, is_task=False):
-        period = TAFPeriod(self.tt, self.time)
+        taf = CheckTAF(self.tt, self.time)
 
-        current_period = period.current() if is_task else period.warn()
+        current_period = taf.current_period() if is_task else taf.warn_period()
 
-        if current_period and period.is_existed(current_period) or not self.primary.date.hasAcceptableInput():
-            self.primary.period.setText('')
+        if current_period and taf.existed_in_local(current_period) or not self.primary.date.hasAcceptableInput():
+            self.primary.period.clear()
         else:
             self.primary.period.setText(current_period)
 
     def set_amend_period(self):
-        period = TAFPeriod(self.tt, self.time)
-        self.amd_period = period.warn()
+        taf = CheckTAF(self.tt, self.time)
+        self.amd_period = taf.warn_period()
         self.primary.period.setText(self.amd_period)
 
     def get_amend_number(self, sign):
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        query = db.query(Tafor).filter(Tafor.rpt.contains(self.amd_period), Tafor.sent > expired)
+        query = self.db.query(Tafor).filter(Tafor.rpt.contains(self.amd_period), Tafor.sent > expired)
         if sign == 'COR':
             items = query.filter(Tafor.rpt.contains('COR')).all()
             order = chr(ord('A') + len(items))

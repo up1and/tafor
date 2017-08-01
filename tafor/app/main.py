@@ -12,10 +12,10 @@ from tafor.widgets.trend import TrendEdit
 from tafor.widgets.send import TaskTAFSend, TAFSend, TrendSend
 from tafor.widgets.settings import SettingDialog
 from tafor.widgets.tasks import TaskTable
-from tafor.models import Tafor, Task, User
+from tafor.models import Session, Tafor, Task, User
 from tafor.widgets.common import RecentItem
-from tafor.utils import TAFPeriod, force_bool
-from tafor import db, setting, log, basedir, __version__
+from tafor.utils import CheckTAF, listen, force_bool
+from tafor import setting, log, basedir, __version__
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
@@ -28,6 +28,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         """
         super(MainWindow, self).__init__(parent)
         self.setupUi(self)
+
+        self.db = Session()
 
         # 初始化剪贴板
         self.clip = QtWidgets.QApplication.clipboard()
@@ -126,15 +128,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.clock_timer.timeout.connect(self.play)
         self.clock_timer.start(1 * 1000)
 
-        self.warn_timer = QtCore.QTimer()
-        self.warn_timer.timeout.connect(self.update_gui)
-        self.warn_timer.timeout.connect(self.task_table_dialog.update_gui)
-        self.warn_timer.start(60 * 1000)
+        self.worker_timer = QtCore.QTimer()
+        self.worker_timer.timeout.connect(self.update_gui)
+        self.worker_timer.timeout.connect(self.task_table_dialog.update_gui)
+        self.worker_timer.timeout.connect(self.worker)
+        self.worker_timer.start(60 * 1000)
 
         self.update_gui()
+        self.worker()
 
     def set_change_contract_menu(self):
-        contacts = db.query(User).all()
+        contacts = self.db.query(User).all()
 
         for person in contacts:
             setattr(self, 'contract_' + str(person.id), QtWidgets.QAction(self))
@@ -146,7 +150,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             self.contracts_menu.addAction(target)
 
         phone_number = setting.value('monitor/phone/select_phone_number')
-        person = db.query(User).filter_by(phone_number=phone_number).first()
+        person = self.db.query(User).filter_by(phone_number=phone_number).first()
         if setting.value('monitor/phone/phone_warn_taf') and person:
             getattr(self, 'contract_' + str(person.id)).setChecked(True)
         else:
@@ -180,7 +184,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             setting.setValue('monitor/phone/phone_warn_taf', False)
         else:
             name = target.text()
-            person = db.query(User).filter_by(name=name).first()
+            person = self.db.query(User).filter_by(name=name).first()
             phone_number = person.phone_number if person else ''
 
             setting.setValue('monitor/phone/phone_warn_taf', True)
@@ -304,6 +308,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         if self.isMinimized():
             self.showNormal()
 
+    def worker(self):
+        self.thread = CheckTAFThread()
+        self.thread.done.connect(self.update_gui)
+        self.thread.start()
+
     def update_gui(self):
         self.update_taf_table()
         self.update_recent()
@@ -313,7 +322,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         log.debug('Update GUI')
 
     def update_taf_table(self):
-        items = db.query(Tafor).order_by(Tafor.sent.desc()).all()
+        items = self.db.query(Tafor).order_by(Tafor.sent.desc()).all()
         if len(items) > 12:
             items = items[0:12]
         header = self.taf_table.horizontalHeader()
@@ -357,8 +366,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         raise NotImplemented
 
     def update_recent(self):
-        fc = db.query(Tafor).filter_by(tt='FC').order_by(Tafor.sent.desc()).first()
-        ft = db.query(Tafor).filter_by(tt='FT').order_by(Tafor.sent.desc()).first()
+        fc = self.db.query(Tafor).filter_by(tt='FC').order_by(Tafor.sent.desc()).first()
+        ft = self.db.query(Tafor).filter_by(tt='FT').order_by(Tafor.sent.desc()).first()
 
         if fc:
             self.recent_fc.set_item(fc)
@@ -385,11 +394,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             log.debug('Reset serial number')
 
     def next_taf(self, tt):
-        taf = TAFPeriod(tt)
-        if taf.is_existed(taf.warn()):
+        taf = CheckTAF(tt)
+        if taf.existed_in_local():
             text = ''
         else:
-            text = tt + taf.warn()[2:]
+            text = tt + taf.warn_period()[2:]
         return text
 
 
@@ -401,6 +410,30 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
                 <p>项目源码 <a href="http://git.oschina.net/piratecb/tafor">http://git.oschina.net/piratecb/tafor</a>
                 <p>联系邮箱 <a href="mailto:piratecb@gmail.com">piratecb@gmail.com</a>
                 """ % (__version__))
+
+
+class CheckTAFThread(QtCore.QThread):
+    """
+    检查预报报文线程类
+    """
+    done = QtCore.pyqtSignal(dict)
+
+    def __init__(self, parent=None):
+        super(CheckTAFThread, self).__init__(parent)
+
+    def run(self):
+        data = {}
+        # fc = Listen('FC')
+        # ft = Listen('FT')
+        # data['FC'] = {'tt': fc.tt, 'message': fc.info, 'warn': fc.warn, 'call_status': fc.call_status}
+        # data['FT'] = {'tt': ft.tt, 'message': ft.info, 'warn': ft.warn, 'call_status': ft.call_status}
+
+        # fc = listen('FC')
+
+        fc = CheckTAF('FC', remote=True)
+        print(fc.message)
+
+        self.done.emit(data)
 
 
 def main():

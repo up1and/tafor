@@ -86,7 +86,7 @@ class User(Base):
 
 
 # 初始化数据库连接:
-engine = create_engine(Config.SQLALCHEMY_DATABASE_URI, echo=False)
+engine = create_engine(Config.SQLALCHEMY_DATABASE_URI, connect_args={'check_same_thread': False}, echo=False)
 # 创建DBSession类型:
 Session = sessionmaker(bind=engine)
 # 创建表

@@ -53,7 +53,7 @@ def remote_latest(icao):
 
     try:
         response = requests.post(url, params=post_data, timeout=1)
-        messages = [msg['RPT'].strip() for msg in response.json()]
+        messages = [msg['RPT'].strip().replace('\n', ' ') for msg in response.json()]
 
         if len(messages) == 2:
             return jsonify({'SA': messages[0], 'FC': messages[1]})

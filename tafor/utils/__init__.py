@@ -1,4 +1,4 @@
-from tafor.utils.check import TAFPeriod
+from tafor.utils.check import CheckTAF, listen
 from tafor.utils.validator import Parser, Validator, REGEX_TAF
 
 

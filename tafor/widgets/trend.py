@@ -7,9 +7,8 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 from tafor.widgets.common import TrendWidget
-from tafor.utils import TAFPeriod, Parser, REGEX_TAF
-from tafor.models import Trend
-from tafor import db, setting, log
+from tafor.utils import CheckTAF, Parser, REGEX_TAF
+from tafor import setting, log
 
 
 class TrendEdit(QDialog):
