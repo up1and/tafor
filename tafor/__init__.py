@@ -14,7 +14,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 def setup_log(debug=False):
     log_level = logging.DEBUG if debug else logging.INFO
 
-    _format = '[%(asctime)s] %(filename)s %(funcName)s %(levelname)s %(message)s'
+    _format = '[%(asctime)s] %(levelname)s %(message)s'
     formatter = logging.Formatter(_format)
 
     # set stdout

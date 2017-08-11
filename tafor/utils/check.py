@@ -13,13 +13,19 @@ def get_remote_message(tt):
     url = setting.value('monitor/db/web_url')
     try:
         response = requests.get(url)
-        print(response)
-        return response.json()[tt]
+        if response.status_code == 200:
+            return response.json()[tt]
     except Exception as e:
         log.error(e)
 
 def make_call(phone_number):
-    print('call')
+    url = setting.value('monitor/phone/call_service_url')
+    token = setting.value('monitor/phone/call_service_auth')
+    try:
+        response = requests.post(url, data={'token': token, 'phone_number': phone_number})
+        return response.json()
+    except Exception as e:
+        logger.error(e)
 
 
 class CheckTAF(object):
@@ -78,18 +84,18 @@ class CheckTAF(object):
         return recent
 
     def existed_in_remote(self):
-        if self.message:
+        try:
             regex_period = re.compile(REGEX_TAF['common']['period'])
-            period = regex_period.match(self.message).groupdict()
-            print(period)
-            # return self.message[17:23] == self.warn_period()
-            return period
+            period = regex_period.search(self.message).group()
+            return period == self.warn_period()
+        except Exception as e:
+            raise e
 
     def save(self):
         last = self.db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()
 
-        if last is None or last.rpt != self.message:  # 如果数据表为空 或 最后一条数据和远程不相等
-            item = Tafor(tt=self.tt, rpt=self.message, confirmed=True)
+        if last is None or last.format_rpt != self.message:  # 如果数据表为空 或 最后一条数据和远程不相等
+            item = Tafor(tt=self.tt, rpt=self.message, confirmed=self.time)
             self.db.add(item)
             self.db.commit()
             return True
@@ -98,8 +104,8 @@ class CheckTAF(object):
     def confirm(self):
         last = self.db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()
 
-        if last is not None and last.rpt == self.message:
-            last.update().values(confirmed=True)
+        if last is not None and last.format_rpt == self.message:
+            last.confirmed = self.time
             self.db.commit()
             return True
         return False
@@ -124,26 +130,26 @@ class CheckTAF(object):
 
 
 def listen(tt):
+    call_switch = setting.value('monitor/phone/phone_warn_taf')
+    phone_number = setting.value('monitor/phone/select_phone_number')
+
     taf = CheckTAF(tt, remote=True)
-    call_option = setting.value('monitor/phone/phone_warn_taf')
-    phone_number = 'phone_number'
+    message = taf.existed_in_local()
     warn = False
 
-    print(taf.existed_in_remote(), taf.existed_in_local())
-
-    if not taf.existed_in_local():
+    if message and not message.confirmed:
+        if taf.existed_in_remote():
+            taf.confirm()
+        elif taf.overdued():
+            warn = True
+    else:
         if taf.existed_in_remote():
             taf.save()
         elif taf.overdued():
             warn = True
-    else:
-        # 如果本地库有 但没确认 检查远程库
-        message = taf.existed_in_local()
-        if not message.confirmed and taf.existed_in_remote():
-            taf.confirmed()
 
-    return 'listen'
-    # if call_option and warn:
-    #     make_call(phone_number)
+    if warn and call_switch:
+        make_call(phone_number)
 
+    return warn
 

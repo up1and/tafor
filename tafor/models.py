@@ -17,22 +17,27 @@ class Tafor(Base):
     __tablename__ = 'tafors'
     id = Column(Integer, primary_key=True)
     tt = Column(String(2))
-    head = Column(String(255))
+    head = Column(String(255), nullable=True)
     rpt = Column(String(255))
-    raw = Column(String(255))
+    raw = Column(String(255), nullable=True)
     sent = Column(DateTime, default=datetime.datetime.utcnow)
-    confirmed = Column(DateTime)
+    confirmed = Column(DateTime, nullable=True)
 
     # task = relationship('tasks', lazy='dynamic')
 
-    def __init__(self, tt, head, rpt, raw=None):
+    def __init__(self, tt, rpt, head=None, raw=None, confirmed=None):
         self.tt = tt
         self.head = head
         self.rpt = rpt
         self.raw = raw
+        self.confirmed = confirmed
 
     def __repr__(self):
         return '<TAF %r %r>' % (self.tt, self.rpt)
+
+    @property
+    def format_rpt(self):
+        return self.rpt.replace('\n', ' ')
 
 
 class Task(Base):

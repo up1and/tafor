@@ -195,13 +195,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
     def update_tray_tips(self):
         alarm_status = force_bool(setting.value('monitor/phone/phone_warn_taf'))
 
-        title = '预报发报软件 v' + __version__
-        taf_text = self.next_taf('FC') + ' ' + self.next_taf('FT')
-        alarm_text = '告警状态：开启' if alarm_status else '告警状态：关闭'
-        phone_text = '告警电话：' + setting.value('monitor/phone/select_phone_number') if alarm_status else None
-
-        message_list = filter(None, [title, alarm_text, phone_text, taf_text])
-        message = '\n'.join(message_list)
+        message = '预报发报软件 v' + __version__
 
         self.tray.setToolTip(message)
 
@@ -335,7 +329,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
         for row, item in enumerate(items):
             self.taf_table.setItem(row, 0,  QtWidgets.QTableWidgetItem(item.tt))
-            self.taf_table.setItem(row, 1,  QtWidgets.QTableWidgetItem(item.rpt))
+            self.taf_table.setItem(row, 1,  QtWidgets.QTableWidgetItem(item.format_rpt))
             if item.sent:
                 sent = item.sent.strftime("%Y-%m-%d %H:%M:%S")
                 self.taf_table.setItem(row, 2,  QtWidgets.QTableWidgetItem(sent))
@@ -430,8 +424,9 @@ class CheckTAFThread(QtCore.QThread):
 
         # fc = listen('FC')
 
-        fc = CheckTAF('FC', remote=True)
-        print(fc.message)
+        fc = listen('FC')
+        ft = listen('FT')
+        print(fc, ft)
 
         self.done.emit(data)
 

@@ -52,7 +52,7 @@ def remote_latest(icao):
     }
 
     try:
-        response = requests.post(url, params=post_data, timeout=1)
+        response = requests.post(url, params=post_data, timeout=5)
         messages = [msg['RPT'].strip().replace('\n', ' ') for msg in response.json()]
 
         if len(messages) == 2:

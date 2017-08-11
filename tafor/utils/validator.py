@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import re
 
 REGEX_TAF = {
@@ -254,5 +252,9 @@ class Validator(object):
 
 
 
-
-# print(Validator.clouds('SCT020', 'SCT010 FEW023CB'))
+if __name__ == '__main__':
+    # print(Validator.clouds('SCT020', 'SCT010 FEW023CB'))
+    message = 'TAF AMD ZJHK 110702Z 110918 19003MPS 9999 SCT020 TX32/09Z TN27/18Z TEMPO 0912 TS SCT020 FEW026CB='
+    regex_period = re.compile(REGEX_TAF['common']['period'])
+    period = regex_period.search(message).group()
+    print(period)
