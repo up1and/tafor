@@ -426,7 +426,7 @@ class CheckTAFThread(QtCore.QThread):
 
         fc = listen('FC')
         ft = listen('FT')
-        print(fc, ft)
+        # print(fc, ft)
 
         self.done.emit(data)
 

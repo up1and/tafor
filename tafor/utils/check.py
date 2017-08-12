@@ -23,9 +23,10 @@ def make_call(phone_number):
     token = setting.value('monitor/phone/call_service_auth')
     try:
         response = requests.post(url, data={'token': token, 'phone_number': phone_number})
+        log.info('call {}'.format(phone_number))
         return response.json()
     except Exception as e:
-        logger.error(e)
+        log.error(e)
 
 
 class CheckTAF(object):
@@ -89,7 +90,7 @@ class CheckTAF(object):
             period = regex_period.search(self.message).group()
             return period == self.warn_period()
         except Exception as e:
-            raise e
+            log.error(e)
 
     def save(self):
         last = self.db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()
