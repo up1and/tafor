@@ -123,7 +123,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.clock_timer = QtCore.QTimer()
         self.clock_timer.timeout.connect(self.update_utc_time)
         self.clock_timer.timeout.connect(self.update_tray_tips)
-        self.clock_timer.timeout.connect(self.update_current_taf)
+        # self.clock_timer.timeout.connect(self.update_current_taf)
         self.clock_timer.timeout.connect(self.taf_edit_dialog.update_date)
         self.clock_timer.timeout.connect(self.reset_serial_number)
         self.clock_timer.timeout.connect(self.play)
@@ -313,8 +313,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.update_taf_table()
         self.update_metar_table()
         self.update_recent()
-        self.update_utc_time()
-        self.update_current_taf()
 
         log.debug('Update GUI')
 
@@ -337,14 +335,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
                 self.taf_table.setItem(row, 2,  QtWidgets.QTableWidgetItem(sent))
 
             if item.confirmed:
-                check_item = QtWidgets.QTableWidgetItem('√')
-                # check_item.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-                # check_item.setIcon(QIcon(':/check.png'))
+                check_item = QtWidgets.QTableWidgetItem()
+                check_item.setTextAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
+                check_item.setIcon(QtGui.QIcon(':/check.png'))
                 self.taf_table.setItem(row, 3, check_item)
             else:
-                check_item = QtWidgets.QTableWidgetItem('×')
-                # check_item.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-                # check_item.setIcon(QIcon(':/warn.png'))
+                check_item = QtWidgets.QTableWidgetItem()
+                check_item.setTextAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
+                check_item.setIcon(QtGui.QIcon(':/warn.png'))
                 self.taf_table.setItem(row, 3, check_item)
 
             # if item.task:
@@ -354,7 +352,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             #     self.taf_table.setItem(row, 4, task_item)
 
 
-        #self.taf_table.setStyleSheet("QTableWidget::item {padding: 5px 0;}")
+        # self.taf_table.setStyleSheet("QTableWidget::item {padding: 5px 0;}")
         # self.taf_table.resizeRowsToContents()
 
 
@@ -386,6 +384,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             self.recent_ft.set_item(ft)
         else:
             self.recent_ft.hide()
+
+        self.update_utc_time()
+        self.update_current_taf()
 
     def update_utc_time(self):
         utc = datetime.datetime.utcnow()

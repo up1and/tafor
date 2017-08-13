@@ -83,17 +83,15 @@ class CheckTAF(object):
         return recent
 
     def existed_in_remote(self):
-        try:
+        if self.remote:
             regex_period = re.compile(REGEX_TAF['common']['period'])
             period = regex_period.search(self.remote).group()
             return period == self.warn_period()
-        except Exception as e:
-            log.error(e)
 
     def save(self):
         last = self.db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()
 
-        if last is None or self.remote and last.format_rpt != self.remote:  # 如果数据表为空 或 最后一条数据和远程不相等
+        if last is None or last.format_rpt != self.remote:  # 如果数据表为空 或 最后一条数据和远程不相等
             item = Tafor(tt=self.tt, rpt=self.remote, confirmed=self.time)
             self.db.add(item)
             self.db.commit()
@@ -136,7 +134,7 @@ class CheckMetar(object):
     def save(self):
         last = self.db.query(Metar).filter_by(tt=self.tt).order_by(Metar.created.desc()).first()
         
-        if last is None or self.remote and last.rpt != self.remote:
+        if last is None or last.rpt != self.remote:
             item = Metar(tt=self.tt, rpt=self.remote)
             self.db.add(item)
             self.db.commit()
@@ -175,5 +173,6 @@ class Listen(object):
 
     def metar(self):
         metar = CheckMetar(self.tt, remote=self.remote)
-        metar.save()
+        if self.remote:
+            metar.save()
 
