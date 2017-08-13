@@ -8,8 +8,7 @@ from tafor.models import Session
 
 __version__ = "1.0.0"
 
-basedir = os.path.abspath(os.path.dirname(__file__))
-
+BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
 def setup_log(debug=False):
     log_level = logging.DEBUG if debug else logging.INFO

@@ -7,7 +7,8 @@ from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 
-from config import Config
+DATABASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATABASE_DIR, 'db.sqlite3')
 
 
 # 创建对象的基类:
@@ -39,6 +40,17 @@ class Tafor(Base):
     def format_rpt(self):
         return self.rpt.replace('\n', ' ')
 
+
+class Metar(Base):
+    __tablename__ = 'metars'
+    id = Column(Integer, primary_key=True)
+    tt = Column(String(2))
+    rpt = Column(String(255))
+    created = Column(DateTime, default=datetime.datetime.utcnow)
+
+    def __init__(self, tt, rpt):
+        self.tt = tt
+        self.rpt = rpt
 
 class Task(Base):
     __tablename__ = 'tasks'
@@ -91,7 +103,7 @@ class User(Base):
 
 
 # 初始化数据库连接:
-engine = create_engine(Config.SQLALCHEMY_DATABASE_URI, connect_args={'check_same_thread': False}, echo=False)
+engine = create_engine(SQLALCHEMY_DATABASE_URI, connect_args={'check_same_thread': False}, echo=False)
 # 创建DBSession类型:
 Session = sessionmaker(bind=engine)
 # 创建表

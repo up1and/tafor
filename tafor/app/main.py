@@ -12,10 +12,10 @@ from tafor.widgets.trend import TrendEdit
 from tafor.widgets.send import TaskTAFSend, TAFSend, TrendSend
 from tafor.widgets.settings import SettingDialog
 from tafor.widgets.tasks import TaskTable
-from tafor.models import Session, Tafor, Task, User
+from tafor.models import Session, Tafor, Task, Metar, User
 from tafor.widgets.common import RecentItem
-from tafor.utils import CheckTAF, listen, force_bool
-from tafor import setting, log, basedir, __version__
+from tafor.utils import CheckTAF, Listen, force_bool
+from tafor import setting, log, BASEDIR, __version__
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
@@ -234,7 +234,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             'trend': 'trend.wav'
         }
 
-        file = os.path.join(basedir, 'sounds', sounds[name])
+        file = os.path.join(BASEDIR, 'sounds', sounds[name])
 
         effect = QSoundEffect()
         effect.setSource(QtCore.QUrl.fromLocalFile(file))
@@ -303,12 +303,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             self.showNormal()
 
     def worker(self):
-        self.thread = CheckTAFThread()
+        self.thread = WorkThread()
         self.thread.done.connect(self.update_gui)
         self.thread.start()
 
     def update_gui(self):
         self.update_taf_table()
+        self.update_metar_table()
         self.update_recent()
         self.update_utc_time()
         self.update_current_taf()
@@ -357,7 +358,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
 
     def update_metar_table(self):
-        raise NotImplemented
+        items = self.db.query(Metar).order_by(Metar.created.desc()).all()
+        if len(items) > 12:
+            items = items[0:12]
+        header = self.metar_table.horizontalHeader()
+        header.setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
+        self.metar_table.setRowCount(len(items))
+        self.metar_table.setColumnWidth(0, 50)
+
+        for row, item in enumerate(items):
+            self.metar_table.setItem(row, 0,  QtWidgets.QTableWidgetItem(item.tt))
+            self.metar_table.setItem(row, 1,  QtWidgets.QTableWidgetItem(item.rpt))
 
     def update_recent(self):
         fc = self.db.query(Tafor).filter_by(tt='FC').order_by(Tafor.sent.desc()).first()
@@ -406,14 +417,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
                 """ % (__version__))
 
 
-class CheckTAFThread(QtCore.QThread):
+class WorkThread(QtCore.QThread):
     """
     检查预报报文线程类
     """
     done = QtCore.pyqtSignal(dict)
 
     def __init__(self, parent=None):
-        super(CheckTAFThread, self).__init__(parent)
+        super(WorkThread, self).__init__(parent)
 
     def run(self):
         data = {}
@@ -424,8 +435,9 @@ class CheckTAFThread(QtCore.QThread):
 
         # fc = listen('FC')
 
-        fc = listen('FC')
-        ft = listen('FT')
+        fc = Listen('FC')
+        ft = Listen('FT')
+        sa = Listen('SA')
         # print(fc, ft)
 
         self.done.emit(data)
