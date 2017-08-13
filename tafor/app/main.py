@@ -14,7 +14,7 @@ from tafor.widgets.settings import SettingDialog
 from tafor.widgets.tasks import TaskTable
 from tafor.models import Session, Tafor, Task, Metar, User
 from tafor.widgets.common import RecentItem
-from tafor.utils import CheckTAF, Listen, force_bool
+from tafor.utils import CheckTAF, Listen, remote_message, force_bool
 from tafor import setting, log, BASEDIR, __version__
 
 
@@ -89,6 +89,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
         # 连接报文表格复制的槽
         self.taf_table.itemDoubleClicked.connect(self.copy_select_item)
+        self.metar_table.itemDoubleClicked.connect(self.copy_select_item)
 
         # 设置主窗口文字图标
         self.setWindowTitle('预报发报软件')
@@ -318,9 +319,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         log.debug('Update GUI')
 
     def update_taf_table(self):
-        items = self.db.query(Tafor).order_by(Tafor.sent.desc()).all()
-        if len(items) > 12:
-            items = items[0:12]
+        recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+        items = self.db.query(Tafor).filter(Tafor.sent > recent).order_by(Tafor.sent.desc()).all()
         header = self.taf_table.horizontalHeader()
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
         self.taf_table.setRowCount(len(items))
@@ -359,9 +359,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
 
     def update_metar_table(self):
-        items = self.db.query(Metar).order_by(Metar.created.desc()).all()
-        if len(items) > 12:
-            items = items[0:12]
+        recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+        items = self.db.query(Metar).filter(Metar.created > recent).order_by(Metar.created.desc()).all()
         header = self.metar_table.horizontalHeader()
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
         self.metar_table.setRowCount(len(items))
@@ -370,6 +369,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         for row, item in enumerate(items):
             self.metar_table.setItem(row, 0,  QtWidgets.QTableWidgetItem(item.tt))
             self.metar_table.setItem(row, 1,  QtWidgets.QTableWidgetItem(item.rpt))
+            if item.tt == 'SP':
+                self.metar_table.item(row, 0).setForeground(QtCore.Qt.red)
+                self.metar_table.item(row, 1).setForeground(QtCore.Qt.red)
 
     def update_recent(self):
         fc = self.db.query(Tafor).filter_by(tt='FC').order_by(Tafor.sent.desc()).first()
@@ -434,12 +436,12 @@ class WorkThread(QtCore.QThread):
         # data['FC'] = {'tt': fc.tt, 'message': fc.info, 'warn': fc.warn, 'call_status': fc.call_status}
         # data['FT'] = {'tt': ft.tt, 'message': ft.info, 'warn': ft.warn, 'call_status': ft.call_status}
 
-        # fc = listen('FC')
+        remote = remote_message()
 
-        fc = Listen('FC')
-        ft = Listen('FT')
-        sa = Listen('SA')
-        # print(fc, ft)
+        fc = Listen('FC', remote=remote.get('FC', None))
+        ft = Listen('FT', remote=remote.get('FT', None))
+        sa = Listen('SA', remote=remote.get('SA', None))
+        sp = Listen('SP', remote=remote.get('SP', None))
 
         self.done.emit(data)
 

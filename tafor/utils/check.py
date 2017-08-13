@@ -9,12 +9,12 @@ from tafor.models import Session, Tafor, Metar
 from .validator import REGEX_TAF
 
 
-def get_remote_message(tt):
+def remote_message():
     url = setting.value('monitor/db/web_api_url')
     try:
         response = requests.get(url)
         if response.status_code == 200:
-            return response.json().get(tt, None)
+            return response.json()
     except Exception as e:
         log.error(e)
 
@@ -31,8 +31,9 @@ def make_call(phone_number):
 
 class CheckTAF(object):
     """docstring for CheckTAF"""
-    def __init__(self, tt, time=None, remote=False):
+    def __init__(self, tt, remote=None, time=None):
         self.tt = tt
+        self.remote = remote
         self.time = datetime.datetime.utcnow() if time is None else time
         start_of_the_day = datetime.datetime(self.time.year, self.time.month, self.time.day)
         self.start_time= dict()
@@ -63,9 +64,6 @@ class CheckTAF(object):
 
         self.db = Session()
 
-        if remote:
-            self.message = get_remote_message(self.tt)
-
     def current_period(self):
         increment = {'FC': datetime.timedelta(minutes=50), 'FT': datetime.timedelta(hours=2, minutes=50)}
         period = self._find_period(increment)
@@ -87,7 +85,7 @@ class CheckTAF(object):
     def existed_in_remote(self):
         try:
             regex_period = re.compile(REGEX_TAF['common']['period'])
-            period = regex_period.search(self.message).group()
+            period = regex_period.search(self.remote).group()
             return period == self.warn_period()
         except Exception as e:
             log.error(e)
@@ -95,19 +93,19 @@ class CheckTAF(object):
     def save(self):
         last = self.db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()
 
-        if last is None or self.message and last.format_rpt != self.message:  # 如果数据表为空 或 最后一条数据和远程不相等
-            item = Tafor(tt=self.tt, rpt=self.message, confirmed=self.time)
+        if last is None or self.remote and last.format_rpt != self.remote:  # 如果数据表为空 或 最后一条数据和远程不相等
+            item = Tafor(tt=self.tt, rpt=self.remote, confirmed=self.time)
             self.db.add(item)
             self.db.commit()
-            log.info('Save {} {}'.format(self.tt, self.message))
+            log.info('Save {} {}'.format(self.tt, self.remote))
 
     def confirm(self):
         last = self.db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()
 
-        if last is not None and last.format_rpt == self.message:
+        if last is not None and last.format_rpt == self.remote:
             last.confirmed = self.time
             self.db.commit()
-            log.info('Confirm {} {}'.format(self.tt, self.message))
+            log.info('Confirm {} {}'.format(self.tt, self.remote))
 
     def overdued(self):
         start_time = self.start_time[self.tt][self.warn_period()[2:]]
@@ -130,25 +128,26 @@ class CheckTAF(object):
 
 class CheckMetar(object):
     """docstring for CheckMetar"""
-    def __init__(self, tt):
+    def __init__(self, tt, remote):
         self.tt = tt
+        self.remote = remote
         self.db = Session()
 
     def save(self):
         last = self.db.query(Metar).filter_by(tt=self.tt).order_by(Metar.created.desc()).first()
-        message = get_remote_message(self.tt)
         
-        if last is None or message and last.rpt != message:
-            item = Metar(tt=self.tt, rpt=message)
+        if last is None or self.remote and last.rpt != self.remote:
+            item = Metar(tt=self.tt, rpt=self.remote)
             self.db.add(item)
             self.db.commit()
-            log.info('Save {} {}'.format(self.tt, message))
+            log.info('Save {} {}'.format(self.tt, self.remote))
 
 
 class Listen(object):
-    def __init__(self, tt):
-        method = {'FC': 'taf', 'FT': 'taf', 'SA': 'metar'}
+    def __init__(self, tt, remote):
+        method = {'FC': 'taf', 'FT': 'taf', 'SA': 'metar', 'SP': 'metar'}
         self.tt = tt
+        self.remote = remote
         self.warn = False
         getattr(self.__class__, method[self.tt])(self)
 
@@ -156,11 +155,11 @@ class Listen(object):
         call_switch = setting.value('monitor/phone/phone_warn_taf')
         phone_number = setting.value('monitor/phone/select_phone_number')
 
-        taf = CheckTAF(self.tt, remote=True)
-        message = taf.existed_in_local()
+        taf = CheckTAF(self.tt, remote=self.remote)
+        local = taf.existed_in_local()
 
-        if message:
-            if not message.confirmed:
+        if local:
+            if not local.confirmed:
                 if taf.existed_in_remote():
                     taf.confirm()
                 elif taf.overdued():
@@ -175,6 +174,6 @@ class Listen(object):
             make_call(phone_number)
 
     def metar(self):
-        metar = CheckMetar(self.tt)
+        metar = CheckMetar(self.tt, remote=self.remote)
         metar.save()
 
