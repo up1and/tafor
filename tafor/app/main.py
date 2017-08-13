@@ -396,7 +396,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
     def reset_serial_number(self):
         utc = datetime.datetime.utcnow()
         if utc.hour == 0 and utc.minute == 0 and utc.second == 0:
-            self.setting_dialog.reset_number()
+            self.setting_dialog.reset_serial_number()
             log.debug('Reset serial number')
 
     def next_taf(self, tt):
@@ -465,7 +465,7 @@ def main():
         window.show()
         sys.exit(app.exec_())
     except Exception as e:
-        raise e
+        log.error(e)
     finally:  
         local_server.close()
 
