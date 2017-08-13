@@ -303,9 +303,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             self.showNormal()
 
     def worker(self):
-        self.thread = WorkThread()
-        self.thread.done.connect(self.update_gui)
-        self.thread.start()
+        if setting.value('monitor/db/web_api'):
+            self.thread = WorkThread()
+            self.thread.done.connect(self.update_gui)
+            self.thread.start()
 
     def update_gui(self):
         self.update_taf_table()

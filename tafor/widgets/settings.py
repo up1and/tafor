@@ -126,10 +126,8 @@ class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
         self.set_value('communication/address/airmet', 'airmet', 'plaintext')
         self.set_value('communication/address/trend', 'trend', 'plaintext')
 
-        self.set_value('monitor/db/sydb', 'sydb', 'bool')
-        self.set_value('monitor/db/web', 'web', 'bool')
-        self.set_value('monitor/db/sydb_url', 'sydb_url')
-        self.set_value('monitor/db/web_url', 'web_url')
+        self.set_value('monitor/db/web_api', 'web_api', 'bool')
+        self.set_value('monitor/db/web_api_url', 'web_api_url')
 
         self.set_value('monitor/clock/clock', 'clock', 'bool')
         self.set_value('monitor/clock/clock_time', 'clock_time')
@@ -144,7 +142,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
 
         self.set_value('monitor/phone/phone_warn_taf', 'phone_warn_taf', 'bool')
         self.set_value('monitor/phone/warn_taf_time', 'warn_taf_time')
-        self.set_value('monitor/phone/call_service_auth', 'call_service_auth')
+        self.set_value('monitor/phone/call_service_token', 'call_service_token')
         self.set_value('monitor/phone/call_service_url', 'call_service_url')
 
         self.set_value('monitor/phone/select_phone_number', 'select_contract', 'phone_number')
@@ -178,10 +176,8 @@ class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
         self.load_value('communication/address/airmet', 'airmet')
         self.load_value('communication/address/trend', 'trend')
 
-        self.load_value('monitor/db/sydb', 'sydb', 'bool')
-        self.load_value('monitor/db/web', 'web', 'bool')
-        self.load_value('monitor/db/sydb_url', 'sydb_url')
-        self.load_value('monitor/db/web_url', 'web_url')
+        self.load_value('monitor/db/web_api', 'web_api', 'bool')
+        self.load_value('monitor/db/web_api_url', 'web_api_url')
 
         self.load_value('monitor/clock/clock', 'clock', 'bool')
         self.load_value('monitor/clock/clock_time', 'clock_time')
@@ -196,7 +192,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
         
         self.load_value('monitor/phone/phone_warn_taf', 'phone_warn_taf', 'bool')
         self.load_value('monitor/phone/warn_taf_time', 'warn_taf_time')
-        self.load_value('monitor/phone/call_service_auth', 'call_service_auth')
+        self.load_value('monitor/phone/call_service_token', 'call_service_token')
         self.load_value('monitor/phone/call_service_url', 'call_service_url')
 
         self.load_value('monitor/phone/select_phone_number', 'select_contract', 'phone_number')

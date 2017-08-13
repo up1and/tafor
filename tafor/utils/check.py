@@ -10,7 +10,7 @@ from .validator import REGEX_TAF
 
 
 def get_remote_message(tt):
-    url = setting.value('monitor/db/web_url')
+    url = setting.value('monitor/db/web_api_url')
     try:
         response = requests.get(url)
         if response.status_code == 200:
@@ -20,7 +20,7 @@ def get_remote_message(tt):
 
 def make_call(phone_number):
     url = setting.value('monitor/phone/call_service_url')
-    token = setting.value('monitor/phone/call_service_auth')
+    token = setting.value('monitor/phone/call_service_token')
     try:
         response = requests.post(url, data={'token': token, 'phone_number': phone_number})
         log.info('call {}'.format(phone_number))
@@ -95,7 +95,7 @@ class CheckTAF(object):
     def save(self):
         last = self.db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()
 
-        if last is None and self.message or last.format_rpt != self.message:  # 如果数据表为空 或 最后一条数据和远程不相等
+        if last is None or self.message and last.format_rpt != self.message:  # 如果数据表为空 或 最后一条数据和远程不相等
             item = Tafor(tt=self.tt, rpt=self.message, confirmed=self.time)
             self.db.add(item)
             self.db.commit()
@@ -138,7 +138,7 @@ class CheckMetar(object):
         last = self.db.query(Metar).filter_by(tt=self.tt).order_by(Metar.created.desc()).first()
         message = get_remote_message(self.tt)
         
-        if last is None and message or last.rpt != message:
+        if last is None or message and last.rpt != message:
             item = Metar(tt=self.tt, rpt=message)
             self.db.add(item)
             self.db.commit()

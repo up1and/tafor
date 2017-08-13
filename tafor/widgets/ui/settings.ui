@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>622</width>
-    <height>605</height>
+    <height>497</height>
    </rect>
   </property>
   <property name="acceptDrops">
@@ -28,9 +28,6 @@
         </size>
        </property>
        <layout class="QVBoxLayout" name="leftbox">
-        <item>
-         <widget class="QLineEdit" name="search"/>
-        </item>
         <item>
          <widget class="QListWidget" name="menu">
           <item>
@@ -612,27 +609,25 @@
            </property>
            <layout class="QFormLayout" name="formLayout_6">
             <item row="0" column="0">
-             <widget class="QRadioButton" name="sydb">
+             <widget class="QCheckBox" name="web_api">
               <property name="text">
-               <string>三亚区管数据库</string>
-              </property>
-              <property name="checked">
-               <bool>true</bool>
+               <string>启用</string>
               </property>
              </widget>
             </item>
-            <item row="0" column="1">
-             <widget class="QLineEdit" name="sydb_url"/>
-            </item>
             <item row="1" column="0">
-             <widget class="QRadioButton" name="web">
+             <widget class="QLabel" name="web_api_label">
               <property name="text">
-               <string>中南综合信息服务系统</string>
+               <string>请求地址       </string>
               </property>
              </widget>
             </item>
             <item row="1" column="1">
-             <widget class="QLineEdit" name="web_url"/>
+             <widget class="QLineEdit" name="web_api_url">
+              <property name="placeholderText">
+               <string>URL</string>
+              </property>
+             </widget>
             </item>
            </layout>
           </widget>
@@ -786,16 +781,16 @@
              </widget>
             </item>
             <item row="3" column="0">
-             <widget class="QLabel" name="call_service_auth_label">
+             <widget class="QLabel" name="call_service_token_label">
               <property name="text">
                <string>认证</string>
               </property>
              </widget>
             </item>
             <item row="3" column="1">
-             <widget class="QLineEdit" name="call_service_auth">
+             <widget class="QLineEdit" name="call_service_token">
               <property name="placeholderText">
-               <string>AUTH</string>
+               <string>TOKEN</string>
               </property>
              </widget>
             </item>
@@ -918,7 +913,6 @@
   </layout>
  </widget>
  <tabstops>
-  <tabstop>search</tabstop>
   <tabstop>menu</tabstop>
   <tabstop>icao</tabstop>
   <tabstop>intelligence</tabstop>
