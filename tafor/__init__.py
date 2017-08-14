@@ -10,6 +10,10 @@ __version__ = "1.0.0"
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
+
+def boolean(value):
+    return value if isinstance(value, bool) else value == 'true'
+
 def setup_log(debug=False):
     log_level = logging.DEBUG if debug else logging.INFO
 
@@ -36,6 +40,6 @@ def setup_log(debug=False):
 
 setting = QtCore.QSettings('Up1and', 'Tafor')
 
-debug = setting.value('convention/debug')
+debug = boolean(setting.value('convention/debug'))
 
 log = setup_log(debug=debug)

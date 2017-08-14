@@ -2,8 +2,7 @@ import json
 from PyQt5 import QtCore, QtGui, QtWidgets
 from tafor.widgets.ui import Ui_settings, main_rc
 from tafor.models import Session, User
-from tafor import setting
-from tafor.utils import force_bool
+from tafor import setting, boolean
 
 
 class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
@@ -45,6 +44,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
     def reset_serial_number(self):
         setting.setValue('communication/other/number', '0')
         self.number.setText('0')
+        log.info('Reset serial number to zero')
 
     def add_weather(self, weather):
         line = getattr(self, weather)
@@ -209,7 +209,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
             target.setText(val)
 
         if mold == 'bool':
-            val = force_bool(val)
+            val = boolean(val)
             target.setChecked(val)
 
         if mold == 'combox':

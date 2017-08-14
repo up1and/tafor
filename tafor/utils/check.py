@@ -13,10 +13,10 @@ def remote_message():
     url = setting.value('monitor/db/web_api_url')
     try:
         response = requests.get(url)
-        if response.status_code == 200:
-            return response.json()
+        return response.json()
     except Exception as e:
         log.error(e)
+        return {'error': 'message not found'}
 
 def make_call(phone_number):
     url = setting.value('monitor/phone/call_service_url')

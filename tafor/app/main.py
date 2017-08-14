@@ -14,8 +14,8 @@ from tafor.widgets.settings import SettingDialog
 from tafor.widgets.tasks import TaskTable
 from tafor.models import Session, Tafor, Task, Metar, User
 from tafor.widgets.common import RecentItem
-from tafor.utils import CheckTAF, Listen, remote_message, force_bool
-from tafor import setting, log, BASEDIR, __version__
+from tafor.utils import CheckTAF, Listen, remote_message
+from tafor import BASEDIR, setting, log, boolean, __version__
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
@@ -194,7 +194,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.update_tray_tips()
 
     def update_tray_tips(self):
-        alarm_status = force_bool(setting.value('monitor/phone/phone_warn_taf'))
+        alarm_status = boolean(setting.value('monitor/phone/phone_warn_taf'))
 
         message = '预报发报软件 v' + __version__
 
@@ -304,10 +304,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             self.showNormal()
 
     def worker(self):
-        if setting.value('monitor/db/web_api'):
-            self.thread = WorkThread()
-            self.thread.done.connect(self.update_gui)
-            self.thread.start()
+        self.thread = WorkThread()
+        self.thread.done.connect(self.update_gui)
+        self.thread.start()
 
     def update_gui(self):
         self.update_taf_table()
@@ -400,7 +399,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         utc = datetime.datetime.utcnow()
         if utc.hour == 0 and utc.minute == 0 and utc.second == 0:
             self.setting_dialog.reset_serial_number()
-            log.debug('Reset serial number')
 
     def next_taf(self, tt):
         taf = CheckTAF(tt)
@@ -437,7 +435,10 @@ class WorkThread(QtCore.QThread):
         # data['FC'] = {'tt': fc.tt, 'message': fc.info, 'warn': fc.warn, 'call_status': fc.call_status}
         # data['FT'] = {'tt': ft.tt, 'message': ft.info, 'warn': ft.warn, 'call_status': ft.call_status}
 
-        remote = remote_message()
+        if boolean(setting.value('monitor/db/web_api')):
+            remote = remote_message()
+        else:
+            remote = {}
 
         fc = Listen('FC', remote=remote.get('FC', None))
         ft = Listen('FT', remote=remote.get('FT', None))
