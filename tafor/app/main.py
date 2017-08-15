@@ -336,18 +336,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             if item.confirmed:
                 check_item = QtWidgets.QTableWidgetItem()
                 check_item.setTextAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
-                check_item.setIcon(QtGui.QIcon(':/check.png'))
+                check_item.setIcon(QtGui.QIcon(':/checkmark.png'))
                 self.taf_table.setItem(row, 3, check_item)
             else:
                 check_item = QtWidgets.QTableWidgetItem()
                 check_item.setTextAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
-                check_item.setIcon(QtGui.QIcon(':/warn.png'))
+                check_item.setIcon(QtGui.QIcon(':/cross.png'))
                 self.taf_table.setItem(row, 3, check_item)
 
             # if item.task:
             #     task_item = QtWidgets.QTableWidgetItem('√')
             #     # schedule_item.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-            #     # schedule_item.setIcon(QIcon(':/clock.png'))
+            #     # schedule_item.setIcon(QIcon(':/time.png'))
             #     self.taf_table.setItem(row, 4, task_item)
 
 

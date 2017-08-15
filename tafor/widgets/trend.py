@@ -22,7 +22,6 @@ class TrendEdit(QDialog):
         self.bind_signal()
         
         self.setWindowTitle("编发趋势")
-        self.setWindowIcon(QIcon(':/fine.png'))
 
     def init_ui(self):
         window = QWidget(self)

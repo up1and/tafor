@@ -346,7 +346,6 @@ class TAFEdit(TAFEditBase):
         super(TAFEdit, self).__init__(parent)
 
         self.setWindowTitle("编发报文")
-        self.setWindowIcon(QIcon(':/fine.png'))
 
         self.primary.date.setEnabled(False)
 
@@ -362,7 +361,7 @@ class TaskTAFEdit(TAFEditBase):
         super(TaskTAFEdit, self).__init__(parent)
 
         self.setWindowTitle("定时任务")
-        self.setWindowIcon(QIcon(':/schedule.png'))
+        self.setWindowIcon(QIcon(':/time.png'))
 
         self.primary.group_cls.hide()
 

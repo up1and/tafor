@@ -128,7 +128,7 @@ class TaskTAFSend(SendBase):
         self.db = Session()
 
         self.setWindowTitle('定时任务')
-        self.setWindowIcon(QtGui.QIcon(':/Task.png'))
+        self.setWindowIcon(QtGui.QIcon(':/time.png'))
 
         self.button_box.accepted.connect(self.save)
         self.button_box.accepted.connect(self.accept)
@@ -175,7 +175,6 @@ class TrendSend(SendBase):
     def __init__(self, parent=None):
         super(TrendSend, self).__init__(parent)
 
-        self.setWindowIcon(QtGui.QIcon(':/fine.png'))
         self.button_box.accepted.connect(self.send)
         self.button_box.accepted.connect(self.save)
 
