@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/Users/Upland/Work/tafor/tafor/widgets/ui/main.ui'
+# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\widgets\ui\main.ui'
 #
-# Created by: PyQt5 UI code generator 5.7
+# Created by: PyQt5 UI code generator 5.6
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -17,6 +17,7 @@ class Ui_MainWindow(object):
         self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
         self.verticalLayout.setObjectName("verticalLayout")
         self.main_tab = QtWidgets.QTabWidget(self.centralwidget)
+        self.main_tab.setMinimumSize(QtCore.QSize(850, 500))
         self.main_tab.setMovable(True)
         self.main_tab.setObjectName("main_tab")
         self.tab_recent = QtWidgets.QWidget()
@@ -52,7 +53,9 @@ class Ui_MainWindow(object):
         self.verticalLayout_2.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.taf_table = QtWidgets.QTableWidget(self.tab_taf)
+        self.taf_table.setMinimumSize(QtCore.QSize(850, 500))
         self.taf_table.setFrameShadow(QtWidgets.QFrame.Raised)
+        self.taf_table.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.taf_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.taf_table.setObjectName("taf_table")
         self.taf_table.setColumnCount(5)
@@ -75,7 +78,10 @@ class Ui_MainWindow(object):
         self.verticalLayout_3.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.metar_table = QtWidgets.QTableWidget(self.tab_metar)
+        self.metar_table.setMinimumSize(QtCore.QSize(850, 500))
         self.metar_table.setFrameShadow(QtWidgets.QFrame.Raised)
+        self.metar_table.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.metar_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.metar_table.setObjectName("metar_table")
         self.metar_table.setColumnCount(2)
         self.metar_table.setRowCount(0)

@@ -351,8 +351,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             #     self.taf_table.setItem(row, 4, task_item)
 
 
-        # self.taf_table.setStyleSheet("QTableWidget::item {padding: 5px 0;}")
-        # self.taf_table.resizeRowsToContents()
+        self.taf_table.setStyleSheet("QTableWidget::item {padding: 5px 0;}")
+        self.taf_table.resizeRowsToContents()
 
 
     def update_metar_table(self):
@@ -369,6 +369,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             if item.tt == 'SP':
                 self.metar_table.item(row, 0).setForeground(QtCore.Qt.red)
                 self.metar_table.item(row, 1).setForeground(QtCore.Qt.red)
+
+        self.metar_table.setStyleSheet("QTableWidget::item {padding: 5px 0;}")
+        self.metar_table.resizeRowsToContents()
 
     def update_recent(self):
         fc = self.db.query(Tafor).filter_by(tt='FC').order_by(Tafor.sent.desc()).first()
