@@ -120,7 +120,7 @@ class CheckTAF(object):
         if period is None:
             return None
         else:
-            time = self.time + datetime.timedelta(days=1) if period in ('0009', '0024') else self.time
+            time = self.time + datetime.timedelta(days=1) if period in ('0009', '0024') and self.time.hour != 0 else self.time
             return str(time.day).zfill(2) + period
 
 

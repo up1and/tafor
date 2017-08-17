@@ -93,7 +93,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
         # 设置主窗口文字图标
         self.setWindowTitle('预报发报软件')
-        self.setWindowIcon(QtGui.QIcon(':/sunny.png'))
+        self.setWindowIcon(QtGui.QIcon(':/logo.png'))
 
         # 设置切换联系人菜单
         self.set_change_contract_menu()
@@ -160,7 +160,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
     def set_sys_tray(self):
         # 设置系统托盘
         self.tray = QtWidgets.QSystemTrayIcon(self)
-        self.tray.setIcon(QtGui.QIcon(':/sunny.png'))
+        self.tray.setIcon(QtGui.QIcon(':/logo.png'))
         self.tray.show()
 
         self.update_tray_tips()

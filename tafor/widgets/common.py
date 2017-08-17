@@ -590,7 +590,7 @@ class RecentItem(QtWidgets.QWidget, Ui_widget_recent_item.Ui_Form):
         rpt_with_head = filter(None, [item.head, item.rpt])
         self.rpt.setText('\n'.join(rpt_with_head))
         if item.confirmed:
-            self.check.setText('<img src=":/checkmark.png" width="20" height="20"/>')
+            self.check.setText('<img src=":/checkmark.png" width="24" height="24"/>')
         else:
-            self.check.setText('<img src=":/cross.png" width="20" height="20"/>')
+            self.check.setText('<img src=":/cross.png" width="24" height="24"/>')
         
