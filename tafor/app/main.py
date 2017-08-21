@@ -202,7 +202,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
     def copy_select_item(self, item):
         self.clip.setText(item.text())
-        self.statusbar.showMessage('已复制  ' + item.text())
+        self.statusbar.showMessage(item.text())
 
     def handle_taf_edit(self, message):
         log.debug('Receive from taf edit ' + message['full'])
@@ -312,8 +312,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.update_taf_table()
         self.update_metar_table()
         self.update_recent()
+        self.update_statusbar()
 
         log.debug('Update GUI')
+
+    def update_statusbar(self):
+        self.statusbar.clearMessage()
 
     def update_taf_table(self):
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)

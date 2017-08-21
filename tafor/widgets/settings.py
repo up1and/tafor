@@ -2,7 +2,7 @@ import json
 from PyQt5 import QtCore, QtGui, QtWidgets
 from tafor.widgets.ui import Ui_settings, main_rc
 from tafor.models import Session, User
-from tafor import setting, boolean
+from tafor import setting, boolean, log
 
 
 class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
