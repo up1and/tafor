@@ -134,11 +134,11 @@ class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
         self.set_value('monitor/clock/clock_volume', 'clock_volume', 'slider')
 
         self.set_value('monitor/sound/warn_taf', 'warn_taf', 'bool')
-        self.set_value('monitor/sound/warn_trend', 'warn_trend', 'bool')
-        self.set_value('monitor/sound/warn_sigmet', 'warn_sigmet', 'bool')
         self.set_value('monitor/sound/warn_taf_volume', 'warn_taf_volume', 'slider')
-        self.set_value('monitor/sound/warn_trend_volume', 'warn_trend_volume', 'slider')
-        self.set_value('monitor/sound/warn_sigmet_volume', 'warn_sigmet_volume', 'slider')
+        self.set_value('monitor/sound/remind_trend', 'remind_trend', 'bool')
+        self.set_value('monitor/sound/remind_sigmet', 'remind_sigmet', 'bool')
+        self.set_value('monitor/sound/remind_trend_volume', 'remind_trend_volume', 'slider')
+        self.set_value('monitor/sound/remind_sigmet_volume', 'remind_sigmet_volume', 'slider')
 
         self.set_value('monitor/phone/phone_warn_taf', 'phone_warn_taf', 'bool')
         self.set_value('monitor/phone/warn_taf_time', 'warn_taf_time')
@@ -184,11 +184,11 @@ class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
         self.load_value('monitor/clock/clock_volume', 'clock_volume', 'slider')
 
         self.load_value('monitor/sound/warn_taf', 'warn_taf', 'bool')
-        self.load_value('monitor/sound/warn_trend', 'warn_trend', 'bool')
-        self.load_value('monitor/sound/warn_sigmet', 'warn_sigmet', 'bool')
         self.load_value('monitor/sound/warn_taf_volume', 'warn_taf_volume', 'slider')
-        self.load_value('monitor/sound/warn_trend_volume', 'warn_trend_volume', 'slider')
-        self.load_value('monitor/sound/warn_sigmet_volume', 'warn_sigmet_volume', 'slider')
+        self.load_value('monitor/sound/remind_trend', 'remind_trend', 'bool')
+        self.load_value('monitor/sound/remind_sigmet', 'remind_sigmet', 'bool')
+        self.load_value('monitor/sound/remind_trend_volume', 'remind_trend_volume', 'slider')
+        self.load_value('monitor/sound/remind_sigmet_volume', 'remind_sigmet_volume', 'slider')
         
         self.load_value('monitor/phone/phone_warn_taf', 'phone_warn_taf', 'bool')
         self.load_value('monitor/phone/warn_taf_time', 'warn_taf_time')

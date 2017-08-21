@@ -96,10 +96,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.setWindowIcon(QtGui.QIcon(':/logo.png'))
 
         # 设置切换联系人菜单
-        self.set_change_contract_menu()
+        self.setup_change_contract_menu()
 
         # 设置系统托盘
-        self.set_sys_tray()
+        self.setup_sys_tray()
+
+        # 设置上下文
+        self.context()
 
         # 添加模块
         self.recent_fc = RecentItem()
@@ -109,10 +112,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.recent_layout.addWidget(self.recent_ft)
 
         # 载入声音
-        self.sound_ring = self.load_sound('ring')
-        self.sound_notify = self.load_sound('notify')
-        self.sound_alarm = self.load_sound('alarm')
-        self.sound_trend = self.load_sound('trend')
+        self.sounds = {}
+        self.sound_ring = self.setup_sound('ring')
+        self.sound_notify = self.setup_sound('notify')
+        self.sound_alarm = self.setup_sound('alarm')
+        self.sound_trend = self.setup_sound('trend')
+        self.sound_sigmet = self.setup_sound('sigmet')
+
+        self.setting_dialog.clock_volume.valueChanged.connect(lambda vol: self.play_sound('ring', volume=vol, loop=False))
+        self.setting_dialog.warn_taf_volume.valueChanged.connect(lambda vol: self.play_sound('alarm', volume=vol, loop=False))
+        self.setting_dialog.remind_trend_volume.valueChanged.connect(lambda vol: self.play_sound('trend', volume=vol, loop=False))
+        self.setting_dialog.remind_sigmet_volume.valueChanged.connect(lambda vol: self.play_sound('sigmet', volume=vol, loop=False))
 
         # 自动发送报文的计时器
         self.auto_sent = QtCore.QTimer()
@@ -122,11 +132,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         # 时钟计时器
         self.clock_timer = QtCore.QTimer()
         self.clock_timer.timeout.connect(self.update_utc_time)
-        self.clock_timer.timeout.connect(self.update_tray_tips)
-        # self.clock_timer.timeout.connect(self.update_current_taf)
         self.clock_timer.timeout.connect(self.taf_edit_dialog.update_date)
-        self.clock_timer.timeout.connect(self.reset_serial_number)
-        self.clock_timer.timeout.connect(self.play)
+        self.clock_timer.timeout.connect(self.check_serial_number)
+        self.clock_timer.timeout.connect(self.manage_sound)
         self.clock_timer.start(1 * 1000)
 
         self.worker_timer = QtCore.QTimer()
@@ -138,7 +146,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.update_gui()
         self.worker()
 
-    def set_change_contract_menu(self):
+    def setup_change_contract_menu(self):
         contacts = self.db.query(User).all()
 
         for person in contacts:
@@ -157,13 +165,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         else:
             self.contract_no.setChecked(True)
 
-    def set_sys_tray(self):
+    def setup_sys_tray(self):
         # 设置系统托盘
         self.tray = QtWidgets.QSystemTrayIcon(self)
         self.tray.setIcon(QtGui.QIcon(':/logo.png'))
         self.tray.show()
-
-        self.update_tray_tips()
 
         # 连接系统托盘的槽
         self.tray.activated.connect(self.restore_window)
@@ -178,6 +184,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
         self.tray.setContextMenu(self.tray_menu)
 
+        message = '预报发报软件 v' + __version__
+        self.tray.setToolTip(message)
+
     def change_phone_number(self):
         target = self.contracts_action_group.checkedAction()
 
@@ -190,15 +199,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
             setting.setValue('monitor/phone/phone_warn_taf', True)
             setting.setValue('monitor/phone/select_phone_number', phone_number)
-        
-        self.update_tray_tips()
-
-    def update_tray_tips(self):
-        alarm_status = boolean(setting.value('monitor/phone/phone_warn_taf'))
-
-        message = '预报发报软件 v' + __version__
-
-        self.tray.setToolTip(message)
 
     def copy_select_item(self, item):
         self.clip.setText(item.text())
@@ -227,28 +227,68 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.task_table_dialog.show()
         self.task_table_dialog.update_gui()
 
-    def load_sound(self, name):
+    def setup_sound(self, name):
         sounds = {
             'alarm': 'alarm.wav',
             'notify': 'notify.wav',
             'ring': 'ring.wav',
+            'sigmet': 'sigmet.wav',
             'trend': 'trend.wav'
+        }
+
+        volume = {
+            'alarm': setting.value('monitor/sound/warn_taf_volume') or 0,
+            'notify': 100,
+            'ring': setting.value('monitor/clock/clock_volume') or 0,
+            'sigmet': setting.value('monitor/sound/remind_sigmet_volume') or 0,
+            'trend': setting.value('monitor/sound/remind_trend_volume') or 0
         }
 
         file = os.path.join(BASEDIR, 'sounds', sounds[name])
 
         effect = QSoundEffect()
         effect.setSource(QtCore.QUrl.fromLocalFile(file))
-        effect.setLoopCount(QSoundEffect.Infinite)
-        # effect.setVolume(0.25)
+
+        self.sounds[name] = [effect, volume[name]]
 
         return effect
 
-    def play(self):
-        # if not self.sound_alarm.isPlaying():
-        #     self.sound_alarm.play()
-        pass
+    def play_sound(self, name, volume=None, loop=True):
+        sound = self.sounds[name][0]
+        volume = self.sounds[name][1] if volume is None else volume
+        sound.setLoopCount(0)
+        sound.setVolume(volume/100)
 
+        if loop:
+            sound.setLoopCount(QSoundEffect.Infinite)
+        else:
+            sound.setLoopCount(1)
+        
+        if not sound.isPlaying():
+            sound.play()
+
+    def stop_sound(self, name):
+        sound = self.sounds[name][0]
+        sound.stop()
+
+    def manage_sound(self):
+        trend_switch = setting.value('monitor/sound/remind_trend')
+        taf_switch = setting.value('monitor/sound/warn_taf')
+        sigmet_switch = setting.value('monitor/sound/remind_sigmet')
+        clock_switch = setting.value('monitor/sound/clock')
+
+        # 管理趋势声音
+        utc = datetime.datetime.utcnow()
+        if trend_switch and utc.minute in (58, 59):
+            self.play_sound('trend')
+        else:
+            self.stop_sound('trend')
+
+        # 管理报文告警声音
+        if taf_switch and any([self.ctx['FC']['warn'], self.ctx['FT']['warn']]):
+            self.play_sound('alarm')
+        else:
+            self.stop_sound('alarm')
 
     def event(self, event):
         """
@@ -305,6 +345,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
     def worker(self):
         self.thread = WorkThread()
+        self.thread.done.connect(self.context)
         self.thread.done.connect(self.update_gui)
         self.thread.start()
 
@@ -318,6 +359,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
     def update_statusbar(self):
         self.statusbar.clearMessage()
+
+    def context(self, ctx=None):
+        if ctx is None:
+            self.ctx = {
+                'FC': {'warn': False},
+                'FT': {'warn': False}
+            }
+        else:
+            self.ctx = ctx
 
     def update_taf_table(self):
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
@@ -402,7 +452,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.current_fc.setText(self.next_taf('FC'))
         self.current_ft.setText(self.next_taf('FT'))
 
-    def reset_serial_number(self):
+    def check_serial_number(self):
         utc = datetime.datetime.utcnow()
         if utc.hour == 0 and utc.minute == 0 and utc.second == 0:
             self.setting_dialog.reset_serial_number()
@@ -436,12 +486,6 @@ class WorkThread(QtCore.QThread):
         super(WorkThread, self).__init__(parent)
 
     def run(self):
-        data = {}
-        # fc = Listen('FC')
-        # ft = Listen('FT')
-        # data['FC'] = {'tt': fc.tt, 'message': fc.info, 'warn': fc.warn, 'call_status': fc.call_status}
-        # data['FT'] = {'tt': ft.tt, 'message': ft.info, 'warn': ft.warn, 'call_status': ft.call_status}
-
         if boolean(setting.value('monitor/db/web_api')):
             remote = remote_message()
         else:
@@ -452,7 +496,12 @@ class WorkThread(QtCore.QThread):
         sa = Listen('SA', remote=remote.get('SA', None))
         sp = Listen('SP', remote=remote.get('SP', None))
 
-        self.done.emit(data)
+        ctx = {
+            'FC': {'warn': fc.warn},
+            'FT': {'warn': ft.warn}
+        }
+
+        self.done.emit(ctx)
 
 
 def main():
@@ -476,7 +525,7 @@ def main():
         window.show()
         sys.exit(app.exec_())
     except Exception as e:
-        log.error(e)
+        log.error(e, exc_info=True)
     finally:  
         local_server.close()
 

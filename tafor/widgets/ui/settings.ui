@@ -703,28 +703,28 @@
              </widget>
             </item>
             <item row="1" column="0">
-             <widget class="QCheckBox" name="warn_trend">
+             <widget class="QCheckBox" name="remind_trend">
               <property name="text">
                <string>趋势预报</string>
               </property>
              </widget>
             </item>
             <item row="1" column="1">
-             <widget class="QSlider" name="warn_trend_volume">
+             <widget class="QSlider" name="remind_trend_volume">
               <property name="orientation">
                <enum>Qt::Horizontal</enum>
               </property>
              </widget>
             </item>
             <item row="2" column="0">
-             <widget class="QCheckBox" name="warn_sigmet">
+             <widget class="QCheckBox" name="remind_sigmet">
               <property name="text">
                <string>重要气象情报</string>
               </property>
              </widget>
             </item>
             <item row="2" column="1">
-             <widget class="QSlider" name="warn_sigmet_volume">
+             <widget class="QSlider" name="remind_sigmet_volume">
               <property name="orientation">
                <enum>Qt::Horizontal</enum>
               </property>
@@ -945,10 +945,10 @@
   <tabstop>clock_volume</tabstop>
   <tabstop>warn_taf</tabstop>
   <tabstop>warn_taf_volume</tabstop>
-  <tabstop>warn_trend</tabstop>
-  <tabstop>warn_trend_volume</tabstop>
-  <tabstop>warn_sigmet</tabstop>
-  <tabstop>warn_sigmet_volume</tabstop>
+  <tabstop>remind_trend</tabstop>
+  <tabstop>remind_trend_volume</tabstop>
+  <tabstop>remind_sigmet</tabstop>
+  <tabstop>remind_sigmet_volume</tabstop>
   <tabstop>phone_warn_taf</tabstop>
   <tabstop>warn_taf_time</tabstop>
   <tabstop>run_on_start</tabstop>

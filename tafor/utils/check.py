@@ -15,7 +15,12 @@ def remote_message():
         response = requests.get(url)
         return response.json()
     except Exception as e:
-        log.error(e)
+        if type(e).__name__ == 'JSONDecodeError':
+            log.error('GET {} 404 Not Found'.format(url))
+        elif type(e).__name__ == 'ConnectionError':
+            log.error('GET {} 408 Request Timeout'.format(url))
+        else:
+            log.error(e, exc_info=True)
         return {'error': 'message not found'}
 
 def make_call(phone_number):
@@ -26,7 +31,24 @@ def make_call(phone_number):
         log.info('call {}'.format(phone_number))
         return response.json()
     except Exception as e:
-        log.error(e)
+        if type(e).__name__ == 'JSONDecodeError':
+            log.error('GET {} 404 Not Found'.format(url))
+        elif type(e).__name__ == 'ConnectionError':
+            log.error('GET {} 408 Request Timeout'.format(url))
+        else:
+            log.error(e, exc_info=True)
+
+def format_timez(message):
+    try:
+        match = re.search(REGEX_TAF['common']['timez'], message)
+        timez = match.groupdict()
+        utc =  datetime.datetime.utcnow()
+        created = datetime.datetime(utc.year, utc.month, int(timez['day']), int(timez['hour']), int(timez['minute']))
+        return created
+    except Exception as e:
+        log.error(e, exc_info=True)
+        created = datetime.datetime.utcnow()
+        return created
 
 
 class CheckTAF(object):
@@ -135,7 +157,7 @@ class CheckMetar(object):
         last = self.db.query(Metar).filter_by(tt=self.tt).order_by(Metar.created.desc()).first()
         
         if last is None or last.rpt != self.remote:
-            item = Metar(tt=self.tt, rpt=self.remote)
+            item = Metar(tt=self.tt, rpt=self.remote, created=format_timez(self.remote))
             self.db.add(item)
             self.db.commit()
             log.info('Save {} {}'.format(self.tt, self.remote))

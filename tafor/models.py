@@ -40,7 +40,6 @@ class Tafor(Base):
     def format_rpt(self):
         return self.rpt.replace('\n', ' ')
 
-
 class Metar(Base):
     __tablename__ = 'metars'
     id = Column(Integer, primary_key=True)
@@ -48,9 +47,10 @@ class Metar(Base):
     rpt = Column(String(255))
     created = Column(DateTime, default=datetime.datetime.utcnow)
 
-    def __init__(self, tt, rpt):
+    def __init__(self, tt, rpt, created):
         self.tt = tt
         self.rpt = rpt
+        self.created = created
 
 class Task(Base):
     __tablename__ = 'tasks'
