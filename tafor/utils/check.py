@@ -3,6 +3,8 @@ import datetime
 
 import requests
 
+from requests.exceptions import ConnectionError
+
 from tafor import setting, log
 from tafor.models import Session, Tafor, Metar
 
@@ -12,31 +14,30 @@ from .validator import REGEX_TAF
 def remote_message():
     url = setting.value('monitor/db/web_api_url')
     try:
-        response = requests.get(url)
-        return response.json()
-    except Exception as e:
-        if type(e).__name__ == 'JSONDecodeError':
-            log.error('GET {} 404 Not Found'.format(url))
-        elif type(e).__name__ == 'ConnectionError':
-            log.error('GET {} 408 Request Timeout'.format(url))
+        r = requests.get(url)
+        if r.status_code == 200:
+            return r.json()
         else:
-            log.error(e, exc_info=True)
-        return {'error': 'message not found'}
+            log.error('GET {} 404 Not Found'.format(url))
+
+    except ConnectionError as e:
+        log.error('GET {} 408 Request Timeout'.format(url))
+
+
 
 def make_call(phone_number):
     url = setting.value('monitor/phone/call_service_url')
     token = setting.value('monitor/phone/call_service_token')
     try:
-        response = requests.post(url, data={'token': token, 'phone_number': phone_number})
-        log.info('call {}'.format(phone_number))
-        return response.json()
-    except Exception as e:
-        if type(e).__name__ == 'JSONDecodeError':
-            log.error('GET {} 404 Not Found'.format(url))
-        elif type(e).__name__ == 'ConnectionError':
-            log.error('GET {} 408 Request Timeout'.format(url))
+        r = requests.post(url, data={'token': token, 'phone_number': phone_number})
+        if r.status_code == 201:
+            log.info('call {} success'.format(phone_number))
+            return r.json()
         else:
-            log.error(e, exc_info=True)
+            log.error('call {} failure'.format(phone_number))
+
+    except ConnectionError as e:
+        log.error('POST {} 408 Request Timeout'.format(url))
 
 def format_timez(message):
     try:

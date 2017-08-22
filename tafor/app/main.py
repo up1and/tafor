@@ -492,9 +492,9 @@ class WorkThread(QtCore.QThread):
         super(WorkThread, self).__init__(parent)
 
     def run(self):
-        if boolean(setting.value('monitor/db/web_api')):
-            remote = remote_message()
-        else:
+        remote = remote_message()
+
+        if not (boolean(setting.value('monitor/db/web_api')) and remote):
             remote = {}
 
         fc = Listen('FC', remote=remote.get('FC', None))
