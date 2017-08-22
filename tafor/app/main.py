@@ -14,6 +14,7 @@ from tafor.widgets.settings import SettingDialog
 from tafor.widgets.tasks import TaskTable
 from tafor.models import Session, Tafor, Task, Metar, User
 from tafor.widgets.common import RecentItem
+from tafor.widgets.status import WebAPIStatus, CallServiceStatus
 from tafor.utils import CheckTAF, Listen, remote_message
 from tafor import BASEDIR, setting, log, boolean, __version__
 
@@ -101,6 +102,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         # 设置系统托盘
         self.setup_sys_tray()
 
+        # 设置系统托盘
+        self.setup_statusbar()
+
         # 设置上下文
         self.context()
 
@@ -187,6 +191,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         message = '预报发报软件 v' + __version__
         self.tray.setToolTip(message)
 
+    def setup_statusbar(self):
+        self.web_api_status = WebAPIStatus(self, self.statusbar)
+        self.call_service_status = CallServiceStatus(self, self.statusbar)
+
+        # self.statusbar.setStyleSheet('QStatusBar::item{border: 0px}')
+
     def change_phone_number(self):
         target = self.contracts_action_group.checkedAction()
 
@@ -202,7 +212,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
     def copy_select_item(self, item):
         self.clip.setText(item.text())
-        self.statusbar.showMessage(item.text())
+        self.statusbar.showMessage(item.text(), 5000)
 
     def handle_taf_edit(self, message):
         log.debug('Receive from taf edit ' + message['full'])
@@ -353,12 +363,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.update_taf_table()
         self.update_metar_table()
         self.update_recent()
-        self.update_statusbar()
 
         log.debug('Update GUI')
-
-    def update_statusbar(self):
-        self.statusbar.clearMessage()
 
     def context(self, ctx=None):
         if ctx is None:
