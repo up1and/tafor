@@ -13,7 +13,7 @@ from tafor.widgets.send import TaskTAFSend, TAFSend, TrendSend
 from tafor.widgets.settings import SettingDialog
 from tafor.widgets.tasks import TaskTable
 from tafor.models import Session, Tafor, Task, Metar, User
-from tafor.widgets.common import RecentItem
+from tafor.widgets.common import Clock, CurrentTAF, RecentTAF
 from tafor.widgets.status import WebAPIStatus, CallServiceStatus
 from tafor.utils import CheckTAF, Listen, remote_message
 from tafor import BASEDIR, setting, log, boolean, __version__
@@ -96,6 +96,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.setWindowTitle('预报发报软件')
         self.setWindowIcon(QtGui.QIcon(':/logo.png'))
 
+        self.setup_recent()
+
         # 设置切换联系人菜单
         self.setup_change_contract_menu()
 
@@ -107,13 +109,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
         # 设置上下文
         self.context()
-
-        # 添加模块
-        self.recent_fc = RecentItem()
-        self.recent_layout.addWidget(self.recent_fc)
-
-        self.recent_ft = RecentItem()
-        self.recent_layout.addWidget(self.recent_ft)
 
         # 载入声音
         self.sounds = {}
@@ -135,9 +130,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
         # 时钟计时器
         self.clock_timer = QtCore.QTimer()
-        self.clock_timer.timeout.connect(self.update_utc_time)
         self.clock_timer.timeout.connect(self.taf_edit_dialog.update_date)
-        self.clock_timer.timeout.connect(self.check_serial_number)
         self.clock_timer.timeout.connect(self.manage_sound)
         self.clock_timer.start(1 * 1000)
 
@@ -149,6 +142,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
         self.update_gui()
         self.worker()
+
+    def setup_recent(self):
+        self.clock = Clock(self, self.tips_layout)
+        self.tips_layout.addSpacerItem(QtWidgets.QSpacerItem(10, 10, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum))
+        self.current_taf = CurrentTAF(self, self.tips_layout)
+        self.recent_ft = RecentTAF(self, self.recent_layout, 'FT')
+        self.recent_fc = RecentTAF(self, self.recent_layout, 'FC')
 
     def setup_change_contract_menu(self):
         contacts = self.db.query(User).all()
@@ -267,7 +267,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         sound = self.sounds[name][0]
         volume = self.sounds[name][1] if volume is None else volume
         sound.setLoopCount(0)
-        sound.setVolume(volume/100)
+        sound.setVolume(int(volume)/100)
 
         if loop:
             sound.setLoopCount(QSoundEffect.Infinite)
@@ -359,13 +359,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.thread.done.connect(self.update_gui)
         self.thread.start()
 
-    def update_gui(self):
-        self.update_taf_table()
-        self.update_metar_table()
-        self.update_recent()
-
-        log.debug('Update GUI')
-
     def context(self, ctx=None):
         if ctx is None:
             self.ctx = {
@@ -374,6 +367,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             }
         else:
             self.ctx = ctx
+
+    def update_gui(self):
+        self.update_taf_table()
+        self.update_metar_table()
+        self.update_recent()
+
+        log.debug('Update GUI')
+
+    def update_recent(self):
+        self.current_taf.update_gui()
+        self.recent_ft.update_gui()
+        self.recent_fc.update_gui()
 
     def update_taf_table(self):
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
@@ -388,7 +393,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
         for row, item in enumerate(items):
             self.taf_table.setItem(row, 0,  QtWidgets.QTableWidgetItem(item.tt))
-            self.taf_table.setItem(row, 1,  QtWidgets.QTableWidgetItem(item.format_rpt))
+            self.taf_table.setItem(row, 1,  QtWidgets.QTableWidgetItem(item.rpt_inline))
             if item.sent:
                 sent = item.sent.strftime("%Y-%m-%d %H:%M:%S")
                 self.taf_table.setItem(row, 2,  QtWidgets.QTableWidgetItem(sent))
@@ -432,45 +437,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
         self.metar_table.setStyleSheet("QTableWidget::item {padding: 5px 0;}")
         self.metar_table.resizeRowsToContents()
-
-    def update_recent(self):
-        fc = self.db.query(Tafor).filter_by(tt='FC').order_by(Tafor.sent.desc()).first()
-        ft = self.db.query(Tafor).filter_by(tt='FT').order_by(Tafor.sent.desc()).first()
-
-        if fc:
-            self.recent_fc.set_item(fc)
-        else:
-            self.recent_fc.hide()
-
-        if ft:
-            self.recent_ft.set_item(ft)
-        else:
-            self.recent_ft.hide()
-
-        self.update_utc_time()
-        self.update_current_taf()
-
-    def update_utc_time(self):
-        utc = datetime.datetime.utcnow()
-        self.utc_time.setText('世界时  ' + utc.strftime("%Y-%m-%d %H:%M:%S"))
-
-    def update_current_taf(self):
-        self.current_fc.setText(self.next_taf('FC'))
-        self.current_ft.setText(self.next_taf('FT'))
-
-    def check_serial_number(self):
-        utc = datetime.datetime.utcnow()
-        if utc.hour == 0 and utc.minute == 0 and utc.second == 0:
-            self.setting_dialog.reset_serial_number()
-
-    def next_taf(self, tt):
-        taf = CheckTAF(tt)
-        if taf.existed_in_local():
-            text = ''
-        else:
-            text = tt + taf.warn_period()[2:]
-        return text
-
 
     def about(self):
         QtWidgets.QMessageBox.about(self, u"预报报文发布软件",

@@ -1,4 +1,7 @@
 import json
+import datetime
+
+
 from PyQt5 import QtCore, QtGui, QtWidgets
 from tafor.widgets.ui import Ui_settings, main_rc
 from tafor.models import Session, User
@@ -16,6 +19,10 @@ class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
 
         # 开机自动启动设置
         self.auto_run_setting = QtCore.QSettings('HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run', QtCore.QSettings.NativeFormat)
+
+        self.clock_timer = QtCore.QTimer()
+        self.clock_timer.timeout.connect(self.check_serial_number)
+        self.clock_timer.start(1 * 1000)
 
         self.bind_signal()
         self.update_contract()
@@ -40,6 +47,11 @@ class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
         self.button_box.button(QtWidgets.QDialogButtonBox.Reset).clicked.connect(self.load)
         self.button_box.button(QtWidgets.QDialogButtonBox.Apply).clicked.connect(self.save)
         self.button_box.accepted.connect(self.save)
+
+    def check_serial_number(self):
+        utc = datetime.datetime.utcnow()
+        if utc.hour == 0 and utc.minute == 0 and utc.second == 0:
+            self.reset_serial_number()
 
     def reset_serial_number(self):
         setting.setValue('communication/other/number', '0')

@@ -18,10 +18,13 @@ def remote_message():
         if r.status_code == 200:
             return r.json()
         else:
-            log.error('GET {} 404 Not Found'.format(url))
+            log.warn('GET {} 404 Not Found'.format(url))
 
-    except ConnectionError as e:
-        log.error('GET {} 408 Request Timeout'.format(url))
+    except ConnectionError:
+        log.warn('GET {} 408 Request Timeout'.format(url))
+
+    except Exception as e:
+        log.error(e, exc_info=True)
 
 
 
@@ -34,10 +37,13 @@ def make_call(phone_number):
             log.info('call {} success'.format(phone_number))
             return r.json()
         else:
-            log.error('call {} failure'.format(phone_number))
+            log.warn('call {} failure'.format(phone_number))
 
-    except ConnectionError as e:
-        log.error('POST {} 408 Request Timeout'.format(url))
+    except ConnectionError:
+        log.warn('POST {} 408 Request Timeout'.format(url))
+
+    except Exception as e:
+        log.error(e, exc_info=True)
 
 def format_timez(message):
     try:
@@ -114,7 +120,7 @@ class CheckTAF(object):
     def save(self):
         last = self.db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()
 
-        if last is None or last.format_rpt != self.remote:  # 如果数据表为空 或 最后一条数据和远程不相等
+        if last is None or last.rpt_inline != self.remote:  # 如果数据表为空 或 最后一条数据和远程不相等
             item = Tafor(tt=self.tt, rpt=self.remote, confirmed=self.time)
             self.db.add(item)
             self.db.commit()
@@ -123,7 +129,7 @@ class CheckTAF(object):
     def confirm(self):
         last = self.db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()
 
-        if last is not None and last.format_rpt == self.remote:
+        if last is not None and last.rpt_inline == self.remote:
             last.confirmed = self.time
             self.db.commit()
             log.info('Confirm {} {}'.format(self.tt, self.remote))

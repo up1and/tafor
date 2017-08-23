@@ -37,8 +37,17 @@ class Tafor(Base):
         return '<TAF %r %r>' % (self.tt, self.rpt)
 
     @property
-    def format_rpt(self):
+    def rpt_inline(self):
         return self.rpt.replace('\n', ' ')
+
+    @property
+    def report(self):
+        from tafor.utils import Parser
+        rpt = Parser(self.rpt)
+        parts = [self.head, rpt.primary]
+        parts.extend(rpt.becmg)
+        parts.extend(rpt.tempo)
+        return '\n'.join(filter(None, parts))
 
 class Metar(Base):
     __tablename__ = 'metars'

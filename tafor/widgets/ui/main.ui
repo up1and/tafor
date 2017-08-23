@@ -58,45 +58,6 @@
            <property name="bottomMargin">
             <number>20</number>
            </property>
-           <item>
-            <widget class="QLabel" name="utc_time">
-             <property name="text">
-              <string>time</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="current_fc">
-             <property name="maximumSize">
-              <size>
-               <width>60</width>
-               <height>16777215</height>
-              </size>
-             </property>
-             <property name="text">
-              <string>FC</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="current_ft">
-             <property name="maximumSize">
-              <size>
-               <width>60</width>
-               <height>16777215</height>
-              </size>
-             </property>
-             <property name="text">
-              <string>FT</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-             </property>
-            </widget>
-           </item>
           </layout>
          </widget>
         </item>

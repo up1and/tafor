@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\widgets\ui\main.ui'
+# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\widgets\ui\main.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -32,19 +32,6 @@ class Ui_MainWindow(object):
         self.tips_layout = QtWidgets.QHBoxLayout(self.tips)
         self.tips_layout.setContentsMargins(10, 20, 10, 20)
         self.tips_layout.setObjectName("tips_layout")
-        self.utc_time = QtWidgets.QLabel(self.tips)
-        self.utc_time.setObjectName("utc_time")
-        self.tips_layout.addWidget(self.utc_time)
-        self.current_fc = QtWidgets.QLabel(self.tips)
-        self.current_fc.setMaximumSize(QtCore.QSize(60, 16777215))
-        self.current_fc.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
-        self.current_fc.setObjectName("current_fc")
-        self.tips_layout.addWidget(self.current_fc)
-        self.current_ft = QtWidgets.QLabel(self.tips)
-        self.current_ft.setMaximumSize(QtCore.QSize(60, 16777215))
-        self.current_ft.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
-        self.current_ft.setObjectName("current_ft")
-        self.tips_layout.addWidget(self.current_ft)
         self.recent_layout.addWidget(self.tips)
         self.main_tab.addTab(self.tab_recent, "")
         self.tab_taf = QtWidgets.QWidget()
@@ -144,9 +131,6 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
-        self.utc_time.setText(_translate("MainWindow", "time"))
-        self.current_fc.setText(_translate("MainWindow", "FC"))
-        self.current_ft.setText(_translate("MainWindow", "FT"))
         self.main_tab.setTabText(self.main_tab.indexOf(self.tab_recent), _translate("MainWindow", "RECENT"))
         item = self.taf_table.horizontalHeaderItem(0)
         item.setText(_translate("MainWindow", "类型"))
