@@ -6,10 +6,10 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-from tafor.widgets.common import TAFWidgetPrimary, TAFWidgetBecmg, TAFWidgetTempo
+from tafor import log
 from tafor.utils import CheckTAF, Parser, REGEX_TAF
 from tafor.models import Session, Tafor, Task
-from tafor import log
+from tafor.widgets.edit import TAFWidgetPrimary, TAFWidgetBecmg, TAFWidgetTempo
 
 
 class TAFEditBase(QDialog):

@@ -67,7 +67,7 @@
        <attribute name="title">
         <string>TAF</string>
        </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_2">
+       <layout class="QVBoxLayout" name="taf_layout">
         <item>
          <widget class="QTableWidget" name="taf_table">
           <property name="minimumSize">
@@ -118,7 +118,7 @@
        <attribute name="title">
         <string>METAR</string>
        </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_3">
+       <layout class="QVBoxLayout" name="metar_layout">
         <item>
          <widget class="QTableWidget" name="metar_table">
           <property name="minimumSize">

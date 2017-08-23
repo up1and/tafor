@@ -6,17 +6,17 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 from PyQt5.QtMultimedia import QSound, QSoundEffect
 
+from tafor import BASEDIR, setting, log, boolean, __version__
+from tafor.models import Session, Tafor, Task, Metar, User
+from tafor.utils import CheckTAF, Listen, remote_message
 from tafor.widgets.ui import Ui_main, main_rc
 from tafor.widgets.taf import TAFEdit, TaskTAFEdit
 from tafor.widgets.trend import TrendEdit
 from tafor.widgets.send import TaskTAFSend, TAFSend, TrendSend
 from tafor.widgets.settings import SettingDialog
 from tafor.widgets.tasks import TaskTable
-from tafor.models import Session, Tafor, Task, Metar, User
-from tafor.widgets.common import Clock, CurrentTAF, RecentTAF
+from tafor.widgets.widget import Clock, CurrentTAF, RecentTAF
 from tafor.widgets.status import WebAPIStatus, CallServiceStatus
-from tafor.utils import CheckTAF, Listen, remote_message
-from tafor import BASEDIR, setting, log, boolean, __version__
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):

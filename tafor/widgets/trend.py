@@ -6,7 +6,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-from tafor.widgets.common import TrendWidget
+from tafor.widgets.edit import TrendWidget
 from tafor.utils import CheckTAF, Parser, REGEX_TAF
 from tafor import setting, log
 
