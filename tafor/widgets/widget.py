@@ -35,7 +35,7 @@ class RecentTAF(QtWidgets.QWidget, Ui_widget_recent_item.Ui_Form):
 
 class CurrentTAF(QtWidgets.QWidget):
     def __init__(self, parent, container):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(CurrentTAF, self).__init__(parent)
 
         layout = QtWidgets.QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -65,7 +65,7 @@ class CurrentTAF(QtWidgets.QWidget):
 
 class Clock(QtWidgets.QWidget):
     def __init__(self, parent, container):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(Clock, self).__init__(parent)
 
         layout = QtWidgets.QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)

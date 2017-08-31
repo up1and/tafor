@@ -3,12 +3,12 @@ import datetime
 
 import requests
 
-from requests.exceptions import ConnectionError
+from PyQt5.QtCore import QObject
 
 from tafor import setting, log
 from tafor.models import Session, Tafor, Metar
 
-from .validator import REGEX_TAF
+from tafor.utils.validator import REGEX_TAF
 
 
 def remote_message():
@@ -20,13 +20,13 @@ def remote_message():
         else:
             log.warn('GET {} 404 Not Found'.format(url))
 
-    except ConnectionError:
+    except requests.exceptions.ConnectionError:
         log.warn('GET {} 408 Request Timeout'.format(url))
 
     except Exception as e:
         log.error(e, exc_info=True)
 
-
+    return {}
 
 def make_call(phone_number):
     url = setting.value('monitor/phone/call_service_url')
@@ -39,11 +39,19 @@ def make_call(phone_number):
         else:
             log.warn('call {} failure'.format(phone_number))
 
-    except ConnectionError:
+    except requests.exceptions.ConnectionError:
         log.warn('POST {} 408 Request Timeout'.format(url))
 
     except Exception as e:
         log.error(e, exc_info=True)
+
+def call_service():
+    url = setting.value('monitor/phone/call_service_url')
+    try:
+        r = requests.get(url)
+        return r.status_code == 405
+    except Exception:
+        pass
 
 def format_timez(message):
     try:
@@ -58,7 +66,7 @@ def format_timez(message):
         return created
 
 
-class CheckTAF(object):
+class CheckTAF(QObject):
     """docstring for CheckTAF"""
     def __init__(self, tt, remote=None, time=None):
         self.tt = tt

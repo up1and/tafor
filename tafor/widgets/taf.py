@@ -19,7 +19,7 @@ class TAFEditBase(QDialog):
 
     def __init__(self, parent=None):
         super(TAFEditBase, self).__init__(parent)
-
+        self.parent = parent
         self.db = Session()
 
         self.init_ui()
@@ -344,10 +344,12 @@ class TAFEdit(TAFEditBase):
 
     def __init__(self, parent=None):
         super(TAFEdit, self).__init__(parent)
-
         self.setWindowTitle("编发报文")
-
         self.primary.date.setEnabled(False)
+
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_date)
+        self.timer.start(1 * 1000)
 
     def preview_message(self):
         message = {'head': self.head, 'rpt':self.rpt, 'full': '\n'.join([self.head, self.rpt])}

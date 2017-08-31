@@ -131,6 +131,11 @@ class TaskTAFSend(SendBase):
         self.button_box.accepted.connect(self.save)
         self.button_box.accepted.connect(self.accept)
 
+        # 自动发送报文的计时器
+        self.auto_sent = QtCore.QTimer()
+        self.auto_sent.timeout.connect(self.auto_send)
+        self.auto_sent.start(30 * 1000)
+
         # 测试数据
         # self.Task_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=1)
 
@@ -164,7 +169,6 @@ class TaskTAFSend(SendBase):
         log.debug('Tasks ' + ' '.join(task.rpt for task in tasks))
         
         if send_status:
-            # self.update_taf_table()
             log.debug('Task complete')
 
 

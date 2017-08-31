@@ -8,7 +8,7 @@ from PyQt5.QtMultimedia import QSound, QSoundEffect
 
 from tafor import BASEDIR, setting, log, boolean, __version__
 from tafor.models import Session, Tafor, Task, Metar, User
-from tafor.utils import CheckTAF, Listen, remote_message
+from tafor.utils import CheckTAF, Listen, remote_message, call_service
 from tafor.widgets.ui import Ui_main, main_rc
 from tafor.widgets.taf import TAFEdit, TaskTAFEdit
 from tafor.widgets.trend import TrendEdit
@@ -31,6 +31,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.setupUi(self)
 
         self.db = Session()
+        self.context = {
+            'warn': False,
+            'web_api': False,
+            'call_service': False
+        }
 
         # 初始化剪贴板
         self.clip = QtWidgets.QApplication.clipboard()
@@ -65,7 +70,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.taf_action.triggered.connect(self.taf_edit_dialog.show)
         self.trend_action.triggered.connect(self.trend_edit_dialog.show)
 
-        # # 添加定时任务菜单
+        # 添加定时任务菜单
         # self.task_taf_action = QtWidgets.QAction(self)
         # self.post_menu.addAction(self.task_taf_action)
         # self.task_taf_action.setText('定时任务')
@@ -107,9 +112,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         # 设置系统托盘
         self.setup_statusbar()
 
-        # 设置上下文
-        self.context()
-
         # 载入声音
         self.sounds = {}
         self.sound_ring = self.setup_sound('ring')
@@ -123,20 +125,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.setting_dialog.remind_trend_volume.valueChanged.connect(lambda vol: self.play_sound('trend', volume=vol, loop=False))
         self.setting_dialog.remind_sigmet_volume.valueChanged.connect(lambda vol: self.play_sound('sigmet', volume=vol, loop=False))
 
-        # 自动发送报文的计时器
-        self.auto_sent = QtCore.QTimer()
-        self.auto_sent.timeout.connect(self.task_taf_send_dialog.auto_send)
-        self.auto_sent.start(30 * 1000)
-
         # 时钟计时器
         self.clock_timer = QtCore.QTimer()
-        self.clock_timer.timeout.connect(self.taf_edit_dialog.update_date)
         self.clock_timer.timeout.connect(self.manage_sound)
         self.clock_timer.start(1 * 1000)
 
         self.worker_timer = QtCore.QTimer()
-        self.worker_timer.timeout.connect(self.update_gui)
-        self.worker_timer.timeout.connect(self.task_table_dialog.update_gui)
         self.worker_timer.timeout.connect(self.worker)
         self.worker_timer.start(60 * 1000)
 
@@ -295,7 +289,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             self.stop_sound('trend')
 
         # 管理报文告警声音
-        if taf_switch and any([self.ctx['FC']['warn'], self.ctx['FT']['warn']]):
+        if taf_switch and self.context['warn']:
             self.play_sound('alarm')
         else:
             self.stop_sound('alarm')
@@ -354,19 +348,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             self.showNormal()
 
     def worker(self):
-        self.thread = WorkThread()
-        self.thread.done.connect(self.context)
-        self.thread.done.connect(self.update_gui)
+        self.thread = WorkThread(self)
+        self.thread.message.connect(self.listen)
         self.thread.start()
 
-    def context(self, ctx=None):
-        if ctx is None:
-            self.ctx = {
-                'FC': {'warn': False},
-                'FT': {'warn': False}
-            }
-        else:
-            self.ctx = ctx
+    def listen(self, message):
+        fc = Listen('FC', remote=message.get('FC', None))
+        ft = Listen('FT', remote=message.get('FT', None))
+        sa = Listen('SA', remote=message.get('SA', None))
+        sp = Listen('SP', remote=message.get('SP', None))
+
+        self.update_gui()
 
     def update_gui(self):
         self.update_taf_table()
@@ -452,28 +444,27 @@ class WorkThread(QtCore.QThread):
     """
     检查预报报文线程类
     """
-    done = QtCore.pyqtSignal(dict)
+    message = QtCore.pyqtSignal(dict)
 
     def __init__(self, parent=None):
         super(WorkThread, self).__init__(parent)
+        self.parent = parent
 
     def run(self):
-        remote = remote_message()
+        remote = {}
 
-        if not (boolean(setting.value('monitor/db/web_api')) and remote):
-            remote = {}
+        if (boolean(setting.value('monitor/db/web_api'))):
+            remote = remote_message()
+            if remote:
+                self.parent.context['web_api'] = True
+            else:
+                self.parent.context['web_api'] = False
 
-        fc = Listen('FC', remote=remote.get('FC', None))
-        ft = Listen('FT', remote=remote.get('FT', None))
-        sa = Listen('SA', remote=remote.get('SA', None))
-        sp = Listen('SP', remote=remote.get('SP', None))
+        if (boolean(setting.value('monitor/phone/phone_warn_taf'))):
+            self.parent.context['call_service'] = call_service()
 
-        ctx = {
-            'FC': {'warn': fc.warn},
-            'FT': {'warn': ft.warn}
-        }
+        self.message.emit(remote)
 
-        self.done.emit(ctx)
 
 
 def main():

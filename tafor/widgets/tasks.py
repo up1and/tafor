@@ -11,11 +11,14 @@ class TaskTable(QtWidgets.QDialog, Ui_tasks.Ui_Tasks):
     """docstring for TaskTable"""
     def __init__(self, parent=None):
         super(TaskTable, self).__init__(parent)
-
-        self.db = Session()
-
         self.setupUi(self)
+        self.parent = parent
+        self.db = Session()
         self.update_gui()
+
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.update_gui)
+        self.timer.start(60 * 1000)
 
     def update_gui(self):
         items = self.db.query(Task).filter(Task.tafor_id == None).order_by(Task.plan.desc()).all()
