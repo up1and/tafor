@@ -48,7 +48,7 @@ class WebAPIStatus(BaseTimerStatus):
     title = '数据源:'
 
     def get_value(self):
-        status = self.parent.context['web_api']
+        status = self.parent.ctx.web_api
         return '正常' if status else '超时'
 
 
@@ -56,5 +56,5 @@ class CallServiceStatus(BaseTimerStatus):
     title = '电话服务:'
 
     def get_value(self):
-        status = self.parent.context['call_service']
+        status = self.parent.ctx.call_service
         return '正常' if status else '超时'

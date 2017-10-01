@@ -19,6 +19,46 @@ from tafor.widgets.widget import Clock, CurrentTAF, RecentTAF
 from tafor.widgets.status import WebAPIStatus, CallServiceStatus
 
 
+class Context(QtCore.QObject):
+    warned = QtCore.pyqtSignal(bool)
+
+    def __init__(self):
+        super(Context, self).__init__()
+        self._message = None
+        self._web_api = None
+        self._call_service = None
+        self._warn = False
+
+    @property
+    def message(self):
+        return self._message
+
+    @message.setter
+    def message(self, msg):
+        self._message = msg
+
+    @property
+    def web_api(self):
+        return True if self._message else False
+
+    @property
+    def call_service(self):
+        return self._call_service
+
+    @call_service.setter
+    def call_service(self, value):
+        self._call_service = value
+
+    @property
+    def warn(self):
+        return self._warn
+
+    @warn.setter
+    def warn(self, value):
+        self._warn = value
+        self.warned.emit(value)
+        
+
 class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
     """
     主窗口
@@ -31,11 +71,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.setupUi(self)
 
         self.db = Session()
-        self.context = {
-            'warn': False,
-            'web_api': False,
-            'call_service': False
-        }
+        self.ctx = Context()
 
         # 初始化剪贴板
         self.clip = QtWidgets.QApplication.clipboard()
@@ -289,7 +325,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             self.stop_sound('trend')
 
         # 管理报文告警声音
-        if taf_switch and self.context['warn']:
+        if taf_switch and self.ctx.warn:
             self.play_sound('alarm')
         else:
             self.stop_sound('alarm')
@@ -348,15 +384,21 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             self.showNormal()
 
     def worker(self):
-        self.thread = WorkThread(self)
-        self.thread.message.connect(self.listen)
-        self.thread.start()
+        thread = WorkThread(self)
+        thread.done.connect(self.update_message)
+        thread.start()
 
-    def listen(self, message):
-        fc = Listen('FC', remote=message.get('FC', None))
-        ft = Listen('FT', remote=message.get('FT', None))
-        sa = Listen('SA', remote=message.get('SA', None))
-        sp = Listen('SP', remote=message.get('SP', None))
+    def make_call(self):
+        thread = CallThread(self)
+        thread.start()
+
+    def warn(self):
+        self.make_call()
+        self.manage_sound()
+
+    def update_message(self):
+        listen = Listen(self.ctx)
+        [listen(i) for i in ('FC', 'FT', 'SA', 'SP')]
 
         self.update_gui()
 
@@ -444,26 +486,33 @@ class WorkThread(QtCore.QThread):
     """
     检查预报报文线程类
     """
-    message = QtCore.pyqtSignal(dict)
+    done = QtCore.pyqtSignal()
 
     def __init__(self, parent=None):
         super(WorkThread, self).__init__(parent)
         self.parent = parent
 
     def run(self):
-        remote = {}
-
         if (boolean(setting.value('monitor/db/web_api'))):
-            remote = remote_message()
-            if remote:
-                self.parent.context['web_api'] = True
-            else:
-                self.parent.context['web_api'] = False
+            self.parent.ctx.message = remote_message()
 
         if (boolean(setting.value('monitor/phone/phone_warn_taf'))):
-            self.parent.context['call_service'] = call_service()
+            self.parent.ctx.call_service = call_service()
 
-        self.message.emit(remote)
+        self.done.emit()
+
+
+class CallThread(QtCore.QThread):
+    def __init__(self, parent=None):
+        super(CallThread, self).__init__(parent)
+        self.parent = parent
+
+    def run(self):
+        call_switch = boolean(setting.value('monitor/phone/phone_warn_taf'))
+        phone_number = setting.value('monitor/phone/select_phone_number')
+
+        if call_switch and self.ctx.warn:
+            make_call(phone_number)
 
 
 

@@ -69,6 +69,7 @@ def format_timez(message):
 class CheckTAF(QObject):
     """docstring for CheckTAF"""
     def __init__(self, tt, remote=None, time=None):
+        super(CheckTAF, self).__init__()
         self.tt = tt
         self.remote = remote
         self.time = datetime.datetime.utcnow() if time is None else time
@@ -179,16 +180,17 @@ class CheckMetar(object):
 
 
 class Listen(object):
-    def __init__(self, tt, remote):
-        method = {'FC': 'taf', 'FT': 'taf', 'SA': 'metar', 'SP': 'metar'}
+    def __init__(self, ctx):
+        self.ctx = ctx
+
+    def __call__(self, tt):
         self.tt = tt
-        self.remote = remote
-        self.warn = False
-        getattr(self.__class__, method[self.tt])(self)
+        self.remote = self.ctx.message.get(self.tt, None)
+        method = {'FC': 'taf', 'FT': 'taf', 'SA': 'metar', 'SP': 'metar'}
+        return getattr(self.__class__, method[self.tt])(self)
 
     def taf(self):
-        call_switch = setting.value('monitor/phone/phone_warn_taf')
-        phone_number = setting.value('monitor/phone/select_phone_number')
+        warn = False
 
         taf = CheckTAF(self.tt, remote=self.remote)
         local = taf.existed_in_local()
@@ -198,15 +200,14 @@ class Listen(object):
                 if taf.existed_in_remote():
                     taf.confirm()
                 elif taf.overdued():
-                    self.warn = True
+                    warn = True
         else:
             if taf.existed_in_remote():
                 taf.save()
             elif taf.overdued():
-                self.warn = True
+                warn = True
 
-        if self.warn and call_switch:
-            make_call(phone_number)
+        self.ctx.warn = warn
 
     def metar(self):
         metar = CheckMetar(self.tt, remote=self.remote)
