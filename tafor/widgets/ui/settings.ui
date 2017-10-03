@@ -170,7 +170,7 @@
             <item row="0" column="0">
              <widget class="QLabel" name="icao_label">
               <property name="text">
-               <string>机场代码</string>
+               <string>机场代码    </string>
               </property>
              </widget>
             </item>
@@ -184,7 +184,7 @@
             <item row="1" column="0">
              <widget class="QLabel" name="intelligence_label">
               <property name="text">
-               <string>气象情报</string>
+               <string>气象情报    </string>
               </property>
              </widget>
             </item>
@@ -212,7 +212,7 @@
             <item row="3" column="0">
              <widget class="QLabel" name="trend_sign_label">
               <property name="text">
-               <string>趋势识别码</string>
+               <string>趋势识别码  </string>
               </property>
              </widget>
             </item>
@@ -341,7 +341,7 @@
               <item row="0" column="0">
                <widget class="QLabel" name="port_label">
                 <property name="text">
-                 <string>端口</string>
+                 <string>端口  </string>
                 </property>
                </widget>
               </item>
@@ -475,7 +475,7 @@
               <item row="1" column="0">
                <widget class="QLabel" name="number_label">
                 <property name="text">
-                 <string>流水号</string>
+                 <string>流水号  </string>
                 </property>
                </widget>
               </item>
@@ -668,7 +668,7 @@
             <item row="2" column="0">
              <widget class="QLabel" name="clock_volume_label">
               <property name="text">
-               <string>音量</string>
+               <string>音量            </string>
               </property>
              </widget>
             </item>
@@ -691,7 +691,7 @@
             <item row="0" column="0">
              <widget class="QCheckBox" name="warn_taf">
               <property name="text">
-               <string>报文迟发</string>
+               <string>报文迟发    </string>
               </property>
              </widget>
             </item>
@@ -705,7 +705,7 @@
             <item row="1" column="0">
              <widget class="QCheckBox" name="remind_trend">
               <property name="text">
-               <string>趋势预报</string>
+               <string>趋势预报    </string>
               </property>
              </widget>
             </item>
@@ -769,7 +769,7 @@
             <item row="2" column="0">
              <widget class="QLabel" name="call_service_url_label">
               <property name="text">
-               <string>请求地址</string>
+               <string>请求地址        </string>
               </property>
              </widget>
             </item>
@@ -783,7 +783,7 @@
             <item row="3" column="0">
              <widget class="QLabel" name="call_service_token_label">
               <property name="text">
-               <string>认证</string>
+               <string>认证            </string>
               </property>
              </widget>
             </item>
