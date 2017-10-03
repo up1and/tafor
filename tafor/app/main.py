@@ -17,10 +17,11 @@ from tafor.widgets.settings import SettingDialog
 from tafor.widgets.tasks import TaskTable
 from tafor.widgets.widget import Clock, CurrentTAF, RecentTAF
 from tafor.widgets.status import WebAPIStatus, CallServiceStatus
+from tafor.widgets.sound import Sound
 
 
 class Context(QtCore.QObject):
-    warned = QtCore.pyqtSignal(bool)
+    warned = QtCore.pyqtSignal()
 
     def __init__(self):
         super(Context, self).__init__()
@@ -56,7 +57,7 @@ class Context(QtCore.QObject):
     @warn.setter
     def warn(self, value):
         self._warn = value
-        self.warned.emit(value)
+        self.warned.emit()
         
 
 class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
@@ -72,6 +73,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
         self.db = Session()
         self.ctx = Context()
+
+        self.ctx.warned.connect(self.dialer)
 
         # 初始化剪贴板
         self.clip = QtWidgets.QApplication.clipboard()
@@ -149,17 +152,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.setup_statusbar()
 
         # 载入声音
-        self.sounds = {}
-        self.sound_ring = self.setup_sound('ring')
-        self.sound_notify = self.setup_sound('notify')
-        self.sound_alarm = self.setup_sound('alarm')
-        self.sound_trend = self.setup_sound('trend')
-        self.sound_sigmet = self.setup_sound('sigmet')
+        self.sound_ring = Sound('ring.wav', setting.value('monitor/clock/clock_volume'))
+        self.sound_notify = Sound('notify.wav', 100)
+        self.sound_alarm = Sound('alarm.wav', setting.value('monitor/sound/warn_taf_volume'))
+        self.sound_trend = Sound('trend.wav', setting.value('monitor/sound/remind_trend_volume'))
+        self.sound_sigmet = Sound('sigmet.wav', setting.value('monitor/sound/remind_sigmet_volume'))
 
-        self.setting_dialog.clock_volume.valueChanged.connect(lambda vol: self.play_sound('ring', volume=vol, loop=False))
-        self.setting_dialog.warn_taf_volume.valueChanged.connect(lambda vol: self.play_sound('alarm', volume=vol, loop=False))
-        self.setting_dialog.remind_trend_volume.valueChanged.connect(lambda vol: self.play_sound('trend', volume=vol, loop=False))
-        self.setting_dialog.remind_sigmet_volume.valueChanged.connect(lambda vol: self.play_sound('sigmet', volume=vol, loop=False))
+        self.setting_dialog.clock_volume.valueChanged.connect(lambda vol: self.sound_ring.play(volume=vol, loop=False))
+        self.setting_dialog.warn_taf_volume.valueChanged.connect(lambda vol: self.sound_alarm.play(volume=vol, loop=False))
+        self.setting_dialog.remind_trend_volume.valueChanged.connect(lambda vol: self.sound_trend.play(volume=vol, loop=False))
+        self.setting_dialog.remind_sigmet_volume.valueChanged.connect(lambda vol: self.sound_sigmet.play(volume=vol, loop=False))
 
         # 时钟计时器
         self.clock_timer = QtCore.QTimer()
@@ -267,50 +269,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.task_table_dialog.show()
         self.task_table_dialog.update_gui()
 
-    def setup_sound(self, name):
-        sounds = {
-            'alarm': 'alarm.wav',
-            'notify': 'notify.wav',
-            'ring': 'ring.wav',
-            'sigmet': 'sigmet.wav',
-            'trend': 'trend.wav'
-        }
-
-        volume = {
-            'alarm': setting.value('monitor/sound/warn_taf_volume') or 0,
-            'notify': 100,
-            'ring': setting.value('monitor/clock/clock_volume') or 0,
-            'sigmet': setting.value('monitor/sound/remind_sigmet_volume') or 0,
-            'trend': setting.value('monitor/sound/remind_trend_volume') or 0
-        }
-
-        file = os.path.join(BASEDIR, 'sounds', sounds[name])
-
-        effect = QSoundEffect()
-        effect.setSource(QtCore.QUrl.fromLocalFile(file))
-
-        self.sounds[name] = [effect, volume[name]]
-
-        return effect
-
-    def play_sound(self, name, volume=None, loop=True):
-        sound = self.sounds[name][0]
-        volume = self.sounds[name][1] if volume is None else volume
-        sound.setLoopCount(0)
-        sound.setVolume(int(volume)/100)
-
-        if loop:
-            sound.setLoopCount(QSoundEffect.Infinite)
-        else:
-            sound.setLoopCount(1)
-        
-        if not sound.isPlaying():
-            sound.play()
-
-    def stop_sound(self, name):
-        sound = self.sounds[name][0]
-        sound.stop()
-
     def manage_sound(self):
         trend_switch = setting.value('monitor/sound/remind_trend')
         taf_switch = setting.value('monitor/sound/warn_taf')
@@ -320,15 +278,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         # 管理趋势声音
         utc = datetime.datetime.utcnow()
         if trend_switch and utc.minute in (58, 59):
-            self.play_sound('trend')
+            self.sound_trend.play()
         else:
-            self.stop_sound('trend')
+            self.sound_trend.stop()
 
         # 管理报文告警声音
         if taf_switch and self.ctx.warn:
-            self.play_sound('alarm')
+            self.sound_alarm.play()
         else:
-            self.stop_sound('alarm')
+            self.sound_alarm.stop()
 
     def event(self, event):
         """
@@ -388,13 +346,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         thread.done.connect(self.update_message)
         thread.start()
 
-    def make_call(self):
-        thread = CallThread(self)
-        thread.start()
+    def dialer(self, test=False):
+        call_switch = boolean(setting.value('monitor/phone/phone_warn_taf'))
 
-    def warn(self):
-        self.make_call()
-        self.manage_sound()
+        if call_switch and self.ctx.warn or test:
+            thread = CallThread(self)
+            thread.start()
 
     def update_message(self):
         listen = Listen(self.ctx)
@@ -508,11 +465,8 @@ class CallThread(QtCore.QThread):
         self.parent = parent
 
     def run(self):
-        call_switch = boolean(setting.value('monitor/phone/phone_warn_taf'))
         phone_number = setting.value('monitor/phone/select_phone_number')
-
-        if call_switch and self.ctx.warn:
-            make_call(phone_number)
+        make_call(phone_number)
 
 
 
