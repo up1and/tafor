@@ -97,8 +97,6 @@ class Parser(object):
         return self.message_regex
 
 
-
-
 class Validator(object):
     """docstring for Validator"""
 
@@ -249,6 +247,38 @@ class Validator(object):
         print(match2)
         for i in match2:
             print(i.groupdict())
+
+
+def _pure_pattern(regex):
+    pattern = regex.pattern
+    if pattern.startswith('^'):
+        pattern = pattern[1:]
+    return pattern
+
+
+class Grammar(object):
+    taf = re.compile(r'TAF\b')
+    icao = re.compile(r'\b([A-Z]{4})\b'),
+    timez = re.compile(r'\b(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])Z\b')
+    date = re.compile(r'\b(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])\b')
+    period = re.compile(r'\b(0[1-9]|[12][0-9]|3[0-1])(0009|0312|0615|0918|1221|1524|1803|2106|0024|0606|1212|1818)\b')
+    wind = re.compile(r'\b(?:00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)(?:G(0[1-9]|[1-4][0-9]|P49))?)MPS\b')
+
+
+class EditGrammar(Grammar):
+    wind = re.compile(r'00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)')
+    gust = re.compile(r'(0[1-9]|[1-4][0-9]|P49)')
+
+
+class Lexer(object):
+    def __init__(self, arg):
+        self.arg = arg
+        
+
+class Renderer(object):
+    def __init__(self, arg):
+        self.arg = arg
+        
 
 
 
