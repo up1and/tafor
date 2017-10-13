@@ -7,7 +7,8 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 from tafor.widgets.edit import TrendWidget
-from tafor import conf, logger
+from tafor.utils import CheckTAF, Element, Grammar
+from tafor import setting, log
 
 
 class TrendEdit(QDialog):
@@ -46,18 +47,18 @@ class TrendEdit(QDialog):
 
     def enbale_next_button(self):
         enbale = self.trend.required
-        logger.debug('Trend required ' + str(enbale))
+        log.debug('Trend required ' + str(enbale))
         self.next_button.setEnabled(enbale)
 
     def assemble_message(self):
         message = self.trend.message()
         self.rpt = message + '='
-        self.sign = conf.value('message/trend_sign')
+        self.sign = setting.value('message/trend_sign')
 
     def preview_message(self):
         message = {'sign': self.sign, 'rpt': self.rpt, 'full': ' '.join([self.sign, self.rpt])}
         self.signal_preview.emit(message)
-        logger.debug('Emit', message)
+        log.debug('Emit', message)
 
     def clear(self):
         self.trend.clear()

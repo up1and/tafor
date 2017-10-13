@@ -1,5 +1,7 @@
 import re
 
+from collections import OrderedDict
+
 class Validator(object):
     """docstring for Validator"""
 
@@ -163,6 +165,7 @@ _weather2 = [
 ]
 _split_pattern = re.compile(r'(BECMG|FM|TEMPO|PROB[34]0\sTEMPO)')
 
+
 def _pure_pattern(regex):
     pattern = regex.pattern
     if pattern.startswith('^'):
@@ -171,29 +174,28 @@ def _pure_pattern(regex):
 
 
 class Grammar(object):
-    taf = re.compile(r'TAF\b')
-    amd = re.compile(r'\bAMD\b')
-    cor = re.compile(r'\bCOR\b')
-    cavok = re.compile(r'\bCAVOK\b')
-    prob = re.compile(r'\b(PROB[34]0)\b')
-    sign = re.compile(r'\b(BECMG|FM|TEMPO)\b')
-    # order = re.compile(r'\b(CC|AA)([A-Z])\b')
+    sign = re.compile(r'(TAF|BECMG|FM|TEMPO)\b')
+    amend = re.compile(r'\b(AMD|\bCOR)\b')
     icao = re.compile(r'\b([A-Z]{4})\b')
     timez = re.compile(r'\b(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])Z\b')
     date = re.compile(r'\b(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])\b')
     period = re.compile(r'\b(0[1-9]|[12][0-9]|3[0-1])(0009|0312|0615|0918|1221|1524|1803|2106|0024|0606|1212|1818)\b')
+    tmax = re.compile(r'\b(TXM?(\d{2})/(\d{2})Z)\b')
+    tmin = re.compile(r'\b(TNM?(\d{2})/(\d{2})Z)\b')
+
     wind = re.compile(r'\b(?:00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)(?:G(0[1-9]|[1-4][0-9]|P49))?)MPS\b')
     vis = re.compile(r'\b(9999|[5-9]000|[01234][0-9]00|0[0-7]50)\b')
     wx1 = re.compile(r'\b({})\b'.format('|'.join(_weather1)))
     wx2 = re.compile(r'\b([-+]?)({})\b'.format('|'.join(_weather2)))
     cloud = re.compile(r'\bNSC|(FEW|SCT|BKN|OVC)(\d{3})(CB|TCU)?\b')
     vv = re.compile(r'\b(VV/{3}|VV\d{3})\b')
-    tmax = re.compile(r'\b(TXM?(\d{2})/(\d{2})Z)\b')
-    tmin = re.compile(r'\b(TNM?(\d{2})/(\d{2})Z)\b')
+    cavok = re.compile(r'\bCAVOK\b')
+
+    prob = re.compile(r'\b(PROB[34]0)\b')
     interval = re.compile(r'\b([01][0-9]|2[0-3])([01][0-9]|2[0-3])\b')
 
 
-class Pattern(object):
+class EditRegex(object):
     date = r'(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])'
     wind = r'00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)'
     gust = r'(0[1-9]|[1-4][0-9]|P49)'
@@ -205,66 +207,91 @@ class Pattern(object):
 
 
 class Lexer(object):
-    def __init__(self, arg):
-        self.arg = arg
+    grammar_class = Grammar
+
+    default_rules = [
+        'sign', 'amend', 'icao', 'timez', 'date', 'period', 'tmax', 'tmin',
+        'wind', 'vis', 'wx1', 'wx2', 'cloud', 'vv', 'cavok',
+        'prob', 'interval'
+    ]
+
+    def __init__(self, message, rules=None, **kwargs):
+        if not rules:
+            rules = self.grammar_class()
+        self.rules = rules
+
+        self.message = message
+        self.parse(message)
+
+    def __call__(self, message, rules=None):
+        return self.parse(message, rules)
+
+    def parse(self, message, rules=None):
+        if not rules:
+            rules = self.default_rules
+
+        for key in rules:
+            rule = getattr(self.rules, key)
+            m = rule.search(message)
+            if not m:
+                continue
+            
+            if key in ('period', 'wind', 'wx2', 'cloud', 'interval'):
+                self.parse_muti(key, m)
+            else:
+                self.parse_single(key, m)
 
 
-class Marshal(object):
-    """docstring for Validator"""
 
-    def __init__(self, message=''):
-        self.message = message.replace('=', '')
-        self.classify()
 
-    def classify(self):
-        self.message_list = _split_pattern.split(self.message)
-        self.primary = self.message_list[0]
-        self.becmg = list()
-        self.tempo = list()
-        if len(self.message_list) > 1:
-            becmg_index = [i for i, item in enumerate(self.message_list) if item == 'BECMG']
-            tempo_index = [i for i, item in enumerate(self.message_list) if 'TEMPO' in item]
+
+    def parse_single(self, key, m):
+        setattr(self, key, m.group(0))
+
+    def parse_muti(self, key, m):
+        setattr(self, key, m.groups())
+
+    # def parse_amend(self, m):
+    #     self.amend = m.group(0)
+
+    # def parse_icao(self, m):
+    #     self.icao = m.group(0)
+
+
+
+class Parser(object):
+
+    def __init__(self, message, parse=None):
+        self.message = message
+        self.becmgs = []
+        self.tempos = []
+
+        if not parse:
+            self.parse = Lexer
+
+        self.split()
+
+    def split(self):
+        message = self.message.replace('=', '')
+        self.elements = _split_pattern.split(message)
+        self.primary = self.parse(self.elements[0])
+
+        if len(self.elements) > 1:
+            becmg_index = [i for i, item in enumerate(self.elements) if item == 'BECMG']
+            tempo_index = [i for i, item in enumerate(self.elements) if 'TEMPO' in item]
 
             for i, index in enumerate(becmg_index):
-                self.becmg.append(self.message_list[index] + self.message_list[index+1])
-
-            # print(self.becmg)
+                e = self.elements[index] + self.elements[index+1]
+                self.becmgs.append(self.parse(e))
 
             for i, index in enumerate(tempo_index):
-                self.tempo.append(self.message_list[index] + self.message_list[index+1])
-
-            # print(self.tempo)
-
-    def regex(self, message):
-        pieces = dict()
-        for key, ruler in REGEX_TAF['common'].items():
-            # print(key, re)
-            if key == 'cloud':
-                matches = re.findall(ruler, message)
-                for index, match in enumerate(matches):
-                    pieces.setdefault('cloud' + str(index+1), match)
-            else:
-                match = re.search(ruler, message)
-                if match:
-                    pieces.setdefault(key, match.group())
-        return pieces
-
-
-    def process(self):
-        self.message_regex = dict()
-        self.message_regex['primary'] = self.regex(self.primary)
-        for index, item in enumerate(self.becmg):
-            self.message_regex.setdefault('becmg' + str(index+1), self.regex(item))
-
-        for index, item in enumerate(self.tempo):
-            self.message_regex.setdefault('tempo' + str(index+1), self.regex(item))
-
-        return self.message_regex
+                e = self.elements[index] + self.elements[index+1]
+                self.tempos.append(self.parse(e))
         
 
 class Renderer(object):
-    def __init__(self, arg):
-        self.arg = arg
+    def __init__(self, **kwargs):
+        self.options = kwargs
         
 
 
@@ -272,5 +299,11 @@ class Renderer(object):
 if __name__ == '__main__':
     # print(Validator.clouds('SCT020', 'SCT010 FEW023CB'))
     message = 'TAF AMD ZJHK 110702Z 110918 19003MPS 9999 SCT020 TX32/09Z TN27/18Z TEMPO 0912 TS SCT020 FEW026CB='
-    m = Grammar.taf.search(message)
-    print(m.group(0))
+    # m = Grammar.taf.search(message)
+    # print(m.group(0))
+    # m = Grammar.timez.search(message)
+    # print(m.groups())
+
+    e = Parser(message)
+
+    print(e.tempos)
