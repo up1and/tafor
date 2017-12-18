@@ -3,8 +3,8 @@ import datetime
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from tafor.models import Session, Tafor
-from tafor.utils import CheckTAF, Parser
+from tafor.models import db, Tafor
+from tafor.utils import CheckTAF
 from tafor.widgets.ui import Ui_widget_recent_item
 
 
@@ -12,14 +12,12 @@ class RecentTAF(QtWidgets.QWidget, Ui_widget_recent_item.Ui_Form):
     def __init__(self, parent, container, tt):
         super(RecentTAF, self).__init__(parent)
         self.setupUi(self)
-
-        self.db = Session()
         self.tt = tt
 
         container.addWidget(self)
 
     def update_gui(self):
-        item = self.db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()
+        item = db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()
 
         if not item:
             self.hide()

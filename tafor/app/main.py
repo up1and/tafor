@@ -6,9 +6,9 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 from PyQt5.QtMultimedia import QSound, QSoundEffect
 
-from tafor import BASEDIR, setting, log, boolean, __version__
-from tafor.models import Session, Tafor, Task, Metar, User
-from tafor.utils import CheckTAF, Listen, remote_message, call_service
+from tafor import BASEDIR, conf, logger, boolean, __version__
+from tafor.models import db, Tafor, Task, Metar, User
+from tafor.utils import CheckTAF, Listen, remote_message, call_service, call_up
 from tafor.widgets.ui import Ui_main, main_rc
 from tafor.widgets.taf import TAFEdit, TaskTAFEdit
 from tafor.widgets.trend import TrendEdit
@@ -71,9 +71,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         super(MainWindow, self).__init__(parent)
         self.setupUi(self)
 
-        self.db = Session()
         self.ctx = Context()
-
         self.ctx.warned.connect(self.dialer)
 
         # 初始化剪贴板
@@ -129,7 +127,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.contracts_action_group.addAction(self.contract_no)
 
         # 连接切换联系人的槽
-        self.contracts_action_group.triggered.connect(self.change_phone_number)
+        self.contracts_action_group.triggered.connect(self.change_contract)
         self.contracts_action_group.triggered.connect(self.setting_dialog.update_contract)
 
         # 连接报文表格复制的槽
@@ -152,11 +150,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.setup_statusbar()
 
         # 载入声音
-        self.sound_ring = Sound('ring.wav', setting.value('monitor/clock/clock_volume'))
+        self.sound_ring = Sound('ring.wav', conf.value('monitor/clock/clock_volume'))
         self.sound_notify = Sound('notify.wav', 100)
-        self.sound_alarm = Sound('alarm.wav', setting.value('monitor/sound/warn_taf_volume'))
-        self.sound_trend = Sound('trend.wav', setting.value('monitor/sound/remind_trend_volume'))
-        self.sound_sigmet = Sound('sigmet.wav', setting.value('monitor/sound/remind_sigmet_volume'))
+        self.sound_alarm = Sound('alarm.wav', conf.value('monitor/sound/warn_taf_volume'))
+        self.sound_trend = Sound('trend.wav', conf.value('monitor/sound/remind_trend_volume'))
+        self.sound_sigmet = Sound('sigmet.wav', conf.value('monitor/sound/remind_sigmet_volume'))
 
         self.setting_dialog.clock_volume.valueChanged.connect(lambda vol: self.sound_ring.play(volume=vol, loop=False))
         self.setting_dialog.warn_taf_volume.valueChanged.connect(lambda vol: self.sound_alarm.play(volume=vol, loop=False))
@@ -165,7 +163,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
         # 时钟计时器
         self.clock_timer = QtCore.QTimer()
-        self.clock_timer.timeout.connect(self.manage_sound)
+        self.clock_timer.timeout.connect(self.singer)
         self.clock_timer.start(1 * 1000)
 
         self.worker_timer = QtCore.QTimer()
@@ -183,7 +181,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.recent_fc = RecentTAF(self, self.recent_layout, 'FC')
 
     def setup_change_contract_menu(self):
-        contacts = self.db.query(User).all()
+        contacts = db.query(User).all()
 
         for person in contacts:
             setattr(self, 'contract_' + str(person.id), QtWidgets.QAction(self))
@@ -194,9 +192,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             self.contracts_action_group.addAction(target)
             self.contracts_menu.addAction(target)
 
-        phone_number = setting.value('monitor/phone/select_phone_number')
-        person = self.db.query(User).filter_by(phone_number=phone_number).first()
-        if setting.value('monitor/phone/phone_warn_taf') and person:
+        mobile = conf.value('monitor/phone/selected_mobile')
+        person = db.query(User).filter_by(mobile=mobile).first()
+        if conf.value('monitor/phone/phone_warn_taf') and person:
             getattr(self, 'contract_' + str(person.id)).setChecked(True)
         else:
             self.contract_no.setChecked(True)
@@ -229,36 +227,37 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
         # self.statusbar.setStyleSheet('QStatusBar::item{border: 0px}')
 
-    def change_phone_number(self):
+    def change_contract(self):
         target = self.contracts_action_group.checkedAction()
 
         if self.contract_no == target:
-            setting.setValue('monitor/phone/phone_warn_taf', False)
+            conf.setValue('monitor/phone/selected_mobile', '')
+            logger.info('关闭电话提醒')
         else:
             name = target.text()
-            person = self.db.query(User).filter_by(name=name).first()
-            phone_number = person.phone_number if person else ''
+            person = db.query(User).filter_by(name=name).first()
+            mobile = person.mobile if person else ''
 
-            setting.setValue('monitor/phone/phone_warn_taf', True)
-            setting.setValue('monitor/phone/select_phone_number', phone_number)
+            conf.setValue('monitor/phone/selected_mobile', mobile)
+            logger.info('切换联系人 %s %s' % (name, mobile))
 
     def copy_select_item(self, item):
         self.clip.setText(item.text())
         self.statusbar.showMessage(item.text(), 5000)
 
     def handle_taf_edit(self, message):
-        log.debug('Receive from taf edit ' + message['full'])
+        logger.debug('Receive from taf edit ' + message['full'])
         self.taf_edit_dialog.hide()
         self.taf_send_dialog.receive(message)
         self.taf_send_dialog.show()
 
     def handle_task_taf_edit(self, message):
-        log.debug('Receive from task taf edit ' + message['full'])
+        logger.debug('Receive from task taf edit ' + message['full'])
         self.task_taf_send_dialog.receive(message)
         self.task_taf_send_dialog.show()
 
     def handle_trend_edit(self, message):
-        log.debug('Receive from task taf edit ' + message['full'])
+        logger.debug('Receive from task taf edit ' + message['full'])
         self.trend_edit_dialog.hide()
         self.trend_send_dialog.receive(message)
         self.trend_send_dialog.show()
@@ -269,11 +268,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.task_table_dialog.show()
         self.task_table_dialog.update_gui()
 
-    def manage_sound(self):
-        trend_switch = setting.value('monitor/sound/remind_trend')
-        taf_switch = setting.value('monitor/sound/warn_taf')
-        sigmet_switch = setting.value('monitor/sound/remind_sigmet')
-        clock_switch = setting.value('monitor/sound/clock')
+    def singer(self):
+        trend_switch = conf.value('monitor/sound/remind_trend')
+        taf_switch = conf.value('monitor/sound/warn_taf')
+        sigmet_switch = conf.value('monitor/sound/remind_sigmet')
+        clock_switch = conf.value('monitor/sound/clock')
 
         # 管理趋势声音
         utc = datetime.datetime.utcnow()
@@ -347,7 +346,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         thread.start()
 
     def dialer(self, test=False):
-        call_switch = boolean(setting.value('monitor/phone/phone_warn_taf'))
+        call_switch = boolean(conf.value('monitor/phone/phone_warn_taf'))
 
         if call_switch and self.ctx.warn or test:
             thread = CallThread(self)
@@ -364,7 +363,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.update_metar_table()
         self.update_recent()
 
-        log.debug('Update GUI')
+        logger.debug('Update GUI')
 
     def update_recent(self):
         self.current_taf.update_gui()
@@ -373,7 +372,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
     def update_taf_table(self):
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        items = self.db.query(Tafor).filter(Tafor.sent > recent).order_by(Tafor.sent.desc()).all()
+        items = db.query(Tafor).filter(Tafor.sent > recent).order_by(Tafor.sent.desc()).all()
         header = self.taf_table.horizontalHeader()
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
         self.taf_table.setRowCount(len(items))
@@ -413,7 +412,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
     def update_metar_table(self):
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        items = self.db.query(Metar).filter(Metar.created > recent).order_by(Metar.created.desc()).all()
+        items = db.query(Metar).filter(Metar.created > recent).order_by(Metar.created.desc()).all()
         header = self.metar_table.horizontalHeader()
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
         self.metar_table.setRowCount(len(items))
@@ -450,10 +449,10 @@ class WorkThread(QtCore.QThread):
         self.parent = parent
 
     def run(self):
-        if (boolean(setting.value('monitor/db/web_api'))):
+        if (boolean(conf.value('monitor/db/web_api'))):
             self.parent.ctx.message = remote_message()
 
-        if (boolean(setting.value('monitor/phone/phone_warn_taf'))):
+        if (boolean(conf.value('monitor/phone/phone_warn_taf'))):
             self.parent.ctx.call_service = call_service()
 
         self.done.emit()
@@ -465,8 +464,8 @@ class CallThread(QtCore.QThread):
         self.parent = parent
 
     def run(self):
-        phone_number = setting.value('monitor/phone/select_phone_number')
-        make_call(phone_number)
+        mobile = conf.value('monitor/phone/selected_mobile')
+        call_up(mobile)
 
 
 
@@ -491,7 +490,7 @@ def main():
         window.show()
         sys.exit(app.exec_())
     except Exception as e:
-        log.error(e, exc_info=True)
+        logger.error(e, exc_info=True)
     finally:  
         local_server.close()
 

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>622</width>
-    <height>497</height>
+    <height>475</height>
    </rect>
   </property>
   <property name="acceptDrops">
@@ -535,7 +535,7 @@
             <item>
              <widget class="QTabWidget" name="tabWidget">
               <property name="currentIndex">
-               <number>0</number>
+               <number>3</number>
               </property>
               <widget class="QWidget" name="tab_taf">
                <attribute name="title">
@@ -734,26 +734,19 @@
           </widget>
          </item>
          <item>
-          <widget class="QGroupBox" name="phone_group">
+          <widget class="QGroupBox" name="call_service_group">
            <property name="title">
-            <string>电话</string>
+            <string>电话服务</string>
            </property>
            <layout class="QFormLayout" name="formLayout_4">
             <item row="0" column="0">
-             <widget class="QCheckBox" name="phone_warn_taf">
-              <property name="text">
-               <string>报文迟发</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
              <widget class="QLabel" name="warn_taf_time_label">
               <property name="text">
                <string>提醒时间        </string>
               </property>
              </widget>
             </item>
-            <item row="1" column="1">
+            <item row="0" column="1">
              <widget class="QLineEdit" name="warn_taf_time">
               <property name="maximumSize">
                <size>
@@ -766,28 +759,28 @@
               </property>
              </widget>
             </item>
-            <item row="2" column="0">
+            <item row="1" column="0">
              <widget class="QLabel" name="call_service_url_label">
               <property name="text">
                <string>请求地址        </string>
               </property>
              </widget>
             </item>
-            <item row="2" column="1">
+            <item row="1" column="1">
              <widget class="QLineEdit" name="call_service_url">
               <property name="placeholderText">
                <string>URL</string>
               </property>
              </widget>
             </item>
-            <item row="3" column="0">
+            <item row="2" column="0">
              <widget class="QLabel" name="call_service_token_label">
               <property name="text">
                <string>认证            </string>
               </property>
              </widget>
             </item>
-            <item row="3" column="1">
+            <item row="2" column="1">
              <widget class="QLineEdit" name="call_service_token">
               <property name="placeholderText">
                <string>TOKEN</string>
@@ -820,7 +813,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QLineEdit" name="person_phone_number">
+               <widget class="QLineEdit" name="person_mobile">
                 <property name="placeholderText">
                  <string>电话</string>
                 </property>
@@ -949,7 +942,6 @@
   <tabstop>remind_trend_volume</tabstop>
   <tabstop>remind_sigmet</tabstop>
   <tabstop>remind_sigmet_volume</tabstop>
-  <tabstop>phone_warn_taf</tabstop>
   <tabstop>warn_taf_time</tabstop>
   <tabstop>run_on_start</tabstop>
   <tabstop>close_to_minimize</tabstop>

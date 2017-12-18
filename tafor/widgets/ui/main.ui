@@ -190,6 +190,9 @@
     <property name="title">
      <string>帮助</string>
     </property>
+    <addaction name="open_docs_action"/>
+    <addaction name="report_issue_action"/>
+    <addaction name="separator"/>
     <addaction name="about_action"/>
    </widget>
    <addaction name="post_menu"/>
@@ -233,6 +236,16 @@
    </property>
    <property name="text">
     <string>无</string>
+   </property>
+  </action>
+  <action name="report_issue_action">
+   <property name="text">
+    <string>报告问题</string>
+   </property>
+  </action>
+  <action name="open_docs_action">
+   <property name="text">
+    <string>文档</string>
    </property>
   </action>
  </widget>

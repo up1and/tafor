@@ -193,15 +193,15 @@ class Grammar(object):
     interval = re.compile(r'\b([01][0-9]|2[0-3])([01][0-9]|2[0-3])\b')
 
 
-class EditGrammar(object):
-    date = re.compile(r'(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])')
-    wind = re.compile(r'00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)')
-    gust = re.compile(r'(0[1-9]|[1-4][0-9]|P49)')
-    vis = re.compile(r'(9999|[5-9]000|[01234][0-9]00|0[0-7]50)')
-    cloud = re.compile(r'(FEW|SCT|BKN|OVC)(0[0-4][0-9]|050)')
-    temp = re.compile(r'M?([0-5][0-9])')
-    hours = re.compile(r'([01][0-9]|2[0-3])')
-    interval = re.compile(r'([01][0-9]|2[0-3])(0[1-9]|1[0-9]|2[0-4])')
+class Pattern(object):
+    date = r'(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])'
+    wind = r'00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)'
+    gust = r'(0[1-9]|[1-4][0-9]|P49)'
+    vis = r'(9999|[5-9]000|[01234][0-9]00|0[0-7]50)'
+    cloud = r'(FEW|SCT|BKN|OVC)(0[0-4][0-9]|050)'
+    temp = r'M?([0-5][0-9])'
+    hours = r'([01][0-9]|2[0-3])'
+    interval = r'([01][0-9]|2[0-3])(0[1-9]|1[0-9]|2[0-4])'
 
 
 class Lexer(object):
@@ -209,7 +209,7 @@ class Lexer(object):
         self.arg = arg
 
 
-class Element(object):
+class Marshal(object):
     """docstring for Validator"""
 
     def __init__(self, message=''):
@@ -217,7 +217,7 @@ class Element(object):
         self.classify()
 
     def classify(self):
-        self.message_list = re.split(REGEX_TAF['split'], self.message)
+        self.message_list = _split_pattern.split(self.message)
         self.primary = self.message_list[0]
         self.becmg = list()
         self.tempo = list()

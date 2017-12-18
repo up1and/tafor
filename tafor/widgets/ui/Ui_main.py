@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\widgets\ui\main.ui'
+# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\widgets\ui\main.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -110,6 +110,10 @@ class Ui_MainWindow(object):
         self.contract_no = QtWidgets.QAction(MainWindow)
         self.contract_no.setCheckable(True)
         self.contract_no.setObjectName("contract_no")
+        self.report_issue_action = QtWidgets.QAction(MainWindow)
+        self.report_issue_action.setObjectName("report_issue_action")
+        self.open_docs_action = QtWidgets.QAction(MainWindow)
+        self.open_docs_action.setObjectName("open_docs_action")
         self.post_menu.addAction(self.taf_action)
         self.post_menu.addAction(self.trend_action)
         self.post_menu.addAction(self.sigmet_action)
@@ -118,6 +122,9 @@ class Ui_MainWindow(object):
         self.contracts_menu.addAction(self.contract_no)
         self.setting_menu.addAction(self.contracts_menu.menuAction())
         self.setting_menu.addAction(self.setting_action)
+        self.help_menu.addAction(self.open_docs_action)
+        self.help_menu.addAction(self.report_issue_action)
+        self.help_menu.addSeparator()
         self.help_menu.addAction(self.about_action)
         self.menubar.addAction(self.post_menu.menuAction())
         self.menubar.addAction(self.setting_menu.menuAction())
@@ -159,6 +166,8 @@ class Ui_MainWindow(object):
         self.about_action.setText(_translate("MainWindow", "关于"))
         self.quit_action.setText(_translate("MainWindow", "退出"))
         self.contract_no.setText(_translate("MainWindow", "无"))
+        self.report_issue_action.setText(_translate("MainWindow", "报告问题"))
+        self.open_docs_action.setText(_translate("MainWindow", "文档"))
 
 
 if __name__ == "__main__":

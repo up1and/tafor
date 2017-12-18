@@ -2,8 +2,6 @@ import requests
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from tafor import setting
-
 
 class StatusBarWidget(QtWidgets.QWidget):
     def __init__(self, parent, statusbar):

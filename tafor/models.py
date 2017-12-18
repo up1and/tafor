@@ -7,11 +7,11 @@ from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 
-DATABASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATABASE_DIR, 'db.sqlite3')
+from tafor import BASEDIR
 
 
-# 创建对象的基类:
+SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(BASEDIR, 'db.sqlite3')
+
 Base = declarative_base()
 
 class Tafor(Base):
@@ -42,8 +42,8 @@ class Tafor(Base):
 
     @property
     def report(self):
-        from tafor.utils import Parser
-        rpt = Parser(self.rpt)
+        from tafor.utils import Marshal
+        rpt = Marshal(self.rpt)
         parts = [self.head, rpt.primary]
         parts.extend(rpt.becmg)
         parts.extend(rpt.tempo)
@@ -101,19 +101,19 @@ class User(Base):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True)
     name = Column(String(8))
-    phone_number = Column(String(20))
+    mobile = Column(String(20))
 
-    def __init__(self, name, phone_number):
+    def __init__(self, name, mobile):
         self.name = name
-        self.phone_number = phone_number
+        self.mobile = mobile
 
     def __repr__(self):
-        return '<User %r %r>' % (self.name, self.phone_number)
+        return '<User %r %r>' % (self.name, self.mobile)
 
 
-# 初始化数据库连接:
+
 engine = create_engine(SQLALCHEMY_DATABASE_URI, connect_args={'check_same_thread': False}, echo=False)
-# 创建DBSession类型:
 Session = sessionmaker(bind=engine)
-# 创建表
+db = Session()
+
 Base.metadata.create_all(engine)

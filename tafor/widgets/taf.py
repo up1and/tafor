@@ -6,9 +6,9 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-from tafor import log
-from tafor.utils import CheckTAF, Parser, REGEX_TAF
-from tafor.models import Session, Tafor, Task
+from tafor import logger
+from tafor.utils import CheckTAF, Grammar
+from tafor.models import db, Tafor, Task
 from tafor.widgets.edit import TAFWidgetPrimary, TAFWidgetBecmg, TAFWidgetTempo
 
 
@@ -20,7 +20,6 @@ class TAFEditBase(QDialog):
     def __init__(self, parent=None):
         super(TAFEditBase, self).__init__(parent)
         self.parent = parent
-        self.db = Session()
 
         self.init_ui()
         self.bind_signal()
@@ -201,7 +200,7 @@ class TAFEditBase(QDialog):
 
     def get_amend_number(self, sign):
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        query = self.db.query(Tafor).filter(Tafor.rpt.contains(self.amd_period), Tafor.sent > expired)
+        query = db.query(Tafor).filter(Tafor.rpt.contains(self.amd_period), Tafor.sent > expired)
         if sign == 'COR':
             items = query.filter(Tafor.rpt.contains('COR')).all()
             order = chr(ord('A') + len(items))
@@ -230,7 +229,7 @@ class TAFEditBase(QDialog):
         else:
             duration['end'] = base_time + datetime.timedelta(days=1, hours=end)
 
-        log.debug(' '.join([
+        logger.debug(' '.join([
             'Duration',
             duration['start'].strftime('%Y-%m-%d %H:%M:%S'),
             duration['end'].strftime('%Y-%m-%d %H:%M:%S')
@@ -253,7 +252,7 @@ class TAFEditBase(QDialog):
                 temp_hour += datetime.timedelta(days=1) 
 
             valid = self.period_duration['start'] <= temp_hour <= self.period_duration['end']
-            log.debug('Verify temperature hour ' + str(valid))
+            logger.debug('Verify temperature hour ' + str(valid))
 
             if not valid:
                 line.clear()
@@ -276,15 +275,15 @@ class TAFEditBase(QDialog):
         duration = self._get_amend_interval(line.text()[0:2], line.text()[2:4])
         if duration['start'] < self.period_duration['start'] or self.period_duration['end'] < duration['start']:
             line.clear()
-            log.info('Start interval time is not corret ' + duration['start'].strftime('%Y-%m-%d %H:%M:%S'))
+            logger.info('Start interval time is not corret ' + duration['start'].strftime('%Y-%m-%d %H:%M:%S'))
 
         if duration['end'] < self.period_duration['start'] or self.period_duration['end'] < duration['end']:
             line.clear()
-            log.info('End interval time is not corret' + duration['end'].strftime('%Y-%m-%d %H:%M:%S'))
+            logger.info('End interval time is not corret' + duration['end'].strftime('%Y-%m-%d %H:%M:%S'))
 
         if duration['end'] - duration['start'] > datetime.timedelta(hours=interval):
             line.clear()
-            log.info('More than ' + str(interval) + ' hours')
+            logger.info('More than ' + str(interval) + ' hours')
 
     def assemble_message(self):
         primary_msg = self.primary.message()
@@ -322,7 +321,7 @@ class TAFEditBase(QDialog):
 
         enbale = all(required_widgets)
 
-        # log.debug('TAF required ' + ' '.join(map(str, required_widgets)))
+        # logger.debug('TAF required ' + ' '.join(map(str, required_widgets)))
 
         self.next_button.setEnabled(enbale)
 
@@ -354,7 +353,7 @@ class TAFEdit(TAFEditBase):
     def preview_message(self):
         message = {'head': self.head, 'rpt':self.rpt, 'full': '\n'.join([self.head, self.rpt])}
         self.signal_preview.emit(message)
-        log.debug('TAF Edit ' + message['full'])
+        logger.debug('TAF Edit ' + message['full'])
 
 
 class TaskTAFEdit(TAFEditBase):
@@ -394,7 +393,7 @@ class TaskTAFEdit(TAFEditBase):
             self.time = datetime.datetime(now.year, now.month+2, day, hour, minute)
 
         finally:
-            log.debug(' '.join(['Task time', self.time.strftime('%Y-%m-%d %H:%M:%S')]))
+            logger.debug(' '.join(['Task time', self.time.strftime('%Y-%m-%d %H:%M:%S')]))
             return self.time
 
     def change_window_title(self):

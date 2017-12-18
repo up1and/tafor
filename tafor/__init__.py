@@ -3,11 +3,11 @@ import sys
 import logging
 
 from PyQt5 import QtCore
-from tafor.models import Session
 
 
 __version__ = "1.0.0"
 
+BASEDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -38,8 +38,6 @@ def setup_log(debug=False):
 
     return log
 
-setting = QtCore.QSettings('Up1and', 'Tafor')
-
-debug = boolean(setting.value('convention/debug'))
-
-log = setup_log(debug=debug)
+conf = QtCore.QSettings('Up1and', 'Tafor')
+debug = boolean(conf.value('convention/debug'))
+logger = setup_log(debug=debug)

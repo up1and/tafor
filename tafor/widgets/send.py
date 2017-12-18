@@ -4,8 +4,8 @@ import datetime
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from tafor.widgets.ui import Ui_send
-from tafor.models import Session, Tafor, Task, Trend
-from tafor import setting, log
+from tafor.models import db, Tafor, Task, Trend
+from tafor import conf, logger
 
 
 def chunks(lists, n):
@@ -23,10 +23,10 @@ class AFTNMessage(object):
         self.time = datetime.datetime.utcnow() if time is None else time
 
     def raw(self):
-        channel = setting.value('communication/other/channel')
-        number = int(setting.value('communication/other/number'))
-        send_address = setting.value('communication/address/' + self.cls)
-        user_address = setting.value('communication/other/user_addr')
+        channel = conf.value('communication/other/channel')
+        number = int(conf.value('communication/other/number'))
+        send_address = conf.value('communication/address/' + self.cls)
+        user_address = conf.value('communication/other/user_addr')
 
         addresses = self.divide_address(send_address)
         time = self.time.strftime('%d%H%M')
@@ -43,7 +43,7 @@ class AFTNMessage(object):
             aftn_message.append('\n'.join(items))
             number += 1
 
-        setting.setValue('communication/other/number', str(number))
+        conf.setValue('communication/other/number', str(number))
         
         return aftn_message
 
@@ -66,8 +66,6 @@ class SendBase(QtWidgets.QDialog, Ui_send.Ui_Send):
         super(SendBase, self).__init__(parent)
         self.setupUi(self)
 
-        self.db = Session()
-
         self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setText("Send")
         # self.button_box.addButton("TEST", QDialogButtonBox.ActionRole)
         self.rejected.connect(self.cancel_signal)
@@ -86,10 +84,10 @@ class SendBase(QtWidgets.QDialog, Ui_send.Ui_Send):
     def cancel_signal(self):
         if self.button_box.button(QtWidgets.QDialogButtonBox.Ok).isEnabled():
             self.signal_back.emit()
-            log.debug('Back to edit')
+            logger.debug('Back to edit')
         else:
             self.signal_close.emit()
-            log.debug('Close send dialog')
+            logger.debug('Close send dialog')
 
     def clear(self):
         self.rpt.setText('')
@@ -107,9 +105,9 @@ class TAFSend(SendBase):
 
     def save(self):
         item = Tafor(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'], raw=json.dumps(self.aftn.raw()))
-        self.db.add(item)
-        self.db.commit()
-        log.debug('Save ' + item.rpt)
+        db.add(item)
+        db.commit()
+        logger.debug('Save ' + item.rpt)
         self.signal_send.emit()
 
     def send(self):
@@ -123,8 +121,6 @@ class TaskTAFSend(SendBase):
 
     def __init__(self, parent=None):
         super(TaskTAFSend, self).__init__(parent)
-
-        self.db = Session()
 
         self.setWindowTitle('定时任务')
 
@@ -141,13 +137,13 @@ class TaskTAFSend(SendBase):
 
     def save(self):
         item = Task(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'], plan=self.message['plan'])
-        self.db.add(item)
-        self.db.commit()
-        log.debug('Save Task', item.plan.strftime("%b %d %Y %H:%M:%S"))
+        db.add(item)
+        db.commit()
+        logger.debug('Save Task', item.plan.strftime("%b %d %Y %H:%M:%S"))
         self.signal_send.emit()
 
     def auto_send(self):
-        tasks = self.db.query(Task).filter_by(tafor_id=None).order_by(Task.plan).all()
+        tasks = db.query(Task).filter_by(tafor_id=None).order_by(Task.plan).all()
         now = datetime.datetime.utcnow()
         send_status = False
 
@@ -158,18 +154,18 @@ class TaskTAFSend(SendBase):
                 message = '\n'.join([task.head, task.rpt])
                 aftn = AFTNMessage(message, time=task.plan)
                 item = Tafor(tt=task.tt, head=task.head, rpt=task.rpt, raw=json.dumps(aftn.raw()))
-                self.db.add(item)
-                self.db.flush()
+                db.add(item)
+                db.flush()
                 task.tafor_id = item.id
-                self.db.merge(task)
-                self.db.commit()
+                db.merge(task)
+                db.commit()
 
                 send_status = True
 
-        log.debug('Tasks ' + ' '.join(task.rpt for task in tasks))
+        logger.debug('Tasks ' + ' '.join(task.rpt for task in tasks))
         
         if send_status:
-            log.debug('Task complete')
+            logger.debug('Task complete')
 
 
 class TrendSend(SendBase):
@@ -186,9 +182,9 @@ class TrendSend(SendBase):
 
     def save(self):
         item = Trend(sign=self.message['sign'], rpt=self.message['rpt'], raw=json.dumps(self.aftn.raw()))
-        self.db.add(item)
-        self.db.commit()
-        log.debug('Save ' + item.rpt)
+        db.add(item)
+        db.commit()
+        logger.debug('Save ' + item.rpt)
         self.signal_send.emit()
 
     def send(self):

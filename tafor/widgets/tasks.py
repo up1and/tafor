@@ -3,8 +3,8 @@ import datetime
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from tafor.widgets.ui import Ui_tasks
-from tafor.models import Session, Task
-from tafor import log
+from tafor.models import db, Task
+from tafor import logger
 
 
 class TaskTable(QtWidgets.QDialog, Ui_tasks.Ui_Tasks):
@@ -13,7 +13,6 @@ class TaskTable(QtWidgets.QDialog, Ui_tasks.Ui_Tasks):
         super(TaskTable, self).__init__(parent)
         self.setupUi(self)
         self.parent = parent
-        self.db = Session()
         self.update_gui()
 
         self.timer = QtCore.QTimer()
@@ -21,7 +20,7 @@ class TaskTable(QtWidgets.QDialog, Ui_tasks.Ui_Tasks):
         self.timer.start(60 * 1000)
 
     def update_gui(self):
-        items = self.db.query(Task).filter(Task.tafor_id == None).order_by(Task.plan.desc()).all()
+        items = db.query(Task).filter(Task.tafor_id == None).order_by(Task.plan.desc()).all()
         header = self.tasks_table.horizontalHeader()
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
         self.tasks_table.setRowCount(len(items))
@@ -50,12 +49,12 @@ class TaskTable(QtWidgets.QDialog, Ui_tasks.Ui_Tasks):
         row = self.tasks_table.currentRow()
         rpt = self.tasks_table.item(row, 1).text()
 
-        item = self.db.query(Task).filter_by(rpt=rpt).first()
-        self.db.delete(item)
-        self.db.commit()
+        item = db.query(Task).filter_by(rpt=rpt).first()
+        db.delete(item)
+        db.commit()
 
         self.update_gui()
-        log.debug('Del', item)
+        logger.debug('Del', item)
 
     def copy_select_item(self):
         print('Copy')

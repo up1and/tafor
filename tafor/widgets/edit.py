@@ -3,8 +3,8 @@ import datetime
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from tafor import setting, log
-from tafor.utils import CheckTAF, REGEX_TAF
+from tafor import conf, logger
+from tafor.utils import CheckTAF, Pattern
 from tafor.widgets.ui import Ui_widget_primary, Ui_widget_becmg, Ui_widget_tempo, Ui_widget_trend
 
 
@@ -15,7 +15,7 @@ class EditWidgetBase(QtWidgets.QWidget):
 
     def __init__(self):
         super(EditWidgetBase, self).__init__()
-        self.regex = REGEX_TAF['edit']
+        self.rules = Pattern()
         self.required = False
         # self.one_second_timer = QtCore.QTimer()
         # self.one_second_timer.timeout.connect(self.message)
@@ -105,26 +105,26 @@ class EditWidgetBase(QtWidgets.QWidget):
             self.prob30.setChecked(False)
 
     def validate(self):
-        self.valid_wind = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['wind']))
+        self.valid_wind = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.wind))
         self.wind.setValidator(self.valid_wind)
 
-        valid_gust = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['gust']))
+        valid_gust = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.gust))
         self.gust.setValidator(valid_gust)
 
-        valid_vis = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['vis']))
+        valid_vis = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.vis))
         self.vis.setValidator(valid_vis)
 
-        valid_cloud = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['cloud'], QtCore.Qt.CaseInsensitive))
+        valid_cloud = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.cloud, QtCore.Qt.CaseInsensitive))
         self.cloud1.setValidator(valid_cloud)
         self.cloud2.setValidator(valid_cloud)
         self.cloud3.setValidator(valid_cloud)
         self.cb.setValidator(valid_cloud)
 
-        weather1 = setting.value('message/weather1')
+        weather1 = conf.value('message/weather1')
         weather1_list = [''] + json.loads(weather1) if weather1 else ['']
         self.weather1.addItems(weather1_list)
 
-        weather2 = setting.value('message/weather2')
+        weather2 = conf.value('message/weather2')
         weather2_list = [''] + json.loads(weather2) if weather1 else ['']
         self.weather2.addItems(weather2_list)
 
@@ -159,7 +159,7 @@ class EditWidgetBase(QtWidgets.QWidget):
         else:
             msg_list = [winds, vis, wx1, wx2] + clouds
         self.msg = ' '.join(filter(None, msg_list))
-        # log.debug(self.msg)
+        # logger.debug(self.msg)
 
     def _upper_text(self, line):
         line.setText(line.text().upper())
@@ -196,14 +196,14 @@ class TAFWidgetPrimary(EditWidgetBase, Ui_widget_primary.Ui_Form):
     def validate(self):
         super(TAFWidgetPrimary, self).validate()
 
-        valid_date = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['date']))
+        valid_date = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.date))
         self.date.setValidator(valid_date)
 
-        valid_temp = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['temp']))
+        valid_temp = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.temp))
         self.tmax.setValidator(valid_temp)
         self.tmin.setValidator(valid_temp)
 
-        valid_temp_hours = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['hours']))
+        valid_temp_hours = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.hours))
         self.tmax_time.setValidator(valid_temp_hours)
         self.tmin_time.setValidator(valid_temp_hours)
 
@@ -251,7 +251,7 @@ class TAFWidgetPrimary(EditWidgetBase, Ui_widget_primary.Ui_Form):
         super(TAFWidgetPrimary, self).message()
         amd = 'AMD' if self.amd.isChecked() else ''
         cor = 'COR' if self.cor.isChecked() else ''
-        icao = setting.value('message/icao')
+        icao = conf.value('message/icao')
         timez = self.date.text() + 'Z'
         period = self.period.text()
         tmax = ''.join(['TX', self.tmax.text(), '/', self.tmax_time.text(), 'Z'])
@@ -261,8 +261,8 @@ class TAFWidgetPrimary(EditWidgetBase, Ui_widget_primary.Ui_Form):
         return self.msg
 
     def head(self):
-        intelligence = setting.value('message/intelligence')
-        icao = setting.value('message/icao')
+        intelligence = conf.value('message/intelligence')
+        icao = conf.value('message/icao')
         time = self.date.text()
         tt = ''
         if self.fc.isChecked():
@@ -313,7 +313,7 @@ class TAFWidgetBecmg(EditWidgetBase, Ui_widget_becmg.Ui_Form):
     def validate(self):
         super(TAFWidgetBecmg, self).validate()
 
-        valid_interval = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['interval']))
+        valid_interval = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.interval))
         self.interval.setValidator(valid_interval)
 
     def bind_signal(self):
@@ -328,7 +328,7 @@ class TAFWidgetBecmg(EditWidgetBase, Ui_widget_becmg.Ui_Form):
         interval = self.interval.text()
         msg_list = ['BECMG', interval, self.msg]
         self.msg = ' '.join(msg_list)
-        # log.debug(self.msg)
+        # logger.debug(self.msg)
         return self.msg
 
     def check_required(self):
@@ -376,7 +376,7 @@ class TAFWidgetTempo(EditWidgetBase, Ui_widget_tempo.Ui_Form):
     def validate(self):
         super(TAFWidgetTempo, self).validate()
 
-        valid_interval = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['interval']))
+        valid_interval = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.interval))
         self.interval.setValidator(valid_interval)
 
     def bind_signal(self):
@@ -395,7 +395,7 @@ class TAFWidgetTempo(EditWidgetBase, Ui_widget_tempo.Ui_Form):
         if self.prob40.isChecked():
             msg_list.insert(0, 'PROB40')
         self.msg = ' '.join(msg_list)
-        # log.debug(self.msg)
+        # logger.debug(self.msg)
         return self.msg
 
     def check_required(self):
@@ -450,7 +450,7 @@ class TrendWidget(EditWidgetBase, Ui_widget_trend.Ui_Form):
         super(TrendWidget, self).validate()
 
         # 还未验证输入个数
-        valid_period = QtGui.QRegExpValidator(QtCore.QRegExp(self.regex['interval']))
+        valid_period = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.interval))
         self.period.setValidator(valid_period)
 
     def set_nosig(self, checked):
