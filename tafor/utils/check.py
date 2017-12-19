@@ -55,7 +55,7 @@ def call_service():
 
 def format_timez(message):
     try:
-        m = Grammar.timez.search(message)
+        m = Grammar.timez.search(message).groups()
         utc =  datetime.datetime.utcnow()
         created = datetime.datetime(utc.year, utc.month, int(m[0]), int(m[1]), int(m[2]))
         return created

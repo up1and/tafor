@@ -122,6 +122,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.about_action.triggered.connect(self.about)
         self.about_action.triggered.connect(self.show_window)
 
+        self.report_issue_action.triggered.connect(self.report_issue)
+
         # 联系人选项组
         self.contracts_action_group = QtWidgets.QActionGroup(self)
         self.contracts_action_group.addAction(self.contract_no)
@@ -429,14 +431,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.metar_table.resizeRowsToContents()
 
     def about(self):
-        QtWidgets.QMessageBox.about(self, u"预报报文发布软件",
-                u"""<b>预报报文发布软件</b> v %s
+        QtWidgets.QMessageBox.about(self, "预报报文发布软件",
+                """<b>预报报文发布软件</b> v <a href="https://github.com/up1and/tafor">%s</a>
                 <p>本软件用于智能发布预报报文、趋势报文、重要气象情报、低空气象情报，监控预报报文，以声音或电话的方式返回告警
-                <p>本项目遵循 GPL-2.0 协议 
-                <p>项目源码 <a href="http://git.oschina.net/piratecb/tafor">http://git.oschina.net/piratecb/tafor</a>
-                <p>联系邮箱 <a href="mailto:piratecb@gmail.com">piratecb@gmail.com</a>
+                <p>项目遵循 GPL-2.0 协议，欢迎提交 Pull Request 或者 Issue
+                <p>
                 """ % (__version__))
 
+    def report_issue(self):
+        QtGui.QDesktopServices.openUrl(QtCore.QUrl('https://github.com/up1and/tafor/issues'))
 
 class WorkThread(QtCore.QThread):
     """
