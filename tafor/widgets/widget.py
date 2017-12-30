@@ -21,6 +21,7 @@ class RecentTAF(QtWidgets.QWidget, Ui_widget_recent_item.Ui_Form):
 
         if not item:
             self.hide()
+            return 
 
         self.groupBox.setTitle(item.tt)
         self.send_time.setText(item.sent.strftime("%Y-%m-%d %H:%M:%S"))

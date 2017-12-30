@@ -14,7 +14,7 @@ from tafor.utils.validator import Grammar
 def remote_message():
     url = setting.value('monitor/db/web_api_url')
     try:
-        r = requests.get(url)
+        r = requests.get(url, timeout=30)
         if r.status_code == 200:
             return r.json()
         else:
@@ -32,7 +32,7 @@ def make_call(phone_number):
     url = setting.value('monitor/phone/call_service_url')
     token = setting.value('monitor/phone/call_service_token')
     try:
-        r = requests.post(url, data={'token': token, 'phone_number': phone_number})
+        r = requests.post(url, auth=('api', token), data={'mobile': mobile}, timeout=30)
         if r.status_code == 201:
             log.info('call {} success'.format(phone_number))
             return r.json()

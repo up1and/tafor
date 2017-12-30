@@ -23,7 +23,7 @@ def find_key(message):
         else:
             return 'FC'
 
-def process(messages):
+def marshal(messages):
     resp_dict = {}
     for message in messages:
         resp_dict[find_key(message)] = message
@@ -50,7 +50,7 @@ def latest(icao):
         items = [tag.string.strip() for tag in soup.find_all('td') if tag.string is not None]
         messages = list(filter(lambda message: icao.upper() in message, items))
 
-        return jsonify(process(messages))
+        return jsonify(marshal(messages))
 
     except Exception as e:
         return jsonify({'error': '{} not found'.format(icao)}), 404
@@ -80,7 +80,7 @@ def remote_latest(icao):
         response = requests.post(url, params=post_data)
         messages = [msg['RPT'].strip().replace('\n', ' ') for msg in response.json()]
 
-        return jsonify(process(messages))
+        return jsonify(marshal(messages))
 
     except Exception as e:
         return jsonify({'error': '{} not found'.format(icao)}), 404
@@ -96,4 +96,4 @@ if __name__ == '__main__':
     else:
         debug = True
 
-    app.run(debug=debug)
+    app.run(debug=debug, port=6575)

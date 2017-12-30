@@ -1,6 +1,8 @@
 import re
+import datetime
 
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
+
 
 class Validator(object):
     """docstring for Validator"""
@@ -173,12 +175,31 @@ def _pure_pattern(regex):
     return pattern
 
 
+def format_period(period, time):
+    # will remove later
+    start_hour = int(period[:2])
+    end_hour = 0 if period[2:] == '24' else int(period[2:])
+
+    base = datetime.datetime(time.year, time.month, time.day)
+    delta = datetime.timedelta(hours=end_hour) if start_hour < end_hour else datetime.timedelta(days=1, hours=end_hour)
+    start = base + datetime.timedelta(hours=start_hour)
+    end = base + delta
+
+    return start, end
+
+
+def format_timez(timez):
+    # will remove later
+    utc =  datetime.datetime.utcnow()
+    time = datetime.datetime(utc.year, utc.month, int(timez[:2]), int(timez[2:4]), int(timez[4:6]))
+    return time
+
+
 class Grammar(object):
     sign = re.compile(r'(TAF|BECMG|FM|TEMPO)\b')
     amend = re.compile(r'\b(AMD|\bCOR)\b')
     icao = re.compile(r'\b([A-Z]{4})\b')
     timez = re.compile(r'\b(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])Z\b')
-    date = re.compile(r'\b(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])\b')
     period = re.compile(r'\b(0[1-9]|[12][0-9]|3[0-1])(0009|0312|0615|0918|1221|1524|1803|2106|0024|0606|1212|1818)\b')
     tmax = re.compile(r'\b(TXM?(\d{2})/(\d{2})Z)\b')
     tmin = re.compile(r'\b(TNM?(\d{2})/(\d{2})Z)\b')
@@ -192,7 +213,7 @@ class Grammar(object):
     cavok = re.compile(r'\bCAVOK\b')
 
     prob = re.compile(r'\b(PROB[34]0)\b')
-    interval = re.compile(r'\b([01][0-9]|2[0-3])([01][0-9]|2[0-3])\b')
+    interval = re.compile(r'\b([01][0-9]|2[0-3])([01][0-9]|2[0-4])\b')
 
 
 class EditRegex(object):
@@ -210,52 +231,46 @@ class Lexer(object):
     grammar_class = Grammar
 
     default_rules = [
-        'sign', 'amend', 'icao', 'timez', 'date', 'period', 'tmax', 'tmin',
+        'sign', 'amend', 'icao', 'timez', 'period', 'tmax', 'tmin',
         'wind', 'vis', 'wx1', 'wx2', 'cloud', 'vv', 'cavok',
         'prob', 'interval'
     ]
 
-    def __init__(self, message, rules=None, **kwargs):
-        if not rules:
-            rules = self.grammar_class()
-        self.rules = rules
+    def __init__(self, part, grammar=None, **kwargs):
+        if not grammar:
+            grammar = self.grammar_class()
+        self.grammar = grammar
+        self.part = part
+        self.tokens = OrderedDict()
 
-        self.message = message
-        self.parse(message)
+        self.parse(part)
 
-    def __call__(self, message, rules=None):
-        return self.parse(message, rules)
-
-    def parse(self, message, rules=None):
+    def parse(self, part, rules=None):
         if not rules:
             rules = self.default_rules
 
         for key in rules:
-            rule = getattr(self.rules, key)
-            m = rule.search(message)
+            pattern = getattr(self.grammar, key)
+            m = pattern.search(part)
             if not m:
                 continue
-            
-            if key in ('period', 'wind', 'wx2', 'cloud', 'interval'):
-                self.parse_muti(key, m)
-            else:
-                self.parse_single(key, m)
 
+            self.tokens[key] = {
+                'text': m.group(),
+                'error': False
+            }
 
+        if self.tokens['sign']['text'] == 'TAF':
+            period = self.tokens['period']['text'][:4]
+            time = format_timez(self.tokens['timez']['text'])
+            self.period = self.generate_period(period, time)
 
+    def generate_period(self, period, time):
+        self.period = format_period(period, time)
+        return self.period
 
-
-    def parse_single(self, key, m):
-        setattr(self, key, m.group(0))
-
-    def parse_muti(self, key, m):
-        setattr(self, key, m.groups())
-
-    # def parse_amend(self, m):
-    #     self.amend = m.group(0)
-
-    # def parse_icao(self, m):
-    #     self.icao = m.group(0)
+    def renderer(self):
+        pass
 
 
 
@@ -266,6 +281,8 @@ class Parser(object):
         self.becmgs = []
         self.tempos = []
 
+        self.reference = None
+
         if not parse:
             self.parse = Lexer
 
@@ -275,6 +292,7 @@ class Parser(object):
         message = self.message.replace('=', '')
         self.elements = _split_pattern.split(message)
         self.primary = self.parse(self.elements[0])
+        self.reference = self.primary.tokens
 
         if len(self.elements) > 1:
             becmg_index = [i for i, item in enumerate(self.elements) if item == 'BECMG']
@@ -282,11 +300,15 @@ class Parser(object):
 
             for i, index in enumerate(becmg_index):
                 e = self.elements[index] + self.elements[index+1]
-                self.becmgs.append(self.parse(e))
+                becmg = self.parse(e)
+                becmg.generate_period(becmg.tokens['interval']['text'], self.primary.period[0])
+                self.becmgs.append(becmg)
 
             for i, index in enumerate(tempo_index):
                 e = self.elements[index] + self.elements[index+1]
-                self.tempos.append(self.parse(e))
+                tempo = self.parse(e)
+                tempo.generate_period(tempo.tokens['interval']['text'], self.primary.period[0])
+                self.tempos.append(tempo)
         
 
 class Renderer(object):
@@ -298,7 +320,7 @@ class Renderer(object):
 
 if __name__ == '__main__':
     # print(Validator.clouds('SCT020', 'SCT010 FEW023CB'))
-    message = 'TAF AMD ZJHK 110702Z 110918 19003MPS 9999 SCT020 TX32/09Z TN27/18Z TEMPO 0912 TS SCT020 FEW026CB='
+    message = 'TAF AMD ZGGG 211338Z 211524 14004MPS 4500 BR NSC BECMG 2021 2500 TEMPO 1519 TSRA SCT008 SCT030CB BKN033 TEMPO 2024 1300 SHRA SCT008 FEW030CB BKN040='
     # m = Grammar.taf.search(message)
     # print(m.group(0))
     # m = Grammar.timez.search(message)
@@ -306,4 +328,6 @@ if __name__ == '__main__':
 
     e = Parser(message)
 
-    print(e.tempos)
+    print(e.primary.tokens)
+    print(e.primary.period)
+    print(e.becmgs[0].period)
