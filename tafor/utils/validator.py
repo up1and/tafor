@@ -4,6 +4,77 @@ import datetime
 from collections import OrderedDict, defaultdict
 
 
+_weather1 = [
+    'NSW', 'IC', 'FG', 'BR', 'SA', 'DU', 'HZ', 'FU', 'VA', 'SQ', 
+    'PO', 'FC', 'TS', 'FZFG', 'BLSN', 'BLSA', 'BLDU', 'DRSN', 'DRSA', 
+    'DRDU', 'MIFG', 'BCFG', 'PRFG'
+]
+_weather2 = [
+    'DZ', 'RA', 'SN', 'SG', 'PL', 'DS', 'SS', 'TSRA', 'TSSN', 'TSPL', 
+    'TSGR', 'TSGS', 'SHRA', 'SHSN', 'SHGR', 'SHGS', 'FZRA', 'FZDZ'
+]
+_split_pattern = re.compile(r'(BECMG|FM|TEMPO|PROB[34]0\sTEMPO)')
+
+
+def _pure_pattern(regex):
+    pattern = regex.pattern
+    if pattern.startswith('^'):
+        pattern = pattern[1:]
+    return pattern
+
+
+def format_period(period, time):
+    # will remove later
+    start_hour = int(period[:2])
+    end_hour = 0 if period[2:] == '24' else int(period[2:])
+
+    base = datetime.datetime(time.year, time.month, time.day)
+    delta = datetime.timedelta(hours=end_hour) if start_hour < end_hour else datetime.timedelta(days=1, hours=end_hour)
+    start = base + datetime.timedelta(hours=start_hour)
+    end = base + delta
+
+    return start, end
+
+
+def format_timez(timez):
+    # will remove later
+    utc =  datetime.datetime.utcnow()
+    time = datetime.datetime(utc.year, utc.month, int(timez[:2]), int(timez[2:4]), int(timez[4:6]))
+    return time
+
+
+class Grammar(object):
+    sign = re.compile(r'(TAF|BECMG|FM|TEMPO)\b')
+    amend = re.compile(r'\b(AMD|\bCOR)\b')
+    icao = re.compile(r'\b(Z[A-Z]{3})\b')
+    timez = re.compile(r'\b(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])Z\b')
+    period = re.compile(r'\b(0[1-9]|[12][0-9]|3[0-1])(0009|0312|0615|0918|1221|1524|1803|2106|0024|0606|1212|1818)\b')
+    tmax = re.compile(r'\b(TXM?(\d{2})/(\d{2})Z)\b')
+    tmin = re.compile(r'\b(TNM?(\d{2})/(\d{2})Z)\b')
+
+    wind = re.compile(r'\b(?:00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)(?:G(0[1-9]|[1-4][0-9]|P49))?)MPS\b')
+    vis = re.compile(r'\b(9999|[5-9]000|[01234][0-9]00|0[0-7]50)\b')
+    wx1 = re.compile(r'\b({})\b'.format('|'.join(_weather1)))
+    wx2 = re.compile(r'\b([-+]?)({})\b'.format('|'.join(_weather2)))
+    cloud = re.compile(r'\bNSC|(FEW|SCT|BKN|OVC)(\d{3})(CB|TCU)?\b')
+    vv = re.compile(r'\b(VV/{3}|VV\d{3})\b')
+    cavok = re.compile(r'\bCAVOK\b')
+
+    prob = re.compile(r'\b(PROB[34]0)\b')
+    interval = re.compile(r'\b([01][0-9]|2[0-3])([01][0-9]|2[0-4])\b')
+
+
+class Pattern(object):
+    date = r'(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])'
+    wind = r'00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)'
+    gust = r'(0[1-9]|[1-4][0-9]|P49)'
+    vis = r'(9999|[5-9]000|[01234][0-9]00|0[0-7]50)'
+    cloud = r'(FEW|SCT|BKN|OVC)(0[0-4][0-9]|050)'
+    temp = r'M?([0-5][0-9])'
+    hours = r'([01][0-9]|2[0-3])'
+    interval = r'([01][0-9]|2[0-3])(0[1-9]|1[0-9]|2[0-4])'
+
+
 class Validator(object):
     """docstring for Validator"""
 
@@ -76,6 +147,8 @@ class Validator(object):
         2. 5000 m（当有大量的按目视飞行规则的飞行时） # 我们没有
 
         """
+        vis1 = int(vis1)
+        vis2 = int(vis2)
         trend = 'down' if vis1 > vis2 else 'up'
 
         # print(vis1, vis2, trend)
@@ -156,84 +229,13 @@ class Validator(object):
             print(i.groupdict())
 
 
-_weather1 = [
-    'NSW', 'IC', 'FG', 'BR', 'SA', 'DU', 'HZ', 'FU', 'VA', 'SQ', 
-    'PO', 'FC', 'TS', 'FZFG', 'BLSN', 'BLSA', 'BLDU', 'DRSN', 'DRSA', 
-    'DRDU', 'MIFG', 'BCFG', 'PRFG'
-]
-_weather2 = [
-    'DZ', 'RA', 'SN', 'SG', 'PL', 'DS', 'SS', 'TSRA', 'TSSN', 'TSPL', 
-    'TSGR', 'TSGS', 'SHRA', 'SHSN', 'SHGR', 'SHGS', 'FZRA', 'FZDZ'
-]
-_split_pattern = re.compile(r'(BECMG|FM|TEMPO|PROB[34]0\sTEMPO)')
-
-
-def _pure_pattern(regex):
-    pattern = regex.pattern
-    if pattern.startswith('^'):
-        pattern = pattern[1:]
-    return pattern
-
-
-def format_period(period, time):
-    # will remove later
-    start_hour = int(period[:2])
-    end_hour = 0 if period[2:] == '24' else int(period[2:])
-
-    base = datetime.datetime(time.year, time.month, time.day)
-    delta = datetime.timedelta(hours=end_hour) if start_hour < end_hour else datetime.timedelta(days=1, hours=end_hour)
-    start = base + datetime.timedelta(hours=start_hour)
-    end = base + delta
-
-    return start, end
-
-
-def format_timez(timez):
-    # will remove later
-    utc =  datetime.datetime.utcnow()
-    time = datetime.datetime(utc.year, utc.month, int(timez[:2]), int(timez[2:4]), int(timez[4:6]))
-    return time
-
-
-class Grammar(object):
-    sign = re.compile(r'(TAF|BECMG|FM|TEMPO)\b')
-    amend = re.compile(r'\b(AMD|\bCOR)\b')
-    icao = re.compile(r'\b([A-Z]{4})\b')
-    timez = re.compile(r'\b(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])Z\b')
-    period = re.compile(r'\b(0[1-9]|[12][0-9]|3[0-1])(0009|0312|0615|0918|1221|1524|1803|2106|0024|0606|1212|1818)\b')
-    tmax = re.compile(r'\b(TXM?(\d{2})/(\d{2})Z)\b')
-    tmin = re.compile(r'\b(TNM?(\d{2})/(\d{2})Z)\b')
-
-    wind = re.compile(r'\b(?:00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)(?:G(0[1-9]|[1-4][0-9]|P49))?)MPS\b')
-    vis = re.compile(r'\b(9999|[5-9]000|[01234][0-9]00|0[0-7]50)\b')
-    wx1 = re.compile(r'\b({})\b'.format('|'.join(_weather1)))
-    wx2 = re.compile(r'\b([-+]?)({})\b'.format('|'.join(_weather2)))
-    cloud = re.compile(r'\bNSC|(FEW|SCT|BKN|OVC)(\d{3})(CB|TCU)?\b')
-    vv = re.compile(r'\b(VV/{3}|VV\d{3})\b')
-    cavok = re.compile(r'\bCAVOK\b')
-
-    prob = re.compile(r'\b(PROB[34]0)\b')
-    interval = re.compile(r'\b([01][0-9]|2[0-3])([01][0-9]|2[0-4])\b')
-
-
-class EditRegex(object):
-    date = r'(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])'
-    wind = r'00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)'
-    gust = r'(0[1-9]|[1-4][0-9]|P49)'
-    vis = r'(9999|[5-9]000|[01234][0-9]00|0[0-7]50)'
-    cloud = r'(FEW|SCT|BKN|OVC)(0[0-4][0-9]|050)'
-    temp = r'M?([0-5][0-9])'
-    hours = r'([01][0-9]|2[0-3])'
-    interval = r'([01][0-9]|2[0-3])(0[1-9]|1[0-9]|2[0-4])'
-
 
 class Lexer(object):
     grammar_class = Grammar
 
     default_rules = [
-        'sign', 'amend', 'icao', 'timez', 'period', 'tmax', 'tmin',
+        'sign', 'amend', 'icao', 'timez', 'period', 'tmax', 'tmin', 'prob', 'interval',
         'wind', 'vis', 'wx1', 'wx2', 'cloud', 'vv', 'cavok',
-        'prob', 'interval'
     ]
 
     def __init__(self, part, grammar=None, **kwargs):
@@ -244,6 +246,9 @@ class Lexer(object):
         self.tokens = OrderedDict()
 
         self.parse(part)
+
+    def __repr__(self):
+        return self.part
 
     def parse(self, part, rules=None):
         if not rules:
@@ -257,7 +262,7 @@ class Lexer(object):
 
             self.tokens[key] = {
                 'text': m.group(),
-                'error': False
+                'error': None
             }
 
         if self.tokens['sign']['text'] == 'TAF':
@@ -269,14 +274,35 @@ class Lexer(object):
         self.period = format_period(period, time)
         return self.period
 
-    def renderer(self):
-        pass
+    def renderer(self, output='pure'):
+
+        def terminal():
+            from colorama import init, Fore
+            init(autoreset=True)
+
+            elements = []
+            for k, e in self.tokens.items():
+                if e['error']:
+                    elements.append(Fore.RED + e['text'])
+                else:
+                    elements.append(Fore.GREEN + e['text'])
+
+            return ' '.join(elements)
+
+        def pure():
+            return self.part
+
+        func = locals().get(output, pure)
+        return func()
 
 
 
 class Parser(object):
+    default_rules = [
+        'wind', 'vis', 'weather', 'clouds'
+    ]
 
-    def __init__(self, message, parse=None):
+    def __init__(self, message, parse=None, validator=None):
         self.message = message
         self.becmgs = []
         self.tempos = []
@@ -285,6 +311,9 @@ class Parser(object):
 
         if not parse:
             self.parse = Lexer
+
+        if not validator:
+            self.validator = Validator
 
         self.split()
 
@@ -309,6 +338,34 @@ class Parser(object):
                 tempo = self.parse(e)
                 tempo.generate_period(tempo.tokens['interval']['text'], self.primary.period[0])
                 self.tempos.append(tempo)
+
+            # Becmg Tempo 按时间排序
+            self.becmgs.sort(key=lambda x: x.period[1])
+
+
+    def valid(self):
+        mapped_func = {
+            'vis': self.validator.vis,
+            'wx1': self.validator.weather,
+            'wx2': self.validator.weather,
+            'cloud': self.validator.clouds,
+        }
+
+        for e in self.becmgs:
+            for k in e.tokens:
+                func = mapped_func.get(k, None)
+                if func:
+                    legal = func(self.reference[k]['text'], e.tokens[k]['text'])
+                    e.tokens[k]['error'] = not legal
+
+                    if e.tokens['sign'] == 'BECMG':
+                        self.reference[k]['text'] = e.tokens[k]['text']
+
+    def renderer(self, output='pure'):
+        elements = [self.primary] + self.becmgs + self.tempos
+        outputs = [e.renderer(output) for e in elements]
+        return '\n'.join(outputs)
+
         
 
 class Renderer(object):
@@ -320,14 +377,21 @@ class Renderer(object):
 
 if __name__ == '__main__':
     # print(Validator.clouds('SCT020', 'SCT010 FEW023CB'))
-    message = 'TAF AMD ZGGG 211338Z 211524 14004MPS 4500 BR NSC BECMG 2021 2500 TEMPO 1519 TSRA SCT008 SCT030CB BKN033 TEMPO 2024 1300 SHRA SCT008 FEW030CB BKN040='
+    message = '''
+        TAF AMD ZGGG 211338Z 211524 14004MPS 4500 BR NSC 
+        BECMG 2122 2000 
+        TEMPO 1519 TSRA SCT008 SCT030CB BKN033 
+        TEMPO 2024 1300 SHRA SCT008 FEW030CB BKN040=
+    '''
     # m = Grammar.taf.search(message)
     # print(m.group(0))
     # m = Grammar.timez.search(message)
     # print(m.groups())
 
     e = Parser(message)
+    e.valid()
 
-    print(e.primary.tokens)
-    print(e.primary.period)
-    print(e.becmgs[0].period)
+    print(e.renderer(output='terminal'))
+
+    # print(e.primary.tokens)
+    # print(e.tempos[0].tokens)
