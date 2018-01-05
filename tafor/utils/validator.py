@@ -274,7 +274,7 @@ class Lexer(object):
         self.period = format_period(period, time)
         return self.period
 
-    def renderer(self, output='pure'):
+    def renderer(self, style='plain'):
 
         def terminal():
             from colorama import init, Fore
@@ -289,10 +289,10 @@ class Lexer(object):
 
             return ' '.join(elements)
 
-        def pure():
+        def plain():
             return self.part
 
-        func = locals().get(output, pure)
+        func = locals().get(style, plain)
         return func()
 
 
@@ -316,6 +316,7 @@ class Parser(object):
             self.validator = Validator
 
         self.split()
+        self.regroup()
 
     def split(self):
         message = self.message.replace('=', '')
@@ -339,8 +340,41 @@ class Parser(object):
                 tempo.generate_period(tempo.tokens['interval']['text'], self.primary.period[0])
                 self.tempos.append(tempo)
 
-            # Becmg Tempo 按时间排序
-            self.becmgs.sort(key=lambda x: x.period[1])
+    def regroup(self):
+        self.becmgs.sort(key=lambda x: x.period[1])
+        self.tempos.sort(key=lambda x: x.period[0])
+
+        def group(becmgs, tempos):
+            groups = []
+            for becmg in becmgs:
+                groups.append(becmg)
+                for tempo in tempos:
+                    index = groups.index(becmg)
+                    if tempo.period[0] < becmg.period[1]:
+                        groups.insert(index, tempo)
+
+                    if tempo.period[1] > becmg.period[1]:
+                        groups.append(tempo)
+            return groups
+
+        def reduce(items):
+            groups = []
+            cache = []
+            for e in items:
+                sign = e.tokens['sign']['text']
+                if sign == 'BECMG':
+                    groups.append(e)
+                    cache = []
+                if sign == 'TEMPO':
+                    if e not in cache:
+                        groups.append(e)
+                        cache.append(e)
+
+            return groups
+
+        self.groups = reduce(group(self.becmgs, self.tempos))
+        return self.groups
+
 
 
     def valid(self):
@@ -361,9 +395,9 @@ class Parser(object):
                     if e.tokens['sign'] == 'BECMG':
                         self.reference[k]['text'] = e.tokens[k]['text']
 
-    def renderer(self, output='pure'):
+    def renderer(self, style='plain'):
         elements = [self.primary] + self.becmgs + self.tempos
-        outputs = [e.renderer(output) for e in elements]
+        outputs = [e.renderer(style) for e in elements]
         return '\n'.join(outputs)
 
         
@@ -379,7 +413,8 @@ if __name__ == '__main__':
     # print(Validator.clouds('SCT020', 'SCT010 FEW023CB'))
     message = '''
         TAF AMD ZGGG 211338Z 211524 14004MPS 4500 BR NSC 
-        BECMG 2122 2000 
+        BECMG 2122 3000 
+        BECMG 1719 3000 
         TEMPO 1519 TSRA SCT008 SCT030CB BKN033 
         TEMPO 2024 1300 SHRA SCT008 FEW030CB BKN040=
     '''
@@ -391,7 +426,7 @@ if __name__ == '__main__':
     e = Parser(message)
     e.valid()
 
-    print(e.renderer(output='terminal'))
+    print(e.renderer(style='terminal'))
 
     # print(e.primary.tokens)
     # print(e.tempos[0].tokens)

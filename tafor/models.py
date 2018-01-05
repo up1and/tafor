@@ -45,10 +45,7 @@ class Tafor(Base):
         from tafor.utils import Parser
         rpt = Parser(self.rpt)
         parts = [self.head, rpt.renderer()]
-        # parts.extend(rpt.becmgs)
-        # parts.extend(rpt.tempos)
         return '\n'.join(filter(None, parts))
-        return self.head + '\n' + rpt.output()
 
 class Metar(Base):
     __tablename__ = 'metars'
