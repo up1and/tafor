@@ -78,25 +78,25 @@ class Pattern(object):
 class Validator(object):
     """docstring for Validator"""
 
-    @staticmethod
-    def wind(str_wind1, str_wind2):
+    grammar_class = Grammar
+
+    @classmethod
+    def wind(cls, ref_wind, wind):
         """
         风：
         1.当预报平均地面风向的变化大于等于 60°，且平均风速在变化前和（或）变化后大于等于 5m/s 时
         2.当预报平均地面风速的变化大于等于 5m/s 时
         3.当预报平均地面风风速变差（阵风）增加(或减少)大于等于 5m/s，且平均风速在变化前和（或）变化后大于等于 8m/s 时  ***有异议
         """
-        regex_wind = re.compile(REGEX_TAF['common']['wind'])
-        wind1 = regex_wind.match(str_wind1).groupdict()
-        wind2 = regex_wind.match(str_wind2).groupdict()
+        pattern = cls.grammar_class.wind
+        wind1 = pattern.match(ref_wind).groupdict()
+        wind2 = pattern.match(wind).groupdict()
 
         speed1 = int(wind1['speed'])
         speed2 = int(wind2['speed'])
 
         gust1 = int(wind1['gust']) if wind1['gust'] else None
         gust2 = int(wind2['gust']) if wind2['gust'] else None
-
-        # print(wind1, wind2)
 
         def direction():
             # 有一个风向为 VRB, 返回 True
@@ -139,35 +139,33 @@ class Validator(object):
         return False
 
 
-    @staticmethod
-    def vis(vis1, vis2, thresholds=None):
+    @classmethod
+    def vis(cls, ref_vis, vis, thresholds=None):
         """
         当预报主导能见度上升并达到或经过下列一个或多个数值，或下降并经过下列一个或多个数值时：
         1. 150 m、350 m、600 m、800 m、1500 m 或 3000 m
         2. 5000 m（当有大量的按目视飞行规则的飞行时） # 我们没有
 
         """
-        vis1 = int(vis1)
-        vis2 = int(vis2)
-        trend = 'down' if vis1 > vis2 else 'up'
-
-        # print(vis1, vis2, trend)
+        ref_vis = int(ref_vis)
+        vis = int(vis)
+        trend = 'down' if ref_vis > vis else 'up'
 
         thresholds = thresholds if thresholds else [150, 350, 600, 800, 1500, 3000, 5000]
         for threshold in thresholds:
             if trend == 'up':
-                if vis1 < threshold <= vis2:
+                if ref_vis < threshold <= vis:
                     return True
             if trend == 'down':
-                if vis2 < threshold < vis1:
+                if vis < threshold < ref_vis:
                     return True
 
         return False
 
         
 
-    @staticmethod
-    def weather(wx1, wx2):
+    @classmethod
+    def weather(cls, ref_wx, wx):
         """
         天气现象：
            1. 当预报下列一种或几种天气现象开始、终止或强度变化时：
@@ -200,8 +198,8 @@ class Validator(object):
 
         return True
 
-    @staticmethod
-    def clouds(cloud1, cloud2):
+    @classmethod
+    def cloud(cls, ref_cloud, cloud):
         '''   
           当预报BKN或OVC云量的最低云层的云高抬升并达到或经过下列一个或多个数值，或降低并经过下列一个或多个数值时：
             1. 30 m、60 m、150 m 或 300 m
@@ -213,7 +211,7 @@ class Validator(object):
 
           当预报积雨云将发展或消失时
         '''
-        regex = REGEX_TAF['common']['cloud']
+        pattern = cls.grammar_class.cloud
         thresholds = [1, 2, 5, 10, 15]
 
         # 同为NSC
@@ -299,7 +297,7 @@ class Lexer(object):
 
 class Parser(object):
     default_rules = [
-        'wind', 'vis', 'weather', 'clouds'
+        'wind', 'vis', 'weather', 'cloud'
     ]
 
     def __init__(self, message, parse=None, validator=None):
@@ -313,7 +311,7 @@ class Parser(object):
             self.parse = Lexer
 
         if not validator:
-            self.validator = Validator
+            self.validator = Validator()
 
         self.split()
         self.regroup()
@@ -349,12 +347,19 @@ class Parser(object):
             for becmg in becmgs:
                 groups.append(becmg)
                 for tempo in tempos:
-                    index = groups.index(becmg)
-                    if tempo.period[0] < becmg.period[1]:
+
+                    if tempo.period[0] < becmg.period[1] < tempo.period[1]:
+                        index = groups.index(becmg)
+                        groups.insert(index, tempo)
+                        groups.append(tempo)
+
+                    if tempo.period[1] <= becmg.period[1] and tempo not in groups:
+                        index = groups.index(becmg)
                         groups.insert(index, tempo)
 
-                    if tempo.period[1] > becmg.period[1]:
+                    if tempo.period[0] > becmg.period[1] and tempo not in groups:
                         groups.append(tempo)
+
             return groups
 
         def reduce(items):
@@ -375,25 +380,16 @@ class Parser(object):
         self.groups = reduce(group(self.becmgs, self.tempos))
         return self.groups
 
-
-
     def valid(self):
-        mapped_func = {
-            'vis': self.validator.vis,
-            'wx1': self.validator.weather,
-            'wx2': self.validator.weather,
-            'cloud': self.validator.clouds,
-        }
-
-        for e in self.becmgs:
-            for k in e.tokens:
-                func = mapped_func.get(k, None)
-                if func:
-                    legal = func(self.reference[k]['text'], e.tokens[k]['text'])
-                    e.tokens[k]['error'] = not legal
+        for e in self.groups:
+            for key in e.tokens:
+                verify = getattr(self.validator, key, None)
+                if verify:
+                    legal = verify(self.reference[key]['text'], e.tokens[key]['text'])
+                    e.tokens[key]['error'] = not legal
 
                     if e.tokens['sign'] == 'BECMG':
-                        self.reference[k]['text'] = e.tokens[k]['text']
+                        self.reference[key]['text'] = e.tokens[key]['text']
 
     def renderer(self, style='plain'):
         elements = [self.primary] + self.becmgs + self.tempos
@@ -414,7 +410,6 @@ if __name__ == '__main__':
     message = '''
         TAF AMD ZGGG 211338Z 211524 14004MPS 4500 BR NSC 
         BECMG 2122 3000 
-        BECMG 1719 3000 
         TEMPO 1519 TSRA SCT008 SCT030CB BKN033 
         TEMPO 2024 1300 SHRA SCT008 FEW030CB BKN040=
     '''
