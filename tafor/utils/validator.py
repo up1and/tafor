@@ -89,51 +89,45 @@ class Validator(object):
         3.当预报平均地面风风速变差（阵风）增加(或减少)大于等于 5m/s，且平均风速在变化前和（或）变化后大于等于 8m/s 时  ***有异议
         """
         pattern = cls.grammar_class.wind
-        wind1 = pattern.match(ref_wind).groupdict()
-        wind2 = pattern.match(wind).groupdict()
+        ref_wind_group = pattern.match(ref_wind).groups()
+        wind_group = pattern.match(wind).groups()
 
-        speed1 = int(wind1['speed'])
-        speed2 = int(wind2['speed'])
+        ref_speed = int(ref_wind_group[1])
+        speed = int(wind_group[1])
 
-        gust1 = int(wind1['gust']) if wind1['gust'] else None
-        gust2 = int(wind2['gust']) if wind2['gust'] else None
+        ref_gust = int(ref_wind_group[2]) if ref_wind_group[2] else None
+        gust = int(wind_group[2]) if wind_group[2] else None
 
-        def direction():
+        def angle(ref_direction, direction):
             # 有一个风向为 VRB, 返回 True
-            if 'VRB' in (wind1['direction'], wind2['direction']):
+            if 'VRB' in (ref_direction, direction):
                 return True
 
-            direction1 = int(wind1['direction'])
-            direction2 = int(wind2['direction'])
+            ref_direction = int(ref_direction)
+            direction = int(direction)
 
             # 计算夹角
             # 风向变化大于180度
-            if abs(direction1 - direction2) > 180:
-                angle = min(direction1, direction2) + 360 - max(direction1, direction2)
+            if abs(ref_direction - direction) > 180:
+                degree = min(ref_direction, direction) + 360 - max(ref_direction, direction)
             else:
-                angle = abs(direction1 - direction2)
+                degree = abs(ref_direction - direction)
 
-            # print(angle)
-
-            if angle < 60:
+            if degree < 60:
                 return False
 
             return True
 
-        # def gust(wind):
-        #     if int(wind['gust']) - int(wind['speed']) < 5:
-        #         return False
-
         # 1.当预报平均地面风向的变化大于等于 60°，且平均风速在变化前和（或）变化后大于等于 5m/s 时
-        if direction() and max(speed1, speed2) >= 5:
+        if angle(ref_wind_group[0], wind_group[0]) and max(ref_speed, speed) >= 5:
             return True
 
         # 2.当预报平均地面风速的变化大于等于 5m/s 时
-        if abs(speed1 - speed2) >= 5:
+        if abs(ref_speed - speed) >= 5:
             return True
 
         # 3.当预报平均地面风风速变差（阵风）增加(或减少)大于等于 5m/s，且平均风速在变化前和（或）变化后大于等于 8m/s 时
-        if gust1 and gust2 and abs(gust1 - gust2) >= 5 and max(speed1, speed2) >=8:
+        if ref_gust and gust and abs(ref_gust - gust) >= 5 and max(ref_speed, speed) >=8:
             return True
 
         return False
@@ -215,12 +209,12 @@ class Validator(object):
         thresholds = [1, 2, 5, 10, 15]
 
         # 同为NSC
-        if cloud1 == 'NSC' and cloud2 == 'NSC':
+        if ref_cloud == 'NSC' and cloud == 'NSC':
             return False
 
         # 有积雨云CB
-        match1 = re.finditer(regex, cloud1)
-        match2 = re.finditer(regex, cloud2)
+        match1 = pattern.finditer(ref_cloud)
+        match2 = pattern.finditer(cloud)
         print(match1)
         print(match2)
         for i in match2:
@@ -410,8 +404,7 @@ if __name__ == '__main__':
     message = '''
         TAF AMD ZGGG 211338Z 211524 14004MPS 4500 BR NSC 
         BECMG 2122 3000 
-        TEMPO 1519 TSRA SCT008 SCT030CB BKN033 
-        TEMPO 2024 1300 SHRA SCT008 FEW030CB BKN040=
+        TEMPO 1519 07005MPS=
     '''
     # m = Grammar.taf.search(message)
     # print(m.group(0))
