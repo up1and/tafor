@@ -4,15 +4,17 @@ import datetime
 from collections import OrderedDict, defaultdict
 
 
-_weather1 = [
+weather = [
     'NSW', 'IC', 'FG', 'BR', 'SA', 'DU', 'HZ', 'FU', 'VA', 'SQ', 
     'PO', 'FC', 'TS', 'FZFG', 'BLSN', 'BLSA', 'BLDU', 'DRSN', 'DRSA', 
     'DRDU', 'MIFG', 'BCFG', 'PRFG'
 ]
-_weather2 = [
+weather_with_intensity = [
     'DZ', 'RA', 'SN', 'SG', 'PL', 'DS', 'SS', 'TSRA', 'TSSN', 'TSPL', 
     'TSGR', 'TSGS', 'SHRA', 'SHSN', 'SHGR', 'SHGS', 'FZRA', 'FZDZ'
 ]
+# weather_pattern = r'([-+]?TSRA|SHRA\b)|(\bBR|FG\b)'
+
 _split_pattern = re.compile(r'(BECMG|FM|TEMPO|PROB[34]0\sTEMPO)')
 
 
@@ -54,8 +56,8 @@ class Grammar(object):
 
     wind = re.compile(r'\b(?:00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)(?:G(0[1-9]|[1-4][0-9]|P49))?)MPS\b')
     vis = re.compile(r'\b(9999|[5-9]000|[01234][0-9]00|0[0-7]50)\b')
-    wx1 = re.compile(r'\b({})\b'.format('|'.join(_weather1)))
-    wx2 = re.compile(r'\b([-+]?)({})\b'.format('|'.join(_weather2)))
+    weather = re.compile(r'\b({})\b'.format('|'.join(weather)))
+    weather_with_intensity = re.compile(r'\b([-+]?)({})\b'.format('|'.join(weather_with_intensity)))
     cloud = re.compile(r'\bNSC|(FEW|SCT|BKN|OVC)(\d{3})(CB|TCU)?\b')
     vv = re.compile(r'\b(VV/{3}|VV\d{3})\b')
     cavok = re.compile(r'\bCAVOK\b')
@@ -141,17 +143,22 @@ class Validator(object):
         2. 5000 m（当有大量的按目视飞行规则的飞行时） # 我们没有
 
         """
-        ref_vis = int(ref_vis)
-        vis = int(vis)
-        trend = 'down' if ref_vis > vis else 'up'
-
         thresholds = thresholds if thresholds else [150, 350, 600, 800, 1500, 3000, 5000]
+        return cls.compare(ref_vis, vis, thresholds)
+
+
+    @classmethod
+    def compare(cls, ref_value, value, thresholds):
+        ref_value = int(ref_value)
+        value = int(value)
+        trend = 'down' if ref_value > value else 'up'
+
         for threshold in thresholds:
             if trend == 'up':
-                if ref_vis < threshold <= vis:
+                if ref_value < threshold <= value:
                     return True
             if trend == 'down':
-                if vis < threshold < ref_vis:
+                if value < threshold < ref_value:
                     return True
 
         return False
@@ -159,7 +166,7 @@ class Validator(object):
         
 
     @classmethod
-    def weather(cls, ref_wx, wx):
+    def weather(cls, ref_weather, weather):
         """
         天气现象：
            1. 当预报下列一种或几种天气现象开始、终止或强度变化时：
@@ -176,50 +183,89 @@ class Validator(object):
               飑
               漏斗云（陆龙卷或水龙卷）
         """
-        # regex = r'(BR|HZ|FU|DU|-RA|-SN)'
-        # 特殊情况 NSW 未考虑
+        weather_with_intensity_pattern = re.compile(r'([+-])?(DZ|RA|SN|SG|PL|DS|SS|SHRA|SHSN|SHGR|SHGS|FZRA|FZDZ|TSRA|TSSN|TSPL|TSGR|TSGS|TSSH)')
+        weather_pattern = re.compile(r'(SQ|PO|FC|TS|FZFG|BLSN|BLSA|BLDU|DRSN|DRSA|DRDU)')
+        weak_precipitation_pattern = re.compile(r'-(DZ|RA|SN|SG|PL|SHRA|SHSN|SHGR|SHGS)')
 
-        regex = r'((?P<intensity>[+-])?(?P<wx1>DZ|RA|SN|SG|PL|DS|SS|SHRA|SHSN|SHGR|SHGS|FZRA|FZDZ|TSRA|TSSN|TSPL|TSGR|TSGS|TSSH)|(?P<wx2>SQ|PO|FC|TS|FZFG|BLSN|BLSA|BLDU|DRSN|DRSA|DRDU))'
+        ref_weathers = ref_weather.split()
+        weathers = weather.split()
 
-        match1 = re.search(regex, wx1)
-        match2 = re.search(regex, wx2)
+        def conform(weather):
+            # 符合转折条件，不包括弱降水
+            return weather_with_intensity_pattern.match(weather) and not weak_precipitation_pattern.match(weather) or 
+                weather_pattern.match(weather)
 
-        # print(match1, match2)
-
-        if match1 and match2:
-            if match1.group() == match2.group():
+        for w in weathers:
+            # NSW 无法转折的天气
+            if w == 'NSW' and set(ref_weathers) & set(['BR', 'HZ', 'FU', 'DU', '-RA', '-SN']):
                 return False
 
-        return True
+            if w not in ref_weathers:
+                return conform(w) or conform(ref_weather)
+
+        return False
+
 
     @classmethod
     def cloud(cls, ref_cloud, cloud):
         '''   
-          当预报BKN或OVC云量的最低云层的云高抬升并达到或经过下列一个或多个数值，或降低并经过下列一个或多个数值时：
+          当预报 BKN 或 OVC 云量的最低云层的云高抬升并达到或经过下列一个或多个数值，或降低并经过下列一个或多个数值时：
             1. 30 m、60 m、150 m 或 300 m
             2. 450 m（在有大量的按目视飞行规则的飞行时）
 
-          当预报低于450 m的云层或云块的量的变化满足下列条件之一时：
-            1. 从SCT或更少到BKN、OVC
-            2. 从BKN、OVC到SCT或更少
+          当预报低于 450 m 的云层或云块的量的变化满足下列条件之一时：
+            1. 从 SCT 或更少到 BKN、OVC
+            2. 从 BKN、OVC 到 SCT 或更少
 
           当预报积雨云将发展或消失时
         '''
         pattern = cls.grammar_class.cloud
         thresholds = [1, 2, 5, 10, 15]
+        cloud_cover = {'SKC': 0, 'FEW': 1, 'SCT': 2, 'BKN': 3, 'OVC': 4}
 
-        # 同为NSC
+        ref_clouds = ref_cloud.split()
+        clouds = cloud.split()
+
+        # 同为 NSC
         if ref_cloud == 'NSC' and cloud == 'NSC':
             return False
 
-        # 有积雨云CB
-        match1 = pattern.finditer(ref_cloud)
-        match2 = pattern.finditer(cloud)
-        print(match1)
-        print(match2)
-        for i in match2:
-            print(i.groupdict())
+        # 有积雨云 CB
+        cb_pattern = re.compile(r'((FEW|SCT|BKN|OVC)\d{3}(CB|TCU$))')
+        matches = [cb_pattern.match(ref_cloud), cb_pattern.match(cloud)]
 
+        if any(matches):
+            if all(matches):
+                return matches[0].group() != matches[1].group()
+            return True
+
+        def analyze(clouds):
+            min_height = 999
+            max_cover = 0
+            for c in clouds:
+                m = pattern.match(c)
+                if m:
+                    if cloud_cover(m.group(1)) > 2:
+                        min_height = min(min_height, int(m.group(2)))
+
+                    if int(m.group(2)) < 15:
+                        max_cover = max(max_cover, cloud_cover(m.group(1)))
+
+            min_height = min_height if min_height < 15 else 0
+            return min_height, max_cover
+
+        min_height, max_cover = analyze(clouds)
+        ref_min_height, ref_max_cover = analyze(ref_clouds)
+
+        # 当预报 BKN 或 OVC 云量的最低云层的云高抬升并达到或经过下列一个或多个数值，或降低并经过下列一个或多个数值
+        if any([ref_min_height, min_height])
+            return cls.compare(ref_min_height, min_height, thresholds)
+
+        # 当预报低于 450 m 的云层或云块的量的变化满足下列条件之一
+        if ref_max_cover > 2 and max_cover < 3 or ref_max_cover < 3 and max_cover > 2
+            return True
+
+        return False
 
 
 class Lexer(object):
@@ -227,7 +273,7 @@ class Lexer(object):
 
     default_rules = [
         'sign', 'amend', 'icao', 'timez', 'period', 'tmax', 'tmin', 'prob', 'interval',
-        'wind', 'vis', 'wx1', 'wx2', 'cloud', 'vv', 'cavok',
+        'wind', 'vis', 'weather', 'weather_with_intensity', 'cloud', 'vv', 'cavok',
     ]
 
     def __init__(self, part, grammar=None, **kwargs):
