@@ -13,6 +13,7 @@ weather_with_intensity = [
     'DZ', 'RA', 'SN', 'SG', 'PL', 'DS', 'SS', 'TSRA', 'TSSN', 'TSPL', 
     'TSGR', 'TSGS', 'SHRA', 'SHSN', 'SHGR', 'SHGS', 'FZRA', 'FZDZ'
 ]
+
 # weather_pattern = r'([-+]?TSRA|SHRA\b)|(\bBR|FG\b)'
 
 _split_pattern = re.compile(r'(BECMG|FM|TEMPO|PROB[34]0\sTEMPO)')
@@ -59,7 +60,7 @@ class Grammar(object):
     weather = re.compile(r'\b({})\b'.format('|'.join(weather)))
     weather_with_intensity = re.compile(r'\b([-+]?)({})\b'.format('|'.join(weather_with_intensity)))
     cloud = re.compile(r'\bNSC|(FEW|SCT|BKN|OVC)(\d{3})(CB|TCU)?\b')
-    vv = re.compile(r'\b(VV/{3}|VV\d{3})\b')
+    vv = re.compile(r'\b(VV/{3}|VV(\d{3}))\b')
     cavok = re.compile(r'\bCAVOK\b')
 
     prob = re.compile(r'\b(PROB[34]0)\b')
@@ -134,18 +135,41 @@ class Validator(object):
 
         return False
 
-
     @classmethod
     def vis(cls, ref_vis, vis, thresholds=None):
         """
         当预报主导能见度上升并达到或经过下列一个或多个数值，或下降并经过下列一个或多个数值时：
         1. 150 m、350 m、600 m、800 m、1500 m 或 3000 m
-        2. 5000 m（当有大量的按目视飞行规则的飞行时） # 我们没有
+        2. 5000 m（当有大量的按目视飞行规则的飞行时）
 
         """
         thresholds = thresholds if thresholds else [150, 350, 600, 800, 1500, 3000, 5000]
         return cls.compare(ref_vis, vis, thresholds)
 
+    @classmethod
+    def vv(cls, ref_vv, vv, thresholds=None):
+        """
+        当预报垂直能见度上升并达到或经过下列一个或多个数值，
+        或下降并经过下列一个或多个数值时：30 m、60 m、150 m 或 300 m；
+
+        编报时对应 VV001、VV002、VV005、VV010
+        """
+        pattern = cls.grammar_class.wind
+        matches = [pattern.match(ref_vv), pattern.match(vv)]
+        thresholds = thresholds if thresholds else [1, 2, 5, 10]
+
+        # 两者都包含 VV, 计算高度是否跨越阈值
+        if all(matches):
+            ref_vv_height, vv_height = matches[0].group(2), matches[1].group(2)
+            return cls.compare(ref_vv_height, vv_height, thresholds)
+
+        # 两者有一个是 VV, VV 高度小于最大阈值
+        if any(matches):
+            for m in matches:
+                if m and int(m.group(2)) <= thresholds[-1]:
+                    return True
+
+        return False
 
     @classmethod
     def compare(cls, ref_value, value, thresholds):
@@ -162,8 +186,6 @@ class Validator(object):
                     return True
 
         return False
-
-        
 
     @classmethod
     def weather(cls, ref_weather, weather):
@@ -192,8 +214,8 @@ class Validator(object):
 
         def conform(weather):
             # 符合转折条件，不包括弱降水
-            return weather_with_intensity_pattern.match(weather) and not weak_precipitation_pattern.match(weather) or 
-                weather_pattern.match(weather)
+            return weather_with_intensity_pattern.match(weather) and not weak_precipitation_pattern.match(weather) \
+                or weather_pattern.match(weather)
 
         for w in weathers:
             # NSW 无法转折的天气
@@ -204,7 +226,6 @@ class Validator(object):
                 return conform(w) or conform(ref_weather)
 
         return False
-
 
     @classmethod
     def cloud(cls, ref_cloud, cloud):
@@ -244,12 +265,12 @@ class Validator(object):
             max_cover = 0
             for c in clouds:
                 m = pattern.match(c)
-                if m:
-                    if cloud_cover(m.group(1)) > 2:
+                if m and m.group() != 'NSC':
+                    if cloud_cover[m.group(1)] > 2:
                         min_height = min(min_height, int(m.group(2)))
 
                     if int(m.group(2)) < 15:
-                        max_cover = max(max_cover, cloud_cover(m.group(1)))
+                        max_cover = max(max_cover, cloud_cover[m.group(1)])
 
             min_height = min_height if min_height < 15 else 0
             return min_height, max_cover
@@ -258,11 +279,11 @@ class Validator(object):
         ref_min_height, ref_max_cover = analyze(ref_clouds)
 
         # 当预报 BKN 或 OVC 云量的最低云层的云高抬升并达到或经过下列一个或多个数值，或降低并经过下列一个或多个数值
-        if any([ref_min_height, min_height])
+        if any([ref_min_height, min_height]):
             return cls.compare(ref_min_height, min_height, thresholds)
 
         # 当预报低于 450 m 的云层或云块的量的变化满足下列条件之一
-        if ref_max_cover > 2 and max_cover < 3 or ref_max_cover < 3 and max_cover > 2
+        if ref_max_cover > 2 and max_cover < 3 or ref_max_cover < 3 and max_cover > 2:
             return True
 
         return False
@@ -448,8 +469,8 @@ class Renderer(object):
 if __name__ == '__main__':
     # print(Validator.clouds('SCT020', 'SCT010 FEW023CB'))
     message = '''
-        TAF AMD ZGGG 211338Z 211524 14004MPS 4500 BR NSC 
-        BECMG 2122 3000 
+        TAF AMD ZGGG 211338Z 211524 14004MPS 4500 BR BKN010 
+        BECMG 2122 3000 BKN030
         TEMPO 1519 07005MPS=
     '''
     # m = Grammar.taf.search(message)
