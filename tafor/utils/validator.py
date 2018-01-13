@@ -1,4 +1,5 @@
 import re
+import copy
 import datetime
 
 from collections import OrderedDict, defaultdict
@@ -203,7 +204,7 @@ class Validator(object):
               漏斗云（陆龙卷或水龙卷）
         """
         weather_with_intensity_pattern = re.compile(r'([+-])?(DZ|RA|SN|SG|PL|DS|SS|SHRA|SHSN|SHGR|SHGS|FZRA|FZDZ|TSRA|TSSN|TSPL|TSGR|TSGS|TSSH)')
-        weather_pattern = re.compile(r'(SQ|PO|FC|TS|FZFG|BLSN|BLSA|BLDU|DRSN|DRSA|DRDU)')
+        weather_pattern = re.compile(r'(SQ|PO|FC|TS|FG|FZFG|BLSN|BLSA|BLDU|DRSN|DRSA|DRDU)')
         weak_precipitation_pattern = re.compile(r'-(DZ|RA|SN|SG|PL|SHRA|SHSN|SHGR|SHGS)')
 
         ref_weathers = ref_weather.split()
@@ -249,8 +250,8 @@ class Validator(object):
             return False
 
         # 有积雨云 CB
-        cb_pattern = re.compile(r'((FEW|SCT|BKN|OVC)\d{3}(CB|TCU$))')
-        matches = [cb_pattern.match(ref_cloud), cb_pattern.match(cloud)]
+        cb_pattern = re.compile(r'(FEW|SCT|BKN|OVC)(\d{3})(CB|TCU$)')
+        matches = [cb_pattern.search(ref_cloud), cb_pattern.search(cloud)]
 
         if any(matches):
             if all(matches):
@@ -445,7 +446,9 @@ class Parser(object):
         self.groups = reduce(group(self.becmgs, self.tempos))
         return self.groups
 
-    def valid(self):
+    def validate(self):
+        self.validate_combination(self.reference, self.primary.tokens)
+
         for e in self.groups:
             for key in e.tokens:
                 verify = getattr(self.validator, key, None)
@@ -455,6 +458,62 @@ class Parser(object):
 
                     if e.tokens['sign'] == 'BECMG':
                         self.reference[key]['text'] = e.tokens[key]['text']
+
+            self.validate_combination(self.reference, e.tokens)
+
+    def validate_combination(self, ref, tokens):
+        combined = copy.deepcopy(ref)
+        for key in tokens:
+            if key in self.default_rules:
+                combined[key]['text'] = tokens[key]['text']
+
+        # 检查能见度和天气现象
+        if 'vis' in tokens:
+            vis = int(tokens['vis']['text'])
+            ref_vis = int(ref['vis']['text'])
+
+            if 'weather' in combined:
+                weathers = combined['weather']['text'].split()
+
+                if vis < 1000 and set(weathers) & set(['BR', '-DZ']):
+                    tokens['vis']['error'] = True
+                    if 'weather' in tokens:
+                        tokens['weather']['error'] = True
+
+                    print('能见度小于 1000，BR -DZ 不能有')
+
+                if 1000 < vis <= 5000 and set(weathers) & set(['FG', '+DZ']):
+                    tokens['vis']['error'] = True
+                    if 'weather' in tokens:
+                        tokens['weather']['error'] = True
+
+                    print('能见度小于 5000, FG +DZ 不能有')
+                
+                if vis > 5000 and set(weathers) & set(['FG', 'FU', 'BR', 'HZ']):
+                    if 'weather' in tokens:
+                        tokens['weather']['error'] = True
+
+                    print('能见度大于 5000，FG、FU、BR、HZ 不能有')
+            else:
+                if max(ref_vis, vis) >= 1000 and min(ref_vis, vis) < 1000:
+                    tokens['vis']['error'] = True
+                    print('能见度跨 1000 米时应变化天气现象')
+
+                if vis <= 5000 and ref_vis > 5000:
+                    tokens['vis']['error'] = True
+                    print('能见度降低到 5000 米以下时应有天气现象')
+
+        # 检查阵性降水和积雨云
+        if 'weather' in tokens:
+
+            if 'cloud' in combined:
+                weather = tokens['weather']['text']
+                cloud = combined['cloud']['text']
+
+                if ('TS' in weather or 'SH' in weather) and \
+                    not ('CB' in cloud or 'TCU' in cloud):
+                    tokens['weather']['error'] = True
+                    print('阵性降水应包含 CB 或者 TCU')
 
     def renderer(self, style='plain'):
         elements = [self.primary] + self.becmgs + self.tempos
@@ -476,7 +535,7 @@ if __name__ == '__main__':
     # print(m.groups())
 
     e = Parser(message)
-    e.valid()
+    e.validate()
 
     print(e.renderer(style='terminal'))
 
