@@ -14,8 +14,6 @@ weather_with_intensity = [
     'TSGR', 'TSGS', 'SHRA', 'SHSN', 'SHGR', 'SHGS', 'FZRA', 'FZDZ'
 ]
 
-# weather_pattern = r'([-+]?TSRA|SHRA\b)|(\bBR|FG\b)'
-
 _split_pattern = re.compile(r'(BECMG|FM|TEMPO|PROB[34]0\sTEMPO)')
 
 
@@ -57,8 +55,7 @@ class Grammar(object):
 
     wind = re.compile(r'\b(?:00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)(?:G(0[1-9]|[1-4][0-9]|P49))?)MPS\b')
     vis = re.compile(r'\b(9999|[5-9]000|[01234][0-9]00|0[0-7]50)\b')
-    weather = re.compile(r'\b({})\b'.format('|'.join(weather)))
-    weather_with_intensity = re.compile(r'\b([-+]?)({})\b'.format('|'.join(weather_with_intensity)))
+    weather = re.compile(r'([-+]?({})\b)|(\b({})\b)'.format('|'.join(weather_with_intensity), '|'.join(weather)))
     cloud = re.compile(r'\bNSC|(FEW|SCT|BKN|OVC)(\d{3})(CB|TCU)?\b')
     vv = re.compile(r'\b(VV/{3}|VV(\d{3}))\b')
     cavok = re.compile(r'\bCAVOK\b')
@@ -294,7 +291,7 @@ class Lexer(object):
 
     default_rules = [
         'sign', 'amend', 'icao', 'timez', 'period', 'tmax', 'tmin', 'prob', 'interval',
-        'wind', 'vis', 'weather', 'weather_with_intensity', 'cloud', 'vv', 'cavok',
+        'wind', 'vis', 'weather', 'cloud', 'vv', 'cavok',
     ]
 
     def __init__(self, part, grammar=None, **kwargs):
@@ -319,10 +316,17 @@ class Lexer(object):
             if not m:
                 continue
 
-            self.tokens[key] = {
-                'text': m.group(),
-                'error': None
-            }
+            if key in ('weather', 'cloud'):
+                items = [m.group() for m in pattern.finditer(part)]
+                self.tokens[key] = {
+                    'text': ' '.join(items),
+                    'error': None
+                }
+            else:
+                self.tokens[key] = {
+                    'text': m.group(),
+                    'error': None
+                }
 
         if self.tokens['sign']['text'] == 'TAF':
             period = self.tokens['period']['text'][:4]
@@ -457,20 +461,13 @@ class Parser(object):
         outputs = [e.renderer(style) for e in elements]
         return '\n'.join(outputs)
 
-        
-
-class Renderer(object):
-    def __init__(self, **kwargs):
-        self.options = kwargs
-        
-
 
 
 if __name__ == '__main__':
     # print(Validator.clouds('SCT020', 'SCT010 FEW023CB'))
     message = '''
-        TAF AMD ZGGG 211338Z 211524 14004MPS 4500 BR BKN010 
-        BECMG 2122 3000 BKN030
+        TAF AMD ZGGG 211338Z 211524 14004MPS 4500 -RA BKN030
+        BECMG 2122 2500 BR BKN012
         TEMPO 1519 07005MPS=
     '''
     # m = Grammar.taf.search(message)
