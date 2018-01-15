@@ -9,15 +9,17 @@ from PyQt5.QtMultimedia import QSound, QSoundEffect
 from tafor import BASEDIR, conf, logger, boolean, __version__
 from tafor.models import db, Tafor, Task, Metar, User
 from tafor.utils import CheckTAF, Listen, remote_message, call_service, call_up
-from tafor.widgets.ui import Ui_main, main_rc
-from tafor.widgets.taf import TAFEdit, TaskTAFEdit
-from tafor.widgets.trend import TrendEdit
-from tafor.widgets.send import TaskTAFSend, TAFSend, TrendSend
-from tafor.widgets.settings import SettingDialog
-from tafor.widgets.tasks import TaskTable
-from tafor.widgets.widget import Clock, CurrentTAF, RecentTAF
-from tafor.widgets.status import WebAPIStatus, CallServiceStatus
-from tafor.widgets.sound import Sound
+
+from tafor.components.ui import Ui_main, main_rc
+from tafor.components.taf import TAFEditor, TaskTAFEditor
+from tafor.components.trend import TrendEditor
+from tafor.components.send import TaskTAFSender, TAFSender, TrendSender
+from tafor.components.setting import SettingDialog
+from tafor.components.task import TaskBrowser
+
+from tafor.components.widgets.widget import Clock, CurrentTAF, RecentTAF
+from tafor.components.widgets.status import WebAPIStatus, CallServiceStatus
+from tafor.components.widgets.sound import Sound
 
 
 class Context(QtCore.QObject):
@@ -78,15 +80,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.clip = QtWidgets.QApplication.clipboard()
 
         # 初始TAF对话框
-        self.taf_edit_dialog = TAFEdit(self)
-        self.task_taf_edit_dialog = TaskTAFEdit(self)
-        self.trend_edit_dialog = TrendEdit(self)
+        self.taf_edit_dialog = TAFEditor(self)
+        self.task_taf_edit_dialog = TaskTAFEditor(self)
+        self.trend_edit_dialog = TrendEditor(self)
 
-        self.taf_send_dialog = TAFSend(self)
-        self.task_taf_send_dialog = TaskTAFSend(self)
-        self.trend_send_dialog = TrendSend(self)
+        self.taf_send_dialog = TAFSender(self)
+        self.task_taf_send_dialog = TaskTAFSender(self)
+        self.trend_send_dialog = TrendSender(self)
 
-        self.task_table_dialog = TaskTable(self)
+        self.task_table_dialog = TaskBrowser(self)
         self.setting_dialog = SettingDialog(self)
 
         # 连接TAF对话框信号

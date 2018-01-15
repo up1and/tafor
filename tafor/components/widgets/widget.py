@@ -5,7 +5,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from tafor.models import db, Tafor
 from tafor.utils import CheckTAF
-from tafor.widgets.ui import Ui_widget_recent_item
+from tafor.components.ui import Ui_widget_recent_item
 
 
 class RecentTAF(QtWidgets.QWidget, Ui_widget_recent_item.Ui_Form):

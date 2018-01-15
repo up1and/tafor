@@ -1,14 +1,14 @@
 import json
 import datetime
 
-
 from PyQt5 import QtCore, QtGui, QtWidgets
-from tafor.widgets.ui import Ui_settings, main_rc
+
+from tafor.components.ui import Ui_setting, main_rc
 from tafor.models import db, User
 from tafor import conf, boolean, logger
 
 
-class SettingDialog(QtWidgets.QDialog, Ui_settings.Ui_Settings):
+class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
     """docstring for SettingDialog"""
     def __init__(self, parent=None):
         super(SettingDialog, self).__init__(parent)

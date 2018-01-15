@@ -6,21 +6,18 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-from tafor import log
-from tafor.utils import CheckTAF, Element, Grammar
-from tafor.models import Session, Tafor, Task
-from tafor.widgets.edit import TAFWidgetPrimary, TAFWidgetBecmg, TAFWidgetTempo
+from tafor import logger
+from tafor.utils import CheckTAF, Grammar
+from tafor.models import db, Tafor, Task
+from tafor.components.widgets.segments import TAFPrimarySegment, TAFBecmgSegment, TAFTempoSegment
 
 
-class TAFEditBase(QDialog):
-    """docstring for TAF"""
-
+class BaseEditor(QDialog):
     signal_preview = pyqtSignal(dict)
 
     def __init__(self, parent=None):
-        super(TAFEditBase, self).__init__(parent)
+        super(BaseEditor, self).__init__(parent)
         self.parent = parent
-        self.db = Session()
 
         self.init_ui()
         self.bind_signal()
@@ -31,9 +28,9 @@ class TAFEditBase(QDialog):
         window = QWidget(self)
         layout = QVBoxLayout(window)
         layout.setSizeConstraint(QLayout.SetFixedSize)
-        self.primary = TAFWidgetPrimary()
-        self.becmg1, self.becmg2, self.becmg3 = TAFWidgetBecmg('BECMG1'), TAFWidgetBecmg('BECMG2'), TAFWidgetBecmg('BECMG3')
-        self.tempo1, self.tempo2 = TAFWidgetTempo('TEMPO1'), TAFWidgetTempo('TEMPO2')
+        self.primary = TAFPrimarySegment()
+        self.becmg1, self.becmg2, self.becmg3 = TAFBecmgSegment('BECMG1'), TAFBecmgSegment('BECMG2'), TAFBecmgSegment('BECMG3')
+        self.tempo1, self.tempo2 = TAFTempoSegment('TEMPO1'), TAFTempoSegment('TEMPO2')
         self.next_button = QPushButton()
         self.next_button.setEnabled(False)
         self.next_button.setText("下一步")
@@ -56,11 +53,11 @@ class TAFEditBase(QDialog):
 
     def bind_signal(self):
 
-        self.primary.becmg1_checkbox.toggled.connect(self.add_becmg_and_tempo)
-        self.primary.becmg2_checkbox.toggled.connect(self.add_becmg_and_tempo)
-        self.primary.becmg3_checkbox.toggled.connect(self.add_becmg_and_tempo)
-        self.primary.tempo1_checkbox.toggled.connect(self.add_becmg_and_tempo)
-        self.primary.tempo2_checkbox.toggled.connect(self.add_becmg_and_tempo)
+        self.primary.becmg1_checkbox.toggled.connect(self.add_group)
+        self.primary.becmg2_checkbox.toggled.connect(self.add_group)
+        self.primary.becmg3_checkbox.toggled.connect(self.add_group)
+        self.primary.tempo1_checkbox.toggled.connect(self.add_group)
+        self.primary.tempo2_checkbox.toggled.connect(self.add_group)
 
         self.primary.becmg1_checkbox.toggled.connect(self.becmg1.check_required)
         self.primary.becmg2_checkbox.toggled.connect(self.becmg2.check_required)
@@ -102,7 +99,7 @@ class TAFEditBase(QDialog):
         self.next_button.clicked.connect(self.assemble_message)
         self.next_button.clicked.connect(self.preview_message)
 
-    def add_becmg_and_tempo(self):
+    def add_group(self):
         # BECMG
         if self.primary.becmg1_checkbox.isChecked():
             self.becmg1.setVisible(True)
@@ -201,7 +198,7 @@ class TAFEditBase(QDialog):
 
     def get_amend_number(self, sign):
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        query = self.db.query(Tafor).filter(Tafor.rpt.contains(self.amd_period), Tafor.sent > expired)
+        query = db.query(Tafor).filter(Tafor.rpt.contains(self.amd_period), Tafor.sent > expired)
         if sign == 'COR':
             items = query.filter(Tafor.rpt.contains('COR')).all()
             order = chr(ord('A') + len(items))
@@ -230,7 +227,7 @@ class TAFEditBase(QDialog):
         else:
             duration['end'] = base_time + datetime.timedelta(days=1, hours=end)
 
-        log.debug(' '.join([
+        logger.debug(' '.join([
             'Duration',
             duration['start'].strftime('%Y-%m-%d %H:%M:%S'),
             duration['end'].strftime('%Y-%m-%d %H:%M:%S')
@@ -253,7 +250,7 @@ class TAFEditBase(QDialog):
                 temp_hour += datetime.timedelta(days=1) 
 
             valid = self.period_duration['start'] <= temp_hour <= self.period_duration['end']
-            log.debug('Verify temperature hour ' + str(valid))
+            logger.debug('Verify temperature hour ' + str(valid))
 
             if not valid:
                 line.clear()
@@ -276,15 +273,15 @@ class TAFEditBase(QDialog):
         duration = self._get_amend_interval(line.text()[0:2], line.text()[2:4])
         if duration['start'] < self.period_duration['start'] or self.period_duration['end'] < duration['start']:
             line.clear()
-            log.info('Start interval time is not corret ' + duration['start'].strftime('%Y-%m-%d %H:%M:%S'))
+            logger.info('Start interval time is not corret ' + duration['start'].strftime('%Y-%m-%d %H:%M:%S'))
 
         if duration['end'] < self.period_duration['start'] or self.period_duration['end'] < duration['end']:
             line.clear()
-            log.info('End interval time is not corret' + duration['end'].strftime('%Y-%m-%d %H:%M:%S'))
+            logger.info('End interval time is not corret' + duration['end'].strftime('%Y-%m-%d %H:%M:%S'))
 
         if duration['end'] - duration['start'] > datetime.timedelta(hours=interval):
             line.clear()
-            log.info('More than ' + str(interval) + ' hours')
+            logger.info('More than ' + str(interval) + ' hours')
 
     def assemble_message(self):
         primary_msg = self.primary.message()
@@ -322,7 +319,7 @@ class TAFEditBase(QDialog):
 
         enbale = all(required_widgets)
 
-        # log.debug('TAF required ' + ' '.join(map(str, required_widgets)))
+        # logger.debug('TAF required ' + ' '.join(map(str, required_widgets)))
 
         self.next_button.setEnabled(enbale)
 
@@ -340,10 +337,10 @@ class TAFEditBase(QDialog):
 
 
 
-class TAFEdit(TAFEditBase):
+class TAFEditor(BaseEditor):
 
     def __init__(self, parent=None):
-        super(TAFEdit, self).__init__(parent)
+        super(TAFEditor, self).__init__(parent)
         self.setWindowTitle("编发报文")
         self.primary.date.setEnabled(False)
 
@@ -354,13 +351,13 @@ class TAFEdit(TAFEditBase):
     def preview_message(self):
         message = {'head': self.head, 'rpt':self.rpt, 'full': '\n'.join([self.head, self.rpt])}
         self.signal_preview.emit(message)
-        log.debug('TAF Edit ' + message['full'])
+        logger.debug('TAF Edit ' + message['full'])
 
 
-class TaskTAFEdit(TAFEditBase):
+class TaskTAFEditor(BaseEditor):
 
     def __init__(self, parent=None):
-        super(TaskTAFEdit, self).__init__(parent)
+        super(TaskTAFEditor, self).__init__(parent)
 
         self.setWindowTitle("定时任务")
         self.setWindowIcon(QIcon(':/time.png'))
@@ -394,7 +391,7 @@ class TaskTAFEdit(TAFEditBase):
             self.time = datetime.datetime(now.year, now.month+2, day, hour, minute)
 
         finally:
-            log.debug(' '.join(['Task time', self.time.strftime('%Y-%m-%d %H:%M:%S')]))
+            logger.debug(' '.join(['Task time', self.time.strftime('%Y-%m-%d %H:%M:%S')]))
             return self.time
 
     def change_window_title(self):

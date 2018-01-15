@@ -2,15 +2,14 @@ import datetime
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from tafor.widgets.ui import Ui_tasks
+from tafor.components.ui import Ui_task
 from tafor.models import db, Task
 from tafor import logger
 
 
-class TaskTable(QtWidgets.QDialog, Ui_tasks.Ui_Tasks):
-    """docstring for TaskTable"""
+class TaskBrowser(QtWidgets.QDialog, Ui_task.Ui_Task):
     def __init__(self, parent=None):
-        super(TaskTable, self).__init__(parent)
+        super(TaskBrowser, self).__init__(parent)
         self.setupUi(self)
         self.parent = parent
         self.update_gui()

@@ -3,7 +3,7 @@ import datetime
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from tafor.widgets.ui import Ui_send
+from tafor.components.ui import Ui_send
 from tafor.models import db, Tafor, Task, Trend
 from tafor import conf, logger
 
@@ -53,7 +53,7 @@ class AFTNMessage(object):
         return chunks(items, 7)
 
 
-class SendBase(QtWidgets.QDialog, Ui_send.Ui_Send):
+class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Send):
 
     signal_send = QtCore.pyqtSignal()
     signal_close = QtCore.pyqtSignal()
@@ -63,7 +63,7 @@ class SendBase(QtWidgets.QDialog, Ui_send.Ui_Send):
         """
         初始化主窗口
         """
-        super(SendBase, self).__init__(parent)
+        super(BaseSender, self).__init__(parent)
         self.setupUi(self)
 
         self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setText("Send")
@@ -95,10 +95,10 @@ class SendBase(QtWidgets.QDialog, Ui_send.Ui_Send):
         self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(True)
 
 
-class TAFSend(SendBase):
+class TAFSender(BaseSender):
 
     def __init__(self, parent=None):
-        super(TAFSend, self).__init__(parent)
+        super(TAFSender, self).__init__(parent)
 
         self.button_box.accepted.connect(self.send)
         self.button_box.accepted.connect(self.save)
@@ -117,10 +117,10 @@ class TAFSend(SendBase):
         self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
 
 
-class TaskTAFSend(SendBase):
+class TaskTAFSender(BaseSender):
 
     def __init__(self, parent=None):
-        super(TaskTAFSend, self).__init__(parent)
+        super(TaskTAFSender, self).__init__(parent)
 
         self.setWindowTitle('定时任务')
 
@@ -168,10 +168,10 @@ class TaskTAFSend(SendBase):
             logger.debug('Task complete')
 
 
-class TrendSend(SendBase):
+class TrendSender(BaseSender):
 
     def __init__(self, parent=None):
-        super(TrendSend, self).__init__(parent)
+        super(TrendSender, self).__init__(parent)
 
         self.button_box.accepted.connect(self.send)
         self.button_box.accepted.connect(self.save)

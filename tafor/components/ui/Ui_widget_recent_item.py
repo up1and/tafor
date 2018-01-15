@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/Users/Upland/Work/tafor/tafor/widgets/ui/widget_recent_item.ui'
+# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\widget_recent_item.ui'
 #
-# Created by: PyQt5 UI code generator 5.7
+# Created by: PyQt5 UI code generator 5.6
 #
 # WARNING! All changes made in this file will be lost!
 
