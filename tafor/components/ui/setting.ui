@@ -233,9 +233,9 @@
            </property>
            <layout class="QGridLayout" name="gridLayout">
             <item row="0" column="0">
-             <layout class="QHBoxLayout" name="add_wx1_layout">
+             <layout class="QHBoxLayout" name="add_weather_layout">
               <item>
-               <widget class="QLineEdit" name="weather1">
+               <widget class="QLineEdit" name="weather">
                 <property name="text">
                  <string/>
                 </property>
@@ -245,7 +245,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QPushButton" name="add_weather1_button">
+               <widget class="QPushButton" name="add_weather_button">
                 <property name="maximumSize">
                  <size>
                   <width>25</width>
@@ -258,7 +258,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QPushButton" name="del_weather1_button">
+               <widget class="QPushButton" name="del_weather_button">
                 <property name="maximumSize">
                  <size>
                   <width>25</width>
@@ -273,16 +273,16 @@
              </layout>
             </item>
             <item row="0" column="1">
-             <layout class="QHBoxLayout" name="add_wx2_layout">
+             <layout class="QHBoxLayout" name="add_weather_with_intensity_layout">
               <item>
-               <widget class="QLineEdit" name="weather2">
+               <widget class="QLineEdit" name="weather_with_intensity">
                 <property name="placeholderText">
                  <string>有强度变化的天气现象</string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QPushButton" name="add_weather2_button">
+               <widget class="QPushButton" name="add_weather_with_intensity_button">
                 <property name="maximumSize">
                  <size>
                   <width>25</width>
@@ -295,7 +295,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QPushButton" name="del_weather2_button">
+               <widget class="QPushButton" name="del_weather_with_intensity_button">
                 <property name="maximumSize">
                  <size>
                   <width>25</width>
@@ -310,14 +310,14 @@
              </layout>
             </item>
             <item row="1" column="0">
-             <widget class="QListWidget" name="weather1_list">
+             <widget class="QListWidget" name="weather_list">
               <property name="dragDropMode">
                <enum>QAbstractItemView::InternalMove</enum>
               </property>
              </widget>
             </item>
             <item row="1" column="1">
-             <widget class="QListWidget" name="weather2_list">
+             <widget class="QListWidget" name="weather_with_intensity_list">
               <property name="dragDropMode">
                <enum>QAbstractItemView::InternalMove</enum>
               </property>
@@ -911,14 +911,14 @@
   <tabstop>intelligence</tabstop>
   <tabstop>fir</tabstop>
   <tabstop>trend_sign</tabstop>
-  <tabstop>weather1</tabstop>
-  <tabstop>add_weather1_button</tabstop>
-  <tabstop>del_weather1_button</tabstop>
-  <tabstop>weather1_list</tabstop>
-  <tabstop>weather2</tabstop>
-  <tabstop>add_weather2_button</tabstop>
-  <tabstop>del_weather2_button</tabstop>
-  <tabstop>weather2_list</tabstop>
+  <tabstop>weather</tabstop>
+  <tabstop>add_weather_button</tabstop>
+  <tabstop>del_weather_button</tabstop>
+  <tabstop>weather_list</tabstop>
+  <tabstop>weather_with_intensity</tabstop>
+  <tabstop>add_weather_with_intensity_button</tabstop>
+  <tabstop>del_weather_with_intensity_button</tabstop>
+  <tabstop>weather_with_intensity_list</tabstop>
   <tabstop>port</tabstop>
   <tabstop>baudrate</tabstop>
   <tabstop>parity</tabstop>

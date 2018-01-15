@@ -291,8 +291,8 @@ class Lexer(object):
     grammar_class = Grammar
 
     default_rules = [
-        'sign', 'amend', 'icao', 'timez', 'period', 'tmax', 'tmin', 'prob', 'interval',
-        'wind', 'vis', 'weather', 'cloud', 'vv', 'cavok',
+        'sign', 'amend', 'icao', 'timez', 'period', 'prob', 'interval',
+        'wind', 'vis', 'cavok', 'weather', 'cloud', 'vv', 'tmax', 'tmin'
     ]
 
     def __init__(self, part, grammar=None, **kwargs):
@@ -353,6 +353,16 @@ class Lexer(object):
 
             return ' '.join(elements)
 
+        def html():
+            elements = []
+            for k, e in self.tokens.items():
+                if e['error']:
+                    elements.append('<span style="color: red">{}</span>'.format(e['text']))
+                else:
+                    elements.append(e['text'])
+
+            return ' '.join(elements)
+
         def plain():
             return self.part
 
@@ -370,6 +380,7 @@ class Parser(object):
         self.message = message
         self.becmgs = []
         self.tempos = []
+        self.tips = []
 
         self.reference = None
 
@@ -451,6 +462,10 @@ class Parser(object):
 
         for e in self.groups:
             for key in e.tokens:
+                if key not in self.reference:
+                    e.tokens[key]['error'] = False
+                    continue
+
                 verify = getattr(self.validator, key, None)
                 if verify:
                     legal = verify(self.reference[key]['text'], e.tokens[key]['text'])
@@ -461,11 +476,16 @@ class Parser(object):
 
             self.validate_combination(self.reference, e.tokens)
 
+        self.tips = list(set(self.tips))
+
     def validate_combination(self, ref, tokens):
         combined = copy.deepcopy(ref)
         for key in tokens:
             if key in self.default_rules:
-                combined[key]['text'] = tokens[key]['text']
+                if key in combined:
+                    combined[key]['text'] = tokens[key]['text']
+                else:
+                    combined[key] = {'text': tokens[key]['text']}
 
         # 检查能见度和天气现象
         if 'vis' in tokens:
@@ -480,28 +500,28 @@ class Parser(object):
                     if 'weather' in tokens:
                         tokens['weather']['error'] = True
 
-                    print('能见度小于 1000，BR -DZ 不能有')
+                    self.tips.append('能见度小于 1000，BR -DZ 不能有')
 
                 if 1000 < vis <= 5000 and set(weathers) & set(['FG', '+DZ']):
                     tokens['vis']['error'] = True
                     if 'weather' in tokens:
                         tokens['weather']['error'] = True
 
-                    print('能见度小于 5000, FG +DZ 不能有')
+                    self.tips.append('能见度小于 5000, FG +DZ 不能有')
                 
                 if vis > 5000 and set(weathers) & set(['FG', 'FU', 'BR', 'HZ']):
                     if 'weather' in tokens:
                         tokens['weather']['error'] = True
 
-                    print('能见度大于 5000，FG、FU、BR、HZ 不能有')
+                    self.tips.append('能见度大于 5000，FG、FU、BR、HZ 不能有')
             else:
                 if max(ref_vis, vis) >= 1000 and min(ref_vis, vis) < 1000:
                     tokens['vis']['error'] = True
-                    print('能见度跨 1000 米时应变化天气现象')
+                    self.tips.append('能见度跨 1000 米时应变化天气现象')
 
                 if vis <= 5000 and ref_vis > 5000:
                     tokens['vis']['error'] = True
-                    print('能见度降低到 5000 米以下时应有天气现象')
+                    self.tips.append('能见度降低到 5000 米以下时应有天气现象')
 
         # 检查阵性降水和积雨云
         if 'weather' in tokens:
@@ -513,11 +533,15 @@ class Parser(object):
                 if ('TS' in weather or 'SH' in weather) and \
                     not ('CB' in cloud or 'TCU' in cloud):
                     tokens['weather']['error'] = True
-                    print('阵性降水应包含 CB 或者 TCU')
+                    self.tips.append('阵性降水应包含 CB 或者 TCU')
 
     def renderer(self, style='plain'):
         elements = [self.primary] + self.becmgs + self.tempos
         outputs = [e.renderer(style) for e in elements]
+
+        if style == 'html':
+            return '<br/>'.join(outputs)
+
         return '\n'.join(outputs)
 
 
@@ -538,6 +562,8 @@ if __name__ == '__main__':
     e.validate()
 
     print(e.renderer(style='terminal'))
+
+    print(e.tips)
 
     # print(e.primary.tokens)
     # print(e.tempos[0].tokens)

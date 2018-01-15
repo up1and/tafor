@@ -69,13 +69,13 @@ class BaseSegment(QtWidgets.QWidget):
 
             self.vis.clear()
             self.vis.setEnabled(False)
-            self.weather1.setEnabled(False)
-            self.weather2.setEnabled(False)
+            self.weather.setEnabled(False)
+            self.weather_with_intensity.setEnabled(False)
             self.clouds(False)
         else:
             self.vis.setEnabled(True)
-            self.weather1.setEnabled(True)
-            self.weather2.setEnabled(True)
+            self.weather.setEnabled(True)
+            self.weather_with_intensity.setEnabled(True)
             self.clouds(True)
 
     def set_skc(self, checked):
@@ -102,7 +102,7 @@ class BaseSegment(QtWidgets.QWidget):
         if checked:
             self.prob30.setChecked(False)
 
-    def validate(self):
+    def set_validator(self):
         self.valid_wind = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.wind))
         self.wind.setValidator(self.valid_wind)
 
@@ -118,13 +118,16 @@ class BaseSegment(QtWidgets.QWidget):
         self.cloud3.setValidator(valid_cloud)
         self.cb.setValidator(valid_cloud)
 
-        weather1 = conf.value('message/weather1')
-        weather1_list = [''] + json.loads(weather1) if weather1 else ['']
-        self.weather1.addItems(weather1_list)
+        weather = conf.value('message/weather')
+        weathers = [''] + json.loads(weather) if weather else ['']
+        self.weather.addItems(weathers)
 
-        weather2 = conf.value('message/weather2')
-        weather2_list = [''] + json.loads(weather2) if weather1 else ['']
-        self.weather2.addItems(weather2_list)
+        weather_with_intensity = conf.value('message/weather_with_intensity')
+        weathers_with_intensity = ['']
+        if weather_with_intensity:
+            for w in json.loads(weather_with_intensity):
+                weathers_with_intensity.extend(['-' + w, w, '+' + w])
+        self.weather_with_intensity.addItems(weathers_with_intensity)
 
     def message(self):
         wind = self.wind.text() if self.wind.hasAcceptableInput() else None
@@ -136,8 +139,8 @@ class BaseSegment(QtWidgets.QWidget):
             winds = None
 
         vis = self.vis.text() if self.vis.hasAcceptableInput() else None
-        wx1 = self.weather1.currentText()
-        wx2 = self.weather2.currentText()
+        weather = self.weather.currentText()
+        weather_with_intensity = self.weather_with_intensity.currentText()
         cloud1 = self.cloud1.text() if self.cloud1.hasAcceptableInput() else None
         cloud2 = self.cloud2.text() if self.cloud2.hasAcceptableInput() else None
         cloud3 = self.cloud3.text() if self.cloud3.hasAcceptableInput() else None
@@ -149,13 +152,13 @@ class BaseSegment(QtWidgets.QWidget):
             if self.cavok.isChecked():
                 msg_list = [winds, 'CAVOK']
             elif self.skc.isChecked():
-                msg_list = [winds, vis, wx1, wx2, 'SKC']
+                msg_list = [winds, vis, weather, weather_with_intensity, 'SKC']
             elif self.nsc.isChecked():
-                msg_list = [winds, vis, wx1, wx2, 'NSC']
+                msg_list = [winds, vis, weather, weather_with_intensity, 'NSC']
             else:
-                msg_list = [winds, vis, wx1, wx2] + clouds
+                msg_list = [winds, vis, weather, weather_with_intensity] + clouds
         else:
-            msg_list = [winds, vis, wx1, wx2] + clouds
+            msg_list = [winds, vis, weather, weather_with_intensity] + clouds
         self.msg = ' '.join(filter(None, msg_list))
         # logger.debug(self.msg)
 
@@ -169,8 +172,8 @@ class BaseSegment(QtWidgets.QWidget):
         self.wind.clear()
         self.gust.clear()
         self.vis.clear()
-        self.weather1.setCurrentIndex(-1)
-        self.weather2.setCurrentIndex(-1)
+        self.weather.setCurrentIndex(-1)
+        self.weather_with_intensity.setCurrentIndex(-1)
         self.cloud1.clear()
         self.cloud2.clear()
         self.cloud3.clear()
@@ -183,7 +186,7 @@ class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Form):
         super(TAFPrimarySegment, self).__init__()
         self.setupUi(self)
 
-        self.validate()
+        self.set_validator()
         self.period.setEnabled(False)
         self.ccc.setEnabled(False)
         self.aaa.setEnabled(False)
@@ -191,8 +194,8 @@ class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Form):
 
         self.bind_signal()
 
-    def validate(self):
-        super(TAFPrimarySegment, self).validate()
+    def set_validator(self):
+        super(TAFPrimarySegment, self).set_validator()
 
         valid_date = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.date))
         self.date.setValidator(valid_date)
@@ -300,7 +303,7 @@ class TAFBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Form):
         self.setupUi(self)
         self.name.setText(name)
 
-        self.validate()
+        self.set_validator()
 
         # self.cavok.clicked.connect(self.set_cavok)
         # self.skc.clicked.connect(self.set_skc_nsc)
@@ -308,8 +311,8 @@ class TAFBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Form):
 
         self.bind_signal()
 
-    def validate(self):
-        super(TAFBecmgSegment, self).validate()
+    def set_validator(self):
+        super(TAFBecmgSegment, self).set_validator()
 
         valid_interval = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.interval))
         self.interval.setValidator(valid_interval)
@@ -318,8 +321,8 @@ class TAFBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Form):
         super(TAFBecmgSegment, self).bind_signal()
 
         self.interval.textChanged.connect(self.check_required)
-        self.weather1.currentIndexChanged.connect(self.check_required)
-        self.weather2.currentIndexChanged.connect(self.check_required)
+        self.weather.currentIndexChanged.connect(self.check_required)
+        self.weather_with_intensity.currentIndexChanged.connect(self.check_required)
 
     def message(self):
         super(TAFBecmgSegment, self).message()
@@ -337,8 +340,8 @@ class TAFBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Form):
             self.cavok.isChecked(), 
             self.wind.hasAcceptableInput(), 
             self.vis.hasAcceptableInput(), 
-            self.weather1.currentText(),
-            self.weather2.currentText(),
+            self.weather.currentText(),
+            self.weather_with_intensity.currentText(),
             self.cloud1.hasAcceptableInput(), 
             self.cloud2.hasAcceptableInput(), 
             self.cloud3.hasAcceptableInput(), 
@@ -367,12 +370,12 @@ class TAFTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Form):
         self.setupUi(self)
         self.name.setText(name)
 
-        self.validate()
+        self.set_validator()
 
         self.bind_signal()
 
-    def validate(self):
-        super(TAFTempoSegment, self).validate()
+    def set_validator(self):
+        super(TAFTempoSegment, self).set_validator()
 
         valid_interval = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.interval))
         self.interval.setValidator(valid_interval)
@@ -381,8 +384,8 @@ class TAFTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Form):
         super(TAFTempoSegment, self).bind_signal()
 
         self.interval.textChanged.connect(self.check_required)
-        self.weather1.currentIndexChanged.connect(self.check_required)
-        self.weather2.currentIndexChanged.connect(self.check_required)
+        self.weather.currentIndexChanged.connect(self.check_required)
+        self.weather_with_intensity.currentIndexChanged.connect(self.check_required)
 
     def message(self):
         super(TAFTempoSegment, self).message()
@@ -401,8 +404,8 @@ class TAFTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Form):
         one_required = (
             self.wind.hasAcceptableInput(), 
             self.vis.hasAcceptableInput(), 
-            self.weather1.currentText(),
-            self.weather2.currentText(),
+            self.weather.currentText(),
+            self.weather_with_intensity.currentText(),
             self.cloud1.hasAcceptableInput(), 
             self.cloud2.hasAcceptableInput(), 
             self.cloud3.hasAcceptableInput(), 
@@ -428,7 +431,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
     def __init__(self):
         super(TrendSegment, self).__init__()
         self.setupUi(self)
-        self.validate()
+        self.set_validator()
         self.bind_signal()
 
     def bind_signal(self):
@@ -444,8 +447,8 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
         self.fm.clicked.connect(self.check_required)
         self.tl.clicked.connect(self.check_required)
 
-    def validate(self):
-        super(TrendSegment, self).validate()
+    def set_validator(self):
+        super(TrendSegment, self).set_validator()
 
         # 还未验证输入个数
         valid_period = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.interval))
@@ -461,8 +464,8 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
         self.wind.setEnabled(status)
         self.gust.setEnabled(status)
         self.vis.setEnabled(status)
-        self.weather1.setEnabled(status)
-        self.weather2.setEnabled(status)
+        self.weather.setEnabled(status)
+        self.weather_with_intensity.setEnabled(status)
         self.cloud1.setEnabled(status)
         self.cloud2.setEnabled(status)
         self.cloud3.setEnabled(status)
@@ -505,8 +508,8 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
             self.cavok.isChecked(), 
             self.wind.hasAcceptableInput(), 
             self.vis.hasAcceptableInput(), 
-            self.weather1.currentText(),
-            self.weather2.currentText(),
+            self.weather.currentText(),
+            self.weather_with_intensity.currentText(),
             self.cloud1.hasAcceptableInput(), 
             self.cloud2.hasAcceptableInput(), 
             self.cloud3.hasAcceptableInput(), 

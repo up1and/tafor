@@ -31,11 +31,11 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
         self.close_to_minimize.setChecked(True)
 
     def bind_signal(self):
-        self.add_weather1_button.clicked.connect(lambda: self.add_weather('weather1'))
-        self.add_weather2_button.clicked.connect(lambda: self.add_weather('weather2'))
+        self.add_weather_button.clicked.connect(lambda: self.add_weather('weather'))
+        self.add_weather_with_intensity_button.clicked.connect(lambda: self.add_weather('weather_with_intensity'))
 
-        self.del_weather1_button.clicked.connect(lambda: self.del_weather('weather1'))
-        self.del_weather2_button.clicked.connect(lambda: self.del_weather('weather2'))
+        self.del_weather_button.clicked.connect(lambda: self.del_weather('weather'))
+        self.del_weather_with_intensity_button.clicked.connect(lambda: self.del_weather('weather_with_intensity'))
 
         self.add_person_button.clicked.connect(self.add_person)
         self.del_person_button.clicked.connect(self.del_person)
@@ -117,8 +117,8 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
         self.set_value('message/intelligence', 'intelligence')
         self.set_value('message/fir', 'fir')
         self.set_value('message/trend_sign', 'trend_sign')
-        self.set_value('message/weather1', 'weather1_list', 'list')
-        self.set_value('message/weather2', 'weather2_list', 'list')
+        self.set_value('message/weather', 'weather_list', 'list')
+        self.set_value('message/weather_with_intensity', 'weather_with_intensity_list', 'list')
 
         self.set_value('communication/serial/port', 'port')
         self.set_value('communication/serial/baudrate', 'baudrate')
@@ -166,8 +166,8 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
         self.load_value('message/intelligence', 'intelligence')
         self.load_value('message/fir', 'fir')
         self.load_value('message/trend_sign', 'trend_sign')
-        self.load_value('message/weather1', 'weather1_list', 'list')
-        self.load_value('message/weather2', 'weather2_list', 'list')
+        self.load_value('message/weather', 'weather_list', 'list')
+        self.load_value('message/weather_with_intensity', 'weather_with_intensity_list', 'list')
 
         self.load_value('communication/serial/port', 'port')
         self.load_value('communication/serial/baudrate', 'baudrate')

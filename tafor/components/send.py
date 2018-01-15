@@ -5,6 +5,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from tafor.components.ui import Ui_send
 from tafor.models import db, Tafor, Task, Trend
+from tafor.utils import Parser
 from tafor import conf, logger
 
 
@@ -75,7 +76,17 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Send):
 
     def receive(self, message):
         self.message = message
-        self.rpt.setText(self.message['full'])
+        try:
+            m = Parser(self.message['rpt'])
+            m.validate()
+            html = '<p>{}<br/>{}</p>'.format(self.message['head'], m.renderer(style='html'))
+            if m.tips:
+                html += '<p style="color: grey"># {}</p>'.format('<br/># '.join(m.tips))
+            self.rpt.setHtml(html)
+
+        except Exception as e:
+            logger.error(e)
+
 
     def closeEvent(self, event):
         if event.spontaneous():
