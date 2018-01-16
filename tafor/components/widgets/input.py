@@ -15,6 +15,5 @@ class Input(QLineEdit):
         self.setValidator(pattern)
 
     def upper_text(self):
-        print(self.text())
         self.setText(self.text().upper())
         
