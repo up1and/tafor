@@ -57,7 +57,7 @@ class Grammar(object):
     wind = re.compile(r'\b(?:00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)(?:G(0[1-9]|[1-4][0-9]|P49))?)MPS\b')
     vis = re.compile(r'\b(9999|[5-9]000|[01234][0-9]00|0[0-7]50)\b')
     weather = re.compile(r'([-+]?({})\b)|(\b({})\b)'.format('|'.join(weather_with_intensity), '|'.join(weather)))
-    cloud = re.compile(r'\bNSC|(FEW|SCT|BKN|OVC)(\d{3})(CB|TCU)?\b')
+    cloud = re.compile(r'\bSKC|NSC|(FEW|SCT|BKN|OVC)(\d{3})(CB|TCU)?\b')
     vv = re.compile(r'\b(VV/{3}|VV(\d{3}))\b')
     cavok = re.compile(r'\bCAVOK\b')
 
@@ -131,8 +131,8 @@ class Validator(object):
         if ref_gust and gust and abs(ref_gust - gust) >= 5 and max(ref_speed, speed) >= 8:
             return True
 
-        # if ref_gust or gust and max(ref_speed, speed) >= 8:
-        #     return True
+        if ref_gust or gust and max(ref_speed, speed) >= 8:
+            return True
 
         return False
 
@@ -207,7 +207,7 @@ class Validator(object):
               漏斗云（陆龙卷或水龙卷）
         """
         weather_with_intensity_pattern = re.compile(r'([+-])?(DZ|RA|SN|SG|PL|DS|SS|SHRA|SHSN|SHGR|SHGS|FZRA|FZDZ|TSRA|TSSN|TSPL|TSGR|TSGS|TSSH)')
-        weather_pattern = re.compile(r'(SQ|PO|FC|TS|FG|FZFG|BLSN|BLSA|BLDU|DRSN|DRSA|DRDU)')
+        weather_pattern = re.compile(r'(SQ|PO|FC|TS|FZFG|BLSN|BLSA|BLDU|DRSN|DRSA|DRDU)')
         weak_precipitation_pattern = re.compile(r'-(DZ|RA|SN|SG|PL|SHRA|SHSN|SHGR|SHGS)')
 
         ref_weathers = ref_weather.split()
@@ -225,7 +225,8 @@ class Validator(object):
                 return False
 
             if w not in ref_weathers:
-                return condition(w) or condition(ref_weather)
+                if condition(w) or condition(ref_weather):
+                    return True
 
         return False
 
@@ -249,8 +250,8 @@ class Validator(object):
         ref_clouds = ref_cloud.split()
         clouds = cloud.split()
 
-        # 同为 NSC
-        if ref_cloud == 'NSC' and cloud == 'NSC':
+        # 云组无变化
+        if ref_cloud == cloud:
             return False
 
         # 有积雨云 CB
@@ -267,7 +268,7 @@ class Validator(object):
             max_cover = 0
             for c in clouds:
                 m = pattern.match(c)
-                if m and m.group() != 'NSC':
+                if m and m.group() not in ['NSC', 'SKC']:
                     if cloud_cover[m.group(1)] > 2:
                         min_height = min(min_height, int(m.group(2)))
 
@@ -403,12 +404,12 @@ class Parser(object):
 
         self.split()
         self.regroup()
+        self.refs()
 
     def split(self):
         message = self.message.replace('=', '')
         elements = _split_pattern.split(message)
         self.primary = self.parse(elements[0])
-        self.reference = self.primary.tokens
 
         if len(elements) > 1:
             becmg_index = [i for i, item in enumerate(elements) if item == 'BECMG']
@@ -475,14 +476,15 @@ class Parser(object):
 
         for e in self.groups:
             for key in e.tokens:
-                if key not in self.reference:
-                    e.tokens[key]['error'] = False
-                    continue
-
                 verify = getattr(self.validator, key, None)
                 if verify:
                     legal = verify(self.reference[key]['text'], e.tokens[key]['text'])
-                    e.tokens[key]['error'] = not legal
+
+                    if key == 'weather' and 'vis' in e.tokens and not e.tokens['vis']['error']:
+                        # 引起能见度变化的天气现象
+                        pass
+                    else:
+                        e.tokens[key]['error'] = not legal
 
                     if e.tokens['sign'] == 'BECMG':
                         self.reference[key]['text'] = e.tokens[key]['text']
@@ -551,6 +553,26 @@ class Parser(object):
                     tokens['weather']['error'] = True
                     self.tips.append('阵性降水应包含 CB 或者 TCU')
 
+    def refs(self):
+        self.reference = copy.deepcopy(self.primary.tokens)
+        if 'weather' not in self.reference:
+            self.reference['weather'] = {
+                'text': 'NSW',
+                'error': None
+            }
+
+        if 'cavok' in self.reference:
+            self.reference['vis'] = {
+                'text': '9999',
+                'error': None
+            }
+            self.reference['cloud'] = {
+                'text': 'NSC',
+                'error': None
+            }
+
+        return self.reference
+ 
     def renderer(self, style='plain'):
         outputs = [e.renderer(style) for e in self.elements]
 
@@ -561,14 +583,16 @@ class Parser(object):
 
 
 
-if __name__ == '__main__':
-    # print(Validator.clouds('SCT020', 'SCT010 FEW023CB'))
-    # print(Validator.weather('NSW', 'BR'))
+if __name__ == '__main__':    
     # print(Validator.wind('03008G13MPS', '36005MPS'))
     # print(Validator.vv('VV005', 'VV003'))
+    # print(Validator.weather('RA', '-SN BR'))
+    # print(Validator.cloud('SCT020', 'SCT010 FEW023CB'))
+    # print(Validator.cloud('NSC', 'SKC'))
+
     message = '''
-        TAF AMD ZGGG 211338Z 211524 14004MPS 4500 -RA BKN030
-        BECMG 2122 2500 BR BKN012
+        TAF AMD ZGGG 211338Z 211524 14004MPS 4000 BR NSC
+        BECMG 2122 3000 -RA BKN012
         TEMPO 1519 07005MPS=
     '''
     # m = Grammar.taf.search(message)
@@ -576,11 +600,11 @@ if __name__ == '__main__':
     # m = Grammar.timez.search(message)
     # print(m.groups())
 
-    e = Parser(message)
-    is_valid = e.validate()
-    print(is_valid)
+    # e = Parser(message)
+    # is_valid = e.validate()
+    # print(is_valid)
 
-    print(e.renderer(style='terminal'))
+    # print(e.renderer(style='terminal'))
 
     # print(e.tips)
 

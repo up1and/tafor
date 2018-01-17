@@ -16,7 +16,7 @@ class TestValidator(unittest.TestCase):
         self.assertTrue(self.validator.wind('01004MPS', '07005MPS'))
         self.assertTrue(self.validator.wind('36010MPS', '36005MPS'))
         self.assertTrue(self.validator.wind('03008G15MPS', '36005G10MPS'))
-        self.assertFalse(self.validator.wind('03008G13MPS', '36005MPS'))
+        self.assertTrue(self.validator.wind('03008G13MPS', '36005MPS'))
         self.assertFalse(self.validator.wind('VRB01MPS', '36004MPS'))
 
     def test_vis(self):
@@ -57,20 +57,27 @@ class TestParser(unittest.TestCase):
             e = self.parser(message)
             is_valid = e.validate()
 
-            if not is_valid:
-                print(e.renderer(style='terminal'), '\n')
+            print(e.renderer(style='terminal'), '\n')
             return is_valid
         
         messages = [
             ('TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040=', True),
-            ('TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR=', False),
+            ('TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR=', True),
             ('''TAF ZJHK 240130Z 240312 01004MPS 8000 BKN040 
                 BECMG 0506 5000 -RA OVC030 
                 TEMPO 0611 02008MPS 3000 TSRA FEW010 SCT030CB=''', False),
+            ('''TAF ZJHK 240130Z 240312 01004MPS 8000 BKN040 
+                BECMG 0506 5000 -RA FEW010 SCT030CB
+                TEMPO 0611 02008MPS 3000 TSRA=''', False),
             ('''TAF ZJHK 150726Z 150918 03006G20MPS 7000 SA OVC030 BKN040 TX12/12Z TN11/21Z 
                 BECMG 1112 36002MPS 3000 -SN BR SCT020 OVC030 
                 BECMG 1415 0800 SN OVC020 PROB30 
                 TEMPO 1518 0550 +SN BKN010 OVC020=''', False),
+            ('''TAF AMD ZJHK 211338Z 211524 14004MPS 4500 -RA BKN030
+                BECMG 2122 2500 BR BKN012
+                TEMPO 1519 07005MPS=''', True),
+            ('''TAF ZJHK 211338Z 211524 14004MPS 4500 BKN030
+                BECMG 2122 3000 -RA BKN012=''', False)
         ]
 
         for msg, result in messages:
