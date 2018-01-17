@@ -128,8 +128,11 @@ class Validator(object):
             return True
 
         # 3.当预报平均地面风风速变差（阵风）增加(或减少)大于等于 5m/s，且平均风速在变化前和（或）变化后大于等于 8m/s 时
-        if ref_gust and gust and abs(ref_gust - gust) >= 5 and max(ref_speed, speed) >=8:
+        if ref_gust and gust and abs(ref_gust - gust) >= 5 and max(ref_speed, speed) >= 8:
             return True
+
+        # if ref_gust or gust and max(ref_speed, speed) >= 8:
+        #     return True
 
         return False
 
@@ -152,7 +155,7 @@ class Validator(object):
 
         编报时对应 VV001、VV002、VV005、VV010
         """
-        pattern = cls.grammar_class.wind
+        pattern = cls.grammar_class.vv
         matches = [pattern.match(ref_vv), pattern.match(vv)]
         thresholds = thresholds if thresholds else [1, 2, 5, 10]
 
@@ -210,23 +213,24 @@ class Validator(object):
         ref_weathers = ref_weather.split()
         weathers = weather.split()
 
-        def conform(weather):
+        def condition(weather):
             # 符合转折条件，不包括弱降水
             return weather_with_intensity_pattern.match(weather) and not weak_precipitation_pattern.match(weather) \
                 or weather_pattern.match(weather)
 
         for w in weathers:
             # NSW 无法转折的天气
-            if w == 'NSW' and set(ref_weathers) & set(['BR', 'HZ', 'FU', 'DU', '-RA', '-SN']):
+            if w == 'NSW' and set(ref_weathers) & set(['BR', 'HZ', 'FU', 'DU', '-RA', '-SN']) \
+                or 'NSW' in ref_weathers and w in ['BR', 'HZ', 'FU', 'DU', '-RA', '-SN']:
                 return False
 
             if w not in ref_weathers:
-                return conform(w) or conform(ref_weather)
+                return condition(w) or condition(ref_weather)
 
         return False
 
     @classmethod
-    def cloud(cls, ref_cloud, cloud):
+    def cloud(cls, ref_cloud, cloud, thresholds=None):
         '''   
           当预报 BKN 或 OVC 云量的最低云层的云高抬升并达到或经过下列一个或多个数值，或降低并经过下列一个或多个数值时：
             1. 30 m、60 m、150 m 或 300 m
@@ -239,7 +243,7 @@ class Validator(object):
           当预报积雨云将发展或消失时
         '''
         pattern = cls.grammar_class.cloud
-        thresholds = [1, 2, 5, 10, 15]
+        thresholds = thresholds if thresholds else [1, 2, 5, 10, 15]
         cloud_cover = {'SKC': 0, 'FEW': 1, 'SCT': 2, 'BKN': 3, 'OVC': 4}
 
         ref_clouds = ref_cloud.split()
@@ -338,6 +342,13 @@ class Lexer(object):
         self.period = format_period(period, time)
         return self.period
 
+    def is_valid(self):
+        for k, e in self.tokens.items():
+                if e['error']:
+                    return False
+        
+        return True
+
     def renderer(self, style='plain'):
 
         def terminal():
@@ -395,25 +406,27 @@ class Parser(object):
 
     def split(self):
         message = self.message.replace('=', '')
-        self.elements = _split_pattern.split(message)
-        self.primary = self.parse(self.elements[0])
+        elements = _split_pattern.split(message)
+        self.primary = self.parse(elements[0])
         self.reference = self.primary.tokens
 
-        if len(self.elements) > 1:
-            becmg_index = [i for i, item in enumerate(self.elements) if item == 'BECMG']
-            tempo_index = [i for i, item in enumerate(self.elements) if 'TEMPO' in item]
+        if len(elements) > 1:
+            becmg_index = [i for i, item in enumerate(elements) if item == 'BECMG']
+            tempo_index = [i for i, item in enumerate(elements) if 'TEMPO' in item]
 
             for i, index in enumerate(becmg_index):
-                e = self.elements[index] + self.elements[index+1]
+                e = elements[index] + elements[index+1]
                 becmg = self.parse(e)
                 becmg.generate_period(becmg.tokens['interval']['text'], self.primary.period[0])
                 self.becmgs.append(becmg)
 
             for i, index in enumerate(tempo_index):
-                e = self.elements[index] + self.elements[index+1]
+                e = elements[index] + elements[index+1]
                 tempo = self.parse(e)
                 tempo.generate_period(tempo.tokens['interval']['text'], self.primary.period[0])
                 self.tempos.append(tempo)
+
+        self.elements = [self.primary] + self.becmgs + self.tempos
 
     def regroup(self):
         self.becmgs.sort(key=lambda x: x.period[1])
@@ -478,6 +491,9 @@ class Parser(object):
 
         self.tips = list(set(self.tips))
 
+        valids = [e.is_valid() for e in self.elements]
+        return all(valids)
+
     def validate_combination(self, ref, tokens):
         combined = copy.deepcopy(ref)
         for key in tokens:
@@ -536,8 +552,7 @@ class Parser(object):
                     self.tips.append('阵性降水应包含 CB 或者 TCU')
 
     def renderer(self, style='plain'):
-        elements = [self.primary] + self.becmgs + self.tempos
-        outputs = [e.renderer(style) for e in elements]
+        outputs = [e.renderer(style) for e in self.elements]
 
         if style == 'html':
             return '<br/>'.join(outputs)
@@ -548,6 +563,9 @@ class Parser(object):
 
 if __name__ == '__main__':
     # print(Validator.clouds('SCT020', 'SCT010 FEW023CB'))
+    # print(Validator.weather('NSW', 'BR'))
+    # print(Validator.wind('03008G13MPS', '36005MPS'))
+    # print(Validator.vv('VV005', 'VV003'))
     message = '''
         TAF AMD ZGGG 211338Z 211524 14004MPS 4500 -RA BKN030
         BECMG 2122 2500 BR BKN012
@@ -559,11 +577,12 @@ if __name__ == '__main__':
     # print(m.groups())
 
     e = Parser(message)
-    e.validate()
+    is_valid = e.validate()
+    print(is_valid)
 
     print(e.renderer(style='terminal'))
 
-    print(e.tips)
+    # print(e.tips)
 
     # print(e.primary.tokens)
     # print(e.tempos[0].tokens)

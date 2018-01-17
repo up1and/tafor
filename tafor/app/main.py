@@ -23,14 +23,14 @@ from tafor.components.widgets.sound import Sound
 
 
 class Context(QtCore.QObject):
-    warned = QtCore.pyqtSignal()
+    signal_warning = QtCore.pyqtSignal()
 
     def __init__(self):
         super(Context, self).__init__()
         self._message = None
         self._web_api = None
         self._call_service = None
-        self._warn = False
+        self._warning = False
 
     @property
     def message(self):
@@ -53,13 +53,13 @@ class Context(QtCore.QObject):
         self._call_service = value
 
     @property
-    def warn(self):
-        return self._warn
+    def warning(self):
+        return self._warning
 
-    @warn.setter
-    def warn(self, value):
+    @warning.setter
+    def warning(self, value):
         self._warn = value
-        self.warned.emit()
+        self.warning.emit()
         
 
 class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
@@ -74,7 +74,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.setupUi(self)
 
         self.ctx = Context()
-        self.ctx.warned.connect(self.dialer)
+        self.ctx.signal_warning.connect(self.dialer)
 
         # 初始化剪贴板
         self.clip = QtWidgets.QApplication.clipboard()
@@ -286,7 +286,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             self.sound_trend.stop()
 
         # 管理报文告警声音
-        if taf_switch and self.ctx.warn:
+        if taf_switch and self.ctx.warning:
             self.sound_alarm.play()
         else:
             self.sound_alarm.stop()
@@ -346,7 +346,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
     def worker(self):
         thread = WorkThread(self)
-        thread.done.connect(self.update_message)
+        thread.signal_done.connect(self.update_message)
         thread.start()
 
     def dialer(self, test=False):
@@ -447,7 +447,7 @@ class WorkThread(QtCore.QThread):
     """
     检查预报报文线程类
     """
-    done = QtCore.pyqtSignal()
+    signal_done = QtCore.pyqtSignal()
 
     def __init__(self, parent=None):
         super(WorkThread, self).__init__(parent)
@@ -460,7 +460,7 @@ class WorkThread(QtCore.QThread):
         if (boolean(conf.value('monitor/phone/phone_warn_taf'))):
             self.parent.ctx.call_service = call_service()
 
-        self.done.emit()
+        self.signal_done.emit()
 
 
 class CallThread(QtCore.QThread):
