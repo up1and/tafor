@@ -32,6 +32,8 @@ class BaseSegment(QtWidgets.QWidget):
             self.prob30.toggled.connect(self.set_prob30)
             self.prob40.toggled.connect(self.set_prob40)
 
+        self.gust.editingFinished.connect(self.valid_gust)
+
         self.cloud1.textEdited.connect(lambda:self._upper_text(self.cloud1))
         self.cloud2.textEdited.connect(lambda:self._upper_text(self.cloud2))
         self.cloud3.textEdited.connect(lambda:self._upper_text(self.cloud3))
@@ -128,6 +130,12 @@ class BaseSegment(QtWidgets.QWidget):
             for w in json.loads(weather_with_intensity):
                 weathers_with_intensity.extend(['-' + w, w, '+' + w])
         self.weather_with_intensity.addItems(weathers_with_intensity)
+
+    def valid_gust(self):
+        wind = self.wind.text()[-2:]
+        gust = self.gust.text()
+        if not wind or int(gust) - int(wind) < 5:
+            self.gust.clear()
 
     def message(self):
         wind = self.wind.text() if self.wind.hasAcceptableInput() else None

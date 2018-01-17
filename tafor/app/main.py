@@ -27,7 +27,7 @@ class Context(QtCore.QObject):
 
     def __init__(self):
         super(Context, self).__init__()
-        self._message = None
+        self._message = {}
         self._web_api = None
         self._call_service = None
         self._warning = False
