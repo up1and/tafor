@@ -291,6 +291,16 @@ class Validator(object):
 
         return False
 
+    @classmethod
+    def cavok(cls, vis, weather, cloud):
+        validations = [
+            cls.vis(vis, 9999),
+            cls.weather(weather, 'NSW'),
+            cls.cloud(cloud, 'NSC')
+        ]
+
+        return all(validations)
+
 
 class Lexer(object):
     grammar_class = Grammar
@@ -311,6 +321,10 @@ class Lexer(object):
 
     def __repr__(self):
         return self.part
+
+    @property
+    def sign(self):
+        return self.tokens['sign']['text']
 
     def parse(self, part, rules=None):
         if not rules:
@@ -436,9 +450,14 @@ class Parser(object):
         def group(becmgs, tempos):
             groups = []
             for becmg in becmgs:
-                groups.append(becmg)
-                for tempo in tempos:
+                last = groups[-1] if groups else None
+                if last and last.sign == 'TEMPO' and last.period[0] > becmg.period[1]:
+                    index = groups.index(last)
+                    groups.insert(index, becmg)
+                else:
+                    groups.append(becmg)
 
+                for tempo in tempos:
                     if tempo.period[0] < becmg.period[1] < tempo.period[1]:
                         index = groups.index(becmg)
                         groups.insert(index, tempo)
@@ -457,15 +476,13 @@ class Parser(object):
             groups = []
             cache = []
             for e in items:
-                sign = e.tokens['sign']['text']
-                if sign == 'BECMG':
+                if e.sign == 'BECMG':
                     groups.append(e)
                     cache = []
-                if sign == 'TEMPO':
+                if e.sign == 'TEMPO':
                     if e not in cache:
                         groups.append(e)
                         cache.append(e)
-
             return groups
 
         self.groups = reduce(group(self.becmgs, self.tempos))
@@ -478,7 +495,10 @@ class Parser(object):
             for key in e.tokens:
                 verify = getattr(self.validator, key, None)
                 if verify:
-                    legal = verify(self.reference[key]['text'], e.tokens[key]['text'])
+                    if key == 'cavok':
+                        legal = verify(self.reference['vis']['text'], self.reference['weather']['text'], self.reference['cloud']['text'])
+                    else:
+                        legal = verify(self.reference[key]['text'], e.tokens[key]['text'])
 
                     if key == 'weather' and 'vis' in e.tokens and not e.tokens['vis']['error']:
                         # 引起能见度变化的天气现象
@@ -486,8 +506,13 @@ class Parser(object):
                     else:
                         e.tokens[key]['error'] = not legal
 
-                    if e.tokens['sign'] == 'BECMG':
-                        self.reference[key]['text'] = e.tokens[key]['text']
+                    if e.sign == 'BECMG':
+                        if key == 'cavok':
+                            self.reference['vis']['text'] = '9999'
+                            self.reference['weather']['text'] = 'NSW'
+                            self.reference['cloud']['text'] = 'NSC'
+                        else:
+                            self.reference[key]['text'] = e.tokens[key]['text']
 
             self.validate_combination(self.reference, e.tokens)
 
@@ -586,25 +611,24 @@ class Parser(object):
 if __name__ == '__main__':    
     # print(Validator.wind('03008G13MPS', '36005MPS'))
     # print(Validator.vv('VV005', 'VV003'))
-    # print(Validator.weather('RA', '-SN BR'))
+    # print(Validator.weather('TSRA', '-RA'))
     # print(Validator.cloud('SCT020', 'SCT010 FEW023CB'))
     # print(Validator.cloud('NSC', 'SKC'))
 
     message = '''
-        TAF AMD ZGGG 211338Z 211524 14004MPS 4000 BR NSC
-        BECMG 2122 3000 -RA BKN012
-        TEMPO 1519 07005MPS=
+        TAF AMD ZGGG 211338Z 211524 14004MPS 1000 RA BKN010
+        BECMG 1718 CAVOK=
     '''
     # m = Grammar.taf.search(message)
     # print(m.group(0))
     # m = Grammar.timez.search(message)
     # print(m.groups())
 
-    # e = Parser(message)
-    # is_valid = e.validate()
+    e = Parser(message)
+    is_valid = e.validate()
     # print(is_valid)
 
-    # print(e.renderer(style='terminal'))
+    print(e.renderer(style='terminal'))
 
     # print(e.tips)
 
