@@ -522,22 +522,27 @@ class Parser(object):
         return all(valids)
 
     def validate_combination(self, ref, tokens):
-        combined = copy.deepcopy(ref)
+        mixture = copy.deepcopy(ref)
         for key in tokens:
             if key in self.default_rules:
-                if key in combined:
-                    combined[key]['text'] = tokens[key]['text']
-                else:
-                    combined[key] = {'text': tokens[key]['text']}
+                mixture[key]['text'] = tokens[key]['text']
 
         # 检查能见度和天气现象
         if 'vis' in tokens:
             vis = int(tokens['vis']['text'])
             ref_vis = int(ref['vis']['text'])
+            weathers = mixture['weather']['text'].split()
 
-            if 'weather' in combined:
-                weathers = combined['weather']['text'].split()
+            if 'NSW' in weathers:
+                if max(ref_vis, vis) >= 1000 and min(ref_vis, vis) < 1000:
+                    tokens['vis']['error'] = True
+                    self.tips.append('能见度跨 1000 米时应变化天气现象')
 
+                if vis <= 5000 and ref_vis > 5000:
+                    tokens['vis']['error'] = True
+                    self.tips.append('能见度降低到 5000 米以下时应有天气现象')
+
+            else:
                 if vis < 1000 and set(weathers) & set(['BR', '-DZ']):
                     tokens['vis']['error'] = True
                     if 'weather' in tokens:
@@ -557,26 +562,20 @@ class Parser(object):
                         tokens['weather']['error'] = True
 
                     self.tips.append('能见度大于 5000，FG、FU、BR、HZ 不能有')
-            else:
-                if max(ref_vis, vis) >= 1000 and min(ref_vis, vis) < 1000:
-                    tokens['vis']['error'] = True
-                    self.tips.append('能见度跨 1000 米时应变化天气现象')
-
-                if vis <= 5000 and ref_vis > 5000:
-                    tokens['vis']['error'] = True
-                    self.tips.append('能见度降低到 5000 米以下时应有天气现象')
 
         # 检查阵性降水和积雨云
         if 'weather' in tokens:
+            weather = tokens['weather']['text']
+            cloud = mixture['cloud']['text']
 
-            if 'cloud' in combined:
-                weather = tokens['weather']['text']
-                cloud = combined['cloud']['text']
+            if ('TS' in weather or 'SH' in weather) and \
+                not ('CB' in cloud or 'TCU' in cloud):
+                tokens['weather']['error'] = True
+                self.tips.append('阵性降水应包含 CB 或者 TCU')
 
-                if ('TS' in weather or 'SH' in weather) and \
-                    not ('CB' in cloud or 'TCU' in cloud):
-                    tokens['weather']['error'] = True
-                    self.tips.append('阵性降水应包含 CB 或者 TCU')
+            if weather.split() != ['NSW']:
+                tokens['weather']['error'] = True
+                self.tips.append('NSW 不能和其他天气现象共存')
 
     def refs(self):
         self.reference = copy.deepcopy(self.primary.tokens)
@@ -616,7 +615,7 @@ if __name__ == '__main__':
     # print(Validator.cloud('NSC', 'SKC'))
 
     message = '''
-        TAF AMD ZGGG 211338Z 211524 14004MPS 1000 RA BKN010
+        TAF AMD ZGGG 211338Z 211524 14004MPS 1000 RA NSW BKN010
         BECMG 1718 CAVOK=
     '''
     # m = Grammar.taf.search(message)
