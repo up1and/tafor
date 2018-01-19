@@ -16,196 +16,194 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
         self.setWindowIcon(QtGui.QIcon(':/setting.png'))
 
         # 开机自动启动设置
-        self.auto_run_setting = QtCore.QSettings('HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run', QtCore.QSettings.NativeFormat)
+        self.autoRun = QtCore.QSettings('HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run', QtCore.QSettings.NativeFormat)
 
-        self.clock_timer = QtCore.QTimer()
-        self.clock_timer.timeout.connect(self.check_serial_number)
-        self.clock_timer.start(1 * 1000)
+        self.clockTimer = QtCore.QTimer()
+        self.clockTimer.timeout.connect(self.checkSerialNumber)
+        self.clockTimer.start(1 * 1000)
 
-        self.bind_signal()
-        self.update_contract()
+        self.bindSignal()
+        self.updateContract()
         self.load()
 
         # 禁用项
-        self.close_to_minimize.setEnabled(False)
-        self.close_to_minimize.setChecked(True)
+        self.closeToMinimize.setEnabled(False)
+        self.closeToMinimize.setChecked(True)
 
-    def bind_signal(self):
-        self.add_weather_button.clicked.connect(lambda: self.add_weather('weather'))
-        self.add_weather_with_intensity_button.clicked.connect(lambda: self.add_weather('weather_with_intensity'))
+    def bindSignal(self):
+        self.addWeatherButton.clicked.connect(lambda: self.addWeather('weather'))
+        self.addWeatherWithIntensityButton.clicked.connect(lambda: self.addWeather('weatherWithIntensity'))
 
-        self.del_weather_button.clicked.connect(lambda: self.del_weather('weather'))
-        self.del_weather_with_intensity_button.clicked.connect(lambda: self.del_weather('weather_with_intensity'))
+        self.delWeatherButton.clicked.connect(lambda: self.delWeather('weather'))
+        self.delWeatherWithIntensityButton.clicked.connect(lambda: self.delWeather('weatherWithIntensity'))
 
-        self.add_person_button.clicked.connect(self.add_person)
-        self.del_person_button.clicked.connect(self.del_person)
+        self.addPersonButton.clicked.connect(self.addPerson)
+        self.delPersonButton.clicked.connect(self.delPerson)
 
-        self.reset_number_button.clicked.connect(self.reset_serial_number)
+        self.resetNumberButton.clicked.connect(self.resetSerialNumber)
 
-        self.button_box.button(QtWidgets.QDialogButtonBox.Reset).clicked.connect(self.load)
-        self.button_box.button(QtWidgets.QDialogButtonBox.Apply).clicked.connect(self.save)
-        self.button_box.accepted.connect(self.save)
+        self.buttonBox.button(QtWidgets.QDialogButtonBox.Reset).clicked.connect(self.load)
+        self.buttonBox.button(QtWidgets.QDialogButtonBox.Apply).clicked.connect(self.save)
+        self.buttonBox.accepted.connect(self.save)
 
-    def check_serial_number(self):
+    def checkSerialNumber(self):
         utc = datetime.datetime.utcnow()
         if utc.hour == 0 and utc.minute == 0 and utc.second == 0:
-            self.reset_serial_number()
+            self.resetSerialNumber()
 
-    def reset_serial_number(self):
+    def resetSerialNumber(self):
         conf.setValue('communication/other/number', '0')
         self.number.setText('0')
         logger.info('Reset serial number to zero')
 
-    def add_weather(self, weather):
+    def addWeather(self, weather):
         line = getattr(self, weather)
         if line.text():
-            getattr(self, weather+'_list').addItem(line.text())
+            getattr(self, weather + 'List').addItem(line.text())
             line.clear()
 
-    def del_weather(self, weather):
-        target = getattr(self, weather+'_list')
+    def delWeather(self, weather):
+        target = getattr(self, weather + 'List')
         target.takeItem(target.currentRow())
 
-    def add_person(self):
-        name = self.person_name.text()
-        number = self.person_mobile.text()
+    def addPerson(self):
+        name = self.personName.text()
+        number = self.personMobile.text()
         if name and number:
             person = User(name, number)
             db.add(person)
             db.commit()
 
-        self.update_contract()
+        self.updateContract()
 
-    def del_person(self):
-        row = self.contract_table.currentRow()
-        name = self.contract_table.item(row, 0).text()
+    def delPerson(self):
+        row = self.contractTable.currentRow()
+        name = self.contractTable.item(row, 0).text()
 
         person = db.query(User).filter_by(name=name).first()
         db.delete(person)
         db.commit()
 
-        self.update_contract()
+        self.updateContract()
 
-    def update_contract(self):
+    def updateContract(self):
         items = db.query(User).all()
-        self.contract_table.setRowCount(len(items))
+        self.contractTable.setRowCount(len(items))
 
         for row, item in enumerate(items):
-            self.contract_table.setItem(row, 0,  QtWidgets.QTableWidgetItem(item.name))
-            self.contract_table.setItem(row, 1,  QtWidgets.QTableWidgetItem(item.mobile))
+            self.contractTable.setItem(row, 0,  QtWidgets.QTableWidgetItem(item.name))
+            self.contractTable.setItem(row, 1,  QtWidgets.QTableWidgetItem(item.mobile))
 
-        current_contract = self.select_contract.currentText()
-        self.select_contract.clear()
+        currentContract = self.selectContract.currentText()
+        self.selectContract.clear()
         combox_items = [item.name for item in items]
-        self.select_contract.addItems(combox_items)
-        current_index = self.select_contract.findText(current_contract, QtCore.Qt.MatchFixedString)
-        self.select_contract.setCurrentIndex(current_index)
+        self.selectContract.addItems(combox_items)
+        current_index = self.selectContract.findText(currentContract, QtCore.Qt.MatchFixedString)
+        self.selectContract.setCurrentIndex(current_index)
 
 
     def save(self):
         import sys
 
-        if self.run_on_start.isChecked():
-            self.auto_run_setting.setValue("Tafor.exe", sys.argv[0])
+        if self.runOnStart.isChecked():
+            self.autoRun.setValue("Tafor.exe", sys.argv[0])
         else:
-            self.auto_run_setting.remove("Tafor.exe")
+            self.autoRun.remove("Tafor.exe")
 
-        self.set_value('convention/close_to_minimize', 'close_to_minimize', 'bool')
-        self.set_value('convention/debug', 'debug_mode', 'bool')
+        self.setValue('General/CloseToMinimize', 'closeToMinimize', 'bool')
+        self.setValue('General/Debug', 'debugMode', 'bool')
 
-        self.set_value('message/icao', 'icao')
-        self.set_value('message/intelligence', 'intelligence')
-        self.set_value('message/fir', 'fir')
-        self.set_value('message/trend_sign', 'trend_sign')
-        self.set_value('message/weather', 'weather_list', 'list')
-        self.set_value('message/weather_with_intensity', 'weather_with_intensity_list', 'list')
+        self.setValue('Message/ICAO', 'icao')
+        self.setValue('Message/Area', 'area')
+        self.setValue('Message/FIR', 'fir')
+        self.setValue('Message/TrendSign', 'trendSign')
+        self.setValue('Message/Weather', 'weatherList', 'list')
+        self.setValue('Message/WeatherWithIntensity', 'weatherWithIntensityList', 'list')
 
-        self.set_value('communication/serial/port', 'port')
-        self.set_value('communication/serial/baudrate', 'baudrate')
-        self.set_value('communication/serial/parity', 'parity', 'combox')
-        self.set_value('communication/serial/bytesize', 'bytesize', 'combox')
-        self.set_value('communication/serial/stopbits', 'stopbits', 'combox')
+        self.setValue('Communication/SerialPort', 'port')
+        self.setValue('Communication/SerialBaudrate', 'baudrate')
+        self.setValue('Communication/SerialParity', 'parity', 'combox')
+        self.setValue('Communication/SerialBytesize', 'bytesize', 'combox')
+        self.setValue('Communication/SerialStopbits', 'stopbits', 'combox')
 
-        self.set_value('communication/other/channel', 'channel')
-        self.set_value('communication/other/number', 'number')
-        self.set_value('communication/other/request_addr', 'request_addr')
-        self.set_value('communication/other/user_addr', 'user_addr')
+        self.setValue('Communication/Channel', 'channel')
+        self.setValue('Communication/Number', 'number')
 
-        self.set_value('communication/address/taf', 'taf', 'plaintext')
-        self.set_value('communication/address/sigmet', 'sigmet', 'plaintext')
-        self.set_value('communication/address/airmet', 'airmet', 'plaintext')
-        self.set_value('communication/address/trend', 'trend', 'plaintext')
+        self.setValue('Communication/RequestAddress', 'requestAddress')
+        self.setValue('Communication/UserAddress', 'userAddress')
+        self.setValue('Communication/TAFAddress', 'tafAddress', 'plaintext')
+        self.setValue('Communication/SIGMETAddress', 'sigmetAddress', 'plaintext')
+        self.setValue('Communication/AIRMETAddress', 'airmetAddress', 'plaintext')
+        self.setValue('Communication/TrendAddress', 'trendAddress', 'plaintext')
 
-        self.set_value('monitor/db/web_api', 'web_api', 'bool')
-        self.set_value('monitor/db/web_api_url', 'web_api_url')
+        self.setValue('Monitor/WebApi', 'webApi', 'bool')
+        self.setValue('Monitor/WebApiURL', 'webApiURL')
 
-        self.set_value('monitor/clock/clock', 'clock', 'bool')
-        self.set_value('monitor/clock/clock_time', 'clock_time')
-        self.set_value('monitor/clock/clock_volume', 'clock_volume', 'slider')
+        self.setValue('Monitor/WarnTAF', 'warnTAF', 'bool')
+        self.setValue('Monitor/WarnTAFTime', 'warnTAFTime')
+        self.setValue('Monitor/WarnTAFVolume', 'warnTAFVolume', 'slider')
 
-        self.set_value('monitor/sound/warn_taf', 'warn_taf', 'bool')
-        self.set_value('monitor/sound/warn_taf_volume', 'warn_taf_volume', 'slider')
-        self.set_value('monitor/sound/remind_trend', 'remind_trend', 'bool')
-        self.set_value('monitor/sound/remind_sigmet', 'remind_sigmet', 'bool')
-        self.set_value('monitor/sound/remind_trend_volume', 'remind_trend_volume', 'slider')
-        self.set_value('monitor/sound/remind_sigmet_volume', 'remind_sigmet_volume', 'slider')
+        self.setValue('Monitor/RemindTAF', 'remindTAF', 'bool')
+        self.setValue('Monitor/RemindTAFVolume', 'remindTAFVolume', 'slider')
+        self.setValue('Monitor/RemindTrend', 'remindTrend', 'bool')
+        self.setValue('Monitor/RemindTrendVolume', 'remindTrendVolume', 'slider')
+        self.setValue('Monitor/RemindSIGMET', 'remindSIGMET', 'bool')
+        self.setValue('Monitor/RemindSIGMETVolume', 'remindSIGMETVolume', 'slider')
 
-        self.set_value('monitor/phone/warn_taf_time', 'warn_taf_time')
-        self.set_value('monitor/phone/call_service_token', 'call_service_token')
-        self.set_value('monitor/phone/call_service_url', 'call_service_url')
+        self.setValue('Monitor/CallServiceURL', 'callServiceURL')
+        self.setValue('Monitor/CallServiceToken', 'callServiceToken')
 
-        self.set_value('monitor/phone/selected_mobile', 'select_contract', 'mobile')
+        self.setValue('Monitor/SelectedMobile', 'selectContract', 'mobile')
 
     def load(self):
-        self.run_on_start.setChecked(self.auto_run_setting.contains("Tafor.exe"))
+        self.runOnStart.setChecked(self.autoRun.contains("Tafor.exe"))
 
-        self.load_value('convention/close_to_minimize', 'close_to_minimize', 'bool')
-        self.load_value('convention/debug', 'debug_mode', 'bool')
+        self.loadValue('General/CloseToMinimize', 'closeToMinimize', 'bool')
+        self.loadValue('General/Debug', 'debugMode', 'bool')
 
-        self.load_value('message/icao', 'icao')
-        self.load_value('message/intelligence', 'intelligence')
-        self.load_value('message/fir', 'fir')
-        self.load_value('message/trend_sign', 'trend_sign')
-        self.load_value('message/weather', 'weather_list', 'list')
-        self.load_value('message/weather_with_intensity', 'weather_with_intensity_list', 'list')
+        self.loadValue('Message/ICAO', 'icao')
+        self.loadValue('Message/Area', 'area')
+        self.loadValue('Message/FIR', 'fir')
+        self.loadValue('Message/TrendSign', 'trendSign')
+        self.loadValue('Message/Weather', 'weatherList', 'list')
+        self.loadValue('Message/WeatherWithIntensity', 'weatherWithIntensityList', 'list')
 
-        self.load_value('communication/serial/port', 'port')
-        self.load_value('communication/serial/baudrate', 'baudrate')
-        self.load_value('communication/serial/parity', 'parity', 'combox')
-        self.load_value('communication/serial/bytesize', 'bytesize', 'combox')
-        self.load_value('communication/serial/stopbits', 'stopbits', 'combox')
+        self.loadValue('Communication/SerialPort', 'port')
+        self.loadValue('Communication/SerialBaudrate', 'baudrate')
+        self.loadValue('Communication/SerialParity', 'parity', 'combox')
+        self.loadValue('Communication/SerialBytesize', 'bytesize', 'combox')
+        self.loadValue('Communication/SerialStopbits', 'stopbits', 'combox')
 
-        self.load_value('communication/other/channel', 'channel')
-        self.load_value('communication/other/number', 'number')
-        self.load_value('communication/other/request_addr', 'request_addr')
-        self.load_value('communication/other/user_addr', 'user_addr')
+        self.loadValue('Communication/Channel', 'channel')
+        self.loadValue('Communication/Number', 'number')
 
-        self.load_value('communication/address/taf', 'taf')
-        self.load_value('communication/address/sigmet', 'sigmet')
-        self.load_value('communication/address/airmet', 'airmet')
-        self.load_value('communication/address/trend', 'trend')
+        self.loadValue('Communication/RequestAddress', 'requestAddress')
+        self.loadValue('Communication/UserAddress', 'userAddress')
+        self.loadValue('Communication/TAFAddress', 'tafAddress', 'plaintext')
+        self.loadValue('Communication/SIGMETAddress', 'sigmetAddress', 'plaintext')
+        self.loadValue('Communication/AIRMETAddress', 'airmetAddress', 'plaintext')
+        self.loadValue('Communication/TrendAddress', 'trendAddress', 'plaintext')
 
-        self.load_value('monitor/db/web_api', 'web_api', 'bool')
-        self.load_value('monitor/db/web_api_url', 'web_api_url')
+        self.loadValue('Monitor/WebApi', 'webApi', 'bool')
+        self.loadValue('Monitor/WebApiURL', 'webApiURL')
 
-        self.load_value('monitor/clock/clock', 'clock', 'bool')
-        self.load_value('monitor/clock/clock_time', 'clock_time')
-        self.load_value('monitor/clock/clock_volume', 'clock_volume', 'slider')
+        self.loadValue('Monitor/WarnTAF', 'warnTAF', 'bool')
+        self.loadValue('Monitor/WarnTAFTime', 'warnTAFTime')
+        self.loadValue('Monitor/WarnTAFVolume', 'warnTAFVolume', 'slider')
 
-        self.load_value('monitor/sound/warn_taf', 'warn_taf', 'bool')
-        self.load_value('monitor/sound/warn_taf_volume', 'warn_taf_volume', 'slider')
-        self.load_value('monitor/sound/remind_trend', 'remind_trend', 'bool')
-        self.load_value('monitor/sound/remind_sigmet', 'remind_sigmet', 'bool')
-        self.load_value('monitor/sound/remind_trend_volume', 'remind_trend_volume', 'slider')
-        self.load_value('monitor/sound/remind_sigmet_volume', 'remind_sigmet_volume', 'slider')
-        
-        self.load_value('monitor/phone/warn_taf_time', 'warn_taf_time')
-        self.load_value('monitor/phone/call_service_token', 'call_service_token')
-        self.load_value('monitor/phone/call_service_url', 'call_service_url')
+        self.loadValue('Monitor/RemindTAF', 'remindTAF', 'bool')
+        self.loadValue('Monitor/RemindTAFVolume', 'remindTAFVolume', 'slider')
+        self.loadValue('Monitor/RemindTrend', 'remindTrend', 'bool')
+        self.loadValue('Monitor/RemindTrendVolume', 'remindTrendVolume', 'slider')
+        self.loadValue('Monitor/RemindSIGMET', 'remindSIGMET', 'bool')
+        self.loadValue('Monitor/RemindSIGMETVolume', 'remindSIGMETVolume', 'slider')
 
-        self.load_value('monitor/phone/selected_mobile', 'select_contract', 'mobile')
+        self.loadValue('Monitor/CallServiceURL', 'callServiceURL')
+        self.loadValue('Monitor/CallServiceToken', 'callServiceToken')
 
-    def load_value(self, path, target, mold='text'):
+        self.loadValue('Monitor/SelectedMobile', 'selectContract', 'mobile')
+
+    def loadValue(self, path, target, mold='text'):
 
         val = conf.value(path)
         target = getattr(self, target)
@@ -240,7 +238,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
                 index = target.findText(person.name, QtCore.Qt.MatchFixedString)
                 target.setCurrentIndex(index)
 
-    def set_value(self, path, target, mold='text'):
+    def setValue(self, path, target, mold='text'):
         target = getattr(self, target)
 
         if mold == 'text':
@@ -259,7 +257,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
             val = target.toPlainText()
 
         if mold == 'list':
-            items = [item.text() for item in target.findItems("", QtCore.Qt.MatchContains)]
+            items = [item.text() for item in target.findItems('', QtCore.Qt.MatchContains)]
             val = json.dumps(items)
 
         if mold == 'mobile':

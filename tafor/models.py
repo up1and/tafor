@@ -37,7 +37,7 @@ class Tafor(Base):
         return '<TAF %r %r>' % (self.tt, self.rpt)
 
     @property
-    def rpt_inline(self):
+    def rptInline(self):
         return self.rpt.replace('\n', ' ')
 
     @property

@@ -31,28 +31,27 @@ class BaseTimerStatus(StatusBarWidget):
         layout.addWidget(self.label)
         layout.addSpacing(10)
         self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(self.update_label)
+        self.timer.timeout.connect(self.updateLabel)
         self.timer.start(2000)
     
-    def get_value(self):
+    def value(self):
         raise NotImplementedError
 
-    def update_label(self):
+    def updateLabel(self):
         if self.isVisible():
-            # self.label.setText('<img src=":/checkmark.png" width="16" height="16"/>')
-            self.label.setText(str(self.get_value()))
+            self.label.setText(str(self.value()))
 
 class WebAPIStatus(BaseTimerStatus):
     title = '数据源:'
 
-    def get_value(self):
-        status = self.parent.ctx.web_api
+    def value(self):
+        status = self.parent.store.webApi
         return '正常' if status else '超时'
 
 
 class CallServiceStatus(BaseTimerStatus):
     title = '电话服务:'
 
-    def get_value(self):
-        status = self.parent.ctx.call_service
+    def value(self):
+        status = self.parent.store.callService
         return '正常' if status else '超时'

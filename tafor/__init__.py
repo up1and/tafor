@@ -14,8 +14,8 @@ BASEDIR = os.path.abspath(os.path.dirname(__file__))
 def boolean(value):
     return value if isinstance(value, bool) else value == 'true'
 
-def setup_log(debug=False):
-    log_level = logging.DEBUG if debug else logging.INFO
+def setupLog(debug=False):
+    logLevel = logging.DEBUG if debug else logging.INFO
 
     _format = '[%(asctime)s] %(levelname)s %(message)s'
     formatter = logging.Formatter(_format)
@@ -27,17 +27,17 @@ def setup_log(debug=False):
 
     # set log file
     fh = logging.FileHandler('log.log')
-    fh.setLevel(log_level)
+    fh.setLevel(logLevel)
     fh.setFormatter(formatter)
 
     # log
     log = logging.getLogger(__name__)
-    log.setLevel(log_level)
+    log.setLevel(logLevel)
     log.addHandler(ch)
     log.addHandler(fh)
 
     return log
 
 conf = QtCore.QSettings('Up1and', 'Tafor')
-debug = boolean(conf.value('convention/debug'))
-logger = setup_log(debug=debug)
+debug = boolean(conf.value('General/Debug'))
+logger = setupLog(debug=debug)

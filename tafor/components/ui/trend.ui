@@ -15,12 +15,12 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <layout class="QGridLayout" name="main_layout">
+    <layout class="QGridLayout" name="layout">
      <item row="3" column="3">
       <widget class="QLineEdit" name="gust"/>
      </item>
      <item row="2" column="7">
-      <widget class="QLabel" name="cloud1_label">
+      <widget class="QLabel" name="cloud1Label">
        <property name="text">
         <string>云组1</string>
        </property>
@@ -30,7 +30,7 @@
       </widget>
      </item>
      <item row="2" column="3">
-      <widget class="QLabel" name="gust_label">
+      <widget class="QLabel" name="gustLabel">
        <property name="text">
         <string>阵风</string>
        </property>
@@ -44,13 +44,10 @@
        <property name="text">
         <string>SKC</string>
        </property>
-       <attribute name="buttonGroup">
-        <string notr="true">cavok_group</string>
-       </attribute>
       </widget>
      </item>
      <item row="2" column="9">
-      <widget class="QLabel" name="cloud3_label">
+      <widget class="QLabel" name="cloud3Label">
        <property name="text">
         <string>云组3</string>
        </property>
@@ -60,7 +57,7 @@
       </widget>
      </item>
      <item row="2" column="5">
-      <widget class="QLabel" name="weather_label">
+      <widget class="QLabel" name="weatherLabel">
        <property name="text">
         <string>天气现象1</string>
        </property>
@@ -73,7 +70,7 @@
       <widget class="QLineEdit" name="cloud2"/>
      </item>
      <item row="2" column="8">
-      <widget class="QLabel" name="cloud2_label">
+      <widget class="QLabel" name="cloud2Label">
        <property name="text">
         <string>云组2</string>
        </property>
@@ -83,10 +80,10 @@
       </widget>
      </item>
      <item row="3" column="6">
-      <widget class="QComboBox" name="weather_with_intensity"/>
+      <widget class="QComboBox" name="weatherWithIntensity"/>
      </item>
      <item row="2" column="4">
-      <widget class="QLabel" name="vis_label">
+      <widget class="QLabel" name="visLabel">
        <property name="text">
         <string>能见度</string>
        </property>
@@ -100,9 +97,6 @@
        <property name="text">
         <string>NSC</string>
        </property>
-       <attribute name="buttonGroup">
-        <string notr="true">cavok_group</string>
-       </attribute>
       </widget>
      </item>
      <item row="3" column="7">
@@ -118,7 +112,7 @@
       <widget class="QLineEdit" name="wind"/>
      </item>
      <item row="2" column="10">
-      <widget class="QLabel" name="cb_label">
+      <widget class="QLabel" name="cbLabel">
        <property name="text">
         <string>积雨云</string>
        </property>
@@ -128,17 +122,17 @@
       </widget>
      </item>
      <item row="2" column="6">
-      <widget class="QLabel" name="weather_with_intensity_label">
+      <widget class="QLabel" name="weatherWithIntensityLabel">
        <property name="text">
         <string>天气现象2</string>
        </property>
        <property name="buddy">
-        <cstring>weather_with_intensity</cstring>
+        <cstring>weatherWithIntensity</cstring>
        </property>
       </widget>
      </item>
      <item row="2" column="1">
-      <widget class="QLabel" name="period_label">
+      <widget class="QLabel" name="periodLabel">
        <property name="text">
         <string>时段</string>
        </property>
@@ -155,7 +149,7 @@
       </widget>
      </item>
      <item row="0" column="0" colspan="3">
-      <widget class="QGroupBox" name="group_type">
+      <widget class="QGroupBox" name="typeGroup">
        <property name="title">
         <string/>
        </property>
@@ -194,9 +188,6 @@
        <property name="checkable">
         <bool>true</bool>
        </property>
-       <attribute name="buttonGroup">
-        <string notr="true">cavok_group</string>
-       </attribute>
       </widget>
      </item>
      <item row="5" column="1">
@@ -207,7 +198,7 @@
       </widget>
      </item>
      <item row="2" column="2">
-      <widget class="QLabel" name="wind_label">
+      <widget class="QLabel" name="windLabel">
        <property name="text">
         <string>风向风速</string>
        </property>
@@ -217,7 +208,7 @@
       </widget>
      </item>
      <item row="0" column="3" colspan="2">
-      <widget class="QGroupBox" name="group_prefix">
+      <widget class="QGroupBox" name="prefixGroup">
        <property name="title">
         <string/>
        </property>
@@ -270,7 +261,7 @@
   <tabstop>gust</tabstop>
   <tabstop>vis</tabstop>
   <tabstop>weather</tabstop>
-  <tabstop>weather_with_intensity</tabstop>
+  <tabstop>weatherWithIntensity</tabstop>
   <tabstop>cloud1</tabstop>
   <tabstop>cloud2</tabstop>
   <tabstop>cloud3</tabstop>
@@ -280,11 +271,4 @@
  </tabstops>
  <resources/>
  <connections/>
- <buttongroups>
-  <buttongroup name="cavok_group">
-   <property name="exclusive">
-    <bool>false</bool>
-   </property>
-  </buttongroup>
- </buttongroups>
 </ui>

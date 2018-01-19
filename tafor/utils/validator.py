@@ -15,30 +15,30 @@ weather_with_intensity = [
     'TSGR', 'TSGS', 'SHRA', 'SHSN', 'SHGR', 'SHGS', 'FZRA', 'FZDZ'
 ]
 
-_split_pattern = re.compile(r'(BECMG|FM|TEMPO|PROB[34]0\sTEMPO)')
+splitPattern = re.compile(r'(BECMG|FM|TEMPO|PROB[34]0\sTEMPO)')
 
 
-def _pure_pattern(regex):
+def _purePattern(regex):
     pattern = regex.pattern
     if pattern.startswith('^'):
         pattern = pattern[1:]
     return pattern
 
 
-def format_period(period, time):
+def formatPeriod(period, time):
     # will remove later
-    start_hour = int(period[:2])
-    end_hour = 0 if period[2:] == '24' else int(period[2:])
+    startHour = int(period[:2])
+    endHour = 0 if period[2:] == '24' else int(period[2:])
 
     base = datetime.datetime(time.year, time.month, time.day)
-    delta = datetime.timedelta(hours=end_hour) if start_hour < end_hour else datetime.timedelta(days=1, hours=end_hour)
-    start = base + datetime.timedelta(hours=start_hour)
+    delta = datetime.timedelta(hours=endHour) if startHour < endHour else datetime.timedelta(days=1, hours=endHour)
+    start = base + datetime.timedelta(hours=startHour)
     end = base + delta
 
     return start, end
 
 
-def format_timez(timez):
+def formatTimez(timez):
     # will remove later
     utc =  datetime.datetime.utcnow()
     time = datetime.datetime(utc.year, utc.month, int(timez[:2]), int(timez[2:4]), int(timez[4:6]))
@@ -79,40 +79,40 @@ class Pattern(object):
 class Validator(object):
     """docstring for Validator"""
 
-    grammar_class = Grammar
+    grammarClass = Grammar
 
     @classmethod
-    def wind(cls, ref_wind, wind):
+    def wind(cls, refWind, wind):
         """
         风：
         1.当预报平均地面风向的变化大于等于 60°，且平均风速在变化前和（或）变化后大于等于 5m/s 时
         2.当预报平均地面风速的变化大于等于 5m/s 时
         3.当预报平均地面风风速变差（阵风）增加(或减少)大于等于 5m/s，且平均风速在变化前和（或）变化后大于等于 8m/s 时  ***有异议
         """
-        pattern = cls.grammar_class.wind
-        ref_wind_group = pattern.match(ref_wind).groups()
-        wind_group = pattern.match(wind).groups()
+        pattern = cls.grammarClass.wind
+        refWindGroup = pattern.match(refWind).groups()
+        windGroup = pattern.match(wind).groups()
 
-        ref_speed = int(ref_wind_group[1])
-        speed = int(wind_group[1])
+        refSpeed = int(refWindGroup[1])
+        speed = int(windGroup[1])
 
-        ref_gust = int(ref_wind_group[2]) if ref_wind_group[2] else None
-        gust = int(wind_group[2]) if wind_group[2] else None
+        refGust = int(refWindGroup[2]) if refWindGroup[2] else None
+        gust = int(windGroup[2]) if windGroup[2] else None
 
-        def angle(ref_direction, direction):
+        def angle(refDirection, direction):
             # 有一个风向为 VRB, 返回 True
-            if 'VRB' in (ref_direction, direction):
+            if 'VRB' in (refDirection, direction):
                 return True
 
-            ref_direction = int(ref_direction)
+            refDirection = int(refDirection)
             direction = int(direction)
 
             # 计算夹角
             # 风向变化大于180度
-            if abs(ref_direction - direction) > 180:
-                degree = min(ref_direction, direction) + 360 - max(ref_direction, direction)
+            if abs(refDirection - direction) > 180:
+                degree = min(refDirection, direction) + 360 - max(refDirection, direction)
             else:
-                degree = abs(ref_direction - direction)
+                degree = abs(refDirection - direction)
 
             if degree < 60:
                 return False
@@ -120,24 +120,24 @@ class Validator(object):
             return True
 
         # 1.当预报平均地面风向的变化大于等于 60°，且平均风速在变化前和（或）变化后大于等于 5m/s 时
-        if angle(ref_wind_group[0], wind_group[0]) and max(ref_speed, speed) >= 5:
+        if angle(refWindGroup[0], windGroup[0]) and max(refSpeed, speed) >= 5:
             return True
 
         # 2.当预报平均地面风速的变化大于等于 5m/s 时
-        if abs(ref_speed - speed) >= 5:
+        if abs(refSpeed - speed) >= 5:
             return True
 
         # 3.当预报平均地面风风速变差（阵风）增加(或减少)大于等于 5m/s，且平均风速在变化前和（或）变化后大于等于 8m/s 时
-        if ref_gust and gust and abs(ref_gust - gust) >= 5 and max(ref_speed, speed) >= 8:
+        if refGust and gust and abs(refGust - gust) >= 5 and max(refSpeed, speed) >= 8:
             return True
 
-        if ref_gust or gust and max(ref_speed, speed) >= 8:
+        if refGust or gust and max(refSpeed, speed) >= 8:
             return True
 
         return False
 
     @classmethod
-    def vis(cls, ref_vis, vis, thresholds=None):
+    def vis(cls, refVis, vis, thresholds=None):
         """
         当预报主导能见度上升并达到或经过下列一个或多个数值，或下降并经过下列一个或多个数值时：
         1. 150 m、350 m、600 m、800 m、1500 m 或 3000 m
@@ -145,24 +145,24 @@ class Validator(object):
 
         """
         thresholds = thresholds if thresholds else [150, 350, 600, 800, 1500, 3000, 5000]
-        return cls.compare(ref_vis, vis, thresholds)
+        return cls.compare(refVis, vis, thresholds)
 
     @classmethod
-    def vv(cls, ref_vv, vv, thresholds=None):
+    def vv(cls, refVv, vv, thresholds=None):
         """
         当预报垂直能见度上升并达到或经过下列一个或多个数值，
         或下降并经过下列一个或多个数值时：30 m、60 m、150 m 或 300 m；
 
         编报时对应 VV001、VV002、VV005、VV010
         """
-        pattern = cls.grammar_class.vv
-        matches = [pattern.match(ref_vv), pattern.match(vv)]
+        pattern = cls.grammarClass.vv
+        matches = [pattern.match(refVv), pattern.match(vv)]
         thresholds = thresholds if thresholds else [1, 2, 5, 10]
 
         # 两者都包含 VV, 计算高度是否跨越阈值
         if all(matches):
-            ref_vv_height, vv_height = matches[0].group(2), matches[1].group(2)
-            return cls.compare(ref_vv_height, vv_height, thresholds)
+            refVvHeight, vvHeight = matches[0].group(2), matches[1].group(2)
+            return cls.compare(refVvHeight, vvHeight, thresholds)
 
         # 两者有一个是 VV, VV 高度小于最大阈值
         if any(matches):
@@ -173,23 +173,23 @@ class Validator(object):
         return False
 
     @classmethod
-    def compare(cls, ref_value, value, thresholds):
-        ref_value = int(ref_value)
+    def compare(cls, refValue, value, thresholds):
+        refValue = int(refValue)
         value = int(value)
-        trend = 'down' if ref_value > value else 'up'
+        trend = 'down' if refValue > value else 'up'
 
         for threshold in thresholds:
             if trend == 'up':
-                if ref_value < threshold <= value:
+                if refValue < threshold <= value:
                     return True
             if trend == 'down':
-                if value < threshold < ref_value:
+                if value < threshold < refValue:
                     return True
 
         return False
 
     @classmethod
-    def weather(cls, ref_weather, weather):
+    def weather(cls, refWeather, weather):
         """
         天气现象：
            1. 当预报下列一种或几种天气现象开始、终止或强度变化时：
@@ -206,32 +206,32 @@ class Validator(object):
               飑
               漏斗云（陆龙卷或水龙卷）
         """
-        weather_with_intensity_pattern = re.compile(r'([+-])?(DZ|RA|SN|SG|PL|DS|SS|SHRA|SHSN|SHGR|SHGS|FZRA|FZDZ|TSRA|TSSN|TSPL|TSGR|TSGS|TSSH)')
-        weather_pattern = re.compile(r'(SQ|PO|FC|TS|FZFG|BLSN|BLSA|BLDU|DRSN|DRSA|DRDU)')
-        weak_precipitation_pattern = re.compile(r'-(DZ|RA|SN|SG|PL|SHRA|SHSN|SHGR|SHGS)')
+        weatherWithIntensityPattern = re.compile(r'([+-])?(DZ|RA|SN|SG|PL|DS|SS|SHRA|SHSN|SHGR|SHGS|FZRA|FZDZ|TSRA|TSSN|TSPL|TSGR|TSGS|TSSH)')
+        weatherPattern = re.compile(r'(SQ|PO|FC|TS|FZFG|BLSN|BLSA|BLDU|DRSN|DRSA|DRDU)')
+        weakPrecipitationPattern = re.compile(r'-(DZ|RA|SN|SG|PL|SHRA|SHSN|SHGR|SHGS)')
 
-        ref_weathers = ref_weather.split()
+        refWeathers = refWeather.split()
         weathers = weather.split()
 
         def condition(weather):
             # 符合转折条件，不包括弱降水
-            return weather_with_intensity_pattern.match(weather) and not weak_precipitation_pattern.match(weather) \
-                or weather_pattern.match(weather)
+            return weatherWithIntensityPattern.match(weather) and not weakPrecipitationPattern.match(weather) \
+                or weatherPattern.match(weather)
 
         for w in weathers:
             # NSW 无法转折的天气
-            if w == 'NSW' and set(ref_weathers) & set(['BR', 'HZ', 'FU', 'DU', '-RA', '-SN']) \
-                or 'NSW' in ref_weathers and w in ['BR', 'HZ', 'FU', 'DU', '-RA', '-SN']:
+            if w == 'NSW' and set(refWeathers) & set(['BR', 'HZ', 'FU', 'DU', '-RA', '-SN']) \
+                or 'NSW' in refWeathers and w in ['BR', 'HZ', 'FU', 'DU', '-RA', '-SN']:
                 return False
 
-            if w not in ref_weathers:
-                if condition(w) or condition(ref_weather):
+            if w not in refWeathers:
+                if condition(w) or condition(refWeather):
                     return True
 
         return False
 
     @classmethod
-    def cloud(cls, ref_cloud, cloud, thresholds=None):
+    def cloud(cls, refCloud, cloud, thresholds=None):
         '''   
           当预报 BKN 或 OVC 云量的最低云层的云高抬升并达到或经过下列一个或多个数值，或降低并经过下列一个或多个数值时：
             1. 30 m、60 m、150 m 或 300 m
@@ -243,20 +243,20 @@ class Validator(object):
 
           当预报积雨云将发展或消失时
         '''
-        pattern = cls.grammar_class.cloud
+        pattern = cls.grammarClass.cloud
         thresholds = thresholds if thresholds else [1, 2, 5, 10, 15]
-        cloud_cover = {'SKC': 0, 'FEW': 1, 'SCT': 2, 'BKN': 3, 'OVC': 4}
+        cloudCover = {'SKC': 0, 'FEW': 1, 'SCT': 2, 'BKN': 3, 'OVC': 4}
 
-        ref_clouds = ref_cloud.split()
+        refClouds = refCloud.split()
         clouds = cloud.split()
 
         # 云组无变化
-        if ref_cloud == cloud:
+        if refCloud == cloud:
             return False
 
         # 有积雨云 CB
-        cb_pattern = re.compile(r'(FEW|SCT|BKN|OVC)(\d{3})(CB|TCU$)')
-        matches = [cb_pattern.search(ref_cloud), cb_pattern.search(cloud)]
+        cbPattern = re.compile(r'(FEW|SCT|BKN|OVC)(\d{3})(CB|TCU$)')
+        matches = [cbPattern.search(refCloud), cbPattern.search(cloud)]
 
         if any(matches):
             if all(matches):
@@ -264,29 +264,29 @@ class Validator(object):
             return True
 
         def analyze(clouds):
-            min_height = 999
-            max_cover = 0
+            minHeight = 999
+            maxCover = 0
             for c in clouds:
                 m = pattern.match(c)
                 if m and m.group() not in ['NSC', 'SKC']:
-                    if cloud_cover[m.group(1)] > 2:
-                        min_height = min(min_height, int(m.group(2)))
+                    if cloudCover[m.group(1)] > 2:
+                        minHeight = min(minHeight, int(m.group(2)))
 
                     if int(m.group(2)) < 15:
-                        max_cover = max(max_cover, cloud_cover[m.group(1)])
+                        maxCover = max(maxCover, cloudCover[m.group(1)])
 
-            min_height = min_height if min_height < 15 else 0
-            return min_height, max_cover
+            minHeight = minHeight if minHeight < 15 else 0
+            return minHeight, maxCover
 
-        min_height, max_cover = analyze(clouds)
-        ref_min_height, ref_max_cover = analyze(ref_clouds)
+        minHeight, maxCover = analyze(clouds)
+        refMinHeight, refMaxCover = analyze(refClouds)
 
         # 当预报 BKN 或 OVC 云量的最低云层的云高抬升并达到或经过下列一个或多个数值，或降低并经过下列一个或多个数值
-        if any([ref_min_height, min_height]):
-            return cls.compare(ref_min_height, min_height, thresholds)
+        if any([refMinHeight, minHeight]):
+            return cls.compare(refMinHeight, minHeight, thresholds)
 
         # 当预报低于 450 m 的云层或云块的量的变化满足下列条件之一
-        if ref_max_cover > 2 and max_cover < 3 or ref_max_cover < 3 and max_cover > 2:
+        if refMaxCover > 2 and maxCover < 3 or refMaxCover < 3 and maxCover > 2:
             return True
 
         return False
@@ -303,16 +303,16 @@ class Validator(object):
 
 
 class Lexer(object):
-    grammar_class = Grammar
+    grammarClass = Grammar
 
-    default_rules = [
+    defaultRules = [
         'sign', 'amend', 'icao', 'timez', 'period', 'prob', 'interval',
         'wind', 'vis', 'cavok', 'weather', 'cloud', 'vv', 'tmax', 'tmin'
     ]
 
     def __init__(self, part, grammar=None, **kwargs):
         if not grammar:
-            grammar = self.grammar_class()
+            grammar = self.grammarClass()
         self.grammar = grammar
         self.part = part
         self.tokens = OrderedDict()
@@ -328,7 +328,7 @@ class Lexer(object):
 
     def parse(self, part, rules=None):
         if not rules:
-            rules = self.default_rules
+            rules = self.defaultRules
 
         for key in rules:
             pattern = getattr(self.grammar, key)
@@ -350,14 +350,14 @@ class Lexer(object):
 
         if self.tokens['sign']['text'] == 'TAF':
             period = self.tokens['period']['text'][:4]
-            time = format_timez(self.tokens['timez']['text'])
-            self.period = self.generate_period(period, time)
+            time = formatTimez(self.tokens['timez']['text'])
+            self.period = self.generatePeriod(period, time)
 
-    def generate_period(self, period, time):
-        self.period = format_period(period, time)
+    def generatePeriod(self, period, time):
+        self.period = formatPeriod(period, time)
         return self.period
 
-    def is_valid(self):
+    def isValid(self):
         for k, e in self.tokens.items():
                 if e['error']:
                     return False
@@ -398,7 +398,7 @@ class Lexer(object):
 
 
 class Parser(object):
-    default_rules = [
+    defaultRules = [
         'wind', 'vis', 'weather', 'cloud'
     ]
 
@@ -422,7 +422,7 @@ class Parser(object):
 
     def split(self):
         message = self.message.replace('=', '')
-        elements = _split_pattern.split(message)
+        elements = splitPattern.split(message)
         self.primary = self.parse(elements[0])
 
         if len(elements) > 1:
@@ -432,13 +432,13 @@ class Parser(object):
             for i, index in enumerate(becmg_index):
                 e = elements[index] + elements[index+1]
                 becmg = self.parse(e)
-                becmg.generate_period(becmg.tokens['interval']['text'], self.primary.period[0])
+                becmg.generatePeriod(becmg.tokens['interval']['text'], self.primary.period[0])
                 self.becmgs.append(becmg)
 
             for i, index in enumerate(tempo_index):
                 e = elements[index] + elements[index+1]
                 tempo = self.parse(e)
-                tempo.generate_period(tempo.tokens['interval']['text'], self.primary.period[0])
+                tempo.generatePeriod(tempo.tokens['interval']['text'], self.primary.period[0])
                 self.tempos.append(tempo)
 
         self.elements = [self.primary] + self.becmgs + self.tempos
@@ -489,7 +489,7 @@ class Parser(object):
         return self.groups
 
     def validate(self):
-        self.validate_combination(self.reference, self.primary.tokens)
+        self.validateCombination(self.reference, self.primary.tokens)
 
         for e in self.groups:
             for key in e.tokens:
@@ -514,33 +514,38 @@ class Parser(object):
                         else:
                             self.reference[key]['text'] = e.tokens[key]['text']
 
-            self.validate_combination(self.reference, e.tokens)
+            self.validateCombination(self.reference, e.tokens)
 
         self.tips = list(set(self.tips))
 
-        valids = [e.is_valid() for e in self.elements]
+        valids = [e.isValid() for e in self.elements]
         return all(valids)
 
-    def validate_combination(self, ref, tokens):
+    def validateCombination(self, ref, tokens):
         mixture = copy.deepcopy(ref)
         for key in tokens:
-            if key in self.default_rules:
+            if key in self.defaultRules:
                 mixture[key]['text'] = tokens[key]['text']
 
         # 检查能见度和天气现象
         if 'vis' in tokens:
             vis = int(tokens['vis']['text'])
-            ref_vis = int(ref['vis']['text'])
+            refVis = int(ref['vis']['text'])
             weathers = mixture['weather']['text'].split()
 
             if 'NSW' in weathers:
-                if max(ref_vis, vis) >= 1000 and min(ref_vis, vis) < 1000:
+                if max(refVis, vis) >= 1000 and min(refVis, vis) < 1000:
                     tokens['vis']['error'] = True
                     self.tips.append('能见度跨 1000 米时应变化天气现象')
 
-                if vis <= 5000 and ref_vis > 5000:
+                if vis <= 5000 and refVis > 5000:
                     tokens['vis']['error'] = True
                     self.tips.append('能见度降低到 5000 米以下时应有天气现象')
+
+                if vis == refVis:
+                    if vis <= 5000:
+                        tokens['vis']['error'] = True
+                        self.tips.append('能见度小于 5000 米时应有天气现象')
 
             else:
                 if vis < 1000 and set(weathers) & set(['BR', '-DZ']):
@@ -573,7 +578,7 @@ class Parser(object):
                 tokens['weather']['error'] = True
                 self.tips.append('阵性降水应包含 CB 或者 TCU')
 
-            if weather.split() != ['NSW']:
+            if 'NSW' in weather.split() and len(weather.split()) > 1:
                 tokens['weather']['error'] = True
                 self.tips.append('NSW 不能和其他天气现象共存')
 
@@ -601,9 +606,9 @@ class Parser(object):
         outputs = [e.renderer(style) for e in self.elements]
 
         if style == 'html':
-            return '<br/>'.join(outputs)
+            return '<br/>'.join(outputs) + '='
 
-        return '\n'.join(outputs)
+        return '\n'.join(outputs) + '='
 
 
 
@@ -615,8 +620,7 @@ if __name__ == '__main__':
     # print(Validator.cloud('NSC', 'SKC'))
 
     message = '''
-        TAF AMD ZGGG 211338Z 211524 14004MPS 1000 RA NSW BKN010
-        BECMG 1718 CAVOK=
+        TAF AMD ZGGG 211338Z 211524 14004MPS 9999 5000 BR NSC=
     '''
     # m = Grammar.taf.search(message)
     # print(m.group(0))
@@ -624,8 +628,9 @@ if __name__ == '__main__':
     # print(m.groups())
 
     e = Parser(message)
-    is_valid = e.validate()
-    # print(is_valid)
+    isValid = e.validate()
+    print(e.tips)
+    # print(isValid)
 
     print(e.renderer(style='terminal'))
 

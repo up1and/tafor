@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\widget_recent_item.ui'
+# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\main_recent.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -22,9 +22,9 @@ class Ui_Form(object):
         self.check = QtWidgets.QLabel(self.groupBox)
         self.check.setObjectName("check")
         self.gridLayout.addWidget(self.check, 0, 1, 1, 1, QtCore.Qt.AlignRight)
-        self.send_time = QtWidgets.QLabel(self.groupBox)
-        self.send_time.setObjectName("send_time")
-        self.gridLayout.addWidget(self.send_time, 0, 0, 1, 1)
+        self.sendTime = QtWidgets.QLabel(self.groupBox)
+        self.sendTime.setObjectName("sendTime")
+        self.gridLayout.addWidget(self.sendTime, 0, 0, 1, 1)
         self.rpt = QtWidgets.QLabel(self.groupBox)
         self.rpt.setStyleSheet("font: 12pt \"微软雅黑\";")
         self.rpt.setObjectName("rpt")
@@ -39,7 +39,7 @@ class Ui_Form(object):
         Form.setWindowTitle(_translate("Form", "Form"))
         self.groupBox.setTitle(_translate("Form", "FC"))
         self.check.setText(_translate("Form", "√"))
-        self.send_time.setText(_translate("Form", "time"))
+        self.sendTime.setText(_translate("Form", "time"))
         self.rpt.setText(_translate("Form", "rpt"))
 
 

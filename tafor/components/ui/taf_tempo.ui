@@ -17,7 +17,7 @@
    <item>
     <layout class="QGridLayout" name="layout">
      <item row="0" column="5">
-      <widget class="QLabel" name="wind_label">
+      <widget class="QLabel" name="windLabel">
        <property name="text">
         <string>风向风速</string>
        </property>
@@ -27,7 +27,7 @@
       </widget>
      </item>
      <item row="0" column="12">
-      <widget class="QLabel" name="cloud3_label">
+      <widget class="QLabel" name="cloud3Label">
        <property name="text">
         <string>云组3</string>
        </property>
@@ -37,7 +37,7 @@
       </widget>
      </item>
      <item row="0" column="4">
-      <widget class="QLabel" name="interval_label">
+      <widget class="QLabel" name="intervalLabel">
        <property name="text">
         <string>时段</string>
        </property>
@@ -50,7 +50,7 @@
       <widget class="QLineEdit" name="interval"/>
      </item>
      <item row="0" column="6">
-      <widget class="QLabel" name="gust_label">
+      <widget class="QLabel" name="gustLabel">
        <property name="text">
         <string>阵风</string>
        </property>
@@ -63,7 +63,7 @@
       <widget class="QLineEdit" name="cloud1"/>
      </item>
      <item row="2" column="9">
-      <widget class="QComboBox" name="weather_with_intensity"/>
+      <widget class="QComboBox" name="weatherWithIntensity"/>
      </item>
      <item row="2" column="7">
       <widget class="QLineEdit" name="vis"/>
@@ -72,7 +72,7 @@
       <widget class="QLineEdit" name="cb"/>
      </item>
      <item row="0" column="11">
-      <widget class="QLabel" name="cloud2_label">
+      <widget class="QLabel" name="cloud2Label">
        <property name="text">
         <string>云组2</string>
        </property>
@@ -82,7 +82,7 @@
       </widget>
      </item>
      <item row="0" column="7">
-      <widget class="QLabel" name="vis_label">
+      <widget class="QLabel" name="visLabel">
        <property name="text">
         <string>能见度</string>
        </property>
@@ -95,12 +95,12 @@
       <widget class="QLineEdit" name="wind"/>
      </item>
      <item row="0" column="9">
-      <widget class="QLabel" name="weather_with_intensity_label">
+      <widget class="QLabel" name="weatherWithIntensityLabel">
        <property name="text">
         <string>天气现象2</string>
        </property>
        <property name="buddy">
-        <cstring>weather_with_intensity</cstring>
+        <cstring>weatherWithIntensity</cstring>
        </property>
       </widget>
      </item>
@@ -121,16 +121,13 @@
        <property name="tristate">
         <bool>false</bool>
        </property>
-       <attribute name="buttonGroup">
-        <string notr="true">prob_group</string>
-       </attribute>
       </widget>
      </item>
      <item row="2" column="6">
       <widget class="QLineEdit" name="gust"/>
      </item>
      <item row="0" column="10">
-      <widget class="QLabel" name="cloud1_label">
+      <widget class="QLabel" name="cloud1Label">
        <property name="text">
         <string>云组1</string>
        </property>
@@ -150,16 +147,13 @@
        <property name="autoExclusive">
         <bool>true</bool>
        </property>
-       <attribute name="buttonGroup">
-        <string notr="true">prob_group</string>
-       </attribute>
       </widget>
      </item>
      <item row="2" column="8">
       <widget class="QComboBox" name="weather"/>
      </item>
      <item row="0" column="13">
-      <widget class="QLabel" name="cb_label">
+      <widget class="QLabel" name="cbLabel">
        <property name="text">
         <string>积雨云</string>
        </property>
@@ -169,7 +163,7 @@
       </widget>
      </item>
      <item row="0" column="8">
-      <widget class="QLabel" name="weather_label">
+      <widget class="QLabel" name="weatherLabel">
        <property name="text">
         <string>天气现象1</string>
        </property>
@@ -204,7 +198,7 @@
   <tabstop>gust</tabstop>
   <tabstop>vis</tabstop>
   <tabstop>weather</tabstop>
-  <tabstop>weather_with_intensity</tabstop>
+  <tabstop>weatherWithIntensity</tabstop>
   <tabstop>cloud1</tabstop>
   <tabstop>cloud2</tabstop>
   <tabstop>cloud3</tabstop>
@@ -214,11 +208,4 @@
  </tabstops>
  <resources/>
  <connections/>
- <buttongroups>
-  <buttongroup name="prob_group">
-   <property name="exclusive">
-    <bool>false</bool>
-   </property>
-  </buttongroup>
- </buttongroups>
 </ui>

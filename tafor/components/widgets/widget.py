@@ -5,10 +5,10 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from tafor.models import db, Tafor
 from tafor.utils import CheckTAF
-from tafor.components.ui import Ui_widget_recent_item
+from tafor.components.ui import Ui_main_recent
 
 
-class RecentTAF(QtWidgets.QWidget, Ui_widget_recent_item.Ui_Form):
+class RecentTAF(QtWidgets.QWidget, Ui_main_recent.Ui_Form):
     def __init__(self, parent, container, tt):
         super(RecentTAF, self).__init__(parent)
         self.setupUi(self)
@@ -16,7 +16,7 @@ class RecentTAF(QtWidgets.QWidget, Ui_widget_recent_item.Ui_Form):
 
         container.addWidget(self)
 
-    def update_gui(self):
+    def updateGUI(self):
         item = db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()
 
         if not item:
@@ -24,7 +24,7 @@ class RecentTAF(QtWidgets.QWidget, Ui_widget_recent_item.Ui_Form):
             return 
 
         self.groupBox.setTitle(item.tt)
-        self.send_time.setText(item.sent.strftime("%Y-%m-%d %H:%M:%S"))
+        self.sendTime.setText(item.sent.strftime("%Y-%m-%d %H:%M:%S"))
         self.rpt.setText(item.report)
         if item.confirmed:
             self.check.setText('<img src=":/checkmark.png" width="24" height="24"/>')
@@ -49,16 +49,16 @@ class CurrentTAF(QtWidgets.QWidget):
 
         container.addWidget(self)
 
-    def update_gui(self):
+    def updateGUI(self):
         self.fc.setText(self.current('FC'))
         self.ft.setText(self.current('FT'))
 
     def current(self, tt):
         taf = CheckTAF(tt)
-        if taf.existed_in_local():
+        if taf.existedInLocal():
             text = ''
         else:
-            text = tt + taf.warn_period()[2:]
+            text = tt + taf.warnPeriod()[2:]
         return text
 
 
@@ -70,19 +70,19 @@ class Clock(QtWidgets.QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
 
-        layout.addWidget(QtWidgets.QLabel('世界时'))
-        layout.addSpacing(10)
+        # layout.addWidget(QtWidgets.QLabel('世界时'))
+        layout.addSpacing(5)
         self.label = QtWidgets.QLabel()
         layout.addWidget(self.label)
 
         self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(self.update_gui)
+        self.timer.timeout.connect(self.updateGUI)
         self.timer.start(1 * 1000)
 
-        self.update_gui()
+        self.updateGUI()
 
         container.addWidget(self)
 
-    def update_gui(self):
+    def updateGUI(self):
         utc = datetime.datetime.utcnow()
         self.label.setText(utc.strftime("%Y-%m-%d %H:%M:%S"))

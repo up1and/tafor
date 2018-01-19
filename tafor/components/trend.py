@@ -11,50 +11,50 @@ from tafor.components.widgets.segments import TrendSegment
 
 
 class TrendEditor(QDialog):
-    signal_preview = pyqtSignal(dict)
+    previewSignal = pyqtSignal(dict)
 
     def __init__(self, parent=None):
         super(TrendEditor, self).__init__(parent)
-        self.init_ui()
-        self.bind_signal()
+        self.initUI()
+        self.bindSignal()
         
         self.setWindowTitle("编发趋势")
 
-    def init_ui(self):
+    def initUI(self):
         window = QWidget(self)
         layout = QVBoxLayout(window)
         layout.setSizeConstraint(QLayout.SetFixedSize)
         self.trend = TrendSegment()
-        self.next_button = QPushButton()
-        self.next_button.setEnabled(False)
-        self.next_button.setText("下一步")
+        self.nextButton = QPushButton()
+        self.nextButton.setEnabled(False)
+        self.nextButton.setText("下一步")
         layout.addWidget(self.trend)
-        layout.addWidget(self.next_button, 0, Qt.AlignRight|Qt.AlignBottom)
+        layout.addWidget(self.nextButton, 0, Qt.AlignRight|Qt.AlignBottom)
         self.setLayout(layout)
 
         self.setStyleSheet("QLineEdit {width: 50px;} QComboBox {width: 50px}")
 
-    def bind_signal(self):
+    def bindSignal(self):
 
-        self.trend.signal_required.connect(self.enbale_next_button)
+        self.trend.completeSignal.connect(self.enbaleNextButton)
 
         # 下一步
-        self.next_button.clicked.connect(self.assemble_message)
-        self.next_button.clicked.connect(self.preview_message)
+        self.nextButton.clicked.connect(self.assembleMessage)
+        self.nextButton.clicked.connect(self.previewMessage)
 
-    def enbale_next_button(self):
+    def enbaleNextButton(self):
         enbale = self.trend.required
         logger.debug('Trend required ' + str(enbale))
-        self.next_button.setEnabled(enbale)
+        self.nextButton.setEnabled(enbale)
 
-    def assemble_message(self):
+    def assembleMessage(self):
         message = self.trend.message()
         self.rpt = message + '='
-        self.sign = conf.value('message/trend_sign')
+        self.sign = conf.value('Message/TrendSign')
 
-    def preview_message(self):
+    def previewMessage(self):
         message = {'sign': self.sign, 'rpt': self.rpt, 'full': ' '.join([self.sign, self.rpt])}
-        self.signal_preview.emit(message)
+        self.previewSignal.emit(message)
         logger.debug('Emit', message)
 
     def clear(self):

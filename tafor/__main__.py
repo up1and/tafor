@@ -11,7 +11,7 @@ from tafor.app.main import main
 @click.command()
 @click.option('--debug', is_flag=True)
 def cli(debug):
-    conf.setValue('convention/debug', debug)
+    conf.setValue('General/Debug', debug)
     main()
 
 if __name__ == '__main__':

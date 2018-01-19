@@ -5,62 +5,62 @@ import requests
 
 from PyQt5.QtCore import QObject
 
-from tafor import setting, log
-from tafor.models import Session, Tafor, Metar
+from tafor import conf, logger
+from tafor.models import db, Tafor, Metar
 
 from tafor.utils.validator import Grammar
 
 
-def remote_message():
-    url = setting.value('monitor/db/web_api_url')
+def remoteMessage():
+    url = conf.value('Monitor/WebApiURL')
     try:
         r = requests.get(url, timeout=30)
         if r.status_code == 200:
             return r.json()
         else:
-            log.warn('GET {} 404 Not Found'.format(url))
+            logger.warn('GET {} 404 Not Found'.format(url))
 
     except requests.exceptions.ConnectionError:
-        log.warn('GET {} 408 Request Timeout'.format(url))
+        logger.warn('GET {} 408 Request Timeout'.format(url))
 
     except Exception as e:
-        log.error(e, exc_info=True)
+        logger.error(e, exc_info=True)
 
     return {}
 
-def make_call(phone_number):
-    url = setting.value('monitor/phone/call_service_url')
-    token = setting.value('monitor/phone/call_service_token')
+def callUp(mobile):
+    url = conf.value('Monitor/CallServiceURL')
+    token = conf.value('Monitor/CallServiceToken') or ''
     try:
         r = requests.post(url, auth=('api', token), data={'mobile': mobile}, timeout=30)
         if r.status_code == 201:
-            log.info('call {} success'.format(phone_number))
+            logger.info('Dial {} successfully'.format(mobile))
             return r.json()
         else:
-            log.warn('call {} failure'.format(phone_number))
+            logger.warn('Dial {} failed {}'.format(mobile, r.text))
 
     except requests.exceptions.ConnectionError:
-        log.warn('POST {} 408 Request Timeout'.format(url))
+        logger.warn('POST {} 408 Request Timeout'.format(url))
 
     except Exception as e:
-        log.error(e, exc_info=True)
+        logger.error(e, exc_info=True)
 
-def call_service():
-    url = setting.value('monitor/phone/call_service_url')
+def callService():
+    url = conf.value('Monitor/CallServiceURL')
     try:
         r = requests.get(url)
         return r.status_code == 405
     except Exception:
         pass
 
-def format_timez(message):
+def formatTimez(message):
     try:
         m = Grammar.timez.search(message).groups()
         utc =  datetime.datetime.utcnow()
         created = datetime.datetime(utc.year, utc.month, int(m[0]), int(m[1]), int(m[2]))
         return created
     except Exception as e:
-        log.error(e, exc_info=True)
+        logger.error(e, exc_info=True)
         created = datetime.datetime.utcnow()
         return created
 
@@ -72,88 +72,85 @@ class CheckTAF(QObject):
         self.tt = tt
         self.remote = remote
         self.time = datetime.datetime.utcnow() if time is None else time
-        start_of_the_day = datetime.datetime(self.time.year, self.time.month, self.time.day)
-        self.start_time= dict()
-        self.start_time['FC'] = {
-                    '0312': start_of_the_day + datetime.timedelta(hours=1),
-                    '0615': start_of_the_day + datetime.timedelta(hours=4),
-                    '0918': start_of_the_day + datetime.timedelta(hours=7),
-                    '1221': start_of_the_day + datetime.timedelta(hours=10),
-                    '1524': start_of_the_day + datetime.timedelta(hours=13),
-                    '1803': start_of_the_day + datetime.timedelta(hours=16),
-                    '2106': start_of_the_day + datetime.timedelta(hours=19),
-                    '0009': start_of_the_day + datetime.timedelta(hours=22),
+        startOfTheDay = datetime.datetime(self.time.year, self.time.month, self.time.day)
+        self.startTime = dict()
+        self.startTime['FC'] = {
+                    '0312': startOfTheDay + datetime.timedelta(hours=1),
+                    '0615': startOfTheDay + datetime.timedelta(hours=4),
+                    '0918': startOfTheDay + datetime.timedelta(hours=7),
+                    '1221': startOfTheDay + datetime.timedelta(hours=10),
+                    '1524': startOfTheDay + datetime.timedelta(hours=13),
+                    '1803': startOfTheDay + datetime.timedelta(hours=16),
+                    '2106': startOfTheDay + datetime.timedelta(hours=19),
+                    '0009': startOfTheDay + datetime.timedelta(hours=22),
         }
-        self.start_time['FT'] = {
-                    '0606': start_of_the_day + datetime.timedelta(hours=1),
-                    '1212': start_of_the_day + datetime.timedelta(hours=7),
-                    '1818': start_of_the_day + datetime.timedelta(hours=13),
-                    '0024': start_of_the_day + datetime.timedelta(hours=19),
-        }
-
-        overdued_taf_time = setting.value('monitor/phone/warn_taf_time')
-        overdued_taf_time = int(overdued_taf_time) if overdued_taf_time else 30
-
-        self.overdued_time = {
-            'FC': datetime.timedelta(minutes=overdued_taf_time), 
-            'FT': datetime.timedelta(hours=2, minutes=overdued_taf_time)
+        self.startTime['FT'] = {
+                    '0606': startOfTheDay + datetime.timedelta(hours=1),
+                    '1212': startOfTheDay + datetime.timedelta(hours=7),
+                    '1818': startOfTheDay + datetime.timedelta(hours=13),
+                    '0024': startOfTheDay + datetime.timedelta(hours=19),
         }
 
-        self.db = Session()
+        thresholdMinute = conf.value('Monitor/WarnTAFTime')
+        thresholdMinute = int(thresholdMinute) if thresholdMinute else 30
 
-    def current_period(self):
+        self.thresholdTime = {
+            'FC': datetime.timedelta(minutes=thresholdMinute), 
+            'FT': datetime.timedelta(hours=2, minutes=thresholdMinute)
+        }
+
+    def currentPeriod(self):
         increment = {'FC': datetime.timedelta(minutes=50), 'FT': datetime.timedelta(hours=2, minutes=50)}
-        period = self._find_period(increment)
-        return self._with_day(period)
+        period = self._findPeriod(increment)
+        return self._withDay(period)
 
-    def warn_period(self):
+    def warnPeriod(self):
         increment = {'FC': datetime.timedelta(hours=3), 'FT': datetime.timedelta(hours=6)}
         default = {'FC': '0009', 'FT': '0024'} # 00 - 01 时次人肉添加
-        find = self._find_period(increment)
+        find = self._findPeriod(increment)
         period = find if find else default[self.tt]
-        return self._with_day(period)
+        return self._withDay(period)
 
-    def existed_in_local(self, period_with_day=None):
-        period_with_day = self.warn_period() if period_with_day is None else period_with_day
+    def existedInLocal(self, periodWithDay=None):
+        periodWithDay = self.warnPeriod() if periodWithDay is None else periodWithDay
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        recent = self.db.query(Tafor).filter(Tafor.rpt.contains(period_with_day), Tafor.sent > expired).order_by(Tafor.sent.desc()).first()
+        recent = db.query(Tafor).filter(Tafor.rpt.contains(periodWithDay), Tafor.sent > expired).order_by(Tafor.sent.desc()).first()
         return recent
 
-    def existed_in_remote(self):
+    def existedInRemote(self):
         if self.remote:
-            regex_period = re.compile(REGEX_TAF['common']['period'])
-            period = regex_period.search(self.remote).group()
-            return period == self.warn_period()
+            period = Grammar.period.search(self.remote).group()
+            return period == self.warnPeriod()
 
     def save(self):
-        last = self.db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()
+        last = db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()
 
-        if last is None or last.rpt_inline != self.remote:  # 如果数据表为空 或 最后一条数据和远程不相等
+        if last is None or last.rptInline != self.remote:  # 如果数据表为空 或 最后一条数据和远程不相等
             item = Tafor(tt=self.tt, rpt=self.remote, confirmed=self.time)
-            self.db.add(item)
-            self.db.commit()
-            log.info('Save {} {}'.format(self.tt, self.remote))
+            db.add(item)
+            db.commit()
+            logger.info('Save {} {}'.format(self.tt, self.remote))
 
     def confirm(self):
-        last = self.db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()
+        last = db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()
 
-        if last is not None and last.rpt_inline == self.remote:
+        if last is not None and last.rptInline == self.remote:
             last.confirmed = self.time
-            self.db.commit()
-            log.info('Confirm {} {}'.format(self.tt, self.remote))
+            db.commit()
+            logger.info('Confirm {} {}'.format(self.tt, self.remote))
 
-    def overdued(self):
-        start_time = self.start_time[self.tt][self.warn_period()[2:]]
-        overdued_time = start_time + self.overdued_time[self.tt]
-        return overdued_time < self.time
+    def hasExpired(self):
+        startTime = self.startTime[self.tt][self.warnPeriod()[2:]]
+        thresholdTime = startTime + self.thresholdTime[self.tt]
+        return thresholdTime < self.time
 
-    def _find_period(self, increment):
-        for key, start in self.start_time[self.tt].items():
+    def _findPeriod(self, increment):
+        for key, start in self.startTime[self.tt].items():
             if start <= self.time <= start + increment[self.tt]:
                 period = key
                 return period
 
-    def _with_day(self, period):
+    def _withDay(self, period):
         if period is None:
             return None
         else:
@@ -166,47 +163,46 @@ class CheckMetar(object):
     def __init__(self, tt, remote):
         self.tt = tt
         self.remote = remote
-        self.db = Session()
 
     def save(self):
-        last = self.db.query(Metar).filter_by(tt=self.tt).order_by(Metar.created.desc()).first()
+        last = db.query(Metar).filter_by(tt=self.tt).order_by(Metar.created.desc()).first()
         
         if last is None or last.rpt != self.remote:
-            item = Metar(tt=self.tt, rpt=self.remote, created=format_timez(self.remote))
-            self.db.add(item)
-            self.db.commit()
-            log.info('Save {} {}'.format(self.tt, self.remote))
+            item = Metar(tt=self.tt, rpt=self.remote, created=formatTimez(self.remote))
+            db.add(item)
+            db.commit()
+            logger.info('Save {} {}'.format(self.tt, self.remote))
 
 
 class Listen(object):
-    def __init__(self, ctx):
-        self.ctx = ctx
+    def __init__(self, store):
+        self.store = store
 
     def __call__(self, tt):
         self.tt = tt
-        self.remote = self.ctx.message.get(self.tt, None)
+        self.remote = self.store.message.get(self.tt, None)
         method = {'FC': 'taf', 'FT': 'taf', 'SA': 'metar', 'SP': 'metar'}
         return getattr(self.__class__, method[self.tt])(self)
 
     def taf(self):
-        warn = False
+        warning = False
 
         taf = CheckTAF(self.tt, remote=self.remote)
-        local = taf.existed_in_local()
+        local = taf.existedInLocal()
 
         if local:
             if not local.confirmed:
-                if taf.existed_in_remote():
+                if taf.existedInRemote():
                     taf.confirm()
-                elif taf.overdued():
-                    warn = True
+                elif taf.hasExpired():
+                    warning = True
         else:
-            if taf.existed_in_remote():
+            if taf.existedInRemote():
                 taf.save()
-            elif taf.overdued():
-                warn = True
+            elif taf.hasExpired():
+                warning = True
 
-        self.ctx.warn = warn
+        self.store.warning = warning
 
     def metar(self):
         metar = CheckMetar(self.tt, remote=self.remote)

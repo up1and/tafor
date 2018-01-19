@@ -13,10 +13,10 @@
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
-  <widget class="QWidget" name="centralwidget">
+  <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QTabWidget" name="main_tab">
+     <widget class="QTabWidget" name="mainTab">
       <property name="minimumSize">
        <size>
         <width>850</width>
@@ -29,11 +29,11 @@
       <property name="movable">
        <bool>true</bool>
       </property>
-      <widget class="QWidget" name="tab_recent">
+      <widget class="QWidget" name="recentTab">
        <attribute name="title">
         <string>RECENT</string>
        </attribute>
-       <layout class="QVBoxLayout" name="recent_layout">
+       <layout class="QVBoxLayout" name="recentLayout">
         <property name="sizeConstraint">
          <enum>QLayout::SetFixedSize</enum>
         </property>
@@ -45,7 +45,7 @@
             <height>0</height>
            </size>
           </property>
-          <layout class="QHBoxLayout" name="tips_layout">
+          <layout class="QHBoxLayout" name="tipsLayout">
            <property name="leftMargin">
             <number>10</number>
            </property>
@@ -63,13 +63,13 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_taf">
+      <widget class="QWidget" name="tafTab">
        <attribute name="title">
         <string>TAF</string>
        </attribute>
        <layout class="QVBoxLayout" name="taf_layout">
         <item>
-         <widget class="QTableWidget" name="taf_table">
+         <widget class="QTableWidget" name="tafTable">
           <property name="minimumSize">
            <size>
             <width>850</width>
@@ -114,13 +114,13 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_metar">
+      <widget class="QWidget" name="metarTab">
        <attribute name="title">
         <string>METAR</string>
        </attribute>
        <layout class="QVBoxLayout" name="metar_layout">
         <item>
-         <widget class="QTableWidget" name="metar_table">
+         <widget class="QTableWidget" name="metarTable">
           <property name="minimumSize">
            <size>
             <width>850</width>
@@ -154,7 +154,7 @@
     </item>
    </layout>
   </widget>
-  <widget class="QMenuBar" name="menubar">
+  <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
     <rect>
      <x>0</x>
@@ -163,74 +163,86 @@
      <height>23</height>
     </rect>
    </property>
-   <widget class="QMenu" name="post_menu">
+   <widget class="QMenu" name="postMenu">
     <property name="title">
      <string>编发</string>
     </property>
-    <addaction name="taf_action"/>
-    <addaction name="trend_action"/>
-    <addaction name="sigmet_action"/>
+    <addaction name="tafAction"/>
+    <addaction name="trendAction"/>
+    <addaction name="sigmetAction"/>
     <addaction name="separator"/>
-    <addaction name="quit_action"/>
+    <addaction name="quitAction"/>
    </widget>
-   <widget class="QMenu" name="setting_menu">
+   <widget class="QMenu" name="settingMenu">
     <property name="title">
      <string>选项</string>
     </property>
-    <widget class="QMenu" name="contracts_menu">
+    <widget class="QMenu" name="contractsMenu">
      <property name="title">
       <string>联系人</string>
      </property>
-     <addaction name="contract_no"/>
+     <addaction name="contractNo"/>
     </widget>
-    <addaction name="contracts_menu"/>
-    <addaction name="setting_action"/>
+    <widget class="QMenu" name="soundMenu">
+     <property name="title">
+      <string>声音</string>
+     </property>
+     <addaction name="warnTAFAction"/>
+     <addaction name="separator"/>
+     <addaction name="remindTAFAction"/>
+     <addaction name="remindTrendAction"/>
+     <addaction name="remindSIGMETAction"/>
+    </widget>
+    <addaction name="soundMenu"/>
+    <addaction name="contractsMenu"/>
+    <addaction name="separator"/>
+    <addaction name="settingAction"/>
    </widget>
-   <widget class="QMenu" name="help_menu">
+   <widget class="QMenu" name="helpMenu">
     <property name="title">
      <string>帮助</string>
     </property>
-    <addaction name="open_docs_action"/>
-    <addaction name="report_issue_action"/>
+    <addaction name="openDocsAction"/>
+    <addaction name="reportIssueAction"/>
     <addaction name="separator"/>
-    <addaction name="about_action"/>
+    <addaction name="aboutAction"/>
    </widget>
-   <addaction name="post_menu"/>
-   <addaction name="setting_menu"/>
-   <addaction name="help_menu"/>
+   <addaction name="postMenu"/>
+   <addaction name="settingMenu"/>
+   <addaction name="helpMenu"/>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
-  <action name="taf_action">
+  <widget class="QStatusBar" name="statusBar"/>
+  <action name="tafAction">
    <property name="text">
     <string>预报</string>
    </property>
   </action>
-  <action name="trend_action">
+  <action name="trendAction">
    <property name="text">
     <string>趋势</string>
    </property>
   </action>
-  <action name="sigmet_action">
+  <action name="sigmetAction">
    <property name="text">
     <string>重要气象情报</string>
    </property>
   </action>
-  <action name="setting_action">
+  <action name="settingAction">
    <property name="text">
     <string>设置</string>
    </property>
   </action>
-  <action name="about_action">
+  <action name="aboutAction">
    <property name="text">
     <string>关于</string>
    </property>
   </action>
-  <action name="quit_action">
+  <action name="quitAction">
    <property name="text">
     <string>退出</string>
    </property>
   </action>
-  <action name="contract_no">
+  <action name="contractNo">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -238,21 +250,53 @@
     <string>无</string>
    </property>
   </action>
-  <action name="report_issue_action">
+  <action name="reportIssueAction">
    <property name="text">
     <string>报告问题</string>
    </property>
   </action>
-  <action name="open_docs_action">
+  <action name="openDocsAction">
    <property name="text">
     <string>文档</string>
+   </property>
+  </action>
+  <action name="remindTAFAction">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>预报</string>
+   </property>
+  </action>
+  <action name="remindTrendAction">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>趋势预报</string>
+   </property>
+  </action>
+  <action name="remindSIGMETAction">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>重要气象情报</string>
+   </property>
+  </action>
+  <action name="warnTAFAction">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>告警</string>
    </property>
   </action>
  </widget>
  <resources/>
  <connections>
   <connection>
-   <sender>quit_action</sender>
+   <sender>quitAction</sender>
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
    <slot>close()</slot>

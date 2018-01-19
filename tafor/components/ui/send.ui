@@ -18,7 +18,7 @@
     <enum>QLayout::SetFixedSize</enum>
    </property>
    <item>
-    <widget class="QGroupBox" name="rpt_group">
+    <widget class="QGroupBox" name="rptGroup">
      <property name="title">
       <string>报文</string>
      </property>
@@ -53,7 +53,7 @@ p, li { white-space: pre-wrap; }
     </widget>
    </item>
    <item>
-    <widget class="QGroupBox" name="raw_group">
+    <widget class="QGroupBox" name="rawGroup">
      <property name="title">
       <string>已向串口发送数据</string>
      </property>
@@ -83,7 +83,7 @@ p, li { white-space: pre-wrap; }
     </widget>
    </item>
    <item>
-    <widget class="QDialogButtonBox" name="button_box">
+    <widget class="QDialogButtonBox" name="buttonBox">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
@@ -97,7 +97,7 @@ p, li { white-space: pre-wrap; }
  <resources/>
  <connections>
   <connection>
-   <sender>button_box</sender>
+   <sender>buttonBox</sender>
    <signal>rejected()</signal>
    <receiver>Send</receiver>
    <slot>reject()</slot>

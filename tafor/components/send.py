@@ -9,56 +9,56 @@ from tafor.utils import Parser
 from tafor import conf, logger
 
 
-def chunks(lists, n):
-    """Yield successive n-sized chunks from lists."""
-    for i in range(0, len(lists), n):
-        yield lists[i:i + n]
-
-
 class AFTNMessage(object):
     """docstring for AFTNMessage"""
-    def __init__(self, message, cls='taf', time=None):
+    def __init__(self, message, cls='TAF', time=None):
         super(AFTNMessage, self).__init__()
         self.message = message
         self.cls = cls
         self.time = datetime.datetime.utcnow() if time is None else time
 
     def raw(self):
-        channel = conf.value('communication/other/channel')
-        number = int(conf.value('communication/other/number'))
-        send_address = conf.value('communication/address/' + self.cls)
-        user_address = conf.value('communication/other/user_addr')
+        channel = conf.value('Communication/Channel')
+        number = conf.value('Communication/Number')
+        number = int(number) if number else 0
+        sendAddress = conf.value('Communication/{}Address'.format(self.cls))
+        userAddress = conf.value('Communication/UserAddress')
 
-        addresses = self.divide_address(send_address)
+        addresses = self.divideAddress(sendAddress)
         time = self.time.strftime('%d%H%M')
 
         # 定值
-        self.aftn_time = ' '.join([time, user_address])
-        self.aftn_nnnn = 'NNNN'
+        self.aftnTime = ' '.join([time, userAddress])
+        self.aftnNnnn = 'NNNN'
 
-        aftn_message = []
+        aftnMessage = []
         for address in addresses:
-            self.aftn_zczc = ' '.join(['ZCZC', channel + str(number).zfill(4)])
-            self.aftn_adress = ' '.join(['GG'] + address)
-            items = [self.aftn_zczc, self.aftn_adress, self.aftn_time, self.message, self.aftn_nnnn]
-            aftn_message.append('\n'.join(items))
+            self.aftnZczc = ' '.join(['ZCZC', channel + str(number).zfill(4)])
+            self.aftnAddress = ' '.join(['GG'] + address)
+            items = [self.aftnZczc, self.aftnAddress, self.aftnTime, self.message, self.aftnNnnn]
+            aftnMessage.append('\n'.join(items))
             number += 1
 
-        conf.setValue('communication/other/number', str(number))
+        conf.setValue('Communication/Number', str(number))
         
-        return aftn_message
+        return aftnMessage
 
 
-    def divide_address(self, address):
+    def divideAddress(self, address):
+        def chunks(lists, n):
+            """Yield successive n-sized chunks from lists."""
+            for i in range(0, len(lists), n):
+                yield lists[i:i + n]
+
         items = address.split()
         return chunks(items, 7)
 
 
 class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Send):
 
-    signal_send = QtCore.pyqtSignal()
-    signal_close = QtCore.pyqtSignal()
-    signal_back = QtCore.pyqtSignal()
+    sendSignal = QtCore.pyqtSignal()
+    closeSignal = QtCore.pyqtSignal()
+    backSignal = QtCore.pyqtSignal()
 
     def __init__(self, parent=None):
         """
@@ -67,12 +67,12 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Send):
         super(BaseSender, self).__init__(parent)
         self.setupUi(self)
 
-        self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setText("Send")
-        # self.button_box.addButton("TEST", QDialogButtonBox.ActionRole)
-        self.rejected.connect(self.cancel_signal)
-        self.signal_close.connect(self.clear)
+        self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setText("Send")
+        # self.buttonBox.addButton("TEST", QDialogButtonBox.ActionRole)
+        self.rejected.connect(self.cancel)
+        self.closeSignal.connect(self.clear)
 
-        self.raw_group.hide()
+        self.rawGroup.hide()
 
     def receive(self, message):
         self.message = message
@@ -90,20 +90,20 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Send):
 
     def closeEvent(self, event):
         if event.spontaneous():
-            self.cancel_signal()
+            self.cancel()
 
-    def cancel_signal(self):
-        if self.button_box.button(QtWidgets.QDialogButtonBox.Ok).isEnabled():
-            self.signal_back.emit()
+    def cancel(self):
+        if self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).isEnabled():
+            self.backSignal.emit()
             logger.debug('Back to edit')
         else:
-            self.signal_close.emit()
+            self.closeSignal.emit()
             logger.debug('Close send dialog')
 
     def clear(self):
         self.rpt.setText('')
-        self.raw_group.hide()
-        self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(True)
+        self.rawGroup.hide()
+        self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(True)
 
 
 class TAFSender(BaseSender):
@@ -111,21 +111,21 @@ class TAFSender(BaseSender):
     def __init__(self, parent=None):
         super(TAFSender, self).__init__(parent)
 
-        self.button_box.accepted.connect(self.send)
-        self.button_box.accepted.connect(self.save)
+        self.buttonBox.accepted.connect(self.send)
+        self.buttonBox.accepted.connect(self.save)
 
     def save(self):
         item = Tafor(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'], raw=json.dumps(self.aftn.raw()))
         db.add(item)
         db.commit()
         logger.debug('Save ' + item.rpt)
-        self.signal_send.emit()
+        self.sendSignal.emit()
 
     def send(self):
         self.aftn = AFTNMessage(self.message['full'])
         self.raw.setText('\n\n\n\n'.join(self.aftn.raw()))
-        self.raw_group.show()
-        self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
+        self.rawGroup.show()
+        self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
 
 
 class TaskTAFSender(BaseSender):
@@ -135,13 +135,13 @@ class TaskTAFSender(BaseSender):
 
         self.setWindowTitle('定时任务')
 
-        self.button_box.accepted.connect(self.save)
-        self.button_box.accepted.connect(self.accept)
+        self.buttonBox.accepted.connect(self.save)
+        self.buttonBox.accepted.connect(self.accept)
 
         # 自动发送报文的计时器
-        self.auto_sent = QtCore.QTimer()
-        self.auto_sent.timeout.connect(self.auto_send)
-        self.auto_sent.start(30 * 1000)
+        self.autoSendTimer = QtCore.QTimer()
+        self.autoSendTimer.timeout.connect(self.autoSend)
+        self.autoSendTimer.start(30 * 1000)
 
         # 测试数据
         # self.Task_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=1)
@@ -151,12 +151,12 @@ class TaskTAFSender(BaseSender):
         db.add(item)
         db.commit()
         logger.debug('Save Task', item.plan.strftime("%b %d %Y %H:%M:%S"))
-        self.signal_send.emit()
+        self.sendSignal.emit()
 
-    def auto_send(self):
+    def autoSend(self):
         tasks = db.query(Task).filter_by(tafor_id=None).order_by(Task.plan).all()
         now = datetime.datetime.utcnow()
-        send_status = False
+        sendStatus = False
 
         for task in tasks:
 
@@ -171,11 +171,11 @@ class TaskTAFSender(BaseSender):
                 db.merge(task)
                 db.commit()
 
-                send_status = True
+                sendStatus = True
 
         logger.debug('Tasks ' + ' '.join(task.rpt for task in tasks))
         
-        if send_status:
+        if sendStatus:
             logger.debug('Task complete')
 
 
@@ -184,8 +184,8 @@ class TrendSender(BaseSender):
     def __init__(self, parent=None):
         super(TrendSender, self).__init__(parent)
 
-        self.button_box.accepted.connect(self.send)
-        self.button_box.accepted.connect(self.save)
+        self.buttonBox.accepted.connect(self.send)
+        self.buttonBox.accepted.connect(self.save)
 
     def receive(self, message):
         self.message = message
@@ -196,13 +196,13 @@ class TrendSender(BaseSender):
         db.add(item)
         db.commit()
         logger.debug('Save ' + item.rpt)
-        self.signal_send.emit()
+        self.sendSignal.emit()
 
     def send(self):
         self.aftn = AFTNMessage(self.message['full'], 'trend')
         self.raw.setText('\n\n\n\n'.join(self.aftn.raw()))
-        self.raw_group.show()
-        self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
+        self.rawGroup.show()
+        self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
 
 
     

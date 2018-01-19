@@ -8,7 +8,7 @@ from PyQt5.QtMultimedia import QSound, QSoundEffect
 
 from tafor import BASEDIR, conf, logger, boolean, __version__
 from tafor.models import db, Tafor, Task, Metar, User
-from tafor.utils import CheckTAF, Listen, remote_message, call_service, call_up
+from tafor.utils import CheckTAF, Listen, remoteMessage, callService, callUp
 
 from tafor.components.ui import Ui_main, main_rc
 from tafor.components.taf import TAFEditor, TaskTAFEditor
@@ -22,14 +22,13 @@ from tafor.components.widgets.status import WebAPIStatus, CallServiceStatus
 from tafor.components.widgets.sound import Sound
 
 
-class Context(QtCore.QObject):
-    signal_warning = QtCore.pyqtSignal()
+class Store(QtCore.QObject):
+    warningSignal = QtCore.pyqtSignal()
 
     def __init__(self):
-        super(Context, self).__init__()
+        super(Store, self).__init__()
         self._message = {}
-        self._web_api = None
-        self._call_service = None
+        self._callService = None
         self._warning = False
 
     @property
@@ -41,16 +40,16 @@ class Context(QtCore.QObject):
         self._message = msg
 
     @property
-    def web_api(self):
+    def webApi(self):
         return True if self._message else False
 
     @property
-    def call_service(self):
-        return self._call_service
+    def callService(self):
+        return self._callService
 
-    @call_service.setter
-    def call_service(self, value):
-        self._call_service = value
+    @callService.setter
+    def callService(self, value):
+        self._callService = value
 
     @property
     def warning(self):
@@ -59,7 +58,7 @@ class Context(QtCore.QObject):
     @warning.setter
     def warning(self, value):
         self._warn = value
-        self.warning.emit()
+        self.warningSignal.emit()
         
 
 class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
@@ -73,223 +72,223 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         super(MainWindow, self).__init__(parent)
         self.setupUi(self)
 
-        self.ctx = Context()
-        self.ctx.signal_warning.connect(self.dialer)
+        self.store = Store()
+        self.store.warningSignal.connect(self.dialer)
 
         # 初始化剪贴板
         self.clip = QtWidgets.QApplication.clipboard()
 
         # 初始TAF对话框
-        self.taf_edit_dialog = TAFEditor(self)
-        self.task_taf_edit_dialog = TaskTAFEditor(self)
-        self.trend_edit_dialog = TrendEditor(self)
+        self.tafEditDialog = TAFEditor(self)
+        self.taskTafEditDialog = TaskTAFEditor(self)
+        self.trendEditDialog = TrendEditor(self)
 
-        self.taf_send_dialog = TAFSender(self)
-        self.task_taf_send_dialog = TaskTAFSender(self)
-        self.trend_send_dialog = TrendSender(self)
+        self.tafSendDialog = TAFSender(self)
+        self.taskTafSendDialog = TaskTAFSender(self)
+        self.trendSendDialog = TrendSender(self)
 
-        self.task_table_dialog = TaskBrowser(self)
-        self.setting_dialog = SettingDialog(self)
+        self.taskBrowserDialog = TaskBrowser(self)
+        self.settingDialog = SettingDialog(self)
 
         # 连接TAF对话框信号
-        self.taf_edit_dialog.signal_preview.connect(self.handle_taf_edit)
-        self.taf_send_dialog.signal_send.connect(self.update_gui)
-        self.taf_send_dialog.signal_back.connect(self.taf_edit_dialog.show)
-        self.taf_send_dialog.signal_close.connect(self.taf_edit_dialog.close)
+        self.tafEditDialog.previewSignal.connect(self.handleTafEdit)
+        self.tafSendDialog.sendSignal.connect(self.updateGUI)
+        self.tafSendDialog.backSignal.connect(self.tafEditDialog.show)
+        self.tafSendDialog.closeSignal.connect(self.tafEditDialog.close)
 
-        self.task_taf_edit_dialog.signal_preview.connect(self.handle_task_taf_edit)
-        self.task_taf_send_dialog.signal_send.connect(self.handle_task_taf_send)
+        self.taskTafEditDialog.previewSignal.connect(self.handleTaskTafEdit)
+        self.taskTafSendDialog.sendSignal.connect(self.handleTaskTafSend)
 
-        self.trend_edit_dialog.signal_preview.connect(self.handle_trend_edit)
-        self.trend_send_dialog.signal_send.connect(self.update_gui)
-        self.trend_send_dialog.signal_back.connect(self.trend_edit_dialog.show)
-        self.trend_send_dialog.signal_close.connect(self.trend_edit_dialog.close)
+        self.trendEditDialog.previewSignal.connect(self.handleTrendEdit)
+        self.trendSendDialog.sendSignal.connect(self.updateGUI)
+        self.trendSendDialog.backSignal.connect(self.trendEditDialog.show)
+        self.trendSendDialog.closeSignal.connect(self.trendEditDialog.close)
 
         # 连接菜单信号
-        self.taf_action.triggered.connect(self.taf_edit_dialog.show)
-        self.trend_action.triggered.connect(self.trend_edit_dialog.show)
+        self.tafAction.triggered.connect(self.tafEditDialog.show)
+        self.trendAction.triggered.connect(self.trendEditDialog.show)
 
         # 添加定时任务菜单
         # self.task_taf_action = QtWidgets.QAction(self)
         # self.post_menu.addAction(self.task_taf_action)
         # self.task_taf_action.setText('定时任务')
-        # self.task_taf_action.triggered.connect(self.task_taf_edit_dialog.show)
+        # self.task_taf_action.triggered.connect(self.task_tafEditDialog.show)
 
         # 连接设置对话框的槽
-        self.setting_action.triggered.connect(self.setting_dialog.exec_)
-        self.setting_action.triggered.connect(self.show_window)
-        self.setting_action.setIcon(QtGui.QIcon(':/setting.png'))
+        self.settingAction.triggered.connect(self.settingDialog.exec_)
+        self.settingAction.triggered.connect(self.showWindow)
+        self.settingAction.setIcon(QtGui.QIcon(':/setting.png'))
 
         # 连接关于信息的槽
-        self.about_action.triggered.connect(self.about)
-        self.about_action.triggered.connect(self.show_window)
+        self.aboutAction.triggered.connect(self.about)
+        self.aboutAction.triggered.connect(self.showWindow)
 
-        self.report_issue_action.triggered.connect(self.report_issue)
+        self.reportIssueAction.triggered.connect(self.reportIssue)
 
         # 联系人选项组
-        self.contracts_action_group = QtWidgets.QActionGroup(self)
-        self.contracts_action_group.addAction(self.contract_no)
+        self.contractsActionGroup = QtWidgets.QActionGroup(self)
+        self.contractsActionGroup.addAction(self.contractNo)
 
         # 连接切换联系人的槽
-        self.contracts_action_group.triggered.connect(self.change_contract)
-        self.contracts_action_group.triggered.connect(self.setting_dialog.update_contract)
+        self.contractsActionGroup.triggered.connect(self.changeContract)
+        self.contractsActionGroup.triggered.connect(self.settingDialog.updateContract)
 
         # 连接报文表格复制的槽
-        self.taf_table.itemDoubleClicked.connect(self.copy_select_item)
-        self.metar_table.itemDoubleClicked.connect(self.copy_select_item)
+        self.tafTable.itemDoubleClicked.connect(self.copySelectItem)
+        self.metarTable.itemDoubleClicked.connect(self.copySelectItem)
 
         # 设置主窗口文字图标
         self.setWindowTitle('预报发报软件')
         self.setWindowIcon(QtGui.QIcon(':/logo.png'))
 
-        self.setup_recent()
+        self.setupRecent()
 
         # 设置切换联系人菜单
-        self.setup_change_contract_menu()
+        self.setupChangeContractMenu()
 
         # 设置系统托盘
-        self.setup_sys_tray()
+        self.setupSysTray()
 
         # 设置系统托盘
-        self.setup_statusbar()
+        self.setupStatusbar()
 
         # 载入声音
-        self.sound_ring = Sound('ring.wav', conf.value('monitor/clock/clock_volume'))
-        self.sound_notify = Sound('notify.wav', 100)
-        self.sound_alarm = Sound('alarm.wav', conf.value('monitor/sound/warn_taf_volume'))
-        self.sound_trend = Sound('trend.wav', conf.value('monitor/sound/remind_trend_volume'))
-        self.sound_sigmet = Sound('sigmet.wav', conf.value('monitor/sound/remind_sigmet_volume'))
+        self.ringSound = Sound('ring.wav', conf.value('Monitor/RemindTAFVolume'))
+        self.notificationSound = Sound('notification.wav', 100)
+        self.alarmSound = Sound('alarm.wav', conf.value('Monitor/WarnTAFVolume'))
+        self.trendSound = Sound('trend.wav', conf.value('Monitor/RemindTrendVolume'))
+        self.sigmetSound = Sound('sigmet.wav', conf.value('Monitor/RemindSIGMETVolume'))
 
-        self.setting_dialog.clock_volume.valueChanged.connect(lambda vol: self.sound_ring.play(volume=vol, loop=False))
-        self.setting_dialog.warn_taf_volume.valueChanged.connect(lambda vol: self.sound_alarm.play(volume=vol, loop=False))
-        self.setting_dialog.remind_trend_volume.valueChanged.connect(lambda vol: self.sound_trend.play(volume=vol, loop=False))
-        self.setting_dialog.remind_sigmet_volume.valueChanged.connect(lambda vol: self.sound_sigmet.play(volume=vol, loop=False))
+        self.settingDialog.warnTAFVolume.valueChanged.connect(lambda vol: self.alarmSound.play(volume=vol, loop=False))
+        self.settingDialog.remindTAFVolume.valueChanged.connect(lambda vol: self.ringSound.play(volume=vol, loop=False))
+        self.settingDialog.remindTrendVolume.valueChanged.connect(lambda vol: self.trendSound.play(volume=vol, loop=False))
+        self.settingDialog.remindSIGMETVolume.valueChanged.connect(lambda vol: self.sigmetSound.play(volume=vol, loop=False))
 
         # 时钟计时器
-        self.clock_timer = QtCore.QTimer()
-        self.clock_timer.timeout.connect(self.singer)
-        self.clock_timer.start(1 * 1000)
+        self.clockTimer = QtCore.QTimer()
+        self.clockTimer.timeout.connect(self.singer)
+        self.clockTimer.start(1 * 1000)
 
-        self.worker_timer = QtCore.QTimer()
-        self.worker_timer.timeout.connect(self.worker)
-        self.worker_timer.start(60 * 1000)
+        self.workerTimer = QtCore.QTimer()
+        self.workerTimer.timeout.connect(self.worker)
+        self.workerTimer.start(60 * 1000)
 
-        self.update_gui()
+        self.updateGUI()
         self.worker()
 
-    def setup_recent(self):
-        self.clock = Clock(self, self.tips_layout)
-        self.tips_layout.addSpacerItem(QtWidgets.QSpacerItem(10, 10, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum))
-        self.current_taf = CurrentTAF(self, self.tips_layout)
-        self.recent_ft = RecentTAF(self, self.recent_layout, 'FT')
-        self.recent_fc = RecentTAF(self, self.recent_layout, 'FC')
+    def setupRecent(self):
+        self.clock = Clock(self, self.tipsLayout)
+        self.tipsLayout.addSpacerItem(QtWidgets.QSpacerItem(10, 10, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum))
+        self.currentTAF = CurrentTAF(self, self.tipsLayout)
+        self.recentFT = RecentTAF(self, self.recentLayout, 'FT')
+        self.recentFC = RecentTAF(self, self.recentLayout, 'FC')
 
-    def setup_change_contract_menu(self):
+    def setupChangeContractMenu(self):
         contacts = db.query(User).all()
 
         for person in contacts:
-            setattr(self, 'contract_' + str(person.id), QtWidgets.QAction(self))
-            target = getattr(self, 'contract_' + str(person.id))
+            setattr(self, 'contract' + str(person.id), QtWidgets.QAction(self))
+            target = getattr(self, 'contract' + str(person.id))
             target.setText(person.name)
             target.setCheckable(True)
 
-            self.contracts_action_group.addAction(target)
-            self.contracts_menu.addAction(target)
+            self.contractsActionGroup.addAction(target)
+            self.contractsMenu.addAction(target)
 
-        mobile = conf.value('monitor/phone/selected_mobile')
+        mobile = conf.value('Monitor/SelectedMobile')
         person = db.query(User).filter_by(mobile=mobile).first()
-        if conf.value('monitor/phone/phone_warn_taf') and person:
-            getattr(self, 'contract_' + str(person.id)).setChecked(True)
+        if person:
+            getattr(self, 'contract' + str(person.id)).setChecked(True)
         else:
-            self.contract_no.setChecked(True)
+            self.contractNo.setChecked(True)
 
-    def setup_sys_tray(self):
+    def setupSysTray(self):
         # 设置系统托盘
         self.tray = QtWidgets.QSystemTrayIcon(self)
         self.tray.setIcon(QtGui.QIcon(':/logo.png'))
         self.tray.show()
 
         # 连接系统托盘的槽
-        self.tray.activated.connect(self.restore_window)
+        self.tray.activated.connect(self.restoreWindow)
 
-        self.tray_menu = QtWidgets.QMenu(self)
+        self.trayMenu = QtWidgets.QMenu(self)
 
-        self.tray_menu.addAction(self.contracts_menu.menuAction())
-        self.tray_menu.addAction(self.setting_action)
-        self.tray_menu.addAction(self.about_action)
-        self.tray_menu.addSeparator()
-        self.tray_menu.addAction(self.quit_action)
+        self.trayMenu.addAction(self.contractsMenu.menuAction())
+        self.trayMenu.addAction(self.settingAction)
+        self.trayMenu.addAction(self.aboutAction)
+        self.trayMenu.addSeparator()
+        self.trayMenu.addAction(self.quitAction)
 
-        self.tray.setContextMenu(self.tray_menu)
+        self.tray.setContextMenu(self.trayMenu)
 
         message = '预报发报软件 v' + __version__
         self.tray.setToolTip(message)
 
-    def setup_statusbar(self):
-        self.web_api_status = WebAPIStatus(self, self.statusbar)
-        self.call_service_status = CallServiceStatus(self, self.statusbar)
+    def setupStatusbar(self):
+        self.webApiStatus = WebAPIStatus(self, self.statusBar)
+        self.callServiceStatus = CallServiceStatus(self, self.statusBar)
 
-        # self.statusbar.setStyleSheet('QStatusBar::item{border: 0px}')
+        # self.statusBar.setStyleSheet('QStatusBar::item{border: 0px}')
 
-    def change_contract(self):
-        target = self.contracts_action_group.checkedAction()
+    def changeContract(self):
+        target = self.contractsActionGroup.checkedAction()
 
-        if self.contract_no == target:
-            conf.setValue('monitor/phone/selected_mobile', '')
+        if self.contractNo == target:
+            conf.setValue('Monitor/SelectedMobile', '')
             logger.info('关闭电话提醒')
         else:
             name = target.text()
             person = db.query(User).filter_by(name=name).first()
             mobile = person.mobile if person else ''
 
-            conf.setValue('monitor/phone/selected_mobile', mobile)
+            conf.setValue('Monitor/SelectedMobile', mobile)
             logger.info('切换联系人 %s %s' % (name, mobile))
 
-    def copy_select_item(self, item):
+    def copySelectItem(self, item):
         self.clip.setText(item.text())
-        self.statusbar.showMessage(item.text(), 5000)
+        self.statusBar.showMessage(item.text(), 5000)
 
-    def handle_taf_edit(self, message):
+    def handleTafEdit(self, message):
         logger.debug('Receive from taf edit ' + message['full'])
-        self.taf_edit_dialog.hide()
-        self.taf_send_dialog.receive(message)
-        self.taf_send_dialog.show()
+        self.tafEditDialog.hide()
+        self.tafSendDialog.receive(message)
+        self.tafSendDialog.show()
 
-    def handle_task_taf_edit(self, message):
+    def handleTaskTafEdit(self, message):
         logger.debug('Receive from task taf edit ' + message['full'])
-        self.task_taf_send_dialog.receive(message)
-        self.task_taf_send_dialog.show()
+        self.taskTafSendDialog.receive(message)
+        self.taskTafSendDialog.show()
 
-    def handle_trend_edit(self, message):
+    def handleTrendEdit(self, message):
         logger.debug('Receive from task taf edit ' + message['full'])
-        self.trend_edit_dialog.hide()
-        self.trend_send_dialog.receive(message)
-        self.trend_send_dialog.show()
+        self.trendEditDialog.hide()
+        self.trendSendDialog.receive(message)
+        self.trendSendDialog.show()
 
-    def handle_task_taf_send(self):
-        self.task_taf_edit_dialog.hide()
-        self.task_taf_send_dialog.hide()
-        self.task_table_dialog.show()
-        self.task_table_dialog.update_gui()
+    def handleTaskTafSend(self):
+        self.taskTafEditDialog.hide()
+        self.taskTafSendDialog.hide()
+        self.taskTableDialog.show()
+        self.taskTableDialog.update_gui()
 
     def singer(self):
-        trend_switch = conf.value('monitor/sound/remind_trend')
-        taf_switch = conf.value('monitor/sound/warn_taf')
-        sigmet_switch = conf.value('monitor/sound/remind_sigmet')
-        clock_switch = conf.value('monitor/sound/clock')
+        warnSwitch = conf.value('Monitor/WarnTAF')
+        trendSwitch = conf.value('Monitor/RemindTrend')
+        sigmetSwitch = conf.value('Monitor/RemindSIGMET')
+        tafSwitch = conf.value('Monitor/RemindTAF')
 
         # 管理趋势声音
         utc = datetime.datetime.utcnow()
-        if trend_switch and utc.minute in (58, 59):
-            self.sound_trend.play()
+        if trendSwitch and utc.minute in (58, 59):
+            self.trendSound.play()
         else:
-            self.sound_trend.stop()
+            self.trendSound.stop()
 
         # 管理报文告警声音
-        if taf_switch and self.ctx.warning:
-            self.sound_alarm.play()
+        if warnSwitch and self.store.warning:
+            self.alarmSound.play()
         else:
-            self.sound_alarm.stop()
+            self.alarmSound.stop()
 
     def event(self, event):
         """
@@ -307,7 +306,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
     def keyPressEvent(self, event):
         if event.modifiers() == (QtCore.Qt.ShiftModifier | QtCore.Qt.ControlModifier):
             if event.key() == QtCore.Qt.Key_P:
-                self.task_taf_edit_dialog.show()
+                self.task_tafEditDialog.show()
             if event.key() == QtCore.Qt.Key_T:
                 self.task_table_dialog.show()
 
@@ -316,121 +315,121 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             event.ignore()
             self.hide()
         else:
-            self.taf_edit_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-            self.task_taf_edit_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-            self.taf_send_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-            self.task_taf_send_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-            self.task_table_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-            self.setting_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            self.tafEditDialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            self.taskTafEditDialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            self.tafSendDialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            self.taskTafSendDialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            self.taskBrowserDialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            self.settingDialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
-            self.taf_edit_dialog.close()
-            self.task_taf_edit_dialog.close()
-            self.taf_send_dialog.close()
-            self.task_taf_send_dialog.close()
-            self.task_table_dialog.close()
-            self.setting_dialog.close()
+            self.tafEditDialog.close()
+            self.taskTafEditDialog.close()
+            self.tafSendDialog.close()
+            self.taskTafSendDialog.close()
+            self.taskBrowserDialog.close()
+            self.settingDialog.close()
 
             self.tray.hide()
             event.accept()
 
-    def restore_window(self, reason):
+    def restoreWindow(self, reason):
         """
         恢复窗口
         """
         if reason == QtWidgets.QSystemTrayIcon.Trigger:
             self.showNormal()
 
-    def show_window(self):
+    def showWindow(self):
         if self.isMinimized():
             self.showNormal()
 
     def worker(self):
         thread = WorkThread(self)
-        thread.signal_done.connect(self.update_message)
+        thread.doneSignal.connect(self.updateMessage)
         thread.start()
 
     def dialer(self, test=False):
-        call_switch = boolean(conf.value('monitor/phone/phone_warn_taf'))
+        callSwitch = boolean(conf.value('monitor/phone/phone_warn_taf'))
 
-        if call_switch and self.ctx.warn or test:
+        if callSwitch and self.store.warn or test:
             thread = CallThread(self)
             thread.start()
 
-    def update_message(self):
-        listen = Listen(self.ctx)
+    def updateMessage(self):
+        listen = Listen(self.store)
         [listen(i) for i in ('FC', 'FT', 'SA', 'SP')]
 
-        self.update_gui()
+        self.updateGUI()
 
-    def update_gui(self):
-        self.update_taf_table()
-        self.update_metar_table()
-        self.update_recent()
+    def updateGUI(self):
+        self.updateTafTable()
+        self.updateMetarTable()
+        self.updateRecent()
 
         logger.debug('Update GUI')
 
-    def update_recent(self):
-        self.current_taf.update_gui()
-        self.recent_ft.update_gui()
-        self.recent_fc.update_gui()
+    def updateRecent(self):
+        self.currentTAF.updateGUI()
+        self.recentFT.updateGUI()
+        self.recentFC.updateGUI()
 
-    def update_taf_table(self):
+    def updateTafTable(self):
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
         items = db.query(Tafor).filter(Tafor.sent > recent).order_by(Tafor.sent.desc()).all()
-        header = self.taf_table.horizontalHeader()
+        header = self.tafTable.horizontalHeader()
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
-        self.taf_table.setRowCount(len(items))
-        self.taf_table.setColumnWidth(0, 50)
-        self.taf_table.setColumnWidth(2, 140)
-        self.taf_table.setColumnWidth(3, 50)
-        self.taf_table.setColumnWidth(4, 50)
+        self.tafTable.setRowCount(len(items))
+        self.tafTable.setColumnWidth(0, 50)
+        self.tafTable.setColumnWidth(2, 140)
+        self.tafTable.setColumnWidth(3, 50)
+        self.tafTable.setColumnWidth(4, 50)
 
         for row, item in enumerate(items):
-            self.taf_table.setItem(row, 0,  QtWidgets.QTableWidgetItem(item.tt))
-            self.taf_table.setItem(row, 1,  QtWidgets.QTableWidgetItem(item.rpt_inline))
+            self.tafTable.setItem(row, 0,  QtWidgets.QTableWidgetItem(item.tt))
+            self.tafTable.setItem(row, 1,  QtWidgets.QTableWidgetItem(item.rptInline))
             if item.sent:
                 sent = item.sent.strftime("%Y-%m-%d %H:%M:%S")
-                self.taf_table.setItem(row, 2,  QtWidgets.QTableWidgetItem(sent))
+                self.tafTable.setItem(row, 2,  QtWidgets.QTableWidgetItem(sent))
 
             if item.confirmed:
-                check_item = QtWidgets.QTableWidgetItem()
-                check_item.setTextAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
-                check_item.setIcon(QtGui.QIcon(':/checkmark.png'))
-                self.taf_table.setItem(row, 3, check_item)
+                checkedItem = QtWidgets.QTableWidgetItem()
+                checkedItem.setTextAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
+                checkedItem.setIcon(QtGui.QIcon(':/checkmark.png'))
+                self.tafTable.setItem(row, 3, checkedItem)
             else:
-                check_item = QtWidgets.QTableWidgetItem()
-                check_item.setTextAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
-                check_item.setIcon(QtGui.QIcon(':/cross.png'))
-                self.taf_table.setItem(row, 3, check_item)
+                checkedItem = QtWidgets.QTableWidgetItem()
+                checkedItem.setTextAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
+                checkedItem.setIcon(QtGui.QIcon(':/cross.png'))
+                self.tafTable.setItem(row, 3, checkedItem)
 
             # if item.task:
             #     task_item = QtWidgets.QTableWidgetItem('√')
             #     # schedule_item.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
             #     # schedule_item.setIcon(QIcon(':/time.png'))
-            #     self.taf_table.setItem(row, 4, task_item)
+            #     self.tafTable.setItem(row, 4, task_item)
 
 
-        self.taf_table.setStyleSheet("QTableWidget::item {padding: 5px 0;}")
-        self.taf_table.resizeRowsToContents()
+        self.tafTable.setStyleSheet("QTableWidget::item {padding: 5px 0;}")
+        self.tafTable.resizeRowsToContents()
 
 
-    def update_metar_table(self):
+    def updateMetarTable(self):
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
         items = db.query(Metar).filter(Metar.created > recent).order_by(Metar.created.desc()).all()
-        header = self.metar_table.horizontalHeader()
+        header = self.metarTable.horizontalHeader()
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
-        self.metar_table.setRowCount(len(items))
-        self.metar_table.setColumnWidth(0, 50)
+        self.metarTable.setRowCount(len(items))
+        self.metarTable.setColumnWidth(0, 50)
 
         for row, item in enumerate(items):
-            self.metar_table.setItem(row, 0,  QtWidgets.QTableWidgetItem(item.tt))
-            self.metar_table.setItem(row, 1,  QtWidgets.QTableWidgetItem(item.rpt))
+            self.metarTable.setItem(row, 0,  QtWidgets.QTableWidgetItem(item.tt))
+            self.metarTable.setItem(row, 1,  QtWidgets.QTableWidgetItem(item.rpt))
             if item.tt == 'SP':
-                self.metar_table.item(row, 0).setForeground(QtCore.Qt.red)
-                self.metar_table.item(row, 1).setForeground(QtCore.Qt.red)
+                self.metarTable.item(row, 0).setForeground(QtCore.Qt.red)
+                self.metarTable.item(row, 1).setForeground(QtCore.Qt.red)
 
-        self.metar_table.setStyleSheet("QTableWidget::item {padding: 5px 0;}")
-        self.metar_table.resizeRowsToContents()
+        self.metarTable.setStyleSheet("QTableWidget::item {padding: 5px 0;}")
+        self.metarTable.resizeRowsToContents()
 
     def about(self):
         QtWidgets.QMessageBox.about(self, "预报报文发布软件",
@@ -440,27 +439,27 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
                 <p>
                 """ % (__version__))
 
-    def report_issue(self):
+    def reportIssue(self):
         QtGui.QDesktopServices.openUrl(QtCore.QUrl('https://github.com/up1and/tafor/issues'))
 
 class WorkThread(QtCore.QThread):
     """
     检查预报报文线程类
     """
-    signal_done = QtCore.pyqtSignal()
+    doneSignal = QtCore.pyqtSignal()
 
     def __init__(self, parent=None):
         super(WorkThread, self).__init__(parent)
         self.parent = parent
 
     def run(self):
-        if (boolean(conf.value('monitor/db/web_api'))):
-            self.parent.ctx.message = remote_message()
+        if (boolean(conf.value('Monitor/WebApi'))):
+            self.parent.ctx.message = remoteMessage()
 
-        if (boolean(conf.value('monitor/phone/phone_warn_taf'))):
-            self.parent.ctx.call_service = call_service()
+        if (boolean(conf.value('Monitor/SelectedMobile'))):
+            self.parent.ctx.callService = callService()
 
-        self.signal_done.emit()
+        self.doneSignal.emit()
 
 
 class CallThread(QtCore.QThread):
@@ -469,8 +468,8 @@ class CallThread(QtCore.QThread):
         self.parent = parent
 
     def run(self):
-        mobile = conf.value('monitor/phone/selected_mobile')
-        call_up(mobile)
+        mobile = conf.value('Monitor/SelectedMobile')
+        callUp(mobile)
 
 
 
@@ -478,17 +477,17 @@ def main():
     import sys
     app = QtWidgets.QApplication(sys.argv)
 
-    server_name = 'Tafor'  
+    serverName = 'Tafor'  
     socket = QLocalSocket()  
-    socket.connectToServer(server_name)
+    socket.connectToServer(serverName)
 
     # 如果连接成功，表明server已经存在，当前已有实例在运行
     if socket.waitForConnected(500):
         return(app.quit())
 
     # 没有实例运行，创建服务器     
-    local_server = QLocalServer()
-    local_server.listen(server_name)
+    localServer = QLocalServer()
+    localServer.listen(serverName)
 
     try:          
         window = MainWindow()
@@ -497,7 +496,7 @@ def main():
     except Exception as e:
         logger.error(e, exc_info=True)
     finally:  
-        local_server.close()
+        localServer.close()
 
 
 if __name__ == "__main__":

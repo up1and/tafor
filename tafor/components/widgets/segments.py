@@ -9,42 +9,42 @@ from tafor.components.ui import Ui_taf_primary, Ui_taf_becmg, Ui_taf_tempo, Ui_t
 
 
 class BaseSegment(QtWidgets.QWidget):
-    signal_required = QtCore.pyqtSignal(bool)
+    completeSignal = QtCore.pyqtSignal(bool)
 
     def __init__(self):
         super(BaseSegment, self).__init__()
         self.rules = Pattern()
-        self.required = False
+        self.complete = False
         # self.one_second_timer = QtCore.QTimer()
         # self.one_second_timer.timeout.connect(self.message)
         # self.one_second_timer.start(1 * 1000)
 
-    def bind_signal(self):
+    def bindSignal(self):
 
         if hasattr(self, 'cavok'):
-            self.cavok.toggled.connect(self.set_cavok)
-            self.skc.toggled.connect(self.set_skc)
-            self.nsc.toggled.connect(self.set_nsc)
-            self.cavok.clicked.connect(self.check_required)
-            self.nsc.clicked.connect(self.check_required)
-            self.skc.clicked.connect(self.check_required)
+            self.cavok.toggled.connect(self.setCavok)
+            self.skc.toggled.connect(self.setSkc)
+            self.nsc.toggled.connect(self.setNsc)
+            self.cavok.clicked.connect(self.checkComplete)
+            self.nsc.clicked.connect(self.checkComplete)
+            self.skc.clicked.connect(self.checkComplete)
         else:
-            self.prob30.toggled.connect(self.set_prob30)
-            self.prob40.toggled.connect(self.set_prob40)
+            self.prob30.toggled.connect(self.setProb30)
+            self.prob40.toggled.connect(self.setProb40)
 
-        self.gust.editingFinished.connect(self.valid_gust)
+        self.gust.editingFinished.connect(self.validGust)
 
-        self.cloud1.textEdited.connect(lambda:self._upper_text(self.cloud1))
-        self.cloud2.textEdited.connect(lambda:self._upper_text(self.cloud2))
-        self.cloud3.textEdited.connect(lambda:self._upper_text(self.cloud3))
-        self.cb.textEdited.connect(lambda:self._upper_text(self.cb))
+        self.cloud1.textEdited.connect(lambda:self.upperText(self.cloud1))
+        self.cloud2.textEdited.connect(lambda:self.upperText(self.cloud2))
+        self.cloud3.textEdited.connect(lambda:self.upperText(self.cloud3))
+        self.cb.textEdited.connect(lambda:self.upperText(self.cb))
 
-        self.wind.textChanged.connect(self.check_required)
-        self.vis.textChanged.connect(self.check_required)
-        self.cloud1.textChanged.connect(self.check_required)
-        self.cloud2.textChanged.connect(self.check_required)
-        self.cloud3.textChanged.connect(self.check_required)
-        self.cb.textChanged.connect(self.check_required)
+        self.wind.textChanged.connect(self.checkComplete)
+        self.vis.textChanged.connect(self.checkComplete)
+        self.cloud1.textChanged.connect(self.checkComplete)
+        self.cloud2.textChanged.connect(self.checkComplete)
+        self.cloud3.textChanged.connect(self.checkComplete)
+        self.cb.textChanged.connect(self.checkComplete)
 
 
     def clouds(self, enbale):
@@ -64,7 +64,7 @@ class BaseSegment(QtWidgets.QWidget):
             self.cb.setEnabled(False)
 
 
-    def set_cavok(self, checked):
+    def setCavok(self, checked):
         if checked:
             self.skc.setChecked(False)
             self.nsc.setChecked(False)
@@ -72,15 +72,15 @@ class BaseSegment(QtWidgets.QWidget):
             self.vis.clear()
             self.vis.setEnabled(False)
             self.weather.setEnabled(False)
-            self.weather_with_intensity.setEnabled(False)
+            self.weatherWithIntensity.setEnabled(False)
             self.clouds(False)
         else:
             self.vis.setEnabled(True)
             self.weather.setEnabled(True)
-            self.weather_with_intensity.setEnabled(True)
+            self.weatherWithIntensity.setEnabled(True)
             self.clouds(True)
 
-    def set_skc(self, checked):
+    def setSkc(self, checked):
         if checked:
             self.cavok.setChecked(False)
             self.nsc.setChecked(False)
@@ -88,7 +88,7 @@ class BaseSegment(QtWidgets.QWidget):
         else:
             self.clouds(True)
 
-    def set_nsc(self, checked):
+    def setNsc(self, checked):
         if checked:
             self.cavok.setChecked(False)
             self.skc.setChecked(False)
@@ -96,42 +96,42 @@ class BaseSegment(QtWidgets.QWidget):
         else:
             self.clouds(True)
 
-    def set_prob30(self, checked):
+    def setProb30(self, checked):
         if checked:
             self.prob40.setChecked(False)
         
-    def set_prob40(self, checked):
+    def setProb40(self, checked):
         if checked:
             self.prob30.setChecked(False)
 
-    def set_validator(self):
-        self.valid_wind = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.wind))
-        self.wind.setValidator(self.valid_wind)
+    def setValidator(self):
+        wind = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.wind))
+        self.wind.setValidator(wind)
 
-        valid_gust = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.gust))
-        self.gust.setValidator(valid_gust)
+        gust = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.gust))
+        self.gust.setValidator(gust)
 
-        valid_vis = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.vis))
-        self.vis.setValidator(valid_vis)
+        vis = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.vis))
+        self.vis.setValidator(vis)
 
-        valid_cloud = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.cloud, QtCore.Qt.CaseInsensitive))
-        self.cloud1.setValidator(valid_cloud)
-        self.cloud2.setValidator(valid_cloud)
-        self.cloud3.setValidator(valid_cloud)
-        self.cb.setValidator(valid_cloud)
+        cloud = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.cloud, QtCore.Qt.CaseInsensitive))
+        self.cloud1.setValidator(cloud)
+        self.cloud2.setValidator(cloud)
+        self.cloud3.setValidator(cloud)
+        self.cb.setValidator(cloud)
 
-        weather = conf.value('message/weather')
+        weather = conf.value('Message/Weather')
         weathers = [''] + json.loads(weather) if weather else ['']
         self.weather.addItems(weathers)
 
-        weather_with_intensity = conf.value('message/weather_with_intensity')
-        weathers_with_intensity = ['']
-        if weather_with_intensity:
-            for w in json.loads(weather_with_intensity):
-                weathers_with_intensity.extend(['-' + w, w, '+' + w])
-        self.weather_with_intensity.addItems(weathers_with_intensity)
+        weatherWithIntensity = conf.value('Message/WeatherWithIntensity')
+        intensityWeathers = ['']
+        if weatherWithIntensity:
+            for w in json.loads(weatherWithIntensity):
+                intensityWeathers.extend(['-' + w, w, '+' + w])
+        self.weatherWithIntensity.addItems(intensityWeathers)
 
-    def valid_gust(self):
+    def validGust(self):
         wind = self.wind.text()[-2:]
         gust = self.gust.text()
         if not wind or int(gust) - int(wind) < 5:
@@ -148,7 +148,7 @@ class BaseSegment(QtWidgets.QWidget):
 
         vis = self.vis.text() if self.vis.hasAcceptableInput() else None
         weather = self.weather.currentText()
-        weather_with_intensity = self.weather_with_intensity.currentText()
+        weatherWithIntensity = self.weatherWithIntensity.currentText()
         cloud1 = self.cloud1.text() if self.cloud1.hasAcceptableInput() else None
         cloud2 = self.cloud2.text() if self.cloud2.hasAcceptableInput() else None
         cloud3 = self.cloud3.text() if self.cloud3.hasAcceptableInput() else None
@@ -158,22 +158,22 @@ class BaseSegment(QtWidgets.QWidget):
 
         if hasattr(self, 'cavok'):
             if self.cavok.isChecked():
-                msg_list = [winds, 'CAVOK']
+                messages = [winds, 'CAVOK']
             elif self.skc.isChecked():
-                msg_list = [winds, vis, weather, weather_with_intensity, 'SKC']
+                messages = [winds, vis, weather, weatherWithIntensity, 'SKC']
             elif self.nsc.isChecked():
-                msg_list = [winds, vis, weather, weather_with_intensity, 'NSC']
+                messages = [winds, vis, weather, weatherWithIntensity, 'NSC']
             else:
-                msg_list = [winds, vis, weather, weather_with_intensity] + clouds
+                messages = [winds, vis, weather, weatherWithIntensity] + clouds
         else:
-            msg_list = [winds, vis, weather, weather_with_intensity] + clouds
-        self.msg = ' '.join(filter(None, msg_list))
+            messages = [winds, vis, weather, weatherWithIntensity] + clouds
+        self.msg = ' '.join(filter(None, messages))
         # logger.debug(self.msg)
 
-    def _upper_text(self, line):
+    def upperText(self, line):
         line.setText(line.text().upper())
 
-    def check_required(self):
+    def checkComplete(self):
         raise NotImplemented
 
     def clear(self):
@@ -181,7 +181,7 @@ class BaseSegment(QtWidgets.QWidget):
         self.gust.clear()
         self.vis.clear()
         self.weather.setCurrentIndex(-1)
-        self.weather_with_intensity.setCurrentIndex(-1)
+        self.weatherWithIntensity.setCurrentIndex(-1)
         self.cloud1.clear()
         self.cloud2.clear()
         self.cloud3.clear()
@@ -194,49 +194,49 @@ class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Form):
         super(TAFPrimarySegment, self).__init__()
         self.setupUi(self)
 
-        self.set_validator()
+        self.setValidator()
         self.period.setEnabled(False)
         self.ccc.setEnabled(False)
         self.aaa.setEnabled(False)
-        self.aaa_cnl.setEnabled(False)
+        self.aaaCnl.setEnabled(False)
 
-        self.bind_signal()
+        self.bindSignal()
 
-    def set_validator(self):
-        super(TAFPrimarySegment, self).set_validator()
+    def setValidator(self):
+        super(TAFPrimarySegment, self).setValidator()
 
-        valid_date = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.date))
-        self.date.setValidator(valid_date)
+        date = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.date))
+        self.date.setValidator(date)
 
-        valid_temp = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.temp))
-        self.tmax.setValidator(valid_temp)
-        self.tmin.setValidator(valid_temp)
+        temp = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.temp))
+        self.tmax.setValidator(temp)
+        self.tmin.setValidator(temp)
 
-        valid_temp_hours = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.hours))
-        self.tmax_time.setValidator(valid_temp_hours)
-        self.tmin_time.setValidator(valid_temp_hours)
+        tempHours = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.hours))
+        self.tmaxTime.setValidator(tempHours)
+        self.tminTime.setValidator(tempHours)
 
-    def bind_signal(self):
-        super(TAFPrimarySegment, self).bind_signal()
+    def bindSignal(self):
+        super(TAFPrimarySegment, self).bindSignal()
 
         # 设置下一步按钮
-        self.date.textEdited.connect(self.check_required)
-        self.period.textChanged.connect(self.check_required)
-        self.tmax.textChanged.connect(self.check_required)
-        self.tmax_time.textChanged.connect(self.check_required)
-        self.tmin.textChanged.connect(self.check_required)
-        self.tmin_time.textChanged.connect(self.check_required)
+        self.date.textEdited.connect(self.checkComplete)
+        self.period.textChanged.connect(self.checkComplete)
+        self.tmax.textChanged.connect(self.checkComplete)
+        self.tmaxTime.textChanged.connect(self.checkComplete)
+        self.tmin.textChanged.connect(self.checkComplete)
+        self.tminTime.textChanged.connect(self.checkComplete)
 
-    def check_required(self):
-        self.required = False
+    def checkComplete(self):
+        self.complete = False
         must_required = (
                         self.date.hasAcceptableInput(), 
                         self.period.text(), 
                         self.wind.hasAcceptableInput(), 
                         self.tmax.hasAcceptableInput(), 
-                        self.tmax_time.hasAcceptableInput(), 
+                        self.tmaxTime.hasAcceptableInput(), 
                         self.tmin.hasAcceptableInput(), 
-                        self.tmin_time.hasAcceptableInput()
+                        self.tminTime.hasAcceptableInput()
                         )
         one_required = (
                         self.nsc.isChecked(), 
@@ -249,29 +249,29 @@ class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Form):
         
         if all(must_required):
             if self.cavok.isChecked():
-                self.required = True
+                self.complete = True
             elif self.vis.hasAcceptableInput() and any(one_required):
-                self.required = True
+                self.complete = True
 
-        self.signal_required.emit(self.required)
+        self.completeSignal.emit(self.complete)
 
 
     def message(self):
         super(TAFPrimarySegment, self).message()
         amd = 'AMD' if self.amd.isChecked() else ''
         cor = 'COR' if self.cor.isChecked() else ''
-        icao = conf.value('message/icao')
+        icao = conf.value('Message/ICAO')
         timez = self.date.text() + 'Z'
         period = self.period.text()
-        tmax = ''.join(['TX', self.tmax.text(), '/', self.tmax_time.text(), 'Z'])
-        tmin = ''.join(['TN', self.tmin.text(), '/', self.tmin_time.text(), 'Z'])
-        msg_list = ['TAF', amd, cor, icao, timez, period, self.msg, tmax, tmin]
-        self.msg = ' '.join(filter(None, msg_list))
+        tmax = ''.join(['TX', self.tmax.text(), '/', self.tmaxTime.text(), 'Z'])
+        tmin = ''.join(['TN', self.tmin.text(), '/', self.tminTime.text(), 'Z'])
+        messages = ['TAF', amd, cor, icao, timez, period, self.msg, tmax, tmin]
+        self.msg = ' '.join(filter(None, messages))
         return self.msg
 
     def head(self):
-        intelligence = conf.value('message/intelligence')
-        icao = conf.value('message/icao')
+        area = conf.value('Message/Area') or ''
+        icao = conf.value('Message/ICAO')
         time = self.date.text()
         tt = ''
         if self.fc.isChecked():
@@ -281,27 +281,27 @@ class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Form):
 
         ccc = self.ccc.text() if self.cor.isChecked() else None
         aaa = self.aaa.text() if self.amd.isChecked() else None
-        aaa_cnl = self.aaa_cnl.text() if self.cnl.isChecked() else None
-        msg_list = [tt + intelligence, icao, time, ccc, aaa, aaa_cnl]
-        return ' '.join(filter(None, msg_list))
+        aaaCnl = self.aaaCnl.text() if self.cnl.isChecked() else None
+        messages = [tt + area, icao, time, ccc, aaa, aaaCnl]
+        return ' '.join(filter(None, messages))
 
     def clear(self):
         super(TAFPrimarySegment, self).clear()
 
-        self.becmg1_checkbox.setChecked(False)
-        self.becmg2_checkbox.setChecked(False)
-        self.becmg3_checkbox.setChecked(False)
-        self.tempo1_checkbox.setChecked(False)
-        self.tempo2_checkbox.setChecked(False)
+        self.becmg1Checkbox.setChecked(False)
+        self.becmg2Checkbox.setChecked(False)
+        self.becmg3Checkbox.setChecked(False)
+        self.tempo1Checkbox.setChecked(False)
+        self.tempo2Checkbox.setChecked(False)
 
         self.cavok.setChecked(False)
         self.skc.setChecked(False)
         self.nsc.setChecked(False)
 
         self.tmax.clear()
-        self.tmax_time.clear()
+        self.tmaxTime.clear()
         self.tmin.clear()
-        self.tmin_time.clear()
+        self.tminTime.clear()
 
 
 class TAFBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Form):
@@ -311,37 +311,37 @@ class TAFBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Form):
         self.setupUi(self)
         self.name.setText(name)
 
-        self.set_validator()
+        self.setValidator()
 
-        # self.cavok.clicked.connect(self.set_cavok)
-        # self.skc.clicked.connect(self.set_skc_nsc)
-        # self.nsc.clicked.connect(self.set_skc_nsc)
+        # self.cavok.clicked.connect(self.setCavok)
+        # self.skc.clicked.connect(self.setSkc_nsc)
+        # self.nsc.clicked.connect(self.setSkc_nsc)
 
-        self.bind_signal()
+        self.bindSignal()
 
-    def set_validator(self):
-        super(TAFBecmgSegment, self).set_validator()
+    def setValidator(self):
+        super(TAFBecmgSegment, self).setValidator()
 
-        valid_interval = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.interval))
-        self.interval.setValidator(valid_interval)
+        interval = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.interval))
+        self.interval.setValidator(interval)
 
-    def bind_signal(self):
-        super(TAFBecmgSegment, self).bind_signal()
+    def bindSignal(self):
+        super(TAFBecmgSegment, self).bindSignal()
 
-        self.interval.textChanged.connect(self.check_required)
-        self.weather.currentIndexChanged.connect(self.check_required)
-        self.weather_with_intensity.currentIndexChanged.connect(self.check_required)
+        self.interval.textChanged.connect(self.checkComplete)
+        self.weather.currentIndexChanged.connect(self.checkComplete)
+        self.weatherWithIntensity.currentIndexChanged.connect(self.checkComplete)
 
     def message(self):
         super(TAFBecmgSegment, self).message()
         interval = self.interval.text()
-        msg_list = ['BECMG', interval, self.msg]
-        self.msg = ' '.join(msg_list)
+        messages = ['BECMG', interval, self.msg]
+        self.msg = ' '.join(messages)
         # logger.debug(self.msg)
         return self.msg
 
-    def check_required(self):
-        self.required = False
+    def checkComplete(self):
+        self.complete = False
         one_required = (
             self.nsc.isChecked(), 
             self.skc.isChecked(),
@@ -349,7 +349,7 @@ class TAFBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Form):
             self.wind.hasAcceptableInput(), 
             self.vis.hasAcceptableInput(), 
             self.weather.currentText(),
-            self.weather_with_intensity.currentText(),
+            self.weatherWithIntensity.currentText(),
             self.cloud1.hasAcceptableInput(), 
             self.cloud2.hasAcceptableInput(), 
             self.cloud3.hasAcceptableInput(), 
@@ -357,9 +357,9 @@ class TAFBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Form):
         )
 
         if self.interval.hasAcceptableInput() and any(one_required):
-            self.required = True
+            self.complete = True
 
-        self.signal_required.emit(self.required)
+        self.completeSignal.emit(self.complete)
 
     def clear(self):
         super(TAFBecmgSegment, self).clear()
@@ -378,42 +378,42 @@ class TAFTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Form):
         self.setupUi(self)
         self.name.setText(name)
 
-        self.set_validator()
+        self.setValidator()
 
-        self.bind_signal()
+        self.bindSignal()
 
-    def set_validator(self):
-        super(TAFTempoSegment, self).set_validator()
+    def setValidator(self):
+        super(TAFTempoSegment, self).setValidator()
 
-        valid_interval = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.interval))
-        self.interval.setValidator(valid_interval)
+        interval = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.interval))
+        self.interval.setValidator(interval)
 
-    def bind_signal(self):
-        super(TAFTempoSegment, self).bind_signal()
+    def bindSignal(self):
+        super(TAFTempoSegment, self).bindSignal()
 
-        self.interval.textChanged.connect(self.check_required)
-        self.weather.currentIndexChanged.connect(self.check_required)
-        self.weather_with_intensity.currentIndexChanged.connect(self.check_required)
+        self.interval.textChanged.connect(self.checkComplete)
+        self.weather.currentIndexChanged.connect(self.checkComplete)
+        self.weatherWithIntensity.currentIndexChanged.connect(self.checkComplete)
 
     def message(self):
         super(TAFTempoSegment, self).message()
         interval = self.interval.text()
-        msg_list = ['TEMPO', interval, self.msg]
+        messages = ['TEMPO', interval, self.msg]
         if self.prob30.isChecked():
-            msg_list.insert(0, 'PROB30')
+            messages.insert(0, 'PROB30')
         if self.prob40.isChecked():
-            msg_list.insert(0, 'PROB40')
-        self.msg = ' '.join(msg_list)
+            messages.insert(0, 'PROB40')
+        self.msg = ' '.join(messages)
         # logger.debug(self.msg)
         return self.msg
 
-    def check_required(self):
-        self.required = False
+    def checkComplete(self):
+        self.complete = False
         one_required = (
             self.wind.hasAcceptableInput(), 
             self.vis.hasAcceptableInput(), 
             self.weather.currentText(),
-            self.weather_with_intensity.currentText(),
+            self.weatherWithIntensity.currentText(),
             self.cloud1.hasAcceptableInput(), 
             self.cloud2.hasAcceptableInput(), 
             self.cloud3.hasAcceptableInput(), 
@@ -421,9 +421,9 @@ class TAFTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Form):
         )
 
         if self.interval.hasAcceptableInput() and any(one_required):
-            self.required = True
+            self.complete = True
 
-        self.signal_required.emit(self.required)
+        self.completeSignal.emit(self.complete)
 
     def clear(self):
         super(TAFTempoSegment, self).clear()
@@ -439,41 +439,41 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
     def __init__(self):
         super(TrendSegment, self).__init__()
         self.setupUi(self)
-        self.set_validator()
-        self.bind_signal()
+        self.setValidator()
+        self.bindSignal()
 
-    def bind_signal(self):
-        super(TrendSegment, self).bind_signal()
+    def bindSignal(self):
+        super(TrendSegment, self).bindSignal()
 
-        self.nosig.toggled.connect(self.set_nosig)
-        self.at.toggled.connect(self.set_at)
-        self.fm.toggled.connect(self.set_fm)
-        self.tl.toggled.connect(self.set_tl)
+        self.nosig.toggled.connect(self.setNosig)
+        self.at.toggled.connect(self.setAt)
+        self.fm.toggled.connect(self.setFm)
+        self.tl.toggled.connect(self.setTl)
 
-        self.nosig.clicked.connect(self.check_required)
-        self.at.clicked.connect(self.check_required)
-        self.fm.clicked.connect(self.check_required)
-        self.tl.clicked.connect(self.check_required)
+        self.nosig.clicked.connect(self.checkComplete)
+        self.at.clicked.connect(self.checkComplete)
+        self.fm.clicked.connect(self.checkComplete)
+        self.tl.clicked.connect(self.checkComplete)
 
-    def set_validator(self):
-        super(TrendSegment, self).set_validator()
+    def setValidator(self):
+        super(TrendSegment, self).setValidator()
 
         # 还未验证输入个数
-        valid_period = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.interval))
-        self.period.setValidator(valid_period)
+        period = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.interval))
+        self.period.setValidator(period)
 
-    def set_nosig(self, checked):
+    def setNosig(self, checked):
         status = not checked
 
-        self.group_prefix.setEnabled(status)
-        self.group_type.setEnabled(status)
+        self.prefixGroup.setEnabled(status)
+        self.typeGroup.setEnabled(status)
 
         self.period.setEnabled(status)
         self.wind.setEnabled(status)
         self.gust.setEnabled(status)
         self.vis.setEnabled(status)
         self.weather.setEnabled(status)
-        self.weather_with_intensity.setEnabled(status)
+        self.weatherWithIntensity.setEnabled(status)
         self.cloud1.setEnabled(status)
         self.cloud2.setEnabled(status)
         self.cloud3.setEnabled(status)
@@ -484,7 +484,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
         self.nsc.setEnabled(status)
 
 
-    def set_at(self, checked):
+    def setAt(self, checked):
         if checked:
             self.fm.setChecked(False)
             self.tl.setChecked(False)
@@ -492,7 +492,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
         else:
             self.period.setEnabled(False)
 
-    def set_fm(self, checked):
+    def setFm(self, checked):
         if checked:
             self.at.setChecked(False)
             self.tl.setChecked(False)
@@ -500,7 +500,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
         else:
             self.period.setEnabled(False)
 
-    def set_tl(self, checked):
+    def setTl(self, checked):
         if checked:
             self.fm.setChecked(False)
             self.at.setChecked(False)
@@ -508,8 +508,8 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
         else:
             self.period.setEnabled(False)
 
-    def check_required(self):
-        self.required = False
+    def checkComplete(self):
+        self.complete = False
         one_required = (
             self.nsc.isChecked(), 
             self.skc.isChecked(),
@@ -517,7 +517,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
             self.wind.hasAcceptableInput(), 
             self.vis.hasAcceptableInput(), 
             self.weather.currentText(),
-            self.weather_with_intensity.currentText(),
+            self.weatherWithIntensity.currentText(),
             self.cloud1.hasAcceptableInput(), 
             self.cloud2.hasAcceptableInput(), 
             self.cloud3.hasAcceptableInput(), 
@@ -531,16 +531,16 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
         )
 
         if self.nosig.isChecked():
-            self.required = True
+            self.complete = True
 
         if any(one_required):
             if any(prefix_checked):
                 if self.period.hasAcceptableInput():
-                    self.required = True
+                    self.complete = True
             else:
-                self.required = True
+                self.complete = True
 
-        self.signal_required.emit(self.required)
+        self.completeSignal.emit(self.complete)
 
     def message(self):
         super(TrendSegment, self).message()
@@ -548,14 +548,14 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
         if self.nosig.isChecked():
             self.msg = 'NOSIG'
         else:
-            msg_list = []
+            messages = []
 
             if self.becmg.isChecked():
                 trend_type = 'BECMG'
             if self.tempo.isChecked():
                 trend_type = 'TEMPO'
 
-            msg_list.append(trend_type)
+            messages.append(trend_type)
 
             if any((self.at.isChecked(), self.fm.isChecked(), self.tl.isChecked())):
                 if self.at.isChecked():
@@ -566,10 +566,10 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
                     trend_prefix = 'TL'
 
                 period = trend_prefix + self.period.text()
-                msg_list.append(period)
+                messages.append(period)
 
-            msg_list.append(self.msg)
-            self.msg = ' '.join(msg_list)
+            messages.append(self.msg)
+            self.msg = ' '.join(messages)
 
         return self.msg
 
