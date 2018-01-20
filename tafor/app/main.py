@@ -306,7 +306,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
     def keyPressEvent(self, event):
         if event.modifiers() == (QtCore.Qt.ShiftModifier | QtCore.Qt.ControlModifier):
             if event.key() == QtCore.Qt.Key_P:
-                self.task_tafEditDialog.show()
+                self.taskTafEditDialog.show()
             if event.key() == QtCore.Qt.Key_T:
                 self.task_table_dialog.show()
 

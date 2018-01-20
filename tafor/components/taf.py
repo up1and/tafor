@@ -365,7 +365,7 @@ class TaskTAFEditor(BaseEditor):
         self.primary.sortGroup.hide()
 
         self.primary.date.editingFinished.connect(self.taskTime)
-        self.primary.date.editingFinished.connect(lambda :self.setNormalPeriod(is_task=True))
+        self.primary.date.editingFinished.connect(lambda :self.setNormalPeriod(isTask=True))
         self.primary.date.editingFinished.connect(self.changeWindowTitle)
         self.primary.date.editingFinished.connect(self.periodDuration)
         

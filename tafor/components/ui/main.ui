@@ -183,17 +183,7 @@
      </property>
      <addaction name="contractNo"/>
     </widget>
-    <widget class="QMenu" name="soundMenu">
-     <property name="title">
-      <string>声音</string>
-     </property>
-     <addaction name="warnTAFAction"/>
-     <addaction name="separator"/>
-     <addaction name="remindTAFAction"/>
-     <addaction name="remindTrendAction"/>
-     <addaction name="remindSIGMETAction"/>
-    </widget>
-    <addaction name="soundMenu"/>
+    <addaction name="warnTAFAction"/>
     <addaction name="contractsMenu"/>
     <addaction name="separator"/>
     <addaction name="settingAction"/>

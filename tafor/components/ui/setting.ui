@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>622</width>
-    <height>455</height>
+    <height>452</height>
    </rect>
   </property>
   <property name="acceptDrops">
@@ -66,7 +66,7 @@
         <enum>QFrame::Plain</enum>
        </property>
        <property name="currentIndex">
-        <number>0</number>
+        <number>3</number>
        </property>
        <widget class="QWidget" name="generalPage">
         <layout class="QVBoxLayout" name="verticalLayout_6">
@@ -635,7 +635,7 @@
          <item>
           <widget class="QGroupBox" name="warnGroup">
            <property name="title">
-            <string>迟发告警</string>
+            <string>告警</string>
            </property>
            <layout class="QFormLayout" name="formLayout_5">
             <item row="0" column="0">
@@ -705,7 +705,7 @@
             <item row="1" column="0">
              <widget class="QCheckBox" name="remindTrend">
               <property name="text">
-               <string>趋势预报    </string>
+               <string>趋势        </string>
               </property>
              </widget>
             </item>
@@ -738,29 +738,42 @@
            <property name="title">
             <string>电话服务</string>
            </property>
-           <layout class="QFormLayout" name="formLayout_4">
-            <item row="1" column="0">
+           <layout class="QGridLayout" name="gridLayout_2">
+            <item row="0" column="0">
              <widget class="QLabel" name="callServiceURLLabel">
               <property name="text">
                <string>请求地址        </string>
               </property>
              </widget>
             </item>
-            <item row="1" column="1">
+            <item row="0" column="1">
              <widget class="QLineEdit" name="callServiceURL">
               <property name="placeholderText">
                <string>URL</string>
               </property>
              </widget>
             </item>
-            <item row="2" column="0">
+            <item row="1" column="0">
              <widget class="QLabel" name="callServiceTokenLabel">
               <property name="text">
                <string>认证            </string>
               </property>
              </widget>
             </item>
-            <item row="2" column="1">
+            <item row="0" column="2">
+             <widget class="QPushButton" name="callUpButton">
+              <property name="maximumSize">
+               <size>
+                <width>50</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>拨号</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1" colspan="2">
              <widget class="QLineEdit" name="callServiceToken">
               <property name="placeholderText">
                <string>TOKEN</string>
