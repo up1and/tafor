@@ -90,14 +90,25 @@ class Validator(object):
         3.当预报平均地面风风速变差（阵风）增加(或减少)大于等于 5m/s，且平均风速在变化前和（或）变化后大于等于 8m/s 时  ***有异议
         """
         pattern = cls.grammarClass.wind
-        refWindGroup = pattern.match(refWind).groups()
-        windGroup = pattern.match(wind).groups()
+        refWindMatch = pattern.match(refWind)
+        windMatch = pattern.match(wind)
 
-        refSpeed = int(refWindGroup[1])
-        speed = int(windGroup[1])
+        def splitWind(m):
+            direction = m.group(1)
+            speed = 50 if m.group(2) == 'P49' else int(m.group(2))
+            gust = m.group(3)
 
-        refGust = int(refWindGroup[2]) if refWindGroup[2] else None
-        gust = int(windGroup[2]) if windGroup[2] else None
+            if gust == 'P49':
+                gust = 50
+            elif gust:
+                gust = int(gust)
+            else:
+                gust = None
+
+            return direction, speed, gust
+
+        refDirection, refSpeed, refGust = splitWind(refWindMatch)
+        direction, speed, gust = splitWind(windMatch)
 
         def angle(refDirection, direction):
             # 有一个风向为 VRB, 返回 True
@@ -120,14 +131,14 @@ class Validator(object):
             return True
 
         # 1.当预报平均地面风向的变化大于等于 60°，且平均风速在变化前和（或）变化后大于等于 5m/s 时
-        if angle(refWindGroup[0], windGroup[0]) and max(refSpeed, speed) >= 5:
+        if angle(refDirection, direction) and max(refSpeed, speed) >= 5:
             return True
 
         # 2.当预报平均地面风速的变化大于等于 5m/s 时
         if abs(refSpeed - speed) >= 5:
             return True
 
-        # 3.当预报平均地面风风速变差（阵风）增加(或减少)大于等于 5m/s，且平均风速在变化前和（或）变化后大于等于 8m/s 时
+        # 3.当预报平均地面风风速变差（阵风）增加 (或减少) 大于等于 5m/s，且平均风速在变化前和（或）变化后大于等于 8m/s 时
         if refGust and gust and abs(refGust - gust) >= 5 and max(refSpeed, speed) >= 8:
             return True
 
@@ -616,16 +627,14 @@ class Parser(object):
 
 
 if __name__ == '__main__':    
-    # print(Validator.wind('03008G13MPS', '36005MPS'))
+    # print(Validator.wind('03004GP49MPS', '36005MPS'))
     # print(Validator.vv('VV005', 'VV003'))
     # print(Validator.weather('TSRA', '-RA'))
     # print(Validator.cloud('SCT020', 'SCT010 FEW023CB'))
     # print(Validator.cloud('NSC', 'SKC'))
 
     message = '''
-TAF ZJHK 240130Z 240312 01004MPS 8000 BKN040 
-                BECMG 0506 5000 -RA FEW010 SCT030CB
-                TEMPO 0611 02008MPS 3000 TSRA=
+        TAF ZJHK 240130Z 240312 01004MPS 8000 BKN040=
     '''
     # m = Grammar.taf.search(message)
     # print(m.group(0))

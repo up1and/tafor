@@ -48,10 +48,26 @@ def callUp(mobile):
 def callService():
     url = conf.value('Monitor/CallServiceURL')
     try:
-        r = requests.get(url)
-        return r.status_code == 405
+        r = requests.get(url, timeout=5)
+        return r.json()
+
+    except requests.exceptions.ConnectionError:
+            logger.info('GET {} 408 Request Timeout'.format(url))
+
     except Exception:
         pass
+
+def repoRelease():
+    url = 'https://api.github.com/repos/oklai/koala/releases/latest'
+    try:
+        r = requests.get(url)
+        return r.json()
+
+    except Exception as e:
+        logger.error(e)
+
+    return {}
+
 
 def formatTimez(message):
     try:

@@ -8,7 +8,7 @@ from PyQt5.QtMultimedia import QSound, QSoundEffect
 
 from tafor import BASEDIR, conf, logger, boolean, __version__
 from tafor.models import db, Tafor, Task, Metar, User
-from tafor.utils import CheckTAF, Listen, remoteMessage, callService, callUp, checkUpgrade
+from tafor.utils import CheckTAF, Listen, remoteMessage, callService, callUp, repoRelease, checkVersion
 
 from tafor.components.ui import Ui_main, main_rc
 from tafor.components.taf import TAFEditor, TaskTAFEditor
@@ -444,18 +444,21 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         QtGui.QDesktopServices.openUrl(QtCore.QUrl('https://github.com/up1and/tafor/issues'))
 
     def checkUpgrade(self):
-        def showMessage(data, hasNewVersion):
-            if not hasNewVersion:
-                return False
+        thread = CheckUpgradeThread(self)
+        thread.doneSignal.connect(self.showUpgradeMessage)
+        thread.start()
 
-            message = '发现新版本，想现在下载么'
-            ret = QtWidgets.QMessageBox.question(self, '检查更新', message)
-            if ret == QtWidgets.QMessageBox.Yes:
-                QtGui.QDesktopServices.openUrl(QtCore.QUrl(download))
+    def showUpgradeMessage(self, data):
+        hasNewVersion = checkVersion(data.get('tag_name', __version__), __version__)
+        if not hasNewVersion:
+            return False
 
-        url = 'https://api.github.com/repos/up1and/tafor/releases/latest'
         download = 'https://github.com/up1and/tafor/releases'
-        checkUpgrade(url, __version__, showMessage)
+        message = '发现新版本 {}，想现在下载么'.format(data.get('tag_name'))
+        ret = QtWidgets.QMessageBox.question(self, '检查更新', message)
+        if ret == QtWidgets.QMessageBox.Yes:
+            QtGui.QDesktopServices.openUrl(QtCore.QUrl(download))
+
 
 class WorkThread(QtCore.QThread):
     """
@@ -469,10 +472,10 @@ class WorkThread(QtCore.QThread):
 
     def run(self):
         if (boolean(conf.value('Monitor/WebApi'))):
-            self.parent.ctx.message = remoteMessage()
+            self.parent.store.message = remoteMessage()
 
         if (boolean(conf.value('Monitor/SelectedMobile'))):
-            self.parent.ctx.callService = callService()
+            self.parent.store.callService = callService()
 
         self.doneSignal.emit()
 
@@ -485,6 +488,18 @@ class CallThread(QtCore.QThread):
     def run(self):
         mobile = conf.value('Monitor/SelectedMobile')
         callUp(mobile)
+
+
+class CheckUpgradeThread(QtCore.QThread):
+    doneSignal = QtCore.pyqtSignal(dict)
+
+    def __init__(self, parent=None):
+        super(CheckUpgradeThread, self).__init__(parent)
+        self.parent = parent
+
+    def run(self):
+        data = repoRelease()
+        self.doneSignal.emit(data)
 
 
 def main():

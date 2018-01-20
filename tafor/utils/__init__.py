@@ -1,8 +1,8 @@
-from tafor.utils.check import CheckTAF, Listen, remoteMessage, callService, callUp
+from tafor.utils.check import CheckTAF, Listen, remoteMessage, callService, callUp, repoRelease
 from tafor.utils.validator import Validator, Grammar, Pattern, Parser
 
 
-def checkUpgrade(releaseURL, currentVersion, callback=None):
+def checkVersion(releaseVersion, currentVersion):
     def versionNum(version):
         version = version.replace('v', '')
         if 'beta' in version:
@@ -23,32 +23,18 @@ def checkUpgrade(releaseURL, currentVersion, callback=None):
             'beta':  betaNum
         }
 
-    def versionDetect(data):
-        releaseVersion = data['tag_name']
-        current = versionNum(currentVersion)
-        release = versionNum(releaseVersion)
-        hasNewVersion = False
+    current = versionNum(currentVersion)
+    release = versionNum(releaseVersion)
+    hasNewVersion = False
 
-        if release['stable'] > current['stable']:
+    if release['stable'] > current['stable']:
+        hasNewVersion = True
+
+    if release['stable'] == current['stable']:
+        if release['beta'] is None and current['beta']:
             hasNewVersion = True
 
-        if release['stable'] == current['stable']:
-            if release['beta'] is None and current['beta']:
-                hasNewVersion = True
+        if release['beta'] > current['beta']:
+            hasNewVersion = True
 
-            if release['beta'] > current['beta']:
-                hasNewVersion = True
-
-        if callback:
-            callback(data, hasNewVersion)
-
-
-    try:
-        import requests
-        resp = requests.get(releaseURL, timeout=5)
-        data = resp.json()
-        versionDetect(data)
-    except Exception as e:
-        pass
-
-# checkUpgrade('https://api.github.com/repos/up1and/tafor/releases/latest', __version__)
+    return hasNewVersion
