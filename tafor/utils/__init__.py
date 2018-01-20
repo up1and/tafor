@@ -44,6 +44,7 @@ def checkUpgrade(releaseURL, currentVersion, callback=None):
 
 
     try:
+        import requests
         resp = requests.get(releaseURL, timeout=5)
         data = resp.json()
         versionDetect(data)

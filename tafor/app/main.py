@@ -8,7 +8,7 @@ from PyQt5.QtMultimedia import QSound, QSoundEffect
 
 from tafor import BASEDIR, conf, logger, boolean, __version__
 from tafor.models import db, Tafor, Task, Metar, User
-from tafor.utils import CheckTAF, Listen, remoteMessage, callService, callUp
+from tafor.utils import CheckTAF, Listen, remoteMessage, callService, callUp, checkUpgrade
 
 from tafor.components.ui import Ui_main, main_rc
 from tafor.components.taf import TAFEditor, TaskTAFEditor
@@ -109,21 +109,22 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.trendAction.triggered.connect(self.trendEditDialog.show)
 
         # 添加定时任务菜单
-        # self.task_taf_action = QtWidgets.QAction(self)
-        # self.post_menu.addAction(self.task_taf_action)
-        # self.task_taf_action.setText('定时任务')
-        # self.task_taf_action.triggered.connect(self.task_tafEditDialog.show)
+        # self.taskTafAction = QtWidgets.QAction(self)
+        # self.post_menu.addAction(self.taskTafAction)
+        # self.taskTafAction.setText('定时任务')
+        # self.taskTafAction.triggered.connect(self.taskTafEditDialog.show)
 
         # 连接设置对话框的槽
         self.settingAction.triggered.connect(self.settingDialog.exec_)
         self.settingAction.triggered.connect(self.showWindow)
         self.settingAction.setIcon(QtGui.QIcon(':/setting.png'))
 
+        self.reportIssueAction.triggered.connect(self.reportIssue)
+        self.checkUpgradeAction.triggered.connect(self.checkUpgrade)
+
         # 连接关于信息的槽
         self.aboutAction.triggered.connect(self.about)
         self.aboutAction.triggered.connect(self.showWindow)
-
-        self.reportIssueAction.triggered.connect(self.reportIssue)
 
         # 联系人选项组
         self.contractsActionGroup = QtWidgets.QActionGroup(self)
@@ -442,6 +443,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
     def reportIssue(self):
         QtGui.QDesktopServices.openUrl(QtCore.QUrl('https://github.com/up1and/tafor/issues'))
 
+    def checkUpgrade(self):
+        def showMessage(data, hasNewVersion):
+            if not hasNewVersion:
+                return False
+
+            message = '发现新版本，想现在下载么'
+            ret = QtWidgets.QMessageBox.question(self, '检查更新', message)
+            if ret == QtWidgets.QMessageBox.Yes:
+                QtGui.QDesktopServices.openUrl(QtCore.QUrl(download))
+
+        url = 'https://api.github.com/repos/up1and/tafor/releases/latest'
+        download = 'https://github.com/up1and/tafor/releases'
+        checkUpgrade(url, __version__, showMessage)
+
 class WorkThread(QtCore.QThread):
     """
     检查预报报文线程类
@@ -470,7 +485,6 @@ class CallThread(QtCore.QThread):
     def run(self):
         mobile = conf.value('Monitor/SelectedMobile')
         callUp(mobile)
-
 
 
 def main():

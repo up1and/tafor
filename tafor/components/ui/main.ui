@@ -24,7 +24,7 @@
        </size>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
       <property name="movable">
        <bool>true</bool>
@@ -194,6 +194,7 @@
     </property>
     <addaction name="openDocsAction"/>
     <addaction name="reportIssueAction"/>
+    <addaction name="checkUpgradeAction"/>
     <addaction name="separator"/>
     <addaction name="aboutAction"/>
    </widget>
@@ -280,6 +281,11 @@
    </property>
    <property name="text">
     <string>告警</string>
+   </property>
+  </action>
+  <action name="checkUpgradeAction">
+   <property name="text">
+    <string>检查更新</string>
    </property>
   </action>
  </widget>

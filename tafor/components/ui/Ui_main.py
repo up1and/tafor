@@ -126,6 +126,8 @@ class Ui_MainWindow(object):
         self.warnTAFAction = QtWidgets.QAction(MainWindow)
         self.warnTAFAction.setCheckable(True)
         self.warnTAFAction.setObjectName("warnTAFAction")
+        self.checkUpgradeAction = QtWidgets.QAction(MainWindow)
+        self.checkUpgradeAction.setObjectName("checkUpgradeAction")
         self.postMenu.addAction(self.tafAction)
         self.postMenu.addAction(self.trendAction)
         self.postMenu.addAction(self.sigmetAction)
@@ -138,6 +140,7 @@ class Ui_MainWindow(object):
         self.settingMenu.addAction(self.settingAction)
         self.helpMenu.addAction(self.openDocsAction)
         self.helpMenu.addAction(self.reportIssueAction)
+        self.helpMenu.addAction(self.checkUpgradeAction)
         self.helpMenu.addSeparator()
         self.helpMenu.addAction(self.aboutAction)
         self.menuBar.addAction(self.postMenu.menuAction())
@@ -145,7 +148,7 @@ class Ui_MainWindow(object):
         self.menuBar.addAction(self.helpMenu.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.mainTab.setCurrentIndex(0)
+        self.mainTab.setCurrentIndex(2)
         self.quitAction.triggered.connect(MainWindow.close)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
@@ -186,6 +189,7 @@ class Ui_MainWindow(object):
         self.remindTrendAction.setText(_translate("MainWindow", "趋势预报"))
         self.remindSIGMETAction.setText(_translate("MainWindow", "重要气象情报"))
         self.warnTAFAction.setText(_translate("MainWindow", "告警"))
+        self.checkUpgradeAction.setText(_translate("MainWindow", "检查更新"))
 
 
 if __name__ == "__main__":

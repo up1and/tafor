@@ -12,6 +12,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
     """docstring for SettingDialog"""
     def __init__(self, parent=None):
         super(SettingDialog, self).__init__(parent)
+        self.parent = parent
         self.setupUi(self)
         self.setWindowIcon(QtGui.QIcon(':/setting.png'))
 
@@ -41,6 +42,8 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
         self.delPersonButton.clicked.connect(self.delPerson)
 
         self.resetNumberButton.clicked.connect(self.resetSerialNumber)
+
+        self.callUpButton.clicked.connect(self.testCallUp)
 
         self.buttonBox.button(QtWidgets.QDialogButtonBox.Reset).clicked.connect(self.load)
         self.buttonBox.button(QtWidgets.QDialogButtonBox.Apply).clicked.connect(self.save)
@@ -101,6 +104,8 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
         current_index = self.selectContract.findText(currentContract, QtCore.Qt.MatchFixedString)
         self.selectContract.setCurrentIndex(current_index)
 
+    def testCallUp(self):
+        self.parent.dialer(test=True)
 
     def save(self):
         import sys
