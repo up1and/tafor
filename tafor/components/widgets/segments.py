@@ -20,7 +20,6 @@ class BaseSegment(QtWidgets.QWidget):
         # self.one_second_timer.start(1 * 1000)
 
     def bindSignal(self):
-
         if hasattr(self, 'cavok'):
             self.cavok.toggled.connect(self.setCavok)
             self.skc.toggled.connect(self.setSkc)
@@ -46,7 +45,6 @@ class BaseSegment(QtWidgets.QWidget):
         self.cloud3.textChanged.connect(self.checkComplete)
         self.cb.textChanged.connect(self.checkComplete)
 
-
     def clouds(self, enbale):
         if enbale:
             self.cloud1.setEnabled(True)
@@ -62,7 +60,6 @@ class BaseSegment(QtWidgets.QWidget):
             self.cloud3.setEnabled(False)
             self.cb.clear()
             self.cb.setEnabled(False)
-
 
     def setCavok(self, checked):
         if checked:
@@ -134,6 +131,15 @@ class BaseSegment(QtWidgets.QWidget):
     def validGust(self):
         wind = self.wind.text()[-2:]
         gust = self.gust.text()
+
+        if gust in ['', 'P49']:
+            return
+
+        self.gust.setText(gust.zfill(2))
+
+        if int(gust) > 49:
+            self.gust.clear()
+
         if not wind or int(gust) - int(wind) < 5:
             self.gust.clear()
 

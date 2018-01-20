@@ -68,7 +68,7 @@ class Grammar(object):
 class Pattern(object):
     date = r'(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])'
     wind = r'00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)'
-    gust = r'(0[1-9]|[1-4][0-9]|P49)'
+    gust = r'(\d{,2}|P49)'
     vis = r'(9999|[5-9]000|[01234][0-9]00|0[0-7]50)'
     cloud = r'(FEW|SCT|BKN|OVC)(0[0-4][0-9]|050)'
     temp = r'M?([0-5][0-9])'
@@ -331,6 +331,9 @@ class Lexer(object):
             rules = self.defaultRules
 
         for key in rules:
+            if 'TAF' in self.part and key == 'interval':
+                continue
+
             pattern = getattr(self.grammar, key)
             m = pattern.search(part)
             if not m:
@@ -555,12 +558,12 @@ class Parser(object):
 
                     self.tips.append('能见度小于 1000，BR -DZ 不能有')
 
-                if 1000 < vis <= 5000 and set(weathers) & set(['FG', '+DZ']):
+                if 1000 <= vis <= 5000 and set(weathers) & set(['FG', '+DZ']):
                     tokens['vis']['error'] = True
                     if 'weather' in tokens:
                         tokens['weather']['error'] = True
 
-                    self.tips.append('能见度小于 5000, FG +DZ 不能有')
+                    self.tips.append('能见度大于 1000、小于 5000, FG +DZ 不能有')
                 
                 if vis > 5000 and set(weathers) & set(['FG', 'FU', 'BR', 'HZ']):
                     if 'weather' in tokens:
@@ -620,7 +623,9 @@ if __name__ == '__main__':
     # print(Validator.cloud('NSC', 'SKC'))
 
     message = '''
-        TAF AMD ZGGG 211338Z 211524 14004MPS 9999 5000 BR NSC=
+TAF ZJHK 240130Z 240312 01004MPS 8000 BKN040 
+                BECMG 0506 5000 -RA FEW010 SCT030CB
+                TEMPO 0611 02008MPS 3000 TSRA=
     '''
     # m = Grammar.taf.search(message)
     # print(m.group(0))
