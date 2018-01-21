@@ -58,7 +58,7 @@ def callService():
         pass
 
 def repoRelease():
-    url = 'https://api.github.com/repos/oklai/koala/releases/latest'
+    url = 'https://api.github.com/repos/up1and/tafor/releases/latest'
     try:
         r = requests.get(url)
         return r.json()

@@ -148,7 +148,7 @@ class Ui_MainWindow(object):
         self.menuBar.addAction(self.helpMenu.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.mainTab.setCurrentIndex(2)
+        self.mainTab.setCurrentIndex(0)
         self.quitAction.triggered.connect(MainWindow.close)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
@@ -188,7 +188,7 @@ class Ui_MainWindow(object):
         self.remindTAFAction.setText(_translate("MainWindow", "预报"))
         self.remindTrendAction.setText(_translate("MainWindow", "趋势预报"))
         self.remindSIGMETAction.setText(_translate("MainWindow", "重要气象情报"))
-        self.warnTAFAction.setText(_translate("MainWindow", "告警"))
+        self.warnTAFAction.setText(_translate("MainWindow", "声音"))
         self.checkUpgradeAction.setText(_translate("MainWindow", "检查更新"))
 
 

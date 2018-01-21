@@ -11,17 +11,17 @@ from tafor import conf, logger
 
 class AFTNMessage(object):
     """docstring for AFTNMessage"""
-    def __init__(self, message, cls='TAF', time=None):
+    def __init__(self, message, sort='TAF', time=None):
         super(AFTNMessage, self).__init__()
         self.message = message
-        self.cls = cls
+        self.sort = sort
         self.time = datetime.datetime.utcnow() if time is None else time
 
     def raw(self):
         channel = conf.value('Communication/Channel')
         number = conf.value('Communication/Number')
         number = int(number) if number else 0
-        sendAddress = conf.value('Communication/{}Address'.format(self.cls))
+        sendAddress = conf.value('Communication/{}Address'.format(self.sort))
         userAddress = conf.value('Communication/UserAddress')
 
         addresses = self.divideAddress(sendAddress)

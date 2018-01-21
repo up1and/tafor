@@ -34,7 +34,7 @@ def checkVersion(releaseVersion, currentVersion):
         if release['beta'] is None and current['beta']:
             hasNewVersion = True
 
-        if release['beta'] > current['beta']:
+        if release['beta'] and current['beta'] and release['beta'] > current['beta']:
             hasNewVersion = True
 
     return hasNewVersion

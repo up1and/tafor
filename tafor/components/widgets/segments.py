@@ -166,13 +166,13 @@ class BaseSegment(QtWidgets.QWidget):
             if self.cavok.isChecked():
                 messages = [winds, 'CAVOK']
             elif self.skc.isChecked():
-                messages = [winds, vis, weather, weatherWithIntensity, 'SKC']
+                messages = [winds, vis, weatherWithIntensity, weather, 'SKC']
             elif self.nsc.isChecked():
-                messages = [winds, vis, weather, weatherWithIntensity, 'NSC']
+                messages = [winds, vis, weatherWithIntensity, weather, 'NSC']
             else:
-                messages = [winds, vis, weather, weatherWithIntensity] + clouds
+                messages = [winds, vis, weatherWithIntensity, weather] + clouds
         else:
-            messages = [winds, vis, weather, weatherWithIntensity] + clouds
+            messages = [winds, vis, weatherWithIntensity, weather] + clouds
         self.msg = ' '.join(filter(None, messages))
         # logger.debug(self.msg)
 

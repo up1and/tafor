@@ -16,10 +16,7 @@
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <layout class="QGridLayout" name="layout">
-     <item row="3" column="3">
-      <widget class="QLineEdit" name="gust"/>
-     </item>
-     <item row="2" column="7">
+     <item row="2" column="8">
       <widget class="QLabel" name="cloud1Label">
        <property name="text">
         <string>云组1</string>
@@ -29,122 +26,19 @@
        </property>
       </widget>
      </item>
-     <item row="2" column="3">
-      <widget class="QLabel" name="gustLabel">
-       <property name="text">
-        <string>阵风</string>
-       </property>
-       <property name="buddy">
-        <cstring>gust</cstring>
-       </property>
-      </widget>
+     <item row="3" column="3">
+      <widget class="QLineEdit" name="gust"/>
      </item>
-     <item row="4" column="7">
-      <widget class="QCheckBox" name="skc">
-       <property name="text">
-        <string>SKC</string>
-       </property>
-      </widget>
+     <item row="3" column="4">
+      <widget class="QLineEdit" name="vis"/>
      </item>
-     <item row="2" column="9">
+     <item row="2" column="10">
       <widget class="QLabel" name="cloud3Label">
        <property name="text">
         <string>云组3</string>
        </property>
        <property name="buddy">
         <cstring>cloud3</cstring>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="5">
-      <widget class="QLabel" name="weatherLabel">
-       <property name="text">
-        <string>天气现象1</string>
-       </property>
-       <property name="buddy">
-        <cstring>weather</cstring>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="8">
-      <widget class="QLineEdit" name="cloud2"/>
-     </item>
-     <item row="2" column="8">
-      <widget class="QLabel" name="cloud2Label">
-       <property name="text">
-        <string>云组2</string>
-       </property>
-       <property name="buddy">
-        <cstring>cloud2</cstring>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="6">
-      <widget class="QComboBox" name="weatherWithIntensity"/>
-     </item>
-     <item row="2" column="4">
-      <widget class="QLabel" name="visLabel">
-       <property name="text">
-        <string>能见度</string>
-       </property>
-       <property name="buddy">
-        <cstring>vis</cstring>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="8">
-      <widget class="QCheckBox" name="nsc">
-       <property name="text">
-        <string>NSC</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="7">
-      <widget class="QLineEdit" name="cloud1"/>
-     </item>
-     <item row="3" column="4">
-      <widget class="QLineEdit" name="vis"/>
-     </item>
-     <item row="3" column="5">
-      <widget class="QComboBox" name="weather"/>
-     </item>
-     <item row="3" column="2">
-      <widget class="QLineEdit" name="wind"/>
-     </item>
-     <item row="2" column="10">
-      <widget class="QLabel" name="cbLabel">
-       <property name="text">
-        <string>积雨云</string>
-       </property>
-       <property name="buddy">
-        <cstring>cb</cstring>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="6">
-      <widget class="QLabel" name="weatherWithIntensityLabel">
-       <property name="text">
-        <string>天气现象2</string>
-       </property>
-       <property name="buddy">
-        <cstring>weatherWithIntensity</cstring>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="1">
-      <widget class="QLabel" name="periodLabel">
-       <property name="text">
-        <string>时段</string>
-       </property>
-       <property name="buddy">
-        <cstring>period</cstring>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="1">
-      <widget class="QLineEdit" name="period">
-       <property name="enabled">
-        <bool>false</bool>
        </property>
       </widget>
      </item>
@@ -174,38 +68,18 @@
        </layout>
       </widget>
      </item>
-     <item row="3" column="9">
-      <widget class="QLineEdit" name="cloud3"/>
-     </item>
-     <item row="3" column="10">
-      <widget class="QLineEdit" name="cb"/>
-     </item>
-     <item row="4" column="4">
-      <widget class="QCheckBox" name="cavok">
+     <item row="2" column="6">
+      <widget class="QLabel" name="weatherWithIntensityLabel">
        <property name="text">
-        <string>CAVOK</string>
-       </property>
-       <property name="checkable">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item row="5" column="1">
-      <widget class="QCheckBox" name="nosig">
-       <property name="text">
-        <string>NOSIG</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="2">
-      <widget class="QLabel" name="windLabel">
-       <property name="text">
-        <string>风向风速</string>
+        <string>天气现象1</string>
        </property>
        <property name="buddy">
-        <cstring>wind</cstring>
+        <cstring>weatherWithIntensity</cstring>
        </property>
       </widget>
+     </item>
+     <item row="3" column="9">
+      <widget class="QLineEdit" name="cloud2"/>
      </item>
      <item row="0" column="3" colspan="2">
       <widget class="QGroupBox" name="prefixGroup">
@@ -246,6 +120,132 @@
        </layout>
       </widget>
      </item>
+     <item row="2" column="11">
+      <widget class="QLabel" name="cbLabel">
+       <property name="text">
+        <string>积雨云</string>
+       </property>
+       <property name="buddy">
+        <cstring>cb</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="4">
+      <widget class="QCheckBox" name="cavok">
+       <property name="text">
+        <string>CAVOK</string>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="2">
+      <widget class="QLineEdit" name="wind"/>
+     </item>
+     <item row="4" column="9">
+      <widget class="QCheckBox" name="nsc">
+       <property name="text">
+        <string>NSC</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="10">
+      <widget class="QLineEdit" name="cloud3"/>
+     </item>
+     <item row="2" column="9">
+      <widget class="QLabel" name="cloud2Label">
+       <property name="text">
+        <string>云组2</string>
+       </property>
+       <property name="buddy">
+        <cstring>cloud2</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="6">
+      <widget class="QComboBox" name="weatherWithIntensity"/>
+     </item>
+     <item row="4" column="8">
+      <widget class="QCheckBox" name="skc">
+       <property name="text">
+        <string>SKC</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QLineEdit" name="period">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QLabel" name="periodLabel">
+       <property name="text">
+        <string>时段</string>
+       </property>
+       <property name="buddy">
+        <cstring>period</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="3">
+      <widget class="QLabel" name="gustLabel">
+       <property name="text">
+        <string>阵风</string>
+       </property>
+       <property name="buddy">
+        <cstring>gust</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="2">
+      <widget class="QLabel" name="windLabel">
+       <property name="text">
+        <string>风向风速</string>
+       </property>
+       <property name="buddy">
+        <cstring>wind</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="8">
+      <widget class="QLineEdit" name="cloud1"/>
+     </item>
+     <item row="2" column="4">
+      <widget class="QLabel" name="visLabel">
+       <property name="text">
+        <string>能见度</string>
+       </property>
+       <property name="buddy">
+        <cstring>vis</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="11">
+      <widget class="QLineEdit" name="cb"/>
+     </item>
+     <item row="5" column="1">
+      <widget class="QCheckBox" name="nosig">
+       <property name="text">
+        <string>NOSIG</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="7">
+      <widget class="QComboBox" name="weather"/>
+     </item>
+     <item row="2" column="7">
+      <widget class="QLabel" name="weatherLabel">
+       <property name="text">
+        <string>天气现象2</string>
+       </property>
+       <property name="buddy">
+        <cstring>weather</cstring>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
   </layout>
@@ -260,7 +260,6 @@
   <tabstop>wind</tabstop>
   <tabstop>gust</tabstop>
   <tabstop>vis</tabstop>
-  <tabstop>weather</tabstop>
   <tabstop>weatherWithIntensity</tabstop>
   <tabstop>cloud1</tabstop>
   <tabstop>cloud2</tabstop>
