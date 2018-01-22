@@ -25,10 +25,10 @@ def _purePattern(regex):
     return pattern
 
 
-def formatPeriod(period, time):
+def formatTimeInterval(interval, time):
     # will remove later
-    startHour = int(period[:2])
-    endHour = 0 if period[2:] == '24' else int(period[2:])
+    startHour = int(interval[:2])
+    endHour = 0 if interval[2:] == '24' else int(interval[2:])
 
     base = datetime.datetime(time.year, time.month, time.day)
     delta = datetime.timedelta(hours=endHour) if startHour < endHour else datetime.timedelta(days=1, hours=endHour)
@@ -368,7 +368,7 @@ class Lexer(object):
             self.period = self.generatePeriod(period, time)
 
     def generatePeriod(self, period, time):
-        self.period = formatPeriod(period, time)
+        self.period = formatTimeInterval(period, time)
         return self.period
 
     def isValid(self):

@@ -38,3 +38,17 @@ def checkVersion(releaseVersion, currentVersion):
             hasNewVersion = True
 
     return hasNewVersion
+
+
+def formatTimeInterval(interval, time=None):
+    import datetime
+    time = time if time else datetime.datetime.utcnow()
+    startHour = int(interval[:2])
+    endHour = 0 if interval[2:] in ['24', ''] else int(interval[2:])
+
+    base = datetime.datetime(time.year, time.month, time.day)
+    delta = datetime.timedelta(hours=endHour) if startHour < endHour else datetime.timedelta(days=1, hours=endHour)
+    start = base + datetime.timedelta(hours=startHour)
+    end = base + delta
+
+    return start, end

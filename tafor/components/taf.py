@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 from tafor import logger
-from tafor.utils import CheckTAF, Grammar
+from tafor.utils import CheckTAF, Grammar, formatTimeInterval
 from tafor.models import db, Tafor, Task
 from tafor.components.widgets.segments import TAFPrimarySegment, TAFBecmgSegment, TAFTempoSegment
 
@@ -81,12 +81,12 @@ class BaseEditor(QDialog):
         self.primary.tmax.editingFinished.connect(self.verifyTemperature)
         self.primary.tmin.editingFinished.connect(self.verifyTemperature)
 
-        self.becmg1.interval.editingFinished.connect(lambda :self.verifyAmendInterval(self.becmg1.interval))
-        self.becmg2.interval.editingFinished.connect(lambda :self.verifyAmendInterval(self.becmg2.interval))
-        self.becmg3.interval.editingFinished.connect(lambda :self.verifyAmendInterval(self.becmg3.interval))
+        self.becmg1.interval.editingFinished.connect(lambda :self.verifyGroupInterval(self.becmg1.interval))
+        self.becmg2.interval.editingFinished.connect(lambda :self.verifyGroupInterval(self.becmg2.interval))
+        self.becmg3.interval.editingFinished.connect(lambda :self.verifyGroupInterval(self.becmg3.interval))
 
-        self.tempo1.interval.editingFinished.connect(lambda :self.verifyAmendInterval(self.tempo1.interval, tempo=True))
-        self.tempo2.interval.editingFinished.connect(lambda :self.verifyAmendInterval(self.tempo2.interval, tempo=True))
+        self.tempo1.interval.editingFinished.connect(lambda :self.verifyGroupInterval(self.tempo1.interval, tempo=True))
+        self.tempo2.interval.editingFinished.connect(lambda :self.verifyGroupInterval(self.tempo2.interval, tempo=True))
 
         self.primary.completeSignal.connect(self.enbaleNextButton)
         self.becmg1.completeSignal.connect(self.enbaleNextButton)
@@ -211,49 +211,27 @@ class BaseEditor(QDialog):
     def periodDuration(self):
         period = self.primary.period.text()
         if len(period) == 6:
-            duration = self._duration(period[2:4], period[4:6])
-            return duration
+            return formatTimeInterval(period[2:])
 
-    def _duration(self, start, end):
-        duration = {}
-        start = int(start)
-        end = 0 if end == '24' else int(end)
-        base_time = datetime.datetime(self.time.year, self.time.month, self.time.day)
-
-        duration['start'] = base_time + datetime.timedelta(hours=start)
-
-        if start < end:
-            duration['end'] = base_time + datetime.timedelta(hours=end)
-        else:
-            duration['end'] = base_time + datetime.timedelta(days=1, hours=end)
-
-        logger.debug(' '.join([
-            'Duration',
-            duration['start'].strftime('%Y-%m-%d %H:%M:%S'),
-            duration['end'].strftime('%Y-%m-%d %H:%M:%S')
-        ]))
-
-        return duration
-
-    def amendInterval(self, start, end):
-        duration = self._duration(start, end)
-        if duration['start'] < self.periods['start']:
-            duration['start'] += datetime.timedelta(days=1)
-            duration['end'] += datetime.timedelta(days=1)
-        return duration
+    def groupInterval(self, interval):
+        start, end = formatTimeInterval(interval)
+        if start < self.periods[0]:
+            start += datetime.timedelta(days=1)
+            end += datetime.timedelta(days=1)
+        return start, end
 
     def verifyTemperatureHour(self, line):
         if self.periods is not None:
-            temp_hour = self._duration(line.text(), 0)['start']
+            tempHour = formatTimeInterval(line.text())[0]
 
-            if temp_hour < self.periods['start']:
-                temp_hour += datetime.timedelta(days=1) 
+            if tempHour < self.periods[0]:
+                tempHour += datetime.timedelta(days=1) 
 
-            valid = self.periods['start'] <= temp_hour <= self.periods['end']
-            logger.debug('Verify temperature hour ' + str(valid))
+            valid = self.periods[0] <= tempHour <= self.periods[1]
 
             if not valid:
                 line.clear()
+                self.parent.statusBar.showMessage('Hour of temperature is not corret', 5000)
 
     def verifyTemperature(self):
         tmax = self.primary.tmax.text()
@@ -262,26 +240,26 @@ class BaseEditor(QDialog):
             if int(tmax) <= int(tmin):
                 self.primary.tmin.clear()
 
-    def verifyAmendInterval(self, line, tempo=False):
+    def verifyGroupInterval(self, line, tempo=False):
         if tempo and self.tt == 'FC':
-            interval = 4
+            maxTime = 4
         elif tempo and self.tt == 'FT':
-            interval = 6
+            maxTime = 6
         else:
-            interval = 2
+            maxTime = 2
 
-        duration = self.amendInterval(line.text()[0:2], line.text()[2:4])
-        if duration['start'] < self.periods['start'] or self.periods['end'] < duration['start']:
+        start, end = self.groupInterval(line.text())
+        if start < self.periods[0] or self.periods[1] < start:
             line.clear()
-            logger.info('Start interval time is not corret ' + duration['start'].strftime('%Y-%m-%d %H:%M:%S'))
+            self.parent.statusBar.showMessage('Start time of change group is not corret ' + start.strftime('%Y-%m-%d %H:%M:%S'), 5000)
 
-        if duration['end'] < self.periods['start'] or self.periods['end'] < duration['end']:
+        if end < self.periods[0] or self.periods[1] < end:
             line.clear()
-            logger.info('End interval time is not corret' + duration['end'].strftime('%Y-%m-%d %H:%M:%S'))
+            self.parent.statusBar.showMessage('End time of change group is not corret ' + end.strftime('%Y-%m-%d %H:%M:%S'), 5000)
 
-        if duration['end'] - duration['start'] > datetime.timedelta(hours=interval):
+        if end - start > datetime.timedelta(hours=maxTime):
             line.clear()
-            logger.info('More than ' + str(interval) + ' hours')
+            self.parent.statusBar.showMessage('Change group time more than ' + str(maxTime) + ' hours', 5000)
 
     def assembleMessage(self):
         primaryMessage = self.primary.message()
@@ -318,8 +296,6 @@ class BaseEditor(QDialog):
             completes.append(self.tempo2.complete)
 
         enbale = all(completes)
-
-        # logger.debug('TAF required ' + ' '.join(map(str, completes)))
 
         self.nextButton.setEnabled(enbale)
 
