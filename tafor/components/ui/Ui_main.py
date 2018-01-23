@@ -125,6 +125,7 @@ class Ui_MainWindow(object):
         self.remindSIGMETAction.setObjectName("remindSIGMETAction")
         self.warnTAFAction = QtWidgets.QAction(MainWindow)
         self.warnTAFAction.setCheckable(True)
+        self.warnTAFAction.setChecked(True)
         self.warnTAFAction.setObjectName("warnTAFAction")
         self.checkUpgradeAction = QtWidgets.QAction(MainWindow)
         self.checkUpgradeAction.setObjectName("checkUpgradeAction")

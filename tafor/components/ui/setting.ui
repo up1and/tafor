@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>622</width>
-    <height>452</height>
+    <width>620</width>
+    <height>408</height>
    </rect>
   </property>
   <property name="acceptDrops">
@@ -605,24 +605,17 @@
          <item>
           <widget class="QGroupBox" name="dataSourceGroup">
            <property name="title">
-            <string>监控数据源</string>
+            <string>数据源</string>
            </property>
-           <layout class="QFormLayout" name="formLayout_6">
+           <layout class="QFormLayout" name="formLayout_2">
             <item row="0" column="0">
-             <widget class="QCheckBox" name="webApi">
-              <property name="text">
-               <string>启用</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
              <widget class="QLabel" name="webApiLabel">
               <property name="text">
-               <string>请求地址       </string>
+               <string>请求地址        </string>
               </property>
              </widget>
             </item>
-            <item row="1" column="1">
+            <item row="0" column="1">
              <widget class="QLineEdit" name="webApiURL">
               <property name="placeholderText">
                <string>URL</string>
@@ -635,24 +628,17 @@
          <item>
           <widget class="QGroupBox" name="warnGroup">
            <property name="title">
-            <string>告警</string>
+            <string>迟发监控</string>
            </property>
-           <layout class="QFormLayout" name="formLayout_5">
+           <layout class="QFormLayout" name="formLayout_4">
             <item row="0" column="0">
-             <widget class="QCheckBox" name="warnTAF">
-              <property name="text">
-               <string>声音</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
              <widget class="QLabel" name="warnTAFTimeLabel">
               <property name="text">
                <string>告警时间        </string>
               </property>
              </widget>
             </item>
-            <item row="1" column="1">
+            <item row="0" column="1">
              <widget class="QLineEdit" name="warnTAFTime">
               <property name="maximumSize">
                <size>
@@ -665,14 +651,14 @@
               </property>
              </widget>
             </item>
-            <item row="2" column="0">
+            <item row="1" column="0">
              <widget class="QLabel" name="warnTAFVolumeLabel">
               <property name="text">
-               <string>音量            </string>
+               <string>告警声音        </string>
               </property>
              </widget>
             </item>
-            <item row="2" column="1">
+            <item row="1" column="1">
              <widget class="QSlider" name="warnTAFVolume">
               <property name="orientation">
                <enum>Qt::Horizontal</enum>
@@ -687,7 +673,7 @@
            <property name="title">
             <string>声音提醒和音量</string>
            </property>
-           <layout class="QFormLayout" name="formLayout_2">
+           <layout class="QFormLayout" name="formLayout_5">
             <item row="0" column="0">
              <widget class="QCheckBox" name="remindTAF">
               <property name="text">
@@ -871,7 +857,7 @@
               <item>
                <widget class="QLabel" name="selectContractLabel">
                 <property name="text">
-                 <string>当前设置告警号码</string>
+                 <string>当前告警联系人</string>
                 </property>
                </widget>
               </item>
@@ -925,7 +911,6 @@
   <tabstop>sigmetAddress</tabstop>
   <tabstop>airmetAddress</tabstop>
   <tabstop>trendAddress</tabstop>
-  <tabstop>warnTAF</tabstop>
   <tabstop>warnTAFVolume</tabstop>
   <tabstop>remindTAF</tabstop>
   <tabstop>remindTAFVolume</tabstop>

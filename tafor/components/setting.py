@@ -141,10 +141,9 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
         self.setValue('Communication/AIRMETAddress', 'airmetAddress', 'plaintext')
         self.setValue('Communication/TrendAddress', 'trendAddress', 'plaintext')
 
-        self.setValue('Monitor/WebApi', 'webApi', 'bool')
         self.setValue('Monitor/WebApiURL', 'webApiURL')
 
-        self.setValue('Monitor/WarnTAF', 'warnTAF', 'bool')
+        # self.setValue('Monitor/WarnTAF', 'warnTAF', 'bool')
         self.setValue('Monitor/WarnTAFTime', 'warnTAFTime')
         self.setValue('Monitor/WarnTAFVolume', 'warnTAFVolume', 'slider')
 
@@ -189,10 +188,8 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
         self.loadValue('Communication/AIRMETAddress', 'airmetAddress', 'plaintext')
         self.loadValue('Communication/TrendAddress', 'trendAddress', 'plaintext')
 
-        self.loadValue('Monitor/WebApi', 'webApi', 'bool')
         self.loadValue('Monitor/WebApiURL', 'webApiURL')
 
-        self.loadValue('Monitor/WarnTAF', 'warnTAF', 'bool')
         self.loadValue('Monitor/WarnTAFTime', 'warnTAFTime')
         self.loadValue('Monitor/WarnTAFVolume', 'warnTAFVolume', 'slider')
 
