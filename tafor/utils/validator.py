@@ -85,10 +85,10 @@ class Validator(object):
     @classmethod
     def wind(cls, refWind, wind):
         """
-        风：
-        1.当预报平均地面风向的变化大于等于 60°，且平均风速在变化前和（或）变化后大于等于 5m/s 时
-        2.当预报平均地面风速的变化大于等于 5m/s 时
-        3.当预报平均地面风风速变差（阵风）增加(或减少)大于等于 5m/s，且平均风速在变化前和（或）变化后大于等于 8m/s 时  ***有异议
+        风
+        1. 当预报平均地面风向的变化大于等于 60°，且平均风速在变化前和（或）变化后大于等于 5m/s 时
+        2. 当预报平均地面风速的变化大于等于 5m/s 时
+        3. 当预报平均地面风风速变差（阵风）增加(或减少)大于等于 5m/s，且平均风速在变化前和（或）变化后大于等于 8m/s 时  ***有异议
         """
         pattern = cls.grammarClass.wind
         refWindMatch = pattern.match(refWind)
@@ -151,6 +151,7 @@ class Validator(object):
     @classmethod
     def vis(cls, refVis, vis, thresholds=None):
         """
+        能见度
         当预报主导能见度上升并达到或经过下列一个或多个数值，或下降并经过下列一个或多个数值时：
         1. 150 m、350 m、600 m、800 m、1500 m 或 3000 m
         2. 5000 m（当有大量的按目视飞行规则的飞行时）
@@ -162,10 +163,11 @@ class Validator(object):
     @classmethod
     def vv(cls, refVv, vv, thresholds=None):
         """
-        当预报垂直能见度上升并达到或经过下列一个或多个数值，
-        或下降并经过下列一个或多个数值时：30 m、60 m、150 m 或 300 m；
+        垂直能见度
+        当预报垂直能见度上升并达到或经过下列一个或多个数值，或下降并经过下列一个或多个数值时：
+        30 m、60 m、150 m 或 300 m
 
-        编报时对应 VV001、VV002、VV005、VV010
+        # 编报时对应 VV001、VV002、VV005、VV010
         """
         pattern = cls.grammarClass.vv
         matches = [pattern.match(refVv), pattern.match(vv)]
@@ -203,20 +205,20 @@ class Validator(object):
     @classmethod
     def weather(cls, refWeather, weather):
         """
-        天气现象：
-           1. 当预报下列一种或几种天气现象开始、终止或强度变化时：
-              冻降水
-              中或大的降水（包括阵性降水）包括雷暴
-              尘暴
-              沙暴
+        天气现象
+        1. 当预报下列一种或几种天气现象开始、终止或强度变化时：
+           冻降水
+           中或大的降水（包括阵性降水）包括雷暴
+           尘暴
+           沙暴
 
-           2. 当预报下列一种或几种天气现象开始、终止时
-              冻雾
-              低吹尘、低吹沙或低吹雪
-              高吹尘、高吹沙或高吹雪
-              雷暴（伴或不伴有降水）
-              飑
-              漏斗云（陆龙卷或水龙卷）
+        2. 当预报下列一种或几种天气现象开始、终止时：
+           冻雾
+           低吹尘、低吹沙或低吹雪
+           高吹尘、高吹沙或高吹雪
+           雷暴（伴或不伴有降水）
+           飑
+           漏斗云（陆龙卷或水龙卷）
         """
         weatherWithIntensityPattern = re.compile(r'([+-])?(DZ|RA|SN|SG|PL|DS|SS|SHRA|SHSN|SHGR|SHGS|FZRA|FZDZ|TSRA|TSSN|TSPL|TSGR|TSGS|TSSH)')
         weatherPattern = re.compile(r'(SQ|PO|FC|TS|FZFG|BLSN|BLSA|BLDU|DRSN|DRSA|DRDU)')
@@ -244,16 +246,17 @@ class Validator(object):
 
     @classmethod
     def cloud(cls, refCloud, cloud, thresholds=None):
-        '''   
-          当预报 BKN 或 OVC 云量的最低云层的云高抬升并达到或经过下列一个或多个数值，或降低并经过下列一个或多个数值时：
-            1. 30 m、60 m、150 m 或 300 m
-            2. 450 m（在有大量的按目视飞行规则的飞行时）
+        '''
+        云
+        当预报 BKN 或 OVC 云量的最低云层的云高抬升并达到或经过下列一个或多个数值，或降低并经过下列一个或多个数值时：
+        1. 30 m、60 m、150 m 或 300 m
+        2. 450 m（在有大量的按目视飞行规则的飞行时）
 
-          当预报低于 450 m 的云层或云块的量的变化满足下列条件之一时：
-            1. 从 SCT 或更少到 BKN、OVC
-            2. 从 BKN、OVC 到 SCT 或更少
+        当预报低于 450 m 的云层或云块的量的变化满足下列条件之一时：
+        1. 从 SCT 或更少到 BKN、OVC
+        2. 从 BKN、OVC 到 SCT 或更少
 
-          当预报积雨云将发展或消失时
+        当预报积雨云将发展或消失时
         '''
         pattern = cls.grammarClass.cloud
         thresholds = thresholds if thresholds else [1, 2, 5, 10, 15]
@@ -575,7 +578,7 @@ class Parser(object):
                     if 'weather' in tokens:
                         tokens['weather']['error'] = True
 
-                    self.tips.append('能见度大于 1000、小于 5000, FG +DZ 不能有')
+                    self.tips.append('能见度大于 1000、小于 5000，FG +DZ 不能有')
                 
                 if vis > 5000 and set(weathers) & set(['FG', 'FU', 'BR', 'HZ']):
                     if 'weather' in tokens:
@@ -583,11 +586,11 @@ class Parser(object):
 
                     self.tips.append('能见度大于 5000，FG、FU、BR、HZ 不能有')
 
-        # 检查阵性降水和积雨云
         if 'weather' in tokens:
             weather = tokens['weather']['text']
-            cloud = mixture['cloud']['text']
 
+            # 检查阵性降水和积雨云
+            cloud = mixture['cloud']['text']
             if ('TS' in weather or 'SH' in weather) and \
                 not ('CB' in cloud or 'TCU' in cloud):
                 tokens['weather']['error'] = True
