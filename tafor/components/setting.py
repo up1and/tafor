@@ -47,7 +47,9 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
 
         self.buttonBox.button(QtWidgets.QDialogButtonBox.Reset).clicked.connect(self.load)
         self.buttonBox.button(QtWidgets.QDialogButtonBox.Apply).clicked.connect(self.save)
+        self.buttonBox.button(QtWidgets.QDialogButtonBox.Apply).clicked.connect(self.parent.updateGUI)
         self.buttonBox.accepted.connect(self.save)
+        self.buttonBox.accepted.connect(self.parent.updateGUI)
 
     def checkSerialNumber(self):
         utc = datetime.datetime.utcnow()
@@ -97,12 +99,10 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
             self.contractTable.setItem(row, 0,  QtWidgets.QTableWidgetItem(item.name))
             self.contractTable.setItem(row, 1,  QtWidgets.QTableWidgetItem(item.mobile))
 
-        currentContract = self.selectContract.currentText()
-        self.selectContract.clear()
-        combox_items = [item.name for item in items]
-        self.selectContract.addItems(combox_items)
-        current_index = self.selectContract.findText(currentContract, QtCore.Qt.MatchFixedString)
-        self.selectContract.setCurrentIndex(current_index)
+        self.selectedContract.clear()
+        options = [item.name for item in items]
+        options.insert(0, '无')
+        self.selectedContract.addItems(options)
 
     def testCallUp(self):
         self.parent.dialer(test=True)
@@ -157,7 +157,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
         self.setValue('Monitor/CallServiceURL', 'callServiceURL')
         self.setValue('Monitor/CallServiceToken', 'callServiceToken')
 
-        self.setValue('Monitor/SelectedMobile', 'selectContract', 'mobile')
+        self.setValue('Monitor/SelectedMobile', 'selectedContract', 'mobile')
 
     def load(self):
         self.runOnStart.setChecked(self.autoRun.contains("Tafor.exe"))
@@ -203,7 +203,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
         self.loadValue('Monitor/CallServiceURL', 'callServiceURL')
         self.loadValue('Monitor/CallServiceToken', 'callServiceToken')
 
-        self.loadValue('Monitor/SelectedMobile', 'selectContract', 'mobile')
+        self.loadValue('Monitor/SelectedMobile', 'selectedContract', 'mobile')
 
     def loadValue(self, path, target, mold='text'):
 

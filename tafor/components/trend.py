@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import json
 import datetime
 
@@ -43,7 +42,7 @@ class TrendEditor(QDialog):
         self.nextButton.clicked.connect(self.previewMessage)
 
     def enbaleNextButton(self):
-        enbale = self.trend.required
+        enbale = self.trend.complete
         logger.debug('Trend required ' + str(enbale))
         self.nextButton.setEnabled(enbale)
 

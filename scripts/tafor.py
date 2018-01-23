@@ -44,7 +44,7 @@ def latest(icao):
     url = 'http://172.17.1.166/biz/QueryMetInfo/ReportByArea.aspx'
 
     try:
-        response = requests.get(url, cookies=cookies)
+        response = requests.get(url, cookies=cookies, timeout=30)
         html = response.content
         soup = BeautifulSoup(html, "html.parser")
         items = [tag.string.strip() for tag in soup.find_all('td') if tag.string is not None]
@@ -77,7 +77,7 @@ def remote_latest(icao):
     }
 
     try:
-        response = requests.post(url, params=post_data)
+        response = requests.post(url, params=post_data, timeout=30)
         messages = [msg['RPT'].strip().replace('\n', ' ') for msg in response.json()]
 
         return jsonify(marshal(messages))

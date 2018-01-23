@@ -132,7 +132,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
         # 连接切换联系人的槽
         self.contractsActionGroup.triggered.connect(self.changeContract)
-        self.contractsActionGroup.triggered.connect(self.settingDialog.updateContract)
+        self.contractsActionGroup.triggered.connect(self.settingDialog.load)
 
         # 连接报文表格复制的槽
         self.tafTable.itemDoubleClicked.connect(self.copySelectItem)
@@ -145,7 +145,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.setupRecent()
 
         # 设置切换联系人菜单
-        self.setupChangeContractMenu()
+        self.setupContractMenu()
 
         # 设置系统托盘
         self.setupSysTray()
@@ -184,7 +184,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.recentFT = RecentTAF(self, self.recentLayout, 'FT')
         self.recentFC = RecentTAF(self, self.recentLayout, 'FC')
 
-    def setupChangeContractMenu(self):
+    def setupContractMenu(self):
         contacts = db.query(User).all()
 
         for person in contacts:
@@ -196,12 +196,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             self.contractsActionGroup.addAction(target)
             self.contractsMenu.addAction(target)
 
-        mobile = conf.value('Monitor/SelectedMobile')
-        person = db.query(User).filter_by(mobile=mobile).first()
-        if person:
-            getattr(self, 'contract' + str(person.id)).setChecked(True)
-        else:
-            self.contractNo.setChecked(True)
+        self.updateContractMenu()
 
     def setupSysTray(self):
         # 设置系统托盘
@@ -273,7 +268,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.taskTableDialog.update_gui()
 
     def singer(self):
-        warnSwitch = conf.value('Monitor/WarnTAF')
+        warnSwitch = self.warnTAFAction.isChecked()
         trendSwitch = conf.value('Monitor/RemindTrend')
         sigmetSwitch = conf.value('Monitor/RemindSIGMET')
         tafSwitch = conf.value('Monitor/RemindTAF')
@@ -363,18 +358,27 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.updateGUI()
 
     def updateGUI(self):
-        self.updateTafTable()
+        self.updateTAFTable()
         self.updateMetarTable()
         self.updateRecent()
+        self.updateContractMenu()
 
         logger.debug('Update GUI')
+
+    def updateContractMenu(self):
+        mobile = conf.value('Monitor/SelectedMobile')
+        person = db.query(User).filter_by(mobile=mobile).first()
+        if person:
+            getattr(self, 'contract' + str(person.id)).setChecked(True)
+        else:
+            self.contractNo.setChecked(True)
 
     def updateRecent(self):
         self.currentTAF.updateGUI()
         self.recentFT.updateGUI()
         self.recentFC.updateGUI()
 
-    def updateTafTable(self):
+    def updateTAFTable(self):
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
         items = db.query(Tafor).filter(Tafor.sent > recent).order_by(Tafor.sent.desc()).all()
         header = self.tafTable.horizontalHeader()
@@ -412,7 +416,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
         self.tafTable.setStyleSheet("QTableWidget::item {padding: 5px 0;}")
         self.tafTable.resizeRowsToContents()
-
 
     def updateMetarTable(self):
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
@@ -471,10 +474,10 @@ class WorkThread(QtCore.QThread):
         self.parent = parent
 
     def run(self):
-        if (boolean(conf.value('Monitor/WebApi'))):
+        if conf.value('Monitor/WebApiURL'):
             self.parent.store.message = remoteMessage()
 
-        if (boolean(conf.value('Monitor/SelectedMobile'))):
+        if conf.value('Monitor/SelectedMobile'):
             self.parent.store.callService = callService()
 
         self.doneSignal.emit()

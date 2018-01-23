@@ -853,16 +853,16 @@
              </widget>
             </item>
             <item>
-             <layout class="QHBoxLayout" name="selectContractLayout">
+             <layout class="QHBoxLayout" name="selectedContractLayout">
               <item>
-               <widget class="QLabel" name="selectContractLabel">
+               <widget class="QLabel" name="selectedContractLabel">
                 <property name="text">
                  <string>当前告警联系人</string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QComboBox" name="selectContract"/>
+               <widget class="QComboBox" name="selectedContract"/>
               </item>
              </layout>
             </item>

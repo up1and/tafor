@@ -105,11 +105,6 @@
             <string>查询</string>
            </property>
           </column>
-          <column>
-           <property name="text">
-            <string>其他</string>
-           </property>
-          </column>
          </widget>
         </item>
        </layout>
@@ -182,6 +177,7 @@
       <string>联系人</string>
      </property>
      <addaction name="contractNo"/>
+     <addaction name="separator"/>
     </widget>
     <addaction name="warnTAFAction"/>
     <addaction name="contractsMenu"/>

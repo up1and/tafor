@@ -235,7 +235,7 @@ class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Form):
 
     def checkComplete(self):
         self.complete = False
-        must_required = (
+        mustRequired = (
                         self.date.hasAcceptableInput(), 
                         self.period.text(), 
                         self.wind.hasAcceptableInput(), 
@@ -244,7 +244,7 @@ class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Form):
                         self.tmin.hasAcceptableInput(), 
                         self.tminTime.hasAcceptableInput()
                         )
-        one_required = (
+        oneRequired = (
                         self.nsc.isChecked(), 
                         self.skc.isChecked(), 
                         self.cloud1.hasAcceptableInput(), 
@@ -253,10 +253,10 @@ class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Form):
                         self.cb.hasAcceptableInput()
                         )
         
-        if all(must_required):
+        if all(mustRequired):
             if self.cavok.isChecked():
                 self.complete = True
-            elif self.vis.hasAcceptableInput() and any(one_required):
+            elif self.vis.hasAcceptableInput() and any(oneRequired):
                 self.complete = True
 
         self.completeSignal.emit(self.complete)
@@ -348,7 +348,7 @@ class TAFBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Form):
 
     def checkComplete(self):
         self.complete = False
-        one_required = (
+        oneRequired = (
             self.nsc.isChecked(), 
             self.skc.isChecked(),
             self.cavok.isChecked(), 
@@ -362,7 +362,7 @@ class TAFBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Form):
             self.cb.hasAcceptableInput()
         )
 
-        if self.interval.hasAcceptableInput() and any(one_required):
+        if self.interval.hasAcceptableInput() and any(oneRequired):
             self.complete = True
 
         self.completeSignal.emit(self.complete)
@@ -415,7 +415,7 @@ class TAFTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Form):
 
     def checkComplete(self):
         self.complete = False
-        one_required = (
+        oneRequired = (
             self.wind.hasAcceptableInput(), 
             self.vis.hasAcceptableInput(), 
             self.weather.currentText(),
@@ -426,7 +426,7 @@ class TAFTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Form):
             self.cb.hasAcceptableInput()
         )
 
-        if self.interval.hasAcceptableInput() and any(one_required):
+        if self.interval.hasAcceptableInput() and any(oneRequired):
             self.complete = True
 
         self.completeSignal.emit(self.complete)
@@ -456,6 +456,8 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
         self.fm.toggled.connect(self.setFm)
         self.tl.toggled.connect(self.setTl)
 
+        self.period.editingFinished.connect(self.validPeriod)
+
         self.nosig.clicked.connect(self.checkComplete)
         self.at.clicked.connect(self.checkComplete)
         self.fm.clicked.connect(self.checkComplete)
@@ -465,7 +467,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
         super(TrendSegment, self).setValidator()
 
         # 还未验证输入个数
-        period = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.interval))
+        period = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.trendInterval))
         self.period.setValidator(period)
 
     def setNosig(self, checked):
@@ -474,7 +476,6 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
         self.prefixGroup.setEnabled(status)
         self.typeGroup.setEnabled(status)
 
-        self.period.setEnabled(status)
         self.wind.setEnabled(status)
         self.gust.setEnabled(status)
         self.vis.setEnabled(status)
@@ -488,7 +489,6 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
         self.cavok.setEnabled(status)
         self.skc.setEnabled(status)
         self.nsc.setEnabled(status)
-
 
     def setAt(self, checked):
         if checked:
@@ -514,9 +514,18 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
         else:
             self.period.setEnabled(False)
 
+    def validPeriod(self):
+        period = self.period.text()
+        utc = datetime.datetime.utcnow()
+        time = datetime.datetime(utc.year, utc.month, utc.day, int(period[:2]), int(period[2:]))
+        delta = datetime.timedelta(hours=2)
+
+        if time < utc or time - delta > utc:
+            self.period.clear()
+
     def checkComplete(self):
         self.complete = False
-        one_required = (
+        oneRequired = (
             self.nsc.isChecked(), 
             self.skc.isChecked(),
             self.cavok.isChecked(), 
@@ -530,7 +539,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
             self.cb.hasAcceptableInput()
         )
 
-        prefix_checked = (
+        prefixChecked = (
             self.at.isChecked(),
             self.fm.isChecked(),
             self.tl.isChecked()
@@ -539,8 +548,8 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
         if self.nosig.isChecked():
             self.complete = True
 
-        if any(one_required):
-            if any(prefix_checked):
+        if any(oneRequired):
+            if any(prefixChecked):
                 if self.period.hasAcceptableInput():
                     self.complete = True
             else:

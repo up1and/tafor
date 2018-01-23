@@ -74,6 +74,7 @@ class Pattern(object):
     temp = r'M?([0-5][0-9])'
     hours = r'([01][0-9]|2[0-3])'
     interval = r'([01][0-9]|2[0-3])(0[1-9]|1[0-9]|2[0-4])'
+    trendInterval = r'([01][0-9]|2[0-3])([0-5][0-9])'
 
 
 class Validator(object):
@@ -481,7 +482,7 @@ class Parser(object):
                         index = groups.index(becmg)
                         groups.insert(index, tempo)
 
-                    if tempo.period[0] > becmg.period[1] and tempo not in groups:
+                    if tempo.period[0] >= becmg.period[1]:
                         groups.append(tempo)
 
             return groups
@@ -634,7 +635,11 @@ if __name__ == '__main__':
     # print(Validator.cloud('NSC', 'SKC'))
 
     message = '''
-        TAF ZJHK 240130Z 240312 01004MPS 8000 BKN040=
+        TAF ZJHK 211338Z 211524 14004MPS 9999 SCT020 FEW026CB
+BECMG 1718 3000 SHRA
+BECMG 1920 SCT020
+TEMPO 1620 1000 +TSRA
+TEMPO 2024 -TSRA=
     '''
     # m = Grammar.taf.search(message)
     # print(m.group(0))

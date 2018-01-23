@@ -12,32 +12,32 @@ class TestValidator(unittest.TestCase):
     def setUpClass(self):
         self.validator = tafor.utils.Validator
 
-    def test_wind(self):
+    def testWind(self):
         self.assertTrue(self.validator.wind('01004MPS', '07005MPS'))
         self.assertTrue(self.validator.wind('36010MPS', '36005MPS'))
         self.assertTrue(self.validator.wind('03008G15MPS', '36005G10MPS'))
         self.assertTrue(self.validator.wind('03008G13MPS', '36005MPS'))
         self.assertFalse(self.validator.wind('VRB01MPS', '36004MPS'))
 
-    def test_vis(self):
+    def testVis(self):
         self.assertTrue(self.validator.vis(1600, 3000))
         self.assertTrue(self.validator.vis(1400, 6000))
         self.assertTrue(self.validator.vis(200, 400))
         self.assertFalse(self.validator.vis(3000, 1600))
 
-    def test_vv(self):
+    def testVv(self):
         self.assertTrue(self.validator.vv('VV002', 'VV005'))
         self.assertFalse(self.validator.vv('VV005', 'VV002'))
         self.assertFalse(self.validator.vv('VV002', 'VV003'))
         
-    def test_weather(self):
+    def testWeather(self):
         self.assertTrue(self.validator.weather('TS', '-TSRA'))
         self.assertTrue(self.validator.weather('-TSRA', 'TSRA'))
         self.assertTrue(self.validator.weather('TSRA BR', '-TSRA'))
         self.assertFalse(self.validator.weather('TSRA', 'TSRA'))
         self.assertFalse(self.validator.weather('NSW', 'BR'))
 
-    def test_cloud(self):
+    def testCloud(self):
         self.assertTrue(self.validator.cloud('BKN015', 'SCT007 OVC010'))
         self.assertTrue(self.validator.cloud('SCT020', 'SCT020 FEW023CB'))
         self.assertTrue(self.validator.cloud('BKN010', 'BKN004'))
@@ -52,16 +52,16 @@ class TestParser(unittest.TestCase):
     def setUpClass(self):
         self.parser = tafor.utils.Parser
 
-    def test_message(self):
+    def testMessage(self):
         def validate(message):
             e = self.parser(message)
-            is_valid = e.validate()
+            isValid = e.validate()
 
             print(e.renderer(style='terminal'), '\n')
-            return is_valid
+            return isValid
         
         messages = [
-            ('TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040=', True),
+            ('TAF ZJHK 150726Z 150918 03003G10MPS 1600 OVC040=', False),
             ('TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR=', True),
             ('''TAF ZJHK 240130Z 240312 01004MPS 8000 BKN040 
                 BECMG 0506 5000 -RA OVC030 
@@ -77,7 +77,12 @@ class TestParser(unittest.TestCase):
                 BECMG 2122 2500 BR BKN012
                 TEMPO 1519 07005MPS=''', True),
             ('''TAF ZJHK 211338Z 211524 14004MPS 4500 BKN030
-                BECMG 2122 3000 -RA BKN012=''', False)
+                BECMG 2122 3000 -RA BKN012=''', False),
+            ('''TAF ZJHK 211338Z 211524 14004MPS 9999 SCT020 FEW026CB
+                BECMG 1718 3000 SHRA
+                BECMG 1920 SCT020
+                TEMPO 1620 1000 +TSRA
+                TEMPO 2024 -SHRA=''', False)
         ]
 
         for msg, result in messages:
