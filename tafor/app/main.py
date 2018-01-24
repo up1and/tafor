@@ -369,7 +369,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         mobile = conf.value('Monitor/SelectedMobile')
         person = db.query(User).filter_by(mobile=mobile).first()
         if person:
-            getattr(self, 'contract' + str(person.id)).setChecked(True)
+            action = getattr(self, 'contract' + str(person.id), None)
+            if action:
+                action.setChecked(True)
         else:
             self.contractNo.setChecked(True)
 

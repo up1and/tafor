@@ -183,10 +183,10 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
 
         self.loadValue('Communication/RequestAddress', 'requestAddress')
         self.loadValue('Communication/UserAddress', 'userAddress')
-        self.loadValue('Communication/TAFAddress', 'tafAddress', 'plaintext')
-        self.loadValue('Communication/SIGMETAddress', 'sigmetAddress', 'plaintext')
-        self.loadValue('Communication/AIRMETAddress', 'airmetAddress', 'plaintext')
-        self.loadValue('Communication/TrendAddress', 'trendAddress', 'plaintext')
+        self.loadValue('Communication/TAFAddress', 'tafAddress')
+        self.loadValue('Communication/SIGMETAddress', 'sigmetAddress')
+        self.loadValue('Communication/AIRMETAddress', 'airmetAddress')
+        self.loadValue('Communication/TrendAddress', 'trendAddress')
 
         self.loadValue('Monitor/WebApiURL', 'webApiURL')
 
