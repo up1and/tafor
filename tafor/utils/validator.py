@@ -236,7 +236,7 @@ class Validator(object):
             # NSW 无法转折的天气
             if w == 'NSW' and set(refWeathers) & set(['BR', 'HZ', 'FU', 'DU', '-RA', '-SN']) \
                 or 'NSW' in refWeathers and w in ['BR', 'HZ', 'FU', 'DU', '-RA', '-SN']:
-                return False
+                continue
 
             if w not in refWeathers:
                 if condition(w) or condition(refWeather):
@@ -605,7 +605,6 @@ class Parser(object):
                 tokens['weather']['error'] = True
                 self.tips.append('BR，HZ，FG，FU 不能同时存在')
 
-
         # 不用高度云组云量的验证
         if 'cloud' in tokens:
             clouds = [c for c in tokens['cloud']['text'].split() if 'CB' not in c]
@@ -613,11 +612,11 @@ class Parser(object):
             for i, cloud in enumerate(clouds):
                 if i == 1 and 'FEW' in cloud:
                     tokens['cloud']['error'] = True
-                    self.tips.append('第二层云量不能为 FEW')
+                    self.tips.append('云组第二层云量不能为 FEW')
 
                 if i == 2 and ('FEW' in cloud or 'SCT' in cloud):
                     tokens['cloud']['error'] = True
-                    self.tips.append('第三层云量不能为 FEW 或 SCT')
+                    self.tips.append('云组第三层云量不能为 FEW 或 SCT')
 
     def refs(self):
         self.reference = copy.deepcopy(self.primary.tokens)
@@ -657,7 +656,8 @@ if __name__ == '__main__':
     # print(Validator.cloud('NSC', 'SKC'))
 
     message = '''
-        TAF ZJHK 211338Z 211524 14004MPS 5000 BR SCT020 FEW026CB=
+        TAF ZJHK 211338Z 211524 14004MPS 4000 BR SCT020 FEW026CB
+        BECMG 1718 CAVOK=
     '''
     # m = Grammar.taf.search(message)
     # print(m.group(0))

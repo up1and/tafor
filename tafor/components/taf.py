@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import json
 import datetime
 
@@ -237,7 +236,9 @@ class BaseEditor(QDialog):
         tmax = self.primary.tmax.text()
         tmin = self.primary.tmin.text()
         if tmax and tmin:
-            if int(tmax) <= int(tmin):
+            tmax = -int(tmax[1:]) if 'M' in tmax else int(tmax)
+            tmin = -int(tmin[1:]) if 'M' in tmin else int(tmin)
+            if tmax <= tmin:
                 self.primary.tmin.clear()
 
     def verifyGroupInterval(self, line, tempo=False):

@@ -33,10 +33,10 @@ class BaseSegment(QtWidgets.QWidget):
 
         self.gust.editingFinished.connect(self.validGust)
 
-        self.cloud1.textEdited.connect(lambda:self.upperText(self.cloud1))
-        self.cloud2.textEdited.connect(lambda:self.upperText(self.cloud2))
-        self.cloud3.textEdited.connect(lambda:self.upperText(self.cloud3))
-        self.cb.textEdited.connect(lambda:self.upperText(self.cb))
+        self.cloud1.textEdited.connect(lambda: self.upperText(self.cloud1))
+        self.cloud2.textEdited.connect(lambda: self.upperText(self.cloud2))
+        self.cloud3.textEdited.connect(lambda: self.upperText(self.cloud3))
+        self.cb.textEdited.connect(lambda: self.upperText(self.cb))
 
         self.wind.textChanged.connect(self.checkComplete)
         self.vis.textChanged.connect(self.checkComplete)
@@ -214,7 +214,7 @@ class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Form):
         date = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.date))
         self.date.setValidator(date)
 
-        temp = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.temp))
+        temp = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.temp, QtCore.Qt.CaseInsensitive))
         self.tmax.setValidator(temp)
         self.tmin.setValidator(temp)
 
@@ -224,6 +224,9 @@ class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Form):
 
     def bindSignal(self):
         super(TAFPrimarySegment, self).bindSignal()
+
+        self.tmax.textEdited.connect(lambda: self.upperText(self.tmax))
+        self.tmin.textEdited.connect(lambda: self.upperText(self.tmin))
 
         # 设置下一步按钮
         self.date.textEdited.connect(self.checkComplete)
