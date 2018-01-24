@@ -143,7 +143,7 @@ class Validator(object):
         if refGust and gust and abs(refGust - gust) >= 5 and max(refSpeed, speed) >= 8:
             return True
 
-        if refGust or gust and max(refSpeed, speed) >= 8:
+        if (refGust or gust) and max(refSpeed, speed) >= 8:
             return True
 
         return False
@@ -588,17 +588,36 @@ class Parser(object):
 
         if 'weather' in tokens:
             weather = tokens['weather']['text']
+            weathers = weather.split()
 
             # 检查阵性降水和积雨云
             cloud = mixture['cloud']['text']
-            if ('TS' in weather or 'SH' in weather) and \
-                not ('CB' in cloud or 'TCU' in cloud):
+            if ('TS' in weather or 'SH' in weather) and 'CB' not in cloud:
                 tokens['weather']['error'] = True
-                self.tips.append('阵性降水应包含 CB 或者 TCU')
+                self.tips.append('阵性降水应包含 CB')
 
-            if 'NSW' in weather.split() and len(weather.split()) > 1:
+            if 'NSW' in weathers and len(weathers) > 1:
                 tokens['weather']['error'] = True
-                self.tips.append('NSW 不能和其他天气现象共存')
+                self.tips.append('NSW 不能和其他天气现象同时存在')
+
+            intWeather = set(weathers) & set(['BR', 'HZ', 'FG', 'FU'])
+            if len(intWeather) > 1:
+                tokens['weather']['error'] = True
+                self.tips.append('BR，HZ，FG，FU 不能同时存在')
+
+
+        # 不用高度云组云量的验证
+        if 'cloud' in tokens:
+            clouds = [c for c in tokens['cloud']['text'].split() if 'CB' not in c]
+
+            for i, cloud in enumerate(clouds):
+                if i == 1 and 'FEW' in cloud:
+                    tokens['cloud']['error'] = True
+                    self.tips.append('第二层云量不能为 FEW')
+
+                if i == 2 and ('FEW' in cloud or 'SCT' in cloud):
+                    tokens['cloud']['error'] = True
+                    self.tips.append('第三层云量不能为 FEW 或 SCT')
 
     def refs(self):
         self.reference = copy.deepcopy(self.primary.tokens)
@@ -638,11 +657,7 @@ if __name__ == '__main__':
     # print(Validator.cloud('NSC', 'SKC'))
 
     message = '''
-        TAF ZJHK 211338Z 211524 14004MPS 9999 SCT020 FEW026CB
-BECMG 1718 3000 SHRA
-BECMG 1920 SCT020
-TEMPO 1620 1000 +TSRA
-TEMPO 2024 -TSRA=
+        TAF ZJHK 211338Z 211524 14004MPS 5000 BR SCT020 FEW026CB=
     '''
     # m = Grammar.taf.search(message)
     # print(m.group(0))
