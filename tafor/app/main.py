@@ -7,7 +7,8 @@ from PyQt5.QtMultimedia import QSound, QSoundEffect
 
 from tafor import BASEDIR, conf, logger, boolean, __version__
 from tafor.models import db, Tafor, Task, Metar, User
-from tafor.utils import CheckTAF, Listen, remoteMessage, callService, callUp, repoRelease, checkVersion
+from tafor.utils import CheckTAF, Listen, checkVersion
+from tafor.utils.thread import WorkThread, CallThread, CheckUpgradeThread
 
 from tafor.components.ui import Ui_main, main_rc
 from tafor.components.taf import TAFEditor, TaskTAFEditor
@@ -89,6 +90,25 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.taskBrowserDialog = TaskBrowser(self)
         self.settingDialog = SettingDialog(self)
 
+        # 设置主窗口文字图标
+        self.setWindowTitle('预报发报软件')
+        self.setWindowIcon(QtGui.QIcon(':/logo.png'))
+
+        self.setupRecent()
+
+        # 设置切换联系人菜单
+        self.setupContractMenu()
+
+        # 设置系统托盘
+        self.setupSysTray()
+
+        # 设置系统托盘
+        self.setupStatusbar()
+
+        self.setupThread()
+
+        self.setupSound()
+
         # 连接TAF对话框信号
         self.tafEditDialog.previewSignal.connect(self.handleTafEdit)
         self.tafSendDialog.sendSignal.connect(self.updateGUI)
@@ -119,15 +139,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.settingAction.setIcon(QtGui.QIcon(':/setting.png'))
 
         self.reportIssueAction.triggered.connect(self.reportIssue)
-        self.checkUpgradeAction.triggered.connect(self.checkUpgrade)
+        self.checkUpgradeAction.triggered.connect(self.checkUpgradeThread.start)
 
         # 连接关于信息的槽
         self.aboutAction.triggered.connect(self.about)
         self.aboutAction.triggered.connect(self.showWindow)
-
-        # 联系人选项组
-        self.contractsActionGroup = QtWidgets.QActionGroup(self)
-        self.contractsActionGroup.addAction(self.contractNo)
 
         # 连接切换联系人的槽
         self.contractsActionGroup.triggered.connect(self.changeContract)
@@ -136,33 +152,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         # 连接报文表格复制的槽
         self.tafTable.itemDoubleClicked.connect(self.copySelectItem)
         self.metarTable.itemDoubleClicked.connect(self.copySelectItem)
-
-        # 设置主窗口文字图标
-        self.setWindowTitle('预报发报软件')
-        self.setWindowIcon(QtGui.QIcon(':/logo.png'))
-
-        self.setupRecent()
-
-        # 设置切换联系人菜单
-        self.setupContractMenu()
-
-        # 设置系统托盘
-        self.setupSysTray()
-
-        # 设置系统托盘
-        self.setupStatusbar()
-
-        # 载入声音
-        self.ringSound = Sound('ring.wav', conf.value('Monitor/RemindTAFVolume'))
-        self.notificationSound = Sound('notification.wav', 100)
-        self.alarmSound = Sound('alarm.wav', conf.value('Monitor/WarnTAFVolume'))
-        self.trendSound = Sound('trend.wav', conf.value('Monitor/RemindTrendVolume'))
-        self.sigmetSound = Sound('sigmet.wav', conf.value('Monitor/RemindSIGMETVolume'))
-
-        self.settingDialog.warnTAFVolume.valueChanged.connect(lambda vol: self.alarmSound.play(volume=vol, loop=False))
-        self.settingDialog.remindTAFVolume.valueChanged.connect(lambda vol: self.ringSound.play(volume=vol, loop=False))
-        self.settingDialog.remindTrendVolume.valueChanged.connect(lambda vol: self.trendSound.play(volume=vol, loop=False))
-        self.settingDialog.remindSIGMETVolume.valueChanged.connect(lambda vol: self.sigmetSound.play(volume=vol, loop=False))
 
         # 时钟计时器
         self.clockTimer = QtCore.QTimer()
@@ -184,6 +173,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.recentFC = RecentTAF(self, self.recentLayout, 'FC')
 
     def setupContractMenu(self):
+        self.contractsActionGroup = QtWidgets.QActionGroup(self)
+        self.contractsActionGroup.addAction(self.contractNo)
+        
         contacts = db.query(User).all()
 
         for person in contacts:
@@ -225,6 +217,27 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
         # self.statusBar.setStyleSheet('QStatusBar::item{border: 0px}')
 
+    def setupThread(self):
+        self.workThread = WorkThread(self)
+        self.workThread.finished.connect(self.updateMessage)
+
+        self.callThread = CallThread(self)
+
+        self.checkUpgradeThread = CheckUpgradeThread(self)
+        self.checkUpgradeThread.doneSignal.connect(self.checkUpgrade)
+
+    def setupSound(self):
+        self.ringSound = Sound('ring.wav', conf.value('Monitor/RemindTAFVolume'))
+        self.notificationSound = Sound('notification.wav', 100)
+        self.alarmSound = Sound('alarm.wav', conf.value('Monitor/WarnTAFVolume'))
+        self.trendSound = Sound('trend.wav', conf.value('Monitor/RemindTrendVolume'))
+        self.sigmetSound = Sound('sigmet.wav', conf.value('Monitor/RemindSIGMETVolume'))
+
+        self.settingDialog.warnTAFVolume.valueChanged.connect(lambda vol: self.alarmSound.play(volume=vol, loop=False))
+        self.settingDialog.remindTAFVolume.valueChanged.connect(lambda vol: self.ringSound.play(volume=vol, loop=False))
+        self.settingDialog.remindTrendVolume.valueChanged.connect(lambda vol: self.trendSound.play(volume=vol, loop=False))
+        self.settingDialog.remindSIGMETVolume.valueChanged.connect(lambda vol: self.sigmetSound.play(volume=vol, loop=False))
+
     def changeContract(self):
         target = self.contractsActionGroup.checkedAction()
 
@@ -265,25 +278,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.taskTafSendDialog.hide()
         self.taskTableDialog.show()
         self.taskTableDialog.update_gui()
-
-    def singer(self):
-        warnSwitch = self.warnTAFAction.isChecked()
-        trendSwitch = conf.value('Monitor/RemindTrend')
-        sigmetSwitch = conf.value('Monitor/RemindSIGMET')
-        tafSwitch = conf.value('Monitor/RemindTAF')
-
-        # 管理趋势声音
-        utc = datetime.datetime.utcnow()
-        if trendSwitch and utc.minute in (58, 59):
-            self.trendSound.play()
-        else:
-            self.trendSound.stop()
-
-        # 管理报文告警声音
-        if warnSwitch and self.store.warning:
-            self.alarmSound.play()
-        else:
-            self.alarmSound.stop()
 
     def event(self, event):
         """
@@ -338,17 +332,33 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         if self.isMinimized():
             self.showNormal()
 
+    def singer(self):
+        warnSwitch = self.warnTAFAction.isChecked()
+        trendSwitch = conf.value('Monitor/RemindTrend')
+        sigmetSwitch = conf.value('Monitor/RemindSIGMET')
+        tafSwitch = conf.value('Monitor/RemindTAF')
+
+        # 管理趋势声音
+        utc = datetime.datetime.utcnow()
+        if trendSwitch and utc.minute in (58, 59):
+            self.trendSound.play()
+        else:
+            self.trendSound.stop()
+
+        # 管理报文告警声音
+        if warnSwitch and self.store.warning:
+            self.alarmSound.play()
+        else:
+            self.alarmSound.stop()
+
     def worker(self):
-        thread = WorkThread(self)
-        thread.doneSignal.connect(self.updateMessage)
-        thread.start()
+        self.workThread.start()
 
     def dialer(self, test=False):
-        callSwitch = boolean(conf.value('monitor/phone/phone_warn_taf'))
+        callSwitch = conf.value('Monitor/SelectedMobile')
 
         if callSwitch and self.store.warn or test:
-            thread = CallThread(self)
-            thread.start()
+            self.callThread.start()
 
     def updateMessage(self):
         listen = Listen(self.store)
@@ -447,12 +457,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
     def reportIssue(self):
         QtGui.QDesktopServices.openUrl(QtCore.QUrl('https://github.com/up1and/tafor/issues'))
 
-    def checkUpgrade(self):
-        thread = CheckUpgradeThread(self)
-        thread.doneSignal.connect(self.showUpgradeMessage)
-        thread.start()
-
-    def showUpgradeMessage(self, data):
+    def checkUpgrade(self, data):
         hasNewVersion = checkVersion(data.get('tag_name', __version__), __version__)
         if not hasNewVersion:
             return False
@@ -462,48 +467,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         ret = QtWidgets.QMessageBox.question(self, '检查更新', message)
         if ret == QtWidgets.QMessageBox.Yes:
             QtGui.QDesktopServices.openUrl(QtCore.QUrl(download))
-
-
-class WorkThread(QtCore.QThread):
-    """
-    检查预报报文线程类
-    """
-    doneSignal = QtCore.pyqtSignal()
-
-    def __init__(self, parent=None):
-        super(WorkThread, self).__init__(parent)
-        self.parent = parent
-
-    def run(self):
-        if conf.value('Monitor/WebApiURL'):
-            self.parent.store.message = remoteMessage()
-
-        if conf.value('Monitor/SelectedMobile'):
-            self.parent.store.callService = callService()
-
-        self.doneSignal.emit()
-
-
-class CallThread(QtCore.QThread):
-    def __init__(self, parent=None):
-        super(CallThread, self).__init__(parent)
-        self.parent = parent
-
-    def run(self):
-        mobile = conf.value('Monitor/SelectedMobile')
-        callUp(mobile)
-
-
-class CheckUpgradeThread(QtCore.QThread):
-    doneSignal = QtCore.pyqtSignal(dict)
-
-    def __init__(self, parent=None):
-        super(CheckUpgradeThread, self).__init__(parent)
-        self.parent = parent
-
-    def run(self):
-        data = repoRelease()
-        self.doneSignal.emit(data)
 
 
 def main():
