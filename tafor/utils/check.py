@@ -141,7 +141,7 @@ class Listen(object):
         return getattr(self.__class__, method[self.tt])(self)
 
     def taf(self):
-        warning = False
+        expired = False
 
         taf = CheckTAF(self.tt, remote=self.remote)
         local = taf.existedInLocal()
@@ -151,14 +151,14 @@ class Listen(object):
                 if taf.existedInRemote():
                     taf.confirm()
                 elif taf.hasExpired():
-                    warning = True
+                    expired = True
         else:
             if taf.existedInRemote():
                 taf.save()
             elif taf.hasExpired():
-                warning = True
+                expired = True
 
-        self.store.warning = warning
+        self.store.warning = [taf.tt, expired]
 
     def metar(self):
         metar = CheckMetar(self.tt, remote=self.remote)

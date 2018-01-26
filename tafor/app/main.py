@@ -29,7 +29,10 @@ class Store(QtCore.QObject):
         super(Store, self).__init__()
         self._message = {}
         self._callService = None
-        self._warning = False
+        self._warning = {
+            'FC': False,
+            'FT': False
+        }
 
     @property
     def message(self):
@@ -53,12 +56,16 @@ class Store(QtCore.QObject):
 
     @property
     def warning(self):
-        return self._warning
+        return any(self._warning.values())
 
     @warning.setter
-    def warning(self, value):
-        self._warn = value
-        self.warningSignal.emit()
+    def warning(self, values):
+        try:
+            tt, hasExpired = values
+            self._warning[tt] = hasExpired
+            self.warningSignal.emit()
+        except ValueError:
+            raise ValueError("Pass an iterable with two items")
         
 
 class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
@@ -357,7 +364,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
     def dialer(self, test=False):
         callSwitch = conf.value('Monitor/SelectedMobile')
 
-        if callSwitch and self.store.warn or test:
+        if callSwitch and self.store.warning or test:
             self.callThread.start()
 
     def updateMessage(self):
