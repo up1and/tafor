@@ -1,5 +1,6 @@
 from tafor.utils.check import CheckTAF, Listen
 from tafor.utils.validator import Validator, Grammar, Pattern, Parser
+from tafor.utils.modem import serialComm
 
 
 def checkVersion(releaseVersion, currentVersion):

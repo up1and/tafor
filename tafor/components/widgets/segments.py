@@ -33,6 +33,8 @@ class BaseSegment(QtWidgets.QWidget):
 
         self.gust.editingFinished.connect(self.validGust)
 
+        self.wind.textEdited.connect(lambda: self.upperText(self.wind))
+        self.gust.textEdited.connect(lambda: self.upperText(self.gust))
         self.cloud1.textEdited.connect(lambda: self.upperText(self.cloud1))
         self.cloud2.textEdited.connect(lambda: self.upperText(self.cloud2))
         self.cloud3.textEdited.connect(lambda: self.upperText(self.cloud3))
@@ -102,10 +104,10 @@ class BaseSegment(QtWidgets.QWidget):
             self.prob30.setChecked(False)
 
     def setValidator(self):
-        wind = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.wind))
+        wind = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.wind, QtCore.Qt.CaseInsensitive))
         self.wind.setValidator(wind)
 
-        gust = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.gust))
+        gust = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.gust, QtCore.Qt.CaseInsensitive))
         self.gust.setValidator(gust)
 
         vis = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.vis))

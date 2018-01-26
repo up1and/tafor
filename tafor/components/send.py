@@ -5,7 +5,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from tafor.components.ui import Ui_send
 from tafor.models import db, Tafor, Task, Trend
-from tafor.utils import Parser
+from tafor.utils import Parser, serialComm
 from tafor import conf, logger
 
 
@@ -31,18 +31,17 @@ class AFTNMessage(object):
         self.aftnTime = ' '.join([time, userAddress])
         self.aftnNnnn = 'NNNN'
 
-        aftnMessage = []
+        aftnMessages = []
         for address in addresses:
             self.aftnZczc = ' '.join(['ZCZC', channel + str(number).zfill(4)])
             self.aftnAddress = ' '.join(['GG'] + address)
             items = [self.aftnZczc, self.aftnAddress, self.aftnTime, self.message, self.aftnNnnn]
-            aftnMessage.append('\n'.join(items))
+            aftnMessages.append('\n'.join(items))
             number += 1
 
         conf.setValue('Communication/Number', str(number))
         
-        return aftnMessage
-
+        return aftnMessages
 
     def divideAddress(self, address):
         def chunks(lists, n):
@@ -87,6 +86,21 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Send):
         except Exception as e:
             logger.error(e)
 
+    def toSerial(self, message):
+        port = conf.value('Communication/SerialPort')
+        baudrate = int(conf.value('Communication/SerialBaudrate'))
+        bytesize = conf.value('Communication/SerialBytesize')
+        parity = conf.value('Communication/SerialParity')
+        stopbits = conf.value('Communication/SerialStopbits')
+
+        try:
+            serialComm(message, port, baudrate=baudrate, bytesize=bytesize, parity=parity, stopbits=stopbits)
+            error = None
+        except Exception as e:
+            error = str(e)
+            logger.error(e)
+        
+        return error
 
     def closeEvent(self, event):
         if event.spontaneous():
@@ -123,9 +137,16 @@ class TAFSender(BaseSender):
 
     def send(self):
         self.aftn = AFTNMessage(self.message['full'])
-        self.raw.setText('\n\n\n\n'.join(self.aftn.raw()))
+        messages = self.aftn.raw()
+        error = self.toSerial('\n\n\n\n'.join(messages))
+
+        if error:
+            self.raw.setText(error)
+        else:
+            self.raw.setText('\n\n\n\n'.join(messages))
+            self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
+
         self.rawGroup.show()
-        self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
 
 
 class TaskTAFSender(BaseSender):
@@ -200,9 +221,16 @@ class TrendSender(BaseSender):
 
     def send(self):
         self.aftn = AFTNMessage(self.message['full'], 'trend')
-        self.raw.setText('\n\n\n\n'.join(self.aftn.raw()))
+        messages = self.aftn.raw()
+        error = self.toSerial('\n\n\n\n'.join(messages))
+
+        if error:
+            self.raw.setText(error)
+        else:
+            self.raw.setText('\n\n\n\n'.join(messages))
+            self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
+
         self.rawGroup.show()
-        self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
 
 
     
