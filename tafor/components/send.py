@@ -94,8 +94,7 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Send):
         stopbits = conf.value('Communication/SerialStopbits')
 
         try:
-            serialComm(message, port, baudrate=baudrate, bytesize=bytesize, parity=parity, stopbits=stopbits)
-            error = None
+            error = not serialComm(message, port, baudrate=baudrate, bytesize=bytesize, parity=parity, stopbits=stopbits)
         except Exception as e:
             error = str(e)
             logger.error(e)
@@ -141,11 +140,11 @@ class TAFSender(BaseSender):
         error = self.toSerial('\n\n\n\n'.join(messages))
 
         if error:
-            self.raw.setText(error)
+            self.rawGroup.setTitle('发送失败')
         else:
-            self.raw.setText('\n\n\n\n'.join(messages))
             self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
 
+        self.raw.setText('\n\n\n\n'.join(messages))
         self.rawGroup.show()
 
 
@@ -225,11 +224,11 @@ class TrendSender(BaseSender):
         error = self.toSerial('\n\n\n\n'.join(messages))
 
         if error:
-            self.raw.setText(error)
+            self.rawGroup.setTitle('发送失败')
         else:
-            self.raw.setText('\n\n\n\n'.join(messages))
             self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
 
+        self.raw.setText('\n\n\n\n'.join(messages))
         self.rawGroup.show()
 
 
