@@ -57,9 +57,9 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
             self.resetSerialNumber()
 
     def resetSerialNumber(self):
-        conf.setValue('communication/other/number', '0')
-        self.number.setText('0')
-        logger.info('Reset serial number to zero')
+        conf.setValue('communication/other/number', '1')
+        self.number.setText('1')
+        logger.info('Reset serial number to one')
 
     def addWeather(self, weather):
         line = getattr(self, weather)

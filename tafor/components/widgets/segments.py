@@ -76,7 +76,9 @@ class BaseSegment(QtWidgets.QWidget):
             self.vis.clear()
             self.vis.setEnabled(False)
             self.weather.setEnabled(False)
+            self.weather.setCurrentIndex(-1)
             self.weatherWithIntensity.setEnabled(False)
+            self.weatherWithIntensity.setCurrentIndex(-1)
             self.clouds(False)
         else:
             self.vis.setEnabled(True)
@@ -136,18 +138,13 @@ class BaseSegment(QtWidgets.QWidget):
         self.weatherWithIntensity.addItems(intensityWeathers)
 
     def validGust(self):
-        wind = self.wind.text()[-2:]
+        windSpeed = self.wind.text()[-2:] if self.wind.hasAcceptableInput() else 0
         gust = self.gust.text()
 
-        if gust in ['', 'P49']:
+        if gust == 'P49':
             return
 
-        self.gust.setText(gust.zfill(2))
-
-        if int(gust) > 49:
-            self.gust.clear()
-
-        if not wind or int(gust) - int(wind) < 5:
+        if windSpeed == 0 or int(gust) - int(windSpeed) < 5:
             self.gust.clear()
 
     def message(self):
@@ -494,6 +491,13 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
     def setNosig(self, checked):
         status = not checked
 
+        self.cavok.setChecked(False)
+        self.skc.setChecked(False)
+        self.nsc.setChecked(False)
+
+        self.weather.setCurrentIndex(-1)
+        self.weatherWithIntensity.setCurrentIndex(-1)
+
         self.prefixGroup.setEnabled(status)
         self.typeGroup.setEnabled(status)
 
@@ -595,13 +599,13 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
 
             if any((self.at.isChecked(), self.fm.isChecked(), self.tl.isChecked())):
                 if self.at.isChecked():
-                    trend_prefix = 'AT'
+                    trendPrefix = 'AT'
                 if self.fm.isChecked():
-                    trend_prefix = 'FM'
+                    trendPrefix = 'FM'
                 if self.tl.isChecked():
-                    trend_prefix = 'TL'
+                    trendPrefix = 'TL'
 
-                period = trend_prefix + self.period.text()
+                period = trendPrefix + self.period.text()
                 messages.append(period)
 
             messages.append(self.msg)

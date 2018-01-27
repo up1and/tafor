@@ -65,7 +65,7 @@ class Store(QtCore.QObject):
             self._warning[tt] = hasExpired
             self.warningSignal.emit()
         except ValueError:
-            raise ValueError("Pass an iterable with two items")
+            raise ValueError('Pass an iterable with two items')
         
 
 class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):

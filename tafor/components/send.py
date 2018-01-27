@@ -17,12 +17,17 @@ class AFTNMessage(object):
         self.sort = sort
         self.time = datetime.datetime.utcnow() if time is None else time
 
+        self.toAFTN()
+
     def raw(self):
+        return self.aftnMessages
+
+    def toAFTN(self):
         channel = conf.value('Communication/Channel')
         number = conf.value('Communication/Number')
         number = int(number) if number else 0
-        sendAddress = conf.value('Communication/{}Address'.format(self.sort))
-        userAddress = conf.value('Communication/UserAddress')
+        sendAddress = conf.value('Communication/{}Address'.format(self.sort)) or ''
+        userAddress = conf.value('Communication/UserAddress') or ''
 
         addresses = self.divideAddress(sendAddress)
         time = self.time.strftime('%d%H%M')
@@ -31,17 +36,17 @@ class AFTNMessage(object):
         self.aftnTime = ' '.join([time, userAddress])
         self.aftnNnnn = 'NNNN'
 
-        aftnMessages = []
+        self.aftnMessages = []
         for address in addresses:
             self.aftnZczc = ' '.join(['ZCZC', channel + str(number).zfill(4)])
             self.aftnAddress = ' '.join(['GG'] + address)
             items = [self.aftnZczc, self.aftnAddress, self.aftnTime, self.message, self.aftnNnnn]
-            aftnMessages.append('\n'.join(items))
+            self.aftnMessages.append('\n'.join(items))
             number += 1
 
         conf.setValue('Communication/Number', str(number))
         
-        return aftnMessages
+        return self.aftnMessages
 
     def divideAddress(self, address):
         def chunks(lists, n):
@@ -82,6 +87,7 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Send):
             if m.tips:
                 html += '<p style="color: grey"># {}</p>'.format('<br/># '.join(m.tips))
             self.rpt.setHtml(html)
+            self.message['rpt'] = m.renderer()
 
         except Exception as e:
             logger.error(e)
@@ -219,7 +225,7 @@ class TrendSender(BaseSender):
         self.sendSignal.emit()
 
     def send(self):
-        self.aftn = AFTNMessage(self.message['full'], 'trend')
+        self.aftn = AFTNMessage(self.message['full'], 'Trend')
         messages = self.aftn.raw()
         error = self.toSerial('\n\n\n\n'.join(messages))
 
