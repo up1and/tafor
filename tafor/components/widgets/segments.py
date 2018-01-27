@@ -15,9 +15,6 @@ class BaseSegment(QtWidgets.QWidget):
         super(BaseSegment, self).__init__()
         self.rules = Pattern()
         self.complete = False
-        # self.one_second_timer = QtCore.QTimer()
-        # self.one_second_timer.timeout.connect(self.message)
-        # self.one_second_timer.start(1 * 1000)
 
     def bindSignal(self):
         if hasattr(self, 'cavok'):
@@ -39,6 +36,14 @@ class BaseSegment(QtWidgets.QWidget):
         self.cloud2.textEdited.connect(lambda: self.upperText(self.cloud2))
         self.cloud3.textEdited.connect(lambda: self.upperText(self.cloud3))
         self.cb.textEdited.connect(lambda: self.upperText(self.cb))
+
+        self.wind.textEdited.connect(lambda: self.coloredText(self.wind))
+        self.gust.textEdited.connect(lambda: self.coloredText(self.gust))
+        self.vis.textEdited.connect(lambda: self.coloredText(self.vis))
+        self.cloud1.textEdited.connect(lambda: self.coloredText(self.cloud1))
+        self.cloud2.textEdited.connect(lambda: self.coloredText(self.cloud2))
+        self.cloud3.textEdited.connect(lambda: self.coloredText(self.cloud3))
+        self.cb.textEdited.connect(lambda: self.coloredText(self.cb))
 
         self.wind.textChanged.connect(self.checkComplete)
         self.vis.textChanged.connect(self.checkComplete)
@@ -181,6 +186,12 @@ class BaseSegment(QtWidgets.QWidget):
     def upperText(self, line):
         line.setText(line.text().upper())
 
+    def coloredText(self, line):
+        if line.hasAcceptableInput():
+            line.setStyleSheet('color: black')
+        else:
+            line.setStyleSheet('color: red')
+
     def checkComplete(self):
         raise NotImplemented
 
@@ -229,6 +240,11 @@ class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Form):
 
         self.tmax.textEdited.connect(lambda: self.upperText(self.tmax))
         self.tmin.textEdited.connect(lambda: self.upperText(self.tmin))
+
+        self.tmax.textEdited.connect(lambda: self.coloredText(self.tmax))
+        self.tmin.textEdited.connect(lambda: self.coloredText(self.tmin))
+        self.tmaxTime.textEdited.connect(lambda: self.coloredText(self.tmaxTime))
+        self.tminTime.textEdited.connect(lambda: self.coloredText(self.tminTime))
 
         # 设置下一步按钮
         self.date.textEdited.connect(self.checkComplete)
