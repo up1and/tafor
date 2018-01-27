@@ -93,10 +93,17 @@
               </property>
              </widget>
             </item>
-            <item row="3" column="0">
+            <item row="4" column="0">
              <widget class="QCheckBox" name="debugMode">
               <property name="text">
                <string>启用调试模式</string>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="0">
+             <widget class="QCheckBox" name="alwaysShowEditor">
+              <property name="text">
+               <string>总是显示报文编辑器</string>
               </property>
              </widget>
             </item>
