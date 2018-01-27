@@ -197,7 +197,7 @@ class Validator(object):
                 if refValue < threshold <= value:
                     return True
             if trend == 'down':
-                if value < threshold < refValue:
+                if value < threshold <= refValue:
                     return True
 
         return False
