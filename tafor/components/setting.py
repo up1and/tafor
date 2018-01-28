@@ -104,6 +104,12 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
         options.insert(0, '无')
         self.selectedContract.addItems(options)
 
+    def updateSoundVolume(self):
+        self.parent.ringSound.setVolume(conf.value('Monitor/RemindTAFVolume'))
+        self.parent.alarmSound.setVolume(conf.value('Monitor/WarnTAFVolume'))
+        self.parent.trendSound.setVolume(conf.value('Monitor/RemindTrendVolume'))
+        self.parent.sigmetSound.setVolume(conf.value('Monitor/RemindSIGMETVolume'))
+
     def testCallUp(self):
         self.parent.dialer(test=True)
 
@@ -158,6 +164,8 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
         self.setValue('Monitor/CallServiceToken', 'callServiceToken')
 
         self.setValue('Monitor/SelectedMobile', 'selectedContract', 'mobile')
+
+        self.updateSoundVolume()
 
     def load(self):
         self.runOnStart.setChecked(self.autoRun.contains("Tafor.exe"))

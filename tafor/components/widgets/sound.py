@@ -30,4 +30,7 @@ class Sound(object):
 
     def stop(self):
         self.effect.stop()
+
+    def setVolume(self, volume):
+        self.volume = volume
         
