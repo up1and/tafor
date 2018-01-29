@@ -54,7 +54,7 @@ class AFTNMessage(object):
         return self.messages
 
     def formatLinefeed(self, messages):
-        def findMaxSubscript(parts):
+        def findSubscript(parts):
             subscripts = []
             num = 0
             for i, part in enumerate(parts):
@@ -71,7 +71,7 @@ class AFTNMessage(object):
         for message in messages:
             if len(message) > self.maxChar:
                 parts = message.split()
-                subscripts = findMaxSubscript(parts)
+                subscripts = findSubscript(parts)
                 sup = 0
                 for sub in subscripts:
                     part = ' '.join(parts[sup:sub])

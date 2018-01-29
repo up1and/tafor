@@ -570,6 +570,8 @@ class Parser(object):
                     tokens['vis']['error'] = True
                     if 'weather' in tokens:
                         tokens['weather']['error'] = True
+                    else:
+                        tokens['vis']['error'] = True
 
                     self.tips.append('能见度小于 1000，BR -DZ 不能有')
 
@@ -577,12 +579,16 @@ class Parser(object):
                     tokens['vis']['error'] = True
                     if 'weather' in tokens:
                         tokens['weather']['error'] = True
+                    else:
+                        tokens['vis']['error'] = True
 
                     self.tips.append('能见度大于 1000、小于 5000，FG +DZ 不能有')
                 
                 if vis > 5000 and set(weathers) & set(['FG', 'FU', 'BR', 'HZ']):
                     if 'weather' in tokens:
                         tokens['weather']['error'] = True
+                    else:
+                        tokens['vis']['error'] = True
 
                     self.tips.append('能见度大于 5000，FG、FU、BR、HZ 不能有')
 
@@ -656,8 +662,8 @@ if __name__ == '__main__':
     # print(Validator.cloud('NSC', 'SKC'))
 
     message = '''
-        TAF ZJHK 211338Z 211524 14004MPS 4000 BR SCT020 FEW026CB
-        BECMG 1718 CAVOK=
+        TAF ZJHK 211338Z 211524 14004MPS 2000 BR SCT020 FEW026CB
+        BECMG 1718 9999=
     '''
     # m = Grammar.taf.search(message)
     # print(m.group(0))
