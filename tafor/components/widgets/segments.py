@@ -491,13 +491,6 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
     def setNosig(self, checked):
         status = not checked
 
-        self.cavok.setChecked(False)
-        self.skc.setChecked(False)
-        self.nsc.setChecked(False)
-
-        self.weather.setCurrentIndex(-1)
-        self.weatherWithIntensity.setCurrentIndex(-1)
-
         self.prefixGroup.setEnabled(status)
         self.typeGroup.setEnabled(status)
 
