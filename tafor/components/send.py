@@ -11,42 +11,76 @@ from tafor import conf, logger
 
 class AFTNMessage(object):
     """docstring for AFTNMessage"""
-    def __init__(self, message, sort='TAF', time=None):
+    def __init__(self, text, sort='TAF', time=None, maxAddress=21, maxChar=69):
         super(AFTNMessage, self).__init__()
-        self.message = message
+        self.text = text.split('\n')
         self.sort = sort
         self.time = datetime.datetime.utcnow() if time is None else time
+        self.maxAddress = maxAddress  # AFTN 线路最大发电地址数
+        self.maxChar = maxChar  # AFTN 线路每行最大字符数
 
-        self.toAFTN()
+        self.generate()
 
-    def raw(self):
-        return self.aftnMessages
+    def toString(self):
+        return '\n\n\n\n'.join(self.messages)
 
-    def toAFTN(self):
+    def toJson(self):
+        return json.dumps(self.messages)
+
+    def generate(self):
         channel = conf.value('Communication/Channel')
         number = conf.value('Communication/Number')
         number = int(number) if number else 0
         sendAddress = conf.value('Communication/{}Address'.format(self.sort)) or ''
         userAddress = conf.value('Communication/UserAddress') or ''
 
-        addresses = self.divideAddress(sendAddress)
+        groups = self.divideAddress(sendAddress)
         time = self.time.strftime('%d%H%M')
 
-        # 定值
-        self.aftnTime = ' '.join([time, userAddress])
-        self.aftnNnnn = 'NNNN'
+        origin = ' '.join([time, userAddress])
+        ending = 'NNNN'
 
-        self.aftnMessages = []
-        for address in addresses:
-            self.aftnZczc = ' '.join(['ZCZC', channel + str(number).zfill(4)])
-            self.aftnAddress = ' '.join(['GG'] + address)
-            items = [self.aftnZczc, self.aftnAddress, self.aftnTime, self.message, self.aftnNnnn]
-            self.aftnMessages.append('\n'.join(items))
+        self.messages = []
+        for addr in groups:
+            heading = ' '.join(['ZCZC', channel + str(number).zfill(4)])
+            address = ' '.join(['GG'] + addr)
+            items = [heading, address, origin] + self.text + [ending]
+            items = self.formatLinefeed(items)
+            self.messages.append('\n'.join(items))
             number += 1
 
         conf.setValue('Communication/Number', str(number))
         
-        return self.aftnMessages
+        return self.messages
+
+    def formatLinefeed(self, messages):
+        def findMaxSubscript(parts):
+            subscripts = []
+            num = 0
+            for i, part in enumerate(parts):
+                num += len(part) + 1
+                if num > self.maxChar:
+                    subscripts.append(i)
+                    num = len(part) + 1
+
+            subscripts.append(len(parts))
+
+            return subscripts
+
+        items = []
+        for message in messages:
+            if len(message) > self.maxChar:
+                parts = message.split()
+                subscripts = findMaxSubscript(parts)
+                sup = 0
+                for sub in subscripts:
+                    part = ' '.join(parts[sup:sub])
+                    sup = sub
+                    items.append(part)
+            else:
+                items.append(message)
+
+        return items
 
     def divideAddress(self, address):
         def chunks(lists, n):
@@ -55,7 +89,7 @@ class AFTNMessage(object):
                 yield lists[i:i + n]
 
         items = address.split()
-        return chunks(items, 7)
+        return chunks(items, self.maxAddress)
 
 
 class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Send):
@@ -92,7 +126,7 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Send):
         except Exception as e:
             logger.error(e)
 
-    def toSerial(self, message):
+    def sendToSerial(self, message):
         port = conf.value('Communication/SerialPort')
         baudrate = int(conf.value('Communication/SerialBaudrate'))
         bytesize = conf.value('Communication/SerialBytesize')
@@ -134,7 +168,7 @@ class TAFSender(BaseSender):
         self.buttonBox.accepted.connect(self.save)
 
     def save(self):
-        item = Tafor(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'], raw=json.dumps(self.aftn.raw()))
+        item = Tafor(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'], raw=self.aftn.toJson())
         db.add(item)
         db.commit()
         logger.debug('Save ' + item.rpt)
@@ -142,15 +176,15 @@ class TAFSender(BaseSender):
 
     def send(self):
         self.aftn = AFTNMessage(self.message['full'])
-        messages = self.aftn.raw()
-        error = self.toSerial('\n\n\n\n'.join(messages))
+        message = self.aftn.toString()
+        error = self.sendToSerial(message)
 
         if error:
             self.rawGroup.setTitle('发送失败')
         else:
             self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
 
-        self.raw.setText('\n\n\n\n'.join(messages))
+        self.raw.setText(message)
         self.rawGroup.show()
 
 
@@ -190,7 +224,7 @@ class TaskTAFSender(BaseSender):
 
                 message = '\n'.join([task.head, task.rpt])
                 aftn = AFTNMessage(message, time=task.plan)
-                item = Tafor(tt=task.tt, head=task.head, rpt=task.rpt, raw=json.dumps(aftn.raw()))
+                item = Tafor(tt=task.tt, head=task.head, rpt=task.rpt, raw=aftn.toJson())
                 db.add(item)
                 db.flush()
                 task.tafor_id = item.id
@@ -218,7 +252,7 @@ class TrendSender(BaseSender):
         self.rpt.setText(self.message['rpt'])
 
     def save(self):
-        item = Trend(sign=self.message['sign'], rpt=self.message['rpt'], raw=json.dumps(self.aftn.raw()))
+        item = Trend(sign=self.message['sign'], rpt=self.message['rpt'], raw=self.aftn.toJson())
         db.add(item)
         db.commit()
         logger.debug('Save ' + item.rpt)
@@ -226,15 +260,15 @@ class TrendSender(BaseSender):
 
     def send(self):
         self.aftn = AFTNMessage(self.message['full'], 'Trend')
-        messages = self.aftn.raw()
-        error = self.toSerial('\n\n\n\n'.join(messages))
+        message = self.aftn.toString()
+        error = self.sendToSerial(message)
 
         if error:
             self.rawGroup.setTitle('发送失败')
         else:
             self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
 
-        self.raw.setText('\n\n\n\n'.join(messages))
+        self.raw.setText(message)
         self.rawGroup.show()
 
 

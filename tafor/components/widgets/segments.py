@@ -187,7 +187,7 @@ class BaseSegment(QtWidgets.QWidget):
         if line.hasAcceptableInput():
             line.setStyleSheet('color: black')
         else:
-            line.setStyleSheet('color: red')
+            line.setStyleSheet('color: grey')
 
     def checkComplete(self):
         raise NotImplemented
