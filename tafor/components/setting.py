@@ -53,7 +53,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
 
     def checkSerialNumber(self):
         self.loadValue('Communication/ChannelSequenceNumber', 'channelSequenceNumber')
-        
+
         utc = datetime.datetime.utcnow()
         if utc.hour == 0 and utc.minute == 0 and utc.second == 0:
             self.resetSerialNumber()
@@ -125,6 +125,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
 
         self.setValue('General/CloseToMinimize', 'closeToMinimize', 'bool')
         self.setValue('General/Debug', 'debugMode', 'bool')
+        self.setValue('General/AlwaysShowEditor', 'alwaysShowEditor', 'bool')
 
         self.setValue('Message/ICAO', 'icao')
         self.setValue('Message/Area', 'area')
@@ -175,6 +176,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
 
         self.loadValue('General/CloseToMinimize', 'closeToMinimize', 'bool')
         self.loadValue('General/Debug', 'debugMode', 'bool')
+        self.loadValue('General/AlwaysShowEditor', 'alwaysShowEditor', 'bool')
 
         self.loadValue('Message/ICAO', 'icao')
         self.loadValue('Message/Area', 'area')

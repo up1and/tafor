@@ -86,15 +86,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.clip = QtWidgets.QApplication.clipboard()
 
         # 初始TAF对话框
-        self.tafEditDialog = TAFEditor(self)
-        self.taskTafEditDialog = TaskTAFEditor(self)
-        self.trendEditDialog = TrendEditor(self)
+        self.tafEditor = TAFEditor(self)
+        self.taskTAFEditor = TaskTAFEditor(self)
+        self.trendEditor = TrendEditor(self)
 
-        self.tafSendDialog = TAFSender(self)
-        self.taskTafSendDialog = TaskTAFSender(self)
-        self.trendSendDialog = TrendSender(self)
+        self.tafSender = TAFSender(self)
+        self.taskTAFSender = TaskTAFSender(self)
+        self.trendSender = TrendSender(self)
 
-        self.taskBrowserDialog = TaskBrowser(self)
+        self.taskBrowser = TaskBrowser(self)
         self.settingDialog = SettingDialog(self)
 
         # 设置主窗口文字图标
@@ -117,28 +117,28 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.setupSound()
 
         # 连接TAF对话框信号
-        self.tafEditDialog.previewSignal.connect(self.handleTafEdit)
-        self.tafSendDialog.sendSignal.connect(self.updateGUI)
-        self.tafSendDialog.backSignal.connect(self.tafEditDialog.show)
-        self.tafSendDialog.closeSignal.connect(self.tafEditDialog.close)
+        self.tafEditor.previewSignal.connect(self.handleTafEdit)
+        self.tafSender.sendSignal.connect(self.updateGUI)
+        self.tafSender.backSignal.connect(self.tafEditor.show)
+        self.tafSender.closeSignal.connect(self.tafEditor.close)
 
-        self.taskTafEditDialog.previewSignal.connect(self.handleTaskTafEdit)
-        self.taskTafSendDialog.sendSignal.connect(self.handleTaskTafSend)
+        self.taskTAFEditor.previewSignal.connect(self.handleTaskTafEdit)
+        self.taskTAFSender.sendSignal.connect(self.handleTaskTafSend)
 
-        self.trendEditDialog.previewSignal.connect(self.handleTrendEdit)
-        self.trendSendDialog.sendSignal.connect(self.updateGUI)
-        self.trendSendDialog.backSignal.connect(self.trendEditDialog.show)
-        self.trendSendDialog.closeSignal.connect(self.trendEditDialog.close)
+        self.trendEditor.previewSignal.connect(self.handleTrendEdit)
+        self.trendSender.sendSignal.connect(self.updateGUI)
+        self.trendSender.backSignal.connect(self.trendEditor.show)
+        self.trendSender.closeSignal.connect(self.trendEditor.close)
 
         # 连接菜单信号
-        self.tafAction.triggered.connect(self.tafEditDialog.show)
-        self.trendAction.triggered.connect(self.trendEditDialog.show)
+        self.tafAction.triggered.connect(self.tafEditor.show)
+        self.trendAction.triggered.connect(self.trendEditor.show)
 
         # 添加定时任务菜单
         # self.taskTafAction = QtWidgets.QAction(self)
         # self.post_menu.addAction(self.taskTafAction)
         # self.taskTafAction.setText('定时任务')
-        # self.taskTafAction.triggered.connect(self.taskTafEditDialog.show)
+        # self.taskTafAction.triggered.connect(self.taskTAFEditor.show)
 
         # 连接设置对话框的槽
         self.settingAction.triggered.connect(self.settingDialog.exec_)
@@ -265,24 +265,33 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
     def handleTafEdit(self, message):
         logger.debug('Receive from taf edit ' + message['full'])
-        self.tafEditDialog.hide()
-        self.tafSendDialog.receive(message)
-        self.tafSendDialog.show()
+        self.tafEditor.hide()
+        self.tafSender.receive(message)
+        self.tafSender.show()
 
     def handleTaskTafEdit(self, message):
         logger.debug('Receive from task taf edit ' + message['full'])
-        self.taskTafSendDialog.receive(message)
-        self.taskTafSendDialog.show()
+        self.taskTAFSender.receive(message)
+        self.taskTAFSender.show()
 
     def handleTrendEdit(self, message):
         logger.debug('Receive from task taf edit ' + message['full'])
-        self.trendEditDialog.hide()
-        self.trendSendDialog.receive(message)
-        self.trendSendDialog.show()
+        self.trendEditor.hide()
+        self.trendSender.receive(message)
+        self.trendSender.show()
+
+    def editorController(self, message):
+        alwaysShow = boolean(conf.value('General/AlwaysShowEditor'))
+
+        if not alwaysShow:
+            self.trendEditor.hide()
+
+        self.trendSender.receive(message)
+        self.trendSender.show()
 
     def handleTaskTafSend(self):
-        self.taskTafEditDialog.hide()
-        self.taskTafSendDialog.hide()
+        self.taskTAFEditor.hide()
+        self.taskTAFSender.hide()
         self.taskTableDialog.show()
         self.taskTableDialog.update_gui()
 
@@ -302,7 +311,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
     def keyPressEvent(self, event):
         if event.modifiers() == (QtCore.Qt.ShiftModifier | QtCore.Qt.ControlModifier):
             if event.key() == QtCore.Qt.Key_P:
-                self.taskTafEditDialog.show()
+                self.taskTAFEditor.show()
             if event.key() == QtCore.Qt.Key_T:
                 self.task_table_dialog.show()
 
@@ -311,18 +320,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             event.ignore()
             self.hide()
         else:
-            self.tafEditDialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-            self.taskTafEditDialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-            self.tafSendDialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-            self.taskTafSendDialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-            self.taskBrowserDialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            self.tafEditor.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            self.taskTAFEditor.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            self.tafSender.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            self.taskTAFSender.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            self.taskBrowser.setAttribute(QtCore.Qt.WA_DeleteOnClose)
             self.settingDialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
-            self.tafEditDialog.close()
-            self.taskTafEditDialog.close()
-            self.tafSendDialog.close()
-            self.taskTafSendDialog.close()
-            self.taskBrowserDialog.close()
+            self.tafEditor.close()
+            self.taskTAFEditor.close()
+            self.tafSender.close()
+            self.taskTAFSender.close()
+            self.taskBrowser.close()
             self.settingDialog.close()
 
             self.tray.hide()
