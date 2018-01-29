@@ -52,14 +52,16 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
         self.buttonBox.accepted.connect(self.parent.updateGUI)
 
     def checkSerialNumber(self):
+        self.loadValue('Communication/ChannelSequenceNumber', 'channelSequenceNumber')
+        
         utc = datetime.datetime.utcnow()
         if utc.hour == 0 and utc.minute == 0 and utc.second == 0:
             self.resetSerialNumber()
 
     def resetSerialNumber(self):
-        conf.setValue('communication/other/number', '1')
-        self.number.setText('1')
-        logger.info('Reset serial number to one')
+        conf.setValue('Communication/ChannelSequenceNumber', '1')
+        self.channelSequenceNumber.setText('1')
+        logger.info('Reset channel sequence number to one')
 
     def addWeather(self, weather):
         line = getattr(self, weather)
@@ -138,10 +140,11 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
         self.setValue('Communication/SerialStopbits', 'stopbits', 'combox')
 
         self.setValue('Communication/Channel', 'channel')
-        self.setValue('Communication/Number', 'number')
+        self.setValue('Communication/ChannelSequenceNumber', 'channelSequenceNumber')
+        self.setValue('Communication/MaxLineChar', 'maxLineChar')
+        self.setValue('Communication/MaxSendAddress', 'maxSendAddress')
 
-        self.setValue('Communication/RequestAddress', 'requestAddress')
-        self.setValue('Communication/UserAddress', 'userAddress')
+        self.setValue('Communication/OriginatorAddress', 'originatorAddress')
         self.setValue('Communication/TAFAddress', 'tafAddress', 'plaintext')
         self.setValue('Communication/SIGMETAddress', 'sigmetAddress', 'plaintext')
         self.setValue('Communication/AIRMETAddress', 'airmetAddress', 'plaintext')
@@ -187,10 +190,11 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
         self.loadValue('Communication/SerialStopbits', 'stopbits', 'combox')
 
         self.loadValue('Communication/Channel', 'channel')
-        self.loadValue('Communication/Number', 'number')
+        self.loadValue('Communication/ChannelSequenceNumber', 'channelSequenceNumber')
+        self.loadValue('Communication/MaxLineChar', 'maxLineChar')
+        self.loadValue('Communication/MaxSendAddress', 'maxSendAddress')
 
-        self.loadValue('Communication/RequestAddress', 'requestAddress')
-        self.loadValue('Communication/UserAddress', 'userAddress')
+        self.loadValue('Communication/OriginatorAddress', 'originatorAddress')
         self.loadValue('Communication/TAFAddress', 'tafAddress')
         self.loadValue('Communication/SIGMETAddress', 'sigmetAddress')
         self.loadValue('Communication/AIRMETAddress', 'airmetAddress')

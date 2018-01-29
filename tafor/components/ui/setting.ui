@@ -460,11 +460,17 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="otherGroup">
-             <property name="title">
-              <string>其他</string>
+            <widget class="QGroupBox" name="aftnGroup">
+             <property name="maximumSize">
+              <size>
+               <width>239</width>
+               <height>16777215</height>
+              </size>
              </property>
-             <layout class="QFormLayout" name="formLayout_7">
+             <property name="title">
+              <string>AFTN 参数</string>
+             </property>
+             <layout class="QGridLayout" name="gridLayout_3">
               <item row="0" column="0">
                <widget class="QLabel" name="channelLabel">
                 <property name="text">
@@ -472,59 +478,79 @@
                 </property>
                </widget>
               </item>
-              <item row="0" column="1">
+              <item row="1" column="1">
+               <widget class="QLineEdit" name="channelSequenceNumber">
+                <property name="placeholderText">
+                 <string>1</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="channelSequenceNumberLabel">
+                <property name="text">
+                 <string>流水号  </string>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="1" colspan="2">
+               <widget class="QLineEdit" name="maxLineChar">
+                <property name="placeholderText">
+                 <string>69</string>
+                </property>
+               </widget>
+              </item>
+              <item row="5" column="1" colspan="2">
+               <widget class="QLineEdit" name="maxSendAddress">
+                <property name="placeholderText">
+                 <string>21</string>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="1" colspan="2">
+               <widget class="QLineEdit" name="originatorAddress">
+                <property name="placeholderText">
+                 <string>ZJHKYMYX</string>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="0">
+               <widget class="QLabel" name="originatorAddressLabel">
+                <property name="text">
+                 <string>用户单位</string>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="0">
+               <widget class="QLabel" name="maxLineCharLabel">
+                <property name="text">
+                 <string>行字符上限</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1" colspan="2">
                <widget class="QLineEdit" name="channel">
                 <property name="placeholderText">
                  <string>YMA</string>
                 </property>
                </widget>
               </item>
-              <item row="1" column="0">
-               <widget class="QLabel" name="numberLabel">
-                <property name="text">
-                 <string>流水号  </string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="1">
-               <widget class="QLineEdit" name="number">
-                <property name="placeholderText">
-                 <string>1</string>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="1">
+              <item row="1" column="2">
                <widget class="QPushButton" name="resetNumberButton">
+                <property name="maximumSize">
+                 <size>
+                  <width>50</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
                 <property name="text">
                  <string>复位</string>
                 </property>
                </widget>
               </item>
-              <item row="3" column="0">
-               <widget class="QLabel" name="requestAddressLabel">
+              <item row="5" column="0">
+               <widget class="QLabel" name="maxSendAddressLabel">
                 <property name="text">
-                 <string>请求地址</string>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="1">
-               <widget class="QLineEdit" name="requestAddress">
-                <property name="placeholderText">
-                 <string>ZGGGYZYX</string>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="0">
-               <widget class="QLabel" name="userAddressLabel">
-                <property name="text">
-                 <string>用户单位</string>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="1">
-               <widget class="QLineEdit" name="userAddress">
-                <property name="placeholderText">
-                 <string>ZJHKYMYX</string>
+                 <string>地址上限</string>
                 </property>
                </widget>
               </item>
@@ -542,7 +568,7 @@
             <item>
              <widget class="QTabWidget" name="tabWidget">
               <property name="currentIndex">
-               <number>0</number>
+               <number>1</number>
               </property>
               <widget class="QWidget" name="tafTab">
                <attribute name="title">
@@ -910,9 +936,8 @@
   <tabstop>bytesize</tabstop>
   <tabstop>stopbits</tabstop>
   <tabstop>channel</tabstop>
-  <tabstop>number</tabstop>
-  <tabstop>requestAddress</tabstop>
-  <tabstop>userAddress</tabstop>
+  <tabstop>channelSequenceNumber</tabstop>
+  <tabstop>originatorAddress</tabstop>
   <tabstop>tabWidget</tabstop>
   <tabstop>tafAddress</tabstop>
   <tabstop>sigmetAddress</tabstop>

@@ -10,14 +10,16 @@ from tafor import conf, logger
 
 
 class AFTNMessage(object):
-    """docstring for AFTNMessage"""
-    def __init__(self, text, sort='TAF', time=None, maxAddress=21, maxChar=69):
+    """Aeronautical Fixed Telecommunication Network Message"""
+    def __init__(self, text, sort='TAF', time=None):
         super(AFTNMessage, self).__init__()
         self.text = text.split('\n')
         self.sort = sort
         self.time = datetime.datetime.utcnow() if time is None else time
-        self.maxAddress = maxAddress  # AFTN 线路最大发电地址数
-        self.maxChar = maxChar  # AFTN 线路每行最大字符数
+        maxSendAddress = conf.value('Communication/MaxSendAddress')
+        maxLineChar = conf.value('Communication/MaxLineChar')
+        self.maxSendAddress = int(maxSendAddress) if maxSendAddress else 21  # AFTN 线路最大发电地址数
+        self.maxLineChar = int(maxLineChar) if maxLineChar else 69  # AFTN 线路每行最大字符数
 
         self.generate()
 
@@ -29,15 +31,15 @@ class AFTNMessage(object):
 
     def generate(self):
         channel = conf.value('Communication/Channel')
-        number = conf.value('Communication/Number')
+        number = conf.value('Communication/ChannelSequenceNumber')
         number = int(number) if number else 0
         sendAddress = conf.value('Communication/{}Address'.format(self.sort)) or ''
-        userAddress = conf.value('Communication/UserAddress') or ''
+        originatorAddress = conf.value('Communication/OriginatorAddress') or ''
 
         groups = self.divideAddress(sendAddress)
         time = self.time.strftime('%d%H%M')
 
-        origin = ' '.join([time, userAddress])
+        origin = ' '.join([time, originatorAddress])
         ending = 'NNNN'
 
         self.messages = []
@@ -49,7 +51,7 @@ class AFTNMessage(object):
             self.messages.append('\n'.join(items))
             number += 1
 
-        conf.setValue('Communication/Number', str(number))
+        conf.setValue('Communication/ChannelSequenceNumber', str(number))
         
         return self.messages
 
@@ -59,7 +61,7 @@ class AFTNMessage(object):
             num = 0
             for i, part in enumerate(parts):
                 num += len(part) + 1
-                if num > self.maxChar:
+                if num > self.maxLineChar:
                     subscripts.append(i)
                     num = len(part) + 1
 
@@ -69,7 +71,7 @@ class AFTNMessage(object):
 
         items = []
         for message in messages:
-            if len(message) > self.maxChar:
+            if len(message) > self.maxLineChar:
                 parts = message.split()
                 subscripts = findSubscript(parts)
                 sup = 0
@@ -89,7 +91,7 @@ class AFTNMessage(object):
                 yield lists[i:i + n]
 
         items = address.split()
-        return chunks(items, self.maxAddress)
+        return chunks(items, self.maxSendAddress)
 
 
 class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Send):
