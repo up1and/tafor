@@ -494,6 +494,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
         self.prefixGroup.setEnabled(status)
         self.typeGroup.setEnabled(status)
 
+        self.period.setEnabled(status)
         self.wind.setEnabled(status)
         self.gust.setEnabled(status)
         self.vis.setEnabled(status)

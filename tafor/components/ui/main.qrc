@@ -5,9 +5,5 @@
         <file alias="checkmark.png">../../icons/checkmark.png</file>
         <file alias="cross.png">../../icons/cross.png</file>
         <file alias="time.png">../../icons/time.png</file>
-        <file alias="available.png">../../icons/available.png</file>
-        <file alias="unavailable.png">../../icons/unavailable.png</file>
-        <file alias="signal.png">../../icons/signal.png</file>
-        <file alias="no_signal.png">../../icons/no_signal.png</file>
     </qresource>
 </RCC>
