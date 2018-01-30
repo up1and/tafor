@@ -5,7 +5,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-from tafor import logger
+from tafor import boolean, conf, logger
 from tafor.utils import CheckTAF, Grammar, formatTimeInterval
 from tafor.models import db, Tafor, Task
 from tafor.components.widgets.segments import TAFPrimarySegment, TAFBecmgSegment, TAFTempoSegment
@@ -14,9 +14,10 @@ from tafor.components.widgets.segments import TAFPrimarySegment, TAFBecmgSegment
 class BaseEditor(QDialog):
     previewSignal = pyqtSignal(dict)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, sender=None):
         super(BaseEditor, self).__init__(parent)
         self.parent = parent
+        self.sender = sender
 
         self.initUI()
         self.bindSignal()
@@ -51,6 +52,16 @@ class BaseEditor(QDialog):
         self.tempo2.hide()
 
     def bindSignal(self):
+        alwaysShow = boolean(conf.value('General/AlwaysShowEditor'))
+
+        if not alwaysShow:
+            self.previewSignal.connect(self.hide)
+
+        self.previewSignal.connect(self.sender.receive)
+        self.previewSignal.connect(self.sender.show)
+        self.sender.sendSignal.connect(self.parent.updateGUI)
+        self.sender.backSignal.connect(self.show)
+        self.sender.closeSignal.connect(self.close)
 
         self.primary.becmg1Checkbox.toggled.connect(self.addGroup)
         self.primary.becmg2Checkbox.toggled.connect(self.addGroup)
@@ -313,11 +324,10 @@ class BaseEditor(QDialog):
         self.updateMessageType()
 
 
-
 class TAFEditor(BaseEditor):
 
-    def __init__(self, parent=None):
-        super(TAFEditor, self).__init__(parent)
+    def __init__(self, parent=None, sender=None):
+        super(TAFEditor, self).__init__(parent, sender)
         self.setWindowTitle("编发报文")
         self.primary.date.setEnabled(False)
 
@@ -333,8 +343,8 @@ class TAFEditor(BaseEditor):
 
 class TaskTAFEditor(BaseEditor):
 
-    def __init__(self, parent=None):
-        super(TaskTAFEditor, self).__init__(parent)
+    def __init__(self, parent=None, sender=None):
+        super(TaskTAFEditor, self).__init__(parent, sender)
 
         self.setWindowTitle("定时任务")
         self.setWindowIcon(QIcon(':/time.png'))
@@ -345,6 +355,11 @@ class TaskTAFEditor(BaseEditor):
         self.primary.date.editingFinished.connect(lambda :self.setNormalPeriod(isTask=True))
         self.primary.date.editingFinished.connect(self.changeWindowTitle)
         self.primary.date.editingFinished.connect(self.periodDuration)
+
+        self.sender.sendSignal.connect(self.hide)
+        self.sender.sendSignal.connect(self.sender.hide)
+        self.sender.sendSignal.connect(self.parent.taskBrowser.show)
+        self.sender.sendSignal.connect(self.parent.taskBrowser.updateGUI)
         
     def previewMessage(self):
         message = {'head': self.head, 'rpt':self.rpt, 'full': '\n'.join([self.head, self.rpt]), 'plan': self.time}

@@ -5,15 +5,18 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-from tafor import conf, logger
+from tafor import boolean, conf, logger
 from tafor.components.widgets.segments import TrendSegment
 
 
 class TrendEditor(QDialog):
     previewSignal = pyqtSignal(dict)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, sender=None):
         super(TrendEditor, self).__init__(parent)
+        self.parent = parent
+        self.sender = sender
+        
         self.initUI()
         self.bindSignal()
         
@@ -34,6 +37,16 @@ class TrendEditor(QDialog):
         self.setStyleSheet("QLineEdit {width: 50px;} QComboBox {width: 50px}")
 
     def bindSignal(self):
+        alwaysShow = boolean(conf.value('General/AlwaysShowEditor'))
+
+        if not alwaysShow:
+            self.previewSignal.connect(self.hide)
+
+        self.previewSignal.connect(self.sender.receive)
+        self.previewSignal.connect(self.sender.show)
+        self.sender.sendSignal.connect(self.parent.updateGUI)
+        self.sender.backSignal.connect(self.show)
+        self.sender.closeSignal.connect(self.close)
 
         self.trend.completeSignal.connect(self.enbaleNextButton)
 
