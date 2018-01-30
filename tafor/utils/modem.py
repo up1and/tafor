@@ -25,11 +25,11 @@ def serialComm(message, port, baudrate=9600, bytesize='8', parity='NONE', stopbi
 
     with serial.Serial(port, baudrate, timeout=1, bytesize=bytesize, 
                         parity=parity, stopbits=stopbits) as ser:
-        message = bytes(message, 'utf-8')
+        message = bytes(message, 'ascii')
         count = ser.write(message)
+        end = ser.readline()
         return count == len(message)
 
-
 if __name__ == '__main__':
-    s = serialComm('The quick brown fox jumped over the lazy dog', 'COM3')
+    s = serialComm('The quick brown fox jumped over the lazy dog', 'COM5')
     print(s)
