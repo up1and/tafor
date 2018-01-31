@@ -20,6 +20,7 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Send):
         self.setupUi(self)
 
         self.parent = parent
+        self.aftn = None
 
         self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setText('Send')
         # self.buttonBox.addButton("TEST", QDialogButtonBox.ActionRole)
@@ -46,14 +47,18 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Send):
         if error:
             self.rawGroup.setTitle('发送失败')
             self.parent.statusBar.showMessage(error)
+            self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setText('Resend')
         else:
             self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
 
         self.raw.setText(self.aftn.toString())
         self.rawGroup.show()
+        self.parent.settingDialog.loadSerialNumber()
 
     def send(self):
-        self.aftn = AFTNMessage(self.message['full'], self.reportType)
+        if not isinstance(self.aftn, AFTNMessage):
+            self.aftn = AFTNMessage(self.message['full'], self.reportType)
+
         message = self.aftn.toString()
 
         thread = SerialThread(message, self)

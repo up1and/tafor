@@ -52,8 +52,6 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
         self.buttonBox.accepted.connect(self.parent.updateGUI)
 
     def checkSerialNumber(self):
-        self.loadValue('Communication/ChannelSequenceNumber', 'channelSequenceNumber')
-
         utc = datetime.datetime.utcnow()
         if utc.hour == 0 and utc.minute == 0 and utc.second == 0:
             self.resetSerialNumber()
@@ -62,6 +60,9 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
         conf.setValue('Communication/ChannelSequenceNumber', '1')
         self.channelSequenceNumber.setText('1')
         logger.info('Reset channel sequence number to one')
+
+    def loadSerialNumber(self):
+        self.loadValue('Communication/ChannelSequenceNumber', 'channelSequenceNumber')
 
     def addWeather(self, weather):
         line = getattr(self, weather)
