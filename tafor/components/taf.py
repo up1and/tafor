@@ -31,7 +31,7 @@ class BaseTAFEditor(BaseEditor):
         self.tempo1, self.tempo2 = TAFTempoSegment('TEMPO1'), TAFTempoSegment('TEMPO2')
         self.nextButton = QPushButton()
         self.nextButton.setEnabled(False)
-        self.nextButton.setText("下一步")
+        self.nextButton.setText('下一步')
         layout.addWidget(self.primary)
         layout.addWidget(self.becmg1)
         layout.addWidget(self.becmg2)

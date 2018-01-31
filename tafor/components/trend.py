@@ -27,7 +27,7 @@ class TrendEditor(BaseEditor):
         self.trend = TrendSegment()
         self.nextButton = QPushButton()
         self.nextButton.setEnabled(False)
-        self.nextButton.setText("下一步")
+        self.nextButton.setText('下一步')
         layout.addWidget(self.trend)
         layout.addWidget(self.nextButton, 0, Qt.AlignRight|Qt.AlignBottom)
         self.setLayout(layout)

@@ -24,7 +24,7 @@ class RecentTAF(QtWidgets.QWidget, Ui_main_recent.Ui_Form):
             return 
 
         self.groupBox.setTitle(item.tt)
-        self.sendTime.setText(item.sent.strftime("%Y-%m-%d %H:%M:%S"))
+        self.sendTime.setText(item.sent.strftime('%Y-%m-%d %H:%M:%S'))
         self.rpt.setText(item.report)
         if item.confirmed:
             self.check.setText('<img src=":/checkmark.png" width="24" height="24"/>')
@@ -85,4 +85,4 @@ class Clock(QtWidgets.QWidget):
 
     def updateGUI(self):
         utc = datetime.datetime.utcnow()
-        self.label.setText(utc.strftime("%Y-%m-%d %H:%M:%S"))
+        self.label.setText(utc.strftime('%Y-%m-%d %H:%M:%S'))

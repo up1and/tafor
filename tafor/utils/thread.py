@@ -3,10 +3,10 @@ import requests
 from PyQt5.QtCore import QThread, pyqtSignal
 
 from tafor import conf, logger
+from tafor.utils import serialComm
 
 
-def remoteMessage():
-    url = conf.value('Monitor/WebApiURL')
+def remoteMessage(url):
     try:
         r = requests.get(url, timeout=30)
         if r.status_code == 200:
@@ -22,9 +22,7 @@ def remoteMessage():
 
     return {}
 
-def callUp(mobile):
-    url = conf.value('Monitor/CallServiceURL')
-    token = conf.value('Monitor/CallServiceToken') or ''
+def callUp(url, token, mobile):
     try:
         r = requests.post(url, auth=('api', token), data={'mobile': mobile}, timeout=30)
         if r.status_code == 201:
@@ -39,8 +37,7 @@ def callUp(mobile):
     except Exception as e:
         logger.error(e, exc_info=True)
 
-def callService():
-    url = conf.value('Monitor/CallServiceURL')
+def callService(url):
     try:
         r = requests.get(url, timeout=5)
         return r.json()
@@ -51,8 +48,7 @@ def callService():
     except Exception:
         pass
 
-def repoRelease():
-    url = 'https://api.github.com/repos/up1and/tafor/releases/latest'
+def repoRelease(url):
     try:
         r = requests.get(url, timeout=30)
         return r.json()
@@ -70,10 +66,12 @@ class WorkThread(QThread):
 
     def run(self):
         if conf.value('Monitor/WebApiURL'):
-            self.parent.store.message = remoteMessage()
+            url = conf.value('Monitor/WebApiURL') or 'http://127.0.0.1:6575'
+            self.parent.store.message = remoteMessage(url)
 
         if conf.value('Monitor/SelectedMobile'):
-            self.parent.store.callService = callService()
+            url = conf.value('Monitor/CallServiceURL') or 'http://127.0.0.1:5000/api/call/'
+            self.parent.store.callService = callService(url)
 
 
 class CallThread(QThread):
@@ -82,8 +80,35 @@ class CallThread(QThread):
         self.parent = parent
 
     def run(self):
+        url = conf.value('Monitor/CallServiceURL') or 'http://127.0.0.1:5000/api/call/'
+        token = conf.value('Monitor/CallServiceToken') or ''
         mobile = conf.value('Monitor/SelectedMobile')
-        callUp(mobile)
+        callUp(url, token, mobile)
+
+
+class SerialThread(QThread):
+    doneSignal = pyqtSignal(str)
+
+    def __init__(self, message, parent=None):
+        super(SerialThread, self).__init__(parent)
+        self.message = message
+        self.parent = parent
+
+    def run(self):
+        port = conf.value('Communication/SerialPort')
+        baudrate = int(conf.value('Communication/SerialBaudrate'))
+        bytesize = conf.value('Communication/SerialBytesize')
+        parity = conf.value('Communication/SerialParity')
+        stopbits = conf.value('Communication/SerialStopbits')
+
+        try:
+            serialComm(self.message, port, baudrate=baudrate, bytesize=bytesize, parity=parity, stopbits=stopbits)
+            error = None
+        except Exception as e:
+            error = str(e)
+            logger.error(e)
+        finally:
+            self.doneSignal.emit(error)
 
 
 class CheckUpgradeThread(QThread):
@@ -94,5 +119,6 @@ class CheckUpgradeThread(QThread):
         self.parent = parent
 
     def run(self):
-        data = repoRelease()
+        url = 'https://api.github.com/repos/up1and/tafor/releases/latest'
+        data = repoRelease(url)
         self.doneSignal.emit(data)

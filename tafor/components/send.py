@@ -1,97 +1,12 @@
-import json
 import datetime
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+from tafor import conf, logger
 from tafor.components.ui import Ui_send
 from tafor.models import db, Tafor, Task, Trend
-from tafor.utils import Parser, serialComm
-from tafor import conf, logger
-
-
-class AFTNMessage(object):
-    """Aeronautical Fixed Telecommunication Network Message"""
-    def __init__(self, text, sort='TAF', time=None):
-        super(AFTNMessage, self).__init__()
-        self.text = text.split('\n')
-        self.sort = sort
-        self.time = datetime.datetime.utcnow() if time is None else time
-        maxSendAddress = conf.value('Communication/MaxSendAddress')
-        maxLineChar = conf.value('Communication/MaxLineChar')
-        self.maxSendAddress = int(maxSendAddress) if maxSendAddress else 21  # AFTN 线路最大发电地址数
-        self.maxLineChar = int(maxLineChar) if maxLineChar else 69  # AFTN 线路每行最大字符数
-
-        self.generate()
-
-    def toString(self):
-        return '\n\n\n\n'.join(self.messages)
-
-    def toJson(self):
-        return json.dumps(self.messages)
-
-    def generate(self):
-        channel = conf.value('Communication/Channel')
-        number = conf.value('Communication/ChannelSequenceNumber')
-        number = int(number) if number else 0
-        sendAddress = conf.value('Communication/{}Address'.format(self.sort)) or ''
-        originatorAddress = conf.value('Communication/OriginatorAddress') or ''
-
-        groups = self.divideAddress(sendAddress)
-        time = self.time.strftime('%d%H%M')
-
-        origin = ' '.join([time, originatorAddress])
-        ending = 'NNNN'
-
-        self.messages = []
-        for addr in groups:
-            heading = ' '.join(['ZCZC', channel + str(number).zfill(4)])
-            address = ' '.join(['GG'] + addr)
-            items = [heading, address, origin] + self.text + [ending]
-            items = self.formatLinefeed(items)
-            self.messages.append('\n'.join(items))
-            number += 1
-
-        conf.setValue('Communication/ChannelSequenceNumber', str(number))
-        
-        return self.messages
-
-    def formatLinefeed(self, messages):
-        def findSubscript(parts):
-            subscripts = []
-            num = 0
-            for i, part in enumerate(parts):
-                num += len(part) + 1
-                if num > self.maxLineChar:
-                    subscripts.append(i)
-                    num = len(part) + 1
-
-            subscripts.append(len(parts))
-
-            return subscripts
-
-        items = []
-        for message in messages:
-            if len(message) > self.maxLineChar:
-                parts = message.split()
-                subscripts = findSubscript(parts)
-                sup = 0
-                for sub in subscripts:
-                    part = ' '.join(parts[sup:sub])
-                    sup = sub
-                    items.append(part)
-            else:
-                items.append(message)
-
-        return items
-
-    def divideAddress(self, address):
-        def chunks(lists, n):
-            """Yield successive n-sized chunks from lists."""
-            for i in range(0, len(lists), n):
-                yield lists[i:i + n]
-
-        items = address.split()
-        return chunks(items, self.maxSendAddress)
+from tafor.utils import Parser, AFTNMessage
+from tafor.utils.thread import SerialThread
 
 
 class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Send):
@@ -101,13 +16,12 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Send):
     backSignal = QtCore.pyqtSignal()
 
     def __init__(self, parent=None):
-        """
-        初始化主窗口
-        """
         super(BaseSender, self).__init__(parent)
         self.setupUi(self)
 
-        self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setText("Send")
+        self.parent = parent
+
+        self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setText('Send')
         # self.buttonBox.addButton("TEST", QDialogButtonBox.ActionRole)
         self.rejected.connect(self.cancel)
         self.closeSignal.connect(self.clear)
@@ -128,20 +42,23 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Send):
         except Exception as e:
             logger.error(e)
 
-    def sendToSerial(self, message):
-        port = conf.value('Communication/SerialPort')
-        baudrate = int(conf.value('Communication/SerialBaudrate'))
-        bytesize = conf.value('Communication/SerialBytesize')
-        parity = conf.value('Communication/SerialParity')
-        stopbits = conf.value('Communication/SerialStopbits')
+    def showRawGroup(self, error):
+        if error:
+            self.rawGroup.setTitle('发送失败')
+            self.parent.statusBar.showMessage(error)
+        else:
+            self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
 
-        try:
-            error = not serialComm(message, port, baudrate=baudrate, bytesize=bytesize, parity=parity, stopbits=stopbits)
-        except Exception as e:
-            error = str(e)
-            logger.error(e)
-        
-        return error
+        self.raw.setText(self.aftn.toString())
+        self.rawGroup.show()
+
+    def send(self):
+        self.aftn = AFTNMessage(self.message['full'], self.reportType)
+        message = self.aftn.toString()
+
+        thread = SerialThread(message, self)
+        thread.doneSignal.connect(self.showRawGroup)
+        thread.start()
 
     def closeEvent(self, event):
         if event.spontaneous():
@@ -166,6 +83,8 @@ class TAFSender(BaseSender):
     def __init__(self, parent=None):
         super(TAFSender, self).__init__(parent)
 
+        self.reportType = 'TAF'
+
         self.buttonBox.accepted.connect(self.send)
         self.buttonBox.accepted.connect(self.save)
 
@@ -176,19 +95,6 @@ class TAFSender(BaseSender):
         logger.debug('Save ' + item.rpt)
         self.sendSignal.emit()
 
-    def send(self):
-        self.aftn = AFTNMessage(self.message['full'])
-        message = self.aftn.toString()
-        error = self.sendToSerial(message)
-
-        if error:
-            self.rawGroup.setTitle('发送失败')
-        else:
-            self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
-
-        self.raw.setText(message)
-        self.rawGroup.show()
-
 
 class TaskTAFSender(BaseSender):
 
@@ -196,6 +102,8 @@ class TaskTAFSender(BaseSender):
         super(TaskTAFSender, self).__init__(parent)
 
         self.setWindowTitle('定时任务')
+
+        self.reportType = 'TAF'
 
         self.buttonBox.accepted.connect(self.save)
         self.buttonBox.accepted.connect(self.accept)
@@ -246,6 +154,8 @@ class TrendSender(BaseSender):
     def __init__(self, parent=None):
         super(TrendSender, self).__init__(parent)
 
+        self.reportType = 'Trend'
+
         self.buttonBox.accepted.connect(self.send)
         self.buttonBox.accepted.connect(self.save)
 
@@ -259,19 +169,6 @@ class TrendSender(BaseSender):
         db.commit()
         logger.debug('Save ' + item.rpt)
         self.sendSignal.emit()
-
-    def send(self):
-        self.aftn = AFTNMessage(self.message['full'], 'Trend')
-        message = self.aftn.toString()
-        error = self.sendToSerial(message)
-
-        if error:
-            self.rawGroup.setTitle('发送失败')
-        else:
-            self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
-
-        self.raw.setText(message)
-        self.rawGroup.show()
 
 
     
