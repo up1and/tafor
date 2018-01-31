@@ -138,9 +138,6 @@
        <property name="text">
         <string>PROB30</string>
        </property>
-       <property name="autoExclusive">
-        <bool>true</bool>
-       </property>
       </widget>
      </item>
      <item row="2" column="9">
@@ -166,9 +163,6 @@
        </property>
        <property name="text">
         <string>PROB40</string>
-       </property>
-       <property name="autoExclusive">
-        <bool>true</bool>
        </property>
        <property name="tristate">
         <bool>false</bool>

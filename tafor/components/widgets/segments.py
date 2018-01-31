@@ -24,9 +24,6 @@ class BaseSegment(QtWidgets.QWidget):
             self.cavok.clicked.connect(self.checkComplete)
             self.nsc.clicked.connect(self.checkComplete)
             self.skc.clicked.connect(self.checkComplete)
-        else:
-            self.prob30.toggled.connect(self.setProb30)
-            self.prob40.toggled.connect(self.setProb40)
 
         self.gust.editingFinished.connect(self.validGust)
 
@@ -101,14 +98,6 @@ class BaseSegment(QtWidgets.QWidget):
             self.clouds(False)
         else:
             self.clouds(True)
-
-    def setProb30(self, checked):
-        if checked:
-            self.prob40.setChecked(False)
-        
-    def setProb40(self, checked):
-        if checked:
-            self.prob30.setChecked(False)
 
     def setValidator(self):
         wind = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.wind, QtCore.Qt.CaseInsensitive))
@@ -279,7 +268,6 @@ class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Form):
 
         self.completeSignal.emit(self.complete)
 
-
     def message(self):
         super(TAFPrimarySegment, self).message()
         amd = 'AMD' if self.amd.isChecked() else ''
@@ -415,9 +403,20 @@ class TAFTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Form):
     def bindSignal(self):
         super(TAFTempoSegment, self).bindSignal()
 
+        self.prob30.toggled.connect(self.setProb30)
+        self.prob40.toggled.connect(self.setProb40)
+
         self.interval.textChanged.connect(self.checkComplete)
         self.weather.currentIndexChanged.connect(self.checkComplete)
         self.weatherWithIntensity.currentIndexChanged.connect(self.checkComplete)
+
+    def setProb30(self, checked):
+        if checked:
+            self.prob40.setChecked(False)
+        
+    def setProb40(self, checked):
+        if checked:
+            self.prob30.setChecked(False)
 
     def message(self):
         super(TAFTempoSegment, self).message()
