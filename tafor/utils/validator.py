@@ -41,7 +41,11 @@ def formatTimeInterval(interval, time):
 def formatTimez(timez):
     # will remove later
     utc =  datetime.datetime.utcnow()
-    time = datetime.datetime(utc.year, utc.month, int(timez[:2]), int(timez[2:4]), int(timez[4:6]))
+    try:
+        time = datetime.datetime(utc.year, utc.month, int(timez[:2]), int(timez[2:4]), int(timez[4:6]))
+    except ValueError:
+        time = datetime.datetime(utc.year, utc.month - 1, int(timez[:2]), int(timez[2:4]), int(timez[4:6]))
+
     return time
 
 
