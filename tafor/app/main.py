@@ -7,7 +7,7 @@ from PyQt5.QtMultimedia import QSound, QSoundEffect
 
 from tafor import BASEDIR, conf, logger, boolean, __version__
 from tafor.models import db, Tafor, Task, Metar, User
-from tafor.utils import CheckTAF, Listen, checkVersion
+from tafor.utils import Listen, checkVersion
 from tafor.utils.thread import WorkThread, CallThread, CheckUpgradeThread
 
 from tafor.components.ui import Ui_main, main_rc

@@ -38,13 +38,13 @@ class CheckTAF(QObject):
                     '1524': startOfTheDay + datetime.timedelta(hours=13),
                     '1803': startOfTheDay + datetime.timedelta(hours=16),
                     '2106': startOfTheDay + datetime.timedelta(hours=19),
-                    '0009': startOfTheDay + datetime.timedelta(hours=22),
+                    '0009': startOfTheDay - datetime.timedelta(hours=2),
         }
         self.startTime['FT'] = {
                     '0606': startOfTheDay + datetime.timedelta(hours=1),
                     '1212': startOfTheDay + datetime.timedelta(hours=7),
                     '1818': startOfTheDay + datetime.timedelta(hours=13),
-                    '0024': startOfTheDay + datetime.timedelta(hours=19),
+                    '0024': startOfTheDay - datetime.timedelta(hours=5),
         }
 
         thresholdMinute = conf.value('Monitor/WarnTAFTime')
