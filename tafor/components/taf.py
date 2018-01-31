@@ -8,16 +8,14 @@ from PyQt5.QtCore import *
 from tafor import boolean, conf, logger
 from tafor.utils import CheckTAF, Grammar, formatTimeInterval
 from tafor.models import db, Tafor, Task
+from tafor.components.widgets.editor import BaseEditor
 from tafor.components.widgets.segments import TAFPrimarySegment, TAFBecmgSegment, TAFTempoSegment
 
 
-class BaseEditor(QDialog):
-    previewSignal = pyqtSignal(dict)
+class BaseTAFEditor(BaseEditor):
 
     def __init__(self, parent=None, sender=None):
-        super(BaseEditor, self).__init__(parent)
-        self.parent = parent
-        self.sender = sender
+        super(BaseTAFEditor, self).__init__(parent, sender)
 
         self.initUI()
         self.bindSignal()
@@ -43,7 +41,7 @@ class BaseEditor(QDialog):
         layout.addWidget(self.nextButton, 0, Qt.AlignRight|Qt.AlignBottom)
         self.setLayout(layout)
 
-        self.setStyleSheet("QLineEdit {width: 50px;} QComboBox {width: 50px}")
+        self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px}')
 
         self.becmg1.hide()
         self.becmg2.hide()
@@ -52,17 +50,6 @@ class BaseEditor(QDialog):
         self.tempo2.hide()
 
     def bindSignal(self):
-        alwaysShow = boolean(conf.value('General/AlwaysShowEditor'))
-
-        if not alwaysShow:
-            self.previewSignal.connect(self.hide)
-
-        self.previewSignal.connect(self.sender.receive)
-        self.previewSignal.connect(self.sender.show)
-        self.sender.sendSignal.connect(self.parent.updateGUI)
-        self.sender.backSignal.connect(self.show)
-        self.sender.closeSignal.connect(self.close)
-
         self.primary.becmg1Checkbox.toggled.connect(self.addGroup)
         self.primary.becmg2Checkbox.toggled.connect(self.addGroup)
         self.primary.becmg3Checkbox.toggled.connect(self.addGroup)
@@ -324,11 +311,11 @@ class BaseEditor(QDialog):
         self.updateMessageType()
 
 
-class TAFEditor(BaseEditor):
+class TAFEditor(BaseTAFEditor):
 
     def __init__(self, parent=None, sender=None):
         super(TAFEditor, self).__init__(parent, sender)
-        self.setWindowTitle("编发报文")
+        self.setWindowTitle('编发报文')
         self.primary.date.setEnabled(False)
 
         self.timer = QTimer()
@@ -341,12 +328,12 @@ class TAFEditor(BaseEditor):
         logger.debug('TAF Edit ' + message['full'])
 
 
-class TaskTAFEditor(BaseEditor):
+class TaskTAFEditor(BaseTAFEditor):
 
     def __init__(self, parent=None, sender=None):
         super(TaskTAFEditor, self).__init__(parent, sender)
 
-        self.setWindowTitle("定时任务")
+        self.setWindowTitle('定时任务')
         self.setWindowIcon(QIcon(':/time.png'))
 
         self.primary.sortGroup.hide()
@@ -387,5 +374,5 @@ class TaskTAFEditor(BaseEditor):
             return self.time
 
     def changeWindowTitle(self):
-        self.setWindowTitle("定时任务   " + self.time.strftime('%Y-%m-%d %H:%M'))
+        self.setWindowTitle('定时任务   ' + self.time.strftime('%Y-%m-%d %H:%M'))
 
