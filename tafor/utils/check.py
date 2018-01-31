@@ -31,6 +31,7 @@ class CheckTAF(QObject):
         startOfTheDay = datetime.datetime(self.time.year, self.time.month, self.time.day)
         self.startTime = dict()
         self.startTime['FC'] = {
+                    '0009': startOfTheDay - datetime.timedelta(hours=2),
                     '0312': startOfTheDay + datetime.timedelta(hours=1),
                     '0615': startOfTheDay + datetime.timedelta(hours=4),
                     '0918': startOfTheDay + datetime.timedelta(hours=7),
@@ -38,13 +39,12 @@ class CheckTAF(QObject):
                     '1524': startOfTheDay + datetime.timedelta(hours=13),
                     '1803': startOfTheDay + datetime.timedelta(hours=16),
                     '2106': startOfTheDay + datetime.timedelta(hours=19),
-                    '0009': startOfTheDay - datetime.timedelta(hours=2),
         }
         self.startTime['FT'] = {
+                    '0024': startOfTheDay - datetime.timedelta(hours=5),
                     '0606': startOfTheDay + datetime.timedelta(hours=1),
                     '1212': startOfTheDay + datetime.timedelta(hours=7),
                     '1818': startOfTheDay + datetime.timedelta(hours=13),
-                    '0024': startOfTheDay - datetime.timedelta(hours=5),
         }
 
         thresholdMinute = conf.value('Monitor/WarnTAFTime')

@@ -103,7 +103,7 @@ class SerialThread(QThread):
 
         try:
             serialComm(self.message, port, baudrate=baudrate, bytesize=bytesize, parity=parity, stopbits=stopbits)
-            error = None
+            error = ''
         except Exception as e:
             error = str(e)
             logger.error(e)
