@@ -7,14 +7,14 @@
     <x>0</x>
     <y>0</y>
     <width>620</width>
-    <height>396</height>
+    <height>408</height>
    </rect>
   </property>
   <property name="acceptDrops">
    <bool>true</bool>
   </property>
   <property name="windowTitle">
-   <string>设置</string>
+   <string>Settings</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -32,27 +32,27 @@
          <widget class="QListWidget" name="menu">
           <item>
            <property name="text">
-            <string>常规</string>
+            <string>General</string>
            </property>
           </item>
           <item>
            <property name="text">
-            <string>编报</string>
+            <string>Message</string>
            </property>
           </item>
           <item>
            <property name="text">
-            <string>通信</string>
+            <string>Communication</string>
            </property>
           </item>
           <item>
            <property name="text">
-            <string>监控</string>
+            <string>Monitor</string>
            </property>
           </item>
           <item>
            <property name="text">
-            <string>联系人</string>
+            <string>Contacts</string>
            </property>
           </item>
          </widget>
@@ -76,41 +76,41 @@
          <item>
           <widget class="QGroupBox" name="generalGroup">
            <property name="title">
-            <string>常规</string>
+            <string>General</string>
            </property>
            <layout class="QFormLayout" name="formLayout_8">
             <item row="1" column="0">
              <widget class="QCheckBox" name="runOnStart">
               <property name="text">
-               <string>开机自动启动</string>
+               <string>Run on system startup</string>
               </property>
              </widget>
             </item>
             <item row="2" column="0">
              <widget class="QCheckBox" name="closeToMinimize">
               <property name="text">
-               <string>关闭时最小化到系统托盘</string>
+               <string>Minimize to system tray when closed</string>
               </property>
              </widget>
             </item>
             <item row="4" column="0">
              <widget class="QCheckBox" name="debugMode">
               <property name="text">
-               <string>启用调试模式</string>
+               <string>Debug mode</string>
               </property>
              </widget>
             </item>
             <item row="5" column="0">
              <widget class="QCheckBox" name="alwaysShowEditor">
               <property name="text">
-               <string>总是显示报文编辑器</string>
+               <string>Always show forecast editor</string>
               </property>
              </widget>
             </item>
             <item row="7" column="0">
              <widget class="QLabel" name="label">
               <property name="text">
-               <string>语言</string>
+               <string>Language</string>
               </property>
              </widget>
             </item>
@@ -118,7 +118,7 @@
              <widget class="QComboBox" name="languageCombox">
               <item>
                <property name="text">
-                <string>简体中文</string>
+                <string>Simplified Chinese</string>
                </property>
               </item>
               <item>
@@ -153,20 +153,20 @@
             </sizepolicy>
            </property>
            <property name="title">
-            <string>校验</string>
+            <string>Validator</string>
            </property>
            <layout class="QGridLayout" name="gridLayout_4">
             <item row="0" column="0">
              <widget class="QCheckBox" name="visibility5000">
               <property name="text">
-               <string>能见度 5000 米</string>
+               <string>Visibility has 5000 meters</string>
               </property>
              </widget>
             </item>
             <item row="1" column="0">
              <widget class="QCheckBox" name="cloudHeight450">
               <property name="text">
-               <string>云高 450 米</string>
+               <string>Cloud height has 450 meters</string>
               </property>
              </widget>
             </item>
@@ -176,7 +176,7 @@
          <item>
           <widget class="QGroupBox" name="backupGroup">
            <property name="title">
-            <string>备份</string>
+            <string>Backup</string>
            </property>
            <layout class="QGridLayout" name="gridLayout_5">
             <property name="sizeConstraint">
@@ -192,28 +192,28 @@
             <item row="1" column="2">
              <widget class="QPushButton" name="exportButton">
               <property name="text">
-               <string>导出</string>
+               <string>Export</string>
               </property>
              </widget>
             </item>
             <item row="0" column="2">
              <widget class="QPushButton" name="importButton">
               <property name="text">
-               <string>导入</string>
+               <string>Import</string>
               </property>
              </widget>
             </item>
             <item row="0" column="1">
              <widget class="QPushButton" name="importBrowseButton">
               <property name="text">
-               <string>浏览</string>
+               <string>Browse</string>
               </property>
              </widget>
             </item>
             <item row="1" column="1">
              <widget class="QPushButton" name="exportBrowseButton">
               <property name="text">
-               <string>浏览</string>
+               <string>Browse</string>
               </property>
              </widget>
             </item>
@@ -234,13 +234,13 @@
          <item>
           <widget class="QGroupBox" name="prefixGroup">
            <property name="title">
-            <string>前缀</string>
+            <string>Prefix</string>
            </property>
            <layout class="QFormLayout" name="formLayout">
             <item row="0" column="0">
              <widget class="QLabel" name="icaoLabel">
               <property name="text">
-               <string>机场代码    </string>
+               <string>ICAO</string>
               </property>
              </widget>
             </item>
@@ -254,7 +254,7 @@
             <item row="1" column="0">
              <widget class="QLabel" name="areaLabel">
               <property name="text">
-               <string>情报区域    </string>
+               <string>Intelligence Area</string>
               </property>
              </widget>
             </item>
@@ -268,7 +268,7 @@
             <item row="2" column="0">
              <widget class="QLabel" name="firLabel">
               <property name="text">
-               <string>监视台责任区</string>
+               <string>SIGMET Area</string>
               </property>
              </widget>
             </item>
@@ -282,7 +282,7 @@
             <item row="3" column="0">
              <widget class="QLabel" name="trendSignLabel">
               <property name="text">
-               <string>趋势识别码  </string>
+               <string>Trend Identifier</string>
               </property>
              </widget>
             </item>
@@ -299,7 +299,7 @@
          <item>
           <widget class="QGroupBox" name="weatherGroup">
            <property name="title">
-            <string>天气现象备案</string>
+            <string>Weather Phenomenon</string>
            </property>
            <layout class="QGridLayout" name="gridLayout">
             <item row="0" column="1">
@@ -310,7 +310,7 @@
                  <string/>
                 </property>
                 <property name="placeholderText">
-                 <string>无强度变化的天气现象</string>
+                 <string>Weather without intensity</string>
                 </property>
                </widget>
               </item>
@@ -361,7 +361,7 @@
               <item>
                <widget class="QLineEdit" name="weatherWithIntensity">
                 <property name="placeholderText">
-                 <string>有强度变化的天气现象</string>
+                 <string>Weather with intensity</string>
                 </property>
                </widget>
               </item>
@@ -405,13 +405,13 @@
            <item>
             <widget class="QGroupBox" name="serialGroup">
              <property name="title">
-              <string>串口参数</string>
+              <string>Serial Parameters</string>
              </property>
              <layout class="QFormLayout" name="formLayout_3">
               <item row="0" column="0">
                <widget class="QLabel" name="portLabel">
                 <property name="text">
-                 <string>端口  </string>
+                 <string>Port</string>
                 </property>
                </widget>
               </item>
@@ -425,7 +425,7 @@
               <item row="1" column="0">
                <widget class="QLabel" name="baudrateLabel">
                 <property name="text">
-                 <string>波特率</string>
+                 <string>Baudrate</string>
                 </property>
                </widget>
               </item>
@@ -439,7 +439,7 @@
               <item row="2" column="0">
                <widget class="QLabel" name="parityLabel">
                 <property name="text">
-                 <string>校验位</string>
+                 <string>Parity</string>
                 </property>
                </widget>
               </item>
@@ -465,7 +465,7 @@
               <item row="3" column="0">
                <widget class="QLabel" name="bytesizeLabel">
                 <property name="text">
-                 <string>数据位</string>
+                 <string>Bytesize</string>
                 </property>
                </widget>
               </item>
@@ -496,7 +496,7 @@
               <item row="4" column="0">
                <widget class="QLabel" name="stopbitsLabel">
                 <property name="text">
-                 <string>停止位</string>
+                 <string>Stopbits</string>
                 </property>
                </widget>
               </item>
@@ -531,13 +531,13 @@
               </size>
              </property>
              <property name="title">
-              <string>AFTN 参数</string>
+              <string>AFTN Parameters</string>
              </property>
              <layout class="QGridLayout" name="gridLayout_3">
               <item row="0" column="0">
                <widget class="QLabel" name="channelLabel">
                 <property name="text">
-                 <string>线路冠字</string>
+                 <string>Channel</string>
                 </property>
                </widget>
               </item>
@@ -551,7 +551,7 @@
               <item row="1" column="0">
                <widget class="QLabel" name="channelSequenceNumberLabel">
                 <property name="text">
-                 <string>流水号  </string>
+                 <string>Sequence Number</string>
                 </property>
                </widget>
               </item>
@@ -579,14 +579,14 @@
               <item row="4" column="0">
                <widget class="QLabel" name="originatorAddressLabel">
                 <property name="text">
-                 <string>用户单位</string>
+                 <string>Originator</string>
                 </property>
                </widget>
               </item>
               <item row="6" column="0">
                <widget class="QLabel" name="maxLineCharLabel">
                 <property name="text">
-                 <string>行字符上限</string>
+                 <string>Max Line Char</string>
                 </property>
                </widget>
               </item>
@@ -606,14 +606,14 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>复位</string>
+                 <string>Reset</string>
                 </property>
                </widget>
               </item>
               <item row="5" column="0">
                <widget class="QLabel" name="maxSendAddressLabel">
                 <property name="text">
-                 <string>地址上限</string>
+                 <string>Max Address</string>
                 </property>
                </widget>
               </item>
@@ -625,13 +625,13 @@
          <item>
           <widget class="QGroupBox" name="addressGroup">
            <property name="title">
-            <string>发报地址</string>
+            <string>Send Address</string>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_10">
             <item>
              <widget class="QTabWidget" name="tabWidget">
               <property name="currentIndex">
-               <number>1</number>
+               <number>0</number>
               </property>
               <widget class="QWidget" name="tafTab">
                <attribute name="title">
@@ -641,7 +641,7 @@
                 <item>
                  <widget class="QTextEdit" name="tafAddress">
                   <property name="placeholderText">
-                   <string>发报地址请以空格分隔</string>
+                   <string>Please separate multiple addresses by space</string>
                   </property>
                  </widget>
                 </item>
@@ -655,7 +655,7 @@
                 <item>
                  <widget class="QTextEdit" name="sigmetAddress">
                   <property name="placeholderText">
-                   <string>发报地址请以空格分隔</string>
+                   <string>Please separate multiple addresses by space</string>
                   </property>
                  </widget>
                 </item>
@@ -669,7 +669,7 @@
                 <item>
                  <widget class="QTextEdit" name="airmetAddress">
                   <property name="placeholderText">
-                   <string>发报地址请以空格分隔</string>
+                   <string>Please separate multiple addresses by space</string>
                   </property>
                  </widget>
                 </item>
@@ -683,7 +683,7 @@
                 <item>
                  <widget class="QTextEdit" name="trendAddress">
                   <property name="placeholderText">
-                   <string>发报地址请以空格分隔</string>
+                   <string>Please separate multiple addresses by space</string>
                   </property>
                  </widget>
                 </item>
@@ -701,13 +701,19 @@
          <item>
           <widget class="QGroupBox" name="dataSourceGroup">
            <property name="title">
-            <string>数据源</string>
+            <string>Data Source</string>
            </property>
            <layout class="QFormLayout" name="formLayout_2">
             <item row="0" column="0">
              <widget class="QLabel" name="webApiLabel">
+              <property name="minimumSize">
+               <size>
+                <width>100</width>
+                <height>0</height>
+               </size>
+              </property>
               <property name="text">
-               <string>请求地址        </string>
+               <string>Request URL</string>
               </property>
              </widget>
             </item>
@@ -724,13 +730,19 @@
          <item>
           <widget class="QGroupBox" name="warnGroup">
            <property name="title">
-            <string>迟发监控</string>
+            <string>Late Monitoring</string>
            </property>
            <layout class="QFormLayout" name="formLayout_4">
             <item row="0" column="0">
              <widget class="QLabel" name="warnTAFTimeLabel">
+              <property name="minimumSize">
+               <size>
+                <width>100</width>
+                <height>0</height>
+               </size>
+              </property>
               <property name="text">
-               <string>告警时间        </string>
+               <string>Alarm Time</string>
               </property>
              </widget>
             </item>
@@ -742,15 +754,24 @@
                 <height>16777215</height>
                </size>
               </property>
+              <property name="text">
+               <string/>
+              </property>
               <property name="placeholderText">
-               <string>单位分钟</string>
+               <string>Unit minutes</string>
               </property>
              </widget>
             </item>
             <item row="1" column="0">
              <widget class="QLabel" name="warnTAFVolumeLabel">
+              <property name="minimumSize">
+               <size>
+                <width>100</width>
+                <height>0</height>
+               </size>
+              </property>
               <property name="text">
-               <string>告警声音        </string>
+               <string>Alarm Sound</string>
               </property>
              </widget>
             </item>
@@ -767,13 +788,19 @@
          <item>
           <widget class="QGroupBox" name="remindGroup">
            <property name="title">
-            <string>声音提醒和音量</string>
+            <string>Sound Reminder and Volume</string>
            </property>
            <layout class="QFormLayout" name="formLayout_5">
             <item row="0" column="0">
              <widget class="QCheckBox" name="remindTAF">
+              <property name="minimumSize">
+               <size>
+                <width>100</width>
+                <height>0</height>
+               </size>
+              </property>
               <property name="text">
-               <string>预报        </string>
+               <string>TAF</string>
               </property>
              </widget>
             </item>
@@ -786,8 +813,14 @@
             </item>
             <item row="1" column="0">
              <widget class="QCheckBox" name="remindTrend">
+              <property name="minimumSize">
+               <size>
+                <width>100</width>
+                <height>0</height>
+               </size>
+              </property>
               <property name="text">
-               <string>趋势        </string>
+               <string>Trend</string>
               </property>
              </widget>
             </item>
@@ -800,8 +833,14 @@
             </item>
             <item row="2" column="0">
              <widget class="QCheckBox" name="remindSIGMET">
+              <property name="minimumSize">
+               <size>
+                <width>100</width>
+                <height>0</height>
+               </size>
+              </property>
               <property name="text">
-               <string>重要气象情报</string>
+               <string>SIGMET</string>
               </property>
              </widget>
             </item>
@@ -818,13 +857,19 @@
          <item>
           <widget class="QGroupBox" name="callServiceGroup">
            <property name="title">
-            <string>电话服务</string>
+            <string>Telephone Service</string>
            </property>
            <layout class="QGridLayout" name="gridLayout_2">
             <item row="0" column="0">
              <widget class="QLabel" name="callServiceURLLabel">
+              <property name="minimumSize">
+               <size>
+                <width>100</width>
+                <height>0</height>
+               </size>
+              </property>
               <property name="text">
-               <string>请求地址        </string>
+               <string>Request URL</string>
               </property>
              </widget>
             </item>
@@ -837,8 +882,14 @@
             </item>
             <item row="1" column="0">
              <widget class="QLabel" name="callServiceTokenLabel">
+              <property name="minimumSize">
+               <size>
+                <width>100</width>
+                <height>0</height>
+               </size>
+              </property>
               <property name="text">
-               <string>认证            </string>
+               <string>Auth Token</string>
               </property>
              </widget>
             </item>
@@ -851,7 +902,7 @@
                </size>
               </property>
               <property name="text">
-               <string>拨号</string>
+               <string>Dial</string>
               </property>
              </widget>
             </item>
@@ -872,7 +923,7 @@
          <item>
           <widget class="QGroupBox" name="contractGroup">
            <property name="title">
-            <string>联系人</string>
+            <string>Contacts</string>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_12">
             <item>
@@ -883,14 +934,14 @@
                  <string/>
                 </property>
                 <property name="placeholderText">
-                 <string>姓名</string>
+                 <string>Name</string>
                 </property>
                </widget>
               </item>
               <item>
                <widget class="QLineEdit" name="personMobile">
                 <property name="placeholderText">
-                 <string>电话</string>
+                 <string>Mobile</string>
                 </property>
                </widget>
               </item>
@@ -938,12 +989,12 @@
               </attribute>
               <column>
                <property name="text">
-                <string>姓名</string>
+                <string>Name</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>电话</string>
+                <string>Mobile</string>
                </property>
               </column>
              </widget>
@@ -953,7 +1004,7 @@
               <item>
                <widget class="QLabel" name="selectedContractLabel">
                 <property name="text">
-                 <string>当前告警联系人</string>
+                 <string>Current Selected Contact</string>
                 </property>
                </widget>
               </item>

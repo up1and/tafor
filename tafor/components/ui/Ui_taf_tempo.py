@@ -117,19 +117,19 @@ class Ui_Form(object):
     def retranslateUi(self, Form):
         _translate = QtCore.QCoreApplication.translate
         Form.setWindowTitle(_translate("Form", "Form"))
-        self.cloud2Label.setText(_translate("Form", "云组2"))
-        self.visLabel.setText(_translate("Form", "能见度"))
+        self.cloud2Label.setText(_translate("Form", "Cloud2"))
+        self.visLabel.setText(_translate("Form", "Visibility"))
         self.name.setText(_translate("Form", "TEMPO"))
-        self.weatherWithIntensityLabel.setText(_translate("Form", "天气现象1"))
-        self.windLabel.setText(_translate("Form", "风向风速"))
-        self.intervalLabel.setText(_translate("Form", "时段"))
-        self.cloud1Label.setText(_translate("Form", "云组1"))
-        self.cbLabel.setText(_translate("Form", "积雨云"))
-        self.cloud3Label.setText(_translate("Form", "云组3"))
+        self.weatherWithIntensityLabel.setText(_translate("Form", "Weather1"))
+        self.windLabel.setText(_translate("Form", "Wind"))
+        self.intervalLabel.setText(_translate("Form", "Interval"))
+        self.cloud1Label.setText(_translate("Form", "Cloud1"))
+        self.cbLabel.setText(_translate("Form", "Cumulonimbus"))
+        self.cloud3Label.setText(_translate("Form", "Cloud3"))
         self.prob30.setText(_translate("Form", "PROB30"))
-        self.gustLabel.setText(_translate("Form", "阵风"))
+        self.gustLabel.setText(_translate("Form", "Gust"))
         self.prob40.setText(_translate("Form", "PROB40"))
-        self.weatherLabel.setText(_translate("Form", "天气现象2"))
+        self.weatherLabel.setText(_translate("Form", "Weather2"))
 
 
 if __name__ == "__main__":

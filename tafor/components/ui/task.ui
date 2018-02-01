@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>定时任务列表</string>
+   <string>Timing Tasks</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -21,22 +21,22 @@
      </property>
      <column>
       <property name="text">
-       <string>类型</string>
+       <string>Type</string>
       </property>
      </column>
      <column>
       <property name="text">
-       <string>报文内容</string>
+       <string>Message Content</string>
       </property>
      </column>
      <column>
       <property name="text">
-       <string>执行时间</string>
+       <string>Sending Time</string>
       </property>
      </column>
      <column>
       <property name="text">
-       <string>添加时间</string>
+       <string>Created Time</string>
       </property>
      </column>
     </widget>

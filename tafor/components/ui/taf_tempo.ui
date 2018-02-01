@@ -22,7 +22,7 @@
      <item row="0" column="12">
       <widget class="QLabel" name="cloud2Label">
        <property name="text">
-        <string>云组2</string>
+        <string>Cloud2</string>
        </property>
        <property name="buddy">
         <cstring>cloud2</cstring>
@@ -32,7 +32,7 @@
      <item row="0" column="7">
       <widget class="QLabel" name="visLabel">
        <property name="text">
-        <string>能见度</string>
+        <string>Visibility</string>
        </property>
        <property name="buddy">
         <cstring>vis</cstring>
@@ -67,7 +67,7 @@
      <item row="0" column="9">
       <widget class="QLabel" name="weatherWithIntensityLabel">
        <property name="text">
-        <string>天气现象1</string>
+        <string>Weather1</string>
        </property>
        <property name="buddy">
         <cstring>weatherWithIntensity</cstring>
@@ -77,7 +77,7 @@
      <item row="0" column="5">
       <widget class="QLabel" name="windLabel">
        <property name="text">
-        <string>风向风速</string>
+        <string>Wind</string>
        </property>
        <property name="buddy">
         <cstring>wind</cstring>
@@ -87,7 +87,7 @@
      <item row="0" column="4">
       <widget class="QLabel" name="intervalLabel">
        <property name="text">
-        <string>时段</string>
+        <string>Interval</string>
        </property>
        <property name="buddy">
         <cstring>interval</cstring>
@@ -100,7 +100,7 @@
      <item row="0" column="11">
       <widget class="QLabel" name="cloud1Label">
        <property name="text">
-        <string>云组1</string>
+        <string>Cloud1</string>
        </property>
        <property name="buddy">
         <cstring>cloud1</cstring>
@@ -113,7 +113,7 @@
      <item row="0" column="14">
       <widget class="QLabel" name="cbLabel">
        <property name="text">
-        <string>积雨云</string>
+        <string>Cumulonimbus</string>
        </property>
        <property name="buddy">
         <cstring>cb</cstring>
@@ -126,7 +126,7 @@
      <item row="0" column="13">
       <widget class="QLabel" name="cloud3Label">
        <property name="text">
-        <string>云组3</string>
+        <string>Cloud3</string>
        </property>
        <property name="buddy">
         <cstring>cloud3</cstring>
@@ -149,7 +149,7 @@
      <item row="0" column="6">
       <widget class="QLabel" name="gustLabel">
        <property name="text">
-        <string>阵风</string>
+        <string>Gust</string>
        </property>
        <property name="buddy">
         <cstring>gust</cstring>
@@ -175,7 +175,7 @@
      <item row="0" column="10">
       <widget class="QLabel" name="weatherLabel">
        <property name="text">
-        <string>天气现象2</string>
+        <string>Weather2</string>
        </property>
        <property name="buddy">
         <cstring>weather</cstring>

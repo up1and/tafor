@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Terminal Aerodrome Forecast Encoding Software</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -87,22 +87,22 @@
           </property>
           <column>
            <property name="text">
-            <string>类型</string>
+            <string>Type</string>
            </property>
           </column>
           <column>
            <property name="text">
-            <string>报文内容</string>
+            <string>Message Content</string>
            </property>
           </column>
           <column>
            <property name="text">
-            <string>发布时间</string>
+            <string>Sent Time</string>
            </property>
           </column>
           <column>
            <property name="text">
-            <string>查询</string>
+            <string>Check</string>
            </property>
           </column>
          </widget>
@@ -133,12 +133,12 @@
           </property>
           <column>
            <property name="text">
-            <string>类型</string>
+            <string>Type</string>
            </property>
           </column>
           <column>
            <property name="text">
-            <string>报文内容</string>
+            <string>Message Content</string>
            </property>
           </column>
          </widget>
@@ -160,7 +160,7 @@
    </property>
    <widget class="QMenu" name="postMenu">
     <property name="title">
-     <string>编发</string>
+     <string>Post</string>
     </property>
     <addaction name="tafAction"/>
     <addaction name="trendAction"/>
@@ -170,11 +170,11 @@
    </widget>
    <widget class="QMenu" name="settingMenu">
     <property name="title">
-     <string>选项</string>
+     <string>Options</string>
     </property>
     <widget class="QMenu" name="contractsMenu">
      <property name="title">
-      <string>联系人</string>
+      <string>Contacts</string>
      </property>
      <addaction name="contractNo"/>
      <addaction name="separator"/>
@@ -186,7 +186,7 @@
    </widget>
    <widget class="QMenu" name="helpMenu">
     <property name="title">
-     <string>帮助</string>
+     <string>Help</string>
     </property>
     <addaction name="openDocsAction"/>
     <addaction name="reportIssueAction"/>
@@ -201,32 +201,32 @@
   <widget class="QStatusBar" name="statusBar"/>
   <action name="tafAction">
    <property name="text">
-    <string>预报</string>
+    <string>Terminal Aerodrome Forecast</string>
    </property>
   </action>
   <action name="trendAction">
    <property name="text">
-    <string>趋势</string>
+    <string>Trend Forecast</string>
    </property>
   </action>
   <action name="sigmetAction">
    <property name="text">
-    <string>重要气象情报</string>
+    <string>Significant Meteorological Information</string>
    </property>
   </action>
   <action name="settingAction">
    <property name="text">
-    <string>设置</string>
+    <string>Settings</string>
    </property>
   </action>
   <action name="aboutAction">
    <property name="text">
-    <string>关于</string>
+    <string>About</string>
    </property>
   </action>
   <action name="quitAction">
    <property name="text">
-    <string>退出</string>
+    <string>Exit</string>
    </property>
   </action>
   <action name="contractNo">
@@ -234,41 +234,17 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>无</string>
+    <string>None</string>
    </property>
   </action>
   <action name="reportIssueAction">
    <property name="text">
-    <string>报告问题</string>
+    <string>Report Issue</string>
    </property>
   </action>
   <action name="openDocsAction">
    <property name="text">
-    <string>文档</string>
-   </property>
-  </action>
-  <action name="remindTAFAction">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>预报</string>
-   </property>
-  </action>
-  <action name="remindTrendAction">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>趋势预报</string>
-   </property>
-  </action>
-  <action name="remindSIGMETAction">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>重要气象情报</string>
+    <string>Documents</string>
    </property>
   </action>
   <action name="warnTAFAction">
@@ -279,12 +255,12 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>声音</string>
+    <string>Alarm Sound</string>
    </property>
   </action>
   <action name="checkUpgradeAction">
    <property name="text">
-    <string>检查更新</string>
+    <string>Check for Updates</string>
    </property>
   </action>
  </widget>

@@ -98,7 +98,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.trendEditor = TrendEditor(self, self.trendSender)
 
         # 设置主窗口文字图标
-        self.setWindowTitle('预报发报软件')
         self.setWindowIcon(QtGui.QIcon(':/logo.png'))
 
         self.setupRecent()
@@ -399,7 +398,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             #     self.tafTable.setItem(row, 4, task_item)
 
 
-        self.tafTable.setStyleSheet("QTableWidget::item {padding: 5px 0;}")
+        self.tafTable.setStyleSheet('QTableWidget::item {padding: 5px 0;}')
         self.tafTable.resizeRowsToContents()
 
     def updateMetarTable(self):
@@ -421,7 +420,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.metarTable.resizeRowsToContents()
 
     def about(self):
-        QtWidgets.QMessageBox.about(self, "预报报文发布软件",
+        QtWidgets.QMessageBox.about(self, self.tr('Terminal Aerodrome Forecast Encoding Software'),
                 """<b>预报报文发布软件</b> v <a href="https://github.com/up1and/tafor">%s</a>
                 <p>本软件用于智能发布预报报文、趋势报文、重要气象情报、低空气象情报，监控预报报文，以声音或电话的方式返回告警
                 <p>项目遵循 GPL-2.0 协议，欢迎提交 Pull Request 或者 Issue
@@ -446,9 +445,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 def main():
     import sys
     app = QtWidgets.QApplication(sys.argv)
+    translator = QtCore.QTranslator()
+    translateFile = os.path.join(BASEDIR, 'i18n\\translations', 'zh_CN.qm')
+    translator.load(translateFile)
+    app.installTranslator(translator)
 
-    serverName = 'Tafor'  
-    socket = QLocalSocket()  
+    serverName = 'Tafor'
+    socket = QLocalSocket()
     socket.connectToServer(serverName)
 
     # 如果连接成功，表明server已经存在，当前已有实例在运行

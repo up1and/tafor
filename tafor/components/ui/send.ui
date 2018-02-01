@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>发布报文</string>
+   <string>Send Message</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="sizeConstraint">
@@ -20,7 +20,7 @@
    <item>
     <widget class="QGroupBox" name="rptGroup">
      <property name="title">
-      <string>报文</string>
+      <string>Message</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
@@ -55,7 +55,7 @@ p, li { white-space: pre-wrap; }
    <item>
     <widget class="QGroupBox" name="rawGroup">
      <property name="title">
-      <string>已向串口发送数据</string>
+      <string>Data has been sent to the serial port</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_3">
       <item>

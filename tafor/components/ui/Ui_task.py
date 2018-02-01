@@ -34,15 +34,15 @@ class Ui_Task(object):
 
     def retranslateUi(self, Task):
         _translate = QtCore.QCoreApplication.translate
-        Task.setWindowTitle(_translate("Task", "定时任务列表"))
+        Task.setWindowTitle(_translate("Task", "Timing Tasks"))
         item = self.taskTable.horizontalHeaderItem(0)
-        item.setText(_translate("Task", "类型"))
+        item.setText(_translate("Task", "Type"))
         item = self.taskTable.horizontalHeaderItem(1)
-        item.setText(_translate("Task", "报文内容"))
+        item.setText(_translate("Task", "Message Content"))
         item = self.taskTable.horizontalHeaderItem(2)
-        item.setText(_translate("Task", "执行时间"))
+        item.setText(_translate("Task", "Sending Time"))
         item = self.taskTable.horizontalHeaderItem(3)
-        item.setText(_translate("Task", "添加时间"))
+        item.setText(_translate("Task", "Created Time"))
 
 
 if __name__ == "__main__":

@@ -23,7 +23,7 @@ class BaseTimerStatus(StatusBarWidget):
         super(BaseTimerStatus, self).__init__(parent, statusbar)
         layout = self.layout()
         layout.addSpacing(10)
-        layout.addWidget(QtWidgets.QLabel(self.title))
+        layout.addWidget(QtWidgets.QLabel(self.tr(self.title)))
         self.label = QtWidgets.QLabel()
         # font = QtGui.QFont()
         # font.setBold(True)
@@ -42,16 +42,18 @@ class BaseTimerStatus(StatusBarWidget):
             self.label.setText(str(self.value()))
 
 class WebAPIStatus(BaseTimerStatus):
-    title = '数据源:'
+    title = 'Data Source'
 
     def value(self):
         status = self.parent.store.webApi
-        return '正常' if status else '超时'
+        text = 'Normal' if status else 'Timeout'
+        return self.tr(text)
 
 
 class CallServiceStatus(BaseTimerStatus):
-    title = '电话服务:'
+    title = 'Telephone Service'
 
     def value(self):
         status = self.parent.store.callService
-        return '正常' if status else '超时'
+        text = 'Normal' if status else 'Timeout'
+        return self.tr(text)

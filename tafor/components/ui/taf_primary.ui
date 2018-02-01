@@ -19,7 +19,7 @@
      <item row="2" column="9">
       <widget class="QLabel" name="cloud2Label">
        <property name="text">
-        <string>云组2</string>
+        <string>Cloud2</string>
        </property>
        <property name="buddy">
         <cstring>cloud2</cstring>
@@ -48,7 +48,7 @@
      <item row="2" column="2">
       <widget class="QLabel" name="windLabel">
        <property name="text">
-        <string>风向风速</string>
+        <string>Wind</string>
        </property>
        <property name="buddy">
         <cstring>wind</cstring>
@@ -99,7 +99,7 @@
      <item row="2" column="0">
       <widget class="QLabel" name="dateLabel">
        <property name="text">
-        <string>日期</string>
+        <string>Datetime</string>
        </property>
        <property name="buddy">
         <cstring>date</cstring>
@@ -109,7 +109,7 @@
      <item row="2" column="6">
       <widget class="QLabel" name="weatherWithIntensityLabel">
        <property name="text">
-        <string>天气现象1</string>
+        <string>Weather1</string>
        </property>
        <property name="buddy">
         <cstring>weatherWithIntensity</cstring>
@@ -119,7 +119,7 @@
      <item row="2" column="8">
       <widget class="QLabel" name="cloud1Label">
        <property name="text">
-        <string>云组1</string>
+        <string>Cloud1</string>
        </property>
        <property name="buddy">
         <cstring>cloud1</cstring>
@@ -160,7 +160,7 @@
      <item row="2" column="3">
       <widget class="QLabel" name="gustLabel">
        <property name="text">
-        <string>阵风</string>
+        <string>Gust</string>
        </property>
        <property name="buddy">
         <cstring>gust</cstring>
@@ -170,7 +170,7 @@
      <item row="2" column="4">
       <widget class="QLabel" name="visLabel">
        <property name="text">
-        <string>能见度</string>
+        <string>Visibility</string>
        </property>
        <property name="buddy">
         <cstring>vis</cstring>
@@ -183,7 +183,7 @@
      <item row="2" column="10">
       <widget class="QLabel" name="cloud3Label">
        <property name="text">
-        <string>云组3</string>
+        <string>Cloud3</string>
        </property>
        <property name="buddy">
         <cstring>cloud3</cstring>
@@ -193,7 +193,7 @@
      <item row="2" column="7">
       <widget class="QLabel" name="weatherLabel">
        <property name="text">
-        <string>天气现象2</string>
+        <string>Weather2</string>
        </property>
        <property name="buddy">
         <cstring>weather</cstring>
@@ -216,7 +216,7 @@
      <item row="5" column="10">
       <widget class="QLabel" name="tempMaxLabel">
        <property name="text">
-        <string>最高温</string>
+        <string>Max Temperature</string>
        </property>
        <property name="buddy">
         <cstring>tmax</cstring>
@@ -243,7 +243,7 @@
      <item row="2" column="11">
       <widget class="QLabel" name="cbLabel">
        <property name="text">
-        <string>积雨云</string>
+        <string>Cumulonimbus</string>
        </property>
        <property name="buddy">
         <cstring>cb</cstring>
@@ -253,7 +253,7 @@
      <item row="5" column="11">
       <widget class="QLabel" name="tempMinLabel">
        <property name="text">
-        <string>最低温</string>
+        <string>Min Temperature</string>
        </property>
        <property name="buddy">
         <cstring>tmin</cstring>
@@ -263,7 +263,7 @@
      <item row="2" column="1">
       <widget class="QLabel" name="periodLabel">
        <property name="text">
-        <string>时段</string>
+        <string>Valid Period</string>
        </property>
        <property name="buddy">
         <cstring>period</cstring>
@@ -324,7 +324,7 @@
         <item row="0" column="5">
          <widget class="QRadioButton" name="cnl">
           <property name="text">
-           <string>取消报</string>
+           <string>Cancel</string>
           </property>
          </widget>
         </item>
@@ -334,14 +334,14 @@
         <item row="0" column="1">
          <widget class="QRadioButton" name="cor">
           <property name="text">
-           <string>更正报</string>
+           <string>Correct</string>
           </property>
          </widget>
         </item>
         <item row="0" column="3">
          <widget class="QRadioButton" name="amd">
           <property name="text">
-           <string>修订报</string>
+           <string>Amend</string>
           </property>
          </widget>
         </item>
@@ -351,7 +351,7 @@
         <item row="0" column="0">
          <widget class="QRadioButton" name="normal">
           <property name="text">
-           <string>正常报</string>
+           <string>Normal</string>
           </property>
           <property name="checked">
            <bool>true</bool>
@@ -361,7 +361,7 @@
         <item row="0" column="7">
          <widget class="QRadioButton" name="missed">
           <property name="text">
-           <string>漏发报</string>
+           <string>Missed</string>
           </property>
          </widget>
         </item>

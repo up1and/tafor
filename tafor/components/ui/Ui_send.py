@@ -49,14 +49,14 @@ class Ui_Send(object):
 
     def retranslateUi(self, Send):
         _translate = QtCore.QCoreApplication.translate
-        Send.setWindowTitle(_translate("Send", "发布报文"))
-        self.rptGroup.setTitle(_translate("Send", "报文"))
+        Send.setWindowTitle(_translate("Send", "Send Message"))
+        self.rptGroup.setTitle(_translate("Send", "Message"))
         self.rpt.setHtml(_translate("Send", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
 "</style></head><body style=\" font-family:\'SimSun\'; font-size:9pt; font-weight:400; font-style:normal;\">\n"
 "<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Rpt Content</p></body></html>"))
-        self.rawGroup.setTitle(_translate("Send", "已向串口发送数据"))
+        self.rawGroup.setTitle(_translate("Send", "Data has been sent to the serial port"))
         self.raw.setHtml(_translate("Send", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
