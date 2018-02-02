@@ -819,4 +819,79 @@ p, li { white-space: pre-wrap; }
         <translation>创建时间</translation>
     </message>
 </context>
+<context>
+    <name>BaseTAFEditor</name>
+    <message>
+        <location filename="../../components/taf.py" line="34"/>
+        <source>Next</source>
+        <translation>下一步</translation>
+    </message>
+    <message>
+        <location filename="../../components/taf.py" line="231"/>
+        <source>Hour of temperature is not corret</source>
+        <translation>温度组时间不正确</translation>
+    </message>
+    <message>
+        <location filename="../../components/taf.py" line="253"/>
+        <source>Start time of change group is not corret %s</source>
+        <translation>变化组起始时间不正确</translation>
+    </message>
+    <message>
+        <location filename="../../components/taf.py" line="257"/>
+        <source>End time of change group is not corret %s</source>
+        <translation>变化组结束时间不正确</translation>
+    </message>
+    <message>
+        <location filename="../../components/taf.py" line="261"/>
+        <source>Change group time more than %s hours</source>
+        <translation>变化组时间超过 %s 小时</translation>
+    </message>
+</context>
+<context>
+    <name>TAFEditor</name>
+    <message>
+        <location filename="../../components/taf.py" line="323"/>
+        <source>Encoding Message</source>
+        <translation>编发报文</translation>
+    </message>
+</context>
+<context>
+    <name>TaskTAFEditor</name>
+    <message>
+        <location filename="../../components/taf.py" line="341"/>
+        <source>Timing Tasks</source>
+        <translation>定时任务</translation>
+    </message>
+    <message>
+        <location filename="../../components/taf.py" line="382"/>
+        <source>Timing Tasks %s</source>
+        <translation>定时任务 %s</translation>
+    </message>
+</context>
+<context>
+    <name>TAFSender</name>
+    <message>
+        <location filename="../../components/send.py" line="25"/>
+        <source>Send</source>
+        <translation>发送</translation>
+    </message>
+    <message>
+        <location filename="../../components/send.py" line="48"/>
+        <source>Send Failed</source>
+        <translation>发送失败</translation>
+    </message>
+    <message>
+        <location filename="../../components/send.py" line="50"/>
+        <source>Resend</source>
+        <translation>重新发送</translation>
+    </message>
+</context>
+<context>
+    <name>TaskTAFSender</name>
+    <message>
+        <location filename="../../components/send.py" line="109"/>
+        <source>Timing Tasks</source>
+        <translation>定时任务</translation>
+    </message>
+</context>
 </TS>

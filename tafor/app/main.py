@@ -446,9 +446,10 @@ def main():
     import sys
     app = QtWidgets.QApplication(sys.argv)
     translator = QtCore.QTranslator()
-    translateFile = os.path.join(BASEDIR, 'i18n\\translations', 'zh_CN.qm')
-    translator.load(translateFile)
-    app.installTranslator(translator)
+    locale = QtCore.QLocale.system().name()
+    translateFile = os.path.join(BASEDIR, 'i18n\\translations', '{}.qm'.format(locale))
+    if translator.load(translateFile):
+        app.installTranslator(translator)
 
     serverName = 'Tafor'
     socket = QLocalSocket()

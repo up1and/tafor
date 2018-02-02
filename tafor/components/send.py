@@ -22,7 +22,7 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Send):
         self.parent = parent
         self.aftn = None
 
-        self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setText('Send')
+        self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setText(self.tr('Send'))
         # self.buttonBox.addButton("TEST", QDialogButtonBox.ActionRole)
         self.rejected.connect(self.cancel)
         self.closeSignal.connect(self.clear)
@@ -45,9 +45,9 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Send):
 
     def showRawGroup(self, error):
         if error:
-            self.rawGroup.setTitle('发送失败')
+            self.rawGroup.setTitle(self.tr('Send Failed'))
             self.parent.statusBar.showMessage(error)
-            self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setText('Resend')
+            self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setText(self.tr('Resend'))
         else:
             self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
 
@@ -106,7 +106,7 @@ class TaskTAFSender(BaseSender):
     def __init__(self, parent=None):
         super(TaskTAFSender, self).__init__(parent)
 
-        self.setWindowTitle('定时任务')
+        self.setWindowTitle(self.tr('Timing Tasks'))
 
         self.reportType = 'TAF'
 

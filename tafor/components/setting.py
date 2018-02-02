@@ -120,9 +120,9 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
         import sys
 
         if self.runOnStart.isChecked():
-            self.autoRun.setValue("Tafor.exe", sys.argv[0])
+            self.autoRun.setValue('Tafor.exe', sys.argv[0])
         else:
-            self.autoRun.remove("Tafor.exe")
+            self.autoRun.remove('Tafor.exe')
 
         self.setValue('General/CloseToMinimize', 'closeToMinimize', 'bool')
         self.setValue('General/Debug', 'debugMode', 'bool')
@@ -173,7 +173,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
         self.updateSoundVolume()
 
     def load(self):
-        self.runOnStart.setChecked(self.autoRun.contains("Tafor.exe"))
+        self.runOnStart.setChecked(self.autoRun.contains('Tafor.exe'))
 
         self.loadValue('General/CloseToMinimize', 'closeToMinimize', 'bool')
         self.loadValue('General/Debug', 'debugMode', 'bool')

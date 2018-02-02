@@ -42,18 +42,18 @@ class BaseTimerStatus(StatusBarWidget):
             self.label.setText(str(self.value()))
 
 class WebAPIStatus(BaseTimerStatus):
-    title = 'Data Source'
+    title = '数据源'
 
     def value(self):
         status = self.parent.store.webApi
-        text = 'Normal' if status else 'Timeout'
+        text = '正常' if status else '超时'
         return self.tr(text)
 
 
 class CallServiceStatus(BaseTimerStatus):
-    title = 'Telephone Service'
+    title = '电话服务'
 
     def value(self):
         status = self.parent.store.callService
-        text = 'Normal' if status else 'Timeout'
+        text = '正常' if status else '超时'
         return self.tr(text)
