@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Form</class>
- <widget class="QWidget" name="Form">
+ <class>Editor</class>
+ <widget class="QWidget" name="Editor">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Form</string>
+   <string notr="true">BECMG</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -88,7 +88,7 @@
      <item row="6" column="7">
       <widget class="QCheckBox" name="cavok">
        <property name="text">
-        <string>CAVOK</string>
+        <string notr="true">CAVOK</string>
        </property>
       </widget>
      </item>
@@ -98,7 +98,7 @@
      <item row="6" column="12">
       <widget class="QCheckBox" name="nsc">
        <property name="text">
-        <string>NSC</string>
+        <string notr="true">NSC</string>
        </property>
       </widget>
      </item>
@@ -108,7 +108,7 @@
      <item row="6" column="11">
       <widget class="QCheckBox" name="skc">
        <property name="text">
-        <string>SKC</string>
+        <string notr="true">SKC</string>
        </property>
       </widget>
      </item>
@@ -133,7 +133,7 @@
         <string notr="true">color: rgb(120, 120, 120);</string>
        </property>
        <property name="text">
-        <string>BECMG</string>
+        <string notr="true">BECMG</string>
        </property>
       </widget>
      </item>

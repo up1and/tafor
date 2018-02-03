@@ -193,7 +193,7 @@ class BaseSegment(QtWidgets.QWidget):
         self.cb.clear()
 
 
-class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Form):
+class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
     def __init__(self):
         super(TAFPrimarySegment, self).__init__()
@@ -316,7 +316,7 @@ class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Form):
         self.tminTime.clear()
 
 
-class TAFBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Form):
+class TAFBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Editor):
 
     def __init__(self, name='becmg'):
         super(TAFBecmgSegment, self).__init__()
@@ -383,7 +383,7 @@ class TAFBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Form):
         self.nsc.setChecked(False)
 
 
-class TAFTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Form):
+class TAFTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Editor):
 
     def __init__(self, name='tempo'):
         super(TAFTempoSegment, self).__init__()
@@ -457,7 +457,7 @@ class TAFTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Form):
         self.prob40.setChecked(False)
 
 
-class TrendSegment(BaseSegment, Ui_trend.Ui_Form):
+class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
     def __init__(self):
         super(TrendSegment, self).__init__()

@@ -7,7 +7,7 @@ from tafor.models import db, Task
 from tafor import logger
 
 
-class TaskBrowser(QtWidgets.QDialog, Ui_task.Ui_Task):
+class TaskBrowser(QtWidgets.QDialog, Ui_task.Ui_Tasks):
     def __init__(self, parent=None):
         super(TaskBrowser, self).__init__(parent)
         self.setupUi(self)

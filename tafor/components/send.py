@@ -1,6 +1,7 @@
 import datetime
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import QCoreApplication
 
 from tafor import conf, logger
 from tafor.components.ui import Ui_send
@@ -9,7 +10,7 @@ from tafor.utils import Parser, AFTNMessage
 from tafor.utils.thread import SerialThread
 
 
-class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Send):
+class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Sender):
 
     sendSignal = QtCore.pyqtSignal()
     closeSignal = QtCore.pyqtSignal()
@@ -22,7 +23,8 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Send):
         self.parent = parent
         self.aftn = None
 
-        self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setText(self.tr('Send'))
+        self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setText(QCoreApplication.translate('Sender', 'Send'))
+        self.buttonBox.button(QtWidgets.QDialogButtonBox.Cancel).setText(QCoreApplication.translate('Sender', 'Cancel'))
         # self.buttonBox.addButton("TEST", QDialogButtonBox.ActionRole)
         self.rejected.connect(self.cancel)
         self.closeSignal.connect(self.clear)
@@ -45,9 +47,9 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Send):
 
     def showRawGroup(self, error):
         if error:
-            self.rawGroup.setTitle(self.tr('Send Failed'))
+            self.rawGroup.setTitle(QCoreApplication.translate('Sender', 'Send Failed'))
             self.parent.statusBar.showMessage(error)
-            self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setText(self.tr('Resend'))
+            self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setText(QCoreApplication.translate('Sender', 'Resend'))
         else:
             self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
 
@@ -106,7 +108,7 @@ class TaskTAFSender(BaseSender):
     def __init__(self, parent=None):
         super(TaskTAFSender, self).__init__(parent)
 
-        self.setWindowTitle(self.tr('Timing Tasks'))
+        self.setWindowTitle(QCoreApplication.translate('Sender', 'Timing Tasks'))
 
         self.reportType = 'TAF'
 

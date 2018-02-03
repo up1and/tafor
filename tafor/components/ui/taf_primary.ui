@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Form</class>
- <widget class="QWidget" name="Form">
+ <class>Editor</class>
+ <widget class="QWidget" name="Editor">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Form</string>
+   <string notr="true">PRIMARY</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -41,7 +41,7 @@
      <item row="4" column="8">
       <widget class="QCheckBox" name="skc">
        <property name="text">
-        <string>SKC</string>
+        <string notr="true">SKC</string>
        </property>
       </widget>
      </item>
@@ -58,14 +58,14 @@
      <item row="6" column="1">
       <widget class="QCheckBox" name="tempo2Checkbox">
        <property name="text">
-        <string>TEMPO2</string>
+        <string notr="true">TEMPO2</string>
        </property>
       </widget>
      </item>
      <item row="4" column="4">
       <widget class="QCheckBox" name="cavok">
        <property name="text">
-        <string>CAVOK</string>
+        <string notr="true">CAVOK</string>
        </property>
        <property name="checkable">
         <bool>true</bool>
@@ -153,7 +153,7 @@
      <item row="5" column="0">
       <widget class="QCheckBox" name="becmg1Checkbox">
        <property name="text">
-        <string>BECMG1</string>
+        <string notr="true">BECMG1</string>
        </property>
       </widget>
      </item>
@@ -203,7 +203,7 @@
      <item row="4" column="9">
       <widget class="QCheckBox" name="nsc">
        <property name="text">
-        <string>NSC</string>
+        <string notr="true">NSC</string>
        </property>
       </widget>
      </item>
@@ -226,14 +226,14 @@
      <item row="6" column="0">
       <widget class="QCheckBox" name="becmg2Checkbox">
        <property name="text">
-        <string>BECMG2</string>
+        <string notr="true">BECMG2</string>
        </property>
       </widget>
      </item>
      <item row="7" column="0">
       <widget class="QCheckBox" name="becmg3Checkbox">
        <property name="text">
-        <string>BECMG3</string>
+        <string notr="true">BECMG3</string>
        </property>
       </widget>
      </item>
@@ -285,7 +285,7 @@
         <item row="0" column="0">
          <widget class="QRadioButton" name="fc">
           <property name="text">
-           <string>FC</string>
+           <string notr="true">FC</string>
           </property>
           <property name="checked">
            <bool>true</bool>
@@ -295,7 +295,7 @@
         <item row="0" column="1">
          <widget class="QRadioButton" name="ft">
           <property name="text">
-           <string>FT</string>
+           <string notr="true">FT</string>
           </property>
          </widget>
         </item>
@@ -308,7 +308,7 @@
      <item row="5" column="1">
       <widget class="QCheckBox" name="tempo1Checkbox">
        <property name="text">
-        <string>TEMPO1</string>
+        <string notr="true">TEMPO1</string>
        </property>
       </widget>
      </item>

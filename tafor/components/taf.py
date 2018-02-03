@@ -31,7 +31,7 @@ class BaseTAFEditor(BaseEditor):
         self.tempo1, self.tempo2 = TAFTempoSegment('TEMPO1'), TAFTempoSegment('TEMPO2')
         self.nextButton = QPushButton()
         self.nextButton.setEnabled(False)
-        self.nextButton.setText(self.tr('Next'))
+        self.nextButton.setText(QCoreApplication.translate('Editor', 'Next'))
         layout.addWidget(self.primary)
         layout.addWidget(self.becmg1)
         layout.addWidget(self.becmg2)
@@ -228,7 +228,7 @@ class BaseTAFEditor(BaseEditor):
 
             if not valid:
                 line.clear()
-                self.parent.statusBar.showMessage(self.tr('Hour of temperature is not corret'), 5000)
+                self.parent.statusBar.showMessage(QCoreApplication.translate('Editor', 'Hour of temperature is not corret'), 5000)
 
     def verifyTemperature(self):
         tmax = self.primary.tmax.text()
@@ -250,15 +250,15 @@ class BaseTAFEditor(BaseEditor):
         start, end = self.groupInterval(line.text())
         if start < self.periods[0] or self.periods[1] < start:
             line.clear()
-            self.parent.statusBar.showMessage(self.tr('Start time of change group is not corret %s') % start.strftime('%Y-%m-%d %H:%M:%S'), 5000)
+            self.parent.statusBar.showMessage(QCoreApplication.translate('Editor', 'Start time of change group is not corret %s') % start.strftime('%Y-%m-%d %H:%M:%S'), 5000)
 
         if end < self.periods[0] or self.periods[1] < end:
             line.clear()
-            self.parent.statusBar.showMessage(self.tr('End time of change group is not corret %s') % end.strftime('%Y-%m-%d %H:%M:%S'), 5000)
+            self.parent.statusBar.showMessage(QCoreApplication.translate('Editor', 'End time of change group is not corret %s') % end.strftime('%Y-%m-%d %H:%M:%S'), 5000)
 
         if end - start > datetime.timedelta(hours=maxTime):
             line.clear()
-            self.parent.statusBar.showMessage(self.tr('Change group time more than %s hours') % str(maxTime), 5000)
+            self.parent.statusBar.showMessage(QCoreApplication.translate('Editor', 'Change group time more than %s hours') % str(maxTime), 5000)
 
     def assembleMessage(self):
         primaryMessage = self.primary.message()
@@ -315,7 +315,7 @@ class TAFEditor(BaseTAFEditor):
 
     def __init__(self, parent=None, sender=None):
         super(TAFEditor, self).__init__(parent, sender)
-        self.setWindowTitle(self.tr('Encoding Message'))
+        self.setWindowTitle(QCoreApplication.translate('Editor', 'Encoding Terminal Aerodrome Forecast'))
         self.primary.date.setEnabled(False)
 
         self.timer = QTimer()
@@ -333,7 +333,7 @@ class TaskTAFEditor(BaseTAFEditor):
     def __init__(self, parent=None, sender=None):
         super(TaskTAFEditor, self).__init__(parent, sender)
 
-        self.setWindowTitle(self.tr('Timing Tasks'))
+        self.setWindowTitle(QCoreApplication.translate('Editor', 'Timing Tasks'))
         self.setWindowIcon(QIcon(':/time.png'))
 
         self.primary.sortGroup.hide()
@@ -374,5 +374,5 @@ class TaskTAFEditor(BaseTAFEditor):
             return self.time
 
     def changeWindowTitle(self):
-        self.setWindowTitle(self.tr('Timing Tasks %s') % self.time.strftime('%Y-%m-%d %H:%M'))
+        self.setWindowTitle(self.time.strftime('%Y-%m-%d %H:%M'))
 

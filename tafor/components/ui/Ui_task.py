@@ -8,13 +8,13 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_Task(object):
-    def setupUi(self, Task):
-        Task.setObjectName("Task")
-        Task.resize(950, 243)
-        self.verticalLayout = QtWidgets.QVBoxLayout(Task)
+class Ui_Tasks(object):
+    def setupUi(self, Tasks):
+        Tasks.setObjectName("Tasks")
+        Tasks.resize(950, 243)
+        self.verticalLayout = QtWidgets.QVBoxLayout(Tasks)
         self.verticalLayout.setObjectName("verticalLayout")
-        self.taskTable = QtWidgets.QTableWidget(Task)
+        self.taskTable = QtWidgets.QTableWidget(Tasks)
         self.taskTable.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.taskTable.setObjectName("taskTable")
         self.taskTable.setColumnCount(4)
@@ -29,28 +29,28 @@ class Ui_Task(object):
         self.taskTable.setHorizontalHeaderItem(3, item)
         self.verticalLayout.addWidget(self.taskTable)
 
-        self.retranslateUi(Task)
-        QtCore.QMetaObject.connectSlotsByName(Task)
+        self.retranslateUi(Tasks)
+        QtCore.QMetaObject.connectSlotsByName(Tasks)
 
-    def retranslateUi(self, Task):
+    def retranslateUi(self, Tasks):
         _translate = QtCore.QCoreApplication.translate
-        Task.setWindowTitle(_translate("Task", "Timing Tasks"))
+        Tasks.setWindowTitle(_translate("Tasks", "Timing Tasks"))
         item = self.taskTable.horizontalHeaderItem(0)
-        item.setText(_translate("Task", "Type"))
+        item.setText(_translate("Tasks", "Type"))
         item = self.taskTable.horizontalHeaderItem(1)
-        item.setText(_translate("Task", "Message Content"))
+        item.setText(_translate("Tasks", "Message Content"))
         item = self.taskTable.horizontalHeaderItem(2)
-        item.setText(_translate("Task", "Sending Time"))
+        item.setText(_translate("Tasks", "Sending Time"))
         item = self.taskTable.horizontalHeaderItem(3)
-        item.setText(_translate("Task", "Created Time"))
+        item.setText(_translate("Tasks", "Created Time"))
 
 
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    Task = QtWidgets.QDialog()
-    ui = Ui_Task()
-    ui.setupUi(Task)
-    Task.show()
+    Tasks = QtWidgets.QDialog()
+    ui = Ui_Tasks()
+    ui.setupUi(Tasks)
+    Tasks.show()
     sys.exit(app.exec_())
 

@@ -2,13 +2,14 @@ import json
 import datetime
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import QCoreApplication
 
 from tafor.components.ui import Ui_setting, main_rc
 from tafor.models import db, User
 from tafor import conf, boolean, logger
 
 
-class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
+class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Settings):
     """docstring for SettingDialog"""
     def __init__(self, parent=None):
         super(SettingDialog, self).__init__(parent)
@@ -31,6 +32,10 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
         self.closeToMinimize.setEnabled(False)
         self.closeToMinimize.setChecked(True)
 
+        self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setText(QCoreApplication.translate('Settings', 'OK'))
+        self.buttonBox.button(QtWidgets.QDialogButtonBox.Apply).setText(QCoreApplication.translate('Settings', 'Apply'))
+        self.buttonBox.button(QtWidgets.QDialogButtonBox.Cancel).setText(QCoreApplication.translate('Settings', 'Cancel'))
+
     def bindSignal(self):
         self.addWeatherButton.clicked.connect(lambda: self.addWeather('weather'))
         self.addWeatherWithIntensityButton.clicked.connect(lambda: self.addWeather('weatherWithIntensity'))
@@ -45,7 +50,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
 
         self.callUpButton.clicked.connect(self.testCallUp)
 
-        self.buttonBox.button(QtWidgets.QDialogButtonBox.Reset).clicked.connect(self.load)
+        # self.buttonBox.button(QtWidgets.QDialogButtonBox.Reset).clicked.connect(self.load)
         self.buttonBox.button(QtWidgets.QDialogButtonBox.Apply).clicked.connect(self.save)
         self.buttonBox.button(QtWidgets.QDialogButtonBox.Apply).clicked.connect(self.parent.updateGUI)
         self.buttonBox.accepted.connect(self.save)
@@ -104,7 +109,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Setting):
 
         self.selectedContract.clear()
         options = [item.name for item in items]
-        options.insert(0, '无')
+        options.insert(0, QCoreApplication.translate('MainWindow', 'None'))
         self.selectedContract.addItems(options)
 
     def updateSoundVolume(self):

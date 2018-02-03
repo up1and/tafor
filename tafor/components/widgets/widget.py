@@ -8,7 +8,7 @@ from tafor.utils import CheckTAF
 from tafor.components.ui import Ui_main_recent
 
 
-class RecentTAF(QtWidgets.QWidget, Ui_main_recent.Ui_Form):
+class RecentTAF(QtWidgets.QWidget, Ui_main_recent.Ui_Recent):
     def __init__(self, parent, container, tt):
         super(RecentTAF, self).__init__(parent)
         self.setupUi(self)

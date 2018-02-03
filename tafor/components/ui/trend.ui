@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Form</class>
- <widget class="QWidget" name="Form">
+ <class>Editor</class>
+ <widget class="QWidget" name="Editor">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Form</string>
+   <string notr="true">Trend</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -51,7 +51,7 @@
         <item row="0" column="0">
          <widget class="QRadioButton" name="becmg">
           <property name="text">
-           <string>BECMG</string>
+           <string notr="true">BECMG</string>
           </property>
           <property name="checked">
            <bool>true</bool>
@@ -61,7 +61,7 @@
         <item row="0" column="1">
          <widget class="QRadioButton" name="tempo">
           <property name="text">
-           <string>TEMPO</string>
+           <string notr="true">TEMPO</string>
           </property>
          </widget>
         </item>
@@ -90,7 +90,7 @@
         <item row="0" column="2">
          <widget class="QCheckBox" name="at">
           <property name="text">
-           <string>AT</string>
+           <string notr="true">AT</string>
           </property>
           <property name="checkable">
            <bool>true</bool>
@@ -100,7 +100,7 @@
         <item row="0" column="0">
          <widget class="QCheckBox" name="fm">
           <property name="text">
-           <string>FM</string>
+           <string notr="true">FM</string>
           </property>
           <property name="checkable">
            <bool>true</bool>
@@ -110,7 +110,7 @@
         <item row="0" column="1">
          <widget class="QCheckBox" name="tl">
           <property name="text">
-           <string>TL</string>
+           <string notr="true">TL</string>
           </property>
           <property name="checked">
            <bool>false</bool>
@@ -133,7 +133,7 @@
      <item row="4" column="4">
       <widget class="QCheckBox" name="cavok">
        <property name="text">
-        <string>CAVOK</string>
+        <string notr="true">CAVOK</string>
        </property>
        <property name="checkable">
         <bool>true</bool>
@@ -146,7 +146,7 @@
      <item row="4" column="9">
       <widget class="QCheckBox" name="nsc">
        <property name="text">
-        <string>NSC</string>
+        <string notr="true">NSC</string>
        </property>
       </widget>
      </item>
@@ -169,7 +169,7 @@
      <item row="4" column="8">
       <widget class="QCheckBox" name="skc">
        <property name="text">
-        <string>SKC</string>
+        <string notr="true">SKC</string>
        </property>
       </widget>
      </item>
@@ -229,7 +229,7 @@
      <item row="5" column="1">
       <widget class="QCheckBox" name="nosig">
        <property name="text">
-        <string>NOSIG</string>
+        <string notr="true">NOSIG</string>
        </property>
       </widget>
      </item>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Form</class>
- <widget class="QWidget" name="Form">
+ <class>Editor</class>
+ <widget class="QWidget" name="Editor">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Form</string>
+   <string notr="true">TEMPO</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -60,7 +60,7 @@
         <string notr="true">color: rgb(120, 120, 120);</string>
        </property>
        <property name="text">
-        <string>TEMPO</string>
+        <string notr="true">TEMPO</string>
        </property>
       </widget>
      </item>
@@ -136,7 +136,7 @@
      <item row="3" column="4">
       <widget class="QCheckBox" name="prob30">
        <property name="text">
-        <string>PROB30</string>
+        <string notr="true">PROB30</string>
        </property>
       </widget>
      </item>
@@ -162,7 +162,7 @@
         <bool>true</bool>
        </property>
        <property name="text">
-        <string>PROB40</string>
+        <string notr="true">PROB40</string>
        </property>
        <property name="tristate">
         <bool>false</bool>

@@ -2,6 +2,7 @@ import os
 import datetime
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 from PyQt5.QtMultimedia import QSound, QSoundEffect
 
@@ -205,7 +206,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
     def setupStatusbar(self):
         self.webApiStatus = WebAPIStatus(self, self.statusBar)
-        self.callServiceStatus = CallServiceStatus(self, self.statusBar)
+        self.callServiceStatus = CallServiceStatus(self, self.statusBar, last=True)
 
         # self.statusBar.setStyleSheet('QStatusBar::item{border: 0px}')
 

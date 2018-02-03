@@ -1,10 +1,12 @@
 import requests
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import QCoreApplication
 
 
 class StatusBarWidget(QtWidgets.QWidget):
-    def __init__(self, parent, statusbar):
+
+    def __init__(self, parent, statusBar, last=False):
         super(StatusBarWidget, self).__init__(parent)
 
         layout = QtWidgets.QHBoxLayout()
@@ -13,47 +15,55 @@ class StatusBarWidget(QtWidgets.QWidget):
 
         self.parent = parent
 
-        statusbar.addPermanentWidget(self)
+        statusBar.addPermanentWidget(self)
 
 
 class BaseTimerStatus(StatusBarWidget):
-    title = None
 
-    def __init__(self, parent, statusbar):
-        super(BaseTimerStatus, self).__init__(parent, statusbar)
+    def __init__(self, parent, statusBar, last=False):
+        super(BaseTimerStatus, self).__init__(parent, statusBar, last)
         layout = self.layout()
         layout.addSpacing(10)
-        layout.addWidget(QtWidgets.QLabel(self.tr(self.title)))
+        self.head = QtWidgets.QLabel()
         self.label = QtWidgets.QLabel()
         # font = QtGui.QFont()
         # font.setBold(True)
         # self.label.setFont(font)
+        layout.addWidget(self.head)
         layout.addWidget(self.label)
         layout.addSpacing(10)
+        self.setHead()
+
         self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(self.updateLabel)
+        self.timer.timeout.connect(self.setValue)
         self.timer.start(2000)
     
-    def value(self):
+    def setValue(self):
         raise NotImplementedError
 
-    def updateLabel(self):
-        if self.isVisible():
-            self.label.setText(str(self.value()))
+    def setHead(self):
+        raise NotImplementedError
 
 class WebAPIStatus(BaseTimerStatus):
-    title = '数据源'
 
-    def value(self):
-        status = self.parent.store.webApi
-        text = '正常' if status else '超时'
-        return self.tr(text)
+    def setHead(self):
+        title = QCoreApplication.translate('MainWindow', 'Data Source')
+        self.head.setText(title)
+
+    def setValue(self):
+        if self.isVisible():
+            status = self.parent.store.webApi
+            text = QCoreApplication.translate('MainWindow', 'Online') if status else QCoreApplication.translate('MainWindow', 'Offline')
+            self.label.setText(text)
 
 
 class CallServiceStatus(BaseTimerStatus):
-    title = '电话服务'
 
-    def value(self):
+    def setHead(self):
+        title = QCoreApplication.translate('MainWindow', 'Phone Service')
+        self.head.setText(title)
+
+    def setValue(self):
         status = self.parent.store.callService
-        text = '正常' if status else '超时'
-        return self.tr(text)
+        text = QCoreApplication.translate('MainWindow', 'Online') if status else QCoreApplication.translate('MainWindow', 'Offline')
+        self.label.setText(text)

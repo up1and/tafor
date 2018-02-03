@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Setting</class>
- <widget class="QDialog" name="Setting">
+ <class>Settings</class>
+ <widget class="QDialog" name="Settings">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -116,6 +116,9 @@
             </item>
             <item row="7" column="1">
              <widget class="QComboBox" name="languageCombox">
+              <property name="currentText">
+               <string>Simplified Chinese</string>
+              </property>
               <item>
                <property name="text">
                 <string>Simplified Chinese</string>
@@ -247,7 +250,7 @@
             <item row="0" column="1">
              <widget class="QLineEdit" name="icao">
               <property name="placeholderText">
-               <string>ZJHK</string>
+               <string notr="true">ZJHK</string>
               </property>
              </widget>
             </item>
@@ -261,7 +264,7 @@
             <item row="1" column="1">
              <widget class="QLineEdit" name="area">
               <property name="placeholderText">
-               <string>CI35</string>
+               <string notr="true">CI35</string>
               </property>
              </widget>
             </item>
@@ -275,7 +278,7 @@
             <item row="2" column="1">
              <widget class="QLineEdit" name="fir">
               <property name="placeholderText">
-               <string>ZJSA SANYA FIR</string>
+               <string notr="true">ZJSA SANYA FIR</string>
               </property>
              </widget>
             </item>
@@ -289,7 +292,7 @@
             <item row="3" column="1">
              <widget class="QLineEdit" name="trendSign">
               <property name="placeholderText">
-               <string>TREND</string>
+               <string notr="true">TREND</string>
               </property>
              </widget>
             </item>
@@ -323,7 +326,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>+</string>
+                 <string notr="true">+</string>
                 </property>
                </widget>
               </item>
@@ -336,7 +339,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>—</string>
+                 <string notr="true">—</string>
                 </property>
                </widget>
               </item>
@@ -374,7 +377,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>+</string>
+                 <string notr="true">+</string>
                 </property>
                </widget>
               </item>
@@ -387,7 +390,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>—</string>
+                 <string notr="true">—</string>
                 </property>
                </widget>
               </item>
@@ -418,7 +421,7 @@
               <item row="0" column="1">
                <widget class="QLineEdit" name="port">
                 <property name="placeholderText">
-                 <string>COM1</string>
+                 <string notr="true">COM1</string>
                 </property>
                </widget>
               </item>
@@ -432,7 +435,7 @@
               <item row="1" column="1">
                <widget class="QLineEdit" name="baudrate">
                 <property name="placeholderText">
-                 <string>9600</string>
+                 <string notr="true">9600</string>
                 </property>
                </widget>
               </item>
@@ -445,19 +448,22 @@
               </item>
               <item row="2" column="1">
                <widget class="QComboBox" name="parity">
+                <property name="currentText">
+                 <string notr="true">NONE</string>
+                </property>
                 <item>
                  <property name="text">
-                  <string>NONE</string>
+                  <string notr="true">NONE</string>
                  </property>
                 </item>
                 <item>
                  <property name="text">
-                  <string>EVEN</string>
+                  <string notr="true">EVEN</string>
                  </property>
                 </item>
                 <item>
                  <property name="text">
-                  <string>ODD</string>
+                  <string notr="true">ODD</string>
                  </property>
                 </item>
                </widget>
@@ -471,24 +477,27 @@
               </item>
               <item row="3" column="1">
                <widget class="QComboBox" name="bytesize">
+                <property name="currentText">
+                 <string notr="true">5</string>
+                </property>
                 <item>
                  <property name="text">
-                  <string>5</string>
+                  <string notr="true">5</string>
                  </property>
                 </item>
                 <item>
                  <property name="text">
-                  <string>6</string>
+                  <string notr="true">6</string>
                  </property>
                 </item>
                 <item>
                  <property name="text">
-                  <string>7</string>
+                  <string notr="true">7</string>
                  </property>
                 </item>
                 <item>
                  <property name="text">
-                  <string>8</string>
+                  <string notr="true">8</string>
                  </property>
                 </item>
                </widget>
@@ -502,19 +511,22 @@
               </item>
               <item row="4" column="1">
                <widget class="QComboBox" name="stopbits">
+                <property name="currentText">
+                 <string notr="true">1</string>
+                </property>
                 <item>
                  <property name="text">
-                  <string>1</string>
+                  <string notr="true">1</string>
                  </property>
                 </item>
                 <item>
                  <property name="text">
-                  <string>1.5</string>
+                  <string notr="true">1.5</string>
                  </property>
                 </item>
                 <item>
                  <property name="text">
-                  <string>2</string>
+                  <string notr="true">2</string>
                  </property>
                 </item>
                </widget>
@@ -544,7 +556,7 @@
               <item row="1" column="1">
                <widget class="QLineEdit" name="channelSequenceNumber">
                 <property name="placeholderText">
-                 <string>1</string>
+                 <string notr="true">1</string>
                 </property>
                </widget>
               </item>
@@ -558,21 +570,21 @@
               <item row="6" column="1" colspan="2">
                <widget class="QLineEdit" name="maxLineChar">
                 <property name="placeholderText">
-                 <string>69</string>
+                 <string notr="true">69</string>
                 </property>
                </widget>
               </item>
               <item row="5" column="1" colspan="2">
                <widget class="QLineEdit" name="maxSendAddress">
                 <property name="placeholderText">
-                 <string>21</string>
+                 <string notr="true">21</string>
                 </property>
                </widget>
               </item>
               <item row="4" column="1" colspan="2">
                <widget class="QLineEdit" name="originatorAddress">
                 <property name="placeholderText">
-                 <string>ZJHKYMYX</string>
+                 <string notr="true">ZJHKYMYX</string>
                 </property>
                </widget>
               </item>
@@ -593,7 +605,7 @@
               <item row="0" column="1" colspan="2">
                <widget class="QLineEdit" name="channel">
                 <property name="placeholderText">
-                 <string>YMA</string>
+                 <string notr="true">YMA</string>
                 </property>
                </widget>
               </item>
@@ -635,7 +647,7 @@
               </property>
               <widget class="QWidget" name="tafTab">
                <attribute name="title">
-                <string>TAF</string>
+                <string notr="true">TAF</string>
                </attribute>
                <layout class="QVBoxLayout" name="verticalLayout_3">
                 <item>
@@ -649,7 +661,7 @@
               </widget>
               <widget class="QWidget" name="sigmetTab">
                <attribute name="title">
-                <string>SIGMET</string>
+                <string notr="true">SIGMET</string>
                </attribute>
                <layout class="QVBoxLayout" name="verticalLayout_7">
                 <item>
@@ -663,7 +675,7 @@
               </widget>
               <widget class="QWidget" name="airmetTab">
                <attribute name="title">
-                <string>AIRMET</string>
+                <string notr="true">AIRMET</string>
                </attribute>
                <layout class="QVBoxLayout" name="verticalLayout_8">
                 <item>
@@ -677,7 +689,7 @@
               </widget>
               <widget class="QWidget" name="trendTab">
                <attribute name="title">
-                <string>TREND</string>
+                <string notr="true">TREND</string>
                </attribute>
                <layout class="QVBoxLayout" name="verticalLayout_9">
                 <item>
@@ -857,7 +869,7 @@
          <item>
           <widget class="QGroupBox" name="callServiceGroup">
            <property name="title">
-            <string>Telephone Service</string>
+            <string>Phone Service</string>
            </property>
            <layout class="QGridLayout" name="gridLayout_2">
             <item row="0" column="0">
@@ -909,7 +921,7 @@
             <item row="1" column="1" colspan="2">
              <widget class="QLineEdit" name="callServiceToken">
               <property name="placeholderText">
-               <string>TOKEN</string>
+               <string>Token</string>
               </property>
              </widget>
             </item>
@@ -954,7 +966,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>+</string>
+                 <string notr="true">+</string>
                 </property>
                </widget>
               </item>
@@ -967,7 +979,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>—</string>
+                 <string notr="true">—</string>
                 </property>
                </widget>
               </item>
@@ -1025,7 +1037,7 @@
    <item>
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="standardButtons">
-      <set>QDialogButtonBox::Apply|QDialogButtonBox::Cancel|QDialogButtonBox::Ok|QDialogButtonBox::Reset</set>
+      <set>QDialogButtonBox::Apply|QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
      </property>
     </widget>
    </item>
@@ -1078,7 +1090,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>Setting</receiver>
+   <receiver>Settings</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -1094,7 +1106,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>Setting</receiver>
+   <receiver>Settings</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">

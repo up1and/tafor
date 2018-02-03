@@ -8,47 +8,47 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_Form(object):
-    def setupUi(self, Form):
-        Form.setObjectName("Form")
-        Form.resize(549, 142)
-        self.verticalLayout = QtWidgets.QVBoxLayout(Form)
+class Ui_Recent(object):
+    def setupUi(self, Recent):
+        Recent.setObjectName("Recent")
+        Recent.resize(549, 142)
+        Recent.setWindowTitle("Recent")
+        self.verticalLayout = QtWidgets.QVBoxLayout(Recent)
         self.verticalLayout.setObjectName("verticalLayout")
-        self.groupBox = QtWidgets.QGroupBox(Form)
+        self.groupBox = QtWidgets.QGroupBox(Recent)
+        self.groupBox.setTitle("Report Type")
         self.groupBox.setObjectName("groupBox")
         self.gridLayout = QtWidgets.QGridLayout(self.groupBox)
         self.gridLayout.setSizeConstraint(QtWidgets.QLayout.SetDefaultConstraint)
         self.gridLayout.setObjectName("gridLayout")
         self.check = QtWidgets.QLabel(self.groupBox)
+        self.check.setText("isChecked")
         self.check.setObjectName("check")
         self.gridLayout.addWidget(self.check, 0, 1, 1, 1, QtCore.Qt.AlignRight)
         self.sendTime = QtWidgets.QLabel(self.groupBox)
+        self.sendTime.setText("Sent Time")
         self.sendTime.setObjectName("sendTime")
         self.gridLayout.addWidget(self.sendTime, 0, 0, 1, 1)
         self.rpt = QtWidgets.QLabel(self.groupBox)
         self.rpt.setStyleSheet("font: 12pt \"微软雅黑\";")
+        self.rpt.setText("Report Content")
         self.rpt.setObjectName("rpt")
         self.gridLayout.addWidget(self.rpt, 3, 0, 1, 2)
         self.verticalLayout.addWidget(self.groupBox)
 
-        self.retranslateUi(Form)
-        QtCore.QMetaObject.connectSlotsByName(Form)
+        self.retranslateUi(Recent)
+        QtCore.QMetaObject.connectSlotsByName(Recent)
 
-    def retranslateUi(self, Form):
-        _translate = QtCore.QCoreApplication.translate
-        Form.setWindowTitle(_translate("Form", "Form"))
-        self.groupBox.setTitle(_translate("Form", "FC"))
-        self.check.setText(_translate("Form", "√"))
-        self.sendTime.setText(_translate("Form", "time"))
-        self.rpt.setText(_translate("Form", "rpt"))
+    def retranslateUi(self, Recent):
+        pass
 
 
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    Form = QtWidgets.QWidget()
-    ui = Ui_Form()
-    ui.setupUi(Form)
-    Form.show()
+    Recent = QtWidgets.QWidget()
+    ui = Ui_Recent()
+    ui.setupUi(Recent)
+    Recent.show()
     sys.exit(app.exec_())
 
