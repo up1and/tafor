@@ -37,7 +37,7 @@ class CheckTAF(QObject):
         self.interval = interval.get(self.tt)
 
         if prev:
-            self.time -= datetime.timedelta(self.interval * prev)
+            self.time -= datetime.timedelta(hours=self.interval * prev)
 
         startOfTheDay = datetime.datetime(self.time.year, self.time.month, self.time.day)
         startTime = dict()

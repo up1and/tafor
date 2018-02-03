@@ -69,7 +69,7 @@ class BaseTAFEditor(BaseEditor):
         self.primary.cor.clicked.connect(self.updateMessageType)
         self.primary.amd.clicked.connect(self.updateMessageType)
         self.primary.cnl.clicked.connect(self.updateMessageType)
-        self.primary.missed.clicked.connect(self.updateMessageType)
+        self.primary.prev.clicked.connect(self.setPreviousPeriod)
 
         self.primary.period.textChanged.connect(self.clear)
 
@@ -150,17 +150,6 @@ class BaseTAFEditor(BaseEditor):
                 self.primary.aaa.setEnabled(False)
                 self.primary.aaaCnl.clear()
                 self.primary.aaaCnl.setEnabled(False)
-
-            elif self.primary.missed.isChecked():
-                self.setMissedPeriod()
-
-                self.primary.ccc.clear()
-                self.primary.ccc.setEnabled(False)
-                self.primary.aaa.clear()
-                self.primary.aaa.setEnabled(False)
-                self.primary.aaaCnl.clear()
-                self.primary.aaaCnl.setEnabled(False)
-
             else:
                 self.setAmendPeriod()
 
@@ -191,8 +180,8 @@ class BaseTAFEditor(BaseEditor):
             self.periods = self.periodDuration()
 
     def setNormalPeriod(self, isTask=False):
-        taf = CheckTAF(self.tt, self.time)
-
+        prev = 1 if self.primary.prev.isChecked() else 0
+        taf = CheckTAF(self.tt, self.time, prev=prev)
         period = taf.normalPeriod() if isTask else taf.warningPeriod()
 
         if period and taf.existedInLocal(period) or not self.primary.date.hasAcceptableInput():
@@ -201,18 +190,20 @@ class BaseTAFEditor(BaseEditor):
             self.primary.period.setText(period)
 
     def setAmendPeriod(self):
-        taf = CheckTAF(self.tt, self.time)
+        prev = 1 if self.primary.prev.isChecked() else 0
+        taf = CheckTAF(self.tt, self.time, prev=prev)
         self.amdPeriod = taf.warningPeriod()
         self.primary.period.setText(self.amdPeriod)
 
-    def setMissedPeriod(self):
-        taf = CheckTAF(self.tt, self.time, prev=1)
-        period = taf.warningPeriod()
-
-        if taf.existedInLocal(period):
-            self.primary.period.clear()
+    def setPreviousPeriod(self, checked):
+        if checked:
+            ret = QMessageBox.question(self, '提示', '报文有效时段要变更为前一份吗？')
+            if ret == QMessageBox.Yes:
+                self.updateMessageType()
+            else:
+                self.primary.prev.setChecked(False)
         else:
-            self.primary.period.setText(period)
+            self.updateMessageType()
 
     def amendNumber(self, sign):
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
