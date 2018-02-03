@@ -439,8 +439,9 @@ class Parser(object):
             self.validator = Validator()
 
         self.split()
-        self.regroup()
-        self.refs()
+
+    def __eq__(self, other):
+        return self.elements == other.elements
 
     def split(self):
         message = self.message.replace('=', '')
@@ -508,9 +509,29 @@ class Parser(object):
             return groups
 
         self.groups = reduce(group(self.becmgs, self.tempos))
-        return self.groups
+
+    def refs(self):
+        self.reference = copy.deepcopy(self.primary.tokens)
+        if 'weather' not in self.reference:
+            self.reference['weather'] = {
+                'text': 'NSW',
+                'error': None
+            }
+
+        if 'cavok' in self.reference:
+            self.reference['vis'] = {
+                'text': '9999',
+                'error': None
+            }
+            self.reference['cloud'] = {
+                'text': 'NSC',
+                'error': None
+            }
 
     def validate(self):
+        self.regroup()
+        self.refs()
+
         self.validateCombination(self.reference, self.primary.tokens)
 
         for e in self.groups:
@@ -627,26 +648,6 @@ class Parser(object):
                 if i == 2 and ('FEW' in cloud or 'SCT' in cloud):
                     tokens['cloud']['error'] = True
                     self.tips.append('云组第三层云量不能为 FEW 或 SCT')
-
-    def refs(self):
-        self.reference = copy.deepcopy(self.primary.tokens)
-        if 'weather' not in self.reference:
-            self.reference['weather'] = {
-                'text': 'NSW',
-                'error': None
-            }
-
-        if 'cavok' in self.reference:
-            self.reference['vis'] = {
-                'text': '9999',
-                'error': None
-            }
-            self.reference['cloud'] = {
-                'text': 'NSC',
-                'error': None
-            }
-
-        return self.reference
  
     def renderer(self, style='plain'):
         outputs = [e.renderer(style) for e in self.elements]

@@ -23,11 +23,21 @@ def formatTimez(message):
 
 class CheckTAF(QObject):
     """docstring for CheckTAF"""
-    def __init__(self, tt, remote=None, time=None):
+    def __init__(self, tt, remote=None, time=None, prev=0):
         super(CheckTAF, self).__init__()
         self.tt = tt
         self.remote = remote
         self.time = datetime.datetime.utcnow() if time is None else time
+
+        interval = {
+            'FC': 3,
+            'FT': 6,
+        }
+
+        self.interval = interval.get(self.tt)
+
+        if prev:
+            self.time -= datetime.timedelta(self.interval * prev)
 
         startOfTheDay = datetime.datetime(self.time.year, self.time.month, self.time.day)
         startTime = dict()
@@ -106,8 +116,11 @@ class CheckTAF(QObject):
 
     def existedInRemote(self):
         if self.remote:
-            period = Grammar.period.search(self.remote).group()
-            return period == self.warningPeriod()
+            match = Grammar.period.search(self.remote)
+            if match:
+                return match.group() == self.warningPeriod()
+
+        return False
 
     def save(self):
         last = db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()

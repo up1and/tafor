@@ -69,6 +69,7 @@ class BaseTAFEditor(BaseEditor):
         self.primary.cor.clicked.connect(self.updateMessageType)
         self.primary.amd.clicked.connect(self.updateMessageType)
         self.primary.cnl.clicked.connect(self.updateMessageType)
+        self.primary.missed.clicked.connect(self.updateMessageType)
 
         self.primary.period.textChanged.connect(self.clear)
 
@@ -149,6 +150,17 @@ class BaseTAFEditor(BaseEditor):
                 self.primary.aaa.setEnabled(False)
                 self.primary.aaaCnl.clear()
                 self.primary.aaaCnl.setEnabled(False)
+
+            elif self.primary.missed.isChecked():
+                self.setMissedPeriod()
+
+                self.primary.ccc.clear()
+                self.primary.ccc.setEnabled(False)
+                self.primary.aaa.clear()
+                self.primary.aaa.setEnabled(False)
+                self.primary.aaaCnl.clear()
+                self.primary.aaaCnl.setEnabled(False)
+
             else:
                 self.setAmendPeriod()
 
@@ -194,7 +206,13 @@ class BaseTAFEditor(BaseEditor):
         self.primary.period.setText(self.amdPeriod)
 
     def setMissedPeriod(self):
-        pass
+        taf = CheckTAF(self.tt, self.time, prev=1)
+        period = taf.warningPeriod()
+
+        if taf.existedInLocal(period):
+            self.primary.period.clear()
+        else:
+            self.primary.period.setText(period)
 
     def amendNumber(self, sign):
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
