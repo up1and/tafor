@@ -28,9 +28,10 @@ class CheckTAF(QObject):
         self.tt = tt
         self.remote = remote
         self.time = datetime.datetime.utcnow() if time is None else time
+
         startOfTheDay = datetime.datetime(self.time.year, self.time.month, self.time.day)
-        self.startTime = dict()
-        self.startTime['FC'] = {
+        startTime = dict()
+        startTime['FC'] = {
                     '0312': startOfTheDay + datetime.timedelta(hours=1),
                     '0615': startOfTheDay + datetime.timedelta(hours=4),
                     '0918': startOfTheDay + datetime.timedelta(hours=7),
@@ -40,7 +41,7 @@ class CheckTAF(QObject):
                     '2106': startOfTheDay + datetime.timedelta(hours=19),
                     '0009': startOfTheDay + datetime.timedelta(hours=22),
         }
-        self.startTime['FT'] = {
+        startTime['FT'] = {
                     '0606': startOfTheDay + datetime.timedelta(hours=1),
                     '1212': startOfTheDay + datetime.timedelta(hours=7),
                     '1818': startOfTheDay + datetime.timedelta(hours=13),
@@ -48,39 +49,65 @@ class CheckTAF(QObject):
         }
 
         if self.time < startOfTheDay + datetime.timedelta(hours=1):
-            self.startTime['FC']['0009'] -= datetime.timedelta(days=1)
-            self.startTime['FT']['0024'] -= datetime.timedelta(days=1)
+            startTime['FC']['0009'] -= datetime.timedelta(days=1)
+            startTime['FT']['0024'] -= datetime.timedelta(days=1)
 
         thresholdMinute = conf.value('Monitor/WarnTAFTime')
         thresholdMinute = int(thresholdMinute) if thresholdMinute else 30
 
-        self.thresholdTime = {
+        thresholdTimeDelta = {
             'FC': datetime.timedelta(minutes=thresholdMinute), 
             'FT': datetime.timedelta(hours=2, minutes=thresholdMinute)
         }
 
-    def currentPeriod(self):
-        increment = {'FC': datetime.timedelta(minutes=50), 'FT': datetime.timedelta(hours=2, minutes=50)}
-        period = self._findPeriod(increment)
-        return self._withDay(period)
+        endTimeDelta = {
+            'FC': {
+                'normal': datetime.timedelta(minutes=50),
+                'warning': datetime.timedelta(hours=3),
+            },
+            'FT': {
+                'normal': datetime.timedelta(hours=2, minutes=50),
+                'warning': datetime.timedelta(hours=6),
+            }
+        }
 
-    def warnPeriod(self):
-        increment = {'FC': datetime.timedelta(hours=3), 'FT': datetime.timedelta(hours=6)}
-        default = {'FC': '0009', 'FT': '0024'} # 00 - 01 时次人肉添加
-        find = self._findPeriod(increment)
-        period = find if find else default[self.tt]
-        return self._withDay(period)
+        # 00 - 01 时次特殊情况
+        defaultPeriod = {
+            'FC': '0009', 
+            'FT': '0024',
+        }
 
-    def existedInLocal(self, periodWithDay=None):
-        periodWithDay = self.warnPeriod() if periodWithDay is None else periodWithDay
+        self.startTime = startTime.get(self.tt)
+        self.thresholdTimeDelta = thresholdTimeDelta.get(self.tt)
+        self.endTimeDelta = endTimeDelta.get(self.tt)
+        self.defaultPeriod = defaultPeriod.get(self.tt)
+
+    def normalPeriod(self, withDay=True):
+        period = self._findPeriod(self.endTimeDelta['normal'])
+
+        if withDay:
+            return self._withDay(period)
+
+        return period
+
+    def warningPeriod(self, withDay=True):
+        period = self._findPeriod(self.endTimeDelta['warning'], self.defaultPeriod)
+
+        if withDay:
+            return self._withDay(period)
+
+        return period
+
+    def existedInLocal(self, period=None):
+        period = self.warningPeriod() if period is None else period
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        recent = db.query(Tafor).filter(Tafor.rpt.contains(periodWithDay), Tafor.sent > expired).order_by(Tafor.sent.desc()).first()
+        recent = db.query(Tafor).filter(Tafor.rpt.contains(period), Tafor.sent > expired).order_by(Tafor.sent.desc()).first()
         return recent
 
     def existedInRemote(self):
         if self.remote:
             period = Grammar.period.search(self.remote).group()
-            return period == self.warnPeriod()
+            return period == self.warningPeriod()
 
     def save(self):
         last = db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()
@@ -100,22 +127,32 @@ class CheckTAF(QObject):
             logger.info('Confirm {} {}'.format(self.tt, self.remote))
 
     def hasExpired(self):
-        startTime = self.startTime[self.tt][self.warnPeriod()[2:]]
-        thresholdTime = startTime + self.thresholdTime[self.tt]
-        return thresholdTime < self.time
+        period = self.warningPeriod(withDay=False)
+        start = self.startTime.get(period)
+        threshold = start + self.thresholdTimeDelta
+        return threshold < self.time
 
-    def _findPeriod(self, increment):
-        for key, start in self.startTime[self.tt].items():
-            if start <= self.time <= start + increment[self.tt]:
-                period = key
+    def _findPeriod(self, endTimeDelta, default=None):
+        for period, start in self.startTime.items():
+            if start <= self.time <= start + endTimeDelta:
                 return period
+
+        if default:
+            return default
 
     def _withDay(self, period):
         if period is None:
             return None
-        else:
-            time = self.time + datetime.timedelta(days=1) if period in ('0009', '0024') and self.time.hour != 0 else self.time
-            return str(time.day).zfill(2) + period
+        
+        time = self.time
+
+        # 跨越 UTC 日界
+        if period in ('0009', '0024') and self.time.hour != 0:
+            time = self.time + datetime.timedelta(days=1)
+
+        periodWithDay = str(time.day).zfill(2) + period
+
+        return periodWithDay
 
 
 class CheckMetar(object):

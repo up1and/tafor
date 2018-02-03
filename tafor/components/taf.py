@@ -181,17 +181,20 @@ class BaseTAFEditor(BaseEditor):
     def setNormalPeriod(self, isTask=False):
         taf = CheckTAF(self.tt, self.time)
 
-        currentPeriod = taf.currentPeriod() if isTask else taf.warnPeriod()
+        period = taf.normalPeriod() if isTask else taf.warningPeriod()
 
-        if currentPeriod and taf.existedInLocal(currentPeriod) or not self.primary.date.hasAcceptableInput():
+        if period and taf.existedInLocal(period) or not self.primary.date.hasAcceptableInput():
             self.primary.period.clear()
         else:
-            self.primary.period.setText(currentPeriod)
+            self.primary.period.setText(period)
 
     def setAmendPeriod(self):
         taf = CheckTAF(self.tt, self.time)
-        self.amdPeriod = taf.warnPeriod()
+        self.amdPeriod = taf.warningPeriod()
         self.primary.period.setText(self.amdPeriod)
+
+    def setMissedPeriod(self):
+        pass
 
     def amendNumber(self, sign):
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
