@@ -1,3 +1,4 @@
+import math
 import serial
 
 
@@ -23,7 +24,9 @@ def serialComm(message, port, baudrate=9600, bytesize='8', parity='NONE', stopbi
     parity = parityMap.get(parity, serial.PARITY_NONE)
     stopbits = stopbitsMap.get(stopbits, serial.STOPBITS_ONE)
 
-    with serial.Serial(port, baudrate, timeout=1, bytesize=bytesize, 
+    timeout = math.ceil(12 * len(message) / baudrate)
+
+    with serial.Serial(port, baudrate, timeout=timeout, bytesize=bytesize, 
                         parity=parity, stopbits=stopbits) as ser:
         lenth = len(message)
         message = bytes(message, 'ascii')

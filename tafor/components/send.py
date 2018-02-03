@@ -50,14 +50,15 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Sender):
             self.rawGroup.setTitle(QCoreApplication.translate('Sender', 'Send Failed'))
             self.parent.statusBar.showMessage(error)
             self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setText(QCoreApplication.translate('Sender', 'Resend'))
-        else:
-            self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
+            self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(True)
 
         self.raw.setText(self.aftn.toString())
         self.rawGroup.show()
         self.parent.settingDialog.loadSerialNumber()
 
     def send(self):
+        self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
+
         if not isinstance(self.aftn, AFTNMessage):
             self.aftn = AFTNMessage(self.message['full'], self.reportType)
 
@@ -76,6 +77,7 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Sender):
             self.backSignal.emit()
             logger.debug('Back to edit')
         else:
+            self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setText(QCoreApplication.translate('Sender', 'Send'))
             self.closeSignal.emit()
             logger.debug('Close send dialog')
 
