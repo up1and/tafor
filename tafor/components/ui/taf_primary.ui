@@ -359,9 +359,9 @@
          </widget>
         </item>
         <item row="0" column="7">
-         <widget class="QRadioButton" name="missed">
+         <widget class="QCheckBox" name="prev">
           <property name="text">
-           <string>Missed</string>
+           <string>Previous</string>
           </property>
          </widget>
         </item>

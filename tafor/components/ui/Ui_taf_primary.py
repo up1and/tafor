@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\taf_primary.ui'
+# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\components\ui\taf_primary.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -186,9 +186,9 @@ class Ui_Editor(object):
         self.normal.setChecked(True)
         self.normal.setObjectName("normal")
         self.gridLayout_5.addWidget(self.normal, 0, 0, 1, 1)
-        self.missed = QtWidgets.QRadioButton(self.sortGroup)
-        self.missed.setObjectName("missed")
-        self.gridLayout_5.addWidget(self.missed, 0, 7, 1, 1)
+        self.prev = QtWidgets.QCheckBox(self.sortGroup)
+        self.prev.setObjectName("prev")
+        self.gridLayout_5.addWidget(self.prev, 0, 7, 1, 1)
         self.mainLayout.addWidget(self.sortGroup, 0, 4, 1, 8)
         self.verticalLayout.addLayout(self.mainLayout)
         self.cloud2Label.setBuddy(self.cloud2)
@@ -253,7 +253,7 @@ class Ui_Editor(object):
         self.cor.setText(_translate("Editor", "Correct"))
         self.amd.setText(_translate("Editor", "Amend"))
         self.normal.setText(_translate("Editor", "Normal"))
-        self.missed.setText(_translate("Editor", "Missed"))
+        self.prev.setText(_translate("Editor", "Previous"))
 
 
 if __name__ == "__main__":
