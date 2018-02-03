@@ -3,6 +3,7 @@ import datetime
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtGui import QIntValidator
 
 from tafor.components.ui import Ui_setting, main_rc
 from tafor.models import db, User
@@ -25,6 +26,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Settings):
         self.clockTimer.start(1 * 1000)
 
         self.bindSignal()
+        self.setValidator()
         self.updateContract()
         self.load()
 
@@ -55,6 +57,13 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Settings):
         self.buttonBox.button(QtWidgets.QDialogButtonBox.Apply).clicked.connect(self.parent.updateGUI)
         self.buttonBox.accepted.connect(self.save)
         self.buttonBox.accepted.connect(self.parent.updateGUI)
+
+    def setValidator(self):
+        self.baudrate.setValidator(QIntValidator(self.baudrate))
+        self.channelSequenceNumber.setValidator(QIntValidator(self.channelSequenceNumber))
+        self.maxSendAddress.setValidator(QIntValidator(self.maxSendAddress))
+        self.maxLineChar.setValidator(QIntValidator(self.maxLineChar))
+        self.warnTAFTime.setValidator(QIntValidator(self.warnTAFTime))
 
     def checkSerialNumber(self):
         utc = datetime.datetime.utcnow()

@@ -452,6 +452,8 @@ def main():
     if translator.load(translateFile):
         app.installTranslator(translator)
 
+    # QtWidgets.QApplication.setStyle(QtWidgets.QStyleFactory.create('Fusion'))
+
     serverName = 'Tafor'
     socket = QLocalSocket()
     socket.connectToServer(serverName)
