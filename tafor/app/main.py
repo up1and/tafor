@@ -421,12 +421,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.metarTable.resizeRowsToContents()
 
     def about(self):
-        QtWidgets.QMessageBox.about(self, self.tr('Terminal Aerodrome Forecast Encoding Software'),
-                """<b>预报报文发布软件</b> v <a href="https://github.com/up1and/tafor">%s</a>
-                <p>本软件用于智能发布预报报文、趋势报文、重要气象情报、低空气象情报，监控预报报文，以声音或电话的方式返回告警
-                <p>项目遵循 GPL-2.0 协议，欢迎提交 Pull Request 或者 Issue
-                <p>
-                """ % (__version__))
+        title = QCoreApplication.translate('MainWindow', 'Terminal Aerodrome Forecast Encoding Software')
+        head = '<b>{}</b> v <a href="https://github.com/up1and/tafor">{}</a>'.format(title, __version__)
+        description = QCoreApplication.translate('MainWindow', 
+                    '''The software is used to encode and post terminal aerodrome forecast, trend forecast, 
+                    significant meteorological information, monitor the message, return the alarm by sound or telephone''')
+        tail = QCoreApplication.translate('MainWindow', 
+                    '''The project is under GPL-2.0 License, Pull Request and Issue are welcome''')
+        text = '<p>'.join([head, description, tail, ''])
+
+        QtWidgets.QMessageBox.about(self, title, text)
 
     def reportIssue(self):
         QtGui.QDesktopServices.openUrl(QtCore.QUrl('https://github.com/up1and/tafor/issues'))
@@ -437,8 +441,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             return False
 
         download = 'https://github.com/up1and/tafor/releases'
-        message = '发现新版本 {}，想现在下载么'.format(data.get('tag_name'))
-        ret = QtWidgets.QMessageBox.question(self, '检查更新', message)
+        title = QCoreApplication.translate('MainWindow', 'Check for Updates')
+        text = QCoreApplication.translate('MainWindow', 'New version found {}, do you want to download now?').format(data.get('tag_name'))
+        ret = QtWidgets.QMessageBox.question(self, title, text)
         if ret == QtWidgets.QMessageBox.Yes:
             QtGui.QDesktopServices.openUrl(QtCore.QUrl(download))
 

@@ -18,7 +18,7 @@ def remoteMessage(url):
         logger.warn('GET {} 408 Request Timeout'.format(url))
 
     except Exception as e:
-        logger.error(e, exc_info=True)
+        logger.error(e)
 
     return {}
 
@@ -35,7 +35,7 @@ def callUp(url, token, mobile):
         logger.warn('POST {} 408 Request Timeout'.format(url))
 
     except Exception as e:
-        logger.error(e, exc_info=True)
+        logger.error(e)
 
 def callService(url):
     try:
@@ -45,13 +45,16 @@ def callService(url):
     except requests.exceptions.ConnectionError:
             logger.info('GET {} 408 Request Timeout'.format(url))
 
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(e)
 
 def repoRelease(url):
     try:
         r = requests.get(url, timeout=30)
         return r.json()
+
+    except requests.exceptions.ConnectionError:
+            logger.info('GET {} 408 Request Timeout'.format(url))
 
     except Exception as e:
         logger.error(e)

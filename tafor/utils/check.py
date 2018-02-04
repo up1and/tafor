@@ -23,10 +23,10 @@ def formatTimez(message):
 
 class CheckTAF(QObject):
     """docstring for CheckTAF"""
-    def __init__(self, tt, remote=None, time=None, prev=0):
+    def __init__(self, tt, message=None, time=None, prev=0):
         super(CheckTAF, self).__init__()
         self.tt = tt
-        self.remote = remote
+        self.message = message
         self.time = datetime.datetime.utcnow() if time is None else time
 
         interval = {
@@ -108,36 +108,36 @@ class CheckTAF(QObject):
 
         return period
 
-    def existedInLocal(self, period=None):
+    def local(self, period=None):
         period = self.warningPeriod() if period is None else period
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
         recent = db.query(Tafor).filter(Tafor.rpt.contains(period), Tafor.sent > expired).order_by(Tafor.sent.desc()).first()
         return recent
 
-    def existedInRemote(self):
-        if self.remote:
-            match = Grammar.period.search(self.remote)
-            if match:
-                return match.group() == self.warningPeriod()
+    def remote(self):
+        if self.message:
+            match = Grammar.period.search(self.message)
+            if match and match.group() == self.warningPeriod():
+                return self.message
 
-        return False
+        return None
 
     def save(self):
         last = db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()
 
-        if last is None or last.rptInline != self.remote:  # 如果数据表为空 或 最后一条数据和远程不相等
-            item = Tafor(tt=self.tt, rpt=self.remote, confirmed=self.time)
+        if last is None or last.rptInline != self.message:  # 如果数据表为空 或 最后一条数据和远程不相等
+            item = Tafor(tt=self.tt, rpt=self.message, confirmed=self.time)
             db.add(item)
             db.commit()
-            logger.info('Save {} {}'.format(self.tt, self.remote))
+            logger.info('Save {} {}'.format(self.tt, self.message))
 
     def confirm(self):
         last = db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()
 
-        if last is not None and last.rptInline == self.remote:
+        if last is not None and last.rptInline == self.message:
             last.confirmed = self.time
             db.commit()
-            logger.info('Confirm {} {}'.format(self.tt, self.remote))
+            logger.info('Confirm {} {}'.format(self.tt, self.message))
 
     def hasExpired(self):
         period = self.warningPeriod(withDay=False)
@@ -170,18 +170,18 @@ class CheckTAF(QObject):
 
 class CheckMetar(object):
     """docstring for CheckMetar"""
-    def __init__(self, tt, remote):
+    def __init__(self, tt, message):
         self.tt = tt
-        self.remote = remote
+        self.message = message
 
     def save(self):
         last = db.query(Metar).filter_by(tt=self.tt).order_by(Metar.created.desc()).first()
         
-        if last is None or last.rpt != self.remote:
-            item = Metar(tt=self.tt, rpt=self.remote, created=formatTimez(self.remote))
+        if last is None or last.rpt != self.message:
+            item = Metar(tt=self.tt, rpt=self.message, created=formatTimez(self.message))
             db.add(item)
             db.commit()
-            logger.info('Save {} {}'.format(self.tt, self.remote))
+            logger.info('Save {} {}'.format(self.tt, self.message))
 
 
 class Listen(object):
@@ -190,24 +190,24 @@ class Listen(object):
 
     def __call__(self, tt):
         self.tt = tt
-        self.remote = self.store.message.get(self.tt, None)
+        self.message = self.store.message.get(self.tt, None)
         method = {'FC': 'taf', 'FT': 'taf', 'SA': 'metar', 'SP': 'metar'}
         return getattr(self.__class__, method[self.tt])(self)
 
     def taf(self):
         expired = False
 
-        taf = CheckTAF(self.tt, remote=self.remote)
-        local = taf.existedInLocal()
+        taf = CheckTAF(self.tt, message=self.message)
+        local = taf.local()
 
         if local:
             if not local.confirmed:
-                if taf.existedInRemote():
+                if taf.remote():
                     taf.confirm()
                 elif taf.hasExpired():
                     expired = True
         else:
-            if taf.existedInRemote():
+            if taf.remote():
                 taf.save()
             elif taf.hasExpired():
                 expired = True
@@ -215,7 +215,7 @@ class Listen(object):
         self.store.warning = [taf.tt, expired]
 
     def metar(self):
-        metar = CheckMetar(self.tt, remote=self.remote)
-        if self.remote:
+        metar = CheckMetar(self.tt, message=self.message)
+        if self.message:
             metar.save()
 

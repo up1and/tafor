@@ -55,7 +55,7 @@ class CurrentTAF(QtWidgets.QWidget):
 
     def current(self, tt):
         taf = CheckTAF(tt)
-        if taf.existedInLocal():
+        if taf.local():
             text = ''
         else:
             text = tt + taf.warningPeriod(withDay=False)

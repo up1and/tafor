@@ -4,7 +4,7 @@
 <context>
     <name>Editor</name>
     <message>
-        <location filename="../../components/taf.py" line="341"/>
+        <location filename="../../components/taf.py" line="355"/>
         <source>Timing Tasks</source>
         <translation>定时任务</translation>
     </message>
@@ -99,37 +99,32 @@
         <translation>正常报</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_taf_primary.py" line="256"/>
-        <source>Missed</source>
-        <translation>漏发报</translation>
-    </message>
-    <message>
         <location filename="../../components/trend.py" line="30"/>
         <source>Next</source>
         <translation>下一步</translation>
     </message>
     <message>
-        <location filename="../../components/taf.py" line="231"/>
+        <location filename="../../components/taf.py" line="245"/>
         <source>Hour of temperature is not corret</source>
         <translation>温度组时间不正确</translation>
     </message>
     <message>
-        <location filename="../../components/taf.py" line="253"/>
+        <location filename="../../components/taf.py" line="267"/>
         <source>Start time of change group is not corret %s</source>
         <translation>变化组起始时间不正确</translation>
     </message>
     <message>
-        <location filename="../../components/taf.py" line="257"/>
+        <location filename="../../components/taf.py" line="271"/>
         <source>End time of change group is not corret %s</source>
         <translation>变化组结束时间不正确</translation>
     </message>
     <message>
-        <location filename="../../components/taf.py" line="261"/>
+        <location filename="../../components/taf.py" line="275"/>
         <source>Change group time more than %s hours</source>
         <translation>变化组时间超过 %s 小时</translation>
     </message>
     <message>
-        <location filename="../../components/taf.py" line="323"/>
+        <location filename="../../components/taf.py" line="337"/>
         <source>Encoding Terminal Aerodrome Forecast</source>
         <translation>编发预报</translation>
     </message>
@@ -137,6 +132,21 @@
         <location filename="../../components/trend.py" line="21"/>
         <source>Encoding Trend Forecast</source>
         <translation>编发趋势</translation>
+    </message>
+    <message>
+        <location filename="../../components/ui/Ui_taf_primary.py" line="256"/>
+        <source>Previous</source>
+        <translation>上一份</translation>
+    </message>
+    <message>
+        <location filename="../../components/taf.py" line="200"/>
+        <source>Tips</source>
+        <translation>提示</translation>
+    </message>
+    <message>
+        <location filename="../../components/taf.py" line="201"/>
+        <source>Do you want to change the message valid period to previous?</source>
+        <translation>报文有效时段要变更为上一份吗？</translation>
     </message>
 </context>
 <context>
@@ -276,6 +286,22 @@
         <source>Offline</source>
         <translation>离线</translation>
     </message>
+    <message>
+        <location filename="../../app/main.py" line="430"/>
+        <source>The project is under GPL-2.0 License, Pull Request and Issue are welcome</source>
+        <translation>项目遵循 GPL-2.0 协议，欢迎提交 Pull Request 或者 Issue</translation>
+    </message>
+    <message>
+        <location filename="../../app/main.py" line="446"/>
+        <source>New version found {}, do you want to download now?</source>
+        <translation>发现新版本 {}，想现在下载么？</translation>
+    </message>
+    <message>
+        <location filename="../../app/main.py" line="427"/>
+        <source>The software is used to encode and post terminal aerodrome forecast, trend forecast, 
+                    significant meteorological information, monitor the message, return the alarm by sound or telephone</source>
+        <translation>本软件用于智能发布预报报文、趋势报文、重要气象情报，监控预报报文，以声音或电话的方式返回告警</translation>
+    </message>
 </context>
 <context>
     <name>Sender</name>
@@ -295,7 +321,7 @@
         <translation>已向串口发送数据</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="26"/>
+        <location filename="../../components/send.py" line="80"/>
         <source>Send</source>
         <translation>发送</translation>
     </message>
@@ -310,7 +336,7 @@
         <translation>重新发送</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="111"/>
+        <location filename="../../components/send.py" line="113"/>
         <source>Timing Tasks</source>
         <translation>定时任务</translation>
     </message>
@@ -385,12 +411,12 @@
     <message>
         <location filename="../../components/ui/Ui_setting.py" line="585"/>
         <source>Visibility has 5000 meters</source>
-        <translation>能见度 5000 米</translation>
+        <translation>能见度有 5000 米</translation>
     </message>
     <message>
         <location filename="../../components/ui/Ui_setting.py" line="586"/>
         <source>Cloud height has 450 meters</source>
-        <translation>云高 450 米</translation>
+        <translation>云高有 450 米</translation>
     </message>
     <message>
         <location filename="../../components/ui/Ui_setting.py" line="587"/>
@@ -633,17 +659,17 @@
         <translation>电话服务</translation>
     </message>
     <message>
-        <location filename="../../components/setting.py" line="35"/>
+        <location filename="../../components/setting.py" line="37"/>
         <source>OK</source>
         <translation>确定</translation>
     </message>
     <message>
-        <location filename="../../components/setting.py" line="36"/>
+        <location filename="../../components/setting.py" line="38"/>
         <source>Apply</source>
         <translation>应用</translation>
     </message>
     <message>
-        <location filename="../../components/setting.py" line="37"/>
+        <location filename="../../components/setting.py" line="39"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>

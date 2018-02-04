@@ -184,7 +184,7 @@ class BaseTAFEditor(BaseEditor):
         taf = CheckTAF(self.tt, self.time, prev=prev)
         period = taf.normalPeriod() if isTask else taf.warningPeriod()
 
-        if period and taf.existedInLocal(period) or not self.primary.date.hasAcceptableInput():
+        if period and taf.local(period) or not self.primary.date.hasAcceptableInput():
             self.primary.period.clear()
         else:
             self.primary.period.setText(period)
@@ -197,7 +197,9 @@ class BaseTAFEditor(BaseEditor):
 
     def setPreviousPeriod(self, checked):
         if checked:
-            ret = QMessageBox.question(self, '提示', '报文有效时段要变更为前一份吗？')
+            title = QCoreApplication.translate('Editor', 'Tips')
+            text = QCoreApplication.translate('Editor', 'Do you want to change the message valid period to previous?')
+            ret = QMessageBox.question(self, title, text)
             if ret == QMessageBox.Yes:
                 self.updateMessageType()
             else:
