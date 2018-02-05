@@ -532,10 +532,12 @@ class Parser(object):
         self.regroup()
         self.refs()
 
-        self.validateCombination(self.reference, self.primary.tokens)
+        # 验证主报文多个要素匹配
+        self.validateMutiElements(self.reference, self.primary.tokens)
 
         for e in self.groups:
             for key in e.tokens:
+                # 依次验证单项要素转折
                 verify = getattr(self.validator, key, None)
                 if verify:
                     if key == 'cavok':
@@ -557,14 +559,12 @@ class Parser(object):
                         else:
                             self.reference[key]['text'] = e.tokens[key]['text']
 
-            self.validateCombination(self.reference, e.tokens)
+            # 验证参照组与转折组之间多个要素匹配
+            self.validateMutiElements(self.reference, e.tokens)
 
         self.tips = list(set(self.tips))
 
-        valids = [e.isValid() for e in self.elements]
-        return all(valids)
-
-    def validateCombination(self, ref, tokens):
+    def validateMutiElements(self, ref, tokens):
         mixture = copy.deepcopy(ref)
         for key in tokens:
             if key in self.defaultRules:
@@ -648,6 +648,10 @@ class Parser(object):
                 if i == 2 and ('FEW' in cloud or 'SCT' in cloud):
                     tokens['cloud']['error'] = True
                     self.tips.append('云组第三层云量不能为 FEW 或 SCT')
+
+    def isValid(self):
+        valids = [e.isValid() for e in self.elements]
+        return all(valids)
  
     def renderer(self, style='plain'):
         outputs = [e.renderer(style) for e in self.elements]
@@ -676,7 +680,7 @@ if __name__ == '__main__':
     # print(m.groups())
 
     e = Parser(message)
-    isValid = e.validate()
+    e.validate()
     print(e.tips)
     # print(isValid)
 

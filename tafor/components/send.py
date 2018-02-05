@@ -23,41 +23,56 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Sender):
         self.parent = parent
         self.aftn = None
 
-        self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setText(QCoreApplication.translate('Sender', 'Send'))
-        self.buttonBox.button(QtWidgets.QDialogButtonBox.Cancel).setText(QCoreApplication.translate('Sender', 'Cancel'))
+        self.sendButton = self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok)
+        self.resendButton = self.buttonBox.button(QtWidgets.QDialogButtonBox.Retry)
+        self.cancelButton = self.buttonBox.button(QtWidgets.QDialogButtonBox.Cancel)
+
+        self.sendButton.setText(QCoreApplication.translate('Sender', 'Send'))
+        self.resendButton.setText(QCoreApplication.translate('Sender', 'Resend'))
+        self.cancelButton.setText(QCoreApplication.translate('Sender', 'Cancel'))
+        self.resendButton.setVisible(False)
         # self.buttonBox.addButton("TEST", QDialogButtonBox.ActionRole)
         self.rejected.connect(self.cancel)
         self.closeSignal.connect(self.clear)
+        self.backSignal.connect(self.clear)
 
         self.rawGroup.hide()
 
     def receive(self, message):
         self.message = message
         try:
-            m = Parser(self.message['rpt'])
-            m.validate()
-            html = '<p>{}<br/>{}</p>'.format(self.message['head'], m.renderer(style='html'))
-            if m.tips:
-                html += '<p style="color: grey"># {}</p>'.format('<br/># '.join(m.tips))
+            self.parser = Parser(self.message['rpt'])
+            self.parser.validate()
+            html = '<p>{}<br/>{}</p>'.format(self.message['head'], self.parser.renderer(style='html'))
+            if self.parser.tips:
+                html += '<p style="color: grey"># {}</p>'.format('<br/># '.join(self.parser.tips))
             self.rpt.setHtml(html)
-            self.message['rpt'] = m.renderer()
+            self.message['rpt'] = self.parser.renderer()
 
         except Exception as e:
             logger.error(e)
 
     def showRawGroup(self, error):
-        if error:
-            self.rawGroup.setTitle(QCoreApplication.translate('Sender', 'Send Failed'))
-            self.parent.statusBar.showMessage(error)
-            self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setText(QCoreApplication.translate('Sender', 'Resend'))
-            self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(True)
-
         self.raw.setText(self.aftn.toString())
         self.rawGroup.show()
+        self.sendButton.setEnabled(False)
         self.parent.settingDialog.loadSerialNumber()
 
+        if error:
+            self.rawGroup.setTitle(QCoreApplication.translate('Sender', 'Send Failed'))
+            self.sendButton.setVisible(False)
+            self.resendButton.setVisible(True)
+
+            title = QCoreApplication.translate('Sender', 'Error')
+            QtWidgets.QMessageBox.critical(self, title, error)
+
     def send(self):
-        self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
+        if hasattr(self, 'parser') and not self.parser.isValid():
+            title = QCoreApplication.translate('Sender', 'Validator Warning')
+            text = QCoreApplication.translate('Sender', 'The message did not pass the validator, do you still want to send?')
+            ret = QtWidgets.QMessageBox.question(self, title, text)
+            if ret != QtWidgets.QMessageBox.Yes:
+                return None
 
         if not isinstance(self.aftn, AFTNMessage):
             self.aftn = AFTNMessage(self.message['full'], self.reportType)
@@ -66,6 +81,7 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Sender):
 
         thread = SerialThread(message, self)
         thread.doneSignal.connect(self.showRawGroup)
+        thread.doneSignal.connect(self.save)
         thread.start()
 
     def closeEvent(self, event):
@@ -73,18 +89,19 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Sender):
             self.cancel()
 
     def cancel(self):
-        if self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).isEnabled():
+        if self.sendButton.isEnabled():
             self.backSignal.emit()
             logger.debug('Back to edit')
         else:
-            self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setText(QCoreApplication.translate('Sender', 'Send'))
             self.closeSignal.emit()
             logger.debug('Close send dialog')
 
     def clear(self):
         self.rpt.setText('')
         self.rawGroup.hide()
-        self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(True)
+        self.sendButton.setEnabled(True)
+        self.sendButton.setVisible(True)
+        self.resendButton.setVisible(False)
 
 
 class TAFSender(BaseSender):
@@ -95,7 +112,6 @@ class TAFSender(BaseSender):
         self.reportType = 'TAF'
 
         self.buttonBox.accepted.connect(self.send)
-        self.buttonBox.accepted.connect(self.save)
 
     def save(self):
         item = Tafor(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'], raw=self.aftn.toJson())
@@ -166,7 +182,6 @@ class TrendSender(BaseSender):
         self.reportType = 'Trend'
 
         self.buttonBox.accepted.connect(self.send)
-        self.buttonBox.accepted.connect(self.save)
 
     def receive(self, message):
         self.message = message

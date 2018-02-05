@@ -321,29 +321,44 @@
         <translation>已向串口发送数据</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="80"/>
+        <location filename="../../components/send.py" line="30"/>
         <source>Send</source>
         <translation>发送</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="50"/>
+        <location filename="../../components/send.py" line="62"/>
         <source>Send Failed</source>
         <translation>发送失败</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="52"/>
+        <location filename="../../components/send.py" line="31"/>
         <source>Resend</source>
         <translation>重新发送</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="113"/>
+        <location filename="../../components/send.py" line="129"/>
         <source>Timing Tasks</source>
         <translation>定时任务</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="27"/>
+        <location filename="../../components/send.py" line="32"/>
         <source>Cancel</source>
         <translation>取消</translation>
+    </message>
+    <message>
+        <location filename="../../components/send.py" line="66"/>
+        <source>Error</source>
+        <translation>错误</translation>
+    </message>
+    <message>
+        <location filename="../../components/send.py" line="71"/>
+        <source>Validator Warning</source>
+        <translation>校验提醒</translation>
+    </message>
+    <message>
+        <location filename="../../components/send.py" line="72"/>
+        <source>The message did not pass the validator, do you still want to send?</source>
+        <translation>报文没有通过校验，你还要发送么？</translation>
     </message>
 </context>
 <context>
