@@ -31,6 +31,7 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Sender):
         self.resendButton.setText(QCoreApplication.translate('Sender', 'Resend'))
         self.cancelButton.setText(QCoreApplication.translate('Sender', 'Cancel'))
         self.resendButton.setVisible(False)
+        self.resendButton.setEnabled(False)
         # self.buttonBox.addButton("TEST", QDialogButtonBox.ActionRole)
         self.rejected.connect(self.cancel)
         self.closeSignal.connect(self.clear)
@@ -62,6 +63,7 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Sender):
             self.rawGroup.setTitle(QCoreApplication.translate('Sender', 'Send Failed'))
             self.sendButton.setVisible(False)
             self.resendButton.setVisible(True)
+            self.resendButton.setEnabled(True)
 
             title = QCoreApplication.translate('Sender', 'Error')
             QtWidgets.QMessageBox.critical(self, title, error)
@@ -89,18 +91,17 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Sender):
             self.cancel()
 
     def cancel(self):
-        if self.sendButton.isEnabled():
+        if self.sendButton.isEnabled() or self.resendButton.isEnabled():
             self.backSignal.emit()
-            logger.debug('Back to edit')
         else:
             self.closeSignal.emit()
-            logger.debug('Close send dialog')
 
     def clear(self):
         self.rpt.setText('')
         self.rawGroup.hide()
         self.sendButton.setEnabled(True)
         self.sendButton.setVisible(True)
+        self.resendButton.setEnabled(False)
         self.resendButton.setVisible(False)
 
 
