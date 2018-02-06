@@ -62,14 +62,6 @@ class CheckTAF(QObject):
             startTime['FC']['0009'] -= datetime.timedelta(days=1)
             startTime['FT']['0024'] -= datetime.timedelta(days=1)
 
-        thresholdMinute = conf.value('Monitor/WarnTAFTime')
-        thresholdMinute = int(thresholdMinute) if thresholdMinute else 30
-
-        thresholdTimeDelta = {
-            'FC': datetime.timedelta(minutes=thresholdMinute), 
-            'FT': datetime.timedelta(hours=2, minutes=thresholdMinute)
-        }
-
         endTimeDelta = {
             'FC': {
                 'normal': datetime.timedelta(minutes=50),
@@ -88,7 +80,6 @@ class CheckTAF(QObject):
         }
 
         self.startTime = startTime.get(self.tt)
-        self.thresholdTimeDelta = thresholdTimeDelta.get(self.tt)
         self.endTimeDelta = endTimeDelta.get(self.tt)
         self.defaultPeriod = defaultPeriod.get(self.tt)
 
@@ -139,10 +130,19 @@ class CheckTAF(QObject):
             db.commit()
             logger.info('Confirm {} {}'.format(self.tt, self.message))
 
-    def hasExpired(self):
+    def hasExpired(self, offset=None):
+        offset = offset or conf.value('Monitor/WarnTAFTime')
+        offset = int(offset) if offset else 30
+        offsetTimeDelta = {
+            'FC': datetime.timedelta(minutes=offset), 
+            'FT': datetime.timedelta(hours=2, minutes=offset)
+        }
+
+        timedelta = offsetTimeDelta.get(self.tt)
         period = self.warningPeriod(withDay=False)
         start = self.startTime.get(period)
-        threshold = start + self.thresholdTimeDelta
+
+        threshold = start + timedelta
         return threshold < self.time
 
     def _findPeriod(self, endTimeDelta, default=None):
@@ -185,12 +185,12 @@ class CheckMetar(object):
 
 
 class Listen(object):
-    def __init__(self, store):
-        self.store = store
+    def __init__(self, context):
+        self.context = context
 
     def __call__(self, tt):
         self.tt = tt
-        self.message = self.store.message.get(self.tt, None)
+        self.message = self.context.message.get(self.tt, None)
         method = {'FC': 'taf', 'FT': 'taf', 'SA': 'metar', 'SP': 'metar'}
         return getattr(self.__class__, method[self.tt])(self)
 
@@ -212,7 +212,9 @@ class Listen(object):
             elif taf.hasExpired():
                 expired = True
 
-        self.store.warning = [taf.tt, expired]
+        self.context.current = [taf.tt, taf.warningPeriod(), True if local else False]
+        self.context.warning = [taf.tt, expired]
+        self.context.reminder = [taf.tt, taf.hasExpired(offset=3)]
 
     def metar(self):
         metar = CheckMetar(self.tt, message=self.message)

@@ -18,19 +18,34 @@ from tafor.components.send import TaskTAFSender, TAFSender, TrendSender
 from tafor.components.setting import SettingDialog
 from tafor.components.task import TaskBrowser
 
-from tafor.components.widgets.widget import Clock, CurrentTAF, RecentTAF
+from tafor.components.widgets.widget import createAlarmMsgBox, Clock, CurrentTAF, RecentTAF
 from tafor.components.widgets.status import WebAPIStatus, CallServiceStatus
 from tafor.components.widgets.sound import Sound
 
 
-class Store(QtCore.QObject):
+class Context(QtCore.QObject):
     warningSignal = QtCore.pyqtSignal()
+    reminderSignal = QtCore.pyqtSignal(str)
 
     def __init__(self):
-        super(Store, self).__init__()
+        super(Context, self).__init__()
         self._message = {}
         self._callService = None
         self._warning = {
+            'FC': False,
+            'FT': False
+        }
+        self._current = {
+            'FC': {
+                'period': '',
+                'status': False
+            },
+            'FT': {
+                'period': '',
+                'status': False
+            }
+        }
+        self._reminder = {
             'FC': False,
             'FT': False
         }
@@ -57,7 +72,7 @@ class Store(QtCore.QObject):
 
     @property
     def warning(self):
-        return any(self._warning.values())
+        return self._warning
 
     @warning.setter
     def warning(self, values):
@@ -66,7 +81,38 @@ class Store(QtCore.QObject):
             self._warning[tt] = hasExpired
             self.warningSignal.emit()
         except ValueError:
-            raise ValueError('Pass an iterable with two items')
+            raise ValueError
+
+    def isWarning(self):
+        return any(self._warning.values())
+
+    @property
+    def reminder(self):
+        return self._reminder
+
+    @reminder.setter
+    def reminder(self, values):
+        try:
+            tt, hasExpired = values
+            if self._reminder[tt] != hasExpired:
+                self._reminder[tt] = hasExpired
+                self.reminderSignal.emit(tt)
+        except ValueError:
+            raise ValueError
+
+    @property
+    def current(self):
+        return self._current
+
+    @current.setter
+    def current(self, values):
+        try:
+            tt, period, status = values
+            current = self._current[tt]
+            current['period'] = period
+            current['status'] = status
+        except ValueError:
+            raise ValueError
         
 
 class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
@@ -80,8 +126,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         super(MainWindow, self).__init__(parent)
         self.setupUi(self)
 
-        self.store = Store()
-        self.store.warningSignal.connect(self.dialer)
+        self.context = Context()
+        self.context.warningSignal.connect(self.dialer)
+        self.context.reminderSignal.connect(self.reminder)
 
         # 初始化剪贴板
         self.clip = QtWidgets.QApplication.clipboard()
@@ -109,8 +156,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         # 设置系统托盘
         self.setupSysTray()
 
-        # 设置系统托盘
-        self.setupStatusbar()
+        self.setupStatusBar()
 
         self.setupThread()
 
@@ -204,7 +250,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         message = '预报发报软件 v' + __version__
         self.tray.setToolTip(message)
 
-    def setupStatusbar(self):
+    def setupStatusBar(self):
         self.webApiStatus = WebAPIStatus(self, self.statusBar)
         self.callServiceStatus = CallServiceStatus(self, self.statusBar, last=True)
 
@@ -296,9 +342,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             event.accept()
 
     def restoreWindow(self, reason):
-        """
-        恢复窗口
-        """
         if reason == QtWidgets.QSystemTrayIcon.Trigger:
             self.showNormal()
 
@@ -308,9 +351,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
     def singer(self):
         warnSwitch = self.warnTAFAction.isChecked()
-        trendSwitch = conf.value('Monitor/RemindTrend')
-        sigmetSwitch = conf.value('Monitor/RemindSIGMET')
-        tafSwitch = conf.value('Monitor/RemindTAF')
+        trendSwitch = boolean(conf.value('Monitor/RemindTrend'))
+        sigmetSwitch = boolean(conf.value('Monitor/RemindSIGMET'))
 
         # 管理趋势声音
         utc = datetime.datetime.utcnow()
@@ -320,10 +362,28 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             self.trendSound.stop()
 
         # 管理报文告警声音
-        if warnSwitch and self.store.warning:
+        if warnSwitch and self.context.isWarning():
             self.alarmSound.play()
         else:
             self.alarmSound.stop()
+
+    def reminder(self, tt):
+        remindSwitch = boolean(conf.value('Monitor/RemindTAF'))
+        if not remindSwitch:
+            return None
+
+        clock = self.context.reminder.get(tt)
+        current = self.context.current.get(tt)
+        warning = self.context.warning.get(tt)
+
+        if clock and not warning and not current['status']:
+            text = tt + current['period'][2:]
+            self.ringSound.play()
+            ret = createAlarmMsgBox(self, text)
+            if ret:
+                QtCore.QTimer.singleShot(1000 * 5, lambda: self.reminder(tt))
+
+            self.ringSound.stop()
 
     def worker(self):
         self.workThread.start()
@@ -331,11 +391,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
     def dialer(self, test=False):
         callSwitch = conf.value('Monitor/SelectedMobile')
 
-        if callSwitch and self.store.warning or test:
+        if callSwitch and self.context.isWarning() or test:
             self.callThread.start()
 
     def updateMessage(self):
-        listen = Listen(self.store)
+        listen = Listen(self.context)
         [listen(i) for i in ('FC', 'FT', 'SA', 'SP')]
 
         self.updateGUI()

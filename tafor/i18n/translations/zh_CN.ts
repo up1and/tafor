@@ -287,20 +287,40 @@
         <translation>离线</translation>
     </message>
     <message>
-        <location filename="../../app/main.py" line="430"/>
+        <location filename="../../app/main.py" line="490"/>
         <source>The project is under GPL-2.0 License, Pull Request and Issue are welcome</source>
         <translation>项目遵循 GPL-2.0 协议，欢迎提交 Pull Request 或者 Issue</translation>
     </message>
     <message>
-        <location filename="../../app/main.py" line="446"/>
+        <location filename="../../app/main.py" line="506"/>
         <source>New version found {}, do you want to download now?</source>
         <translation>发现新版本 {}，想现在下载么？</translation>
     </message>
     <message>
-        <location filename="../../app/main.py" line="427"/>
+        <location filename="../../app/main.py" line="487"/>
         <source>The software is used to encode and post terminal aerodrome forecast, trend forecast, 
                     significant meteorological information, monitor the message, return the alarm by sound or telephone</source>
         <translation>本软件用于智能发布预报报文、趋势报文、重要气象情报，监控预报报文，以声音或电话的方式返回告警</translation>
+    </message>
+    <message>
+        <location filename="../../components/widgets/widget.py" line="14"/>
+        <source>Time to post {}</source>
+        <translation>发布 {}</translation>
+    </message>
+    <message>
+        <location filename="../../components/widgets/widget.py" line="16"/>
+        <source>Dismiss</source>
+        <translation>关闭</translation>
+    </message>
+    <message>
+        <location filename="../../components/widgets/widget.py" line="17"/>
+        <source>Snooze</source>
+        <translation>暂停</translation>
+    </message>
+    <message>
+        <location filename="../../components/widgets/widget.py" line="13"/>
+        <source>Alarm</source>
+        <translation>闹钟</translation>
     </message>
 </context>
 <context>
@@ -326,7 +346,7 @@
         <translation>发送</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="62"/>
+        <location filename="../../components/send.py" line="63"/>
         <source>Send Failed</source>
         <translation>发送失败</translation>
     </message>
@@ -336,7 +356,7 @@
         <translation>重新发送</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="129"/>
+        <location filename="../../components/send.py" line="130"/>
         <source>Timing Tasks</source>
         <translation>定时任务</translation>
     </message>
@@ -346,17 +366,17 @@
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="66"/>
+        <location filename="../../components/send.py" line="68"/>
         <source>Error</source>
         <translation>错误</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="71"/>
+        <location filename="../../components/send.py" line="73"/>
         <source>Validator Warning</source>
         <translation>校验提醒</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="72"/>
+        <location filename="../../components/send.py" line="74"/>
         <source>The message did not pass the validator, do you still want to send?</source>
         <translation>报文没有通过校验，你还要发送么？</translation>
     </message>

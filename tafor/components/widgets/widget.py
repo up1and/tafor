@@ -2,10 +2,25 @@ import json
 import datetime
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import QCoreApplication
 
 from tafor.models import db, Tafor
 from tafor.utils import CheckTAF
 from tafor.components.ui import Ui_main_recent
+
+
+def createAlarmMsgBox(parent, text):
+    title = QCoreApplication.translate('MainWindow', 'Alarm')
+    message = QCoreApplication.translate('MainWindow', 'Time to post {}').format(text)
+    messageBox = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Question, title, message, parent=parent)
+    snooze = messageBox.addButton(QCoreApplication.translate('MainWindow', 'Snooze'), QtWidgets.QMessageBox.ApplyRole)
+    dismiss = messageBox.addButton(QCoreApplication.translate('MainWindow', 'Dismiss'), QtWidgets.QMessageBox.RejectRole)
+    messageBox.exec_()
+
+    if messageBox.clickedButton() == snooze:
+        return True
+
+    return False
 
 
 class RecentTAF(QtWidgets.QWidget, Ui_main_recent.Ui_Recent):

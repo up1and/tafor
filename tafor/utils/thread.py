@@ -70,11 +70,11 @@ class WorkThread(QThread):
     def run(self):
         if conf.value('Monitor/WebApiURL'):
             url = conf.value('Monitor/WebApiURL') or 'http://127.0.0.1:6575'
-            self.parent.store.message = remoteMessage(url)
+            self.parent.context.message = remoteMessage(url)
 
         if conf.value('Monitor/SelectedMobile'):
             url = conf.value('Monitor/CallServiceURL') or 'http://127.0.0.1:5000/api/call/'
-            self.parent.store.callService = callService(url)
+            self.parent.context.callService = callService(url)
 
 
 class CallThread(QThread):
