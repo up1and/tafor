@@ -381,7 +381,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             self.ringSound.play()
             ret = createAlarmMsgBox(self, text)
             if ret:
-                QtCore.QTimer.singleShot(1000 * 5, lambda: self.reminder(tt))
+                QtCore.QTimer.singleShot(1000 * 60 * 3, lambda: self.reminder(tt))
 
             self.ringSound.stop()
 
