@@ -1,0 +1,472 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Editor</class>
+ <widget class="QWidget" name="Editor">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>832</width>
+    <height>657</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string notr="true">Sigmet</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QGroupBox" name="descriptionGroup">
+     <property name="title">
+      <string>Description</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_2">
+      <item row="0" column="3">
+       <widget class="QLabel" name="baseLabel">
+        <property name="text">
+         <string>Vertical Base</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLineEdit" name="speed"/>
+      </item>
+      <item row="0" column="4">
+       <widget class="QLabel" name="topLabel">
+        <property name="text">
+         <string>Vertical Top</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QComboBox" name="movement">
+        <item>
+         <property name="text">
+          <string>N</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>NE</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>E</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>SE</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>S</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>SW</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>W</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>NW</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>STNR</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="1" column="4">
+       <widget class="QLineEdit" name="top"/>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="movementLabel">
+        <property name="text">
+         <string>Movement</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLabel" name="speedLabel">
+        <property name="text">
+         <string>Speed</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QLabel" name="levelLabel">
+        <property name="text">
+         <string>Vertical Level</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="5">
+       <widget class="QLabel" name="intensityChangeLabel">
+        <property name="text">
+         <string>Intensity Change</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="5">
+       <widget class="QComboBox" name="intensityChange">
+        <item>
+         <property name="text">
+          <string/>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>NC</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>INTSF</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>WKN</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="1" column="3">
+       <widget class="QLineEdit" name="base"/>
+      </item>
+      <item row="1" column="2">
+       <widget class="QComboBox" name="level">
+        <item>
+         <property name="text">
+          <string/>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>ABV</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>BLW</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="areaGroup">
+     <property name="title">
+      <string>Area</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <layout class="QHBoxLayout" name="choiceLayout">
+        <item>
+         <widget class="QRadioButton" name="latitudeAndLongitude">
+          <property name="text">
+           <string>Latitude and Longitude</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QRadioButton" name="line">
+          <property name="text">
+           <string>Line</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QRadioButton" name="points">
+          <property name="text">
+           <string>Points</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QGridLayout" name="latitudeAndLongitudeLayout">
+        <item row="5" column="2">
+         <widget class="QLineEdit" name="west"/>
+        </item>
+        <item row="1" column="2">
+         <widget class="QLineEdit" name="south"/>
+        </item>
+        <item row="1" column="1">
+         <widget class="QLineEdit" name="north"/>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLabel" name="northLabel">
+          <property name="text">
+           <string>N OF</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="2">
+         <widget class="QLabel" name="southLabel">
+          <property name="text">
+           <string>S OF</string>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="1">
+         <widget class="QLabel" name="eastLabel">
+          <property name="text">
+           <string>E OF</string>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="1">
+         <widget class="QLineEdit" name="east"/>
+        </item>
+        <item row="4" column="2">
+         <widget class="QLabel" name="westLabel">
+          <property name="text">
+           <string>W OF</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="3">
+         <spacer name="horizontalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="latitudeLabel">
+          <property name="minimumSize">
+           <size>
+            <width>100</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Latitude</string>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="0">
+         <widget class="QLabel" name="longtitudeLabel">
+          <property name="minimumSize">
+           <size>
+            <width>100</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Longitude</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QGridLayout" name="gridLayout_4">
+        <item row="2" column="2">
+         <widget class="QLineEdit" name="lineLongtitude1"/>
+        </item>
+        <item row="2" column="1">
+         <widget class="QLineEdit" name="lineLatitude1"/>
+        </item>
+        <item row="1" column="2">
+         <widget class="QLabel" name="lineLongtitudeLabel">
+          <property name="text">
+           <string>Longtitude</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="label_2">
+          <property name="minimumSize">
+           <size>
+            <width>100</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Line</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="3">
+         <spacer name="horizontalSpacer_4">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="1" column="1">
+         <widget class="QLabel" name="lineLatitudeLabel">
+          <property name="text">
+           <string>Latitude</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="1">
+         <widget class="QLineEdit" name="lineLatitude2"/>
+        </item>
+        <item row="3" column="2">
+         <widget class="QLineEdit" name="lineLongtitude2"/>
+        </item>
+        <item row="3" column="3">
+         <widget class="QComboBox" name="comboBox"/>
+        </item>
+        <item row="5" column="2">
+         <widget class="QLineEdit" name="lineLongtitude4"/>
+        </item>
+        <item row="4" column="1">
+         <widget class="QLineEdit" name="lineLatitude3"/>
+        </item>
+        <item row="4" column="0">
+         <widget class="QLabel" name="lineLabel2">
+          <property name="minimumSize">
+           <size>
+            <width>100</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Line</string>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="2">
+         <widget class="QLineEdit" name="lineLongtitude3"/>
+        </item>
+        <item row="5" column="1">
+         <widget class="QLineEdit" name="lineLatitude4"/>
+        </item>
+        <item row="5" column="3">
+         <widget class="QComboBox" name="comboBox_2"/>
+        </item>
+        <item row="1" column="3">
+         <widget class="QLabel" name="lineDirection">
+          <property name="text">
+           <string>Direction</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QGridLayout" name="pointsLayout">
+        <item row="1" column="0">
+         <widget class="QLabel" name="pointsLabel">
+          <property name="minimumSize">
+           <size>
+            <width>100</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Points</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="2">
+         <widget class="QLineEdit" name="pointsLongtitude2"/>
+        </item>
+        <item row="3" column="1">
+         <widget class="QLineEdit" name="pointsLatitude3"/>
+        </item>
+        <item row="4" column="1">
+         <widget class="QLineEdit" name="pointsLatitude4"/>
+        </item>
+        <item row="4" column="2">
+         <widget class="QLineEdit" name="pointsLongtitude4"/>
+        </item>
+        <item row="1" column="3">
+         <spacer name="horizontalSpacer_3">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="3" column="2">
+         <widget class="QLineEdit" name="pointsLongtitude3"/>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLabel" name="pointsLatitudeLabel">
+          <property name="text">
+           <string>Latitude</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="2">
+         <widget class="QLineEdit" name="pointsLongtitude1"/>
+        </item>
+        <item row="2" column="1">
+         <widget class="QLineEdit" name="pointsLatitude2"/>
+        </item>
+        <item row="0" column="2">
+         <widget class="QLabel" name="pointsLongtitudeLabel">
+          <property name="text">
+           <string>Longtitude</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QLineEdit" name="pointsLatitude1">
+          <property name="inputMask">
+           <string notr="true">N</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
