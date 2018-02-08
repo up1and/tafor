@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'C:\Users\Upland\Work\tafor\tafor\components\ui\sigmet_type.ui'
+# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\sigmet_type.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Editor(object):
     def setupUi(self, Editor):
         Editor.setObjectName("Editor")
-        Editor.resize(831, 201)
+        Editor.resize(744, 201)
         Editor.setWindowTitle("Sigmet")
         self.verticalLayout = QtWidgets.QVBoxLayout(Editor)
         self.verticalLayout.setObjectName("verticalLayout")
@@ -19,15 +19,18 @@ class Ui_Editor(object):
         self.typeGroup.setObjectName("typeGroup")
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout(self.typeGroup)
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        self.normal = QtWidgets.QRadioButton(self.typeGroup)
-        self.normal.setObjectName("normal")
-        self.horizontalLayout_2.addWidget(self.normal)
+        self.general = QtWidgets.QRadioButton(self.typeGroup)
+        self.general.setObjectName("general")
+        self.horizontalLayout_2.addWidget(self.general)
         self.tropicalCyclone = QtWidgets.QRadioButton(self.typeGroup)
         self.tropicalCyclone.setObjectName("tropicalCyclone")
         self.horizontalLayout_2.addWidget(self.tropicalCyclone)
         self.volcanicAsh = QtWidgets.QRadioButton(self.typeGroup)
         self.volcanicAsh.setObjectName("volcanicAsh")
         self.horizontalLayout_2.addWidget(self.volcanicAsh)
+        self.custom = QtWidgets.QRadioButton(self.typeGroup)
+        self.custom.setObjectName("custom")
+        self.horizontalLayout_2.addWidget(self.custom)
         self.cancel = QtWidgets.QRadioButton(self.typeGroup)
         self.cancel.setObjectName("cancel")
         self.horizontalLayout_2.addWidget(self.cancel)
@@ -38,24 +41,23 @@ class Ui_Editor(object):
         self.headGroup.setObjectName("headGroup")
         self.gridLayout_2 = QtWidgets.QGridLayout(self.headGroup)
         self.gridLayout_2.setObjectName("gridLayout_2")
+        self.sequence = QtWidgets.QLineEdit(self.headGroup)
+        self.sequence.setObjectName("sequence")
+        self.gridLayout_2.addWidget(self.sequence, 1, 1, 1, 1)
         self.phenomenaLabel = QtWidgets.QLabel(self.headGroup)
         self.phenomenaLabel.setObjectName("phenomenaLabel")
         self.gridLayout_2.addWidget(self.phenomenaLabel, 0, 3, 1, 1)
         self.validLabel = QtWidgets.QLabel(self.headGroup)
         self.validLabel.setObjectName("validLabel")
         self.gridLayout_2.addWidget(self.validLabel, 0, 0, 1, 1)
-        self.sequence = QtWidgets.QLineEdit(self.headGroup)
-        self.sequence.setObjectName("sequence")
-        self.gridLayout_2.addWidget(self.sequence, 1, 1, 1, 1)
-        self.phenomena = QtWidgets.QComboBox(self.headGroup)
-        self.phenomena.setObjectName("phenomena")
-        self.gridLayout_2.addWidget(self.phenomena, 1, 3, 1, 1)
         self.valid = QtWidgets.QLineEdit(self.headGroup)
         self.valid.setObjectName("valid")
         self.gridLayout_2.addWidget(self.valid, 1, 0, 1, 1)
+        self.phenomena = QtWidgets.QComboBox(self.headGroup)
+        self.phenomena.setObjectName("phenomena")
+        self.gridLayout_2.addWidget(self.phenomena, 1, 3, 1, 1)
         self.forecast = QtWidgets.QComboBox(self.headGroup)
         self.forecast.setObjectName("forecast")
-        self.forecast.addItem("")
         self.forecast.addItem("")
         self.forecast.addItem("")
         self.gridLayout_2.addWidget(self.forecast, 1, 4, 1, 1)
@@ -71,6 +73,12 @@ class Ui_Editor(object):
         self.descriptionLabel = QtWidgets.QLabel(self.headGroup)
         self.descriptionLabel.setObjectName("descriptionLabel")
         self.gridLayout_2.addWidget(self.descriptionLabel, 0, 2, 1, 1)
+        self.obsTimeLabel = QtWidgets.QLabel(self.headGroup)
+        self.obsTimeLabel.setObjectName("obsTimeLabel")
+        self.gridLayout_2.addWidget(self.obsTimeLabel, 0, 5, 1, 1)
+        self.obsTime = QtWidgets.QLineEdit(self.headGroup)
+        self.obsTime.setObjectName("obsTime")
+        self.gridLayout_2.addWidget(self.obsTime, 1, 5, 1, 1)
         self.verticalLayout.addWidget(self.headGroup)
 
         self.retranslateUi(Editor)
@@ -79,19 +87,20 @@ class Ui_Editor(object):
     def retranslateUi(self, Editor):
         _translate = QtCore.QCoreApplication.translate
         self.typeGroup.setTitle(_translate("Editor", "Type"))
-        self.normal.setText(_translate("Editor", "Normal"))
+        self.general.setText(_translate("Editor", "General"))
         self.tropicalCyclone.setText(_translate("Editor", "Tropical Cyclone"))
         self.volcanicAsh.setText(_translate("Editor", "Volcanic Ash"))
+        self.custom.setText(_translate("Editor", "Custom"))
         self.cancel.setText(_translate("Editor", "Cancel"))
         self.headGroup.setTitle(_translate("Editor", "Head"))
         self.phenomenaLabel.setText(_translate("Editor", "Phenomena"))
         self.validLabel.setText(_translate("Editor", "Valid"))
         self.forecast.setItemText(0, _translate("Editor", "FCST"))
         self.forecast.setItemText(1, _translate("Editor", "OBS"))
-        self.forecast.setItemText(2, _translate("Editor", "OBS AND FCST"))
         self.forecastLabel.setText(_translate("Editor", "Forecast"))
         self.sequenceLabel.setText(_translate("Editor", "Sequence"))
         self.descriptionLabel.setText(_translate("Editor", "Phenomena Description"))
+        self.obsTimeLabel.setText(_translate("Editor", "OBS Time"))
 
 
 if __name__ == "__main__":

@@ -196,4 +196,16 @@ class TrendSender(BaseSender):
         self.sendSignal.emit()
 
 
+
+class SigmetSender(BaseSender):
+
+    def __init__(self, parent=None):
+        super(SigmetSender, self).__init__(parent)
+
+        self.reportType = 'Sigmet'
+
+        self.buttonBox.accepted.connect(self.send)
+
+    def save(self):
+        pass
     

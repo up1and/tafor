@@ -14,7 +14,8 @@ from tafor.utils.thread import WorkThread, CallThread, CheckUpgradeThread
 from tafor.components.ui import Ui_main, main_rc
 from tafor.components.taf import TAFEditor, TaskTAFEditor
 from tafor.components.trend import TrendEditor
-from tafor.components.send import TaskTAFSender, TAFSender, TrendSender
+from tafor.components.sigmet import SigmetEditor
+from tafor.components.send import TaskTAFSender, TAFSender, TrendSender, SigmetSender
 from tafor.components.setting import SettingDialog
 from tafor.components.task import TaskBrowser
 
@@ -140,10 +141,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.tafSender = TAFSender(self)
         self.taskTAFSender = TaskTAFSender(self)
         self.trendSender = TrendSender(self)
+        self.sigmetSender = SigmetSender(self)
 
         self.tafEditor = TAFEditor(self, self.tafSender)
         self.taskTAFEditor = TaskTAFEditor(self, self.taskTAFSender)
         self.trendEditor = TrendEditor(self, self.trendSender)
+        self.sigmetEditor = SigmetEditor(self, self.sigmetSender)
 
         # 设置主窗口文字图标
         self.setWindowIcon(QtGui.QIcon(':/logo.png'))
@@ -165,6 +168,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         # 连接菜单信号
         self.tafAction.triggered.connect(self.tafEditor.show)
         self.trendAction.triggered.connect(self.trendEditor.show)
+        self.sigmetAction.triggered.connect(self.sigmetEditor.show)
 
         # 添加定时任务菜单
         # self.taskTafAction = QtWidgets.QAction(self)

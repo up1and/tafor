@@ -5,7 +5,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from tafor import conf, logger
 from tafor.utils import CheckTAF, Pattern
-from tafor.components.ui import Ui_taf_primary, Ui_taf_becmg, Ui_taf_tempo, Ui_trend
+from tafor.components.ui import Ui_taf_primary, Ui_taf_becmg, Ui_taf_tempo, Ui_trend, Ui_sigmet_type, Ui_sigmet_general
 
 
 class BaseSegment(QtWidgets.QWidget):
@@ -620,3 +620,45 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
         self.period.setEnabled(False)
         self.period.clear()
+
+
+class SigmetTypeSegment(QtWidgets.QWidget, Ui_sigmet_type.Ui_Editor):
+
+    def __init__(self):
+        super(SigmetTypeSegment, self).__init__()
+        self.setupUi(self)
+        self.bindSignal()
+
+    def bindSignal(self):
+        pass
+
+
+class SigmetGeneralSegment(QtWidgets.QWidget, Ui_sigmet_general.Ui_Editor):
+
+    def __init__(self):
+        super(SigmetGeneralSegment, self).__init__()
+        self.setupUi(self)
+        self.bindSignal()
+
+        self.changeArea()
+
+    def bindSignal(self):
+        self.latitudeAndLongitude.clicked.connect(self.changeArea)
+        self.line.clicked.connect(self.changeArea)
+        self.points.clicked.connect(self.changeArea)
+
+    def changeArea(self):
+        if self.latitudeAndLongitude.isChecked():
+            self.latitudeAndLongitudeWidget.setVisible(True)
+            self.lineWidget.setVisible(False)
+            self.pointsWidget.setVisible(False)
+
+        if self.line.isChecked():
+            self.latitudeAndLongitudeWidget.setVisible(False)
+            self.lineWidget.setVisible(True)
+            self.pointsWidget.setVisible(False)
+
+        if self.points.isChecked():
+            self.latitudeAndLongitudeWidget.setVisible(False)
+            self.lineWidget.setVisible(False)
+            self.pointsWidget.setVisible(True)
