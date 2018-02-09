@@ -1,3 +1,4 @@
+import datetime
 
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -25,7 +26,7 @@ class SigmetEditor(BaseEditor):
         self.type = SigmetTypeSegment()
         self.general = SigmetGeneralSegment()
         self.nextButton = QPushButton()
-        self.nextButton.setEnabled(False)
+        # self.nextButton.setEnabled(False)
         self.nextButton.setText(QCoreApplication.translate('Editor', 'Next'))
         layout.addWidget(self.type)
         layout.addWidget(self.general)
@@ -35,4 +36,10 @@ class SigmetEditor(BaseEditor):
         self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px}')
 
     def bindSignal(self):
-    	pass
+    	self.nextButton.clicked.connect(self.message)
+
+    def message(self):
+        typeMessage = self.type.message()
+        generalMessage = self.general.message() if self.type.general.isChecked() else ''
+        messages = [typeMessage, generalMessage]
+        print(messages)

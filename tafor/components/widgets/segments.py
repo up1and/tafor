@@ -628,9 +628,61 @@ class SigmetTypeSegment(QtWidgets.QWidget, Ui_sigmet_type.Ui_Editor):
         super(SigmetTypeSegment, self).__init__()
         self.setupUi(self)
         self.bindSignal()
+        self.updateDate()
+        self.setSquence()
+        self.setPhenomenaDescription()
 
     def bindSignal(self):
-        pass
+        self.forecast.currentTextChanged.connect(self.enbaleOBSTime)
+        self.description.currentTextChanged.connect(self.setPhenomena)
+
+    def enbaleOBSTime(self, text):
+        if text == 'OBS':
+            self.obsTime.setEnabled(True)
+            self.obsTimeLabel.setEnabled(True)
+        else:
+            self.obsTime.setEnabled(False)
+            self.obsTimeLabel.setEnabled(False)
+
+    def updateDate(self):
+        self.time = datetime.datetime.utcnow() + datetime.timedelta(minutes=15)
+        self.valid.setText(self.time.strftime('%d%H%M'))
+
+    def setSquence(self):
+        self.sequence.setText('1')
+
+    def setPhenomenaDescription(self):
+        descriptions = ['OBSC', 'EMBD', 'FRQ', 'SQL', 'SEV', 'HVY']
+        self.description.addItems(descriptions)
+
+    def setPhenomena(self, text):
+        self.phenomena.clear()
+
+        if text == 'SEV':
+            phenomenas = ['TURB', 'ICE', 'ICE (FZRA)', 'MTW']
+        elif text == 'HVY':
+            phenomenas = ['DS', 'SS']
+        else:
+            phenomenas = ['TS', 'TS GR']
+
+        self.phenomena.addItems(phenomenas)
+
+    def message(self):
+        fir = conf.value('Message/FIR')
+        description = self.description.currentText()
+        phenomena = self.phenomena.currentText()
+        prediction = self.prediction()
+        
+        text = ' '.join([fir, description, phenomena, prediction])
+        return text
+
+    def prediction(self):
+        if self.forecast.currentText() == 'OBS':
+            text = 'OBS AT {}Z'.format(self.obsTime.text()) if self.obsTime.text() else ''
+        else:
+            text = self.forecast.currentText()
+
+        return text
 
 
 class SigmetGeneralSegment(QtWidgets.QWidget, Ui_sigmet_general.Ui_Editor):
@@ -640,14 +692,15 @@ class SigmetGeneralSegment(QtWidgets.QWidget, Ui_sigmet_general.Ui_Editor):
         self.setupUi(self)
         self.bindSignal()
 
-        self.changeArea()
+        self.setArea()
 
     def bindSignal(self):
-        self.latitudeAndLongitude.clicked.connect(self.changeArea)
-        self.line.clicked.connect(self.changeArea)
-        self.points.clicked.connect(self.changeArea)
+        self.latitudeAndLongitude.clicked.connect(self.setArea)
+        self.line.clicked.connect(self.setArea)
+        self.points.clicked.connect(self.setArea)
+        self.position.currentTextChanged.connect(self.setFightLevel)
 
-    def changeArea(self):
+    def setArea(self):
         if self.latitudeAndLongitude.isChecked():
             self.latitudeAndLongitudeWidget.setVisible(True)
             self.lineWidget.setVisible(False)
@@ -662,3 +715,86 @@ class SigmetGeneralSegment(QtWidgets.QWidget, Ui_sigmet_general.Ui_Editor):
             self.latitudeAndLongitudeWidget.setVisible(False)
             self.lineWidget.setVisible(False)
             self.pointsWidget.setVisible(True)
+
+    def setFightLevel(self, text):
+        if text in ['TOP', 'ABV']:
+            self.base.setEnabled(False)
+            self.top.setEnabled(True)
+            self.baseLabel.setEnabled(False)
+            self.topLabel.setEnabled(True)
+        elif text == 'BLW':
+            self.base.setEnabled(True)
+            self.top.setEnabled(False)
+            self.baseLabel.setEnabled(True)
+            self.topLabel.setEnabled(False)
+        else:
+            self.base.setEnabled(True)
+            self.top.setEnabled(True)
+            self.baseLabel.setEnabled(True)
+            self.topLabel.setEnabled(True)
+
+    def message(self):
+        area = self.area()
+        fightLevel = self.fightLevel()
+        movement = 'MOV {}'.format(self.movement.currentText())
+        speed = '{} KMH'.format(self.speed.text())
+        intensityChange = self.intensityChange.currentText()
+
+        text = ' '.join([area, fightLevel, movement, speed, intensityChange])
+        return text
+
+    def fightLevel(self):
+        position = self.position.currentText()
+        base = self.base.text()
+        top = self.top.text()
+
+        if not position:
+            text = 'FL{}/FL{}'.format(base, top) if all([top, base]) else ''
+
+        if position in ['TOP', 'ABV']:
+            text = '{} FL{}'.format(position, top) if top else ''
+
+        if position == 'BLW':
+            text = 'BLW FL{}'.format(base) if base else ''
+
+        return text
+
+    def area(self):
+        def point(latitude, longitude):
+            lat = latitude.text() if latitude.text() else ''
+            lon = longitude.text() if longitude.text() else ''
+
+            text = '{} {}'.format(lat, lon) if all([lat, lon]) else ''
+            return text
+
+        if self.latitudeAndLongitude.isChecked():
+            north = 'N OF {}'.format(self.north.text()) if self.north.text() else ''
+            south = 'S OF {}'.format(self.south.text()) if self.south.text() else ''
+            east = 'E OF {}'.format(self.east.text()) if self.east.text() else ''
+            west = 'W OF {}'.format(self.west.text()) if self.west.text() else ''
+            areas = [north, south, east, west]
+
+            text = ' AND '.join(filter(None, areas))
+
+        if self.line.isChecked():
+            point1 = point(self.lineLatitude1, self.lineLongtitude1)
+            point2 = point(self.lineLatitude2, self.lineLongtitude2)
+            line1 = '{} OF LINE {} - {}'.format(self.lineDirection1.currentText(), point1, point2) if all([point1, point2]) else ''
+
+            point3 = point(self.lineLatitude3, self.lineLongtitude3)
+            point4 = point(self.lineLatitude4, self.lineLongtitude4)
+            line2 = '{} OF LINE {} - {}'.format(self.lineDirection2.currentText(), point3, point4) if all([point3, point4]) else ''
+
+            lines = [line1, line2]
+            text = ' AND '.join(filter(None, lines))
+
+        if self.points.isChecked():
+            point1 = point(self.pointsLatitude1, self.pointsLongtitude1)
+            point2 = point(self.pointsLatitude2, self.pointsLongtitude2)
+            point3 = point(self.pointsLatitude3, self.pointsLongtitude3)
+            point4 = point(self.pointsLatitude4, self.pointsLongtitude4)
+
+            points = [point1, point2, point3, point4]
+            text = 'WI ' + ' - '.join(filter(None, points))
+
+        return text

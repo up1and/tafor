@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Editor(object):
     def setupUi(self, Editor):
         Editor.setObjectName("Editor")
-        Editor.resize(532, 486)
+        Editor.resize(532, 550)
         Editor.setWindowTitle("Sigmet")
         self.verticalLayout = QtWidgets.QVBoxLayout(Editor)
         self.verticalLayout.setObjectName("verticalLayout")
@@ -273,7 +273,6 @@ class Ui_Editor(object):
         self.pointsLongtitudeLabel.setObjectName("pointsLongtitudeLabel")
         self.pointsLayout.addWidget(self.pointsLongtitudeLabel, 0, 2, 1, 1)
         self.pointsLatitude1 = QtWidgets.QLineEdit(self.pointsWidget)
-        self.pointsLatitude1.setInputMask("N")
         self.pointsLatitude1.setObjectName("pointsLatitude1")
         self.pointsLayout.addWidget(self.pointsLatitude1, 1, 1, 1, 1)
         self.verticalLayout_2.addWidget(self.pointsWidget)
