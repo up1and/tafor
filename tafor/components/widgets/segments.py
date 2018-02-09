@@ -632,6 +632,10 @@ class SigmetTypeSegment(QtWidgets.QWidget, Ui_sigmet_type.Ui_Editor):
         self.setSquence()
         self.setPhenomenaDescription()
 
+        self.setTCNameVisible(False)
+
+        self.duration = 4
+
     def bindSignal(self):
         self.forecast.currentTextChanged.connect(self.enbaleOBSTime)
         self.description.currentTextChanged.connect(self.setPhenomena)
@@ -667,6 +671,10 @@ class SigmetTypeSegment(QtWidgets.QWidget, Ui_sigmet_type.Ui_Editor):
 
         self.phenomena.addItems(phenomenas)
 
+    def setTCNameVisible(self, status):
+        self.tcName.setVisible(status)
+        self.tcNameLabel.setVisible(status)
+
     def message(self):
         fir = conf.value('Message/FIR')
         description = self.description.currentText()
@@ -674,6 +682,16 @@ class SigmetTypeSegment(QtWidgets.QWidget, Ui_sigmet_type.Ui_Editor):
         prediction = self.prediction()
         
         text = ' '.join([fir, description, phenomena, prediction])
+        return text
+
+    def head(self):
+        area = conf.value('Message/FIR').split()[0]
+        sequence = self.sequence.text()
+        validStart = self.time.strftime('%d%H%M')
+        validEnd = (self.time + datetime.timedelta(hours=self.duration)).strftime('%d%H%M')
+        icao = conf.value('Message/ICAO')
+
+        text = '{} SIGMET {} VALID {}/{} {}-'.format(area, sequence, validStart, validEnd, icao)
         return text
 
     def prediction(self):
@@ -698,6 +716,8 @@ class SigmetGeneralSegment(QtWidgets.QWidget, Ui_sigmet_general.Ui_Editor):
         self.latitudeAndLongitude.clicked.connect(self.setArea)
         self.line.clicked.connect(self.setArea)
         self.points.clicked.connect(self.setArea)
+        self.local.clicked.connect(self.setArea)
+
         self.position.currentTextChanged.connect(self.setFightLevel)
 
     def setArea(self):
@@ -715,6 +735,11 @@ class SigmetGeneralSegment(QtWidgets.QWidget, Ui_sigmet_general.Ui_Editor):
             self.latitudeAndLongitudeWidget.setVisible(False)
             self.lineWidget.setVisible(False)
             self.pointsWidget.setVisible(True)
+
+        if self.local.isChecked():
+            self.latitudeAndLongitudeWidget.setVisible(False)
+            self.lineWidget.setVisible(False)
+            self.pointsWidget.setVisible(False)
 
     def setFightLevel(self, text):
         if text in ['TOP', 'ABV']:
@@ -796,5 +821,8 @@ class SigmetGeneralSegment(QtWidgets.QWidget, Ui_sigmet_general.Ui_Editor):
 
             points = [point1, point2, point3, point4]
             text = 'WI ' + ' - '.join(filter(None, points))
+
+        if self.local.isChecked():
+            text = conf.value('Message/ICAO')
 
         return text

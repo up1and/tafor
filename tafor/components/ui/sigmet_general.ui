@@ -200,6 +200,13 @@
           </widget>
          </item>
          <item>
+          <widget class="QRadioButton" name="local">
+           <property name="text">
+            <string>Local</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <spacer name="horizontalSpacer">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>

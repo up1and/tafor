@@ -39,7 +39,8 @@ class SigmetEditor(BaseEditor):
     	self.nextButton.clicked.connect(self.message)
 
     def message(self):
+        headMessage = self.type.head()
         typeMessage = self.type.message()
         generalMessage = self.general.message() if self.type.general.isChecked() else ''
-        messages = [typeMessage, generalMessage]
+        messages = [headMessage, typeMessage, generalMessage]
         print(messages)
