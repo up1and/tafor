@@ -1,15 +1,15 @@
 import requests
 
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtCore import QCoreApplication, QTimer
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel
 
 
-class StatusBarWidget(QtWidgets.QWidget):
+class StatusBarWidget(QWidget):
 
     def __init__(self, parent, statusBar, last=False):
         super(StatusBarWidget, self).__init__(parent)
 
-        layout = QtWidgets.QHBoxLayout()
+        layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
 
@@ -24,8 +24,8 @@ class BaseTimerStatus(StatusBarWidget):
         super(BaseTimerStatus, self).__init__(parent, statusBar, last)
         layout = self.layout()
         layout.addSpacing(10)
-        self.head = QtWidgets.QLabel()
-        self.label = QtWidgets.QLabel()
+        self.head = QLabel()
+        self.label = QLabel()
         # font = QtGui.QFont()
         # font.setBold(True)
         # self.label.setFont(font)
@@ -34,7 +34,7 @@ class BaseTimerStatus(StatusBarWidget):
         layout.addSpacing(10)
         self.setHead()
 
-        self.timer = QtCore.QTimer()
+        self.timer = QTimer()
         self.timer.timeout.connect(self.setValue)
         self.timer.start(2000)
     

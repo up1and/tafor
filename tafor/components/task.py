@@ -1,43 +1,45 @@
 import datetime
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import QCoreApplication, QTimer
+from PyQt5.QtWidgets import QDialog, QAction, QMenu, QHeaderView, QTableWidgetItem
 
 from tafor.components.ui import Ui_task
 from tafor.models import db, Task
 from tafor import logger
 
 
-class TaskBrowser(QtWidgets.QDialog, Ui_task.Ui_Tasks):
+class TaskBrowser(QDialog, Ui_task.Ui_Tasks):
+    
     def __init__(self, parent=None):
         super(TaskBrowser, self).__init__(parent)
         self.setupUi(self)
         self.parent = parent
         self.updateGUI()
 
-        self.timer = QtCore.QTimer()
+        self.timer = QTimer()
         self.timer.timeout.connect(self.updateGUI)
         self.timer.start(60 * 1000)
 
     def updateGUI(self):
         items = db.query(Task).filter(Task.tafor_id == None).order_by(Task.plan.desc()).all()
         header = self.taskTable.horizontalHeader()
-        header.setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
         self.taskTable.setRowCount(len(items))
         self.taskTable.resizeRowsToContents()
 
         for row, item in enumerate(items):
-            self.taskTable.setItem(row, 0, QtWidgets.QTableWidgetItem(item.tt))
-            self.taskTable.setItem(row, 1, QtWidgets.QTableWidgetItem(item.rpt))
-            self.taskTable.setItem(row, 2, QtWidgets.QTableWidgetItem(item.plan.strftime("%m-%d %H:%M:%S")))
-            self.taskTable.setItem(row, 3, QtWidgets.QTableWidgetItem(item.created.strftime("%m-%d %H:%M:%S")))
+            self.taskTable.setItem(row, 0, QTableWidgetItem(item.tt))
+            self.taskTable.setItem(row, 1, QTableWidgetItem(item.rpt))
+            self.taskTable.setItem(row, 2, QTableWidgetItem(item.plan.strftime("%m-%d %H:%M:%S")))
+            self.taskTable.setItem(row, 3, QTableWidgetItem(item.created.strftime("%m-%d %H:%M:%S")))
 
     def contextMenuEvent(self, event):
-        menu = QtWidgets.QMenu()
+        menu = QMenu()
 
-        copyAction = QtWidgets.QAction('复制', self)
+        copyAction = QAction('复制', self)
         copyAction.triggered.connect(self.copySelectItem)
 
-        delAction = QtWidgets.QAction('删除', self)
+        delAction = QAction('删除', self)
         delAction.triggered.connect(self.delSelectItem)
 
         menu.addAction(copyAction)

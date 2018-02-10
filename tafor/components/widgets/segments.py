@@ -1,7 +1,9 @@
 import json
 import datetime
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtGui import QRegExpValidator
+from PyQt5.QtCore import Qt, QRegExp, pyqtSignal
+from PyQt5.QtWidgets import QWidget, QVBoxLayout
 
 from tafor import conf, logger
 from tafor.utils import CheckTAF, Pattern
@@ -9,8 +11,8 @@ from tafor.components.ui import (Ui_taf_primary, Ui_taf_becmg, Ui_taf_tempo, Ui_
     Ui_sigmet_type, Ui_sigmet_general, Ui_sigmet_phenomena, Ui_sigmet_typhoon, Ui_sigmet_custom)
 
 
-class BaseSegment(QtWidgets.QWidget):
-    completeSignal = QtCore.pyqtSignal(bool)
+class BaseSegment(QWidget):
+    completeSignal = pyqtSignal(bool)
 
     def __init__(self):
         super(BaseSegment, self).__init__()
@@ -101,16 +103,16 @@ class BaseSegment(QtWidgets.QWidget):
             self.clouds(True)
 
     def setValidator(self):
-        wind = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.wind, QtCore.Qt.CaseInsensitive))
+        wind = QRegExpValidator(QRegExp(self.rules.wind, Qt.CaseInsensitive))
         self.wind.setValidator(wind)
 
-        gust = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.gust, QtCore.Qt.CaseInsensitive))
+        gust = QRegExpValidator(QRegExp(self.rules.gust, Qt.CaseInsensitive))
         self.gust.setValidator(gust)
 
-        vis = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.vis))
+        vis = QRegExpValidator(QRegExp(self.rules.vis))
         self.vis.setValidator(vis)
 
-        cloud = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.cloud, QtCore.Qt.CaseInsensitive))
+        cloud = QRegExpValidator(QRegExp(self.rules.cloud, Qt.CaseInsensitive))
         self.cloud1.setValidator(cloud)
         self.cloud2.setValidator(cloud)
         self.cloud3.setValidator(cloud)
@@ -211,14 +213,14 @@ class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
     def setValidator(self):
         super(TAFPrimarySegment, self).setValidator()
 
-        date = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.date))
+        date = QRegExpValidator(QRegExp(self.rules.date))
         self.date.setValidator(date)
 
-        temp = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.temp, QtCore.Qt.CaseInsensitive))
+        temp = QRegExpValidator(QRegExp(self.rules.temp, Qt.CaseInsensitive))
         self.tmax.setValidator(temp)
         self.tmin.setValidator(temp)
 
-        tempHours = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.hours))
+        tempHours = QRegExpValidator(QRegExp(self.rules.hours))
         self.tmaxTime.setValidator(tempHours)
         self.tminTime.setValidator(tempHours)
 
@@ -335,7 +337,7 @@ class TAFBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Editor):
     def setValidator(self):
         super(TAFBecmgSegment, self).setValidator()
 
-        interval = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.interval))
+        interval = QRegExpValidator(QRegExp(self.rules.interval))
         self.interval.setValidator(interval)
 
     def bindSignal(self):
@@ -398,7 +400,7 @@ class TAFTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Editor):
     def setValidator(self):
         super(TAFTempoSegment, self).setValidator()
 
-        interval = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.interval))
+        interval = QRegExpValidator(QRegExp(self.rules.interval))
         self.interval.setValidator(interval)
 
     def bindSignal(self):
@@ -485,7 +487,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         super(TrendSegment, self).setValidator()
 
         # 还未验证输入个数
-        period = QtGui.QRegExpValidator(QtCore.QRegExp(self.rules.trendInterval))
+        period = QRegExpValidator(QRegExp(self.rules.trendInterval))
         self.period.setValidator(period)
 
     def setNosig(self, checked):
@@ -623,13 +625,13 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         self.period.clear()
 
 
-class SigmetTypeSegment(QtWidgets.QWidget, Ui_sigmet_type.Ui_Editor):
+class SigmetTypeSegment(QWidget, Ui_sigmet_type.Ui_Editor):
 
     def __init__(self):
         super(SigmetTypeSegment, self).__init__()
         self.setupUi(self)
 
-class BaseSigmetPhenomena(QtWidgets.QWidget, Ui_sigmet_phenomena.Ui_Editor):
+class BaseSigmetPhenomena(QWidget, Ui_sigmet_phenomena.Ui_Editor):
 
     def __init__(self):
         super(BaseSigmetPhenomena, self).__init__()
@@ -766,7 +768,7 @@ class SigmetCustomPhenomena(BaseSigmetPhenomena):
         self.obsTimeLabel.setVisible(False)
         
 
-class SigmetGeneralContent(QtWidgets.QWidget, Ui_sigmet_general.Ui_Editor):
+class SigmetGeneralContent(QWidget, Ui_sigmet_general.Ui_Editor):
 
     def __init__(self):
         super(SigmetGeneralContent, self).__init__()
@@ -897,21 +899,21 @@ class SigmetGeneralContent(QtWidgets.QWidget, Ui_sigmet_general.Ui_Editor):
         return text
 
 
-class SigmetTyphoonContent(QtWidgets.QWidget, Ui_sigmet_typhoon.Ui_Editor):
+class SigmetTyphoonContent(QWidget, Ui_sigmet_typhoon.Ui_Editor):
 
     def __init__(self):
         super(SigmetTyphoonContent, self).__init__()
         self.setupUi(self)
 
 
-class SigmetCustomContent(QtWidgets.QWidget, Ui_sigmet_custom.Ui_Editor):
+class SigmetCustomContent(QWidget, Ui_sigmet_custom.Ui_Editor):
 
     def __init__(self):
         super(SigmetCustomContent, self).__init__()
         self.setupUi(self)
 
 
-class SigmetGeneralSegment(QtWidgets.QWidget):
+class SigmetGeneralSegment(QWidget):
 
     def __init__(self):
         super(SigmetGeneralSegment, self).__init__()
@@ -919,7 +921,7 @@ class SigmetGeneralSegment(QtWidgets.QWidget):
         self.bindSignal()
 
     def initUI(self):
-        layout = QtWidgets.QVBoxLayout(self)
+        layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         self.phenomena = SigmetGeneralPhenomena()
         self.content = SigmetGeneralContent()
@@ -932,7 +934,7 @@ class SigmetGeneralSegment(QtWidgets.QWidget):
         self.phenomena.phenomena.currentTextChanged.connect(self.content.setPosition)
 
 
-class SigmetTyphoonSegment(QtWidgets.QWidget):
+class SigmetTyphoonSegment(QWidget):
 
     def __init__(self):
         super(SigmetTyphoonSegment, self).__init__()
@@ -940,7 +942,7 @@ class SigmetTyphoonSegment(QtWidgets.QWidget):
         self.bindSignal()
 
     def initUI(self):
-        layout = QtWidgets.QVBoxLayout(self)
+        layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         self.phenomena = SigmetTyphoonPhenomena()
         self.content = SigmetTyphoonContent()
@@ -952,7 +954,7 @@ class SigmetTyphoonSegment(QtWidgets.QWidget):
         pass
 
 
-class SigmetCustomSegment(QtWidgets.QWidget):
+class SigmetCustomSegment(QWidget):
 
     def __init__(self):
         super(SigmetCustomSegment, self).__init__()
@@ -960,7 +962,7 @@ class SigmetCustomSegment(QtWidgets.QWidget):
         self.bindSignal()
 
     def initUI(self):
-        layout = QtWidgets.QVBoxLayout(self)
+        layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         self.phenomena = SigmetCustomPhenomena()
         self.content = SigmetCustomContent()

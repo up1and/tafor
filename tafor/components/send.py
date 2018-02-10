@@ -1,7 +1,7 @@
 import datetime
 
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtCore import QCoreApplication, QTimer, pyqtSignal
+from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QMessageBox
 
 from tafor import conf, logger
 from tafor.components.ui import Ui_send
@@ -10,11 +10,11 @@ from tafor.utils import Parser, AFTNMessage
 from tafor.utils.thread import SerialThread
 
 
-class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Sender):
+class BaseSender(QDialog, Ui_send.Ui_Sender):
 
-    sendSignal = QtCore.pyqtSignal()
-    closeSignal = QtCore.pyqtSignal()
-    backSignal = QtCore.pyqtSignal()
+    sendSignal = pyqtSignal()
+    closeSignal = pyqtSignal()
+    backSignal = pyqtSignal()
 
     def __init__(self, parent=None):
         super(BaseSender, self).__init__(parent)
@@ -23,9 +23,9 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Sender):
         self.parent = parent
         self.aftn = None
 
-        self.sendButton = self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok)
-        self.resendButton = self.buttonBox.button(QtWidgets.QDialogButtonBox.Retry)
-        self.cancelButton = self.buttonBox.button(QtWidgets.QDialogButtonBox.Cancel)
+        self.sendButton = self.buttonBox.button(QDialogButtonBox.Ok)
+        self.resendButton = self.buttonBox.button(QDialogButtonBox.Retry)
+        self.cancelButton = self.buttonBox.button(QDialogButtonBox.Cancel)
 
         self.sendButton.setText(QCoreApplication.translate('Sender', 'Send'))
         self.resendButton.setText(QCoreApplication.translate('Sender', 'Resend'))
@@ -66,14 +66,14 @@ class BaseSender(QtWidgets.QDialog, Ui_send.Ui_Sender):
             self.resendButton.setEnabled(True)
 
             title = QCoreApplication.translate('Sender', 'Error')
-            QtWidgets.QMessageBox.critical(self, title, error)
+            QMessageBox.critical(self, title, error)
 
     def send(self):
         if hasattr(self, 'parser') and not self.parser.isValid():
             title = QCoreApplication.translate('Sender', 'Validator Warning')
             text = QCoreApplication.translate('Sender', 'The message did not pass the validator, do you still want to send?')
-            ret = QtWidgets.QMessageBox.question(self, title, text)
-            if ret != QtWidgets.QMessageBox.Yes:
+            ret = QMessageBox.question(self, title, text)
+            if ret != QMessageBox.Yes:
                 return None
 
         if not isinstance(self.aftn, AFTNMessage):
@@ -135,7 +135,7 @@ class TaskTAFSender(BaseSender):
         self.buttonBox.accepted.connect(self.accept)
 
         # 自动发送报文的计时器
-        self.autoSendTimer = QtCore.QTimer()
+        self.autoSendTimer = QTimer()
         self.autoSendTimer.timeout.connect(self.autoSend)
         self.autoSendTimer.start(30 * 1000)
 

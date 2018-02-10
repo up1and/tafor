@@ -1,8 +1,8 @@
 import json
 import datetime
 
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtCore import QCoreApplication, QTimer
+from PyQt5.QtWidgets import QWidget, QMessageBox, QLabel, QHBoxLayout
 
 from tafor.models import db, Tafor
 from tafor.utils import CheckTAF
@@ -12,9 +12,9 @@ from tafor.components.ui import Ui_main_recent
 def createAlarmMsgBox(parent, text):
     title = QCoreApplication.translate('MainWindow', 'Alarm')
     message = QCoreApplication.translate('MainWindow', 'Time to post {}').format(text)
-    messageBox = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Question, title, message, parent=parent)
-    snooze = messageBox.addButton(QCoreApplication.translate('MainWindow', 'Snooze'), QtWidgets.QMessageBox.ApplyRole)
-    dismiss = messageBox.addButton(QCoreApplication.translate('MainWindow', 'Dismiss'), QtWidgets.QMessageBox.RejectRole)
+    messageBox = QMessageBox(QMessageBox.Question, title, message, parent=parent)
+    snooze = messageBox.addButton(QCoreApplication.translate('MainWindow', 'Snooze'), QMessageBox.ApplyRole)
+    dismiss = messageBox.addButton(QCoreApplication.translate('MainWindow', 'Dismiss'), QMessageBox.RejectRole)
     messageBox.exec_()
 
     if messageBox.clickedButton() == snooze:
@@ -23,7 +23,8 @@ def createAlarmMsgBox(parent, text):
     return False
 
 
-class RecentTAF(QtWidgets.QWidget, Ui_main_recent.Ui_Recent):
+class RecentTAF(QWidget, Ui_main_recent.Ui_Recent):
+
     def __init__(self, parent, container, tt):
         super(RecentTAF, self).__init__(parent)
         self.setupUi(self)
@@ -47,16 +48,17 @@ class RecentTAF(QtWidgets.QWidget, Ui_main_recent.Ui_Recent):
             self.check.setText('<img src=":/cross.png" width="24" height="24"/>')
 
 
-class CurrentTAF(QtWidgets.QWidget):
+class CurrentTAF(QWidget):
+
     def __init__(self, parent, container):
         super(CurrentTAF, self).__init__(parent)
 
-        layout = QtWidgets.QHBoxLayout()
+        layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
 
-        self.fc = QtWidgets.QLabel()
-        self.ft = QtWidgets.QLabel()
+        self.fc = QLabel()
+        self.ft = QLabel()
 
         layout.addWidget(self.fc)
         layout.addSpacing(10)
@@ -77,20 +79,21 @@ class CurrentTAF(QtWidgets.QWidget):
         return text
 
 
-class Clock(QtWidgets.QWidget):
+class Clock(QWidget):
+    
     def __init__(self, parent, container):
         super(Clock, self).__init__(parent)
 
-        layout = QtWidgets.QHBoxLayout()
+        layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
 
-        # layout.addWidget(QtWidgets.QLabel('世界时'))
+        # layout.addWidget(QLabel('世界时'))
         layout.addSpacing(5)
-        self.label = QtWidgets.QLabel()
+        self.label = QLabel()
         layout.addWidget(self.label)
 
-        self.timer = QtCore.QTimer()
+        self.timer = QTimer()
         self.timer.timeout.connect(self.updateGUI)
         self.timer.start(1 * 1000)
 

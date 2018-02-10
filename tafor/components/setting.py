@@ -1,27 +1,27 @@
 import json
 import datetime
 
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import QCoreApplication
-from PyQt5.QtGui import QIntValidator
+from PyQt5.QtGui import QIcon, QIntValidator
+from PyQt5.QtCore import QCoreApplication, QSettings, QTimer, Qt
+from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QTableWidgetItem
 
 from tafor.components.ui import Ui_setting, main_rc
 from tafor.models import db, User
 from tafor import conf, boolean, logger
 
 
-class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Settings):
+class SettingDialog(QDialog, Ui_setting.Ui_Settings):
     """docstring for SettingDialog"""
     def __init__(self, parent=None):
         super(SettingDialog, self).__init__(parent)
         self.parent = parent
         self.setupUi(self)
-        self.setWindowIcon(QtGui.QIcon(':/setting.png'))
+        self.setWindowIcon(QIcon(':/setting.png'))
 
         # 开机自动启动设置
-        self.autoRun = QtCore.QSettings('HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run', QtCore.QSettings.NativeFormat)
+        self.autoRun = QSettings('HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run', QSettings.NativeFormat)
 
-        self.clockTimer = QtCore.QTimer()
+        self.clockTimer = QTimer()
         self.clockTimer.timeout.connect(self.checkSerialNumber)
         self.clockTimer.start(1 * 1000)
 
@@ -34,9 +34,9 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Settings):
         self.closeToMinimize.setEnabled(False)
         self.closeToMinimize.setChecked(True)
 
-        self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setText(QCoreApplication.translate('Settings', 'OK'))
-        self.buttonBox.button(QtWidgets.QDialogButtonBox.Apply).setText(QCoreApplication.translate('Settings', 'Apply'))
-        self.buttonBox.button(QtWidgets.QDialogButtonBox.Cancel).setText(QCoreApplication.translate('Settings', 'Cancel'))
+        self.buttonBox.button(QDialogButtonBox.Ok).setText(QCoreApplication.translate('Settings', 'OK'))
+        self.buttonBox.button(QDialogButtonBox.Apply).setText(QCoreApplication.translate('Settings', 'Apply'))
+        self.buttonBox.button(QDialogButtonBox.Cancel).setText(QCoreApplication.translate('Settings', 'Cancel'))
 
     def bindSignal(self):
         self.addWeatherButton.clicked.connect(lambda: self.addWeather('weather'))
@@ -52,9 +52,9 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Settings):
 
         self.callUpButton.clicked.connect(self.testCallUp)
 
-        # self.buttonBox.button(QtWidgets.QDialogButtonBox.Reset).clicked.connect(self.load)
-        self.buttonBox.button(QtWidgets.QDialogButtonBox.Apply).clicked.connect(self.save)
-        self.buttonBox.button(QtWidgets.QDialogButtonBox.Apply).clicked.connect(self.parent.updateGUI)
+        # self.buttonBox.button(QDialogButtonBox.Reset).clicked.connect(self.load)
+        self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.save)
+        self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.parent.updateGUI)
         self.buttonBox.accepted.connect(self.save)
         self.buttonBox.accepted.connect(self.parent.updateGUI)
 
@@ -113,8 +113,8 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Settings):
         self.contractTable.setRowCount(len(items))
 
         for row, item in enumerate(items):
-            self.contractTable.setItem(row, 0,  QtWidgets.QTableWidgetItem(item.name))
-            self.contractTable.setItem(row, 1,  QtWidgets.QTableWidgetItem(item.mobile))
+            self.contractTable.setItem(row, 0,  QTableWidgetItem(item.name))
+            self.contractTable.setItem(row, 1,  QTableWidgetItem(item.mobile))
 
         self.selectedContract.clear()
         options = [item.name for item in items]
@@ -250,7 +250,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Settings):
             target.setChecked(val)
 
         if mold == 'combox':
-            index = target.findText(val, QtCore.Qt.MatchFixedString)
+            index = target.findText(val, Qt.MatchFixedString)
             target.setCurrentIndex(index)
 
         if mold == 'slider':
@@ -266,7 +266,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Settings):
         if mold == 'mobile':
             person = db.query(User).filter_by(mobile=val).first()
             if person:
-                index = target.findText(person.name, QtCore.Qt.MatchFixedString)
+                index = target.findText(person.name, Qt.MatchFixedString)
                 target.setCurrentIndex(index)
 
     def setValue(self, path, target, mold='text'):
@@ -288,7 +288,7 @@ class SettingDialog(QtWidgets.QDialog, Ui_setting.Ui_Settings):
             val = target.toPlainText()
 
         if mold == 'list':
-            items = [item.text() for item in target.findItems('', QtCore.Qt.MatchContains)]
+            items = [item.text() for item in target.findItems('', Qt.MatchContains)]
             val = json.dumps(items)
 
         if mold == 'mobile':

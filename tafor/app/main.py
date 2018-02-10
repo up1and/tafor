@@ -1,8 +1,10 @@
 import os
 import datetime
 
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtGui import QIcon, QDesktopServices
+from PyQt5.QtCore import QCoreApplication, QObject, QTranslator, QLocale, QEvent, QTimer, Qt, QUrl, pyqtSignal
+from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy, QActionGroup, QAction, 
+        QSystemTrayIcon, QMenu, QSystemTrayIcon, QHeaderView, QTableWidgetItem, QMessageBox, QStyleFactory)
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 from PyQt5.QtMultimedia import QSound, QSoundEffect
 
@@ -24,9 +26,9 @@ from tafor.components.widgets.status import WebAPIStatus, CallServiceStatus
 from tafor.components.widgets.sound import Sound
 
 
-class Context(QtCore.QObject):
-    warningSignal = QtCore.pyqtSignal()
-    reminderSignal = QtCore.pyqtSignal(str)
+class Context(QObject):
+    warningSignal = pyqtSignal()
+    reminderSignal = pyqtSignal(str)
 
     def __init__(self):
         super(Context, self).__init__()
@@ -116,7 +118,7 @@ class Context(QtCore.QObject):
             raise ValueError
         
 
-class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
+class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     """
     主窗口
     """
@@ -132,7 +134,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.context.reminderSignal.connect(self.reminder)
 
         # 初始化剪贴板
-        self.clip = QtWidgets.QApplication.clipboard()
+        self.clip = QApplication.clipboard()
 
         # 初始化窗口
         self.taskBrowser = TaskBrowser(self)
@@ -149,7 +151,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.sigmetEditor = SigmetEditor(self, self.sigmetSender)
 
         # 设置主窗口文字图标
-        self.setWindowIcon(QtGui.QIcon(':/logo.png'))
+        self.setWindowIcon(QIcon(':/logo.png'))
 
         self.setupRecent()
 
@@ -171,7 +173,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.sigmetAction.triggered.connect(self.sigmetEditor.show)
 
         # 添加定时任务菜单
-        # self.taskTafAction = QtWidgets.QAction(self)
+        # self.taskTafAction = QAction(self)
         # self.post_menu.addAction(self.taskTafAction)
         # self.taskTafAction.setText('定时任务')
         # self.taskTafAction.triggered.connect(self.taskTAFEditor.show)
@@ -179,7 +181,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         # 连接设置对话框的槽
         self.settingAction.triggered.connect(self.settingDialog.exec_)
         self.settingAction.triggered.connect(self.showWindow)
-        self.settingAction.setIcon(QtGui.QIcon(':/setting.png'))
+        self.settingAction.setIcon(QIcon(':/setting.png'))
 
         self.reportIssueAction.triggered.connect(self.reportIssue)
         self.checkUpgradeAction.triggered.connect(self.checkUpgradeThread.start)
@@ -197,11 +199,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.metarTable.itemDoubleClicked.connect(self.copySelectItem)
 
         # 时钟计时器
-        self.clockTimer = QtCore.QTimer()
+        self.clockTimer = QTimer()
         self.clockTimer.timeout.connect(self.singer)
         self.clockTimer.start(1 * 1000)
 
-        self.workerTimer = QtCore.QTimer()
+        self.workerTimer = QTimer()
         self.workerTimer.timeout.connect(self.worker)
         self.workerTimer.start(60 * 1000)
 
@@ -210,19 +212,19 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
     def setupRecent(self):
         self.clock = Clock(self, self.tipsLayout)
-        self.tipsLayout.addSpacerItem(QtWidgets.QSpacerItem(10, 10, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum))
+        self.tipsLayout.addSpacerItem(QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
         self.currentTAF = CurrentTAF(self, self.tipsLayout)
         self.recentFT = RecentTAF(self, self.recentLayout, 'FT')
         self.recentFC = RecentTAF(self, self.recentLayout, 'FC')
 
     def setupContractMenu(self):
-        self.contractsActionGroup = QtWidgets.QActionGroup(self)
+        self.contractsActionGroup = QActionGroup(self)
         self.contractsActionGroup.addAction(self.contractNo)
         
         contacts = db.query(User).all()
 
         for person in contacts:
-            setattr(self, 'contract' + str(person.id), QtWidgets.QAction(self))
+            setattr(self, 'contract' + str(person.id), QAction(self))
             target = getattr(self, 'contract' + str(person.id))
             target.setText(person.name)
             target.setCheckable(True)
@@ -234,14 +236,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
 
     def setupSysTray(self):
         # 设置系统托盘
-        self.tray = QtWidgets.QSystemTrayIcon(self)
-        self.tray.setIcon(QtGui.QIcon(':/logo.png'))
+        self.tray = QSystemTrayIcon(self)
+        self.tray.setIcon(QIcon(':/logo.png'))
         self.tray.show()
 
         # 连接系统托盘的槽
         self.tray.activated.connect(self.restoreWindow)
 
-        self.trayMenu = QtWidgets.QMenu(self)
+        self.trayMenu = QMenu(self)
 
         self.trayMenu.addAction(self.contractsMenu.menuAction())
         self.trayMenu.addAction(self.settingAction)
@@ -303,20 +305,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         """
         捕获事件
         """
-        if event.type() == QtCore.QEvent.WindowStateChange and self.isMinimized():
+        if event.type() == QEvent.WindowStateChange and self.isMinimized():
             # 此时窗口已经最小化,
             # 从任务栏中移除窗口
-            self.setWindowFlags(self.windowFlags() & QtCore.Qt.Tool)
+            self.setWindowFlags(self.windowFlags() & Qt.Tool)
             self.tray.show()
             return True
         else:
             return super(self.__class__, self).event(event)
 
     def keyPressEvent(self, event):
-        if event.modifiers() == (QtCore.Qt.ShiftModifier | QtCore.Qt.ControlModifier):
-            if event.key() == QtCore.Qt.Key_P:
+        if event.modifiers() == (Qt.ShiftModifier | Qt.ControlModifier):
+            if event.key() == Qt.Key_P:
                 self.taskTAFEditor.show()
-            if event.key() == QtCore.Qt.Key_T:
+            if event.key() == Qt.Key_T:
                 self.task_table_dialog.show()
 
     def closeEvent(self, event):
@@ -324,21 +326,25 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             event.ignore()
             self.hide()
         else:
-            self.tafSender.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-            self.trendSender.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-            self.taskTAFSender.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-            self.tafEditor.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-            self.trendEditor.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-            self.taskTAFEditor.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-            self.taskBrowser.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-            self.settingDialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            self.tafSender.setAttribute(Qt.WA_DeleteOnClose)
+            self.trendSender.setAttribute(Qt.WA_DeleteOnClose)
+            self.taskTAFSender.setAttribute(Qt.WA_DeleteOnClose)
+            self.sigmetSender.setAttribute(Qt.WA_DeleteOnClose)
+            self.tafEditor.setAttribute(Qt.WA_DeleteOnClose)
+            self.trendEditor.setAttribute(Qt.WA_DeleteOnClose)
+            self.taskTAFEditor.setAttribute(Qt.WA_DeleteOnClose)
+            self.sigmetEditor.setAttribute(Qt.WA_DeleteOnClose)
+            self.taskBrowser.setAttribute(Qt.WA_DeleteOnClose)
+            self.settingDialog.setAttribute(Qt.WA_DeleteOnClose)
 
             self.tafSender.close()
             self.trendSender.close()
             self.taskTAFSender.close()
+            self.sigmetSender.close()
             self.tafEditor.close()
             self.trendEditor.close()
             self.taskTAFEditor.close()
+            self.sigmetEditor.close()
             self.taskBrowser.close()
             self.settingDialog.close()
 
@@ -346,7 +352,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             event.accept()
 
     def restoreWindow(self, reason):
-        if reason == QtWidgets.QSystemTrayIcon.Trigger:
+        if reason == QSystemTrayIcon.Trigger:
             self.showNormal()
 
     def showWindow(self):
@@ -385,7 +391,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             self.ringSound.play()
             ret = createAlarmMsgBox(self, text)
             if ret:
-                QtCore.QTimer.singleShot(1000 * 60 * 3, lambda: self.reminder(tt))
+                QTimer.singleShot(1000 * 60 * 3, lambda: self.reminder(tt))
 
             self.ringSound.stop()
 
@@ -431,7 +437,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
         items = db.query(Tafor).filter(Tafor.sent > recent).order_by(Tafor.sent.desc()).all()
         header = self.tafTable.horizontalHeader()
-        header.setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
         self.tafTable.setRowCount(len(items))
         self.tafTable.setColumnWidth(0, 50)
         self.tafTable.setColumnWidth(2, 140)
@@ -439,25 +445,25 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         self.tafTable.setColumnWidth(4, 50)
 
         for row, item in enumerate(items):
-            self.tafTable.setItem(row, 0,  QtWidgets.QTableWidgetItem(item.tt))
-            self.tafTable.setItem(row, 1,  QtWidgets.QTableWidgetItem(item.rptInline))
+            self.tafTable.setItem(row, 0, QTableWidgetItem(item.tt))
+            self.tafTable.setItem(row, 1, QTableWidgetItem(item.rptInline))
             if item.sent:
                 sent = item.sent.strftime("%Y-%m-%d %H:%M:%S")
-                self.tafTable.setItem(row, 2,  QtWidgets.QTableWidgetItem(sent))
+                self.tafTable.setItem(row, 2, QTableWidgetItem(sent))
 
             if item.confirmed:
-                checkedItem = QtWidgets.QTableWidgetItem()
-                checkedItem.setTextAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
-                checkedItem.setIcon(QtGui.QIcon(':/checkmark.png'))
+                checkedItem = QTableWidgetItem()
+                checkedItem.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+                checkedItem.setIcon(QIcon(':/checkmark.png'))
                 self.tafTable.setItem(row, 3, checkedItem)
             else:
-                checkedItem = QtWidgets.QTableWidgetItem()
-                checkedItem.setTextAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
-                checkedItem.setIcon(QtGui.QIcon(':/cross.png'))
+                checkedItem = QTableWidgetItem()
+                checkedItem.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+                checkedItem.setIcon(QIcon(':/cross.png'))
                 self.tafTable.setItem(row, 3, checkedItem)
 
             # if item.task:
-            #     task_item = QtWidgets.QTableWidgetItem('√')
+            #     task_item = QTableWidgetItem('√')
             #     # schedule_item.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
             #     # schedule_item.setIcon(QIcon(':/time.png'))
             #     self.tafTable.setItem(row, 4, task_item)
@@ -470,16 +476,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
         items = db.query(Metar).filter(Metar.created > recent).order_by(Metar.created.desc()).all()
         header = self.metarTable.horizontalHeader()
-        header.setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
         self.metarTable.setRowCount(len(items))
         self.metarTable.setColumnWidth(0, 50)
 
         for row, item in enumerate(items):
-            self.metarTable.setItem(row, 0,  QtWidgets.QTableWidgetItem(item.tt))
-            self.metarTable.setItem(row, 1,  QtWidgets.QTableWidgetItem(item.rpt))
+            self.metarTable.setItem(row, 0,  QTableWidgetItem(item.tt))
+            self.metarTable.setItem(row, 1,  QTableWidgetItem(item.rpt))
             if item.tt == 'SP':
-                self.metarTable.item(row, 0).setForeground(QtCore.Qt.red)
-                self.metarTable.item(row, 1).setForeground(QtCore.Qt.red)
+                self.metarTable.item(row, 0).setForeground(Qt.red)
+                self.metarTable.item(row, 1).setForeground(Qt.red)
 
         self.metarTable.setStyleSheet("QTableWidget::item {padding: 5px 0;}")
         self.metarTable.resizeRowsToContents()
@@ -494,10 +500,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
                     '''The project is under GPL-2.0 License, Pull Request and Issue are welcome''')
         text = '<p>'.join([head, description, tail, ''])
 
-        QtWidgets.QMessageBox.about(self, title, text)
+        QMessageBox.about(self, title, text)
 
     def reportIssue(self):
-        QtGui.QDesktopServices.openUrl(QtCore.QUrl('https://github.com/up1and/tafor/issues'))
+        QDesktopServices.openUrl(QUrl('https://github.com/up1and/tafor/issues'))
 
     def checkUpgrade(self, data):
         hasNewVersion = checkVersion(data.get('tag_name', __version__), __version__)
@@ -507,21 +513,21 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
         download = 'https://github.com/up1and/tafor/releases'
         title = QCoreApplication.translate('MainWindow', 'Check for Updates')
         text = QCoreApplication.translate('MainWindow', 'New version found {}, do you want to download now?').format(data.get('tag_name'))
-        ret = QtWidgets.QMessageBox.question(self, title, text)
-        if ret == QtWidgets.QMessageBox.Yes:
-            QtGui.QDesktopServices.openUrl(QtCore.QUrl(download))
+        ret = QMessageBox.question(self, title, text)
+        if ret == QMessageBox.Yes:
+            QDesktopServices.openUrl(QUrl(download))
 
 
 def main():
     import sys
-    app = QtWidgets.QApplication(sys.argv)
-    translator = QtCore.QTranslator()
-    locale = QtCore.QLocale.system().name()
+    app = QApplication(sys.argv)
+    translator = QTranslator()
+    locale = QLocale.system().name()
     translateFile = os.path.join(BASEDIR, 'i18n\\translations', '{}.qm'.format(locale))
     if translator.load(translateFile):
         app.installTranslator(translator)
 
-    # QtWidgets.QApplication.setStyle(QtWidgets.QStyleFactory.create('Fusion'))
+    # QApplication.setStyle(QStyleFactory.create('Fusion'))
 
     serverName = 'Tafor'
     socket = QLocalSocket()

@@ -16,6 +16,7 @@ Base = declarative_base()
 
 class Tafor(Base):
     __tablename__ = 'tafors'
+    
     id = Column(Integer, primary_key=True)
     tt = Column(String(2))
     head = Column(String(255), nullable=True)
@@ -49,6 +50,7 @@ class Tafor(Base):
 
 class Metar(Base):
     __tablename__ = 'metars'
+
     id = Column(Integer, primary_key=True)
     tt = Column(String(2))
     rpt = Column(String(255))
@@ -61,6 +63,7 @@ class Metar(Base):
 
 class Task(Base):
     __tablename__ = 'tasks'
+
     id = Column(Integer, primary_key=True)
     tt = Column(String(2))
     head = Column(String(255))
@@ -81,6 +84,7 @@ class Task(Base):
 
 class Trend(Base):
     __tablename__ = 'trends'
+
     id = Column(Integer, primary_key=True)
     sign = Column(String(16))
     rpt = Column(String(255))
@@ -97,6 +101,7 @@ class Trend(Base):
 
 class User(Base):
     __tablename__ = 'users'
+
     id = Column(Integer, primary_key=True)
     name = Column(String(8))
     mobile = Column(String(20))

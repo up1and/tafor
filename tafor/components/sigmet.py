@@ -1,8 +1,7 @@
 import datetime
 
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
+from PyQt5.QtCore import QCoreApplication, Qt
+from PyQt5.QtWidgets import QVBoxLayout, QPushButton, QLayout
 
 from tafor import logger
 from tafor.components.widgets.editor import BaseEditor

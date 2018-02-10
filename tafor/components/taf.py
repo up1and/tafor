@@ -1,9 +1,9 @@
 import json
 import datetime
 
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
+from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import QCoreApplication, Qt, QTimer
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLayout
 
 from tafor import boolean, conf, logger
 from tafor.utils import CheckTAF, Grammar, formatTimeInterval
