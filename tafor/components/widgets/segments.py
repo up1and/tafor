@@ -5,7 +5,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from tafor import conf, logger
 from tafor.utils import CheckTAF, Pattern
-from tafor.components.ui import Ui_taf_primary, Ui_taf_becmg, Ui_taf_tempo, Ui_trend, Ui_sigmet_type, Ui_sigmet_general
+from tafor.components.ui import (Ui_taf_primary, Ui_taf_becmg, Ui_taf_tempo, Ui_trend, 
+    Ui_sigmet_type, Ui_sigmet_general, Ui_sigmet_phenomena, Ui_sigmet_typhoon, Ui_sigmet_custom)
 
 
 class BaseSegment(QtWidgets.QWidget):
@@ -627,18 +628,20 @@ class SigmetTypeSegment(QtWidgets.QWidget, Ui_sigmet_type.Ui_Editor):
     def __init__(self):
         super(SigmetTypeSegment, self).__init__()
         self.setupUi(self)
+
+class BaseSigmetPhenomena(QtWidgets.QWidget, Ui_sigmet_phenomena.Ui_Editor):
+
+    def __init__(self):
+        super(BaseSigmetPhenomena, self).__init__()
+        self.setupUi(self)
         self.bindSignal()
         self.updateDate()
         self.setSquence()
-        self.setPhenomenaDescription()
-
-        self.setTCNameVisible(False)
 
         self.duration = 4
 
     def bindSignal(self):
         self.forecast.currentTextChanged.connect(self.enbaleOBSTime)
-        self.description.currentTextChanged.connect(self.setPhenomena)
 
     def enbaleOBSTime(self, text):
         if text == 'OBS':
@@ -656,32 +659,17 @@ class SigmetTypeSegment(QtWidgets.QWidget, Ui_sigmet_type.Ui_Editor):
         self.sequence.setText('1')
 
     def setPhenomenaDescription(self):
-        descriptions = ['OBSC', 'EMBD', 'FRQ', 'SQL', 'SEV', 'HVY']
-        self.description.addItems(descriptions)
+        raise NotImplemented
 
     def setPhenomena(self, text):
-        self.phenomena.clear()
-
-        if text == 'SEV':
-            phenomenas = ['TURB', 'ICE', 'ICE (FZRA)', 'MTW']
-        elif text == 'HVY':
-            phenomenas = ['DS', 'SS']
-        else:
-            phenomenas = ['TS', 'TS GR']
-
-        self.phenomena.addItems(phenomenas)
-
-    def setTCNameVisible(self, status):
-        self.tcName.setVisible(status)
-        self.tcNameLabel.setVisible(status)
+        raise NotImplemented
 
     def message(self):
         fir = conf.value('Message/FIR')
-        description = self.description.currentText()
-        phenomena = self.phenomena.currentText()
+        phenomena = self.weatherPhenomena()
         prediction = self.prediction()
         
-        text = ' '.join([fir, description, phenomena, prediction])
+        text = ' '.join([fir, phenomena, prediction])
         return text
 
     def head(self):
@@ -702,11 +690,86 @@ class SigmetTypeSegment(QtWidgets.QWidget, Ui_sigmet_type.Ui_Editor):
 
         return text
 
+    def weatherPhenomena(self):
+        items = [self.description.currentText(), self.phenomena.currentText()]
+        text = ' '.join(items) if all(items) else ''
+        return text
 
-class SigmetGeneralSegment(QtWidgets.QWidget, Ui_sigmet_general.Ui_Editor):
+
+class SigmetGeneralPhenomena(BaseSigmetPhenomena):
 
     def __init__(self):
-        super(SigmetGeneralSegment, self).__init__()
+        super(SigmetGeneralPhenomena, self).__init__()
+        self.hideTyphoonName()
+        self.setPhenomenaDescription()
+        self.setPhenomena()
+
+    def setPhenomenaDescription(self):
+        descriptions = ['OBSC', 'EMBD', 'FRQ', 'SQL', 'SEV', 'HVY']
+        self.description.addItems(descriptions)
+
+    def setPhenomena(self, text='OBSC'):
+        self.phenomena.clear()
+
+        if text == 'SEV':
+            phenomenas = ['TURB', 'ICE', 'ICE (FZRA)', 'MTW']
+        elif text == 'HVY':
+            phenomenas = ['DS', 'SS']
+        else:
+            phenomenas = ['TS', 'TS GR']
+
+        self.phenomena.addItems(phenomenas)
+
+    def hideTyphoonName(self):
+        self.typhoonName.setVisible(False)
+        self.typhoonNameLabel.setVisible(False)
+
+
+class SigmetTyphoonPhenomena(BaseSigmetPhenomena):
+
+    def __init__(self):
+        super(SigmetTyphoonPhenomena, self).__init__()
+        self.hideDescription()
+        self.setPhenomena()
+        self.duration = 6
+
+    def setPhenomena(self):
+        self.phenomena.addItems(['TC'])
+        # self.phenomena.setEnabled(False)
+
+    def hideDescription(self):
+        self.description.setVisible(False)
+        self.descriptionLabel.setVisible(False)
+
+    def weatherPhenomena(self):
+        items = [self.phenomena.currentText(), self.typhoonName.text()]
+        text = ' '.join(items) if all(items) else ''
+        return text
+
+
+class SigmetCustomPhenomena(BaseSigmetPhenomena):
+
+    def __init__(self):
+        super(SigmetCustomPhenomena, self).__init__()
+        self.hidePhenomena()
+
+    def hidePhenomena(self):
+        self.description.setVisible(False)
+        self.descriptionLabel.setVisible(False)
+        self.phenomena.setVisible(False)
+        self.phenomenaLabel.setVisible(False)
+        self.typhoonName.setVisible(False)
+        self.typhoonNameLabel.setVisible(False)
+        self.forecast.setVisible(False)
+        self.forecastLabel.setVisible(False)
+        self.obsTime.setVisible(False)
+        self.obsTimeLabel.setVisible(False)
+        
+
+class SigmetGeneralContent(QtWidgets.QWidget, Ui_sigmet_general.Ui_Editor):
+
+    def __init__(self):
+        super(SigmetGeneralContent, self).__init__()
         self.setupUi(self)
         self.bindSignal()
 
@@ -757,6 +820,10 @@ class SigmetGeneralSegment(QtWidgets.QWidget, Ui_sigmet_general.Ui_Editor):
             self.top.setEnabled(True)
             self.baseLabel.setEnabled(True)
             self.topLabel.setEnabled(True)
+
+    def setPosition(self, text):
+        if 'TS' in text:
+            self.position.setCurrentIndex(1)
 
     def message(self):
         area = self.area()
@@ -826,3 +893,78 @@ class SigmetGeneralSegment(QtWidgets.QWidget, Ui_sigmet_general.Ui_Editor):
             text = conf.value('Message/ICAO')
 
         return text
+
+
+class SigmetTyphoonContent(QtWidgets.QWidget, Ui_sigmet_typhoon.Ui_Editor):
+
+    def __init__(self):
+        super(SigmetTyphoonContent, self).__init__()
+        self.setupUi(self)
+
+
+class SigmetCustomContent(QtWidgets.QWidget, Ui_sigmet_custom.Ui_Editor):
+
+    def __init__(self):
+        super(SigmetCustomContent, self).__init__()
+        self.setupUi(self)
+
+
+class SigmetGeneralSegment(QtWidgets.QWidget):
+
+    def __init__(self):
+        super(SigmetGeneralSegment, self).__init__()
+        self.initUI()
+        self.bindSignal()
+
+    def initUI(self):
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.phenomena = SigmetGeneralPhenomena()
+        self.content = SigmetGeneralContent()
+        layout.addWidget(self.phenomena)
+        layout.addWidget(self.content)
+        self.setLayout(layout)
+
+    def bindSignal(self):
+        self.phenomena.description.currentTextChanged.connect(self.phenomena.setPhenomena)
+        self.phenomena.phenomena.currentTextChanged.connect(self.content.setPosition)
+
+
+class SigmetTyphoonSegment(QtWidgets.QWidget):
+
+    def __init__(self):
+        super(SigmetTyphoonSegment, self).__init__()
+        self.initUI()
+        self.bindSignal()
+
+    def initUI(self):
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.phenomena = SigmetTyphoonPhenomena()
+        self.content = SigmetTyphoonContent()
+        layout.addWidget(self.phenomena)
+        layout.addWidget(self.content)
+        self.setLayout(layout)
+
+    def bindSignal(self):
+        pass
+
+
+class SigmetCustomSegment(QtWidgets.QWidget):
+
+    def __init__(self):
+        super(SigmetCustomSegment, self).__init__()
+        self.initUI()
+        self.bindSignal()
+
+    def initUI(self):
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.phenomena = SigmetCustomPhenomena()
+        self.content = SigmetCustomContent()
+        layout.addWidget(self.phenomena)
+        layout.addWidget(self.content)
+        self.setLayout(layout)
+
+    def bindSignal(self):
+        pass

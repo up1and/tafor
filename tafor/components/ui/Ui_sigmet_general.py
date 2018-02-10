@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Editor(object):
     def setupUi(self, Editor):
         Editor.setObjectName("Editor")
-        Editor.resize(532, 550)
+        Editor.resize(500, 550)
         Editor.setWindowTitle("Sigmet")
         self.verticalLayout = QtWidgets.QVBoxLayout(Editor)
         self.verticalLayout.setObjectName("verticalLayout")
