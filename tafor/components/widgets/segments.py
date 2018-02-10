@@ -823,7 +823,9 @@ class SigmetGeneralContent(QtWidgets.QWidget, Ui_sigmet_general.Ui_Editor):
 
     def setPosition(self, text):
         if 'TS' in text:
-            self.position.setCurrentIndex(1)
+            self.position.setCurrentIndex(self.position.findText('TOP'))
+        else:
+            self.position.setCurrentIndex(-1)
 
     def message(self):
         area = self.area()

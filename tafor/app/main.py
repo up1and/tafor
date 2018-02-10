@@ -399,7 +399,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_main.Ui_MainWindow):
             self.callThread.start()
 
     def updateMessage(self):
-        listen = Listen(self.context)
+        listen = Listen(context=self.context, parent=self)
         [listen(i) for i in ('FC', 'FT', 'SA', 'SP')]
 
         self.updateGUI()

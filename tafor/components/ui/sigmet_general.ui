@@ -129,22 +129,22 @@
        <widget class="QComboBox" name="position">
         <item>
          <property name="text">
-          <string/>
+          <string notr="true"/>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>TOP</string>
+          <string notr="true">TOP</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>ABV</string>
+          <string notr="true">ABV</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>BLW</string>
+          <string notr="true">BLW</string>
          </property>
         </item>
        </widget>

@@ -185,8 +185,9 @@ class CheckMetar(object):
 
 
 class Listen(object):
-    def __init__(self, context):
+    def __init__(self, context, parent=None):
         self.context = context
+        self.parent = parent
 
     def __call__(self, tt):
         self.tt = tt
@@ -204,11 +205,13 @@ class Listen(object):
             if not local.confirmed:
                 if taf.remote():
                     taf.confirm()
+                    self.parent.notificationSound.play()
                 elif taf.hasExpired():
                     expired = True
         else:
             if taf.remote():
                 taf.save()
+                self.parent.notificationSound.play()
             elif taf.hasExpired():
                 expired = True
 
