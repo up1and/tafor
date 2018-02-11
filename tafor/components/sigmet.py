@@ -41,7 +41,7 @@ class SigmetEditor(BaseEditor):
         self.custom.hide()
 
     def bindSignal(self):
-        self.nextButton.clicked.connect(self.message)
+        self.nextButton.clicked.connect(self.previewMessage)
 
         self.type.general.clicked.connect(self.changeSegment)
         self.type.tropicalCyclone.clicked.connect(self.changeSegment)
@@ -71,11 +71,7 @@ class SigmetEditor(BaseEditor):
 
             self.currentSegment = self.custom
 
+    def previewMessage(self):
+        message = {'full': self.currentSegment.message()}
+        self.previewSignal.emit(message)
 
-
-    def message(self):
-        headMessage = self.type.head()
-        typeMessage = self.type.message()
-        generalMessage = self.general.message() if self.type.general.isChecked() else ''
-        messages = [headMessage, typeMessage, generalMessage]
-        print(messages)

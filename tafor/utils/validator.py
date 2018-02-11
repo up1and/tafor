@@ -441,7 +441,9 @@ class Parser(object):
         self.split()
 
     def __eq__(self, other):
-        return self.elements == other.elements
+        if isinstance(other, self.__class__):
+            return self.elements == other.elements
+        return False
 
     def split(self):
         message = self.message.replace('=', '')

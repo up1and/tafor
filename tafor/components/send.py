@@ -196,7 +196,6 @@ class TrendSender(BaseSender):
         self.sendSignal.emit()
 
 
-
 class SigmetSender(BaseSender):
 
     def __init__(self, parent=None):
@@ -205,6 +204,10 @@ class SigmetSender(BaseSender):
         self.reportType = 'Sigmet'
 
         self.buttonBox.accepted.connect(self.send)
+
+    def receive(self, message):
+        self.message = message
+        self.rpt.setText(self.message['full'])
 
     def save(self):
         pass

@@ -832,11 +832,12 @@ class SigmetGeneralContent(QWidget, Ui_sigmet_general.Ui_Editor):
     def message(self):
         area = self.area()
         fightLevel = self.fightLevel()
-        movement = 'MOV {}'.format(self.movement.currentText())
-        speed = '{} KMH'.format(self.speed.text())
-        intensityChange = self.intensityChange.currentText()
-
-        text = ' '.join([area, fightLevel, movement, speed, intensityChange])
+        movement = 'MOV {movement} {speed} KMH {intensityChange}'.format(
+                movement=self.movement.currentText(),
+                speed=self.speed.text(),
+                intensityChange=self.intensityChange.currentText(),
+            )
+        text = ' '.join([area, fightLevel, movement])
         return text
 
     def fightLevel(self):
@@ -905,12 +906,37 @@ class SigmetTyphoonContent(QWidget, Ui_sigmet_typhoon.Ui_Editor):
         super(SigmetTyphoonContent, self).__init__()
         self.setupUi(self)
 
+    def message(self):
+        area = '{latitude} {longtitude} CB TOP FL{height} WI {range}KM OF CENTER'.format(
+                latitude=self.currentLatitude.text(),
+                longtitude=self.currentLongtitude.text(),
+                height=self.height.text(),
+                range=self.range.text()
+            )
+        movement = 'MOV {movement} {speed}KMH {intensityChange}'.format(
+                movement=self.movement.currentText(),
+                speed=self.speed.text(),
+                intensityChange=self.intensityChange.currentText()
+            )
+        forecast = 'FCST {forecastTime}Z TC CENTER {forecastLatitude} {forecastLongtitude}'.format(
+                forecastTime=self.forecastTime.text(),
+                forecastLatitude=self.forecastLatitude.text(),
+                forecastLongtitude=self.forecastLongtitude.text()
+            )
+        text = ' '.join([area, movement, forecast])
+        return text
+
 
 class SigmetCustomContent(QWidget, Ui_sigmet_custom.Ui_Editor):
 
     def __init__(self):
         super(SigmetCustomContent, self).__init__()
         self.setupUi(self)
+
+    def message(self):
+        fir = conf.value('Message/FIR')
+        text = ' '.join([fir, self.custom.toPlainText()])
+        return text
 
 
 class SigmetGeneralSegment(QWidget):
@@ -933,6 +959,11 @@ class SigmetGeneralSegment(QWidget):
         self.phenomena.description.currentTextChanged.connect(self.phenomena.setPhenomena)
         self.phenomena.phenomena.currentTextChanged.connect(self.content.setPosition)
 
+    def message(self):
+        content = ' '.join([self.phenomena.message(), self.content.message()])
+        text = '\n'.join([self.phenomena.head(), content])
+        return text
+
 
 class SigmetTyphoonSegment(QWidget):
 
@@ -953,6 +984,11 @@ class SigmetTyphoonSegment(QWidget):
     def bindSignal(self):
         pass
 
+    def message(self):
+        content = ' '.join([self.phenomena.message(), self.content.message()])
+        text = '\n'.join([self.phenomena.head(), content])
+        return text
+
 
 class SigmetCustomSegment(QWidget):
 
@@ -972,3 +1008,7 @@ class SigmetCustomSegment(QWidget):
 
     def bindSignal(self):
         pass
+
+    def message(self):
+        text = '\n'.join([self.phenomena.head(), self.content.message()])
+        return text
