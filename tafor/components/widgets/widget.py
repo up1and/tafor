@@ -9,18 +9,12 @@ from tafor.utils import CheckTAF
 from tafor.components.ui import Ui_main_recent
 
 
-def createAlarmMsgBox(parent, text):
+def alarmMessageBox(parent):
     title = QCoreApplication.translate('MainWindow', 'Alarm')
-    message = QCoreApplication.translate('MainWindow', 'Time to post {}').format(text)
-    messageBox = QMessageBox(QMessageBox.Question, title, message, parent=parent)
+    messageBox = QMessageBox(QMessageBox.Question, title, 'Display Text', parent=parent)
     snooze = messageBox.addButton(QCoreApplication.translate('MainWindow', 'Snooze'), QMessageBox.ApplyRole)
     dismiss = messageBox.addButton(QCoreApplication.translate('MainWindow', 'Dismiss'), QMessageBox.RejectRole)
-    messageBox.exec_()
-
-    if messageBox.clickedButton() == snooze:
-        return True
-
-    return False
+    return messageBox
 
 
 class RecentTAF(QWidget, Ui_main_recent.Ui_Recent):

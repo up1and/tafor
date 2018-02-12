@@ -21,7 +21,7 @@ from tafor.components.send import TaskTAFSender, TAFSender, TrendSender, SigmetS
 from tafor.components.setting import SettingDialog
 from tafor.components.task import TaskBrowser
 
-from tafor.components.widgets.widget import createAlarmMsgBox, Clock, CurrentTAF, RecentTAF
+from tafor.components.widgets.widget import alarmMessageBox, Clock, CurrentTAF, RecentTAF
 from tafor.components.widgets.status import WebAPIStatus, CallServiceStatus
 from tafor.components.widgets.sound import Sound
 
@@ -128,6 +128,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         """
         super(MainWindow, self).__init__(parent)
         self.setupUi(self)
+
+        self.alarmMessageBox = alarmMessageBox(self)
 
         self.context = Context()
         self.context.warningSignal.connect(self.dialer)
@@ -387,11 +389,13 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         warning = self.context.warning.get(tt)
 
         if clock and not warning and not current['status']:
-            text = tt + current['period'][2:]
+            current = tt + current['period'][2:]
+            text = QCoreApplication.translate('MainWindow', 'Time to post {}').format(current)
             self.ringSound.play()
-            ret = createAlarmMsgBox(self, text)
-            if ret:
-                QTimer.singleShot(1000 * 60 * 3, lambda: self.reminder(tt))
+            self.alarmMessageBox.setText(text)
+            ret = self.alarmMessageBox.exec_()
+            if not ret:
+                QTimer.singleShot(1000 * 60 * 5, lambda: self.reminder(tt))
 
             self.ringSound.stop()
 

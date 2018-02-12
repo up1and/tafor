@@ -113,7 +113,7 @@ class CheckTAF(QObject):
 
         return None
 
-    def save(self):
+    def save(self, callback=None):
         last = db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()
 
         if last is None or last.rptInline != self.message:  # 如果数据表为空 或 最后一条数据和远程不相等
@@ -122,13 +122,19 @@ class CheckTAF(QObject):
             db.commit()
             logger.info('Save {} {}'.format(self.tt, self.message))
 
-    def confirm(self):
+            if callback:
+                callback()
+
+    def confirm(self, callback=None):
         last = db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()
 
         if last is not None and last.rptInline == self.message:
             last.confirmed = self.time
             db.commit()
             logger.info('Confirm {} {}'.format(self.tt, self.message))
+
+            if callback:
+                callback()
 
     def hasExpired(self, offset=None):
         offset = offset or conf.value('Monitor/WarnTAFTime')
@@ -197,6 +203,11 @@ class Listen(object):
         return getattr(self.__class__, method[self.tt])(self)
 
     def taf(self):
+
+        def afterSave():
+            self.parent.notificationSound.play(loop=False)
+            self.parent.alarmMessageBox.close()
+
         expired = False
 
         taf = CheckTAF(self.tt, message=self.message)
@@ -205,20 +216,18 @@ class Listen(object):
         if local:
             if not local.confirmed:
                 if taf.remote():
-                    taf.confirm()
-                    self.parent.notificationSound.play(loop=False)
+                    taf.confirm(callback=afterSave)
                 elif taf.hasExpired():
                     expired = True
         else:
             if taf.remote():
-                taf.save()
-                self.parent.notificationSound.play(loop=False)
+                taf.save(callback=afterSave)
             elif taf.hasExpired():
                 expired = True
 
         self.context.current = [taf.tt, taf.warningPeriod(), True if local else False]
         self.context.warning = [taf.tt, expired]
-        self.context.reminder = [taf.tt, taf.hasExpired(offset=3)]
+        self.context.reminder = [taf.tt, taf.hasExpired(offset=5)]
 
     def metar(self):
         metar = CheckMetar(self.tt, message=self.message)
