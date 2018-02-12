@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\components\ui\taf_primary.ui'
+# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\taf_primary.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -210,15 +210,20 @@ class Ui_Editor(object):
         Editor.setTabOrder(self.fc, self.ft)
         Editor.setTabOrder(self.ft, self.normal)
         Editor.setTabOrder(self.normal, self.cor)
-        Editor.setTabOrder(self.cor, self.amd)
-        Editor.setTabOrder(self.amd, self.cnl)
-        Editor.setTabOrder(self.cnl, self.date)
+        Editor.setTabOrder(self.cor, self.ccc)
+        Editor.setTabOrder(self.ccc, self.amd)
+        Editor.setTabOrder(self.amd, self.aaa)
+        Editor.setTabOrder(self.aaa, self.cnl)
+        Editor.setTabOrder(self.cnl, self.aaaCnl)
+        Editor.setTabOrder(self.aaaCnl, self.prev)
+        Editor.setTabOrder(self.prev, self.date)
         Editor.setTabOrder(self.date, self.period)
         Editor.setTabOrder(self.period, self.wind)
         Editor.setTabOrder(self.wind, self.gust)
         Editor.setTabOrder(self.gust, self.vis)
         Editor.setTabOrder(self.vis, self.weatherWithIntensity)
-        Editor.setTabOrder(self.weatherWithIntensity, self.cloud1)
+        Editor.setTabOrder(self.weatherWithIntensity, self.weather)
+        Editor.setTabOrder(self.weather, self.cloud1)
         Editor.setTabOrder(self.cloud1, self.cloud2)
         Editor.setTabOrder(self.cloud2, self.cloud3)
         Editor.setTabOrder(self.cloud3, self.cb)
@@ -231,7 +236,8 @@ class Ui_Editor(object):
         Editor.setTabOrder(self.tmin, self.tminTime)
         Editor.setTabOrder(self.tminTime, self.becmg1Checkbox)
         Editor.setTabOrder(self.becmg1Checkbox, self.becmg2Checkbox)
-        Editor.setTabOrder(self.becmg2Checkbox, self.tempo1Checkbox)
+        Editor.setTabOrder(self.becmg2Checkbox, self.becmg3Checkbox)
+        Editor.setTabOrder(self.becmg3Checkbox, self.tempo1Checkbox)
         Editor.setTabOrder(self.tempo1Checkbox, self.tempo2Checkbox)
 
     def retranslateUi(self, Editor):

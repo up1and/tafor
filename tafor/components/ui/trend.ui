@@ -261,12 +261,15 @@
   <tabstop>gust</tabstop>
   <tabstop>vis</tabstop>
   <tabstop>weatherWithIntensity</tabstop>
+  <tabstop>weather</tabstop>
   <tabstop>cloud1</tabstop>
   <tabstop>cloud2</tabstop>
   <tabstop>cloud3</tabstop>
   <tabstop>cb</tabstop>
+  <tabstop>cavok</tabstop>
   <tabstop>skc</tabstop>
   <tabstop>nsc</tabstop>
+  <tabstop>nosig</tabstop>
  </tabstops>
  <resources/>
  <connections/>

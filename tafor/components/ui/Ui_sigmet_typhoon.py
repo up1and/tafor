@@ -111,9 +111,28 @@ class Ui_Editor(object):
         self.forecastLatitudeLabel.setObjectName("forecastLatitudeLabel")
         self.gridLayout_2.addWidget(self.forecastLatitudeLabel, 0, 1, 1, 1)
         self.verticalLayout.addWidget(self.forecastGroup)
+        self.currentLatitudeLabel.setBuddy(self.currentLatitude)
+        self.currentLongtitudeLabel.setBuddy(self.currentLongtitude)
+        self.rangeLabel.setBuddy(self.range)
+        self.heightLabel.setBuddy(self.height)
+        self.speedLabel.setBuddy(self.speed)
+        self.movementLabel.setBuddy(self.movement)
+        self.intensityChangeLabel.setBuddy(self.intensityChange)
+        self.forecastTimeLabel.setBuddy(self.forecastTime)
+        self.forecastLongtitudeLabel.setBuddy(self.forecastLongtitude)
+        self.forecastLatitudeLabel.setBuddy(self.forecastLatitude)
 
         self.retranslateUi(Editor)
         QtCore.QMetaObject.connectSlotsByName(Editor)
+        Editor.setTabOrder(self.currentLatitude, self.currentLongtitude)
+        Editor.setTabOrder(self.currentLongtitude, self.height)
+        Editor.setTabOrder(self.height, self.range)
+        Editor.setTabOrder(self.range, self.movement)
+        Editor.setTabOrder(self.movement, self.speed)
+        Editor.setTabOrder(self.speed, self.intensityChange)
+        Editor.setTabOrder(self.intensityChange, self.forecastTime)
+        Editor.setTabOrder(self.forecastTime, self.forecastLatitude)
+        Editor.setTabOrder(self.forecastLatitude, self.forecastLongtitude)
 
     def retranslateUi(self, Editor):
         _translate = QtCore.QCoreApplication.translate

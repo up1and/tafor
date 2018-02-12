@@ -80,12 +80,18 @@
         <property name="text">
          <string>Movement</string>
         </property>
+        <property name="buddy">
+         <cstring>movement</cstring>
+        </property>
        </widget>
       </item>
       <item row="0" column="1">
        <widget class="QLabel" name="speedLabel">
         <property name="text">
          <string>Speed</string>
+        </property>
+        <property name="buddy">
+         <cstring>speed</cstring>
         </property>
        </widget>
       </item>
@@ -94,12 +100,18 @@
         <property name="text">
          <string>Position</string>
         </property>
+        <property name="buddy">
+         <cstring>position</cstring>
+        </property>
        </widget>
       </item>
       <item row="0" column="5">
        <widget class="QLabel" name="intensityChangeLabel">
         <property name="text">
          <string>Intensity Change</string>
+        </property>
+        <property name="buddy">
+         <cstring>intensityChange</cstring>
         </property>
        </widget>
       </item>
@@ -154,12 +166,18 @@
         <property name="text">
          <string>FL Base</string>
         </property>
+        <property name="buddy">
+         <cstring>base</cstring>
+        </property>
        </widget>
       </item>
       <item row="0" column="4">
        <widget class="QLabel" name="topLabel">
         <property name="text">
          <string>FL Top</string>
+        </property>
+        <property name="buddy">
+         <cstring>top</cstring>
         </property>
        </widget>
       </item>
@@ -239,6 +257,9 @@
            <property name="text">
             <string>N OF</string>
            </property>
+           <property name="buddy">
+            <cstring>north</cstring>
+           </property>
           </widget>
          </item>
          <item row="0" column="2">
@@ -246,12 +267,18 @@
            <property name="text">
             <string>S OF</string>
            </property>
+           <property name="buddy">
+            <cstring>south</cstring>
+           </property>
           </widget>
          </item>
          <item row="4" column="1">
           <widget class="QLabel" name="eastLabel">
            <property name="text">
             <string>E OF</string>
+           </property>
+           <property name="buddy">
+            <cstring>east</cstring>
            </property>
           </widget>
          </item>
@@ -262,6 +289,9 @@
           <widget class="QLabel" name="westLabel">
            <property name="text">
             <string>W OF</string>
+           </property>
+           <property name="buddy">
+            <cstring>west</cstring>
            </property>
           </widget>
          </item>
@@ -560,6 +590,40 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>movement</tabstop>
+  <tabstop>speed</tabstop>
+  <tabstop>position</tabstop>
+  <tabstop>base</tabstop>
+  <tabstop>top</tabstop>
+  <tabstop>intensityChange</tabstop>
+  <tabstop>latitudeAndLongitude</tabstop>
+  <tabstop>line</tabstop>
+  <tabstop>points</tabstop>
+  <tabstop>local</tabstop>
+  <tabstop>north</tabstop>
+  <tabstop>south</tabstop>
+  <tabstop>east</tabstop>
+  <tabstop>west</tabstop>
+  <tabstop>lineLatitude1</tabstop>
+  <tabstop>lineLongtitude1</tabstop>
+  <tabstop>lineLatitude2</tabstop>
+  <tabstop>lineLongtitude2</tabstop>
+  <tabstop>lineDirection1</tabstop>
+  <tabstop>lineLatitude3</tabstop>
+  <tabstop>lineLongtitude3</tabstop>
+  <tabstop>lineLatitude4</tabstop>
+  <tabstop>lineLongtitude4</tabstop>
+  <tabstop>lineDirection2</tabstop>
+  <tabstop>pointsLatitude1</tabstop>
+  <tabstop>pointsLongtitude1</tabstop>
+  <tabstop>pointsLatitude2</tabstop>
+  <tabstop>pointsLongtitude2</tabstop>
+  <tabstop>pointsLatitude3</tabstop>
+  <tabstop>pointsLongtitude3</tabstop>
+  <tabstop>pointsLatitude4</tabstop>
+  <tabstop>pointsLongtitude4</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

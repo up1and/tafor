@@ -66,9 +66,22 @@ class Ui_Editor(object):
         self.description.setObjectName("description")
         self.gridLayout_2.addWidget(self.description, 1, 2, 1, 1)
         self.horizontalLayout.addWidget(self.headGroup)
+        self.sequenceLabel.setBuddy(self.sequence)
+        self.validLabel.setBuddy(self.valid)
+        self.obsTimeLabel.setBuddy(self.obsTime)
+        self.forecastLabel.setBuddy(self.forecast)
+        self.typhoonNameLabel.setBuddy(self.typhoonName)
+        self.phenomenaLabel.setBuddy(self.phenomena)
+        self.descriptionLabel.setBuddy(self.description)
 
         self.retranslateUi(Editor)
         QtCore.QMetaObject.connectSlotsByName(Editor)
+        Editor.setTabOrder(self.valid, self.sequence)
+        Editor.setTabOrder(self.sequence, self.description)
+        Editor.setTabOrder(self.description, self.phenomena)
+        Editor.setTabOrder(self.phenomena, self.typhoonName)
+        Editor.setTabOrder(self.typhoonName, self.forecast)
+        Editor.setTabOrder(self.forecast, self.obsTime)
 
     def retranslateUi(self, Editor):
         _translate = QtCore.QCoreApplication.translate

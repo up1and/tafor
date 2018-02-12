@@ -377,14 +377,19 @@
   <tabstop>ft</tabstop>
   <tabstop>normal</tabstop>
   <tabstop>cor</tabstop>
+  <tabstop>ccc</tabstop>
   <tabstop>amd</tabstop>
+  <tabstop>aaa</tabstop>
   <tabstop>cnl</tabstop>
+  <tabstop>aaaCnl</tabstop>
+  <tabstop>prev</tabstop>
   <tabstop>date</tabstop>
   <tabstop>period</tabstop>
   <tabstop>wind</tabstop>
   <tabstop>gust</tabstop>
   <tabstop>vis</tabstop>
   <tabstop>weatherWithIntensity</tabstop>
+  <tabstop>weather</tabstop>
   <tabstop>cloud1</tabstop>
   <tabstop>cloud2</tabstop>
   <tabstop>cloud3</tabstop>
@@ -398,6 +403,7 @@
   <tabstop>tminTime</tabstop>
   <tabstop>becmg1Checkbox</tabstop>
   <tabstop>becmg2Checkbox</tabstop>
+  <tabstop>becmg3Checkbox</tabstop>
   <tabstop>tempo1Checkbox</tabstop>
   <tabstop>tempo2Checkbox</tabstop>
  </tabstops>

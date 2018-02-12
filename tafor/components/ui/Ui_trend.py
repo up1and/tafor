@@ -154,12 +154,15 @@ class Ui_Editor(object):
         Editor.setTabOrder(self.wind, self.gust)
         Editor.setTabOrder(self.gust, self.vis)
         Editor.setTabOrder(self.vis, self.weatherWithIntensity)
-        Editor.setTabOrder(self.weatherWithIntensity, self.cloud1)
+        Editor.setTabOrder(self.weatherWithIntensity, self.weather)
+        Editor.setTabOrder(self.weather, self.cloud1)
         Editor.setTabOrder(self.cloud1, self.cloud2)
         Editor.setTabOrder(self.cloud2, self.cloud3)
         Editor.setTabOrder(self.cloud3, self.cb)
-        Editor.setTabOrder(self.cb, self.skc)
+        Editor.setTabOrder(self.cb, self.cavok)
+        Editor.setTabOrder(self.cavok, self.skc)
         Editor.setTabOrder(self.skc, self.nsc)
+        Editor.setTabOrder(self.nsc, self.nosig)
 
     def retranslateUi(self, Editor):
         _translate = QtCore.QCoreApplication.translate
