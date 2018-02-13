@@ -107,43 +107,6 @@
               </property>
              </widget>
             </item>
-            <item row="7" column="0">
-             <widget class="QLabel" name="label">
-              <property name="text">
-               <string>Language</string>
-              </property>
-             </widget>
-            </item>
-            <item row="7" column="1">
-             <widget class="QComboBox" name="languageCombox">
-              <property name="currentText">
-               <string>Simplified Chinese</string>
-              </property>
-              <item>
-               <property name="text">
-                <string>Simplified Chinese</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>English</string>
-               </property>
-              </item>
-             </widget>
-            </item>
-            <item row="6" column="0">
-             <spacer name="verticalSpacer">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>40</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
            </layout>
           </widget>
          </item>
