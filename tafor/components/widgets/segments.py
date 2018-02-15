@@ -632,6 +632,7 @@ class SigmetTypeSegment(QWidget, Ui_sigmet_type.Ui_Editor):
         self.setupUi(self)
 
 class BaseSigmetPhenomena(QWidget, Ui_sigmet_phenomena.Ui_Editor):
+    completeSignal = pyqtSignal(bool)
 
     def __init__(self):
         super(BaseSigmetPhenomena, self).__init__()
@@ -641,9 +642,16 @@ class BaseSigmetPhenomena(QWidget, Ui_sigmet_phenomena.Ui_Editor):
         self.setSquence()
 
         self.duration = 4
+        self.complete = True
 
     def bindSignal(self):
         self.forecast.currentTextChanged.connect(self.enbaleOBSTime)
+
+        self.valid.textChanged.connect(self.checkComplete)
+        self.sequence.textChanged.connect(self.checkComplete)
+        self.forecast.currentTextChanged.connect(self.checkComplete)
+        self.typhoonName.editingFinished.connect(self.checkComplete)
+        self.obsTime.textChanged.connect(self.checkComplete)
 
     def enbaleOBSTime(self, text):
         if text == 'OBS':
@@ -664,6 +672,9 @@ class BaseSigmetPhenomena(QWidget, Ui_sigmet_phenomena.Ui_Editor):
         raise NotImplemented
 
     def setPhenomena(self, text):
+        raise NotImplemented
+
+    def checkComplete(self):
         raise NotImplemented
 
     def message(self):
@@ -726,6 +737,16 @@ class SigmetGeneralPhenomena(BaseSigmetPhenomena):
         self.typhoonName.setVisible(False)
         self.typhoonNameLabel.setVisible(False)
 
+    def checkComplete(self):
+        mustRequired = [
+                        self.valid.hasAcceptableInput(), 
+                        self.sequence.hasAcceptableInput(),
+                        ]
+        if self.obsTime.isEnabled():
+            mustRequired.append(self.obsTime.hasAcceptableInput())
+
+        self.complete = all(mustRequired)
+        self.completeSignal.emit(self.complete)
 
 class SigmetTyphoonPhenomena(BaseSigmetPhenomena):
 
@@ -734,6 +755,8 @@ class SigmetTyphoonPhenomena(BaseSigmetPhenomena):
         self.hideDescription()
         self.setPhenomena()
         self.duration = 6
+
+        self.forecast.setCurrentIndex(self.forecast.findText('OBS'))
 
     def setPhenomena(self):
         self.phenomena.addItems(['TC'])
@@ -748,6 +771,17 @@ class SigmetTyphoonPhenomena(BaseSigmetPhenomena):
         text = ' '.join(items) if all(items) else ''
         return text
 
+    def checkComplete(self):
+        mustRequired = [
+                        self.valid.hasAcceptableInput(), 
+                        self.sequence.hasAcceptableInput(), 
+                        self.typhoonName.text(),
+                        ]
+        if self.forecast.currentText() == 'OBS':
+            mustRequired.append(self.obsTime.hasAcceptableInput())
+
+        self.complete = all(mustRequired)
+        self.completeSignal.emit(self.complete)
 
 class SigmetCustomPhenomena(BaseSigmetPhenomena):
 
@@ -766,9 +800,20 @@ class SigmetCustomPhenomena(BaseSigmetPhenomena):
         self.forecastLabel.setVisible(False)
         self.obsTime.setVisible(False)
         self.obsTimeLabel.setVisible(False)
-        
 
-class SigmetGeneralContent(QWidget, Ui_sigmet_general.Ui_Editor):
+    def checkComplete(self):
+        pass
+
+
+class BaseSigmetContent(QWidget, Ui_sigmet_general.Ui_Editor):
+    completeSignal = pyqtSignal(bool)
+
+    def __init__(self):
+        super(BaseSigmetContent, self).__init__()
+        self.complete = False
+                        
+
+class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
 
     def __init__(self):
         super(SigmetGeneralContent, self).__init__()
@@ -784,6 +829,11 @@ class SigmetGeneralContent(QWidget, Ui_sigmet_general.Ui_Editor):
         self.local.clicked.connect(self.setArea)
 
         self.position.currentTextChanged.connect(self.setFightLevel)
+
+        self.speed.textChanged.connect(self.checkComplete)
+        self.position.currentTextChanged.connect(self.checkComplete)
+        self.base.textChanged.connect(self.checkComplete)
+        self.top.textChanged.connect(self.checkComplete)
 
     def setArea(self):
         if self.latitudeAndLongitude.isChecked():
@@ -828,6 +878,19 @@ class SigmetGeneralContent(QWidget, Ui_sigmet_general.Ui_Editor):
             self.position.setCurrentIndex(self.position.findText('TOP'))
         else:
             self.position.setCurrentIndex(-1)
+
+    def checkComplete(self):
+        mustRequired = [self.speed.hasAcceptableInput(), self.area()]
+
+        if self.base.isEnabled():
+            mustRequired.append(self.base.hasAcceptableInput())
+
+        if self.top.isEnabled():
+            mustRequired.append(self.top.hasAcceptableInput())
+
+        self.complete = all(mustRequired)
+        self.completeSignal.emit(self.complete)
+        print('complete', mustRequired)
 
     def message(self):
         area = self.area()
@@ -900,7 +963,7 @@ class SigmetGeneralContent(QWidget, Ui_sigmet_general.Ui_Editor):
         return text
 
 
-class SigmetTyphoonContent(QWidget, Ui_sigmet_typhoon.Ui_Editor):
+class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
 
     def __init__(self):
         super(SigmetTyphoonContent, self).__init__()
@@ -927,7 +990,7 @@ class SigmetTyphoonContent(QWidget, Ui_sigmet_typhoon.Ui_Editor):
         return text
 
 
-class SigmetCustomContent(QWidget, Ui_sigmet_custom.Ui_Editor):
+class SigmetCustomContent(BaseSigmetContent, Ui_sigmet_custom.Ui_Editor):
 
     def __init__(self):
         super(SigmetCustomContent, self).__init__()
@@ -939,7 +1002,7 @@ class SigmetCustomContent(QWidget, Ui_sigmet_custom.Ui_Editor):
         return text
 
 
-class SigmetGeneralSegment(QWidget):
+class SigmetGeneralSegment(BaseSigmetContent):
 
     def __init__(self):
         super(SigmetGeneralSegment, self).__init__()
@@ -965,7 +1028,7 @@ class SigmetGeneralSegment(QWidget):
         return text
 
 
-class SigmetTyphoonSegment(QWidget):
+class SigmetTyphoonSegment(BaseSigmetContent):
 
     def __init__(self):
         super(SigmetTyphoonSegment, self).__init__()
@@ -990,7 +1053,7 @@ class SigmetTyphoonSegment(QWidget):
         return text
 
 
-class SigmetCustomSegment(QWidget):
+class SigmetCustomSegment(BaseSigmetContent):
 
     def __init__(self):
         super(SigmetCustomSegment, self).__init__()

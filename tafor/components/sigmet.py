@@ -28,7 +28,7 @@ class SigmetEditor(BaseEditor):
         self.typhoon = SigmetTyphoonSegment()
         self.custom = SigmetCustomSegment()
         self.nextButton = QPushButton()
-        # self.nextButton.setEnabled(False)
+        self.nextButton.setEnabled(False)
         self.nextButton.setText(QCoreApplication.translate('Editor', 'Next'))
         layout.addWidget(self.type)
         layout.addWidget(self.general)
@@ -48,6 +48,13 @@ class SigmetEditor(BaseEditor):
         self.type.volcanicAsh.clicked.connect(self.changeSegment)
         self.type.custom.clicked.connect(self.changeSegment)
         self.type.cancel.clicked.connect(self.changeSegment)
+
+        self.general.phenomena.completeSignal.connect(self.enbaleNextButton)
+        self.general.content.completeSignal.connect(self.enbaleNextButton)
+        self.typhoon.phenomena.completeSignal.connect(self.enbaleNextButton)
+        self.typhoon.content.completeSignal.connect(self.enbaleNextButton)
+        self.custom.phenomena.completeSignal.connect(self.enbaleNextButton)
+        self.custom.content.completeSignal.connect(self.enbaleNextButton)
 
     def changeSegment(self):
         if self.type.general.isChecked():
@@ -74,4 +81,10 @@ class SigmetEditor(BaseEditor):
     def previewMessage(self):
         message = {'full': self.currentSegment.message()}
         self.previewSignal.emit(message)
+
+    def enbaleNextButton(self):
+        completes = [self.currentSegment.phenomena.complete, self.currentSegment.content.complete]
+        print(completes)
+        enbale = all(completes)
+        self.nextButton.setEnabled(enbale)
 
