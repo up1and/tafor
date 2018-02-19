@@ -24,8 +24,8 @@ def remoteMessage(url):
 
 def callUp(url, token, mobile):
     try:
-        r = requests.post(url, auth=('api', token), data={'mobile': mobile}, timeout=30)
-        if r.status_code == 201:
+        r = requests.post(url, auth=('api', token), data={'mobile': mobile, 'code': '000000'}, timeout=30)
+        if r.status_code in [200, 201]:
             logger.info('Dial {} successfully'.format(mobile))
             return r.json()
         else:
