@@ -3,7 +3,7 @@ import datetime
 
 from PyQt5.QtGui import QRegExpValidator
 from PyQt5.QtCore import Qt, QRegExp, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QVBoxLayout
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QComboBox, QRadioButton
 
 from tafor import conf, logger
 from tafor.utils import CheckTAF, Pattern
@@ -646,12 +646,14 @@ class BaseSigmetPhenomena(QWidget, Ui_sigmet_phenomena.Ui_Editor):
 
     def bindSignal(self):
         self.forecast.currentTextChanged.connect(self.enbaleOBSTime)
+        self.autoCheckComplete()
 
-        self.valid.textChanged.connect(self.checkComplete)
-        self.sequence.textChanged.connect(self.checkComplete)
-        self.forecast.currentTextChanged.connect(self.checkComplete)
-        self.typhoonName.editingFinished.connect(self.checkComplete)
-        self.obsTime.textChanged.connect(self.checkComplete)
+    def autoCheckComplete(self):
+        for line in self.findChildren(QLineEdit):
+            line.textChanged.connect(self.checkComplete)
+
+        for combox in self.findChildren(QComboBox):
+            combox.currentTextChanged.connect(self.checkComplete)
 
     def enbaleOBSTime(self, text):
         if text == 'OBS':
@@ -805,13 +807,23 @@ class SigmetCustomPhenomena(BaseSigmetPhenomena):
         pass
 
 
-class BaseSigmetContent(QWidget, Ui_sigmet_general.Ui_Editor):
+class BaseSigmetContent(QWidget):
     completeSignal = pyqtSignal(bool)
 
     def __init__(self):
         super(BaseSigmetContent, self).__init__()
         self.complete = False
-                        
+
+    def autoCheckComplete(self):
+        for line in self.findChildren(QLineEdit):
+            line.textChanged.connect(self.checkComplete)
+
+        for combox in self.findChildren(QComboBox):
+            combox.currentTextChanged.connect(self.checkComplete)
+
+        for button in self.findChildren(QRadioButton):
+            button.clicked.connect(self.checkComplete)
+
 
 class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
 
@@ -830,10 +842,7 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
 
         self.position.currentTextChanged.connect(self.setFightLevel)
 
-        self.speed.textChanged.connect(self.checkComplete)
-        self.position.currentTextChanged.connect(self.checkComplete)
-        self.base.textChanged.connect(self.checkComplete)
-        self.top.textChanged.connect(self.checkComplete)
+        self.autoCheckComplete()
 
     def setArea(self):
         if self.latitudeAndLongitude.isChecked():
@@ -890,7 +899,6 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
 
         self.complete = all(mustRequired)
         self.completeSignal.emit(self.complete)
-        print('complete', mustRequired)
 
     def message(self):
         area = self.area()
@@ -954,8 +962,8 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
             point3 = point(self.pointsLatitude3, self.pointsLongtitude3)
             point4 = point(self.pointsLatitude4, self.pointsLongtitude4)
 
-            points = [point1, point2, point3, point4]
-            text = 'WI ' + ' - '.join(filter(None, points))
+            points = list(filter(None, [point1, point2, point3, point4]))
+            text = 'WI ' + ' - '.join(points) if len(points) > 3 else ''
 
         if self.local.isChecked():
             text = conf.value('Message/ICAO')
@@ -968,6 +976,9 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
     def __init__(self):
         super(SigmetTyphoonContent, self).__init__()
         self.setupUi(self)
+
+    def bindSignal(self):
+        self.autoCheckComplete()
 
     def message(self):
         area = '{latitude} {longtitude} CB TOP FL{height} WI {range}KM OF CENTER'.format(

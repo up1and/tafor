@@ -84,7 +84,7 @@ class SigmetEditor(BaseEditor):
 
     def enbaleNextButton(self):
         completes = [self.currentSegment.phenomena.complete, self.currentSegment.content.complete]
-        print(completes)
         enbale = all(completes)
         self.nextButton.setEnabled(enbale)
+        logger.debug('phenomena status {}, content status {}'.format(*completes))
 
