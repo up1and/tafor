@@ -1,0 +1,1 @@
+web: gunicorn tafor:app --log-file=-

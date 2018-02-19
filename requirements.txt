@@ -1,17 +1,10 @@
-beautifulsoup4==4.6.0
 certifi==2017.7.27.1
 chardet==3.0.4
 click==6.7
-Flask==0.12.2
-gunicorn==19.7.1
 idna==2.5
-itsdangerous==0.24
-Jinja2==2.9.6
-MarkupSafe==1.0
 PyQt5==5.9
 pyserial==3.4
 requests==2.18.3
 sip==4.19.3
 SQLAlchemy==1.1.13
 urllib3==1.22
-Werkzeug==0.12.2

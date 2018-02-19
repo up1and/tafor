@@ -53,6 +53,7 @@ def latest(icao):
         return jsonify(marshal(messages))
 
     except Exception as e:
+        app.logger.error(e, exc_info=True)
         return jsonify({'error': '{} not found'.format(icao)}), 404
 
 @app.route('/remote/latest/<icao>.json')
@@ -83,6 +84,7 @@ def remote_latest(icao):
         return jsonify(marshal(messages))
 
     except Exception as e:
+        app.logger.error(e, exc_info=True)
         return jsonify({'error': '{} not found'.format(icao)}), 404
 
 
@@ -97,3 +99,4 @@ if __name__ == '__main__':
         debug = True
 
     app.run(debug=debug, port=6575)
+    
