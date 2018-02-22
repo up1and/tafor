@@ -92,9 +92,9 @@ def remote_latest(icao):
 if __name__ == '__main__':
     import os
 
-    TAFOR_SCRIPT_ENV = os.environ.get('TAFOR_SCRIPT_ENV') or 'dev'
+    TAFOR_API_ENV = os.environ.get('TAFOR_API_ENV') or 'dev'
 
-    if TAFOR_SCRIPT_ENV == 'prod':
+    if TAFOR_API_ENV == 'prod':
         debug = False
     else:
         debug = True
