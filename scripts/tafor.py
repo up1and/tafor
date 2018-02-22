@@ -1,10 +1,10 @@
 import re
 import requests
 
-from flask import Flask
-from flask import request, jsonify
+from flask import Flask, request, jsonify, render_template
 
 from bs4 import BeautifulSoup
+
 
 app = Flask(__name__)
 
@@ -17,8 +17,9 @@ def find_key(message):
         return 'SP'
 
     if message.startswith('TAF'):
-        regex = re.compile(r'(0[1-9]|[12][0-9]|3[0-1])(0024|0606|1212|1818)')
-        if regex.search(message):
+        pattern = re.compile(r'(0[1-9]|[12][0-9]|3[0-1])(0024|0606|1212|1818)')
+        intl_pattern = re.compile(r'(\d{4})/(\d{4})')
+        if pattern.search(message) or intl_pattern.search(message):
             return 'FT'
         else:
             return 'FC'
@@ -33,7 +34,7 @@ def marshal(messages):
 
 @app.route('/')
 def index():
-    return '<h2>Tafor works!</h2> API: {}{}'.format(request.url, 'latest/[icao].json')
+    return render_template('index.html')
 
 @app.route('/latest/<icao>.json')
 def latest(icao):
