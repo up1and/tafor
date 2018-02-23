@@ -1,9 +1,9 @@
 import json
 import datetime
 
-from PyQt5.QtGui import QRegExpValidator
+from PyQt5.QtGui import QRegExpValidator, QIntValidator
 from PyQt5.QtCore import Qt, QRegExp, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QComboBox, QRadioButton
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QComboBox, QRadioButton, QCheckBox
 
 from tafor import conf, logger
 from tafor.utils import CheckTAF, Pattern
@@ -11,7 +11,32 @@ from tafor.components.ui import (Ui_taf_primary, Ui_taf_becmg, Ui_taf_tempo, Ui_
     Ui_sigmet_type, Ui_sigmet_general, Ui_sigmet_phenomena, Ui_sigmet_typhoon, Ui_sigmet_custom)
 
 
-class BaseSegment(QWidget):
+class SegmentMixin(object):
+
+    def upperText(self, line):
+        line.setText(line.text().upper())
+
+    def coloredText(self, line):
+        if line.hasAcceptableInput():
+            line.setStyleSheet('color: black')
+        else:
+            line.setStyleSheet('color: grey')
+
+    def register(self):
+        for line in self.findChildren(QLineEdit):
+            line.textChanged.connect(self.checkComplete)
+
+        for combox in self.findChildren(QComboBox):
+            combox.currentTextChanged.connect(self.checkComplete)
+
+        for button in self.findChildren(QRadioButton):
+            button.clicked.connect(self.checkComplete)
+
+        for checkbox in self.findChildren(QCheckBox):
+            checkbox.clicked.connect(self.checkComplete)
+
+
+class BaseSegment(QWidget, SegmentMixin):
     completeSignal = pyqtSignal(bool)
 
     def __init__(self):
@@ -24,9 +49,10 @@ class BaseSegment(QWidget):
             self.cavok.toggled.connect(self.setCavok)
             self.skc.toggled.connect(self.setSkc)
             self.nsc.toggled.connect(self.setNsc)
-            self.cavok.clicked.connect(self.checkComplete)
-            self.nsc.clicked.connect(self.checkComplete)
-            self.skc.clicked.connect(self.checkComplete)
+
+        if hasattr(self, 'prob30'):
+            self.prob30.toggled.connect(self.setProb30)
+            self.prob40.toggled.connect(self.setProb40)
 
         self.gust.editingFinished.connect(self.validGust)
 
@@ -45,12 +71,7 @@ class BaseSegment(QWidget):
         self.cloud3.textEdited.connect(lambda: self.coloredText(self.cloud3))
         self.cb.textEdited.connect(lambda: self.coloredText(self.cb))
 
-        self.wind.textChanged.connect(self.checkComplete)
-        self.vis.textChanged.connect(self.checkComplete)
-        self.cloud1.textChanged.connect(self.checkComplete)
-        self.cloud2.textChanged.connect(self.checkComplete)
-        self.cloud3.textChanged.connect(self.checkComplete)
-        self.cb.textChanged.connect(self.checkComplete)
+        self.register()
 
     def clouds(self, enbale):
         if enbale:
@@ -172,15 +193,6 @@ class BaseSegment(QWidget):
         self.msg = ' '.join(filter(None, messages))
         # logger.debug(self.msg)
 
-    def upperText(self, line):
-        line.setText(line.text().upper())
-
-    def coloredText(self, line):
-        if line.hasAcceptableInput():
-            line.setStyleSheet('color: black')
-        else:
-            line.setStyleSheet('color: grey')
-
     def checkComplete(self):
         raise NotImplemented
 
@@ -234,14 +246,6 @@ class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.tmin.textEdited.connect(lambda: self.coloredText(self.tmin))
         self.tmaxTime.textEdited.connect(lambda: self.coloredText(self.tmaxTime))
         self.tminTime.textEdited.connect(lambda: self.coloredText(self.tminTime))
-
-        # 设置下一步按钮
-        self.date.textEdited.connect(self.checkComplete)
-        self.period.textChanged.connect(self.checkComplete)
-        self.tmax.textChanged.connect(self.checkComplete)
-        self.tmaxTime.textChanged.connect(self.checkComplete)
-        self.tmin.textChanged.connect(self.checkComplete)
-        self.tminTime.textChanged.connect(self.checkComplete)
 
     def checkComplete(self):
         self.complete = False
@@ -329,8 +333,8 @@ class TAFBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Editor):
         self.setValidator()
 
         # self.cavok.clicked.connect(self.setCavok)
-        # self.skc.clicked.connect(self.setSkc_nsc)
-        # self.nsc.clicked.connect(self.setSkc_nsc)
+        # self.skc.clicked.connect(self.setSkc)
+        # self.nsc.clicked.connect(self.setNsc)
 
         self.bindSignal()
 
@@ -339,13 +343,6 @@ class TAFBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Editor):
 
         interval = QRegExpValidator(QRegExp(self.rules.interval))
         self.interval.setValidator(interval)
-
-    def bindSignal(self):
-        super(TAFBecmgSegment, self).bindSignal()
-
-        self.interval.textChanged.connect(self.checkComplete)
-        self.weather.currentIndexChanged.connect(self.checkComplete)
-        self.weatherWithIntensity.currentIndexChanged.connect(self.checkComplete)
 
     def message(self):
         super(TAFBecmgSegment, self).message()
@@ -402,16 +399,6 @@ class TAFTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Editor):
 
         interval = QRegExpValidator(QRegExp(self.rules.interval))
         self.interval.setValidator(interval)
-
-    def bindSignal(self):
-        super(TAFTempoSegment, self).bindSignal()
-
-        self.prob30.toggled.connect(self.setProb30)
-        self.prob40.toggled.connect(self.setProb40)
-
-        self.interval.textChanged.connect(self.checkComplete)
-        self.weather.currentIndexChanged.connect(self.checkComplete)
-        self.weatherWithIntensity.currentIndexChanged.connect(self.checkComplete)
 
     def setProb30(self, checked):
         if checked:
@@ -477,11 +464,6 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         self.tl.toggled.connect(self.setTl)
 
         self.period.editingFinished.connect(self.validPeriod)
-
-        self.nosig.clicked.connect(self.checkComplete)
-        self.at.clicked.connect(self.checkComplete)
-        self.fm.clicked.connect(self.checkComplete)
-        self.tl.clicked.connect(self.checkComplete)
 
     def setValidator(self):
         super(TrendSegment, self).setValidator()
@@ -631,29 +613,20 @@ class SigmetTypeSegment(QWidget, Ui_sigmet_type.Ui_Editor):
         super(SigmetTypeSegment, self).__init__()
         self.setupUi(self)
 
-class BaseSigmetPhenomena(QWidget, Ui_sigmet_phenomena.Ui_Editor):
+class BaseSigmetPhenomena(QWidget, SegmentMixin, Ui_sigmet_phenomena.Ui_Editor):
     completeSignal = pyqtSignal(bool)
 
     def __init__(self):
         super(BaseSigmetPhenomena, self).__init__()
-        self.setupUi(self)
-        self.bindSignal()
-        self.updateDate()
-        self.setSquence()
-
         self.duration = 4
         self.complete = True
+        self.rules = Pattern()
 
-    def bindSignal(self):
-        self.forecast.currentTextChanged.connect(self.enbaleOBSTime)
-        self.autoCheckComplete()
-
-    def autoCheckComplete(self):
-        for line in self.findChildren(QLineEdit):
-            line.textChanged.connect(self.checkComplete)
-
-        for combox in self.findChildren(QComboBox):
-            combox.currentTextChanged.connect(self.checkComplete)
+        self.setupUi(self)
+        self.updateDate()
+        self.setValidator()
+        self.setSquence()
+        self.bindSignal()
 
     def enbaleOBSTime(self, text):
         if text == 'OBS':
@@ -667,6 +640,15 @@ class BaseSigmetPhenomena(QWidget, Ui_sigmet_phenomena.Ui_Editor):
         self.time = datetime.datetime.utcnow() + datetime.timedelta(minutes=15)
         self.valid.setText(self.time.strftime('%d%H%M'))
 
+    def setValidator(self):
+        date = QRegExpValidator(QRegExp(self.rules.date))
+        self.valid.setValidator(date)
+
+        time = QRegExpValidator(QRegExp(self.rules.time))
+        self.obsTime.setValidator(time)
+
+        self.sequence.setValidator(QIntValidator(self.sequence))
+
     def setSquence(self):
         self.sequence.setText('1')
 
@@ -675,6 +657,16 @@ class BaseSigmetPhenomena(QWidget, Ui_sigmet_phenomena.Ui_Editor):
 
     def setPhenomena(self, text):
         raise NotImplemented
+
+    def bindSignal(self):
+        self.forecast.currentTextChanged.connect(self.enbaleOBSTime)
+
+        self.typhoonName.textEdited.connect(lambda: self.upperText(self.typhoonName))
+
+        self.valid.textEdited.connect(lambda: self.coloredText(self.valid))
+        self.obsTime.textEdited.connect(lambda: self.coloredText(self.obsTime))
+
+        self.register()
 
     def checkComplete(self):
         raise NotImplemented
@@ -807,22 +799,13 @@ class SigmetCustomPhenomena(BaseSigmetPhenomena):
         pass
 
 
-class BaseSigmetContent(QWidget):
+class BaseSigmetContent(QWidget, SegmentMixin):
     completeSignal = pyqtSignal(bool)
 
     def __init__(self):
         super(BaseSigmetContent, self).__init__()
         self.complete = False
-
-    def autoCheckComplete(self):
-        for line in self.findChildren(QLineEdit):
-            line.textChanged.connect(self.checkComplete)
-
-        for combox in self.findChildren(QComboBox):
-            combox.currentTextChanged.connect(self.checkComplete)
-
-        for button in self.findChildren(QRadioButton):
-            button.clicked.connect(self.checkComplete)
+        self.rules = Pattern()
 
 
 class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
@@ -831,7 +814,7 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         super(SigmetGeneralContent, self).__init__()
         self.setupUi(self)
         self.bindSignal()
-
+        self.setValidator()
         self.setArea()
 
     def bindSignal(self):
@@ -842,7 +825,85 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
 
         self.position.currentTextChanged.connect(self.setFightLevel)
 
-        self.autoCheckComplete()
+        self.north.textEdited.connect(lambda: self.upperText(self.north))
+        self.south.textEdited.connect(lambda: self.upperText(self.south))
+        self.lineLatitude1.textEdited.connect(lambda: self.upperText(self.lineLatitude1))
+        self.lineLatitude2.textEdited.connect(lambda: self.upperText(self.lineLatitude2))
+        self.lineLatitude3.textEdited.connect(lambda: self.upperText(self.lineLatitude3))
+        self.lineLatitude4.textEdited.connect(lambda: self.upperText(self.lineLatitude4))
+        self.pointsLatitude1.textEdited.connect(lambda: self.upperText(self.pointsLatitude1))
+        self.pointsLatitude2.textEdited.connect(lambda: self.upperText(self.pointsLatitude2))
+        self.pointsLatitude3.textEdited.connect(lambda: self.upperText(self.pointsLatitude3))
+        self.pointsLatitude4.textEdited.connect(lambda: self.upperText(self.pointsLatitude4))
+
+        self.east.textEdited.connect(lambda: self.upperText(self.east))
+        self.west.textEdited.connect(lambda: self.upperText(self.west))
+        self.lineLongtitude1.textEdited.connect(lambda: self.upperText(self.lineLongtitude1))
+        self.lineLongtitude2.textEdited.connect(lambda: self.upperText(self.lineLongtitude2))
+        self.lineLongtitude3.textEdited.connect(lambda: self.upperText(self.lineLongtitude3))
+        self.lineLongtitude4.textEdited.connect(lambda: self.upperText(self.lineLongtitude4))
+        self.pointsLongtitude1.textEdited.connect(lambda: self.upperText(self.pointsLongtitude1))
+        self.pointsLongtitude2.textEdited.connect(lambda: self.upperText(self.pointsLongtitude2))
+        self.pointsLongtitude3.textEdited.connect(lambda: self.upperText(self.pointsLongtitude3))
+        self.pointsLongtitude4.textEdited.connect(lambda: self.upperText(self.pointsLongtitude4))
+
+        self.north.textEdited.connect(lambda: self.coloredText(self.north))
+        self.south.textEdited.connect(lambda: self.coloredText(self.south))
+        self.lineLatitude1.textEdited.connect(lambda: self.coloredText(self.lineLatitude1))
+        self.lineLatitude2.textEdited.connect(lambda: self.coloredText(self.lineLatitude2))
+        self.lineLatitude3.textEdited.connect(lambda: self.coloredText(self.lineLatitude3))
+        self.lineLatitude4.textEdited.connect(lambda: self.coloredText(self.lineLatitude4))
+        self.pointsLatitude1.textEdited.connect(lambda: self.coloredText(self.pointsLatitude1))
+        self.pointsLatitude2.textEdited.connect(lambda: self.coloredText(self.pointsLatitude2))
+        self.pointsLatitude3.textEdited.connect(lambda: self.coloredText(self.pointsLatitude3))
+        self.pointsLatitude4.textEdited.connect(lambda: self.coloredText(self.pointsLatitude4))
+
+        self.east.textEdited.connect(lambda: self.coloredText(self.east))
+        self.west.textEdited.connect(lambda: self.coloredText(self.west))
+        self.lineLongtitude1.textEdited.connect(lambda: self.coloredText(self.lineLongtitude1))
+        self.lineLongtitude2.textEdited.connect(lambda: self.coloredText(self.lineLongtitude2))
+        self.lineLongtitude3.textEdited.connect(lambda: self.coloredText(self.lineLongtitude3))
+        self.lineLongtitude4.textEdited.connect(lambda: self.coloredText(self.lineLongtitude4))
+        self.pointsLongtitude1.textEdited.connect(lambda: self.coloredText(self.pointsLongtitude1))
+        self.pointsLongtitude2.textEdited.connect(lambda: self.coloredText(self.pointsLongtitude2))
+        self.pointsLongtitude3.textEdited.connect(lambda: self.coloredText(self.pointsLongtitude3))
+        self.pointsLongtitude4.textEdited.connect(lambda: self.coloredText(self.pointsLongtitude4))
+
+        self.base.textEdited.connect(lambda: self.coloredText(self.base))
+        self.top.textEdited.connect(lambda: self.coloredText(self.top))
+
+        self.register()
+
+    def setValidator(self):
+        latitude = QRegExpValidator(QRegExp(self.rules.latitude, Qt.CaseInsensitive))
+        self.north.setValidator(latitude)
+        self.south.setValidator(latitude)
+        self.lineLatitude1.setValidator(latitude)
+        self.lineLatitude2.setValidator(latitude)
+        self.lineLatitude3.setValidator(latitude)
+        self.lineLatitude4.setValidator(latitude)
+        self.pointsLatitude1.setValidator(latitude)
+        self.pointsLatitude2.setValidator(latitude)
+        self.pointsLatitude3.setValidator(latitude)
+        self.pointsLatitude4.setValidator(latitude)
+
+        longitude = QRegExpValidator(QRegExp(self.rules.longitude, Qt.CaseInsensitive))
+        self.east.setValidator(longitude)
+        self.west.setValidator(longitude)
+        self.lineLongtitude1.setValidator(longitude)
+        self.lineLongtitude2.setValidator(longitude)
+        self.lineLongtitude3.setValidator(longitude)
+        self.lineLongtitude4.setValidator(longitude)
+        self.pointsLongtitude1.setValidator(longitude)
+        self.pointsLongtitude2.setValidator(longitude)
+        self.pointsLongtitude3.setValidator(longitude)
+        self.pointsLongtitude4.setValidator(longitude)
+
+        fightLevel = QRegExpValidator(QRegExp(self.rules.fightLevel))
+        self.base.setValidator(fightLevel)
+        self.top.setValidator(fightLevel)
+
+        self.speed.setValidator(QIntValidator(self.speed))
 
     def setArea(self):
         if self.latitudeAndLongitude.isChecked():
@@ -978,7 +1039,7 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         self.setupUi(self)
 
     def bindSignal(self):
-        self.autoCheckComplete()
+        self.register()
 
     def message(self):
         area = '{latitude} {longtitude} CB TOP FL{height} WI {range}KM OF CENTER'.format(

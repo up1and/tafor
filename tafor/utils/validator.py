@@ -79,6 +79,11 @@ class Pattern(object):
     hours = r'([01][0-9]|2[0-3])'
     interval = r'([01][0-9]|2[0-3])(0[1-9]|1[0-9]|2[0-4])'
     trendInterval = r'([01][0-9]|2[0-3])([0-5][0-9])'
+    time = r'([01][0-9]|2[0-3])([0-5][0-9])'
+
+    latitude = r'(N|S)(90(0{2})?|[1-8]?\d(\d{2})?)'
+    longitude = r'(E|W)(180(0{2})?|((1[0-7]\d)|([1-9]?\d))(\d{2})?)'
+    fightLevel = r'([1-9]\d{2})'
 
 
 class Validator(object):
