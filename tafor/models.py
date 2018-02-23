@@ -99,6 +99,23 @@ class Trend(Base):
     def __repr__(self):
         return '<Trend %r %r>' % (self.rpt)
 
+class Sigmet(Base):
+    __tablename__ = 'sigmets'
+
+    id = Column(Integer, primary_key=True)
+    tt = Column(String(2))
+    rpt = Column(String(255))
+    raw = Column(String(255))
+    sent = Column(DateTime, default=datetime.datetime.utcnow)
+
+    def __init__(self, tt, rpt, raw=None):
+        self.tt = tt
+        self.rpt = rpt
+        self.raw = raw
+
+    def __repr__(self):
+        return '<Sigmet %r %r>' % (self.rpt)
+
 class User(Base):
     __tablename__ = 'users'
 
