@@ -163,7 +163,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.setValue('Communication/OriginatorAddress', 'originatorAddress')
         self.setValue('Communication/TAFAddress', 'tafAddress', 'plaintext')
         self.setValue('Communication/SIGMETAddress', 'sigmetAddress', 'plaintext')
-        self.setValue('Communication/AIRMETAddress', 'airmetAddress', 'plaintext')
         self.setValue('Communication/TrendAddress', 'trendAddress', 'plaintext')
 
         self.setValue('Monitor/WebApiURL', 'webApiURL')
@@ -214,7 +213,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.loadValue('Communication/OriginatorAddress', 'originatorAddress')
         self.loadValue('Communication/TAFAddress', 'tafAddress')
         self.loadValue('Communication/SIGMETAddress', 'sigmetAddress')
-        self.loadValue('Communication/AIRMETAddress', 'airmetAddress')
         self.loadValue('Communication/TrendAddress', 'trendAddress')
 
         self.loadValue('Monitor/WebApiURL', 'webApiURL')

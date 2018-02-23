@@ -1,6 +1,5 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource>
-    <file>translations/i18n_en.qm</file>
-    <file>translations/i18n_zh.qm</file>
+    <file>translations/zh_CN.qm</file>
 </qresource>
 </RCC>

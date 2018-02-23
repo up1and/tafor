@@ -21,7 +21,7 @@
      </property>
      <layout class="QGridLayout" name="gridLayout">
       <item row="1" column="1">
-       <widget class="QLineEdit" name="currentLongtitude"/>
+       <widget class="QLineEdit" name="currentLongitude"/>
       </item>
       <item row="0" column="0">
        <widget class="QLabel" name="currentLatitudeLabel">
@@ -34,12 +34,12 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QLabel" name="currentLongtitudeLabel">
+       <widget class="QLabel" name="currentLongitudeLabel">
         <property name="text">
-         <string>Longtitude</string>
+         <string>Longitude</string>
         </property>
         <property name="buddy">
-         <cstring>currentLongtitude</cstring>
+         <cstring>currentLongitude</cstring>
         </property>
        </widget>
       </item>
@@ -209,15 +209,15 @@
        <widget class="QLineEdit" name="forecastTime"/>
       </item>
       <item row="1" column="2">
-       <widget class="QLineEdit" name="forecastLongtitude"/>
+       <widget class="QLineEdit" name="forecastLongitude"/>
       </item>
       <item row="0" column="2">
-       <widget class="QLabel" name="forecastLongtitudeLabel">
+       <widget class="QLabel" name="forecastLongitudeLabel">
         <property name="text">
-         <string>Forecast Longtitude</string>
+         <string>Forecast Longitude</string>
         </property>
         <property name="buddy">
-         <cstring>forecastLongtitude</cstring>
+         <cstring>forecastLongitude</cstring>
         </property>
        </widget>
       </item>
@@ -241,7 +241,7 @@
  </widget>
  <tabstops>
   <tabstop>currentLatitude</tabstop>
-  <tabstop>currentLongtitude</tabstop>
+  <tabstop>currentLongitude</tabstop>
   <tabstop>height</tabstop>
   <tabstop>range</tabstop>
   <tabstop>movement</tabstop>
@@ -249,7 +249,7 @@
   <tabstop>intensityChange</tabstop>
   <tabstop>forecastTime</tabstop>
   <tabstop>forecastLatitude</tabstop>
-  <tabstop>forecastLongtitude</tabstop>
+  <tabstop>forecastLongitude</tabstop>
  </tabstops>
  <resources/>
  <connections/>

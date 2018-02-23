@@ -838,14 +838,14 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
 
         self.east.textEdited.connect(lambda: self.upperText(self.east))
         self.west.textEdited.connect(lambda: self.upperText(self.west))
-        self.lineLongtitude1.textEdited.connect(lambda: self.upperText(self.lineLongtitude1))
-        self.lineLongtitude2.textEdited.connect(lambda: self.upperText(self.lineLongtitude2))
-        self.lineLongtitude3.textEdited.connect(lambda: self.upperText(self.lineLongtitude3))
-        self.lineLongtitude4.textEdited.connect(lambda: self.upperText(self.lineLongtitude4))
-        self.pointsLongtitude1.textEdited.connect(lambda: self.upperText(self.pointsLongtitude1))
-        self.pointsLongtitude2.textEdited.connect(lambda: self.upperText(self.pointsLongtitude2))
-        self.pointsLongtitude3.textEdited.connect(lambda: self.upperText(self.pointsLongtitude3))
-        self.pointsLongtitude4.textEdited.connect(lambda: self.upperText(self.pointsLongtitude4))
+        self.lineLongitude1.textEdited.connect(lambda: self.upperText(self.lineLongitude1))
+        self.lineLongitude2.textEdited.connect(lambda: self.upperText(self.lineLongitude2))
+        self.lineLongitude3.textEdited.connect(lambda: self.upperText(self.lineLongitude3))
+        self.lineLongitude4.textEdited.connect(lambda: self.upperText(self.lineLongitude4))
+        self.pointsLongitude1.textEdited.connect(lambda: self.upperText(self.pointsLongitude1))
+        self.pointsLongitude2.textEdited.connect(lambda: self.upperText(self.pointsLongitude2))
+        self.pointsLongitude3.textEdited.connect(lambda: self.upperText(self.pointsLongitude3))
+        self.pointsLongitude4.textEdited.connect(lambda: self.upperText(self.pointsLongitude4))
 
         self.north.textEdited.connect(lambda: self.coloredText(self.north))
         self.south.textEdited.connect(lambda: self.coloredText(self.south))
@@ -860,14 +860,14 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
 
         self.east.textEdited.connect(lambda: self.coloredText(self.east))
         self.west.textEdited.connect(lambda: self.coloredText(self.west))
-        self.lineLongtitude1.textEdited.connect(lambda: self.coloredText(self.lineLongtitude1))
-        self.lineLongtitude2.textEdited.connect(lambda: self.coloredText(self.lineLongtitude2))
-        self.lineLongtitude3.textEdited.connect(lambda: self.coloredText(self.lineLongtitude3))
-        self.lineLongtitude4.textEdited.connect(lambda: self.coloredText(self.lineLongtitude4))
-        self.pointsLongtitude1.textEdited.connect(lambda: self.coloredText(self.pointsLongtitude1))
-        self.pointsLongtitude2.textEdited.connect(lambda: self.coloredText(self.pointsLongtitude2))
-        self.pointsLongtitude3.textEdited.connect(lambda: self.coloredText(self.pointsLongtitude3))
-        self.pointsLongtitude4.textEdited.connect(lambda: self.coloredText(self.pointsLongtitude4))
+        self.lineLongitude1.textEdited.connect(lambda: self.coloredText(self.lineLongitude1))
+        self.lineLongitude2.textEdited.connect(lambda: self.coloredText(self.lineLongitude2))
+        self.lineLongitude3.textEdited.connect(lambda: self.coloredText(self.lineLongitude3))
+        self.lineLongitude4.textEdited.connect(lambda: self.coloredText(self.lineLongitude4))
+        self.pointsLongitude1.textEdited.connect(lambda: self.coloredText(self.pointsLongitude1))
+        self.pointsLongitude2.textEdited.connect(lambda: self.coloredText(self.pointsLongitude2))
+        self.pointsLongitude3.textEdited.connect(lambda: self.coloredText(self.pointsLongitude3))
+        self.pointsLongitude4.textEdited.connect(lambda: self.coloredText(self.pointsLongitude4))
 
         self.base.textEdited.connect(lambda: self.coloredText(self.base))
         self.top.textEdited.connect(lambda: self.coloredText(self.top))
@@ -890,14 +890,14 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         longitude = QRegExpValidator(QRegExp(self.rules.longitude, Qt.CaseInsensitive))
         self.east.setValidator(longitude)
         self.west.setValidator(longitude)
-        self.lineLongtitude1.setValidator(longitude)
-        self.lineLongtitude2.setValidator(longitude)
-        self.lineLongtitude3.setValidator(longitude)
-        self.lineLongtitude4.setValidator(longitude)
-        self.pointsLongtitude1.setValidator(longitude)
-        self.pointsLongtitude2.setValidator(longitude)
-        self.pointsLongtitude3.setValidator(longitude)
-        self.pointsLongtitude4.setValidator(longitude)
+        self.lineLongitude1.setValidator(longitude)
+        self.lineLongitude2.setValidator(longitude)
+        self.lineLongitude3.setValidator(longitude)
+        self.lineLongitude4.setValidator(longitude)
+        self.pointsLongitude1.setValidator(longitude)
+        self.pointsLongitude2.setValidator(longitude)
+        self.pointsLongitude3.setValidator(longitude)
+        self.pointsLongitude4.setValidator(longitude)
 
         fightLevel = QRegExpValidator(QRegExp(self.rules.fightLevel))
         self.base.setValidator(fightLevel)
@@ -1006,22 +1006,22 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
             text = ' AND '.join(filter(None, areas))
 
         if self.line.isChecked():
-            point1 = point(self.lineLatitude1, self.lineLongtitude1)
-            point2 = point(self.lineLatitude2, self.lineLongtitude2)
+            point1 = point(self.lineLatitude1, self.lineLongitude1)
+            point2 = point(self.lineLatitude2, self.lineLongitude2)
             line1 = '{} OF LINE {} - {}'.format(self.lineDirection1.currentText(), point1, point2) if all([point1, point2]) else ''
 
-            point3 = point(self.lineLatitude3, self.lineLongtitude3)
-            point4 = point(self.lineLatitude4, self.lineLongtitude4)
+            point3 = point(self.lineLatitude3, self.lineLongitude3)
+            point4 = point(self.lineLatitude4, self.lineLongitude4)
             line2 = '{} OF LINE {} - {}'.format(self.lineDirection2.currentText(), point3, point4) if all([point3, point4]) else ''
 
             lines = [line1, line2]
             text = ' AND '.join(filter(None, lines))
 
         if self.points.isChecked():
-            point1 = point(self.pointsLatitude1, self.pointsLongtitude1)
-            point2 = point(self.pointsLatitude2, self.pointsLongtitude2)
-            point3 = point(self.pointsLatitude3, self.pointsLongtitude3)
-            point4 = point(self.pointsLatitude4, self.pointsLongtitude4)
+            point1 = point(self.pointsLatitude1, self.pointsLongitude1)
+            point2 = point(self.pointsLatitude2, self.pointsLongitude2)
+            point3 = point(self.pointsLatitude3, self.pointsLongitude3)
+            point4 = point(self.pointsLatitude4, self.pointsLongitude4)
 
             points = list(filter(None, [point1, point2, point3, point4]))
             text = 'WI ' + ' - '.join(points) if len(points) > 3 else ''
@@ -1042,9 +1042,9 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         self.register()
 
     def message(self):
-        area = '{latitude} {longtitude} CB TOP FL{height} WI {range}KM OF CENTER'.format(
+        area = '{latitude} {Longitude} CB TOP FL{height} WI {range}KM OF CENTER'.format(
                 latitude=self.currentLatitude.text(),
-                longtitude=self.currentLongtitude.text(),
+                Longitude=self.currentLongitude.text(),
                 height=self.height.text(),
                 range=self.range.text()
             )
@@ -1053,10 +1053,10 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
                 speed=self.speed.text(),
                 intensityChange=self.intensityChange.currentText()
             )
-        forecast = 'FCST {forecastTime}Z TC CENTER {forecastLatitude} {forecastLongtitude}'.format(
+        forecast = 'FCST {forecastTime}Z TC CENTER {forecastLatitude} {forecastLongitude}'.format(
                 forecastTime=self.forecastTime.text(),
                 forecastLatitude=self.forecastLatitude.text(),
-                forecastLongtitude=self.forecastLongtitude.text()
+                forecastLongitude=self.forecastLongitude.text()
             )
         text = ' '.join([area, movement, forecast])
         return text

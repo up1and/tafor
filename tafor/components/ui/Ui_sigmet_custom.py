@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\sigmet_custom.ui'
+# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\components\ui\sigmet_custom.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -12,6 +12,7 @@ class Ui_Editor(object):
     def setupUi(self, Editor):
         Editor.setObjectName("Editor")
         Editor.resize(500, 300)
+        Editor.setWindowTitle("Sigmet")
         self.verticalLayout = QtWidgets.QVBoxLayout(Editor)
         self.verticalLayout.setObjectName("verticalLayout")
         self.customGroup = QtWidgets.QGroupBox(Editor)
@@ -33,7 +34,6 @@ class Ui_Editor(object):
 
     def retranslateUi(self, Editor):
         _translate = QtCore.QCoreApplication.translate
-        Editor.setWindowTitle(_translate("Editor", "Sigmet"))
         self.customGroup.setTitle(_translate("Editor", "Text"))
 
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\sigmet_phenomena.ui'
+# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\components\ui\sigmet_phenomena.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -42,7 +42,9 @@ class Ui_Editor(object):
         self.forecast = QtWidgets.QComboBox(self.headGroup)
         self.forecast.setObjectName("forecast")
         self.forecast.addItem("")
+        self.forecast.setItemText(0, "FCST")
         self.forecast.addItem("")
+        self.forecast.setItemText(1, "OBS")
         self.gridLayout_2.addWidget(self.forecast, 1, 5, 1, 1)
         self.forecastLabel = QtWidgets.QLabel(self.headGroup)
         self.forecastLabel.setObjectName("forecastLabel")
@@ -89,8 +91,6 @@ class Ui_Editor(object):
         self.sequenceLabel.setText(_translate("Editor", "Sequence"))
         self.validLabel.setText(_translate("Editor", "Valid"))
         self.obsTimeLabel.setText(_translate("Editor", "OBS Time"))
-        self.forecast.setItemText(0, _translate("Editor", "FCST"))
-        self.forecast.setItemText(1, _translate("Editor", "OBS"))
         self.forecastLabel.setText(_translate("Editor", "Forecast"))
         self.typhoonNameLabel.setText(_translate("Editor", "Typhoon Name"))
         self.phenomenaLabel.setText(_translate("Editor", "Phenomena"))

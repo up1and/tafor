@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\main.ui'
+# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\components\ui\main.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -76,6 +76,23 @@ class Ui_MainWindow(object):
         self.metarTable.setHorizontalHeaderItem(1, item)
         self.metar_layout.addWidget(self.metarTable)
         self.mainTab.addTab(self.metarTab, "")
+        self.sigmetTab = QtWidgets.QWidget()
+        self.sigmetTab.setObjectName("sigmetTab")
+        self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.sigmetTab)
+        self.verticalLayout_2.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout_2.setObjectName("verticalLayout_2")
+        self.sigmetTable = QtWidgets.QTableWidget(self.sigmetTab)
+        self.sigmetTable.setObjectName("sigmetTable")
+        self.sigmetTable.setColumnCount(3)
+        self.sigmetTable.setRowCount(0)
+        item = QtWidgets.QTableWidgetItem()
+        self.sigmetTable.setHorizontalHeaderItem(0, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.sigmetTable.setHorizontalHeaderItem(1, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.sigmetTable.setHorizontalHeaderItem(2, item)
+        self.verticalLayout_2.addWidget(self.sigmetTable)
+        self.mainTab.addTab(self.sigmetTab, "SIGMET")
         self.verticalLayout.addWidget(self.mainTab)
         MainWindow.setCentralWidget(self.centralWidget)
         self.menuBar = QtWidgets.QMenuBar(MainWindow)
@@ -161,6 +178,12 @@ class Ui_MainWindow(object):
         item = self.metarTable.horizontalHeaderItem(1)
         item.setText(_translate("MainWindow", "Message Content"))
         self.mainTab.setTabText(self.mainTab.indexOf(self.metarTab), _translate("MainWindow", "METAR"))
+        item = self.sigmetTable.horizontalHeaderItem(0)
+        item.setText(_translate("MainWindow", "Type"))
+        item = self.sigmetTable.horizontalHeaderItem(1)
+        item.setText(_translate("MainWindow", "Message Content"))
+        item = self.sigmetTable.horizontalHeaderItem(2)
+        item.setText(_translate("MainWindow", "Sent Time"))
         self.postMenu.setTitle(_translate("MainWindow", "Post"))
         self.settingMenu.setTitle(_translate("MainWindow", "Options"))
         self.contractsMenu.setTitle(_translate("MainWindow", "Contacts"))

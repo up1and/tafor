@@ -341,15 +341,15 @@
        <widget class="QWidget" name="lineWidget" native="true">
         <layout class="QGridLayout" name="lineLayout">
          <item row="2" column="2">
-          <widget class="QLineEdit" name="lineLongtitude1"/>
+          <widget class="QLineEdit" name="lineLongitude1"/>
          </item>
          <item row="2" column="1">
           <widget class="QLineEdit" name="lineLatitude1"/>
          </item>
          <item row="1" column="2">
-          <widget class="QLabel" name="lineLongtitudeLabel">
+          <widget class="QLabel" name="lineLongitudeLabel">
            <property name="text">
-            <string>Longtitude</string>
+            <string>Longitude</string>
            </property>
           </widget>
          </item>
@@ -390,7 +390,7 @@
           <widget class="QLineEdit" name="lineLatitude2"/>
          </item>
          <item row="3" column="2">
-          <widget class="QLineEdit" name="lineLongtitude2"/>
+          <widget class="QLineEdit" name="lineLongitude2"/>
          </item>
          <item row="3" column="3">
           <widget class="QComboBox" name="lineDirection1">
@@ -437,7 +437,7 @@
           </widget>
          </item>
          <item row="5" column="2">
-          <widget class="QLineEdit" name="lineLongtitude4"/>
+          <widget class="QLineEdit" name="lineLongitude4"/>
          </item>
          <item row="4" column="1">
           <widget class="QLineEdit" name="lineLatitude3"/>
@@ -456,7 +456,7 @@
           </widget>
          </item>
          <item row="4" column="2">
-          <widget class="QLineEdit" name="lineLongtitude3"/>
+          <widget class="QLineEdit" name="lineLongitude3"/>
          </item>
          <item row="5" column="1">
           <widget class="QLineEdit" name="lineLatitude4"/>
@@ -532,7 +532,7 @@
           </widget>
          </item>
          <item row="2" column="2">
-          <widget class="QLineEdit" name="pointsLongtitude2"/>
+          <widget class="QLineEdit" name="pointsLongitude2"/>
          </item>
          <item row="3" column="1">
           <widget class="QLineEdit" name="pointsLatitude3"/>
@@ -541,7 +541,7 @@
           <widget class="QLineEdit" name="pointsLatitude4"/>
          </item>
          <item row="4" column="2">
-          <widget class="QLineEdit" name="pointsLongtitude4"/>
+          <widget class="QLineEdit" name="pointsLongitude4"/>
          </item>
          <item row="1" column="3">
           <spacer name="horizontalSpacer_3">
@@ -557,7 +557,7 @@
           </spacer>
          </item>
          <item row="3" column="2">
-          <widget class="QLineEdit" name="pointsLongtitude3"/>
+          <widget class="QLineEdit" name="pointsLongitude3"/>
          </item>
          <item row="0" column="1">
           <widget class="QLabel" name="pointsLatitudeLabel">
@@ -567,15 +567,15 @@
           </widget>
          </item>
          <item row="1" column="2">
-          <widget class="QLineEdit" name="pointsLongtitude1"/>
+          <widget class="QLineEdit" name="pointsLongitude1"/>
          </item>
          <item row="2" column="1">
           <widget class="QLineEdit" name="pointsLatitude2"/>
          </item>
          <item row="0" column="2">
-          <widget class="QLabel" name="pointsLongtitudeLabel">
+          <widget class="QLabel" name="pointsLongitudeLabel">
            <property name="text">
-            <string>Longtitude</string>
+            <string>Longitude</string>
            </property>
           </widget>
          </item>
@@ -606,23 +606,23 @@
   <tabstop>east</tabstop>
   <tabstop>west</tabstop>
   <tabstop>lineLatitude1</tabstop>
-  <tabstop>lineLongtitude1</tabstop>
+  <tabstop>lineLongitude1</tabstop>
   <tabstop>lineLatitude2</tabstop>
-  <tabstop>lineLongtitude2</tabstop>
+  <tabstop>lineLongitude2</tabstop>
   <tabstop>lineDirection1</tabstop>
   <tabstop>lineLatitude3</tabstop>
-  <tabstop>lineLongtitude3</tabstop>
+  <tabstop>lineLongitude3</tabstop>
   <tabstop>lineLatitude4</tabstop>
-  <tabstop>lineLongtitude4</tabstop>
+  <tabstop>lineLongitude4</tabstop>
   <tabstop>lineDirection2</tabstop>
   <tabstop>pointsLatitude1</tabstop>
-  <tabstop>pointsLongtitude1</tabstop>
+  <tabstop>pointsLongitude1</tabstop>
   <tabstop>pointsLatitude2</tabstop>
-  <tabstop>pointsLongtitude2</tabstop>
+  <tabstop>pointsLongitude2</tabstop>
   <tabstop>pointsLatitude3</tabstop>
-  <tabstop>pointsLongtitude3</tabstop>
+  <tabstop>pointsLongitude3</tabstop>
   <tabstop>pointsLatitude4</tabstop>
-  <tabstop>pointsLongtitude4</tabstop>
+  <tabstop>pointsLongitude4</tabstop>
  </tabstops>
  <resources/>
  <connections/>

@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Sigmet</string>
+   <string notr="true">Sigmet</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\setting.ui'
+# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\components\ui\setting.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -326,15 +326,6 @@ class Ui_Settings(object):
         self.sigmetAddress.setObjectName("sigmetAddress")
         self.verticalLayout_7.addWidget(self.sigmetAddress)
         self.tabWidget.addTab(self.sigmetTab, "SIGMET")
-        self.airmetTab = QtWidgets.QWidget()
-        self.airmetTab.setObjectName("airmetTab")
-        self.verticalLayout_8 = QtWidgets.QVBoxLayout(self.airmetTab)
-        self.verticalLayout_8.setContentsMargins(0, 0, 0, 0)
-        self.verticalLayout_8.setObjectName("verticalLayout_8")
-        self.airmetAddress = QtWidgets.QTextEdit(self.airmetTab)
-        self.airmetAddress.setObjectName("airmetAddress")
-        self.verticalLayout_8.addWidget(self.airmetAddress)
-        self.tabWidget.addTab(self.airmetTab, "AIRMET")
         self.trendTab = QtWidgets.QWidget()
         self.trendTab.setObjectName("trendTab")
         self.verticalLayout_9 = QtWidgets.QVBoxLayout(self.trendTab)
@@ -528,8 +519,7 @@ class Ui_Settings(object):
         Settings.setTabOrder(self.originatorAddress, self.tabWidget)
         Settings.setTabOrder(self.tabWidget, self.tafAddress)
         Settings.setTabOrder(self.tafAddress, self.sigmetAddress)
-        Settings.setTabOrder(self.sigmetAddress, self.airmetAddress)
-        Settings.setTabOrder(self.airmetAddress, self.trendAddress)
+        Settings.setTabOrder(self.sigmetAddress, self.trendAddress)
         Settings.setTabOrder(self.trendAddress, self.warnTAFVolume)
         Settings.setTabOrder(self.warnTAFVolume, self.remindTAF)
         Settings.setTabOrder(self.remindTAF, self.remindTAFVolume)
@@ -578,7 +568,7 @@ class Ui_Settings(object):
         self.exportBrowseButton.setText(_translate("Settings", "Browse"))
         self.exportPath.setPlaceholderText(_translate("Settings", "PATH"))
         self.prefixGroup.setTitle(_translate("Settings", "Prefix"))
-        self.icaoLabel.setText(_translate("Settings", "ICAO"))
+        self.icaoLabel.setText(_translate("Settings", "Airport Code"))
         self.areaLabel.setText(_translate("Settings", "Intelligence Area"))
         self.firLabel.setText(_translate("Settings", "SIGMET Area"))
         self.trendSignLabel.setText(_translate("Settings", "Trend Identifier"))
@@ -601,7 +591,6 @@ class Ui_Settings(object):
         self.addressGroup.setTitle(_translate("Settings", "Send Address"))
         self.tafAddress.setPlaceholderText(_translate("Settings", "Please separate multiple addresses by space"))
         self.sigmetAddress.setPlaceholderText(_translate("Settings", "Please separate multiple addresses by space"))
-        self.airmetAddress.setPlaceholderText(_translate("Settings", "Please separate multiple addresses by space"))
         self.trendAddress.setPlaceholderText(_translate("Settings", "Please separate multiple addresses by space"))
         self.dataSourceGroup.setTitle(_translate("Settings", "Data Source"))
         self.webApiLabel.setText(_translate("Settings", "Request URL"))

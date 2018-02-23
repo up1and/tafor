@@ -70,12 +70,12 @@
        <widget class="QComboBox" name="forecast">
         <item>
          <property name="text">
-          <string>FCST</string>
+          <string notr="true">FCST</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>OBS</string>
+          <string notr="true">OBS</string>
          </property>
         </item>
        </widget>
