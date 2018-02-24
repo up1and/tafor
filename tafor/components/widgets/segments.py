@@ -47,7 +47,6 @@ class BaseSegment(QWidget, SegmentMixin):
     def bindSignal(self):
         if hasattr(self, 'cavok'):
             self.cavok.toggled.connect(self.setCavok)
-            self.skc.toggled.connect(self.setSkc)
             self.nsc.toggled.connect(self.setNsc)
 
         if hasattr(self, 'prob30'):
@@ -91,7 +90,6 @@ class BaseSegment(QWidget, SegmentMixin):
 
     def setCavok(self, checked):
         if checked:
-            self.skc.setChecked(False)
             self.nsc.setChecked(False)
 
             self.vis.clear()
@@ -107,18 +105,9 @@ class BaseSegment(QWidget, SegmentMixin):
             self.weatherWithIntensity.setEnabled(True)
             self.clouds(True)
 
-    def setSkc(self, checked):
-        if checked:
-            self.cavok.setChecked(False)
-            self.nsc.setChecked(False)
-            self.clouds(False)
-        else:
-            self.clouds(True)
-
     def setNsc(self, checked):
         if checked:
             self.cavok.setChecked(False)
-            self.skc.setChecked(False)
             self.clouds(False)
         else:
             self.clouds(True)
@@ -182,8 +171,6 @@ class BaseSegment(QWidget, SegmentMixin):
         if hasattr(self, 'cavok'):
             if self.cavok.isChecked():
                 messages = [winds, 'CAVOK']
-            elif self.skc.isChecked():
-                messages = [winds, vis, weatherWithIntensity, weather, 'SKC']
             elif self.nsc.isChecked():
                 if any([weather, weatherWithIntensity]) or vis != '9999':
                     messages = [winds, vis, weatherWithIntensity, weather, 'NSC']
@@ -263,7 +250,6 @@ class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
                         )
         oneRequired = (
                         self.nsc.isChecked(), 
-                        self.skc.isChecked(), 
                         self.cloud1.hasAcceptableInput(), 
                         self.cloud2.hasAcceptableInput(), 
                         self.cloud3.hasAcceptableInput(), 
@@ -317,8 +303,6 @@ class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.tempo2Checkbox.setChecked(False)
 
         self.cavok.setChecked(False)
-        self.skc.setChecked(False)
-        self.nsc.setChecked(False)
 
         self.tmax.clear()
         self.tmaxTime.clear()
@@ -336,7 +320,6 @@ class TAFBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Editor):
         self.setValidator()
 
         # self.cavok.clicked.connect(self.setCavok)
-        # self.skc.clicked.connect(self.setSkc)
         # self.nsc.clicked.connect(self.setNsc)
 
         self.bindSignal()
@@ -358,16 +341,15 @@ class TAFBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Editor):
     def checkComplete(self):
         self.complete = False
         oneRequired = (
-            self.nsc.isChecked(), 
-            self.skc.isChecked(),
-            self.cavok.isChecked(), 
-            self.wind.hasAcceptableInput(), 
-            self.vis.hasAcceptableInput(), 
+            self.nsc.isChecked(),
+            self.cavok.isChecked(),
+            self.wind.hasAcceptableInput(),
+            self.vis.hasAcceptableInput(),
             self.weather.currentText(),
             self.weatherWithIntensity.currentText(),
-            self.cloud1.hasAcceptableInput(), 
-            self.cloud2.hasAcceptableInput(), 
-            self.cloud3.hasAcceptableInput(), 
+            self.cloud1.hasAcceptableInput(),
+            self.cloud2.hasAcceptableInput(),
+            self.cloud3.hasAcceptableInput(),
             self.cb.hasAcceptableInput()
         )
 
@@ -382,7 +364,6 @@ class TAFBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Editor):
         self.interval.clear()
 
         self.cavok.setChecked(False)
-        self.skc.setChecked(False)
         self.nsc.setChecked(False)
 
 
@@ -493,7 +474,6 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         self.cb.setEnabled(status)
 
         self.cavok.setEnabled(status)
-        self.skc.setEnabled(status)
         self.nsc.setEnabled(status)
 
     def setAt(self, checked):
@@ -532,16 +512,15 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
     def checkComplete(self):
         self.complete = False
         oneRequired = (
-            self.nsc.isChecked(), 
-            self.skc.isChecked(),
-            self.cavok.isChecked(), 
-            self.wind.hasAcceptableInput(), 
-            self.vis.hasAcceptableInput(), 
+            self.nsc.isChecked(),
+            self.cavok.isChecked(),
+            self.wind.hasAcceptableInput(),
+            self.vis.hasAcceptableInput(),
             self.weather.currentText(),
             self.weatherWithIntensity.currentText(),
-            self.cloud1.hasAcceptableInput(), 
-            self.cloud2.hasAcceptableInput(), 
-            self.cloud3.hasAcceptableInput(), 
+            self.cloud1.hasAcceptableInput(),
+            self.cloud2.hasAcceptableInput(),
+            self.cloud3.hasAcceptableInput(),
             self.cb.hasAcceptableInput()
         )
 
@@ -603,7 +582,6 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         self.nosig.setChecked(False)
 
         self.cavok.setChecked(False)
-        self.skc.setChecked(False)
         self.nsc.setChecked(False)
 
         self.period.setEnabled(False)

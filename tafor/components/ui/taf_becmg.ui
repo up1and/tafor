@@ -95,22 +95,8 @@
      <item row="5" column="11">
       <widget class="QLineEdit" name="cloud1"/>
      </item>
-     <item row="6" column="12">
-      <widget class="QCheckBox" name="nsc">
-       <property name="text">
-        <string notr="true">NSC</string>
-       </property>
-      </widget>
-     </item>
      <item row="5" column="13">
       <widget class="QLineEdit" name="cloud3"/>
-     </item>
-     <item row="6" column="11">
-      <widget class="QCheckBox" name="skc">
-       <property name="text">
-        <string notr="true">SKC</string>
-       </property>
-      </widget>
      </item>
      <item row="5" column="6">
       <widget class="QLineEdit" name="gust"/>
@@ -183,6 +169,13 @@
        </property>
       </widget>
      </item>
+     <item row="6" column="11">
+      <widget class="QCheckBox" name="nsc">
+       <property name="text">
+        <string notr="true">NSC</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
   </layout>
@@ -199,8 +192,6 @@
   <tabstop>cloud3</tabstop>
   <tabstop>cb</tabstop>
   <tabstop>cavok</tabstop>
-  <tabstop>skc</tabstop>
-  <tabstop>nsc</tabstop>
  </tabstops>
  <resources/>
  <connections/>

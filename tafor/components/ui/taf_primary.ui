@@ -38,13 +38,6 @@
      <item row="3" column="2">
       <widget class="QLineEdit" name="wind"/>
      </item>
-     <item row="4" column="8">
-      <widget class="QCheckBox" name="skc">
-       <property name="text">
-        <string notr="true">SKC</string>
-       </property>
-      </widget>
-     </item>
      <item row="2" column="2">
       <widget class="QLabel" name="windLabel">
        <property name="text">
@@ -197,13 +190,6 @@
        </property>
        <property name="buddy">
         <cstring>weather</cstring>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="9">
-      <widget class="QCheckBox" name="nsc">
-       <property name="text">
-        <string notr="true">NSC</string>
        </property>
       </widget>
      </item>
@@ -368,6 +354,13 @@
        </layout>
       </widget>
      </item>
+     <item row="4" column="8">
+      <widget class="QCheckBox" name="nsc">
+       <property name="text">
+        <string notr="true">NSC</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
   </layout>
@@ -395,8 +388,6 @@
   <tabstop>cloud3</tabstop>
   <tabstop>cb</tabstop>
   <tabstop>cavok</tabstop>
-  <tabstop>skc</tabstop>
-  <tabstop>nsc</tabstop>
   <tabstop>tmax</tabstop>
   <tabstop>tmaxTime</tabstop>
   <tabstop>tmin</tabstop>
