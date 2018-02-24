@@ -643,9 +643,17 @@ class Parser(object):
                 tokens['weather']['error'] = True
                 self.tips.append('BR，HZ，FG，FU 不能同时存在')
 
-        # 不用高度云组云量的验证
+        
         if 'cloud' in tokens:
-            clouds = [c for c in tokens['cloud']['text'].split() if 'CB' not in c]
+            # 检查云组转折天气现象的匹配
+            weather = mixture['weather']['text']
+            cloud = tokens['cloud']['text']
+            if ('TS' in weather or 'SH' in weather) and 'CB' not in cloud:
+                tokens['cloud']['error'] = True
+                self.tips.append('阵性降水应包含 CB')
+
+            # 不用高度云组云量的验证
+            clouds = [c for c in cloud.split() if 'CB' not in c]
 
             for i, cloud in enumerate(clouds):
                 if i == 1 and 'FEW' in cloud:
@@ -678,8 +686,8 @@ if __name__ == '__main__':
     # print(Validator.cloud('NSC', 'SKC'))
 
     message = '''
-        TAF ZJHK 211338Z 211524 14004MPS 2000 BR SCT020 FEW026CB
-        BECMG 1718 9999=
+        TAF ZJHK 211338Z 211524 14004MPS 9999 SHRA SCT020 FEW026CB
+        BECMG 1920 SCT020=
     '''
     # m = Grammar.taf.search(message)
     # print(m.group(0))

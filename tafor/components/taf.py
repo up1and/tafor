@@ -238,7 +238,7 @@ class BaseTAFEditor(BaseEditor):
             if tempHour < self.periods[0]:
                 tempHour += datetime.timedelta(days=1) 
 
-            valid = self.periods[0] <= tempHour <= self.periods[1]
+            valid = self.periods[0] <= tempHour <= self.periods[1] and self.primary.tmaxTime.text() != self.primary.tminTime.text()
 
             if not valid:
                 line.clear()

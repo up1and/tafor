@@ -185,7 +185,10 @@ class BaseSegment(QWidget, SegmentMixin):
             elif self.skc.isChecked():
                 messages = [winds, vis, weatherWithIntensity, weather, 'SKC']
             elif self.nsc.isChecked():
-                messages = [winds, vis, weatherWithIntensity, weather, 'NSC']
+                if any([weather, weatherWithIntensity]) or vis != '9999':
+                    messages = [winds, vis, weatherWithIntensity, weather, 'NSC']
+                else:
+                    messages = [winds, 'CAVOK']
             else:
                 messages = [winds, vis, weatherWithIntensity, weather] + clouds
         else:
