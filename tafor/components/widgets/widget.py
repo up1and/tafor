@@ -4,7 +4,7 @@ import datetime
 from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox, QLabel, QHBoxLayout
 
-from tafor.models import db, Tafor
+from tafor.models import db, Taf
 from tafor.utils import CheckTAF
 from tafor.components.ui import Ui_main_recent
 
@@ -27,7 +27,7 @@ class RecentTAF(QWidget, Ui_main_recent.Ui_Recent):
         container.addWidget(self)
 
     def updateGUI(self):
-        item = db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()
+        item = db.query(Taf).filter_by(tt=self.tt).order_by(Taf.sent.desc()).first()
 
         if not item:
             self.hide()

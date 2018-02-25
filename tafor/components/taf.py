@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QWidget, QMessageBox, QVBoxLayout, QPushButton, QLay
 
 from tafor import boolean, conf, logger
 from tafor.utils import CheckTAF, Grammar, formatTimeInterval
-from tafor.models import db, Tafor, Task
+from tafor.models import db, Taf, Task
 from tafor.components.widgets.editor import BaseEditor
 from tafor.components.widgets.segments import TAFPrimarySegment, TAFBecmgSegment, TAFTempoSegment
 
@@ -209,13 +209,13 @@ class BaseTAFEditor(BaseEditor):
 
     def amendNumber(self, sign):
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        query = db.query(Tafor).filter(Tafor.rpt.contains(self.amdPeriod), Tafor.sent > expired)
+        query = db.query(Taf).filter(Taf.rpt.contains(self.amdPeriod), Taf.sent > expired)
         if sign == 'COR':
-            items = query.filter(Tafor.rpt.contains('COR')).all()
+            items = query.filter(Taf.rpt.contains('COR')).all()
             order = chr(ord('A') + len(items))
             return 'CC' + order
         elif sign == 'AMD':
-            items = query.filter(Tafor.rpt.contains('AMD')).all()
+            items = query.filter(Taf.rpt.contains('AMD')).all()
             order = chr(ord('A') + len(items))
             return 'AA' + order
 
@@ -363,7 +363,7 @@ class TaskTAFEditor(BaseTAFEditor):
         self.sender.sendSignal.connect(self.parent.taskBrowser.updateGUI)
         
     def previewMessage(self):
-        message = {'head': self.head, 'rpt':self.rpt, 'full': '\n'.join([self.head, self.rpt]), 'plan': self.time}
+        message = {'head': self.head, 'rpt':self.rpt, 'full': '\n'.join([self.head, self.rpt]), 'planning': self.time}
         self.previewSignal.emit(message)
         log.debug('Emit', message)
 

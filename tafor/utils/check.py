@@ -4,7 +4,7 @@ import datetime
 from PyQt5.QtCore import QObject
 
 from tafor import conf, logger
-from tafor.models import db, Tafor, Metar
+from tafor.models import db, Taf, Metar
 
 from tafor.utils.validator import Grammar
 
@@ -102,7 +102,7 @@ class CheckTAF(QObject):
     def local(self, period=None):
         period = self.warningPeriod() if period is None else period
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        recent = db.query(Tafor).filter(Tafor.rpt.contains(period), Tafor.sent > expired).order_by(Tafor.sent.desc()).first()
+        recent = db.query(Taf).filter(Taf.rpt.contains(period), Taf.sent > expired).order_by(Taf.sent.desc()).first()
         return recent
 
     def remote(self):
@@ -114,10 +114,10 @@ class CheckTAF(QObject):
         return None
 
     def save(self, callback=None):
-        last = db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()
+        last = db.query(Taf).filter_by(tt=self.tt).order_by(Taf.sent.desc()).first()
 
         if last is None or last.rptInline != self.message:  # 如果数据表为空 或 最后一条数据和远程不相等
-            item = Tafor(tt=self.tt, rpt=self.message, confirmed=self.time)
+            item = Taf(tt=self.tt, rpt=self.message, confirmed=self.time)
             db.add(item)
             db.commit()
             logger.info('Save {} {}'.format(self.tt, self.message))
@@ -126,7 +126,7 @@ class CheckTAF(QObject):
                 callback()
 
     def confirm(self, callback=None):
-        last = db.query(Tafor).filter_by(tt=self.tt).order_by(Tafor.sent.desc()).first()
+        last = db.query(Taf).filter_by(tt=self.tt).order_by(Taf.sent.desc()).first()
 
         if last is not None and last.rptInline == self.message:
             last.confirmed = self.time

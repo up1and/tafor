@@ -21,7 +21,7 @@ class TaskBrowser(QDialog, Ui_task.Ui_Tasks):
         self.timer.start(60 * 1000)
 
     def updateGUI(self):
-        items = db.query(Task).filter(Task.tafor_id == None).order_by(Task.plan.desc()).all()
+        items = db.query(Task).filter(Task.taf_id == None).order_by(Task.planning.desc()).all()
         header = self.taskTable.horizontalHeader()
         header.setSectionResizeMode(1, QHeaderView.Stretch)
         self.taskTable.setRowCount(len(items))
@@ -30,7 +30,7 @@ class TaskBrowser(QDialog, Ui_task.Ui_Tasks):
         for row, item in enumerate(items):
             self.taskTable.setItem(row, 0, QTableWidgetItem(item.tt))
             self.taskTable.setItem(row, 1, QTableWidgetItem(item.rpt))
-            self.taskTable.setItem(row, 2, QTableWidgetItem(item.plan.strftime("%m-%d %H:%M:%S")))
+            self.taskTable.setItem(row, 2, QTableWidgetItem(item.planning.strftime("%m-%d %H:%M:%S")))
             self.taskTable.setItem(row, 3, QTableWidgetItem(item.created.strftime("%m-%d %H:%M:%S")))
 
     def contextMenuEvent(self, event):

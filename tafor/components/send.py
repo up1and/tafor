@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QMessageBox
 
 from tafor import conf, logger
 from tafor.components.ui import Ui_send
-from tafor.models import db, Tafor, Task, Trend
+from tafor.models import db, Taf, Task, Trend
 from tafor.utils import Parser, AFTNMessage
 from tafor.utils.thread import SerialThread
 
@@ -115,7 +115,7 @@ class TAFSender(BaseSender):
         self.buttonBox.accepted.connect(self.send)
 
     def save(self):
-        item = Tafor(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'], raw=self.aftn.toJson())
+        item = Taf(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'], raw=self.aftn.toJson())
         db.add(item)
         db.commit()
         logger.debug('Save ' + item.rpt)
@@ -143,27 +143,27 @@ class TaskTAFSender(BaseSender):
         # self.Task_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=1)
 
     def save(self):
-        item = Task(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'], plan=self.message['plan'])
+        item = Task(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'], planning=self.message['planning'])
         db.add(item)
         db.commit()
-        logger.debug('Save Task', item.plan.strftime("%b %d %Y %H:%M:%S"))
+        logger.debug('Save Task', item.planning.strftime("%b %d %Y %H:%M:%S"))
         self.sendSignal.emit()
 
     def autoSend(self):
-        tasks = db.query(Task).filter_by(tafor_id=None).order_by(Task.plan).all()
+        tasks = db.query(Task).filter_by(taf_id=None).order_by(Task.planning).all()
         now = datetime.datetime.utcnow()
         sendStatus = False
 
         for task in tasks:
 
-            if task.plan <= now:
+            if task.planning <= now:
 
                 message = '\n'.join([task.head, task.rpt])
-                aftn = AFTNMessage(message, time=task.plan)
-                item = Tafor(tt=task.tt, head=task.head, rpt=task.rpt, raw=aftn.toJson())
+                aftn = AFTNMessage(message, time=task.planning)
+                item = Taf(tt=task.tt, head=task.head, rpt=task.rpt, raw=aftn.toJson())
                 db.add(item)
                 db.flush()
-                task.tafor_id = item.id
+                task.taf_id = item.id
                 db.merge(task)
                 db.commit()
 

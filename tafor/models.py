@@ -14,8 +14,8 @@ SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(BASEDIR, 'db.sqlite3')
 
 Base = declarative_base()
 
-class Tafor(Base):
-    __tablename__ = 'tafors'
+class Taf(Base):
+    __tablename__ = 'tafs'
     
     id = Column(Integer, primary_key=True)
     tt = Column(String(2))
@@ -69,18 +69,18 @@ class Task(Base):
     head = Column(String(255))
     rpt = Column(String(255))
     created = Column(DateTime, default=datetime.datetime.utcnow)
-    plan = Column(DateTime)
+    planning = Column(DateTime)
 
-    tafor_id = Column(Integer, ForeignKey('tafors.id'))
+    taf_id = Column(Integer, ForeignKey('tafs.id'))
 
-    def __init__(self, tt, head, rpt, plan):
+    def __init__(self, tt, head, rpt, planning):
         self.tt = tt
         self.head = head
         self.rpt = rpt
-        self.plan = plan
+        self.planning = planning
 
     def __repr__(self):
-        return '<Task TAF %r %r %r>' % (self.tt, self.rpt, self.plan)
+        return '<Task TAF %r %r %r>' % (self.tt, self.rpt, self.planning)
 
 class Trend(Base):
     __tablename__ = 'trends'
@@ -132,7 +132,7 @@ class User(Base):
 
 
 
-engine = create_engine(SQLALCHEMY_DATABASE_URI, connect_args={'check_same_thread': False}, echo=False)
+engine = create_engine(SQLALCHEMY_DATABASE_URI, echo=False)
 Session = sessionmaker(bind=engine)
 db = Session()
 
