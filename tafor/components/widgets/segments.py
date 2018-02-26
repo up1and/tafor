@@ -35,6 +35,16 @@ class SegmentMixin(object):
         for checkbox in self.findChildren(QCheckBox):
             checkbox.clicked.connect(self.checkComplete)
 
+    # def clear(self):
+    #     for line in self.findChildren(QLineEdit):
+    #         line.clear()
+
+    #     for combox in self.findChildren(QComboBox):
+    #         combox.setCurrentIndex(-1)
+
+    #     for checkbox in self.findChildren(QCheckBox):
+    #         checkbox.setChecked(False)
+
 
 class BaseSegment(QWidget, SegmentMixin):
     completeSignal = pyqtSignal(bool)
@@ -805,6 +815,7 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         self.local.clicked.connect(self.setArea)
 
         self.position.currentTextChanged.connect(self.setFightLevel)
+        self.movement.currentTextChanged.connect(self.setSpeed)
 
         self.north.textEdited.connect(lambda: self.upperText(self.north))
         self.south.textEdited.connect(lambda: self.upperText(self.south))
@@ -924,6 +935,14 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
             self.baseLabel.setEnabled(True)
             self.topLabel.setEnabled(True)
 
+    def setSpeed(self, text):
+        if text == 'STNR':
+            self.speed.setEnabled(False)
+            self.speedLabel.setEnabled(False)
+        else:
+            self.speed.setEnabled(True)
+            self.speedLabel.setEnabled(True)
+
     def setPosition(self, text):
         if 'TS' in text:
             self.position.setCurrentIndex(self.position.findText('TOP'))
@@ -931,7 +950,7 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
             self.position.setCurrentIndex(-1)
 
     def checkComplete(self):
-        mustRequired = [self.speed.hasAcceptableInput(), self.area()]
+        mustRequired = [self.area()]
 
         if self.base.isEnabled():
             mustRequired.append(self.base.hasAcceptableInput())
@@ -939,18 +958,31 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         if self.top.isEnabled():
             mustRequired.append(self.top.hasAcceptableInput())
 
+        if self.speed.isEnabled():
+            mustRequired.append(self.speed.hasAcceptableInput())
+
         self.complete = all(mustRequired)
         self.completeSignal.emit(self.complete)
 
     def message(self):
         area = self.area()
         fightLevel = self.fightLevel()
-        movement = 'MOV {movement} {speed} KMH {intensityChange}'.format(
-                movement=self.movement.currentText(),
-                speed=self.speed.text(),
-                intensityChange=self.intensityChange.currentText(),
-            )
-        text = ' '.join([area, fightLevel, movement])
+        moveState = self.moveState()
+        intensityChange = self.intensityChange.currentText()
+        text = ' '.join([area, fightLevel, moveState, intensityChange])
+        return text
+
+    def moveState(self):
+        movement = self.movement.currentText()
+
+        if movement == 'STNR':
+            text = 'STNR'
+        else:
+            text = 'MOV {movement} {speed} KMH'.format(
+                    movement=movement,
+                    speed=self.speed.text()
+                )
+
         return text
 
     def fightLevel(self):
@@ -1013,6 +1045,7 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         return text
 
 
+
 class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
 
     def __init__(self):
@@ -1055,7 +1088,7 @@ class SigmetCustomContent(BaseSigmetContent, Ui_sigmet_custom.Ui_Editor):
         return text
 
 
-class SigmetGeneralSegment(BaseSigmetContent):
+class SigmetGeneralSegment(QWidget):
 
     def __init__(self):
         super(SigmetGeneralSegment, self).__init__()
@@ -1077,11 +1110,15 @@ class SigmetGeneralSegment(BaseSigmetContent):
 
     def message(self):
         content = ' '.join([self.phenomena.message(), self.content.message()])
-        text = '\n'.join([self.phenomena.head(), content])
+        text = '\n'.join([self.phenomena.head(), content]) + '='
         return text
 
+    def clear(self):
+        self.phenomena.clear()
+        self.content.clear()
 
-class SigmetTyphoonSegment(BaseSigmetContent):
+
+class SigmetTyphoonSegment(QWidget):
 
     def __init__(self):
         super(SigmetTyphoonSegment, self).__init__()
@@ -1102,11 +1139,11 @@ class SigmetTyphoonSegment(BaseSigmetContent):
 
     def message(self):
         content = ' '.join([self.phenomena.message(), self.content.message()])
-        text = '\n'.join([self.phenomena.head(), content])
+        text = '\n'.join([self.phenomena.head(), content]) + '='
         return text
 
 
-class SigmetCustomSegment(BaseSigmetContent):
+class SigmetCustomSegment(QWidget):
 
     def __init__(self):
         super(SigmetCustomSegment, self).__init__()
@@ -1126,5 +1163,6 @@ class SigmetCustomSegment(BaseSigmetContent):
         pass
 
     def message(self):
-        text = '\n'.join([self.phenomena.head(), self.content.message()])
+        text = '\n'.join([self.phenomena.head(), self.content.message()]) + '='
         return text
+

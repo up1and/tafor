@@ -88,3 +88,11 @@ class SigmetEditor(BaseEditor):
         self.nextButton.setEnabled(enbale)
         logger.debug('phenomena status {}, content status {}'.format(*completes))
 
+    def clear(self):
+        self.general.clear()
+        self.typhoon.clear()
+        self.custom.clear()
+
+    def closeEvent(self, event):
+        self.clear()
+
