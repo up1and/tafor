@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QVBoxLayout, QPushButton, QLayout
 
 from tafor import logger
 from tafor.components.widgets.editor import BaseEditor
-from tafor.components.widgets.segments import SigmetTypeSegment, SigmetGeneralSegment, SigmetTyphoonSegment, SigmetCustomSegment
+from tafor.components.widgets import SigmetTypeSegment, SigmetGeneralSegment, SigmetTyphoonSegment, SigmetCustomSegment
 
 
 class SigmetEditor(BaseEditor):
@@ -79,8 +79,11 @@ class SigmetEditor(BaseEditor):
             self.currentSegment = self.custom
 
     def previewMessage(self):
-        message = {'full': self.currentSegment.message()}
+        self.rpt = self.currentSegment.message()
+        self.sign = self.currentSegment.sign()
+        message = {'sign': self.sign, 'rpt': self.rpt, 'full': '\n'.join([self.sign, self.rpt])}
         self.previewSignal.emit(message)
+        print(message)
 
     def enbaleNextButton(self):
         completes = [self.currentSegment.phenomena.complete, self.currentSegment.content.complete]

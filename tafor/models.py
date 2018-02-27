@@ -19,7 +19,7 @@ class Taf(Base):
     
     id = Column(Integer, primary_key=True)
     tt = Column(String(2))
-    head = Column(String(255), nullable=True)
+    sign = Column(String(255), nullable=True)
     rpt = Column(String(255))
     raw = Column(String(255), nullable=True)
     sent = Column(DateTime, default=datetime.datetime.utcnow)
@@ -27,9 +27,9 @@ class Taf(Base):
 
     # task = relationship('tasks', lazy='dynamic')
 
-    def __init__(self, tt, rpt, head=None, raw=None, confirmed=None):
+    def __init__(self, tt, rpt, sign=None, raw=None, confirmed=None):
         self.tt = tt
-        self.head = head
+        self.sign = sign
         self.rpt = rpt
         self.raw = raw
         self.confirmed = confirmed
@@ -45,7 +45,7 @@ class Taf(Base):
     def report(self):
         from tafor.utils import Parser
         rpt = Parser(self.rpt)
-        parts = [self.head, rpt.renderer()]
+        parts = [self.sign, rpt.renderer()]
         return '\n'.join(filter(None, parts))
 
 class Metar(Base):
@@ -66,16 +66,16 @@ class Task(Base):
 
     id = Column(Integer, primary_key=True)
     tt = Column(String(2))
-    head = Column(String(255))
+    sign = Column(String(255))
     rpt = Column(String(255))
     created = Column(DateTime, default=datetime.datetime.utcnow)
     planning = Column(DateTime)
 
     taf_id = Column(Integer, ForeignKey('tafs.id'))
 
-    def __init__(self, tt, head, rpt, planning):
+    def __init__(self, tt, sign, rpt, planning):
         self.tt = tt
-        self.head = head
+        self.sign = sign
         self.rpt = rpt
         self.planning = planning
 
@@ -104,12 +104,14 @@ class Sigmet(Base):
 
     id = Column(Integer, primary_key=True)
     tt = Column(String(2))
+    sign = Column(String(255))
     rpt = Column(String(255))
     raw = Column(String(255))
     sent = Column(DateTime, default=datetime.datetime.utcnow)
 
-    def __init__(self, tt, rpt, raw=None):
+    def __init__(self, tt, sign, rpt, raw=None):
         self.tt = tt
+        self.sign = sign
         self.rpt = rpt
         self.raw = raw
 

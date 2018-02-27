@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLayout
 
 from tafor import boolean, conf, logger
 from tafor.components.widgets.editor import BaseEditor
-from tafor.components.widgets.segments import TrendSegment
+from tafor.components.widgets import TrendSegment
 
 
 class TrendEditor(BaseEditor):

@@ -9,7 +9,7 @@ from tafor import boolean, conf, logger
 from tafor.utils import CheckTAF, Grammar, formatTimeInterval
 from tafor.models import db, Taf, Task
 from tafor.components.widgets.editor import BaseEditor
-from tafor.components.widgets.segments import TAFPrimarySegment, TAFBecmgSegment, TAFTempoSegment
+from tafor.components.widgets import TAFPrimarySegment, TAFBecmgSegment, TAFTempoSegment
 
 
 class BaseTAFEditor(BaseEditor):
@@ -283,7 +283,7 @@ class BaseTAFEditor(BaseEditor):
         tempo2Message = self.tempo2.message() if self.primary.tempo2Checkbox.isChecked() else ''
         messages = [primaryMessage, becmg1Message, becmg2Message, becmg3Message, tempo1Message, tempo2Message]
         self.rpt = '\n'.join(filter(None, messages)) + '='
-        self.head = self.primary.head()
+        self.sign = self.primary.sign()
 
     def updateDate(self):
         self.time = datetime.datetime.utcnow()
@@ -337,7 +337,7 @@ class TAFEditor(BaseTAFEditor):
         self.timer.start(1 * 1000)
 
     def previewMessage(self):
-        message = {'head': self.head, 'rpt':self.rpt, 'full': '\n'.join([self.head, self.rpt])}
+        message = {'sign': self.sign, 'rpt':self.rpt, 'full': '\n'.join([self.sign, self.rpt])}
         self.previewSignal.emit(message)
         logger.debug('TAF Edit ' + message['full'])
 
@@ -363,7 +363,7 @@ class TaskTAFEditor(BaseTAFEditor):
         self.sender.sendSignal.connect(self.parent.taskBrowser.updateGUI)
         
     def previewMessage(self):
-        message = {'head': self.head, 'rpt':self.rpt, 'full': '\n'.join([self.head, self.rpt]), 'planning': self.time}
+        message = {'sign': self.sign, 'rpt':self.rpt, 'full': '\n'.join([self.sign, self.rpt]), 'planning': self.time}
         self.previewSignal.emit(message)
         log.debug('Emit', message)
 

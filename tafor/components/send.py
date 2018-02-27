@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QMessageBox
 
 from tafor import conf, logger
 from tafor.components.ui import Ui_send
-from tafor.models import db, Taf, Task, Trend
+from tafor.models import db, Taf, Task, Trend, Sigmet
 from tafor.utils import Parser, AFTNMessage
 from tafor.utils.thread import SerialThread
 
@@ -210,5 +210,9 @@ class SigmetSender(BaseSender):
         self.rpt.setText(self.message['full'])
 
     def save(self):
-        pass
+        item = Sigmet(tt='WS', rpt=self.message['rpt'], raw=self.aftn.toJson())
+        db.add(item)
+        db.commit()
+        logger.debug('Save ' + item.rpt)
+        self.sendSignal.emit()
     
