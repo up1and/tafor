@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\components\ui\main.ui'
+# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\main.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -82,6 +82,10 @@ class Ui_MainWindow(object):
         self.verticalLayout_2.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.sigmetTable = QtWidgets.QTableWidget(self.sigmetTab)
+        self.sigmetTable.setMinimumSize(QtCore.QSize(850, 500))
+        self.sigmetTable.setFrameShadow(QtWidgets.QFrame.Raised)
+        self.sigmetTable.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.sigmetTable.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.sigmetTable.setObjectName("sigmetTable")
         self.sigmetTable.setColumnCount(3)
         self.sigmetTable.setRowCount(0)

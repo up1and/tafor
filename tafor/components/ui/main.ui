@@ -152,6 +152,21 @@
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
          <widget class="QTableWidget" name="sigmetTable">
+          <property name="minimumSize">
+           <size>
+            <width>850</width>
+            <height>500</height>
+           </size>
+          </property>
+          <property name="frameShadow">
+           <enum>QFrame::Raised</enum>
+          </property>
+          <property name="horizontalScrollBarPolicy">
+           <enum>Qt::ScrollBarAlwaysOff</enum>
+          </property>
+          <property name="editTriggers">
+           <set>QAbstractItemView::NoEditTriggers</set>
+          </property>
           <column>
            <property name="text">
             <string>Type</string>

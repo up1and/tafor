@@ -43,7 +43,7 @@ class SigmetEditor(BaseEditor):
     def bindSignal(self):
         self.nextButton.clicked.connect(self.previewMessage)
 
-        self.type.general.clicked.connect(self.changeSegment)
+        self.type.significantWeather.clicked.connect(self.changeSegment)
         self.type.tropicalCyclone.clicked.connect(self.changeSegment)
         self.type.volcanicAsh.clicked.connect(self.changeSegment)
         self.type.custom.clicked.connect(self.changeSegment)
@@ -57,7 +57,7 @@ class SigmetEditor(BaseEditor):
         self.custom.content.completeSignal.connect(self.enbaleNextButton)
 
     def changeSegment(self):
-        if self.type.general.isChecked():
+        if self.type.significantWeather.isChecked():
             self.general.show()
             self.typhoon.hide()
             self.custom.hide()

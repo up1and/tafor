@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>500</width>
-    <height>70</height>
+    <width>654</width>
+    <height>54</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,15 +15,15 @@
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout">
    <item>
-    <widget class="QGroupBox" name="typeGroup">
+    <widget class="QGroupBox" name="groupBox">
      <property name="title">
-      <string>Type</string>
+      <string notr="true"/>
      </property>
-     <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <layout class="QHBoxLayout" name="horizontalLayout_3">
       <item>
-       <widget class="QRadioButton" name="general">
+       <widget class="QRadioButton" name="significantWeather">
         <property name="text">
-         <string>General</string>
+         <string>Significant Weather</string>
         </property>
         <property name="checked">
          <bool>true</bool>
@@ -44,6 +44,38 @@
         </property>
        </widget>
       </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <spacer name="horizontalSpacer">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>40</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="sortGroup">
+     <property name="title">
+      <string notr="true"/>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <item>
+       <widget class="QRadioButton" name="template">
+        <property name="text">
+         <string>Template</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
       <item>
        <widget class="QRadioButton" name="custom">
         <property name="text">
@@ -57,19 +89,6 @@
          <string>Cancel</string>
         </property>
        </widget>
-      </item>
-      <item>
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
       </item>
      </layout>
     </widget>
