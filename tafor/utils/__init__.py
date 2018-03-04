@@ -54,3 +54,10 @@ def formatTimeInterval(interval, time=None):
     end = base + delta
 
     return start, end
+
+def ceilTime(time, amount=10):
+    import datetime
+    time = time - datetime.timedelta(minutes=time.minute % 5,
+                             seconds=time.second,
+                             microseconds=time.microsecond)
+    return time + datetime.timedelta(minutes=amount)

@@ -18,26 +18,26 @@ class SigmetEditor(BaseEditor):
         self.setWindowTitle(QCoreApplication.translate('Editor', 'Encoding Significant Meteorological Information'))
         self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px}')
 
-        self.currentSegment = self.general
+        self.currentSegment = self.sigmetGeneral
 
     def initUI(self):
         layout = QVBoxLayout(self)
         layout.setSizeConstraint(QLayout.SetFixedSize)
         self.type = SigmetTypeSegment()
-        self.general = SigmetGeneralSegment()
-        self.typhoon = SigmetTyphoonSegment()
+        self.sigmetGeneral = SigmetGeneralSegment()
+        self.sigmetTyphoon = SigmetTyphoonSegment()
         self.custom = SigmetCustomSegment()
         self.nextButton = QPushButton()
         self.nextButton.setEnabled(False)
         self.nextButton.setText(QCoreApplication.translate('Editor', 'Next'))
         layout.addWidget(self.type)
-        layout.addWidget(self.general)
-        layout.addWidget(self.typhoon)
+        layout.addWidget(self.sigmetGeneral)
+        layout.addWidget(self.sigmetTyphoon)
         layout.addWidget(self.custom)
         layout.addWidget(self.nextButton, 0, Qt.AlignRight|Qt.AlignBottom)
         self.setLayout(layout)
 
-        self.typhoon.hide()
+        self.sigmetTyphoon.hide()
         self.custom.hide()
 
     def bindSignal(self):
@@ -49,38 +49,53 @@ class SigmetEditor(BaseEditor):
         self.type.custom.clicked.connect(self.changeSegment)
         self.type.cancel.clicked.connect(self.changeSegment)
 
-        self.general.phenomena.completeSignal.connect(self.enbaleNextButton)
-        self.general.content.completeSignal.connect(self.enbaleNextButton)
-        self.typhoon.phenomena.completeSignal.connect(self.enbaleNextButton)
-        self.typhoon.content.completeSignal.connect(self.enbaleNextButton)
+        self.sigmetGeneral.phenomena.completeSignal.connect(self.enbaleNextButton)
+        self.sigmetGeneral.content.completeSignal.connect(self.enbaleNextButton)
+        self.sigmetTyphoon.phenomena.completeSignal.connect(self.enbaleNextButton)
+        self.sigmetTyphoon.content.completeSignal.connect(self.enbaleNextButton)
         self.custom.phenomena.completeSignal.connect(self.enbaleNextButton)
         self.custom.content.completeSignal.connect(self.enbaleNextButton)
 
     def changeSegment(self):
-        if self.type.significantWeather.isChecked():
-            self.general.show()
-            self.typhoon.hide()
-            self.custom.hide()
+        if self.type.template.isChecked():
+            if self.type.significantWeather.isChecked():
+                self.sigmetGeneral.show()
+                self.sigmetTyphoon.hide()
+                self.custom.hide()
+                self.currentSegment = self.sigmetGeneral
 
-            self.currentSegment = self.general
+            elif self.type.tropicalCyclone.isChecked():
+                self.sigmetGeneral.hide()
+                self.sigmetTyphoon.show()
+                self.custom.hide()
+                self.currentSegment = self.sigmetTyphoon
+
+            elif self.type.volcanicAsh.isChecked():
+                # 火山灰模板
+                pass
+
+        else:
+            self.sigmetGeneral.hide()
+            self.sigmetTyphoon.hide()
+            self.custom.show()
+            self.currentSegment = self.custom
+
+
+        if self.type.significantWeather.isChecked():
+            self.currentSegment.setDuration(4)
+            self.type.setType('WS')
 
         if self.type.tropicalCyclone.isChecked():
-            self.general.hide()
-            self.typhoon.show()
-            self.custom.hide()
+            self.currentSegment.setDuration(6)
+            self.type.setType('WC')
 
-            self.currentSegment = self.typhoon
-
-        if self.type.custom.isChecked() or self.type.cancel.isChecked() or self.type.volcanicAsh.isChecked():
-            self.general.hide()
-            self.typhoon.hide()
-            self.custom.show()
-
-            self.currentSegment = self.custom
+        if self.type.volcanicAsh.isChecked():
+            self.currentSegment.setDuration(6)
+            self.type.setType('WV')
 
     def previewMessage(self):
         self.rpt = self.currentSegment.message()
-        self.sign = self.currentSegment.sign()
+        self.sign = self.type.message()
         message = {'sign': self.sign, 'rpt': self.rpt, 'full': '\n'.join([self.sign, self.rpt])}
         self.previewSignal.emit(message)
         print(message)
@@ -92,8 +107,8 @@ class SigmetEditor(BaseEditor):
         logger.debug('phenomena status {}, content status {}'.format(*completes))
 
     def clear(self):
-        self.general.clear()
-        self.typhoon.clear()
+        self.sigmetGeneral.clear()
+        self.sigmetTyphoon.clear()
         self.custom.clear()
 
     def closeEvent(self, event):

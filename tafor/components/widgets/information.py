@@ -5,7 +5,7 @@ from PyQt5.QtCore import Qt, QRegExp, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
 
 from tafor import conf, logger
-from tafor.utils import Pattern
+from tafor.utils import Pattern, ceilTime
 from tafor.components.widgets.forecast import SegmentMixin
 from tafor.components.ui import (Ui_sigmet_type, Ui_sigmet_general, Ui_sigmet_phenomena, 
 	Ui_sigmet_typhoon, Ui_sigmet_custom)
@@ -16,6 +16,17 @@ class SigmetTypeSegment(QWidget, Ui_sigmet_type.Ui_Editor):
     def __init__(self):
         super(SigmetTypeSegment, self).__init__()
         self.setupUi(self)
+        self.tt = 'WS'
+
+    def setType(self, tt):
+        self.tt = tt
+
+    def message(self):
+        area = conf.value('Message/Area') or ''
+        icao = conf.value('Message/ICAO')
+        time = datetime.datetime.utcnow().strftime('%d%H%M')
+        messages = [self.tt + area, icao, time]
+        return ' '.join(filter(None, messages))
 
 class BaseSigmetPhenomena(QWidget, SegmentMixin, Ui_sigmet_phenomena.Ui_Editor):
     completeSignal = pyqtSignal(bool)
@@ -41,9 +52,14 @@ class BaseSigmetPhenomena(QWidget, SegmentMixin, Ui_sigmet_phenomena.Ui_Editor):
             self.obsTimeLabel.setEnabled(False)
 
     def updateDate(self):
+        valid, _ = self.validTime()
+        self.valid.setText(valid.strftime('%d%H%M'))
+
+    def validTime(self):
         self.time = datetime.datetime.utcnow()
-        validTime = self.time + datetime.timedelta(minutes=15)
-        self.valid.setText(validTime.strftime('%d%H%M'))
+        start = ceilTime(self.time, amount=15)
+        end = start + datetime.timedelta(hours=self.duration)
+        return start, end
 
     def setValidator(self):
         date = QRegExpValidator(QRegExp(self.rules.date))
@@ -87,8 +103,9 @@ class BaseSigmetPhenomena(QWidget, SegmentMixin, Ui_sigmet_phenomena.Ui_Editor):
     def head(self):
         area = conf.value('Message/FIR').split()[0]
         sequence = self.sequence.text()
-        validStart = self.time.strftime('%d%H%M')
-        validEnd = (self.time + datetime.timedelta(hours=self.duration)).strftime('%d%H%M')
+        start, end = self.validTime()
+        validStart = start.strftime('%d%H%M')
+        validEnd = end.strftime('%d%H%M')
         icao = conf.value('Message/ICAO')
 
         text = '{} SIGMET {} VALID {}/{} {}-'.format(area, sequence, validStart, validEnd, icao)
@@ -142,6 +159,9 @@ class BaseSegment(QWidget):
         content = ' '.join([self.phenomena.message(), self.content.message()])
         text = '\n'.join([self.phenomena.head(), content]) + '='
         return text
+
+    def setDuration(self, duration):
+        self.phenomena.duration = duration
 
     def clear(self):
         self.phenomena.clear()
