@@ -19,8 +19,6 @@ class BaseTAFEditor(BaseEditor):
 
         self.initUI()
         self.bindSignal()
-        self.updateDate()
-        self.updateMessageType()
 
     def initUI(self):
         window = QWidget(self)
@@ -62,13 +60,13 @@ class BaseTAFEditor(BaseEditor):
         self.primary.tempo1Checkbox.toggled.connect(self.tempo1.checkComplete)
         self.primary.tempo2Checkbox.toggled.connect(self.tempo2.checkComplete)
 
-        self.primary.fc.clicked.connect(self.updateMessageType)
-        self.primary.ft.clicked.connect(self.updateMessageType)
+        self.primary.fc.clicked.connect(self.changeMessageType)
+        self.primary.ft.clicked.connect(self.changeMessageType)
 
-        self.primary.normal.clicked.connect(self.updateMessageType)
-        self.primary.cor.clicked.connect(self.updateMessageType)
-        self.primary.amd.clicked.connect(self.updateMessageType)
-        self.primary.cnl.clicked.connect(self.updateMessageType)
+        self.primary.normal.clicked.connect(self.changeMessageType)
+        self.primary.cor.clicked.connect(self.changeMessageType)
+        self.primary.amd.clicked.connect(self.changeMessageType)
+        self.primary.cnl.clicked.connect(self.changeMessageType)
         self.primary.prev.clicked.connect(self.setPreviousPeriod)
 
         self.primary.period.textChanged.connect(self.clear)
@@ -133,7 +131,7 @@ class BaseTAFEditor(BaseEditor):
         else:
             self.tempo2.setVisible(False)
 
-    def updateMessageType(self):
+    def changeMessageType(self):
         if self.primary.fc.isChecked():
             self.tt = 'FC'
 
@@ -201,11 +199,11 @@ class BaseTAFEditor(BaseEditor):
             text = QCoreApplication.translate('Editor', 'Do you want to change the message valid period to previous?')
             ret = QMessageBox.question(self, title, text)
             if ret == QMessageBox.Yes:
-                self.updateMessageType()
+                self.changeMessageType()
             else:
                 self.primary.prev.setChecked(False)
         else:
-            self.updateMessageType()
+            self.changeMessageType()
 
     def amendNumber(self, sign):
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
@@ -285,7 +283,7 @@ class BaseTAFEditor(BaseEditor):
         self.rpt = '\n'.join(filter(None, messages)) + '='
         self.sign = self.primary.sign()
 
-    def updateDate(self):
+    def setDate(self):
         self.time = datetime.datetime.utcnow()
         self.primary.date.setText(self.time.strftime('%d%H%M'))
 
@@ -322,7 +320,12 @@ class BaseTAFEditor(BaseEditor):
 
     def closeEvent(self, event):
         self.clear()
-        self.updateMessageType()
+
+    def showEvent(self, event):
+        self.setDate()
+        self.changeMessageType()
+
+        # Check Settings
 
 
 class TAFEditor(BaseTAFEditor):
@@ -333,7 +336,7 @@ class TAFEditor(BaseTAFEditor):
         self.primary.date.setEnabled(False)
 
         self.timer = QTimer()
-        self.timer.timeout.connect(self.updateDate)
+        self.timer.timeout.connect(self.setDate)
         self.timer.start(1 * 1000)
 
     def previewMessage(self):

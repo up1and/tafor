@@ -4,7 +4,7 @@ import datetime
 from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox, QLabel, QHBoxLayout
 
-from tafor.models import db, Taf
+from tafor.models import db, Taf, Sigmet, Trend
 from tafor.utils import CheckTAF
 from tafor.components.ui import Ui_main_recent
 
@@ -17,17 +17,17 @@ def alarmMessageBox(parent):
     return messageBox
 
 
-class RecentTAF(QWidget, Ui_main_recent.Ui_Recent):
+class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
 
     def __init__(self, parent, container, tt):
-        super(RecentTAF, self).__init__(parent)
+        super(RecentMessage, self).__init__(parent)
         self.setupUi(self)
         self.tt = tt
 
         container.addWidget(self)
 
     def updateGUI(self):
-        item = db.query(Taf).filter_by(tt=self.tt).order_by(Taf.sent.desc()).first()
+        item = self.getItem()
 
         if not item:
             self.hide()
@@ -36,6 +36,31 @@ class RecentTAF(QWidget, Ui_main_recent.Ui_Recent):
         self.groupBox.setTitle(item.tt)
         self.sendTime.setText(item.sent.strftime('%Y-%m-%d %H:%M:%S'))
         self.rpt.setText(item.report)
+
+        self.showConfirm(item)
+
+    def getItem(self):
+        item = None
+        recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+
+        if self.tt in ['FC', 'FT']:
+            item = db.query(Taf).filter(Taf.sent > recent, Taf.tt == self.tt).order_by(Taf.sent.desc()).first()
+
+        if self.tt in ['WS', 'WC', 'WV']:
+            item = db.query(Sigmet).filter(Sigmet.sent > recent).order_by(Sigmet.sent.desc()).first()
+
+        if self.tt == 'TREND':
+            item = db.query(Trend).filter(Trend.sent > recent).order_by(Trend.sent.desc()).first()
+            if item.isNosig():
+                item = None
+
+        return item
+
+    def showConfirm(self, item):
+        if self.tt not in ['FC', 'FT']:
+            self.check.hide()
+            return
+
         if item.confirmed:
             self.check.setText('<img src=":/checkmark.png" width="24" height="24"/>')
         else:

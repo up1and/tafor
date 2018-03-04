@@ -35,6 +35,7 @@ class SegmentMixin(object):
             checkbox.clicked.connect(self.checkComplete)
 
     def clear(self):
+        # Bug
         for line in self.findChildren(QLineEdit):
             line.clear()
 
@@ -471,7 +472,6 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         self.prefixGroup.setEnabled(status)
         self.typeGroup.setEnabled(status)
 
-        self.period.setEnabled(status)
         self.wind.setEnabled(status)
         self.gust.setEnabled(status)
         self.vis.setEnabled(status)
@@ -484,6 +484,11 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
         self.cavok.setEnabled(status)
         self.nsc.setEnabled(status)
+
+        if any([self.fm.isChecked(), self.tl.isChecked(), self.at.isChecked()]):
+            self.period.setEnabled(status)
+        else:
+            self.period.setEnabled(False)
 
     def setAt(self, checked):
         if checked:

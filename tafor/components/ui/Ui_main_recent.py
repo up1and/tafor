@@ -30,7 +30,7 @@ class Ui_Recent(object):
         self.sendTime.setObjectName("sendTime")
         self.gridLayout.addWidget(self.sendTime, 0, 0, 1, 1)
         self.rpt = QtWidgets.QLabel(self.groupBox)
-        self.rpt.setStyleSheet("font: 12pt \"微软雅黑\";")
+        self.rpt.setStyleSheet("font: 10pt \"微软雅黑\";")
         self.rpt.setText("Report Content")
         self.rpt.setObjectName("rpt")
         self.gridLayout.addWidget(self.rpt, 3, 0, 1, 2)

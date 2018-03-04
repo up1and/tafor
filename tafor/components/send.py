@@ -201,7 +201,7 @@ class SigmetSender(BaseSender):
     def __init__(self, parent=None):
         super(SigmetSender, self).__init__(parent)
 
-        self.reportType = 'Sigmet'
+        self.reportType = 'SIGMET'
 
         self.buttonBox.accepted.connect(self.send)
 
@@ -210,7 +210,7 @@ class SigmetSender(BaseSender):
         self.rpt.setText(self.message['full'])
 
     def save(self):
-        item = Sigmet(tt='WS', rpt=self.message['rpt'], raw=self.aftn.toJson())
+        item = Sigmet(tt='WS', sign=self.message['sign'], rpt=self.message['rpt'], raw=self.aftn.toJson())
         db.add(item)
         db.commit()
         logger.debug('Save ' + item.rpt)

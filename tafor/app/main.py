@@ -9,7 +9,7 @@ from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 from PyQt5.QtMultimedia import QSound, QSoundEffect
 
 from tafor import BASEDIR, conf, logger, boolean, __version__
-from tafor.models import db, Taf, Task, Metar, User
+from tafor.models import db, Taf, Task, Metar, Sigmet, User
 from tafor.utils import Listen, checkVersion
 from tafor.utils.thread import WorkThread, CallThread, CheckUpgradeThread
 
@@ -21,7 +21,7 @@ from tafor.components.send import TaskTAFSender, TAFSender, TrendSender, SigmetS
 from tafor.components.setting import SettingDialog
 from tafor.components.task import TaskBrowser
 
-from tafor.components.widgets.widget import alarmMessageBox, Clock, CurrentTAF, RecentTAF
+from tafor.components.widgets.widget import alarmMessageBox, Clock, CurrentTAF, RecentMessage
 from tafor.components.widgets.status import WebAPIStatus, CallServiceStatus
 from tafor.components.widgets.sound import Sound
 
@@ -216,8 +216,10 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.clock = Clock(self, self.tipsLayout)
         self.tipsLayout.addSpacerItem(QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
         self.currentTAF = CurrentTAF(self, self.tipsLayout)
-        self.recentFT = RecentTAF(self, self.recentLayout, 'FT')
-        self.recentFC = RecentTAF(self, self.recentLayout, 'FC')
+        self.recentFT = RecentMessage(self, self.recentLayout, 'FT')
+        self.recentFC = RecentMessage(self, self.recentLayout, 'FC')
+        self.recentSIGMET = RecentMessage(self, self.recentLayout, 'WS')
+        self.recentTrend = RecentMessage(self, self.recentLayout, 'TREND')
 
     def setupContractMenu(self):
         self.contractsActionGroup = QActionGroup(self)
@@ -417,6 +419,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def updateGUI(self):
         self.updateTAFTable()
         self.updateMetarTable()
+        self.updateSIGMETTable()
         self.updateRecent()
         self.updateContractMenu()
 
@@ -436,6 +439,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.currentTAF.updateGUI()
         self.recentFT.updateGUI()
         self.recentFC.updateGUI()
+        self.recentSIGMET.updateGUI()
+        self.recentTrend.updateGUI()
 
     def updateTAFTable(self):
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
@@ -446,7 +451,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.tafTable.setColumnWidth(0, 50)
         self.tafTable.setColumnWidth(2, 140)
         self.tafTable.setColumnWidth(3, 50)
-        self.tafTable.setColumnWidth(4, 50)
 
         for row, item in enumerate(items):
             self.tafTable.setItem(row, 0, QTableWidgetItem(item.tt))
@@ -486,6 +490,26 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.metarTable.setStyleSheet("QTableWidget::item {padding: 5px 0;}")
         self.metarTable.resizeRowsToContents()
+
+    def updateSIGMETTable(self):
+        recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+        items = db.query(Sigmet).filter(Sigmet.sent > recent).order_by(Sigmet.sent.desc()).all()
+        header = self.sigmetTable.horizontalHeader()
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        self.sigmetTable.setRowCount(len(items))
+        self.sigmetTable.setColumnWidth(0, 50)
+        self.sigmetTable.setColumnWidth(2, 140)
+        self.sigmetTable.setColumnWidth(3, 50)
+
+        for row, item in enumerate(items):
+            self.sigmetTable.setItem(row, 0, QTableWidgetItem(item.tt))
+            self.sigmetTable.setItem(row, 1, QTableWidgetItem(item.rpt))
+            if item.sent:
+                sent = item.sent.strftime("%Y-%m-%d %H:%M:%S")
+                self.sigmetTable.setItem(row, 2, QTableWidgetItem(sent))
+
+        self.sigmetTable.setStyleSheet('QTableWidget::item {padding: 5px 0;}')
+        self.sigmetTable.resizeRowsToContents()
 
     def about(self):
         title = QCoreApplication.translate('MainWindow', 'Terminal Aerodrome Forecast Encoding Software')

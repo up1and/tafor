@@ -46,6 +46,7 @@ class SigmetEditor(BaseEditor):
         self.type.significantWeather.clicked.connect(self.changeSegment)
         self.type.tropicalCyclone.clicked.connect(self.changeSegment)
         self.type.volcanicAsh.clicked.connect(self.changeSegment)
+        self.type.template.clicked.connect(self.changeSegment)
         self.type.custom.clicked.connect(self.changeSegment)
         self.type.cancel.clicked.connect(self.changeSegment)
 
@@ -93,12 +94,13 @@ class SigmetEditor(BaseEditor):
             self.currentSegment.setDuration(6)
             self.type.setType('WV')
 
+        self.currentSegment.phenomena.updateState()
+
     def previewMessage(self):
         self.rpt = self.currentSegment.message()
         self.sign = self.type.message()
         message = {'sign': self.sign, 'rpt': self.rpt, 'full': '\n'.join([self.sign, self.rpt])}
         self.previewSignal.emit(message)
-        print(message)
 
     def enbaleNextButton(self):
         completes = [self.currentSegment.phenomena.complete, self.currentSegment.content.complete]
@@ -113,4 +115,7 @@ class SigmetEditor(BaseEditor):
 
     def closeEvent(self, event):
         self.clear()
+
+    def showEvent(self, event):
+        self.currentSegment.phenomena.updateState()
 

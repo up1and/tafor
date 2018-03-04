@@ -61,3 +61,7 @@ class TrendEditor(BaseEditor):
     def closeEvent(self, event):
         self.clear()
 
+    def showEvent(self, event):
+        # Check Settings
+        pass
+

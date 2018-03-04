@@ -99,6 +99,17 @@ class Trend(Base):
     def __repr__(self):
         return '<Trend %r %r>' % (self.rpt)
 
+    @property
+    def tt(self):
+        return 'TREND'
+
+    @property
+    def report(self):
+        return self.rpt
+
+    def isNosig(self):
+        return self.rpt == 'NOSIG='
+
 class Sigmet(Base):
     __tablename__ = 'sigmets'
 
@@ -117,6 +128,11 @@ class Sigmet(Base):
 
     def __repr__(self):
         return '<Sigmet %r %r>' % (self.rpt)
+
+    @property
+    def report(self):
+        parts = [self.sign, self.rpt]
+        return '\n'.join(filter(None, parts))
 
 class User(Base):
     __tablename__ = 'users'

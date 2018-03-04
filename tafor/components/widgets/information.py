@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout
 
 from tafor import conf, logger
 from tafor.utils import Pattern, ceilTime
+from tafor.models import db, Sigmet
 from tafor.components.widgets.forecast import SegmentMixin
 from tafor.components.ui import (Ui_sigmet_type, Ui_sigmet_general, Ui_sigmet_phenomena, 
 	Ui_sigmet_typhoon, Ui_sigmet_custom)
@@ -38,9 +39,8 @@ class BaseSigmetPhenomena(QWidget, SegmentMixin, Ui_sigmet_phenomena.Ui_Editor):
         self.rules = Pattern()
 
         self.setupUi(self)
-        self.updateDate()
+        self.updateState()
         self.setValidator()
-        self.setSquence()
         self.bindSignal()
 
     def enbaleOBSTime(self, text):
@@ -51,7 +51,11 @@ class BaseSigmetPhenomena(QWidget, SegmentMixin, Ui_sigmet_phenomena.Ui_Editor):
             self.obsTime.setEnabled(False)
             self.obsTimeLabel.setEnabled(False)
 
-    def updateDate(self):
+    def updateState(self):
+        self.setDate()
+        self.setSquence()
+
+    def setDate(self):
         valid, _ = self.validTime()
         self.valid.setText(valid.strftime('%d%H%M'))
 
@@ -71,7 +75,10 @@ class BaseSigmetPhenomena(QWidget, SegmentMixin, Ui_sigmet_phenomena.Ui_Editor):
         self.sequence.setValidator(QIntValidator(self.sequence))
 
     def setSquence(self):
-        self.sequence.setText('1')
+        time = datetime.datetime.utcnow()
+        begin = datetime.datetime(time.year, time.month, time.day)
+        count = db.query(Sigmet).filter(Sigmet.sent > begin).count()
+        self.sequence.setText(str(count))
 
     def setPhenomenaDescription(self):
         raise NotImplemented
