@@ -16,6 +16,12 @@
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <widget class="QGroupBox" name="descriptionGroup">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
      <property name="title">
       <string>Description</string>
      </property>
@@ -178,22 +184,18 @@
    </item>
    <item>
     <widget class="QGroupBox" name="forecastGroup">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
      <property name="title">
       <string>Forecast</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
-      <item row="1" column="3">
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
+      <item row="1" column="2">
+       <widget class="QLineEdit" name="forecastLongitude"/>
       </item>
       <item row="0" column="0">
        <widget class="QLabel" name="forecastTimeLabel">
@@ -205,11 +207,11 @@
         </property>
        </widget>
       </item>
+      <item row="1" column="1">
+       <widget class="QLineEdit" name="forecastLatitude"/>
+      </item>
       <item row="1" column="0">
        <widget class="QLineEdit" name="forecastTime"/>
-      </item>
-      <item row="1" column="2">
-       <widget class="QLineEdit" name="forecastLongitude"/>
       </item>
       <item row="0" column="2">
        <widget class="QLabel" name="forecastLongitudeLabel">
@@ -220,9 +222,6 @@
          <cstring>forecastLongitude</cstring>
         </property>
        </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QLineEdit" name="forecastLatitude"/>
       </item>
       <item row="0" column="1">
        <widget class="QLabel" name="forecastLatitudeLabel">
