@@ -77,7 +77,7 @@ class BaseSigmetPhenomena(QWidget, SegmentMixin, Ui_sigmet_phenomena.Ui_Editor):
     def setSquence(self):
         time = datetime.datetime.utcnow()
         begin = datetime.datetime(time.year, time.month, time.day)
-        count = db.query(Sigmet).filter(Sigmet.sent > begin).count()
+        count = db.query(Sigmet).filter(Sigmet.sent > begin).count() + 1
         self.sequence.setText(str(count))
 
     def setPhenomenaDescription(self):

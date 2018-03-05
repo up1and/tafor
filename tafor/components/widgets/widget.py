@@ -51,7 +51,7 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
 
         if self.tt == 'TREND':
             item = db.query(Trend).filter(Trend.sent > recent).order_by(Trend.sent.desc()).first()
-            if item.isNosig():
+            if item and item.isNosig():
                 item = None
 
         return item
