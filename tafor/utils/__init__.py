@@ -73,9 +73,6 @@ def ceilTime(time, amount=10):
     return time + datetime.timedelta(minutes=amount)
 
 def calcPosition(latitude, longitude, speed, time, degree):
-    # r = 6378 km
-    # latitude per degree = 2 * pi * r / 360 
-    # longitude per degree = 2 * pi * r * cos(latitude) / 360
     import math
 
     def formatToDegree(text):
@@ -94,12 +91,8 @@ def calcPosition(latitude, longitude, speed, time, degree):
 
     def formatToString(degree, fmt='latitude'):
         integer = round(degree)
-        decimal = round(degree % 1 * 0.6, 2)
-
-        if decimal == 0:
-            value = int(integer)
-        else:
-            value = integer + decimal
+        decimal = degree % 1 * 0.6
+        value = '{:.2f}'.format(integer + decimal)
 
         if fmt == 'latitude':
             if degree >= 0:
@@ -118,21 +111,22 @@ def calcPosition(latitude, longitude, speed, time, degree):
     def distance(speed, time, degree):
         dis = int(speed) * int(time) / 3600
         theta = math.radians(int(degree))
-        dx = math.cos(theta) * dis
-        dy = math.sin(theta) * dis
+        dy = math.cos(theta) * dis
+        dx = math.sin(theta) * dis
 
         return dx, dy
 
-    radius = 6378
     latitude = formatToDegree(latitude)
     longitude = formatToDegree(longitude)
     dx, dy = distance(speed, time, degree)
 
-    newLatitude = latitude + (dy / radius) * 180 / math.pi
-    newLongitude = longitude + (dx / radius) * 180 / math.pi / math.cos(latitude * math.pi / 180)
+    radius = 6378 # 地球半径
+
+    dlong = math.pi * radius * math.cos(latitude * math.pi / 180) / 180 # 每度精度的长度
+    dlat = math.pi * radius / 180 # 每度纬度的长度，约 111 km
+
+    newLatitude = latitude + dy / dlat
+    newLongitude = longitude + dx / dlong
 
     return formatToString(newLatitude), formatToString(newLongitude, fmt='longitude')
-
-
-
 
