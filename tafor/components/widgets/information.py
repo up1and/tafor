@@ -5,7 +5,7 @@ from PyQt5.QtCore import Qt, QRegExp, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit
 
 from tafor import conf, logger
-from tafor.utils import Pattern, ceilTime
+from tafor.utils import Pattern, formatTime, ceilTime, calcPosition
 from tafor.models import db, Sigmet
 from tafor.components.widgets.forecast import SegmentMixin
 from tafor.components.ui import (Ui_sigmet_type, Ui_sigmet_general, Ui_sigmet_phenomena, 
@@ -135,10 +135,11 @@ class BaseSigmetPhenomena(QWidget, SegmentMixin, Ui_sigmet_phenomena.Ui_Editor):
 class BaseSigmetContent(QWidget, SegmentMixin):
     completeSignal = pyqtSignal(bool)
 
-    def __init__(self):
+    def __init__(self, phenomena):
         super(BaseSigmetContent, self).__init__()
         self.complete = False
         self.rules = Pattern()
+        self.phenomena = phenomena
 
 
 class BaseSegment(QWidget):
@@ -217,8 +218,8 @@ class SigmetGeneralPhenomena(BaseSigmetPhenomena):
 
 class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
 
-    def __init__(self):
-        super(SigmetGeneralContent, self).__init__()
+    def __init__(self, phenomena):
+        super(SigmetGeneralContent, self).__init__(phenomena)
         self.setupUi(self)
         self.bindSignal()
         self.setValidator()
@@ -499,18 +500,14 @@ class SigmetTyphoonPhenomena(BaseSigmetPhenomena):
 
 class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
 
-    def __init__(self):
-        super(SigmetTyphoonContent, self).__init__()
+    def __init__(self, phenomena):
+        super(SigmetTyphoonContent, self).__init__(phenomena)
         self.setupUi(self)
         self.bindSignal()
         self.setValidator()
 
     def bindSignal(self):
         self.movement.currentTextChanged.connect(self.setSpeed)
-        self.currentLatitude.textEdited.connect(self.setForecastPosition)
-        self.currentLongitude.textEdited.connect(self.setForecastPosition)
-        self.speed.textEdited.connect(self.setForecastPosition)
-        self.movement.currentTextChanged.connect(self.setForecastPosition)
 
         self.currentLatitude.textEdited.connect(lambda: self.upperText(self.currentLatitude))
         self.currentLongitude.textEdited.connect(lambda: self.upperText(self.currentLongitude))
@@ -566,16 +563,54 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         self.forecastTime.setText(fcstTime)
 
     def setForecastPosition(self):
-        required = [
+        mustRequired = [
             self.currentLatitude.hasAcceptableInput(),
             self.currentLongitude.hasAcceptableInput(),
-            self.speed.hasAcceptableInput()
+            self.speed.hasAcceptableInput(),
+            self.forecastTime.hasAcceptableInput(),
         ]
 
-        if not all(required):
+        anyRequired = {
+            self.phenomena.obsTime.hasAcceptableInput(),
+            self.phenomena.valid.hasAcceptableInput(),
+        }
+
+        if not (all(mustRequired) and any(anyRequired)):
             return
 
         movement = self.movement.currentText()
+
+        if movement == 'STNR':
+            return
+
+        direction = {
+            'N': 0,
+            'NE': 45,
+            'E': 90,
+            'SE': 135,
+            'S': 180,
+            'SW': 225,
+            'W': 270,
+            'NW': 315
+        }
+        obsTime = self.phenomena.obsTime.text() if self.phenomena.obsTime.hasAcceptableInput() else ''
+        validTime = self.phenomena.valid.text()[2:] if self.phenomena.valid.hasAcceptableInput() else ''
+        fcstTime = self.forecastTime.text()
+
+        time = self.duration(obsTime or validTime, fcstTime).seconds
+        degree = direction[movement]
+        speed = self.speed.text()
+        latitude = self.currentLatitude.text()
+        longitude = self.currentLongitude.text()
+
+        forecastLatitude, forecastLongitude = calcPosition(latitude, longitude, speed, time, degree)
+        self.forecastLatitude.setText(forecastLatitude)
+        self.forecastLongitude.setText(forecastLongitude)
+
+    def duration(self, start, end):
+        startTime = formatTime(start)
+        endTime = formatTime(end)
+        return endTime - startTime
 
     def moveState(self):
         movement = self.movement.currentText()
@@ -638,8 +673,8 @@ class SigmetCustomPhenomena(BaseSigmetPhenomena):
 
 class SigmetCustomContent(BaseSigmetContent, Ui_sigmet_custom.Ui_Editor):
 
-    def __init__(self):
-        super(SigmetCustomContent, self).__init__()
+    def __init__(self, phenomena):
+        super(SigmetCustomContent, self).__init__(phenomena)
         self.setupUi(self)
 
     def message(self):
@@ -653,7 +688,7 @@ class SigmetGeneralSegment(BaseSegment):
     def __init__(self):
         super(SigmetGeneralSegment, self).__init__()
         self.phenomena = SigmetGeneralPhenomena()
-        self.content = SigmetGeneralContent()
+        self.content = SigmetGeneralContent(self.phenomena)
         self.tt = 'WC'
 
         self.initUI()
@@ -673,7 +708,7 @@ class SigmetTyphoonSegment(BaseSegment):
     def __init__(self):
         super(SigmetTyphoonSegment, self).__init__()
         self.phenomena = SigmetTyphoonPhenomena()
-        self.content = SigmetTyphoonContent()
+        self.content = SigmetTyphoonContent(self.phenomena)
         self.tt = 'WC'
         self.content.setForecastTime(self.phenomena.valid.text())
 
@@ -682,6 +717,12 @@ class SigmetTyphoonSegment(BaseSegment):
 
     def bindSignal(self):
         self.phenomena.valid.textChanged.connect(self.content.setForecastTime)
+        self.phenomena.valid.textEdited.connect(self.content.setForecastPosition)
+        self.phenomena.obsTime.textEdited.connect(self.content.setForecastPosition)
+        self.content.currentLatitude.textEdited.connect(self.content.setForecastPosition)
+        self.content.currentLongitude.textEdited.connect(self.content.setForecastPosition)
+        self.content.speed.textEdited.connect(self.content.setForecastPosition)
+        self.content.movement.currentTextChanged.connect(self.content.setForecastPosition)
 
 
 class SigmetCustomSegment(BaseSegment):
@@ -689,7 +730,7 @@ class SigmetCustomSegment(BaseSegment):
     def __init__(self):
         super(SigmetCustomSegment, self).__init__()
         self.phenomena = SigmetCustomPhenomena()
-        self.content = SigmetCustomContent()
+        self.content = SigmetCustomContent(self.phenomena)
         self.tt = 'WS'
 
         self.initUI()
