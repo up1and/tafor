@@ -90,7 +90,7 @@ def calcPosition(latitude, longitude, speed, time, degree):
         return degree
 
     def formatToString(degree, fmt='latitude'):
-        integer = round(degree)
+        integer = int(degree)
         decimal = degree % 1 * 0.6
         value = '{:.2f}'.format(integer + decimal)
 
