@@ -2,7 +2,7 @@ import datetime
 
 from PyQt5.QtGui import QRegExpValidator, QIntValidator
 from PyQt5.QtCore import Qt, QRegExp, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QVBoxLayout
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit
 
 from tafor import conf, logger
 from tafor.utils import Pattern, ceilTime
@@ -502,9 +502,93 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
     def __init__(self):
         super(SigmetTyphoonContent, self).__init__()
         self.setupUi(self)
+        self.bindSignal()
+        self.setValidator()
 
     def bindSignal(self):
+        self.movement.currentTextChanged.connect(self.setSpeed)
+        self.currentLatitude.textEdited.connect(self.setForecastPosition)
+        self.currentLongitude.textEdited.connect(self.setForecastPosition)
+        self.speed.textEdited.connect(self.setForecastPosition)
+        self.movement.currentTextChanged.connect(self.setForecastPosition)
+
+        self.currentLatitude.textEdited.connect(lambda: self.upperText(self.currentLatitude))
+        self.currentLongitude.textEdited.connect(lambda: self.upperText(self.currentLongitude))
+        self.height.textEdited.connect(lambda: self.upperText(self.height))
+        self.forecastTime.textEdited.connect(lambda: self.upperText(self.forecastTime))
+        self.forecastLatitude.textEdited.connect(lambda: self.upperText(self.forecastLatitude))
+        self.forecastLongitude.textEdited.connect(lambda: self.upperText(self.forecastLongitude))
+
+        self.currentLatitude.textEdited.connect(lambda: self.coloredText(self.currentLatitude))
+        self.currentLongitude.textEdited.connect(lambda: self.coloredText(self.currentLongitude))
+        self.height.textEdited.connect(lambda: self.coloredText(self.height))
+        self.forecastTime.textEdited.connect(lambda: self.coloredText(self.forecastTime))
+        self.forecastLatitude.textEdited.connect(lambda: self.coloredText(self.forecastLatitude))
+        self.forecastLongitude.textEdited.connect(lambda: self.coloredText(self.forecastLongitude))
+
         self.register()
+
+    def setValidator(self):
+        latitude = QRegExpValidator(QRegExp(self.rules.latitude, Qt.CaseInsensitive))
+        self.currentLatitude.setValidator(latitude)
+        self.forecastLatitude.setValidator(latitude)
+
+        longitude = QRegExpValidator(QRegExp(self.rules.longitude, Qt.CaseInsensitive))
+        self.currentLongitude.setValidator(longitude)
+        self.forecastLongitude.setValidator(longitude)
+
+        fightLevel = QRegExpValidator(QRegExp(self.rules.fightLevel))
+        self.height.setValidator(fightLevel)
+
+        time = QRegExpValidator(QRegExp(self.rules.time))
+        self.forecastTime.setValidator(time)
+
+        self.speed.setValidator(QIntValidator(self.speed))
+        self.range.setValidator(QIntValidator(self.range))
+
+    def setSpeed(self, text):
+        if text == 'STNR':
+            self.speed.setEnabled(False)
+            self.speedLabel.setEnabled(False)
+        else:
+            self.speed.setEnabled(True)
+            self.speedLabel.setEnabled(True)
+
+    def setForecastTime(self, text):
+        if len(text) != 6:
+            return
+
+        hour, minute = int(text[2:4]), int(text[4:])
+        self.time = datetime.datetime.utcnow().replace(hour=hour, minute=minute)
+        time = self.time + datetime.timedelta(hours=6)
+        fcstTime = time.strftime('%H%M')
+
+        self.forecastTime.setText(fcstTime)
+
+    def setForecastPosition(self):
+        required = [
+            self.currentLatitude.hasAcceptableInput(),
+            self.currentLongitude.hasAcceptableInput(),
+            self.speed.hasAcceptableInput()
+        ]
+
+        if not all(required):
+            return
+
+        movement = self.movement.currentText()
+
+    def moveState(self):
+        movement = self.movement.currentText()
+
+        if movement == 'STNR':
+            text = 'STNR'
+        else:
+            text = 'MOV {movement} {speed} KMH'.format(
+                    movement=movement,
+                    speed=self.speed.text()
+                )
+
+        return text
 
     def message(self):
         area = '{latitude} {Longitude} CB TOP FL{height} WI {range}KM OF CENTER'.format(
@@ -513,18 +597,21 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
                 height=self.height.text(),
                 range=self.range.text()
             )
-        movement = 'MOV {movement} {speed}KMH {intensityChange}'.format(
-                movement=self.movement.currentText(),
-                speed=self.speed.text(),
-                intensityChange=self.intensityChange.currentText()
-            )
+        moveState = self.moveState()
+        intensityChange = self.intensityChange.currentText()
         forecast = 'FCST {forecastTime}Z TC CENTER {forecastLatitude} {forecastLongitude}'.format(
                 forecastTime=self.forecastTime.text(),
                 forecastLatitude=self.forecastLatitude.text(),
                 forecastLongitude=self.forecastLongitude.text()
             )
-        text = ' '.join([area, movement, forecast])
+        text = ' '.join([area, moveState, intensityChange, forecast])
         return text
+
+    def checkComplete(self):
+        mustRequired = [line.hasAcceptableInput() for line in self.findChildren(QLineEdit) if line.isEnabled()]
+
+        self.complete = all(mustRequired)
+        self.completeSignal.emit(self.complete)
 
 
 class SigmetCustomPhenomena(BaseSigmetPhenomena):
@@ -588,12 +675,13 @@ class SigmetTyphoonSegment(BaseSegment):
         self.phenomena = SigmetTyphoonPhenomena()
         self.content = SigmetTyphoonContent()
         self.tt = 'WC'
+        self.content.setForecastTime(self.phenomena.valid.text())
 
         self.initUI()
         self.bindSignal()
 
     def bindSignal(self):
-        pass
+        self.phenomena.valid.textChanged.connect(self.content.setForecastTime)
 
 
 class SigmetCustomSegment(BaseSegment):

@@ -205,14 +205,14 @@ class BaseTAFEditor(BaseEditor):
         else:
             self.changeMessageType()
 
-    def amendNumber(self, sign):
+    def amendNumber(self, sort):
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
         query = db.query(Taf).filter(Taf.rpt.contains(self.amdPeriod), Taf.sent > expired)
-        if sign == 'COR':
+        if sort == 'COR':
             items = query.filter(Taf.rpt.contains('COR')).all()
             order = chr(ord('A') + len(items))
             return 'CC' + order
-        elif sign == 'AMD':
+        elif sort == 'AMD':
             items = query.filter(Taf.rpt.contains('AMD')).all()
             order = chr(ord('A') + len(items))
             return 'AA' + order
@@ -340,7 +340,7 @@ class TAFEditor(BaseTAFEditor):
         self.timer.start(1 * 1000)
 
     def previewMessage(self):
-        message = {'sign': self.sign, 'rpt':self.rpt, 'full': '\n'.join([self.sign, self.rpt])}
+        message = {'sign': self.sign, 'rpt': self.rpt, 'full': '\n'.join([self.sign, self.rpt])}
         self.previewSignal.emit(message)
         logger.debug('TAF Edit ' + message['full'])
 

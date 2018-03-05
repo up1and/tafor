@@ -44,7 +44,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         try:
             self.parser = Parser(self.message['rpt'])
             self.parser.validate()
-            html = '<p>{}<br/>{}</p>'.format(self.message['head'], self.parser.renderer(style='html'))
+            html = '<p>{}<br/>{}</p>'.format(self.message['sign'], self.parser.renderer(style='html'))
             if self.parser.tips:
                 html += '<p style="color: grey"># {}</p>'.format('<br/># '.join(self.parser.tips))
             self.rpt.setHtml(html)
@@ -115,7 +115,7 @@ class TAFSender(BaseSender):
         self.buttonBox.accepted.connect(self.send)
 
     def save(self):
-        item = Taf(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'], raw=self.aftn.toJson())
+        item = Taf(tt=self.message['sign'][0:2], sign=self.message['sign'], rpt=self.message['rpt'], raw=self.aftn.toJson())
         db.add(item)
         db.commit()
         logger.debug('Save ' + item.rpt)
@@ -143,7 +143,7 @@ class TaskTAFSender(BaseSender):
         # self.Task_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=1)
 
     def save(self):
-        item = Task(tt=self.message['head'][0:2], head=self.message['head'], rpt=self.message['rpt'], planning=self.message['planning'])
+        item = Task(tt=self.message['sign'][0:2], sign=self.message['sign'], rpt=self.message['rpt'], planning=self.message['planning'])
         db.add(item)
         db.commit()
         logger.debug('Save Task', item.planning.strftime("%b %d %Y %H:%M:%S"))
@@ -160,7 +160,7 @@ class TaskTAFSender(BaseSender):
 
                 message = '\n'.join([task.head, task.rpt])
                 aftn = AFTNMessage(message, time=task.planning)
-                item = Taf(tt=task.tt, head=task.head, rpt=task.rpt, raw=aftn.toJson())
+                item = Taf(tt=task.tt, sign=task.head, rpt=task.rpt, raw=aftn.toJson())
                 db.add(item)
                 db.flush()
                 task.taf_id = item.id
@@ -210,7 +210,7 @@ class SigmetSender(BaseSender):
         self.rpt.setText(self.message['full'])
 
     def save(self):
-        item = Sigmet(tt='WS', sign=self.message['sign'], rpt=self.message['rpt'], raw=self.aftn.toJson())
+        item = Sigmet(tt=self.message['sign'][0:2], sign=self.message['sign'], rpt=self.message['rpt'], raw=self.aftn.toJson())
         db.add(item)
         db.commit()
         logger.debug('Save ' + item.rpt)
