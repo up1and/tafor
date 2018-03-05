@@ -27,19 +27,17 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         container.addWidget(self)
 
     def updateGUI(self):
-        item = self.getItem()
+        item = self.item()
 
-        if not item:
-            self.hide()
-            return 
+        if item:
+            self.groupBox.setTitle(item.tt)
+            self.sendTime.setText(item.sent.strftime('%Y-%m-%d %H:%M:%S'))
+            self.rpt.setText(item.report)
+            self.showConfirm(item)
+            
+        self.showOrHide(item)
 
-        self.groupBox.setTitle(item.tt)
-        self.sendTime.setText(item.sent.strftime('%Y-%m-%d %H:%M:%S'))
-        self.rpt.setText(item.report)
-
-        self.showConfirm(item)
-
-    def getItem(self):
+    def item(self):
         item = None
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
 
@@ -55,6 +53,13 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
                 item = None
 
         return item
+
+    def showOrHide(self, item):
+        if item:
+            if not self.isVisible():
+                self.show()
+        else:
+            self.hide()
 
     def showConfirm(self, item):
         if self.tt not in ['FC', 'FT']:
