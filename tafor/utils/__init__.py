@@ -92,19 +92,23 @@ def calcPosition(latitude, longitude, speed, time, degree):
     def formatToString(degree, fmt='latitude'):
         integer = int(degree)
         decimal = degree % 1 * 0.6
-        value = '{:.2f}'.format(integer + decimal)
 
         if fmt == 'latitude':
             if degree >= 0:
                 sign = 'N'
             else:
                 sign = 'S'
+
+            template = '{:05.2f}'
         else:
             if degree >= 0:
                 sign = 'E'
             else:
                 sign = 'W'
 
+            template = '{:06.2f}'
+
+        value = template.format(integer + decimal)
         text = sign + str(value).replace('.', '')
         return text
 
