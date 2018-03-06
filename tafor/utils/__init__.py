@@ -41,7 +41,6 @@ def checkVersion(releaseVersion, currentVersion):
 
     return hasNewVersion
 
-
 def formatTimeInterval(interval, time=None):
     import datetime
     time = time if time else datetime.datetime.utcnow()
@@ -76,7 +75,7 @@ def calcPosition(latitude, longitude, speed, time, degree):
     import math
 
     def formatToDegree(text):
-        sign = text[0]
+        identifier = text[0]
         value = text[1:]
         if len(value) in [2, 3]:
             degree = int(value)
@@ -84,32 +83,32 @@ def calcPosition(latitude, longitude, speed, time, degree):
             integer, decimal = value[:-2], value[-2:]
             degree = int(integer) + int(decimal) / 60.0
 
-        if sign in ['S', 'W']:
+        if identifier in ['S', 'W']:
             return -degree
         
         return degree
 
     def formatToString(degree, fmt='latitude'):
-        integer = int(degree)
-        decimal = degree % 1 * 0.6
+        integer = int(abs(degree))
+        decimal = int(abs(degree) % 1 * 60) / 100
 
         if fmt == 'latitude':
             if degree >= 0:
-                sign = 'N'
+                identifier = 'N'
             else:
-                sign = 'S'
+                identifier = 'S'
 
             template = '{:05.2f}'
         else:
             if degree >= 0:
-                sign = 'E'
+                identifier = 'E'
             else:
-                sign = 'W'
+                identifier = 'W'
 
             template = '{:06.2f}'
 
         value = template.format(integer + decimal)
-        text = sign + str(value).replace('.', '')
+        text = identifier + str(value).replace('.', '')
         return text
 
     def distance(speed, time, degree):
@@ -131,6 +130,12 @@ def calcPosition(latitude, longitude, speed, time, degree):
 
     newLatitude = latitude + dy / dlat
     newLongitude = longitude + dx / dlong
+
+    if abs(newLatitude) > 90:
+        newLatitude = 90 if newLatitude > 0 else -90 
+
+    if abs(newLongitude) > 180:
+        newLongitude =  abs(newLongitude) % 180 - 180
 
     return formatToString(newLatitude), formatToString(newLongitude, fmt='longitude')
 
