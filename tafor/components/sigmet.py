@@ -73,7 +73,7 @@ class SigmetEditor(BaseEditor):
 
             elif self.type.volcanicAsh.isChecked():
                 # 火山灰模板
-                pass
+                self.type.custom.setChecked(True)
 
         else:
             self.sigmetGeneral.hide()
@@ -81,6 +81,7 @@ class SigmetEditor(BaseEditor):
             self.custom.show()
             self.currentSegment = self.custom
 
+        self.type.template.setEnabled(True)
 
         if self.type.significantWeather.isChecked():
             self.currentSegment.setDuration(4)
@@ -93,6 +94,7 @@ class SigmetEditor(BaseEditor):
         if self.type.volcanicAsh.isChecked():
             self.currentSegment.setDuration(6)
             self.type.setType('WV')
+            self.type.template.setEnabled(False)
 
         self.currentSegment.phenomena.updateState()
 

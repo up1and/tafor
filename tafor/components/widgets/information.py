@@ -618,7 +618,7 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         if movement == 'STNR':
             text = 'STNR'
         else:
-            text = 'MOV {movement} {speed} KMH'.format(
+            text = 'MOV {movement} {speed}KMH'.format(
                     movement=movement,
                     speed=self.speed.text()
                 )
