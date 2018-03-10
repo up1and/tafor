@@ -9,7 +9,7 @@ from tafor.utils import Pattern, formatTime, ceilTime, calcPosition
 from tafor.models import db, Sigmet
 from tafor.components.widgets.forecast import SegmentMixin
 from tafor.components.ui import (Ui_sigmet_type, Ui_sigmet_general, Ui_sigmet_phenomena, 
-	Ui_sigmet_typhoon, Ui_sigmet_custom)
+	Ui_sigmet_typhoon, Ui_sigmet_cancel, Ui_sigmet_custom)
 
 
 class SigmetTypeSegment(QWidget, Ui_sigmet_type.Ui_Editor):
@@ -43,6 +43,9 @@ class BaseSigmetPhenomena(QWidget, SegmentMixin, Ui_sigmet_phenomena.Ui_Editor):
         self.setValidator()
         self.bindSignal()
 
+        self.endingTime.setEnabled(False)
+        self.endingTimeLabel.setEnabled(False)
+
     def enbaleOBSTime(self, text):
         if text == 'OBS':
             self.obsTime.setEnabled(True)
@@ -52,12 +55,8 @@ class BaseSigmetPhenomena(QWidget, SegmentMixin, Ui_sigmet_phenomena.Ui_Editor):
             self.obsTimeLabel.setEnabled(False)
 
     def updateState(self):
-        self.setDate()
+        self.setValidTime()
         self.setSquence()
-
-    def setDate(self):
-        valid, _ = self.validTime()
-        self.valid.setText(valid.strftime('%d%H%M'))
 
     def validTime(self):
         self.time = datetime.datetime.utcnow()
@@ -65,9 +64,18 @@ class BaseSigmetPhenomena(QWidget, SegmentMixin, Ui_sigmet_phenomena.Ui_Editor):
         end = start + datetime.timedelta(hours=self.duration)
         return start, end
 
+    def validEndingTime(self):
+        pass
+
+    def setValidTime(self):
+        beginningTime, endingTime = self.validTime()
+        self.beginningTime.setText(beginningTime.strftime('%d%H%M'))
+        self.endingTime.setText(endingTime.strftime('%d%H%M'))
+
     def setValidator(self):
         date = QRegExpValidator(QRegExp(self.rules.date))
-        self.valid.setValidator(date)
+        self.beginningTime.setValidator(date)
+        self.endingTime.setValidator(date)
 
         time = QRegExpValidator(QRegExp(self.rules.time))
         self.obsTime.setValidator(time)
@@ -89,11 +97,6 @@ class BaseSigmetPhenomena(QWidget, SegmentMixin, Ui_sigmet_phenomena.Ui_Editor):
     def bindSignal(self):
         self.forecast.currentTextChanged.connect(self.enbaleOBSTime)
 
-        self.typhoonName.textEdited.connect(lambda: self.upperText(self.typhoonName))
-
-        self.valid.textEdited.connect(lambda: self.coloredText(self.valid))
-        self.obsTime.textEdited.connect(lambda: self.coloredText(self.obsTime))
-
         self.register()
 
     def checkComplete(self):
@@ -110,12 +113,12 @@ class BaseSigmetPhenomena(QWidget, SegmentMixin, Ui_sigmet_phenomena.Ui_Editor):
     def head(self):
         area = conf.value('Message/FIR').split()[0]
         sequence = self.sequence.text()
-        start, end = self.validTime()
-        validStart = start.strftime('%d%H%M')
-        validEnd = end.strftime('%d%H%M')
+        beginning, ending = self.validTime()
+        beginningTime = start.strftime('%d%H%M')
+        endingTime = end.strftime('%d%H%M')
         icao = conf.value('Message/ICAO')
 
-        text = '{} SIGMET {} VALID {}/{} {}-'.format(area, sequence, validStart, validEnd, icao)
+        text = '{} SIGMET {} VALID {}/{} {}-'.format(area, sequence, beginningTime, endingTime, icao)
         return text
 
     def prediction(self):
@@ -206,7 +209,7 @@ class SigmetGeneralPhenomena(BaseSigmetPhenomena):
 
     def checkComplete(self):
         mustRequired = [
-                        self.valid.hasAcceptableInput(), 
+                        self.beginningTime.hasAcceptableInput(), 
                         self.sequence.hasAcceptableInput(),
                         ]
         if self.obsTime.isEnabled():
@@ -487,7 +490,7 @@ class SigmetTyphoonPhenomena(BaseSigmetPhenomena):
 
     def checkComplete(self):
         mustRequired = [
-                        self.valid.hasAcceptableInput(), 
+                        self.beginningTime.hasAcceptableInput(), 
                         self.sequence.hasAcceptableInput(), 
                         self.typhoonName.text(),
                         ]
@@ -572,7 +575,7 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
 
         anyRequired = {
             self.phenomena.obsTime.hasAcceptableInput(),
-            self.phenomena.valid.hasAcceptableInput(),
+            self.phenomena.beginningTime.hasAcceptableInput(),
         }
 
         if not (all(mustRequired) and any(anyRequired)):
@@ -594,10 +597,10 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
             'NW': 315
         }
         obsTime = self.phenomena.obsTime.text() if self.phenomena.obsTime.hasAcceptableInput() else ''
-        validTime = self.phenomena.valid.text()[2:] if self.phenomena.valid.hasAcceptableInput() else ''
+        beginningTime = self.phenomena.beginningTime.text()[2:] if self.phenomena.beginningTime.hasAcceptableInput() else ''
         fcstTime = self.forecastTime.text()
 
-        time = self.duration(obsTime or validTime, fcstTime).seconds
+        time = self.duration(obsTime or beginningTime, fcstTime).seconds
         degree = direction[movement]
         speed = self.speed.text()
         latitude = self.currentLatitude.text()
@@ -671,6 +674,17 @@ class SigmetCustomPhenomena(BaseSigmetPhenomena):
         pass
 
 
+class SigmetCancelContent(BaseSigmetContent, Ui_sigmet_cancel.Ui_Editor):
+
+    def __init__(self, phenomena):
+        super(SigmetCancelContent, self).__init__(phenomena)
+        self.setupUi(self)
+
+    def message(self):
+        fir = conf.value('Message/FIR')
+        # text = ' '.join([fir, self.custom.toPlainText()])
+        return fir
+
 class SigmetCustomContent(BaseSigmetContent, Ui_sigmet_custom.Ui_Editor):
 
     def __init__(self, phenomena):
@@ -679,7 +693,7 @@ class SigmetCustomContent(BaseSigmetContent, Ui_sigmet_custom.Ui_Editor):
 
     def message(self):
         fir = conf.value('Message/FIR')
-        text = ' '.join([fir, self.custom.toPlainText()])
+        text = ' '.join([fir, self.text.toPlainText()])
         return text
 
 
@@ -710,19 +724,34 @@ class SigmetTyphoonSegment(BaseSegment):
         self.phenomena = SigmetTyphoonPhenomena()
         self.content = SigmetTyphoonContent(self.phenomena)
         self.tt = 'WC'
-        self.content.setForecastTime(self.phenomena.valid.text())
+        self.content.setForecastTime(self.phenomena.beginningTime.text())
 
         self.initUI()
         self.bindSignal()
 
     def bindSignal(self):
-        self.phenomena.valid.textChanged.connect(self.content.setForecastTime)
-        self.phenomena.valid.textEdited.connect(self.content.setForecastPosition)
+        self.phenomena.beginningTime.textChanged.connect(self.content.setForecastTime)
+        self.phenomena.beginningTime.textEdited.connect(self.content.setForecastPosition)
         self.phenomena.obsTime.textEdited.connect(self.content.setForecastPosition)
         self.content.currentLatitude.textEdited.connect(self.content.setForecastPosition)
         self.content.currentLongitude.textEdited.connect(self.content.setForecastPosition)
         self.content.speed.textEdited.connect(self.content.setForecastPosition)
         self.content.movement.currentTextChanged.connect(self.content.setForecastPosition)
+
+
+class SigmetCancelSegment(BaseSegment):
+
+    def __init__(self):
+        super(SigmetCancelSegment, self).__init__()
+        self.phenomena = SigmetCustomPhenomena()
+        self.content = SigmetCancelContent(self.phenomena)
+        self.tt = 'WS'
+
+        self.initUI()
+        self.bindSignal()
+
+    def bindSignal(self):
+        pass
 
 
 class SigmetCustomSegment(BaseSegment):

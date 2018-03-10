@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QVBoxLayout, QPushButton, QLayout
 
 from tafor import logger
 from tafor.components.widgets.editor import BaseEditor
-from tafor.components.widgets import SigmetTypeSegment, SigmetGeneralSegment, SigmetTyphoonSegment, SigmetCustomSegment
+from tafor.components.widgets import SigmetTypeSegment, SigmetGeneralSegment, SigmetTyphoonSegment, SigmetCancelSegment, SigmetCustomSegment
 
 
 class SigmetEditor(BaseEditor):
@@ -26,19 +26,22 @@ class SigmetEditor(BaseEditor):
         self.type = SigmetTypeSegment()
         self.sigmetGeneral = SigmetGeneralSegment()
         self.sigmetTyphoon = SigmetTyphoonSegment()
-        self.custom = SigmetCustomSegment()
+        self.sigmetCancel = SigmetCancelSegment()
+        self.sigmetCustom = SigmetCustomSegment()
         self.nextButton = QPushButton()
         self.nextButton.setEnabled(False)
         self.nextButton.setText(QCoreApplication.translate('Editor', 'Next'))
         layout.addWidget(self.type)
         layout.addWidget(self.sigmetGeneral)
         layout.addWidget(self.sigmetTyphoon)
-        layout.addWidget(self.custom)
+        layout.addWidget(self.sigmetCancel)
+        layout.addWidget(self.sigmetCustom)
         layout.addWidget(self.nextButton, 0, Qt.AlignRight|Qt.AlignBottom)
         self.setLayout(layout)
 
         self.sigmetTyphoon.hide()
-        self.custom.hide()
+        self.sigmetCancel.hide()
+        self.sigmetCustom.hide()
 
     def bindSignal(self):
         self.nextButton.clicked.connect(self.previewMessage)
@@ -54,32 +57,41 @@ class SigmetEditor(BaseEditor):
         self.sigmetGeneral.content.completeSignal.connect(self.enbaleNextButton)
         self.sigmetTyphoon.phenomena.completeSignal.connect(self.enbaleNextButton)
         self.sigmetTyphoon.content.completeSignal.connect(self.enbaleNextButton)
-        self.custom.phenomena.completeSignal.connect(self.enbaleNextButton)
-        self.custom.content.completeSignal.connect(self.enbaleNextButton)
+        self.sigmetCustom.phenomena.completeSignal.connect(self.enbaleNextButton)
+        self.sigmetCustom.content.completeSignal.connect(self.enbaleNextButton)
 
     def changeSegment(self):
         if self.type.template.isChecked():
             if self.type.significantWeather.isChecked():
                 self.sigmetGeneral.show()
                 self.sigmetTyphoon.hide()
-                self.custom.hide()
+                self.sigmetCancel.hide()
+                self.sigmetCustom.hide()
                 self.currentSegment = self.sigmetGeneral
 
             elif self.type.tropicalCyclone.isChecked():
                 self.sigmetGeneral.hide()
                 self.sigmetTyphoon.show()
-                self.custom.hide()
+                self.sigmetCancel.hide()
+                self.sigmetCustom.hide()
                 self.currentSegment = self.sigmetTyphoon
 
             elif self.type.volcanicAsh.isChecked():
                 # 火山灰模板
                 self.type.custom.setChecked(True)
 
+        elif self.type.cancel.isChecked():
+            self.sigmetGeneral.hide()
+            self.sigmetTyphoon.hide()
+            self.sigmetCancel.show()
+            self.sigmetCustom.hide()
+            self.currentSegment = self.sigmetCancel
         else:
             self.sigmetGeneral.hide()
             self.sigmetTyphoon.hide()
-            self.custom.show()
-            self.currentSegment = self.custom
+            self.sigmetCancel.hide()
+            self.sigmetCustom.show()
+            self.currentSegment = self.sigmetCustom
 
         self.type.template.setEnabled(True)
 
@@ -113,7 +125,7 @@ class SigmetEditor(BaseEditor):
     def clear(self):
         self.sigmetGeneral.clear()
         self.sigmetTyphoon.clear()
-        self.custom.clear()
+        self.sigmetCustom.clear()
 
     def closeEvent(self, event):
         self.clear()

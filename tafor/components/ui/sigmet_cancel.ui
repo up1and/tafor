@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Editor</class>
+ <widget class="QWidget" name="Editor">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>400</width>
+    <height>88</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string notr="true">Sigmet</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QGroupBox" name="cancelGroup">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="title">
+      <string>Cancel Information</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="0" column="1">
+       <widget class="QLabel" name="beginingTimeLabel">
+        <property name="text">
+         <string>Beginning Time</string>
+        </property>
+        <property name="buddy">
+         <cstring>beginingTime</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="sequenceLabel">
+        <property name="text">
+         <string>Sequence</string>
+        </property>
+        <property name="buddy">
+         <cstring>sequence</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLineEdit" name="sequence"/>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLineEdit" name="beginingTime"/>
+      </item>
+      <item row="0" column="2">
+       <widget class="QLabel" name="endingTimeLabel">
+        <property name="text">
+         <string>Ending Time</string>
+        </property>
+        <property name="buddy">
+         <cstring>endingTime</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="QLineEdit" name="endingTime"/>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE TS><TS version="2.0" language="zh_CN" sourcelanguage="en">
+<!DOCTYPE TS>
+<TS version="2.1" language="zh_CN" sourcelanguage="en">
 <context>
     <name>Editor</name>
     <message>
-        <location filename="../../components/taf.py" line="355"/>
+        <location filename="../../components/taf.py" line="358"/>
         <source>Timing Tasks</source>
         <translation>定时任务</translation>
     </message>
@@ -98,32 +99,32 @@
         <translation>正常报</translation>
     </message>
     <message>
-        <location filename="../../components/sigmet.py" line="32"/>
+        <location filename="../../components/trend.py" line="29"/>
         <source>Next</source>
         <translation>下一步</translation>
     </message>
     <message>
-        <location filename="../../components/taf.py" line="245"/>
+        <location filename="../../components/taf.py" line="243"/>
         <source>Hour of temperature is not corret</source>
         <translation>温度组时间不正确</translation>
     </message>
     <message>
-        <location filename="../../components/taf.py" line="267"/>
+        <location filename="../../components/taf.py" line="265"/>
         <source>Start time of change group is not corret %s</source>
         <translation>变化组起始时间不正确</translation>
     </message>
     <message>
-        <location filename="../../components/taf.py" line="271"/>
+        <location filename="../../components/taf.py" line="269"/>
         <source>End time of change group is not corret %s</source>
         <translation>变化组结束时间不正确</translation>
     </message>
     <message>
-        <location filename="../../components/taf.py" line="275"/>
+        <location filename="../../components/taf.py" line="273"/>
         <source>Change group time more than %s hours</source>
         <translation>变化组时间超过 %s 小时</translation>
     </message>
     <message>
-        <location filename="../../components/taf.py" line="337"/>
+        <location filename="../../components/taf.py" line="340"/>
         <source>Encoding Terminal Aerodrome Forecast</source>
         <translation>编发预报</translation>
     </message>
@@ -138,12 +139,12 @@
         <translation>上一份</translation>
     </message>
     <message>
-        <location filename="../../components/taf.py" line="200"/>
+        <location filename="../../components/taf.py" line="198"/>
         <source>Tips</source>
         <translation>提示</translation>
     </message>
     <message>
-        <location filename="../../components/taf.py" line="201"/>
+        <location filename="../../components/taf.py" line="199"/>
         <source>Do you want to change the message valid period to previous?</source>
         <translation>报文有效时段要变更为上一份吗？</translation>
     </message>
@@ -154,138 +155,133 @@
 </translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_typhoon.py" line="139"/>
+        <location filename="../../components/ui/Ui_sigmet_typhoon.py" line="147"/>
         <source>Description</source>
         <translation>描述
 </translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_typhoon.py" line="145"/>
+        <location filename="../../components/ui/Ui_sigmet_typhoon.py" line="153"/>
         <source>Movement</source>
         <translation>移动方向</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_typhoon.py" line="144"/>
+        <location filename="../../components/ui/Ui_sigmet_typhoon.py" line="152"/>
         <source>Speed</source>
         <translation>速度</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_general.py" line="336"/>
+        <location filename="../../components/ui/Ui_sigmet_general.py" line="353"/>
         <source>Position</source>
         <translation>位置</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_typhoon.py" line="146"/>
+        <location filename="../../components/ui/Ui_sigmet_typhoon.py" line="154"/>
         <source>Intensity Change</source>
         <translation>强度变化</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_general.py" line="338"/>
+        <location filename="../../components/ui/Ui_sigmet_general.py" line="355"/>
         <source>FL Base</source>
         <translation>底高</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_general.py" line="339"/>
+        <location filename="../../components/ui/Ui_sigmet_general.py" line="356"/>
         <source>FL Top</source>
         <translation>顶高</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_general.py" line="340"/>
+        <location filename="../../components/ui/Ui_sigmet_general.py" line="357"/>
         <source>Area</source>
         <translation>区域</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_general.py" line="341"/>
+        <location filename="../../components/ui/Ui_sigmet_general.py" line="358"/>
         <source>Latitude and Longitude</source>
         <translation>经纬度</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_general.py" line="354"/>
+        <location filename="../../components/ui/Ui_sigmet_general.py" line="371"/>
         <source>Line</source>
         <translation>线</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_general.py" line="356"/>
+        <location filename="../../components/ui/Ui_sigmet_general.py" line="375"/>
         <source>Points</source>
         <translation>点</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_general.py" line="344"/>
+        <location filename="../../components/ui/Ui_sigmet_general.py" line="361"/>
         <source>Local</source>
         <translation>本场</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_general.py" line="345"/>
+        <location filename="../../components/ui/Ui_sigmet_general.py" line="363"/>
         <source>N OF</source>
         <translation>以北</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_general.py" line="346"/>
+        <location filename="../../components/ui/Ui_sigmet_general.py" line="364"/>
         <source>S OF</source>
         <translation>以南</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_general.py" line="347"/>
+        <location filename="../../components/ui/Ui_sigmet_general.py" line="367"/>
         <source>E OF</source>
         <translation>以东</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_general.py" line="348"/>
+        <location filename="../../components/ui/Ui_sigmet_general.py" line="362"/>
         <source>W OF</source>
         <translation>以西</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_typhoon.py" line="140"/>
+        <location filename="../../components/ui/Ui_sigmet_typhoon.py" line="148"/>
         <source>Latitude</source>
         <translation>纬度</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_typhoon.py" line="141"/>
+        <location filename="../../components/ui/Ui_sigmet_typhoon.py" line="149"/>
         <source>Longitude</source>
         <translation>经度</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_general.py" line="355"/>
+        <location filename="../../components/ui/Ui_sigmet_general.py" line="372"/>
         <source>Direction</source>
         <translation>方位</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_phenomena.py" line="90"/>
+        <location filename="../../components/ui/Ui_sigmet_phenomena.py" line="101"/>
         <source>Head</source>
         <translation>报头</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_phenomena.py" line="91"/>
+        <location filename="../../components/ui/Ui_sigmet_cancel.py" line="49"/>
         <source>Sequence</source>
         <translation>序号</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_phenomena.py" line="92"/>
-        <source>Valid</source>
-        <translation>有效时间</translation>
-    </message>
-    <message>
-        <location filename="../../components/ui/Ui_sigmet_phenomena.py" line="93"/>
+        <location filename="../../components/ui/Ui_sigmet_phenomena.py" line="102"/>
         <source>OBS Time</source>
         <translation>观测时间</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_typhoon.py" line="147"/>
+        <location filename="../../components/ui/Ui_sigmet_typhoon.py" line="155"/>
         <source>Forecast</source>
         <translation>预测</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_phenomena.py" line="95"/>
+        <location filename="../../components/ui/Ui_sigmet_phenomena.py" line="104"/>
         <source>Typhoon Name</source>
         <translation>热带气旋名称</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_phenomena.py" line="96"/>
+        <location filename="../../components/ui/Ui_sigmet_phenomena.py" line="108"/>
         <source>Phenomena</source>
         <translation>天气现象</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_phenomena.py" line="97"/>
+        <location filename="../../components/ui/Ui_sigmet_phenomena.py" line="105"/>
         <source>Phenomena Description</source>
         <translation>天气描述</translation>
     </message>
@@ -305,27 +301,27 @@
         <translation>自定义</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_typhoon.py" line="142"/>
+        <location filename="../../components/ui/Ui_sigmet_typhoon.py" line="150"/>
         <source>Range</source>
         <translation>范围</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_typhoon.py" line="143"/>
+        <location filename="../../components/ui/Ui_sigmet_typhoon.py" line="151"/>
         <source>Height</source>
         <translation>高度</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_typhoon.py" line="148"/>
+        <location filename="../../components/ui/Ui_sigmet_typhoon.py" line="156"/>
         <source>Forecast Time</source>
         <translation>预测时间</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_typhoon.py" line="150"/>
+        <location filename="../../components/ui/Ui_sigmet_typhoon.py" line="158"/>
         <source>Forecast Latitude</source>
         <translation>预测纬度</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_typhoon.py" line="149"/>
+        <location filename="../../components/ui/Ui_sigmet_typhoon.py" line="157"/>
         <source>Forecast Longitude</source>
         <translation>预测经度</translation>
     </message>
@@ -343,6 +339,21 @@
         <location filename="../../components/sigmet.py" line="18"/>
         <source>Encoding Significant Meteorological Information</source>
         <translation>编发重要气象情报</translation>
+    </message>
+    <message>
+        <location filename="../../components/ui/Ui_sigmet_cancel.py" line="48"/>
+        <source>Beginning Time</source>
+        <translation>起始时间</translation>
+    </message>
+    <message>
+        <location filename="../../components/ui/Ui_sigmet_cancel.py" line="50"/>
+        <source>Ending Time</source>
+        <translation>结束时间</translation>
+    </message>
+    <message>
+        <location filename="../../components/ui/Ui_sigmet_cancel.py" line="47"/>
+        <source>Cancel Information</source>
+        <translation>取消信息</translation>
     </message>
 </context>
 <context>
@@ -483,23 +494,23 @@
         <translation>离线</translation>
     </message>
     <message>
-        <location filename="../../app/main.py" line="497"/>
+        <location filename="../../app/main.py" line="521"/>
         <source>The project is under GPL-2.0 License, Pull Request and Issue are welcome</source>
         <translation>项目遵循 GPL-2.0 协议，欢迎提交 Pull Request 或者 Issue</translation>
     </message>
     <message>
-        <location filename="../../app/main.py" line="513"/>
+        <location filename="../../app/main.py" line="537"/>
         <source>New version found {}, do you want to download now?</source>
         <translation>发现新版本 {}，想现在下载么？</translation>
     </message>
     <message>
-        <location filename="../../app/main.py" line="494"/>
+        <location filename="../../app/main.py" line="518"/>
         <source>The software is used to encode and post terminal aerodrome forecast, trend forecast, 
                     significant meteorological information, monitor the message, return the alarm by sound or telephone</source>
         <translation>本软件用于智能发布预报报文、趋势报文、重要气象情报，监控预报报文，以声音或电话的方式返回告警</translation>
     </message>
     <message>
-        <location filename="../../app/main.py" line="394"/>
+        <location filename="../../app/main.py" line="396"/>
         <source>Time to post {}</source>
         <translation>发布 {}</translation>
     </message>
