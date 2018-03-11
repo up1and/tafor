@@ -24,10 +24,10 @@ class SigmetEditor(BaseEditor):
         layout = QVBoxLayout(self)
         layout.setSizeConstraint(QLayout.SetFixedSize)
         self.type = SigmetTypeSegment()
-        self.sigmetGeneral = SigmetGeneralSegment()
-        self.sigmetTyphoon = SigmetTyphoonSegment()
-        self.sigmetCancel = SigmetCancelSegment()
-        self.sigmetCustom = SigmetCustomSegment()
+        self.sigmetGeneral = SigmetGeneralSegment(self.type)
+        self.sigmetTyphoon = SigmetTyphoonSegment(self.type)
+        self.sigmetCancel = SigmetCancelSegment(self.type)
+        self.sigmetCustom = SigmetCustomSegment(self.type)
         self.nextButton = QPushButton()
         self.nextButton.setEnabled(False)
         self.nextButton.setText(QCoreApplication.translate('Editor', 'Next'))
@@ -77,8 +77,12 @@ class SigmetEditor(BaseEditor):
                 self.currentSegment = self.sigmetTyphoon
 
             elif self.type.volcanicAsh.isChecked():
-                # 火山灰模板
                 self.type.custom.setChecked(True)
+                self.sigmetGeneral.hide()
+                self.sigmetTyphoon.hide()
+                self.sigmetCancel.hide()
+                self.sigmetCustom.show()
+                self.currentSegment = self.sigmetCustom
 
         elif self.type.cancel.isChecked():
             self.sigmetGeneral.hide()
@@ -96,16 +100,13 @@ class SigmetEditor(BaseEditor):
         self.type.template.setEnabled(True)
 
         if self.type.significantWeather.isChecked():
-            self.currentSegment.setDuration(4)
-            self.type.setType('WS')
+            self.currentSegment.setType('WS')
 
         if self.type.tropicalCyclone.isChecked():
-            self.currentSegment.setDuration(6)
-            self.type.setType('WC')
+            self.currentSegment.setType('WC')
 
         if self.type.volcanicAsh.isChecked():
-            self.currentSegment.setDuration(6)
-            self.type.setType('WV')
+            self.currentSegment.setType('WV')
             self.type.template.setEnabled(False)
 
         self.currentSegment.phenomena.updateState()

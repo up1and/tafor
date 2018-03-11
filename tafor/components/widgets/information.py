@@ -2,7 +2,7 @@ import datetime
 
 from PyQt5.QtGui import QRegExpValidator, QIntValidator
 from PyQt5.QtCore import Qt, QRegExp, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QLabel
 
 from tafor import conf, logger
 from tafor.utils import Pattern, formatTime, ceilTime, calcPosition
@@ -35,7 +35,7 @@ class BaseSigmetPhenomena(QWidget, SegmentMixin, Ui_sigmet_phenomena.Ui_Editor):
     def __init__(self):
         super(BaseSigmetPhenomena, self).__init__()
         self.duration = 4
-        self.complete = True
+        self.complete = False
         self.rules = Pattern()
 
         self.setupUi(self)
@@ -67,6 +67,9 @@ class BaseSigmetPhenomena(QWidget, SegmentMixin, Ui_sigmet_phenomena.Ui_Editor):
     def validEndingTime(self):
         pass
 
+    def setDuration(self, duration):
+        self.duration = duration
+
     def setValidTime(self):
         beginningTime, endingTime = self.validTime()
         self.beginningTime.setText(beginningTime.strftime('%d%H%M'))
@@ -97,6 +100,8 @@ class BaseSigmetPhenomena(QWidget, SegmentMixin, Ui_sigmet_phenomena.Ui_Editor):
     def bindSignal(self):
         self.forecast.currentTextChanged.connect(self.enbaleOBSTime)
 
+        self.typhoonName.textEdited.connect(lambda: self.upperText(self.typhoonName))
+
         self.register()
 
     def checkComplete(self):
@@ -114,8 +119,8 @@ class BaseSigmetPhenomena(QWidget, SegmentMixin, Ui_sigmet_phenomena.Ui_Editor):
         area = conf.value('Message/FIR').split()[0]
         sequence = self.sequence.text()
         beginning, ending = self.validTime()
-        beginningTime = start.strftime('%d%H%M')
-        endingTime = end.strftime('%d%H%M')
+        beginningTime = beginning.strftime('%d%H%M')
+        endingTime = ending.strftime('%d%H%M')
         icao = conf.value('Message/ICAO')
 
         text = '{} SIGMET {} VALID {}/{} {}-'.format(area, sequence, beginningTime, endingTime, icao)
@@ -146,9 +151,12 @@ class BaseSigmetContent(QWidget, SegmentMixin):
 
 
 class BaseSegment(QWidget):
+    changeSignal = pyqtSignal()
 
-    def __init__(self):
+    def __init__(self, typeSegment):
         super(BaseSegment, self).__init__()
+        self.type = typeSegment
+        self.tt = self.type.tt
 
     def initUI(self):
         layout = QVBoxLayout(self)
@@ -161,7 +169,7 @@ class BaseSegment(QWidget):
         area = conf.value('Message/Area') or ''
         icao = conf.value('Message/ICAO')
         time = self.time.strftime('%d%H%M')
-        tt = self.tt
+        tt = self.type.tt
 
         messages = [tt + area, icao, time]
         return ' '.join(filter(None, messages))
@@ -171,8 +179,16 @@ class BaseSegment(QWidget):
         text = '\n'.join([self.phenomena.head(), content]) + '='
         return text
 
-    def setDuration(self, duration):
-        self.phenomena.duration = duration
+    def setType(self, tt):
+        durations = {
+            'WS': 4,
+            'WC': 6,
+            'WV': 6
+        }
+        self.phenomena.setDuration(durations[tt])
+        self.type.setType(tt)
+
+        self.changeSignal.emit()
 
     def clear(self):
         self.phenomena.clear()
@@ -514,8 +530,6 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
 
         self.currentLatitude.textEdited.connect(lambda: self.upperText(self.currentLatitude))
         self.currentLongitude.textEdited.connect(lambda: self.upperText(self.currentLongitude))
-        self.height.textEdited.connect(lambda: self.upperText(self.height))
-        self.forecastTime.textEdited.connect(lambda: self.upperText(self.forecastTime))
         self.forecastLatitude.textEdited.connect(lambda: self.upperText(self.forecastLatitude))
         self.forecastLongitude.textEdited.connect(lambda: self.upperText(self.forecastLongitude))
 
@@ -699,11 +713,10 @@ class SigmetCustomContent(BaseSigmetContent, Ui_sigmet_custom.Ui_Editor):
 
 class SigmetGeneralSegment(BaseSegment):
 
-    def __init__(self):
-        super(SigmetGeneralSegment, self).__init__()
+    def __init__(self, typeSegment):
+        super(SigmetGeneralSegment, self).__init__(typeSegment)
         self.phenomena = SigmetGeneralPhenomena()
         self.content = SigmetGeneralContent(self.phenomena)
-        self.tt = 'WC'
 
         self.initUI()
         self.bindSignal()
@@ -719,11 +732,10 @@ class SigmetGeneralSegment(BaseSegment):
 
 class SigmetTyphoonSegment(BaseSegment):
 
-    def __init__(self):
-        super(SigmetTyphoonSegment, self).__init__()
+    def __init__(self, typeSegment):
+        super(SigmetTyphoonSegment, self).__init__(typeSegment)
         self.phenomena = SigmetTyphoonPhenomena()
         self.content = SigmetTyphoonContent(self.phenomena)
-        self.tt = 'WC'
         self.content.setForecastTime(self.phenomena.beginningTime.text())
 
         self.initUI()
@@ -741,29 +753,33 @@ class SigmetTyphoonSegment(BaseSegment):
 
 class SigmetCancelSegment(BaseSegment):
 
-    def __init__(self):
-        super(SigmetCancelSegment, self).__init__()
+    def __init__(self, typeSegment):
+        super(SigmetCancelSegment, self).__init__(typeSegment)
         self.phenomena = SigmetCustomPhenomena()
         self.content = SigmetCancelContent(self.phenomena)
-        self.tt = 'WS'
 
         self.initUI()
         self.bindSignal()
 
     def bindSignal(self):
-        pass
+        self.changeSignal.connect(self.setPrev)
+
+    def setPrev(self):
+        print('setPrev')
 
 
 class SigmetCustomSegment(BaseSegment):
 
-    def __init__(self):
-        super(SigmetCustomSegment, self).__init__()
+    def __init__(self, typeSegment):
+        super(SigmetCustomSegment, self).__init__(typeSegment)
         self.phenomena = SigmetCustomPhenomena()
         self.content = SigmetCustomContent(self.phenomena)
-        self.tt = 'WS'
 
         self.initUI()
         self.bindSignal()
 
     def bindSignal(self):
-        pass
+        self.changeSignal.connect(self.setText)
+
+    def setText(self):
+        print('tips')
