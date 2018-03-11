@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Recent(object):
     def setupUi(self, Recent):
         Recent.setObjectName("Recent")
-        Recent.resize(549, 142)
+        Recent.resize(845, 86)
         Recent.setWindowTitle("Recent")
         self.verticalLayout = QtWidgets.QVBoxLayout(Recent)
         self.verticalLayout.setObjectName("verticalLayout")

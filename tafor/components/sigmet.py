@@ -57,10 +57,12 @@ class SigmetEditor(BaseEditor):
         self.sigmetGeneral.content.completeSignal.connect(self.enbaleNextButton)
         self.sigmetTyphoon.phenomena.completeSignal.connect(self.enbaleNextButton)
         self.sigmetTyphoon.content.completeSignal.connect(self.enbaleNextButton)
+        self.sigmetCancel.phenomena.completeSignal.connect(self.enbaleNextButton)
+        self.sigmetCancel.content.completeSignal.connect(self.enbaleNextButton)
         self.sigmetCustom.phenomena.completeSignal.connect(self.enbaleNextButton)
         self.sigmetCustom.content.completeSignal.connect(self.enbaleNextButton)
 
-    def changeSegment(self):
+    def changeSegment(self, a):
         if self.type.template.isChecked():
             if self.type.significantWeather.isChecked():
                 self.sigmetGeneral.show()
@@ -90,12 +92,14 @@ class SigmetEditor(BaseEditor):
             self.sigmetCancel.show()
             self.sigmetCustom.hide()
             self.currentSegment = self.sigmetCancel
+            self.currentSegment.clear()
         else:
             self.sigmetGeneral.hide()
             self.sigmetTyphoon.hide()
             self.sigmetCancel.hide()
             self.sigmetCustom.show()
             self.currentSegment = self.sigmetCustom
+            self.currentSegment.clear()
 
         self.type.template.setEnabled(True)
 
@@ -108,8 +112,6 @@ class SigmetEditor(BaseEditor):
         if self.type.volcanicAsh.isChecked():
             self.currentSegment.setType('WV')
             self.type.template.setEnabled(False)
-
-        self.currentSegment.phenomena.updateState()
 
     def previewMessage(self):
         self.rpt = self.currentSegment.message()
@@ -127,6 +129,7 @@ class SigmetEditor(BaseEditor):
         self.sigmetGeneral.clear()
         self.sigmetTyphoon.clear()
         self.sigmetCustom.clear()
+        self.sigmetCancel.clear()
 
     def closeEvent(self, event):
         self.clear()

@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
+    <width>449</width>
     <height>88</height>
    </rect>
   </property>
@@ -27,12 +27,12 @@
      </property>
      <layout class="QGridLayout" name="gridLayout">
       <item row="0" column="1">
-       <widget class="QLabel" name="beginingTimeLabel">
+       <widget class="QLabel" name="beginningTimeLabel">
         <property name="text">
          <string>Beginning Time</string>
         </property>
         <property name="buddy">
-         <cstring>beginingTime</cstring>
+         <cstring>beginningTime</cstring>
         </property>
        </widget>
       </item>
@@ -50,7 +50,7 @@
        <widget class="QLineEdit" name="sequence"/>
       </item>
       <item row="1" column="1">
-       <widget class="QLineEdit" name="beginingTime"/>
+       <widget class="QLineEdit" name="beginningTime"/>
       </item>
       <item row="0" column="2">
        <widget class="QLabel" name="endingTimeLabel">

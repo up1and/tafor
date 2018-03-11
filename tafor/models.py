@@ -97,7 +97,7 @@ class Trend(Base):
         self.raw = raw
 
     def __repr__(self):
-        return '<Trend %r %r>' % (self.rpt)
+        return '<Trend %r>' % (self.rpt)
 
     @property
     def tt(self):
@@ -127,7 +127,7 @@ class Sigmet(Base):
         self.raw = raw
 
     def __repr__(self):
-        return '<Sigmet %r %r>' % (self.rpt)
+        return '<Sigmet %r %r>' % (self.tt, self.rpt)
 
     @property
     def report(self):

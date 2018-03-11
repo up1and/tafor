@@ -1,6 +1,7 @@
+import re
 import datetime
 
-from PyQt5.QtGui import QRegExpValidator, QIntValidator
+from PyQt5.QtGui import QRegExpValidator, QIntValidator, QTextCharFormat, QFont
 from PyQt5.QtCore import Qt, QRegExp, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QLabel
 
@@ -35,7 +36,7 @@ class BaseSigmetPhenomena(QWidget, SegmentMixin, Ui_sigmet_phenomena.Ui_Editor):
     def __init__(self):
         super(BaseSigmetPhenomena, self).__init__()
         self.duration = 4
-        self.complete = False
+        self.complete = True
         self.rules = Pattern()
 
         self.setupUi(self)
@@ -102,6 +103,10 @@ class BaseSigmetPhenomena(QWidget, SegmentMixin, Ui_sigmet_phenomena.Ui_Editor):
 
         self.typhoonName.textEdited.connect(lambda: self.upperText(self.typhoonName))
 
+        self.beginningTime.textEdited.connect(lambda: self.coloredText(self.beginningTime))
+        self.endingTime.textEdited.connect(lambda: self.coloredText(self.endingTime))
+        self.obsTime.textEdited.connect(lambda: self.coloredText(self.obsTime))
+
         self.register()
 
     def checkComplete(self):
@@ -118,9 +123,8 @@ class BaseSigmetPhenomena(QWidget, SegmentMixin, Ui_sigmet_phenomena.Ui_Editor):
     def head(self):
         area = conf.value('Message/FIR').split()[0]
         sequence = self.sequence.text()
-        beginning, ending = self.validTime()
-        beginningTime = beginning.strftime('%d%H%M')
-        endingTime = ending.strftime('%d%H%M')
+        beginningTime = self.beginningTime.text()
+        endingTime = self.endingTime.text()
         icao = conf.value('Message/ICAO')
 
         text = '{} SIGMET {} VALID {}/{} {}-'.format(area, sequence, beginningTime, endingTime, icao)
@@ -156,7 +160,6 @@ class BaseSegment(QWidget):
     def __init__(self, typeSegment):
         super(BaseSegment, self).__init__()
         self.type = typeSegment
-        self.tt = self.type.tt
 
     def initUI(self):
         layout = QVBoxLayout(self)
@@ -176,7 +179,8 @@ class BaseSegment(QWidget):
 
     def message(self):
         content = ' '.join([self.phenomena.message(), self.content.message()])
-        text = '\n'.join([self.phenomena.head(), content]) + '='
+        text = '\n'.join([self.phenomena.head(), content])
+        text = text if text.endswith('=') else text + '='
         return text
 
     def setType(self, tt):
@@ -225,9 +229,9 @@ class SigmetGeneralPhenomena(BaseSigmetPhenomena):
 
     def checkComplete(self):
         mustRequired = [
-                        self.beginningTime.hasAcceptableInput(), 
-                        self.sequence.hasAcceptableInput(),
-                        ]
+            self.beginningTime.hasAcceptableInput(),
+            self.sequence.hasAcceptableInput(),
+        ]
         if self.obsTime.isEnabled():
             mustRequired.append(self.obsTime.hasAcceptableInput())
 
@@ -414,7 +418,7 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         if movement == 'STNR':
             text = 'STNR'
         else:
-            text = 'MOV {movement} {speed} KMH'.format(
+            text = 'MOV {movement} {speed}KMH'.format(
                     movement=movement,
                     speed=self.speed.text()
                 )
@@ -574,7 +578,7 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
 
         hour, minute = int(text[2:4]), int(text[4:])
         self.time = datetime.datetime.utcnow().replace(hour=hour, minute=minute)
-        time = self.time + datetime.timedelta(hours=6)
+        time = self.time + datetime.timedelta(hours=6) - datetime.timedelta(minutes=self.time.minute)
         fcstTime = time.strftime('%H%M')
 
         self.forecastTime.setText(fcstTime)
@@ -666,10 +670,10 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         self.completeSignal.emit(self.complete)
 
 
-class SigmetCustomPhenomena(BaseSigmetPhenomena):
+class SigmetMiniPhenomena(BaseSigmetPhenomena):
 
     def __init__(self):
-        super(SigmetCustomPhenomena, self).__init__()
+        super(SigmetMiniPhenomena, self).__init__()
         self.hidePhenomena()
 
     def hidePhenomena(self):
@@ -684,8 +688,19 @@ class SigmetCustomPhenomena(BaseSigmetPhenomena):
         self.obsTime.setVisible(False)
         self.obsTimeLabel.setVisible(False)
 
+    def message(self):
+        fir = conf.value('Message/FIR')
+        return fir
+
     def checkComplete(self):
-        pass
+        mustRequired = [
+            self.beginningTime.hasAcceptableInput(),
+            self.endingTime.hasAcceptableInput(),
+            self.sequence.hasAcceptableInput(),
+        ]
+
+        self.complete = all(mustRequired)
+        self.completeSignal.emit(self.complete)
 
 
 class SigmetCancelContent(BaseSigmetContent, Ui_sigmet_cancel.Ui_Editor):
@@ -693,22 +708,60 @@ class SigmetCancelContent(BaseSigmetContent, Ui_sigmet_cancel.Ui_Editor):
     def __init__(self, phenomena):
         super(SigmetCancelContent, self).__init__(phenomena)
         self.setupUi(self)
+        self.setValidator()
+        self.bindSignal()
+
+    def bindSignal(self):
+        self.beginningTime.textEdited.connect(lambda: self.coloredText(self.beginningTime))
+        self.endingTime.textEdited.connect(lambda: self.coloredText(self.endingTime))
+
+        self.register()
+
+    def setValidator(self):
+        date = QRegExpValidator(QRegExp(self.rules.date))
+        self.beginningTime.setValidator(date)
+        self.endingTime.setValidator(date)
+
+        self.sequence.setValidator(QIntValidator(self.sequence))
 
     def message(self):
-        fir = conf.value('Message/FIR')
-        # text = ' '.join([fir, self.custom.toPlainText()])
-        return fir
+        text = 'CNL SIGMET {} {}/{}'.format(self.sequence.text(), self.beginningTime.text(), self.endingTime.text())
+        return text
+
+    def checkComplete(self):
+        mustRequired = [
+            self.beginningTime.hasAcceptableInput(),
+            self.endingTime.hasAcceptableInput(),
+            self.sequence.hasAcceptableInput(),
+        ]
+
+        self.complete = all(mustRequired)
+        self.completeSignal.emit(self.complete)
+
 
 class SigmetCustomContent(BaseSigmetContent, Ui_sigmet_custom.Ui_Editor):
 
     def __init__(self, phenomena):
         super(SigmetCustomContent, self).__init__(phenomena)
         self.setupUi(self)
+        self.bindSignal()
+        self.setUpper()
 
     def message(self):
-        fir = conf.value('Message/FIR')
-        text = ' '.join([fir, self.text.toPlainText()])
+        text = self.text.toPlainText().upper()
         return text
+
+    def setUpper(self):
+        upper = QTextCharFormat()
+        upper.setFontCapitalization(QFont.AllUppercase)
+        self.text.setCurrentCharFormat(upper)
+
+    def bindSignal(self):
+        self.text.textChanged.connect(self.checkComplete)
+
+    def checkComplete(self):
+        self.complete = True if self.text.toPlainText() else False
+        self.completeSignal.emit(self.complete)
 
 
 class SigmetGeneralSegment(BaseSegment):
@@ -722,6 +775,8 @@ class SigmetGeneralSegment(BaseSegment):
         self.bindSignal()
 
     def bindSignal(self):
+        self.changeSignal.connect(self.phenomena.updateState)
+
         self.phenomena.description.currentTextChanged.connect(self.phenomena.setPhenomena)
         self.phenomena.phenomena.currentTextChanged.connect(self.content.setPosition)
 
@@ -742,6 +797,8 @@ class SigmetTyphoonSegment(BaseSegment):
         self.bindSignal()
 
     def bindSignal(self):
+        self.changeSignal.connect(self.phenomena.updateState)
+
         self.phenomena.beginningTime.textChanged.connect(self.content.setForecastTime)
         self.phenomena.beginningTime.textEdited.connect(self.content.setForecastPosition)
         self.phenomena.obsTime.textEdited.connect(self.content.setForecastPosition)
@@ -755,31 +812,65 @@ class SigmetCancelSegment(BaseSegment):
 
     def __init__(self, typeSegment):
         super(SigmetCancelSegment, self).__init__(typeSegment)
-        self.phenomena = SigmetCustomPhenomena()
+        self.phenomena = SigmetMiniPhenomena()
         self.content = SigmetCancelContent(self.phenomena)
 
         self.initUI()
         self.bindSignal()
 
     def bindSignal(self):
+        self.changeSignal.connect(self.phenomena.updateState)
         self.changeSignal.connect(self.setPrev)
 
+        self.content.endingTime.textChanged.connect(self.setEndingTime)
+
+    def setEndingTime(self):
+        ending = self.content.endingTime.text()
+        self.phenomena.endingTime.setText(ending)
+
     def setPrev(self):
-        print('setPrev')
+        expired = datetime.datetime.utcnow() - datetime.timedelta(self.phenomena.duration)
+        last = db.query(Sigmet).filter(Sigmet.sent > expired, Sigmet.tt == self.type.tt).order_by(Sigmet.sent.desc()).first()
+
+        if last:
+            validPattern = re.compile(r'(\d{6})/(\d{6})')
+            sequencePattern = re.compile(r'\b(\d)\b')
+
+            beginningTime, endingTime = validPattern.search(last.rpt).groups()
+            sequence = sequencePattern.search(last.rpt).group()
+
+            self.content.beginningTime.setText(beginningTime)
+            self.content.endingTime.setText(endingTime)
+            self.content.sequence.setText(sequence)
+
+    def clear(self):
+        self.phenomena.clear()
+        self.content.clear()
 
 
 class SigmetCustomSegment(BaseSegment):
 
     def __init__(self, typeSegment):
         super(SigmetCustomSegment, self).__init__(typeSegment)
-        self.phenomena = SigmetCustomPhenomena()
+        self.phenomena = SigmetMiniPhenomena()
         self.content = SigmetCustomContent(self.phenomena)
 
         self.initUI()
         self.bindSignal()
 
     def bindSignal(self):
-        self.changeSignal.connect(self.setText)
+        self.changeSignal.connect(self.phenomena.updateState)
+        self.changeSignal.connect(self.setPlaceholder)
 
-    def setText(self):
-        print('tips')
+    def setPlaceholder(self):
+        tips = {
+            'WS': 'EMBD TS FCST N OF N2000 TOP FL360 MOV N 25KMH NC',
+            'WC': 'TC YAGI OBS AT 1400Z N2300 E11304 CB TOP FL420 WI 300KM OF CENTER MOV NE 30KMH INTSF\nFCST 1925Z TC CENTER N2401 E11411',
+            'WV': 'VA MT ERUPTION AOBA',
+        }
+        tip = tips[self.type.tt]
+        self.content.text.setPlaceholderText(tip)
+
+    def clear(self):
+        self.phenomena.clear()
+        self.content.clear()
