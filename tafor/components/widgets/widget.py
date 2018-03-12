@@ -19,12 +19,12 @@ def alarmMessageBox(parent):
 
 class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
 
-    def __init__(self, parent, container, tt):
+    def __init__(self, parent, layout, tt):
         super(RecentMessage, self).__init__(parent)
         self.setupUi(self)
         self.tt = tt
 
-        container.addWidget(self)
+        layout.addWidget(self)
 
     def updateGUI(self):
         item = self.item()

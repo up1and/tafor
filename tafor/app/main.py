@@ -330,7 +330,13 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             if event.key() == Qt.Key_P:
                 self.taskTAFEditor.show()
             if event.key() == Qt.Key_T:
-                self.task_table_dialog.show()
+                self.taskBrowser.show()
+
+        if event.key() == Qt.Key_Left:
+            self.metarTable.prev()
+
+        if event.key() == Qt.Key_Right:
+            self.metarTable.next()
 
     def closeEvent(self, event):
         if event.spontaneous():
