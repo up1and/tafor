@@ -23,7 +23,7 @@ from tafor.components.task import TaskBrowser
 
 from tafor.components.widgets.table import TafTable, MetarTable, SigmetTable
 from tafor.components.widgets.widget import alarmMessageBox, Clock, CurrentTAF, RecentMessage
-from tafor.components.widgets.status import WebAPIStatus, CallServiceStatus
+from tafor.components.widgets.status import WebAPIStatus, CallServiceStatus, PageStatus
 from tafor.components.widgets.sound import Sound
 
 
@@ -153,24 +153,31 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.trendEditor = TrendEditor(self, self.trendSender)
         self.sigmetEditor = SigmetEditor(self, self.sigmetSender)
 
-        # 设置主窗口文字图标
         self.setWindowIcon(QIcon(':/logo.png'))
 
         self.setupRecent()
         self.setupTable()
-
-        # 设置切换联系人菜单
-        self.setupContractMenu()
-
-        # 设置系统托盘
+        self.setupContractMenu() # 设置切换联系人菜单
         self.setupSysTray()
-
         self.setupStatusBar()
-
         self.setupThread()
-
         self.setupSound()
 
+        # 时钟计时器
+        self.clockTimer = QTimer()
+        self.clockTimer.timeout.connect(self.singer)
+        self.clockTimer.start(1 * 1000)
+
+        self.workerTimer = QTimer()
+        self.workerTimer.timeout.connect(self.worker)
+        self.workerTimer.start(60 * 1000)
+
+        self.bindSignal()
+
+        self.updateGUI()
+        self.worker()
+
+    def bindSignal(self):
         # 连接菜单信号
         self.tafAction.triggered.connect(self.tafEditor.show)
         self.trendAction.triggered.connect(self.trendEditor.show)
@@ -198,21 +205,22 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.contractsActionGroup.triggered.connect(self.changeContract)
         self.contractsActionGroup.triggered.connect(self.settingDialog.load)
 
-        # # 连接报文表格复制的槽
-        # self.tafTable.itemDoubleClicked.connect(self.copySelectItem)
-        # self.metarTable.itemDoubleClicked.connect(self.copySelectItem)
+        self.mainTab.currentChanged.connect(self.changeTable)
 
-        # 时钟计时器
-        self.clockTimer = QTimer()
-        self.clockTimer.timeout.connect(self.singer)
-        self.clockTimer.start(1 * 1000)
+    def changeTable(self, index):
+        if index == 0:
+            self.currentTable = None
 
-        self.workerTimer = QTimer()
-        self.workerTimer.timeout.connect(self.worker)
-        self.workerTimer.start(60 * 1000)
+        if index == 1:
+            self.currentTable = self.tafTable
 
-        self.updateGUI()
-        self.worker()
+        if index == 2:
+            self.currentTable = self.metarTable
+
+        if index == 3:
+            self.currentTable = self.sigmetTable
+
+        self.pageStatus.setTable(self.currentTable)
 
     def setupRecent(self):
         self.clock = Clock(self, self.tipsLayout)
@@ -224,9 +232,11 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.recentTrend = RecentMessage(self, self.recentLayout, 'TREND')
 
     def setupTable(self):
-        self.tafTable = TafTable(self.tafLayout)
-        self.metarTable = MetarTable(self.metarLayout)
-        self.sigmetTable = SigmetTable(self.sigmetLayout)
+        self.tafTable = TafTable(self, self.tafLayout)
+        self.metarTable = MetarTable(self, self.metarLayout)
+        self.sigmetTable = SigmetTable(self, self.sigmetLayout)
+
+        self.currentTable = None
 
     def setupContractMenu(self):
         self.contractsActionGroup = QActionGroup(self)
@@ -268,6 +278,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.tray.setToolTip(message)
 
     def setupStatusBar(self):
+        self.pageStatus = PageStatus(self, self.statusBar)
         self.webApiStatus = WebAPIStatus(self, self.statusBar)
         self.callServiceStatus = CallServiceStatus(self, self.statusBar, last=True)
 
@@ -308,10 +319,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             conf.setValue('Monitor/SelectedMobile', mobile)
             logger.info('切换联系人 %s %s' % (name, mobile))
 
-    def copySelectItem(self, item):
-        self.clip.setText(item.text())
-        self.statusBar.showMessage(item.text(), 5000)
-
     def event(self, event):
         """
         捕获事件
@@ -332,11 +339,14 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             if event.key() == Qt.Key_T:
                 self.taskBrowser.show()
 
-        if event.key() == Qt.Key_Left:
-            self.metarTable.prev()
+        if self.currentTable is not None:
+            if event.key() == Qt.Key_PageUp:
+                self.currentTable.prev()
+                self.pageStatus.updateGUI()
 
-        if event.key() == Qt.Key_Right:
-            self.metarTable.next()
+            if event.key() == Qt.Key_PageDown:
+                self.currentTable.next()
+                self.pageStatus.updateGUI()
 
     def closeEvent(self, event):
         if event.spontaneous():

@@ -8,31 +8,56 @@ class StatusBarWidget(QWidget):
 
     def __init__(self, parent, statusBar, last=False):
         super(StatusBarWidget, self).__init__(parent)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        self.setLayout(layout)
+        self.initUI()
 
         self.parent = parent
 
         statusBar.addPermanentWidget(self)
+
+    def initUI(self):
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addSpacing(10)
+        self.head = QLabel()
+        self.label = QLabel()
+        layout.addWidget(self.head)
+        layout.addWidget(self.label)
+        layout.addSpacing(10)
+        self.setHead()
+        self.setLayout(layout)
+
+
+class PageStatus(StatusBarWidget):
+
+    def __init__(self, parent, statusBar, last=False):
+        super(PageStatus, self).__init__(parent, statusBar, last)
+        self.table = None
+        self.updateGUI()
+
+    def setHead(self):
+        title = QCoreApplication.translate('MainWindow', 'Page')
+        self.head.setText(title)
+
+    def setValue(self):
+        page = str(self.table.page)
+        self.label.setText(page)
+
+    def setTable(self, table):
+        self.table = table
+        self.updateGUI()
+
+    def updateGUI(self):
+        if self.table is None:
+            self.hide()
+        else:
+            self.show()
+            self.setValue()
 
 
 class BaseTimerStatus(StatusBarWidget):
 
     def __init__(self, parent, statusBar, last=False):
         super(BaseTimerStatus, self).__init__(parent, statusBar, last)
-        layout = self.layout()
-        layout.addSpacing(10)
-        self.head = QLabel()
-        self.label = QLabel()
-        # font = QtGui.QFont()
-        # font.setBold(True)
-        # self.label.setFont(font)
-        layout.addWidget(self.head)
-        layout.addWidget(self.label)
-        layout.addSpacing(10)
-        self.setHead()
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.setValue)

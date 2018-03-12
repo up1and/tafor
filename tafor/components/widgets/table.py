@@ -11,14 +11,17 @@ from tafor.components.ui import Ui_main_table
 
 class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
     
-    def __init__(self, layout):
+    def __init__(self, parent, layout):
         super(BaseDataTable, self).__init__()
         self.setupUi(self)
         self.setStyle()
         self.page = 1
         self.pagination = None
+        self.parent = parent
 
         layout.addWidget(self)
+
+        self.table.itemDoubleClicked.connect(self.copySelected)
 
     def setStyle(self):
         header = self.table.horizontalHeader()
@@ -37,15 +40,18 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
             self.setPage(self.pagination.nextNum)
 
     def setPage(self, page):
-        print(page)
         self.page = page
         self.updateGUI()
+
+    def copySelected(self, item):
+        self.parent.clip.setText(item.text())
+        self.parent.statusBar.showMessage(item.text(), 5000)
         
 
 class TafTable(BaseDataTable):
 
-    def __init__(self, layout):
-        super(TafTable, self).__init__(layout)
+    def __init__(self, parent, layout):
+        super(TafTable, self).__init__(parent, layout)
 
     def updateGUI(self):
         queryset = db.query(Taf).order_by(Taf.sent.desc())
@@ -79,8 +85,8 @@ class TafTable(BaseDataTable):
 
 class MetarTable(BaseDataTable):
 
-    def __init__(self, layout):
-        super(MetarTable, self).__init__(layout)
+    def __init__(self, parent, layout):
+        super(MetarTable, self).__init__(parent, layout)
 
         self.hideColumns()
 
@@ -107,8 +113,8 @@ class MetarTable(BaseDataTable):
 
 class SigmetTable(BaseDataTable):
 
-    def __init__(self, layout):
-        super(SigmetTable, self).__init__(layout)
+    def __init__(self, parent, layout):
+        super(SigmetTable, self).__init__(parent, layout)
 
         self.hideColumns()
 
