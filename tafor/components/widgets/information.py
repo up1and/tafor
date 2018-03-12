@@ -9,7 +9,7 @@ from tafor import conf, logger
 from tafor.utils import Pattern, formatTime, ceilTime, calcPosition
 from tafor.models import db, Sigmet
 from tafor.components.widgets.forecast import SegmentMixin
-from tafor.components.ui import (Ui_sigmet_type, Ui_sigmet_general, Ui_sigmet_phenomena, 
+from tafor.components.ui import (Ui_sigmet_type, Ui_sigmet_general, Ui_sigmet_head, 
 	Ui_sigmet_typhoon, Ui_sigmet_cancel, Ui_sigmet_custom)
 
 
@@ -30,11 +30,11 @@ class SigmetTypeSegment(QWidget, Ui_sigmet_type.Ui_Editor):
         messages = [self.tt + area, icao, time]
         return ' '.join(filter(None, messages))
 
-class BaseSigmetPhenomena(QWidget, SegmentMixin, Ui_sigmet_phenomena.Ui_Editor):
+class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
     completeSignal = pyqtSignal(bool)
 
     def __init__(self):
-        super(BaseSigmetPhenomena, self).__init__()
+        super(BaseSigmetHead, self).__init__()
         self.duration = 4
         self.complete = True
         self.rules = Pattern()
@@ -147,11 +147,11 @@ class BaseSigmetPhenomena(QWidget, SegmentMixin, Ui_sigmet_phenomena.Ui_Editor):
 class BaseSigmetContent(QWidget, SegmentMixin):
     completeSignal = pyqtSignal(bool)
 
-    def __init__(self, phenomena):
+    def __init__(self, head):
         super(BaseSigmetContent, self).__init__()
         self.complete = False
         self.rules = Pattern()
-        self.phenomena = phenomena
+        self.head = head
 
 
 class BaseSegment(QWidget):
@@ -164,7 +164,7 @@ class BaseSegment(QWidget):
     def initUI(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self.phenomena)
+        layout.addWidget(self.head)
         layout.addWidget(self.content)
         self.setLayout(layout)
 
@@ -178,8 +178,8 @@ class BaseSegment(QWidget):
         return ' '.join(filter(None, messages))
 
     def message(self):
-        content = ' '.join([self.phenomena.message(), self.content.message()])
-        text = '\n'.join([self.phenomena.head(), content])
+        content = ' '.join([self.head.message(), self.content.message()])
+        text = '\n'.join([self.head.head(), content])
         text = text if text.endswith('=') else text + '='
         return text
 
@@ -189,20 +189,20 @@ class BaseSegment(QWidget):
             'WC': 6,
             'WV': 6
         }
-        self.phenomena.setDuration(durations[tt])
+        self.head.setDuration(durations[tt])
         self.type.setType(tt)
 
         self.changeSignal.emit()
 
     def clear(self):
-        self.phenomena.clear()
+        self.head.clear()
         self.content.clear()
 
 
-class SigmetGeneralPhenomena(BaseSigmetPhenomena):
+class SigmetGeneralHead(BaseSigmetHead):
 
     def __init__(self):
-        super(SigmetGeneralPhenomena, self).__init__()
+        super(SigmetGeneralHead, self).__init__()
         self.hideTyphoonName()
         self.setPhenomenaDescription()
         self.setPhenomena()
@@ -485,10 +485,10 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         return text
 
 
-class SigmetTyphoonPhenomena(BaseSigmetPhenomena):
+class SigmetTyphoonHead(BaseSigmetHead):
 
     def __init__(self):
-        super(SigmetTyphoonPhenomena, self).__init__()
+        super(SigmetTyphoonHead, self).__init__()
         self.hideDescription()
         self.setPhenomena()
         self.duration = 6
@@ -591,10 +591,10 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
             self.forecastTime.hasAcceptableInput(),
         ]
 
-        anyRequired = {
-            self.phenomena.obsTime.hasAcceptableInput(),
-            self.phenomena.beginningTime.hasAcceptableInput(),
-        }
+        anyRequired = [
+            self.head.obsTime.hasAcceptableInput(),
+            self.head.beginningTime.hasAcceptableInput(),
+        ]
 
         if not (all(mustRequired) and any(anyRequired)):
             return
@@ -614,8 +614,8 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
             'W': 270,
             'NW': 315
         }
-        obsTime = self.phenomena.obsTime.text() if self.phenomena.obsTime.hasAcceptableInput() else ''
-        beginningTime = self.phenomena.beginningTime.text()[2:] if self.phenomena.beginningTime.hasAcceptableInput() else ''
+        obsTime = self.head.obsTime.text() if self.head.obsTime.hasAcceptableInput() else ''
+        beginningTime = self.head.beginningTime.text()[2:] if self.head.beginningTime.hasAcceptableInput() else ''
         fcstTime = self.forecastTime.text()
 
         time = self.duration(obsTime or beginningTime, fcstTime).seconds
@@ -670,10 +670,10 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         self.completeSignal.emit(self.complete)
 
 
-class SigmetMiniPhenomena(BaseSigmetPhenomena):
+class SigmetSimpleHead(BaseSigmetHead):
 
     def __init__(self):
-        super(SigmetMiniPhenomena, self).__init__()
+        super(SigmetSimpleHead, self).__init__()
         self.hidePhenomena()
 
     def hidePhenomena(self):
@@ -768,20 +768,20 @@ class SigmetGeneralSegment(BaseSegment):
 
     def __init__(self, typeSegment):
         super(SigmetGeneralSegment, self).__init__(typeSegment)
-        self.phenomena = SigmetGeneralPhenomena()
-        self.content = SigmetGeneralContent(self.phenomena)
+        self.head = SigmetGeneralHead()
+        self.content = SigmetGeneralContent(self.head)
 
         self.initUI()
         self.bindSignal()
 
     def bindSignal(self):
-        self.changeSignal.connect(self.phenomena.updateState)
+        self.changeSignal.connect(self.head.updateState)
 
-        self.phenomena.description.currentTextChanged.connect(self.phenomena.setPhenomena)
-        self.phenomena.phenomena.currentTextChanged.connect(self.content.setPosition)
+        self.head.description.currentTextChanged.connect(self.head.setPhenomena)
+        self.head.phenomena.currentTextChanged.connect(self.content.setPosition)
 
     def clear(self):
-        self.phenomena.clear()
+        self.head.clear()
         self.content.clear()
 
 
@@ -789,19 +789,19 @@ class SigmetTyphoonSegment(BaseSegment):
 
     def __init__(self, typeSegment):
         super(SigmetTyphoonSegment, self).__init__(typeSegment)
-        self.phenomena = SigmetTyphoonPhenomena()
-        self.content = SigmetTyphoonContent(self.phenomena)
-        self.content.setForecastTime(self.phenomena.beginningTime.text())
+        self.head = SigmetTyphoonHead()
+        self.content = SigmetTyphoonContent(self.head)
+        self.content.setForecastTime(self.head.beginningTime.text())
 
         self.initUI()
         self.bindSignal()
 
     def bindSignal(self):
-        self.changeSignal.connect(self.phenomena.updateState)
+        self.changeSignal.connect(self.head.updateState)
 
-        self.phenomena.beginningTime.textChanged.connect(self.content.setForecastTime)
-        self.phenomena.beginningTime.textEdited.connect(self.content.setForecastPosition)
-        self.phenomena.obsTime.textEdited.connect(self.content.setForecastPosition)
+        self.head.beginningTime.textChanged.connect(self.content.setForecastTime)
+        self.head.beginningTime.textEdited.connect(self.content.setForecastPosition)
+        self.head.obsTime.textEdited.connect(self.content.setForecastPosition)
         self.content.currentLatitude.textEdited.connect(self.content.setForecastPosition)
         self.content.currentLongitude.textEdited.connect(self.content.setForecastPosition)
         self.content.speed.textEdited.connect(self.content.setForecastPosition)
@@ -812,24 +812,24 @@ class SigmetCancelSegment(BaseSegment):
 
     def __init__(self, typeSegment):
         super(SigmetCancelSegment, self).__init__(typeSegment)
-        self.phenomena = SigmetMiniPhenomena()
-        self.content = SigmetCancelContent(self.phenomena)
+        self.head = SigmetSimpleHead()
+        self.content = SigmetCancelContent(self.head)
 
         self.initUI()
         self.bindSignal()
 
     def bindSignal(self):
-        self.changeSignal.connect(self.phenomena.updateState)
+        self.changeSignal.connect(self.head.updateState)
         self.changeSignal.connect(self.setPrev)
 
         self.content.endingTime.textChanged.connect(self.setEndingTime)
 
     def setEndingTime(self):
         ending = self.content.endingTime.text()
-        self.phenomena.endingTime.setText(ending)
+        self.head.endingTime.setText(ending)
 
     def setPrev(self):
-        expired = datetime.datetime.utcnow() - datetime.timedelta(hours=self.phenomena.duration)
+        expired = datetime.datetime.utcnow() - datetime.timedelta(hours=self.head.duration)
         last = db.query(Sigmet).filter(Sigmet.sent > expired, Sigmet.tt == self.type.tt).order_by(Sigmet.sent.desc()).first()
 
         if last:
@@ -844,7 +844,7 @@ class SigmetCancelSegment(BaseSegment):
             self.content.sequence.setText(sequence)
 
     def clear(self):
-        self.phenomena.clear()
+        self.head.clear()
         self.content.clear()
 
 
@@ -852,14 +852,14 @@ class SigmetCustomSegment(BaseSegment):
 
     def __init__(self, typeSegment):
         super(SigmetCustomSegment, self).__init__(typeSegment)
-        self.phenomena = SigmetMiniPhenomena()
-        self.content = SigmetCustomContent(self.phenomena)
+        self.head = SigmetSimpleHead()
+        self.content = SigmetCustomContent(self.head)
 
         self.initUI()
         self.bindSignal()
 
     def bindSignal(self):
-        self.changeSignal.connect(self.phenomena.updateState)
+        self.changeSignal.connect(self.head.updateState)
         self.changeSignal.connect(self.setPlaceholder)
 
     def setPlaceholder(self):
@@ -872,5 +872,5 @@ class SigmetCustomSegment(BaseSegment):
         self.content.text.setPlaceholderText(tip)
 
     def clear(self):
-        self.phenomena.clear()
+        self.head.clear()
         self.content.clear()

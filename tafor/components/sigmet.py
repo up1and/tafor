@@ -53,13 +53,13 @@ class SigmetEditor(BaseEditor):
         self.type.custom.clicked.connect(self.changeSegment)
         self.type.cancel.clicked.connect(self.changeSegment)
 
-        self.sigmetGeneral.phenomena.completeSignal.connect(self.enbaleNextButton)
+        self.sigmetGeneral.head.completeSignal.connect(self.enbaleNextButton)
         self.sigmetGeneral.content.completeSignal.connect(self.enbaleNextButton)
-        self.sigmetTyphoon.phenomena.completeSignal.connect(self.enbaleNextButton)
+        self.sigmetTyphoon.head.completeSignal.connect(self.enbaleNextButton)
         self.sigmetTyphoon.content.completeSignal.connect(self.enbaleNextButton)
-        self.sigmetCancel.phenomena.completeSignal.connect(self.enbaleNextButton)
+        self.sigmetCancel.head.completeSignal.connect(self.enbaleNextButton)
         self.sigmetCancel.content.completeSignal.connect(self.enbaleNextButton)
-        self.sigmetCustom.phenomena.completeSignal.connect(self.enbaleNextButton)
+        self.sigmetCustom.head.completeSignal.connect(self.enbaleNextButton)
         self.sigmetCustom.content.completeSignal.connect(self.enbaleNextButton)
 
     def changeSegment(self, a):
@@ -120,10 +120,9 @@ class SigmetEditor(BaseEditor):
         self.previewSignal.emit(message)
 
     def enbaleNextButton(self):
-        completes = [self.currentSegment.phenomena.complete, self.currentSegment.content.complete]
+        completes = [self.currentSegment.head.complete, self.currentSegment.content.complete]
         enbale = all(completes)
         self.nextButton.setEnabled(enbale)
-        logger.debug('phenomena status {}, content status {}'.format(*completes))
 
     def clear(self):
         self.sigmetGeneral.clear()
@@ -135,5 +134,5 @@ class SigmetEditor(BaseEditor):
         self.clear()
 
     def showEvent(self, event):
-        self.currentSegment.phenomena.updateState()
+        self.currentSegment.head.updateState()
 
