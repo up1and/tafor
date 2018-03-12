@@ -67,7 +67,7 @@
        <attribute name="title">
         <string>TAF</string>
        </attribute>
-       <layout class="QVBoxLayout" name="taf_layout">
+       <layout class="QVBoxLayout" name="tafLayout">
         <item>
          <widget class="QTableWidget" name="tafTable">
           <property name="minimumSize">
@@ -113,7 +113,7 @@
        <attribute name="title">
         <string>METAR</string>
        </attribute>
-       <layout class="QVBoxLayout" name="metar_layout">
+       <layout class="QVBoxLayout" name="metarLayout">
         <item>
          <widget class="QTableWidget" name="metarTable">
           <property name="minimumSize">
@@ -149,7 +149,7 @@
        <attribute name="title">
         <string notr="true">SIGMET</string>
        </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_2">
+       <layout class="QVBoxLayout" name="sigmetLayout">
         <item>
          <widget class="QTableWidget" name="sigmetTable">
           <property name="minimumSize">
@@ -235,8 +235,16 @@
     <addaction name="separator"/>
     <addaction name="aboutAction"/>
    </widget>
+   <widget class="QMenu" name="viewMenu">
+    <property name="title">
+     <string>View</string>
+    </property>
+    <addaction name="previousPageAction"/>
+    <addaction name="nextPageAction"/>
+   </widget>
    <addaction name="postMenu"/>
    <addaction name="settingMenu"/>
+   <addaction name="viewMenu"/>
    <addaction name="helpMenu"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
@@ -302,6 +310,16 @@
   <action name="checkUpgradeAction">
    <property name="text">
     <string>Check for Updates</string>
+   </property>
+  </action>
+  <action name="previousPageAction">
+   <property name="text">
+    <string>Previous Page</string>
+   </property>
+  </action>
+  <action name="nextPageAction">
+   <property name="text">
+    <string>Next Page</string>
    </property>
   </action>
  </widget>
