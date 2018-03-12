@@ -829,7 +829,7 @@ class SigmetCancelSegment(BaseSegment):
         self.phenomena.endingTime.setText(ending)
 
     def setPrev(self):
-        expired = datetime.datetime.utcnow() - datetime.timedelta(self.phenomena.duration)
+        expired = datetime.datetime.utcnow() - datetime.timedelta(hours=self.phenomena.duration)
         last = db.query(Sigmet).filter(Sigmet.sent > expired, Sigmet.tt == self.type.tt).order_by(Sigmet.sent.desc()).first()
 
         if last:
