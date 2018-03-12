@@ -67,124 +67,19 @@
        <attribute name="title">
         <string>TAF</string>
        </attribute>
-       <layout class="QVBoxLayout" name="tafLayout">
-        <item>
-         <widget class="QTableWidget" name="tafTable">
-          <property name="minimumSize">
-           <size>
-            <width>850</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="frameShadow">
-           <enum>QFrame::Raised</enum>
-          </property>
-          <property name="horizontalScrollBarPolicy">
-           <enum>Qt::ScrollBarAlwaysOff</enum>
-          </property>
-          <property name="editTriggers">
-           <set>QAbstractItemView::NoEditTriggers</set>
-          </property>
-          <column>
-           <property name="text">
-            <string>Type</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>Message Content</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>Sent Time</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>Check</string>
-           </property>
-          </column>
-         </widget>
-        </item>
-       </layout>
+       <layout class="QVBoxLayout" name="tafLayout"/>
       </widget>
       <widget class="QWidget" name="metarTab">
        <attribute name="title">
         <string>METAR</string>
        </attribute>
-       <layout class="QVBoxLayout" name="metarLayout">
-        <item>
-         <widget class="QTableWidget" name="metarTable">
-          <property name="minimumSize">
-           <size>
-            <width>850</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="frameShadow">
-           <enum>QFrame::Raised</enum>
-          </property>
-          <property name="horizontalScrollBarPolicy">
-           <enum>Qt::ScrollBarAlwaysOff</enum>
-          </property>
-          <property name="editTriggers">
-           <set>QAbstractItemView::NoEditTriggers</set>
-          </property>
-          <column>
-           <property name="text">
-            <string>Type</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>Message Content</string>
-           </property>
-          </column>
-         </widget>
-        </item>
-       </layout>
+       <layout class="QVBoxLayout" name="metarLayout"/>
       </widget>
       <widget class="QWidget" name="sigmetTab">
        <attribute name="title">
         <string notr="true">SIGMET</string>
        </attribute>
-       <layout class="QVBoxLayout" name="sigmetLayout">
-        <item>
-         <widget class="QTableWidget" name="sigmetTable">
-          <property name="minimumSize">
-           <size>
-            <width>850</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="frameShadow">
-           <enum>QFrame::Raised</enum>
-          </property>
-          <property name="horizontalScrollBarPolicy">
-           <enum>Qt::ScrollBarAlwaysOff</enum>
-          </property>
-          <property name="editTriggers">
-           <set>QAbstractItemView::NoEditTriggers</set>
-          </property>
-          <column>
-           <property name="text">
-            <string>Type</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>Message Content</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>Sent Time</string>
-           </property>
-          </column>
-         </widget>
-        </item>
-       </layout>
+       <layout class="QVBoxLayout" name="sigmetLayout"/>
       </widget>
      </widget>
     </item>

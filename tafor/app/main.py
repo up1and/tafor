@@ -4,7 +4,7 @@ import datetime
 from PyQt5.QtGui import QIcon, QDesktopServices
 from PyQt5.QtCore import QCoreApplication, QObject, QTranslator, QLocale, QEvent, QTimer, Qt, QUrl, pyqtSignal
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy, QActionGroup, QAction, 
-        QSystemTrayIcon, QMenu, QSystemTrayIcon, QHeaderView, QTableWidgetItem, QMessageBox, QStyleFactory)
+        QSystemTrayIcon, QMenu, QSystemTrayIcon, QMessageBox, QStyleFactory)
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 from PyQt5.QtMultimedia import QSound, QSoundEffect
 
@@ -21,6 +21,7 @@ from tafor.components.send import TaskTAFSender, TAFSender, TrendSender, SigmetS
 from tafor.components.setting import SettingDialog
 from tafor.components.task import TaskBrowser
 
+from tafor.components.widgets.table import TafTable, MetarTable, SigmetTable
 from tafor.components.widgets.widget import alarmMessageBox, Clock, CurrentTAF, RecentMessage
 from tafor.components.widgets.status import WebAPIStatus, CallServiceStatus
 from tafor.components.widgets.sound import Sound
@@ -156,6 +157,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.setWindowIcon(QIcon(':/logo.png'))
 
         self.setupRecent()
+        self.setupTable()
 
         # 设置切换联系人菜单
         self.setupContractMenu()
@@ -196,9 +198,9 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.contractsActionGroup.triggered.connect(self.changeContract)
         self.contractsActionGroup.triggered.connect(self.settingDialog.load)
 
-        # 连接报文表格复制的槽
-        self.tafTable.itemDoubleClicked.connect(self.copySelectItem)
-        self.metarTable.itemDoubleClicked.connect(self.copySelectItem)
+        # # 连接报文表格复制的槽
+        # self.tafTable.itemDoubleClicked.connect(self.copySelectItem)
+        # self.metarTable.itemDoubleClicked.connect(self.copySelectItem)
 
         # 时钟计时器
         self.clockTimer = QTimer()
@@ -220,6 +222,11 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.recentFC = RecentMessage(self, self.recentLayout, 'FC')
         self.recentSIGMET = RecentMessage(self, self.recentLayout, 'WS')
         self.recentTrend = RecentMessage(self, self.recentLayout, 'TREND')
+
+    def setupTable(self):
+        self.tafTable = TafTable(self.tafLayout)
+        self.metarTable = MetarTable(self.metarLayout)
+        self.sigmetTable = SigmetTable(self.sigmetLayout)
 
     def setupContractMenu(self):
         self.contractsActionGroup = QActionGroup(self)
@@ -417,9 +424,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.updateGUI()
 
     def updateGUI(self):
-        self.updateTAFTable()
-        self.updateMetarTable()
-        self.updateSIGMETTable()
+        self.updateTable()
         self.updateRecent()
         self.updateContractMenu()
 
@@ -442,74 +447,10 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.recentSIGMET.updateGUI()
         self.recentTrend.updateGUI()
 
-    def updateTAFTable(self):
-        recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        items = db.query(Taf).filter(Taf.sent > recent).order_by(Taf.sent.desc()).all()
-        header = self.tafTable.horizontalHeader()
-        header.setSectionResizeMode(1, QHeaderView.Stretch)
-        self.tafTable.setRowCount(len(items))
-        self.tafTable.setColumnWidth(0, 50)
-        self.tafTable.setColumnWidth(2, 140)
-        self.tafTable.setColumnWidth(3, 50)
-
-        for row, item in enumerate(items):
-            self.tafTable.setItem(row, 0, QTableWidgetItem(item.tt))
-            self.tafTable.setItem(row, 1, QTableWidgetItem(item.rptInline))
-            if item.sent:
-                sent = item.sent.strftime("%Y-%m-%d %H:%M:%S")
-                self.tafTable.setItem(row, 2, QTableWidgetItem(sent))
-
-            if item.confirmed:
-                checkedItem = QTableWidgetItem()
-                checkedItem.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-                checkedItem.setIcon(QIcon(':/checkmark.png'))
-                self.tafTable.setItem(row, 3, checkedItem)
-            else:
-                checkedItem = QTableWidgetItem()
-                checkedItem.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-                checkedItem.setIcon(QIcon(':/cross.png'))
-                self.tafTable.setItem(row, 3, checkedItem)
-
-        self.tafTable.setStyleSheet('QTableWidget::item {padding: 5px 0;}')
-        self.tafTable.resizeRowsToContents()
-
-    def updateMetarTable(self):
-        recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        items = db.query(Metar).filter(Metar.created > recent).order_by(Metar.created.desc()).all()
-        header = self.metarTable.horizontalHeader()
-        header.setSectionResizeMode(1, QHeaderView.Stretch)
-        self.metarTable.setRowCount(len(items))
-        self.metarTable.setColumnWidth(0, 50)
-
-        for row, item in enumerate(items):
-            self.metarTable.setItem(row, 0,  QTableWidgetItem(item.tt))
-            self.metarTable.setItem(row, 1,  QTableWidgetItem(item.rpt))
-            if item.tt == 'SP':
-                self.metarTable.item(row, 0).setForeground(Qt.red)
-                self.metarTable.item(row, 1).setForeground(Qt.red)
-
-        self.metarTable.setStyleSheet("QTableWidget::item {padding: 5px 0;}")
-        self.metarTable.resizeRowsToContents()
-
-    def updateSIGMETTable(self):
-        recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        items = db.query(Sigmet).filter(Sigmet.sent > recent).order_by(Sigmet.sent.desc()).all()
-        header = self.sigmetTable.horizontalHeader()
-        header.setSectionResizeMode(1, QHeaderView.Stretch)
-        self.sigmetTable.setRowCount(len(items))
-        self.sigmetTable.setColumnWidth(0, 50)
-        self.sigmetTable.setColumnWidth(2, 140)
-        self.sigmetTable.setColumnWidth(3, 50)
-
-        for row, item in enumerate(items):
-            self.sigmetTable.setItem(row, 0, QTableWidgetItem(item.tt))
-            self.sigmetTable.setItem(row, 1, QTableWidgetItem(item.rpt))
-            if item.sent:
-                sent = item.sent.strftime("%Y-%m-%d %H:%M:%S")
-                self.sigmetTable.setItem(row, 2, QTableWidgetItem(sent))
-
-        self.sigmetTable.setStyleSheet('QTableWidget::item {padding: 5px 0;}')
-        self.sigmetTable.resizeRowsToContents()
+    def updateTable(self):
+        self.tafTable.updateGUI()
+        self.metarTable.updateGUI()
+        self.sigmetTable.updateGUI()
 
     def about(self):
         title = QCoreApplication.translate('MainWindow', 'Terminal Aerodrome Forecast Encoding Software')
