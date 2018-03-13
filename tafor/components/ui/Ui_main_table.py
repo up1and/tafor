@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\components\ui\main_table.ui'
+# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\main_table.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -34,6 +34,34 @@ class Ui_DataTable(object):
         item = QtWidgets.QTableWidgetItem()
         self.table.setHorizontalHeaderItem(3, item)
         self.verticalLayout.addWidget(self.table)
+        self.pagination = QtWidgets.QWidget(DataTable)
+        self.pagination.setObjectName("pagination")
+        self.horizontalLayout = QtWidgets.QHBoxLayout(self.pagination)
+        self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.resendButton = QtWidgets.QToolButton(self.pagination)
+        self.resendButton.setText("...")
+        self.resendButton.setAutoRaise(True)
+        self.resendButton.setObjectName("resendButton")
+        self.horizontalLayout.addWidget(self.resendButton)
+        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout.addItem(spacerItem)
+        self.prevButton = QtWidgets.QToolButton(self.pagination)
+        self.prevButton.setText("...")
+        self.prevButton.setAutoRaise(True)
+        self.prevButton.setArrowType(QtCore.Qt.NoArrow)
+        self.prevButton.setObjectName("prevButton")
+        self.horizontalLayout.addWidget(self.prevButton)
+        self.pagesLabel = QtWidgets.QLabel(self.pagination)
+        self.pagesLabel.setText("Pages")
+        self.pagesLabel.setObjectName("pagesLabel")
+        self.horizontalLayout.addWidget(self.pagesLabel)
+        self.nextButton = QtWidgets.QToolButton(self.pagination)
+        self.nextButton.setText("...")
+        self.nextButton.setAutoRaise(True)
+        self.nextButton.setObjectName("nextButton")
+        self.horizontalLayout.addWidget(self.nextButton)
+        self.verticalLayout.addWidget(self.pagination)
 
         self.retranslateUi(DataTable)
         QtCore.QMetaObject.connectSlotsByName(DataTable)

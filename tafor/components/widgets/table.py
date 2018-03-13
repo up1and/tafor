@@ -4,6 +4,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QHeaderView
 
+from tafor.components.ui import main_rc
 from tafor.models import db, Taf, Metar, Sigmet
 from tafor.utils import paginate
 from tafor.components.ui import Ui_main_table
@@ -20,13 +21,22 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.parent = parent
 
         layout.addWidget(self)
+        self.bindSignal()
 
+    def bindSignal(self):
         self.table.itemDoubleClicked.connect(self.copySelected)
+        self.prevButton.clicked.connect(self.prev)
+        self.nextButton.clicked.connect(self.next)
 
     def setStyle(self):
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(1, QHeaderView.Stretch)
         self.table.setStyleSheet('QTableWidget::item {padding: 5px 0;}')
+
+        self.prevButton.setIcon(QIcon(':/prev.png'))
+        self.nextButton.setIcon(QIcon(':/next.png'))
+        self.resendButton.setIcon(QIcon(':/repeat.png'))
+        self.resendButton.hide()
 
     def hideColumns(self):
         raise NotImplemented
@@ -43,6 +53,17 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.page = page
         self.updateGUI()
 
+    def updateGUI(self):
+        self.updateTable()
+        self.updatePages()
+
+    def updateTable():
+        raise NotImplemented
+
+    def updatePages(self):
+        text = '{}/{}'.format(self.page, self.pagination.pages)
+        self.pagesLabel.setText(text)
+
     def copySelected(self, item):
         self.parent.clip.setText(item.text())
         self.parent.statusBar.showMessage(item.text(), 5000)
@@ -53,7 +74,7 @@ class TafTable(BaseDataTable):
     def __init__(self, parent, layout):
         super(TafTable, self).__init__(parent, layout)
 
-    def updateGUI(self):
+    def updateTable(self):
         queryset = db.query(Taf).order_by(Taf.sent.desc())
         self.pagination = paginate(queryset, self.page, perPage=12)
         items = self.pagination.items
@@ -94,9 +115,9 @@ class MetarTable(BaseDataTable):
         self.table.setColumnHidden(2, True)
         self.table.setColumnHidden(3, True)
 
-    def updateGUI(self):
+    def updateTable(self):
         queryset = db.query(Metar).order_by(Metar.created.desc())
-        self.pagination = paginate(queryset, self.page, perPage=24)
+        self.pagination = paginate(queryset, self.page, perPage=12)
         items = self.pagination.items
         self.table.setRowCount(len(items))
         self.table.setColumnWidth(0, 50)
@@ -121,7 +142,7 @@ class SigmetTable(BaseDataTable):
     def hideColumns(self):
         self.table.setColumnHidden(3, True)
 
-    def updateGUI(self):
+    def updateTable(self):
         queryset = db.query(Sigmet).order_by(Sigmet.sent.desc())
         self.pagination = paginate(queryset, self.page, perPage=6)
         items = self.pagination.items

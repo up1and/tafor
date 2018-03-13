@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\components\ui\main.ui'
+# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\main.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -65,8 +65,6 @@ class Ui_MainWindow(object):
         self.contractsMenu.setObjectName("contractsMenu")
         self.helpMenu = QtWidgets.QMenu(self.menuBar)
         self.helpMenu.setObjectName("helpMenu")
-        self.viewMenu = QtWidgets.QMenu(self.menuBar)
-        self.viewMenu.setObjectName("viewMenu")
         MainWindow.setMenuBar(self.menuBar)
         self.statusBar = QtWidgets.QStatusBar(MainWindow)
         self.statusBar.setObjectName("statusBar")
@@ -116,11 +114,8 @@ class Ui_MainWindow(object):
         self.helpMenu.addAction(self.checkUpgradeAction)
         self.helpMenu.addSeparator()
         self.helpMenu.addAction(self.aboutAction)
-        self.viewMenu.addAction(self.previousPageAction)
-        self.viewMenu.addAction(self.nextPageAction)
         self.menuBar.addAction(self.postMenu.menuAction())
         self.menuBar.addAction(self.settingMenu.menuAction())
-        self.menuBar.addAction(self.viewMenu.menuAction())
         self.menuBar.addAction(self.helpMenu.menuAction())
 
         self.retranslateUi(MainWindow)
@@ -138,7 +133,6 @@ class Ui_MainWindow(object):
         self.settingMenu.setTitle(_translate("MainWindow", "Options"))
         self.contractsMenu.setTitle(_translate("MainWindow", "Contacts"))
         self.helpMenu.setTitle(_translate("MainWindow", "Help"))
-        self.viewMenu.setTitle(_translate("MainWindow", "View"))
         self.tafAction.setText(_translate("MainWindow", "Terminal Aerodrome Forecast"))
         self.trendAction.setText(_translate("MainWindow", "Trend Forecast"))
         self.sigmetAction.setText(_translate("MainWindow", "Significant Meteorological Information"))

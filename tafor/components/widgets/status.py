@@ -27,33 +27,6 @@ class StatusBarWidget(QWidget):
         self.setLayout(layout)
 
 
-class PageStatus(StatusBarWidget):
-
-    def __init__(self, parent, statusBar, last=False):
-        super(PageStatus, self).__init__(parent, statusBar, last)
-        self.table = None
-        self.updateGUI()
-
-    def setHead(self):
-        title = QCoreApplication.translate('MainWindow', 'Page')
-        self.head.setText(title)
-
-    def setValue(self):
-        page = str(self.table.page)
-        self.label.setText(page)
-
-    def setTable(self, table):
-        self.table = table
-        self.updateGUI()
-
-    def updateGUI(self):
-        if self.table is None:
-            self.hide()
-        else:
-            self.show()
-            self.setValue()
-
-
 class BaseTimerStatus(StatusBarWidget):
 
     def __init__(self, parent, statusBar, last=False):

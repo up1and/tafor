@@ -23,7 +23,7 @@ from tafor.components.task import TaskBrowser
 
 from tafor.components.widgets.table import TafTable, MetarTable, SigmetTable
 from tafor.components.widgets.widget import alarmMessageBox, Clock, CurrentTAF, RecentMessage
-from tafor.components.widgets.status import WebAPIStatus, CallServiceStatus, PageStatus
+from tafor.components.widgets.status import WebAPIStatus, CallServiceStatus
 from tafor.components.widgets.sound import Sound
 
 
@@ -205,23 +205,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.contractsActionGroup.triggered.connect(self.changeContract)
         self.contractsActionGroup.triggered.connect(self.settingDialog.load)
 
-        self.mainTab.currentChanged.connect(self.changeTable)
-
-    def changeTable(self, index):
-        if index == 0:
-            self.currentTable = None
-
-        if index == 1:
-            self.currentTable = self.tafTable
-
-        if index == 2:
-            self.currentTable = self.metarTable
-
-        if index == 3:
-            self.currentTable = self.sigmetTable
-
-        self.pageStatus.setTable(self.currentTable)
-
     def setupRecent(self):
         self.clock = Clock(self, self.tipsLayout)
         self.tipsLayout.addSpacerItem(QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
@@ -278,7 +261,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.tray.setToolTip(message)
 
     def setupStatusBar(self):
-        self.pageStatus = PageStatus(self, self.statusBar)
         self.webApiStatus = WebAPIStatus(self, self.statusBar)
         self.callServiceStatus = CallServiceStatus(self, self.statusBar, last=True)
 
@@ -338,15 +320,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
                 self.taskTAFEditor.show()
             if event.key() == Qt.Key_T:
                 self.taskBrowser.show()
-
-        if self.currentTable is not None:
-            if event.key() == Qt.Key_PageUp:
-                self.currentTable.prev()
-                self.pageStatus.updateGUI()
-
-            if event.key() == Qt.Key_PageDown:
-                self.currentTable.next()
-                self.pageStatus.updateGUI()
 
     def closeEvent(self, event):
         if event.spontaneous():
