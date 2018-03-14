@@ -5,6 +5,7 @@ from PyQt5.QtCore import QObject
 
 from tafor import conf, logger
 from tafor.models import db, Taf, Metar
+from tafor.states import context
 
 from tafor.utils.validator import Grammar
 
@@ -192,13 +193,13 @@ class CheckMetar(object):
 
 class Listen(object):
 
-    def __init__(self, context, parent=None):
-        self.context = context
+    def __init__(self, parent=None):
         self.parent = parent
 
     def __call__(self, tt):
         self.tt = tt
-        self.message = self.context.message.get(self.tt, None)
+        state = context.message.state()
+        self.message = state.get(self.tt, None)
         method = {'FC': 'taf', 'FT': 'taf', 'SA': 'metar', 'SP': 'metar'}
         return getattr(self.__class__, method[self.tt])(self)
 
@@ -225,9 +226,14 @@ class Listen(object):
             elif taf.hasExpired():
                 expired = True
 
-        self.context.current = [taf.tt, taf.warningPeriod(), True if local else False]
-        self.context.warning = [taf.tt, expired]
-        self.context.reminder = [taf.tt, taf.hasExpired(offset=5)]
+        context.taf.setState({
+            taf.tt: {
+                'period': taf.warningPeriod(),
+                'sent': True if local else False,
+                'warnning': expired,
+                'clock': taf.hasExpired(offset=5),
+            }
+        })
 
     def metar(self):
         metar = CheckMetar(self.tt, message=self.message)

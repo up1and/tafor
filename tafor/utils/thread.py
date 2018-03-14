@@ -3,6 +3,7 @@ import requests
 from PyQt5.QtCore import QThread, pyqtSignal
 
 from tafor import conf, logger
+from tafor.states import context
 from tafor.utils import serialComm
 
 
@@ -71,11 +72,11 @@ class WorkThread(QThread):
     def run(self):
         if conf.value('Monitor/WebApiURL'):
             url = conf.value('Monitor/WebApiURL') or 'http://127.0.0.1:6575'
-            self.parent.context.message = remoteMessage(url)
+            context.message.setState(remoteMessage(url))
 
         if conf.value('Monitor/SelectedMobile'):
             url = conf.value('Monitor/CallServiceURL') or 'http://127.0.0.1:5000/api/call/'
-            self.parent.context.callService = callService(url)
+            context.callService.setState(callService(url))
 
 
 class CallThread(QThread):

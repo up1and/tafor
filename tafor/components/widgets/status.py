@@ -3,6 +3,8 @@ import requests
 from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel
 
+from tafor.states import context
+
 
 class StatusBarWidget(QWidget):
 
@@ -49,10 +51,9 @@ class WebAPIStatus(BaseTimerStatus):
         self.head.setText(title)
 
     def setValue(self):
-        if self.isVisible():
-            status = self.parent.context.webApi
-            text = QCoreApplication.translate('MainWindow', 'Online') if status else QCoreApplication.translate('MainWindow', 'Offline')
-            self.label.setText(text)
+        online = context.webApi.isOnline()
+        text = QCoreApplication.translate('MainWindow', 'Online') if online else QCoreApplication.translate('MainWindow', 'Offline')
+        self.label.setText(text)
 
 
 class CallServiceStatus(BaseTimerStatus):
@@ -62,6 +63,6 @@ class CallServiceStatus(BaseTimerStatus):
         self.head.setText(title)
 
     def setValue(self):
-        status = self.parent.context.callService
-        text = QCoreApplication.translate('MainWindow', 'Online') if status else QCoreApplication.translate('MainWindow', 'Offline')
+        online = context.callService.isOnline()
+        text = QCoreApplication.translate('MainWindow', 'Online') if online else QCoreApplication.translate('MainWindow', 'Offline')
         self.label.setText(text)

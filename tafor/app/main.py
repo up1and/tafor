@@ -10,6 +10,7 @@ from PyQt5.QtMultimedia import QSound, QSoundEffect
 
 from tafor import BASEDIR, conf, logger, boolean, __version__
 from tafor.models import db, Taf, Task, Metar, Sigmet, User
+from tafor.states import context
 from tafor.utils import Listen, checkVersion
 from tafor.utils.thread import WorkThread, CallThread, CheckUpgradeThread
 
@@ -25,98 +26,6 @@ from tafor.components.widgets.table import TafTable, MetarTable, SigmetTable
 from tafor.components.widgets.widget import alarmMessageBox, Clock, CurrentTaf, RecentMessage
 from tafor.components.widgets.status import WebAPIStatus, CallServiceStatus
 from tafor.components.widgets.sound import Sound
-
-
-class Context(QObject):
-    warningSignal = pyqtSignal()
-    reminderSignal = pyqtSignal(str)
-
-    def __init__(self):
-        super(Context, self).__init__()
-        self._message = {}
-        self._callService = None
-        self._warning = {
-            'FC': False,
-            'FT': False
-        }
-        self._current = {
-            'FC': {
-                'period': '',
-                'status': False
-            },
-            'FT': {
-                'period': '',
-                'status': False
-            }
-        }
-        self._reminder = {
-            'FC': False,
-            'FT': False
-        }
-
-    @property
-    def message(self):
-        return self._message
-
-    @message.setter
-    def message(self, msg):
-        self._message = msg
-
-    @property
-    def webApi(self):
-        return True if self._message else False
-
-    @property
-    def callService(self):
-        return self._callService
-
-    @callService.setter
-    def callService(self, value):
-        self._callService = value
-
-    @property
-    def warning(self):
-        return self._warning
-
-    @warning.setter
-    def warning(self, values):
-        try:
-            tt, hasExpired = values
-            self._warning[tt] = hasExpired
-            self.warningSignal.emit()
-        except ValueError:
-            raise ValueError
-
-    def isWarning(self):
-        return any(self._warning.values())
-
-    @property
-    def reminder(self):
-        return self._reminder
-
-    @reminder.setter
-    def reminder(self, values):
-        try:
-            tt, hasExpired = values
-            if self._reminder[tt] != hasExpired:
-                self._reminder[tt] = hasExpired
-                self.reminderSignal.emit(tt)
-        except ValueError:
-            raise ValueError
-
-    @property
-    def current(self):
-        return self._current
-
-    @current.setter
-    def current(self, values):
-        try:
-            tt, period, status = values
-            current = self._current[tt]
-            current['period'] = period
-            current['status'] = status
-        except ValueError:
-            raise ValueError
         
 
 class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
@@ -132,9 +41,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.alarmMessageBox = alarmMessageBox(self)
 
-        self.context = Context()
-        self.context.warningSignal.connect(self.dialer)
-        self.context.reminderSignal.connect(self.reminder)
+        context.taf.warningSignal.connect(self.dialer)
+        context.taf.clockSignal.connect(self.reminder)
 
         # 初始化剪贴板
         self.clip = QApplication.clipboard()
@@ -370,7 +278,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.trendSound.stop()
 
         # 管理报文告警声音
-        if warnSwitch and self.context.isWarning():
+        if warnSwitch and context.taf.isWarning():
             self.alarmSound.play()
         else:
             self.alarmSound.stop()
@@ -380,11 +288,12 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         if not remindSwitch:
             return None
 
-        clock = self.context.reminder.get(tt)
-        current = self.context.current.get(tt)
-        warning = self.context.warning.get(tt)
+        state = context.taf.state()
+        clock = state['tt']['clock']
+        current = state['tt']['current']
+        warning = state['tt']['warning']
 
-        if clock and not warning and not current['status']:
+        if clock and not warning and not current['sent']:
             current = tt + current['period'][2:]
             text = QCoreApplication.translate('MainWindow', 'Time to post {}').format(current)
             self.ringSound.play()
@@ -401,11 +310,11 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def dialer(self, test=False):
         callSwitch = conf.value('Monitor/SelectedMobile')
 
-        if callSwitch and self.context.isWarning() or test:
+        if callSwitch and context.taf.isWarning() or test:
             self.callThread.start()
 
     def updateMessage(self):
-        listen = Listen(context=self.context, parent=self)
+        listen = Listen(parent=self)
         [listen(i) for i in ('FC', 'FT', 'SA', 'SP')]
 
         self.updateGUI()
