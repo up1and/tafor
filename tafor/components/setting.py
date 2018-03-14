@@ -63,7 +63,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.channelSequenceNumber.setValidator(QIntValidator(self.channelSequenceNumber))
         self.maxSendAddress.setValidator(QIntValidator(self.maxSendAddress))
         self.maxLineChar.setValidator(QIntValidator(self.maxLineChar))
-        self.warnTAFTime.setValidator(QIntValidator(self.warnTAFTime))
+        self.warnTafTime.setValidator(QIntValidator(self.warnTafTime))
 
     def checkSerialNumber(self):
         utc = datetime.datetime.utcnow()
@@ -168,15 +168,15 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.setValue('Monitor/WebApiURL', 'webApiURL')
 
         # self.setValue('Monitor/WarnTAF', 'warnTAF', 'bool')
-        self.setValue('Monitor/WarnTAFTime', 'warnTAFTime')
-        self.setValue('Monitor/WarnTAFVolume', 'warnTAFVolume', 'slider')
+        self.setValue('Monitor/WarnTAFTime', 'warnTafTime')
+        self.setValue('Monitor/WarnTAFVolume', 'warnTafVolume', 'slider')
 
-        self.setValue('Monitor/RemindTAF', 'remindTAF', 'bool')
-        self.setValue('Monitor/RemindTAFVolume', 'remindTAFVolume', 'slider')
+        self.setValue('Monitor/RemindTAF', 'remindTaf', 'bool')
+        self.setValue('Monitor/RemindTAFVolume', 'remindTafVolume', 'slider')
         self.setValue('Monitor/RemindTrend', 'remindTrend', 'bool')
         self.setValue('Monitor/RemindTrendVolume', 'remindTrendVolume', 'slider')
-        self.setValue('Monitor/RemindSIGMET', 'remindSIGMET', 'bool')
-        self.setValue('Monitor/RemindSIGMETVolume', 'remindSIGMETVolume', 'slider')
+        self.setValue('Monitor/RemindSIGMET', 'remindSigmet', 'bool')
+        self.setValue('Monitor/RemindSIGMETVolume', 'remindSigmetVolume', 'slider')
 
         self.setValue('Monitor/CallServiceURL', 'callServiceURL')
         self.setValue('Monitor/CallServiceToken', 'callServiceToken')
@@ -217,15 +217,15 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
         self.loadValue('Monitor/WebApiURL', 'webApiURL')
 
-        self.loadValue('Monitor/WarnTAFTime', 'warnTAFTime')
-        self.loadValue('Monitor/WarnTAFVolume', 'warnTAFVolume', 'slider')
+        self.loadValue('Monitor/WarnTAFTime', 'warnTafTime')
+        self.loadValue('Monitor/WarnTAFVolume', 'warnTafVolume', 'slider')
 
-        self.loadValue('Monitor/RemindTAF', 'remindTAF', 'bool')
-        self.loadValue('Monitor/RemindTAFVolume', 'remindTAFVolume', 'slider')
+        self.loadValue('Monitor/RemindTAF', 'remindTaf', 'bool')
+        self.loadValue('Monitor/RemindTAFVolume', 'remindTafVolume', 'slider')
         self.loadValue('Monitor/RemindTrend', 'remindTrend', 'bool')
         self.loadValue('Monitor/RemindTrendVolume', 'remindTrendVolume', 'slider')
-        self.loadValue('Monitor/RemindSIGMET', 'remindSIGMET', 'bool')
-        self.loadValue('Monitor/RemindSIGMETVolume', 'remindSIGMETVolume', 'slider')
+        self.loadValue('Monitor/RemindSIGMET', 'remindSigmet', 'bool')
+        self.loadValue('Monitor/RemindSIGMETVolume', 'remindSigmetVolume', 'slider')
 
         self.loadValue('Monitor/CallServiceURL', 'callServiceURL')
         self.loadValue('Monitor/CallServiceToken', 'callServiceToken')

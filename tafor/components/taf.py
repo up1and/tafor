@@ -6,16 +6,16 @@ from PyQt5.QtCore import QCoreApplication, Qt, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox, QVBoxLayout, QPushButton, QLayout
 
 from tafor import boolean, conf, logger
-from tafor.utils import CheckTAF, Grammar, formatTimeInterval
+from tafor.utils import CheckTaf, Grammar, formatTimeInterval
 from tafor.models import db, Taf, Task
 from tafor.components.widgets.editor import BaseEditor
-from tafor.components.widgets import TAFPrimarySegment, TAFBecmgSegment, TAFTempoSegment
+from tafor.components.widgets import TafPrimarySegment, TafBecmgSegment, TafTempoSegment
 
 
-class BaseTAFEditor(BaseEditor):
+class BaseTafEditor(BaseEditor):
 
     def __init__(self, parent=None, sender=None):
-        super(BaseTAFEditor, self).__init__(parent, sender)
+        super(BaseTafEditor, self).__init__(parent, sender)
 
         self.initUI()
         self.bindSignal()
@@ -24,9 +24,9 @@ class BaseTAFEditor(BaseEditor):
         window = QWidget(self)
         layout = QVBoxLayout(window)
         layout.setSizeConstraint(QLayout.SetFixedSize)
-        self.primary = TAFPrimarySegment()
-        self.becmg1, self.becmg2, self.becmg3 = TAFBecmgSegment('BECMG1'), TAFBecmgSegment('BECMG2'), TAFBecmgSegment('BECMG3')
-        self.tempo1, self.tempo2 = TAFTempoSegment('TEMPO1'), TAFTempoSegment('TEMPO2')
+        self.primary = TafPrimarySegment()
+        self.becmg1, self.becmg2, self.becmg3 = TafBecmgSegment('BECMG1'), TafBecmgSegment('BECMG2'), TafBecmgSegment('BECMG3')
+        self.tempo1, self.tempo2 = TafTempoSegment('TEMPO1'), TafTempoSegment('TEMPO2')
         self.nextButton = QPushButton()
         self.nextButton.setEnabled(False)
         self.nextButton.setText(QCoreApplication.translate('Editor', 'Next'))
@@ -179,7 +179,7 @@ class BaseTAFEditor(BaseEditor):
 
     def setNormalPeriod(self, isTask=False):
         prev = 1 if self.primary.prev.isChecked() else 0
-        taf = CheckTAF(self.tt, self.time, prev=prev)
+        taf = CheckTaf(self.tt, self.time, prev=prev)
         period = taf.normalPeriod() if isTask else taf.warningPeriod()
 
         if period and taf.local(period) or not self.primary.date.hasAcceptableInput():
@@ -189,7 +189,7 @@ class BaseTAFEditor(BaseEditor):
 
     def setAmendPeriod(self):
         prev = 1 if self.primary.prev.isChecked() else 0
-        taf = CheckTAF(self.tt, self.time, prev=prev)
+        taf = CheckTaf(self.tt, self.time, prev=prev)
         self.amdPeriod = taf.warningPeriod()
         self.primary.period.setText(self.amdPeriod)
 
@@ -328,10 +328,10 @@ class BaseTAFEditor(BaseEditor):
         # Check Settings
 
 
-class TAFEditor(BaseTAFEditor):
+class TafEditor(BaseTafEditor):
 
     def __init__(self, parent=None, sender=None):
-        super(TAFEditor, self).__init__(parent, sender)
+        super(TafEditor, self).__init__(parent, sender)
         self.setWindowTitle(QCoreApplication.translate('Editor', 'Encoding Terminal Aerodrome Forecast'))
         self.primary.date.setEnabled(False)
 
@@ -342,13 +342,13 @@ class TAFEditor(BaseTAFEditor):
     def previewMessage(self):
         message = {'sign': self.sign, 'rpt': self.rpt, 'full': '\n'.join([self.sign, self.rpt])}
         self.previewSignal.emit(message)
-        logger.debug('TAF Edit ' + message['full'])
+        logger.debug('Taf Edit ' + message['full'])
 
 
-class TaskTAFEditor(BaseTAFEditor):
+class TaskTafEditor(BaseTafEditor):
 
     def __init__(self, parent=None, sender=None):
-        super(TaskTAFEditor, self).__init__(parent, sender)
+        super(TaskTafEditor, self).__init__(parent, sender)
 
         self.setWindowTitle(QCoreApplication.translate('Editor', 'Timing Tasks'))
         self.setWindowIcon(QIcon(':/time.png'))

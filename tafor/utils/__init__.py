@@ -1,4 +1,4 @@
-from tafor.utils.check import CheckTAF, Listen
+from tafor.utils.check import CheckTaf, Listen
 from tafor.utils.validator import Validator, Grammar, Pattern, Parser
 from tafor.utils.aftn import AFTNMessage
 from tafor.utils.modem import serialComm

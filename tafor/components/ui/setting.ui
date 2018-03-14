@@ -695,7 +695,7 @@
            </property>
            <layout class="QFormLayout" name="formLayout_4">
             <item row="0" column="0">
-             <widget class="QLabel" name="warnTAFTimeLabel">
+             <widget class="QLabel" name="warnTafTimeLabel">
               <property name="minimumSize">
                <size>
                 <width>100</width>
@@ -708,7 +708,7 @@
              </widget>
             </item>
             <item row="0" column="1">
-             <widget class="QLineEdit" name="warnTAFTime">
+             <widget class="QLineEdit" name="warnTafTime">
               <property name="maximumSize">
                <size>
                 <width>120</width>
@@ -724,7 +724,7 @@
              </widget>
             </item>
             <item row="1" column="0">
-             <widget class="QLabel" name="warnTAFVolumeLabel">
+             <widget class="QLabel" name="warnTafVolumeLabel">
               <property name="minimumSize">
                <size>
                 <width>100</width>
@@ -737,7 +737,7 @@
              </widget>
             </item>
             <item row="1" column="1">
-             <widget class="QSlider" name="warnTAFVolume">
+             <widget class="QSlider" name="warnTafVolume">
               <property name="orientation">
                <enum>Qt::Horizontal</enum>
               </property>
@@ -753,7 +753,7 @@
            </property>
            <layout class="QFormLayout" name="formLayout_5">
             <item row="0" column="0">
-             <widget class="QCheckBox" name="remindTAF">
+             <widget class="QCheckBox" name="remindTaf">
               <property name="minimumSize">
                <size>
                 <width>100</width>
@@ -766,7 +766,7 @@
              </widget>
             </item>
             <item row="0" column="1">
-             <widget class="QSlider" name="remindTAFVolume">
+             <widget class="QSlider" name="remindTafVolume">
               <property name="orientation">
                <enum>Qt::Horizontal</enum>
               </property>
@@ -793,7 +793,7 @@
              </widget>
             </item>
             <item row="2" column="0">
-             <widget class="QCheckBox" name="remindSIGMET">
+             <widget class="QCheckBox" name="remindSigmet">
               <property name="minimumSize">
                <size>
                 <width>100</width>
@@ -806,7 +806,7 @@
              </widget>
             </item>
             <item row="2" column="1">
-             <widget class="QSlider" name="remindSIGMETVolume">
+             <widget class="QSlider" name="remindSigmetVolume">
               <property name="orientation">
                <enum>Qt::Horizontal</enum>
               </property>
@@ -1017,13 +1017,13 @@
   <tabstop>tafAddress</tabstop>
   <tabstop>sigmetAddress</tabstop>
   <tabstop>trendAddress</tabstop>
-  <tabstop>warnTAFVolume</tabstop>
-  <tabstop>remindTAF</tabstop>
-  <tabstop>remindTAFVolume</tabstop>
+  <tabstop>warnTafVolume</tabstop>
+  <tabstop>remindTaf</tabstop>
+  <tabstop>remindTafVolume</tabstop>
   <tabstop>remindTrend</tabstop>
   <tabstop>remindTrendVolume</tabstop>
-  <tabstop>remindSIGMET</tabstop>
-  <tabstop>remindSIGMETVolume</tabstop>
+  <tabstop>remindSigmet</tabstop>
+  <tabstop>remindSigmetVolume</tabstop>
   <tabstop>runOnStart</tabstop>
   <tabstop>closeToMinimize</tabstop>
   <tabstop>importPath</tabstop>

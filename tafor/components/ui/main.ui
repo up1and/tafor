@@ -115,7 +115,7 @@
      <addaction name="contractNo"/>
      <addaction name="separator"/>
     </widget>
-    <addaction name="warnTAFAction"/>
+    <addaction name="warnTafAction"/>
     <addaction name="contractsMenu"/>
     <addaction name="separator"/>
     <addaction name="settingAction"/>
@@ -183,7 +183,7 @@
     <string>Documents</string>
    </property>
   </action>
-  <action name="warnTAFAction">
+  <action name="warnTafAction">
    <property name="checkable">
     <bool>true</bool>
    </property>

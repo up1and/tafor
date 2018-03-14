@@ -5,7 +5,7 @@ from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox, QLabel, QHBoxLayout
 
 from tafor.models import db, Taf, Sigmet, Trend
-from tafor.utils import CheckTAF
+from tafor.utils import CheckTaf
 from tafor.components.ui import Ui_main_recent
 
 
@@ -72,10 +72,10 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
             self.check.setText('<img src=":/cross.png" width="24" height="24"/>')
 
 
-class CurrentTAF(QWidget):
+class CurrentTaf(QWidget):
 
     def __init__(self, parent, container):
-        super(CurrentTAF, self).__init__(parent)
+        super(CurrentTaf, self).__init__(parent)
 
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -95,7 +95,7 @@ class CurrentTAF(QWidget):
         self.ft.setText(self.current('FT'))
 
     def current(self, tt):
-        taf = CheckTAF(tt)
+        taf = CheckTaf(tt)
         if taf.local():
             text = ''
         else:

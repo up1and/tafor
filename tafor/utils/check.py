@@ -21,10 +21,10 @@ def formatTimez(message):
         return created
 
 
-class CheckTAF(QObject):
-    """docstring for CheckTAF"""
+class CheckTaf(QObject):
+    """docstring for CheckTaf"""
     def __init__(self, tt, message=None, time=None, prev=0):
-        super(CheckTAF, self).__init__()
+        super(CheckTaf, self).__init__()
         self.tt = tt
         self.message = message
         self.time = datetime.datetime.utcnow() if time is None else time
@@ -210,7 +210,7 @@ class Listen(object):
 
         expired = False
 
-        taf = CheckTAF(self.tt, message=self.message)
+        taf = CheckTaf(self.tt, message=self.message)
         local = taf.local()
 
         if local:

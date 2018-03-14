@@ -105,10 +105,10 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.resendButton.setVisible(False)
 
 
-class TAFSender(BaseSender):
+class TafSender(BaseSender):
 
     def __init__(self, parent=None):
-        super(TAFSender, self).__init__(parent)
+        super(TafSender, self).__init__(parent)
 
         self.reportType = 'TAF'
 
@@ -122,10 +122,10 @@ class TAFSender(BaseSender):
         self.sendSignal.emit()
 
 
-class TaskTAFSender(BaseSender):
+class TaskTafSender(BaseSender):
 
     def __init__(self, parent=None):
-        super(TaskTAFSender, self).__init__(parent)
+        super(TaskTafSender, self).__init__(parent)
 
         self.setWindowTitle(QCoreApplication.translate('Sender', 'Timing Tasks'))
 

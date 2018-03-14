@@ -6,7 +6,7 @@ from PyQt5.QtCore import Qt, QRegExp, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QComboBox, QRadioButton, QCheckBox
 
 from tafor import conf, logger
-from tafor.utils import CheckTAF, Pattern
+from tafor.utils import CheckTaf, Pattern
 from tafor.components.ui import Ui_taf_primary, Ui_taf_becmg, Ui_taf_tempo, Ui_trend
 
 
@@ -208,10 +208,10 @@ class BaseSegment(QWidget, SegmentMixin):
         self.cb.clear()
 
 
-class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
+class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
     def __init__(self):
-        super(TAFPrimarySegment, self).__init__()
+        super(TafPrimarySegment, self).__init__()
         self.setupUi(self)
 
         self.setValidator()
@@ -223,7 +223,7 @@ class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.bindSignal()
 
     def setValidator(self):
-        super(TAFPrimarySegment, self).setValidator()
+        super(TafPrimarySegment, self).setValidator()
 
         date = QRegExpValidator(QRegExp(self.rules.date))
         self.date.setValidator(date)
@@ -237,7 +237,7 @@ class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.tminTime.setValidator(tempHours)
 
     def bindSignal(self):
-        super(TAFPrimarySegment, self).bindSignal()
+        super(TafPrimarySegment, self).bindSignal()
 
         self.tmax.textEdited.connect(lambda: self.upperText(self.tmax))
         self.tmin.textEdited.connect(lambda: self.upperText(self.tmin))
@@ -275,7 +275,7 @@ class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.completeSignal.emit(self.complete)
 
     def message(self):
-        super(TAFPrimarySegment, self).message()
+        super(TafPrimarySegment, self).message()
         amd = 'AMD' if self.amd.isChecked() else ''
         cor = 'COR' if self.cor.isChecked() else ''
         icao = conf.value('Message/ICAO')
@@ -283,7 +283,7 @@ class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         period = self.period.text()
         tmax = ''.join(['TX', self.tmax.text(), '/', self.tmaxTime.text(), 'Z'])
         tmin = ''.join(['TN', self.tmin.text(), '/', self.tminTime.text(), 'Z'])
-        messages = ['TAF', amd, cor, icao, timez, period, self.msg, tmax, tmin]
+        messages = ['Taf', amd, cor, icao, timez, period, self.msg, tmax, tmin]
         self.msg = ' '.join(filter(None, messages))
         return self.msg
 
@@ -304,7 +304,7 @@ class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         return ' '.join(filter(None, messages))
 
     def clear(self):
-        super(TAFPrimarySegment, self).clear()
+        super(TafPrimarySegment, self).clear()
 
         self.becmg1Checkbox.setChecked(False)
         self.becmg2Checkbox.setChecked(False)
@@ -320,10 +320,10 @@ class TAFPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.tminTime.clear()
 
 
-class TAFBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Editor):
+class TafBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Editor):
 
     def __init__(self, name='becmg'):
-        super(TAFBecmgSegment, self).__init__()
+        super(TafBecmgSegment, self).__init__()
         self.setupUi(self)
         self.name.setText(name)
 
@@ -335,13 +335,13 @@ class TAFBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Editor):
         self.bindSignal()
 
     def setValidator(self):
-        super(TAFBecmgSegment, self).setValidator()
+        super(TafBecmgSegment, self).setValidator()
 
         interval = QRegExpValidator(QRegExp(self.rules.interval))
         self.interval.setValidator(interval)
 
     def message(self):
-        super(TAFBecmgSegment, self).message()
+        super(TafBecmgSegment, self).message()
         interval = self.interval.text()
         messages = ['BECMG', interval, self.msg]
         self.msg = ' '.join(messages)
@@ -369,7 +369,7 @@ class TAFBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Editor):
         self.completeSignal.emit(self.complete)
 
     def clear(self):
-        super(TAFBecmgSegment, self).clear()
+        super(TafBecmgSegment, self).clear()
 
         self.interval.clear()
 
@@ -377,10 +377,10 @@ class TAFBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Editor):
         self.nsc.setChecked(False)
 
 
-class TAFTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Editor):
+class TafTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Editor):
 
     def __init__(self, name='tempo'):
-        super(TAFTempoSegment, self).__init__()
+        super(TafTempoSegment, self).__init__()
         self.setupUi(self)
         self.name.setText(name)
 
@@ -389,7 +389,7 @@ class TAFTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Editor):
         self.bindSignal()
 
     def setValidator(self):
-        super(TAFTempoSegment, self).setValidator()
+        super(TafTempoSegment, self).setValidator()
 
         interval = QRegExpValidator(QRegExp(self.rules.interval))
         self.interval.setValidator(interval)
@@ -403,7 +403,7 @@ class TAFTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Editor):
             self.prob30.setChecked(False)
 
     def message(self):
-        super(TAFTempoSegment, self).message()
+        super(TafTempoSegment, self).message()
         interval = self.interval.text()
         messages = ['TEMPO', interval, self.msg]
         if self.prob30.isChecked():
@@ -433,7 +433,7 @@ class TAFTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Editor):
         self.completeSignal.emit(self.complete)
 
     def clear(self):
-        super(TAFTempoSegment, self).clear()
+        super(TafTempoSegment, self).clear()
 
         self.interval.clear()
 

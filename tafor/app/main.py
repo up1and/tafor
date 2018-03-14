@@ -14,15 +14,15 @@ from tafor.utils import Listen, checkVersion
 from tafor.utils.thread import WorkThread, CallThread, CheckUpgradeThread
 
 from tafor.components.ui import Ui_main, main_rc
-from tafor.components.taf import TAFEditor, TaskTAFEditor
+from tafor.components.taf import TafEditor, TaskTafEditor
 from tafor.components.trend import TrendEditor
 from tafor.components.sigmet import SigmetEditor
-from tafor.components.send import TaskTAFSender, TAFSender, TrendSender, SigmetSender
+from tafor.components.send import TaskTafSender, TafSender, TrendSender, SigmetSender
 from tafor.components.setting import SettingDialog
 from tafor.components.task import TaskBrowser
 
 from tafor.components.widgets.table import TafTable, MetarTable, SigmetTable
-from tafor.components.widgets.widget import alarmMessageBox, Clock, CurrentTAF, RecentMessage
+from tafor.components.widgets.widget import alarmMessageBox, Clock, CurrentTaf, RecentMessage
 from tafor.components.widgets.status import WebAPIStatus, CallServiceStatus
 from tafor.components.widgets.sound import Sound
 
@@ -143,13 +143,13 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.taskBrowser = TaskBrowser(self)
         self.settingDialog = SettingDialog(self)
 
-        self.tafSender = TAFSender(self)
-        self.taskTAFSender = TaskTAFSender(self)
+        self.tafSender = TafSender(self)
+        self.taskTafSender = TaskTafSender(self)
         self.trendSender = TrendSender(self)
         self.sigmetSender = SigmetSender(self)
 
-        self.tafEditor = TAFEditor(self, self.tafSender)
-        self.taskTAFEditor = TaskTAFEditor(self, self.taskTAFSender)
+        self.tafEditor = TafEditor(self, self.tafSender)
+        self.taskTafEditor = TaskTafEditor(self, self.taskTafSender)
         self.trendEditor = TrendEditor(self, self.trendSender)
         self.sigmetEditor = SigmetEditor(self, self.sigmetSender)
 
@@ -187,7 +187,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         # self.taskTafAction = QAction(self)
         # self.post_menu.addAction(self.taskTafAction)
         # self.taskTafAction.setText('定时任务')
-        # self.taskTafAction.triggered.connect(self.taskTAFEditor.show)
+        # self.taskTafAction.triggered.connect(self.taskTafEditor.show)
 
         # 连接设置对话框的槽
         self.settingAction.triggered.connect(self.settingDialog.exec_)
@@ -208,18 +208,16 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def setupRecent(self):
         self.clock = Clock(self, self.tipsLayout)
         self.tipsLayout.addSpacerItem(QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        self.currentTAF = CurrentTAF(self, self.tipsLayout)
-        self.recentFT = RecentMessage(self, self.recentLayout, 'FT')
-        self.recentFC = RecentMessage(self, self.recentLayout, 'FC')
-        self.recentSIGMET = RecentMessage(self, self.recentLayout, 'WS')
+        self.currentTaf = CurrentTaf(self, self.tipsLayout)
+        self.recentFt = RecentMessage(self, self.recentLayout, 'FT')
+        self.recentFc = RecentMessage(self, self.recentLayout, 'FC')
+        self.recentSigmet = RecentMessage(self, self.recentLayout, 'WS')
         self.recentTrend = RecentMessage(self, self.recentLayout, 'TREND')
 
     def setupTable(self):
         self.tafTable = TafTable(self, self.tafLayout)
         self.metarTable = MetarTable(self, self.metarLayout)
         self.sigmetTable = SigmetTable(self, self.sigmetLayout)
-
-        self.currentTable = None
 
     def setupContractMenu(self):
         self.contractsActionGroup = QActionGroup(self)
@@ -282,10 +280,10 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.trendSound = Sound('trend.wav', conf.value('Monitor/RemindTrendVolume'))
         self.sigmetSound = Sound('sigmet.wav', conf.value('Monitor/RemindSIGMETVolume'))
 
-        self.settingDialog.warnTAFVolume.valueChanged.connect(lambda vol: self.alarmSound.play(volume=vol, loop=False))
-        self.settingDialog.remindTAFVolume.valueChanged.connect(lambda vol: self.ringSound.play(volume=vol, loop=False))
+        self.settingDialog.warnTafVolume.valueChanged.connect(lambda vol: self.alarmSound.play(volume=vol, loop=False))
+        self.settingDialog.remindTafVolume.valueChanged.connect(lambda vol: self.ringSound.play(volume=vol, loop=False))
         self.settingDialog.remindTrendVolume.valueChanged.connect(lambda vol: self.trendSound.play(volume=vol, loop=False))
-        self.settingDialog.remindSIGMETVolume.valueChanged.connect(lambda vol: self.sigmetSound.play(volume=vol, loop=False))
+        self.settingDialog.remindSigmetVolume.valueChanged.connect(lambda vol: self.sigmetSound.play(volume=vol, loop=False))
 
     def changeContract(self):
         target = self.contractsActionGroup.checkedAction()
@@ -317,7 +315,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def keyPressEvent(self, event):
         if event.modifiers() == (Qt.ShiftModifier | Qt.ControlModifier):
             if event.key() == Qt.Key_P:
-                self.taskTAFEditor.show()
+                self.taskTafEditor.show()
             if event.key() == Qt.Key_T:
                 self.taskBrowser.show()
 
@@ -328,22 +326,22 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         else:
             self.tafSender.setAttribute(Qt.WA_DeleteOnClose)
             self.trendSender.setAttribute(Qt.WA_DeleteOnClose)
-            self.taskTAFSender.setAttribute(Qt.WA_DeleteOnClose)
+            self.taskTafSender.setAttribute(Qt.WA_DeleteOnClose)
             self.sigmetSender.setAttribute(Qt.WA_DeleteOnClose)
             self.tafEditor.setAttribute(Qt.WA_DeleteOnClose)
             self.trendEditor.setAttribute(Qt.WA_DeleteOnClose)
-            self.taskTAFEditor.setAttribute(Qt.WA_DeleteOnClose)
+            self.taskTafEditor.setAttribute(Qt.WA_DeleteOnClose)
             self.sigmetEditor.setAttribute(Qt.WA_DeleteOnClose)
             self.taskBrowser.setAttribute(Qt.WA_DeleteOnClose)
             self.settingDialog.setAttribute(Qt.WA_DeleteOnClose)
 
             self.tafSender.close()
             self.trendSender.close()
-            self.taskTAFSender.close()
+            self.taskTafSender.close()
             self.sigmetSender.close()
             self.tafEditor.close()
             self.trendEditor.close()
-            self.taskTAFEditor.close()
+            self.taskTafEditor.close()
             self.sigmetEditor.close()
             self.taskBrowser.close()
             self.settingDialog.close()
@@ -360,7 +358,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.showNormal()
 
     def singer(self):
-        warnSwitch = self.warnTAFAction.isChecked()
+        warnSwitch = self.warnTafAction.isChecked()
         trendSwitch = boolean(conf.value('Monitor/RemindTrend'))
         sigmetSwitch = boolean(conf.value('Monitor/RemindSIGMET'))
 
@@ -430,10 +428,10 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.contractNo.setChecked(True)
 
     def updateRecent(self):
-        self.currentTAF.updateGUI()
-        self.recentFT.updateGUI()
-        self.recentFC.updateGUI()
-        self.recentSIGMET.updateGUI()
+        self.currentTaf.updateGUI()
+        self.recentFt.updateGUI()
+        self.recentFc.updateGUI()
+        self.recentSigmet.updateGUI()
         self.recentTrend.updateGUI()
 
     def updateTable(self):

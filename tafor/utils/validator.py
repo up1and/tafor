@@ -10,7 +10,7 @@ weather = [
     'PO', 'FC', 'TS', 'FZFG', 'BLSN', 'BLSA', 'BLDU', 'DRSN', 'DRSA', 
     'DRDU', 'MIFG', 'BCFG', 'PRFG'
 ]
-weather_with_intensity = [
+weatherWithIntensity = [
     'DZ', 'RA', 'SN', 'SG', 'PL', 'DS', 'SS', 'TSRA', 'TSSN', 'TSPL', 
     'TSGR', 'TSGS', 'SHRA', 'SHSN', 'SHGR', 'SHGS', 'FZRA', 'FZDZ'
 ]
@@ -60,7 +60,7 @@ class Grammar(object):
 
     wind = re.compile(r'\b(?:00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)(?:G(0[1-9]|[1-4][0-9]|P49))?)MPS\b')
     vis = re.compile(r'\b(9999|[5-9]000|[01234][0-9]00|0[0-7]50)\b')
-    weather = re.compile(r'([-+]?({})\b)|(\b({})\b)'.format('|'.join(weather_with_intensity), '|'.join(weather)))
+    weather = re.compile(r'([-+]?({})\b)|(\b({})\b)'.format('|'.join(weatherWithIntensity), '|'.join(weather)))
     cloud = re.compile(r'\bSKC|NSC|(FEW|SCT|BKN|OVC)(\d{3})(CB|TCU)?\b')
     vv = re.compile(r'\b(VV/{3}|VV(\d{3}))\b')
     cavok = re.compile(r'\bCAVOK\b')
