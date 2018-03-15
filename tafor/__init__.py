@@ -17,7 +17,7 @@ def boolean(value):
 def setupLog(debug=False):
     logLevel = logging.DEBUG if debug else logging.INFO
 
-    _format = '[%(asctime)s] %(levelname)s %(message)s'
+    _format = '[%(asctime)s] %(levelname)s <%(module)s:%(lineno)d> %(message)s'
     formatter = logging.Formatter(_format)
 
     # set stdout

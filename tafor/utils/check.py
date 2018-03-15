@@ -217,7 +217,7 @@ class Listen(object):
         context.taf.setState({
             taf.tt: {
                 'period': taf.warningPeriod(),
-                'sent': True if local else False,
+                'sent': True if taf.local() else False,
                 'warnning': expired,
                 'clock': taf.hasExpired(offset=5),
             }

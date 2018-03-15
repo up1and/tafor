@@ -250,6 +250,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.sigmetEditor.close()
             self.taskBrowser.close()
             self.settingDialog.close()
+            self.remindBox.close()
 
             self.tray.hide()
             event.accept()

@@ -343,7 +343,6 @@ class TafEditor(BaseTafEditor):
     def previewMessage(self):
         message = {'sign': self.sign, 'rpt': self.rpt, 'full': '\n'.join([self.sign, self.rpt])}
         self.previewSignal.emit(message)
-        logger.debug('Taf Edit ' + message['full'])
 
 
 class TaskTafEditor(BaseTafEditor):
@@ -369,7 +368,6 @@ class TaskTafEditor(BaseTafEditor):
     def previewMessage(self):
         message = {'sign': self.sign, 'rpt':self.rpt, 'full': '\n'.join([self.sign, self.rpt]), 'planning': self.time}
         self.previewSignal.emit(message)
-        log.debug('Emit', message)
 
     def updateTime(self):
         date = self.primary.date.text()

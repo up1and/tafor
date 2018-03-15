@@ -283,7 +283,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         period = self.period.text()
         tmax = ''.join(['TX', self.tmax.text(), '/', self.tmaxTime.text(), 'Z'])
         tmin = ''.join(['TN', self.tmin.text(), '/', self.tminTime.text(), 'Z'])
-        messages = ['Taf', amd, cor, icao, timez, period, self.msg, tmax, tmin]
+        messages = ['TAF', amd, cor, icao, timez, period, self.msg, tmax, tmin]
         self.msg = ' '.join(filter(None, messages))
         return self.msg
 
