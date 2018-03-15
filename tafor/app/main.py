@@ -58,18 +58,20 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.remindBox = remindBox(self)
 
         # 初始化窗口
-        self.taskBrowser = TaskBrowser(self)
         self.settingDialog = SettingDialog(self)
 
         self.tafSender = TafSender(self)
-        self.taskTafSender = TaskTafSender(self)
         self.trendSender = TrendSender(self)
         self.sigmetSender = SigmetSender(self)
 
         self.tafEditor = TafEditor(self, self.tafSender)
-        self.taskTafEditor = TaskTafEditor(self, self.taskTafSender)
         self.trendEditor = TrendEditor(self, self.trendSender)
         self.sigmetEditor = SigmetEditor(self, self.sigmetSender)
+
+        if boolean(conf.value('General/Serious')):
+            self.taskBrowser = TaskBrowser(self)
+            self.taskTafSender = TaskTafSender(self)
+            self.taskTafEditor = TaskTafEditor(self, self.taskTafSender)
 
         self.setRecent()
         self.setTable()
@@ -199,9 +201,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             logger.info('切换联系人 %s %s' % (name, mobile))
 
     def event(self, event):
-        """
-        捕获事件
-        """
         if event.type() == QEvent.WindowStateChange and self.isMinimized():
             # 此时窗口已经最小化,
             # 从任务栏中移除窗口
@@ -212,11 +211,12 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             return super(self.__class__, self).event(event)
 
     def keyPressEvent(self, event):
-        if event.modifiers() == (Qt.ShiftModifier | Qt.ControlModifier):
-            if event.key() == Qt.Key_P:
-                self.taskTafEditor.show()
-            if event.key() == Qt.Key_T:
-                self.taskBrowser.show()
+        if boolean(conf.value('General/Serious')):
+            if event.modifiers() == (Qt.ShiftModifier | Qt.ControlModifier):
+                if event.key() == Qt.Key_P:
+                    self.taskTafEditor.show()
+                if event.key() == Qt.Key_T:
+                    self.taskBrowser.show()
 
     def closeEvent(self, event):
         if event.spontaneous():
@@ -225,26 +225,28 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         else:
             self.tafSender.setAttribute(Qt.WA_DeleteOnClose)
             self.trendSender.setAttribute(Qt.WA_DeleteOnClose)
-            self.taskTafSender.setAttribute(Qt.WA_DeleteOnClose)
             self.sigmetSender.setAttribute(Qt.WA_DeleteOnClose)
             self.tafEditor.setAttribute(Qt.WA_DeleteOnClose)
             self.trendEditor.setAttribute(Qt.WA_DeleteOnClose)
-            self.taskTafEditor.setAttribute(Qt.WA_DeleteOnClose)
             self.sigmetEditor.setAttribute(Qt.WA_DeleteOnClose)
-            self.taskBrowser.setAttribute(Qt.WA_DeleteOnClose)
             self.settingDialog.setAttribute(Qt.WA_DeleteOnClose)
 
             self.tafSender.close()
             self.trendSender.close()
-            self.taskTafSender.close()
             self.sigmetSender.close()
             self.tafEditor.close()
             self.trendEditor.close()
-            self.taskTafEditor.close()
             self.sigmetEditor.close()
-            self.taskBrowser.close()
             self.settingDialog.close()
             self.remindBox.close()
+
+            if boolean(conf.value('General/Serious')):
+                self.taskTafSender.setAttribute(Qt.WA_DeleteOnClose)
+                self.taskTafEditor.setAttribute(Qt.WA_DeleteOnClose)
+                self.taskBrowser.setAttribute(Qt.WA_DeleteOnClose)
+                self.taskTafSender.close()
+                self.taskTafEditor.close()
+                self.taskBrowser.close()
 
             self.tray.hide()
             event.accept()

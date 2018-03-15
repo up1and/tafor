@@ -139,20 +139,32 @@
    <property name="text">
     <string>Terminal Aerodrome Forecast</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+F</string>
+   </property>
   </action>
   <action name="trendAction">
    <property name="text">
     <string>Trend Forecast</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+T</string>
    </property>
   </action>
   <action name="sigmetAction">
    <property name="text">
     <string>Significant Meteorological Information</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
   </action>
   <action name="settingAction">
    <property name="text">
     <string>Settings</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+,</string>
    </property>
   </action>
   <action name="aboutAction">
