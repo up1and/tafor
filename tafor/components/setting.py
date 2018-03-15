@@ -54,9 +54,9 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
         # self.buttonBox.button(QDialogButtonBox.Reset).clicked.connect(self.load)
         self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.save)
-        self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.parent.updateGUI)
+        self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.parent.updateGui)
         self.buttonBox.accepted.connect(self.save)
-        self.buttonBox.accepted.connect(self.parent.updateGUI)
+        self.buttonBox.accepted.connect(self.parent.updateGui)
 
     def setValidator(self):
         self.baudrate.setValidator(QIntValidator(self.baudrate))

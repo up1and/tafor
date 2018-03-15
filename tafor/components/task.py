@@ -1,5 +1,6 @@
 import datetime
 
+from PyQt5.QtGui import QCursor
 from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QDialog, QAction, QMenu, QHeaderView, QTableWidgetItem
 
@@ -14,13 +15,13 @@ class TaskBrowser(QDialog, Ui_task.Ui_Tasks):
         super(TaskBrowser, self).__init__(parent)
         self.setupUi(self)
         self.parent = parent
-        self.updateGUI()
+        self.updateGui()
 
         self.timer = QTimer()
-        self.timer.timeout.connect(self.updateGUI)
+        self.timer.timeout.connect(self.updateGui)
         self.timer.start(60 * 1000)
 
-    def updateGUI(self):
+    def updateGui(self):
         items = db.query(Task).filter(Task.taf_id == None).order_by(Task.planning.desc()).all()
         header = self.taskTable.horizontalHeader()
         header.setSectionResizeMode(1, QHeaderView.Stretch)
@@ -44,7 +45,7 @@ class TaskBrowser(QDialog, Ui_task.Ui_Tasks):
 
         menu.addAction(copyAction)
         menu.addAction(delAction)
-        menu.exec_(QtGui.QCursor.pos())
+        menu.exec_(QCursor.pos())
 
     def delSelectItem(self):
         row = self.taskTable.currentRow()
@@ -54,7 +55,7 @@ class TaskBrowser(QDialog, Ui_task.Ui_Tasks):
         db.delete(item)
         db.commit()
 
-        self.update_gui()
+        self.updateGui()
         logger.debug('Del', item)
 
     def copySelectItem(self):

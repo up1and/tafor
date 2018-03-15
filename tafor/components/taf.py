@@ -364,7 +364,7 @@ class TaskTafEditor(BaseTafEditor):
         self.sender.sendSignal.connect(self.hide)
         self.sender.sendSignal.connect(self.sender.hide)
         self.sender.sendSignal.connect(self.parent.taskBrowser.show)
-        self.sender.sendSignal.connect(self.parent.taskBrowser.updateGUI)
+        self.sender.sendSignal.connect(self.parent.taskBrowser.updateGui)
         
     def previewMessage(self):
         message = {'sign': self.sign, 'rpt':self.rpt, 'full': '\n'.join([self.sign, self.rpt]), 'planning': self.time}

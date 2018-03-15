@@ -51,9 +51,9 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
     def setPage(self, page):
         self.page = page
-        self.updateGUI()
+        self.updateGui()
 
-    def updateGUI(self):
+    def updateGui(self):
         self.updateTable()
         self.updatePages()
 

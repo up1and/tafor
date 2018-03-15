@@ -26,7 +26,7 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
 
         layout.addWidget(self)
 
-    def updateGUI(self):
+    def updateGui(self):
         item = self.item()
 
         if item:
@@ -90,7 +90,7 @@ class CurrentTaf(QWidget):
 
         container.addWidget(self)
 
-    def updateGUI(self):
+    def updateGui(self):
         self.fc.setText(self.current('FC'))
         self.ft.setText(self.current('FT'))
 
@@ -118,13 +118,13 @@ class Clock(QWidget):
         layout.addWidget(self.label)
 
         self.timer = QTimer()
-        self.timer.timeout.connect(self.updateGUI)
+        self.timer.timeout.connect(self.updateGui)
         self.timer.start(1 * 1000)
 
-        self.updateGUI()
+        self.updateGui()
 
         container.addWidget(self)
 
-    def updateGUI(self):
+    def updateGui(self):
         utc = datetime.datetime.utcnow()
         self.label.setText(utc.strftime('%Y-%m-%d %H:%M:%S'))

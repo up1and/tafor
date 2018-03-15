@@ -14,7 +14,6 @@ class MessageState(object):
 class WebApiState(object):
 
     def __init__(self, store):
-        super(WebApiState, self).__init__()
         self._store = store
 
     def isOnline(self):

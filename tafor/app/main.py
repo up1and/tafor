@@ -2,7 +2,7 @@ import os
 import datetime
 
 from PyQt5.QtGui import QIcon, QDesktopServices
-from PyQt5.QtCore import QCoreApplication, QObject, QTranslator, QLocale, QEvent, QTimer, Qt, QUrl, pyqtSignal
+from PyQt5.QtCore import QCoreApplication, QTranslator, QLocale, QEvent, QTimer, Qt, QUrl
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy, QActionGroup, QAction, 
         QSystemTrayIcon, QMenu, QSystemTrayIcon, QMessageBox, QStyleFactory)
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
@@ -29,13 +29,8 @@ from tafor.components.widgets.sound import Sound
         
 
 class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
-    """
-    主窗口
-    """
+
     def __init__(self, parent=None):
-        """
-        初始化主窗口
-        """
         super(MainWindow, self).__init__(parent)
         self.setupUi(self)
 
@@ -82,7 +77,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.bindSignal()
 
-        self.updateGUI()
+        self.updateGui()
         self.worker()
 
     def bindSignal(self):
@@ -317,9 +312,9 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         listen = Listen(parent=self)
         [listen(i) for i in ('FC', 'FT', 'SA', 'SP')]
 
-        self.updateGUI()
+        self.updateGui()
 
-    def updateGUI(self):
+    def updateGui(self):
         self.updateTable()
         self.updateRecent()
         self.updateContractMenu()
@@ -337,16 +332,16 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.contractNo.setChecked(True)
 
     def updateRecent(self):
-        self.currentTaf.updateGUI()
-        self.recentFt.updateGUI()
-        self.recentFc.updateGUI()
-        self.recentSigmet.updateGUI()
-        self.recentTrend.updateGUI()
+        self.currentTaf.updateGui()
+        self.recentFt.updateGui()
+        self.recentFc.updateGui()
+        self.recentSigmet.updateGui()
+        self.recentTrend.updateGui()
 
     def updateTable(self):
-        self.tafTable.updateGUI()
-        self.metarTable.updateGUI()
-        self.sigmetTable.updateGUI()
+        self.tafTable.updateGui()
+        self.metarTable.updateGui()
+        self.sigmetTable.updateGui()
 
     def about(self):
         title = QCoreApplication.translate('MainWindow', 'Terminal Aerodrome Forecast Encoding Software')
