@@ -272,18 +272,38 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             elif self.vis.hasAcceptableInput() and any(oneRequired):
                 self.complete = True
 
+        if self.cor.isChecked() and not self.ccc.text():
+            self.complete = False
+
+        if self.amd.isChecked() and not self.aaa.text():
+            self.complete = False
+
+        if self.cnl.isChecked():
+            mustRequired = (
+                        self.date.hasAcceptableInput(), 
+                        self.period.text(), 
+                        self.aaaCnl.text(),
+                        )
+            if all(mustRequired):
+                self.complete = True
+
         self.completeSignal.emit(self.complete)
 
     def message(self):
         super(TafPrimarySegment, self).message()
-        amd = 'AMD' if self.amd.isChecked() else ''
+        amd = 'AMD' if self.amd.isChecked() or self.cnl.isChecked() else ''
         cor = 'COR' if self.cor.isChecked() else ''
         icao = conf.value('Message/ICAO')
         timez = self.date.text() + 'Z'
         period = self.period.text()
         tmax = ''.join(['TX', self.tmax.text(), '/', self.tmaxTime.text(), 'Z'])
         tmin = ''.join(['TN', self.tmin.text(), '/', self.tminTime.text(), 'Z'])
-        messages = ['TAF', amd, cor, icao, timez, period, self.msg, tmax, tmin]
+
+        if self.cnl.isChecked():
+            messages = ['TAF', amd, icao, timez, period, 'CNL']
+        else:
+            messages = ['TAF', amd, cor, icao, timez, period, self.msg, tmax, tmin]
+
         self.msg = ' '.join(filter(None, messages))
         return self.msg
 

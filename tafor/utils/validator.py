@@ -33,6 +33,7 @@ class Grammar(object):
     icao = re.compile(r'\b((A|B|E|K|P|L|R|Y|U|V|Z)[A-Z]{3})\b')
     timez = re.compile(r'\b(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])Z\b')
     period = re.compile(r'\b(0[1-9]|[12][0-9]|3[0-1])(0009|0312|0615|0918|1221|1524|1803|2106|0024|0606|1212|1818)\b')
+    cnl = re.compile(r'\b(CNL)\b')
     tmax = re.compile(r'\b(TXM?(\d{2})/(\d{2})Z)\b')
     tmin = re.compile(r'\b(TNM?(\d{2})/(\d{2})Z)\b')
 
@@ -308,7 +309,7 @@ class Lexer(object):
     grammarClass = Grammar
 
     defaultRules = [
-        'sign', 'amend', 'icao', 'timez', 'period', 'prob', 'interval',
+        'sign', 'amend', 'icao', 'timez', 'period', 'prob', 'interval', 'cnl',
         'wind', 'vis', 'cavok', 'weather', 'cloud', 'vv', 'tmax', 'tmin'
     ]
 
