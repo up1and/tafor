@@ -42,7 +42,6 @@ class TrendEditor(BaseEditor):
 
     def enbaleNextButton(self):
         enbale = self.trend.complete
-        logger.debug('Trend required ' + str(enbale))
         self.nextButton.setEnabled(enbale)
 
     def assembleMessage(self):

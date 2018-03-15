@@ -55,10 +55,9 @@ class Metar(Base):
     rpt = Column(String(255))
     created = Column(DateTime, default=datetime.datetime.utcnow)
 
-    def __init__(self, tt, rpt, created):
+    def __init__(self, tt, rpt):
         self.tt = tt
         self.rpt = rpt
-        self.created = created
 
 class Task(Base):
     __tablename__ = 'tasks'

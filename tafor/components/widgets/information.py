@@ -6,7 +6,8 @@ from PyQt5.QtCore import Qt, QRegExp, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QLabel
 
 from tafor import conf, logger
-from tafor.utils import Pattern, formatTime, ceilTime, calcPosition
+from tafor.utils import Pattern
+from tafor.utils.convert import parseTime, ceilTime, calcPosition
 from tafor.models import db, Sigmet
 from tafor.components.widgets.forecast import SegmentMixin
 from tafor.components.ui import (Ui_sigmet_type, Ui_sigmet_general, Ui_sigmet_head, 
@@ -629,8 +630,8 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         self.forecastLongitude.setText(forecastLongitude)
 
     def duration(self, start, end):
-        startTime = formatTime(start)
-        endTime = formatTime(end)
+        startTime = parseTime(start)
+        endTime = parseTime(end)
         return endTime - startTime
 
     def moveState(self):

@@ -4,6 +4,8 @@ import datetime
 
 from collections import OrderedDict, defaultdict
 
+from tafor.utils.convert import parseTimez, parseTimeInterval
+
 
 weather = [
     'NSW', 'IC', 'FG', 'BR', 'SA', 'DU', 'HZ', 'FU', 'VA', 'SQ', 
@@ -23,30 +25,6 @@ def _purePattern(regex):
     if pattern.startswith('^'):
         pattern = pattern[1:]
     return pattern
-
-
-def formatTimeInterval(interval, time):
-    # will remove later
-    startHour = int(interval[:2])
-    endHour = 0 if interval[2:] == '24' else int(interval[2:])
-
-    base = datetime.datetime(time.year, time.month, time.day)
-    delta = datetime.timedelta(hours=endHour) if startHour < endHour else datetime.timedelta(days=1, hours=endHour)
-    start = base + datetime.timedelta(hours=startHour)
-    end = base + delta
-
-    return start, end
-
-
-def formatTimez(timez):
-    # will remove later
-    utc =  datetime.datetime.utcnow()
-    try:
-        time = datetime.datetime(utc.year, utc.month, int(timez[:2]), int(timez[2:4]), int(timez[4:6]))
-    except ValueError:
-        time = datetime.datetime(utc.year, utc.month - 1, int(timez[:2]), int(timez[2:4]), int(timez[4:6]))
-
-    return time
 
 
 class Grammar(object):
@@ -377,11 +355,11 @@ class Lexer(object):
 
         if self.tokens['sign']['text'] == 'TAF':
             period = self.tokens['period']['text'][:4]
-            time = formatTimez(self.tokens['timez']['text'])
+            time = parseTimez(self.tokens['timez']['text'])
             self.period = self.generatePeriod(period, time)
 
     def generatePeriod(self, period, time):
-        self.period = formatTimeInterval(period, time)
+        self.period = parseTimeInterval(period, time)
         return self.period
 
     def isValid(self):
@@ -677,31 +655,3 @@ class Parser(object):
         return '\n'.join(outputs) + '='
 
 
-
-if __name__ == '__main__':    
-    # print(Validator.wind('03004GP49MPS', '36005MPS'))
-    # print(Validator.vv('VV005', 'VV003'))
-    # print(Validator.weather('TSRA', '-RA'))
-    # print(Validator.cloud('SCT020', 'SCT010 FEW023CB'))
-    # print(Validator.cloud('NSC', 'SKC'))
-
-    message = '''
-        TAF ZJHK 211338Z 211524 14004MPS 9999 SHRA SCT020 FEW026CB
-        BECMG 1920 SCT020=
-    '''
-    # m = Grammar.taf.search(message)
-    # print(m.group(0))
-    # m = Grammar.timez.search(message)
-    # print(m.groups())
-
-    e = Parser(message)
-    e.validate()
-    print(e.tips)
-    # print(isValid)
-
-    print(e.renderer(style='terminal'))
-
-    # print(e.tips)
-
-    # print(e.primary.tokens)
-    # print(e.tempos[0].tokens)

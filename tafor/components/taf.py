@@ -6,7 +6,8 @@ from PyQt5.QtCore import QCoreApplication, Qt, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox, QVBoxLayout, QPushButton, QLayout
 
 from tafor import boolean, conf, logger
-from tafor.utils import CheckTaf, Grammar, formatTimeInterval
+from tafor.utils import CheckTaf, Grammar
+from tafor.utils.convert import parseTimeInterval, parseDateTime
 from tafor.models import db, Taf, Task
 from tafor.components.widgets.editor import BaseEditor
 from tafor.components.widgets import TafPrimarySegment, TafBecmgSegment, TafTempoSegment
@@ -220,10 +221,10 @@ class BaseTafEditor(BaseEditor):
     def periodDuration(self):
         period = self.primary.period.text()
         if len(period) == 6:
-            return formatTimeInterval(period[2:])
+            return parseTimeInterval(period[2:])
 
     def groupInterval(self, interval):
-        start, end = formatTimeInterval(interval)
+        start, end = parseTimeInterval(interval)
         if start < self.periods[0]:
             start += datetime.timedelta(days=1)
             end += datetime.timedelta(days=1)
@@ -231,7 +232,7 @@ class BaseTafEditor(BaseEditor):
 
     def verifyTemperatureHour(self, line):
         if self.periods is not None:
-            tempHour = formatTimeInterval(line.text())[0]
+            tempHour = parseTimeInterval(line.text())[0]
 
             if tempHour < self.periods[0]:
                 tempHour += datetime.timedelta(days=1) 
@@ -355,7 +356,7 @@ class TaskTafEditor(BaseTafEditor):
 
         self.primary.sortGroup.hide()
 
-        self.primary.date.editingFinished.connect(self.taskTime)
+        self.primary.date.editingFinished.connect(self.updateTime)
         self.primary.date.editingFinished.connect(lambda :self.setNormalPeriod(isTask=True))
         self.primary.date.editingFinished.connect(self.changeWindowTitle)
         self.primary.date.editingFinished.connect(self.periodDuration)
@@ -370,25 +371,9 @@ class TaskTafEditor(BaseTafEditor):
         self.previewSignal.emit(message)
         log.debug('Emit', message)
 
-    def taskTime(self):
+    def updateTime(self):
         date = self.primary.date.text()
-        now = datetime.datetime.utcnow()
-
-        day = int(date[0:2])
-        hour = int(date[2:4])
-        minute = int(date[4:])
-
-        try:
-            self.time = datetime.datetime(now.year, now.month, day, hour, minute)
-            if self.time < now:
-                self.time = datetime.datetime(now.year, now.month+1, day, hour, minute)
-
-        except ValueError as e:
-            self.time = datetime.datetime(now.year, now.month+2, day, hour, minute)
-
-        finally:
-            logger.debug(' '.join(['Task time', self.time.strftime('%Y-%m-%d %H:%M:%S')]))
-            return self.time
+        self.time = parseDateTime(date)
 
     def changeWindowTitle(self):
         self.setWindowTitle(self.time.strftime('%Y-%m-%d %H:%M'))

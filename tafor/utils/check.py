@@ -10,18 +10,6 @@ from tafor.states import context
 from tafor.utils.validator import Grammar
 
 
-def formatTimez(message):
-    try:
-        m = Grammar.timez.search(message).groups()
-        utc =  datetime.datetime.utcnow()
-        created = datetime.datetime(utc.year, utc.month, int(m[0]), int(m[1]), int(m[2]))
-        return created
-    except Exception as e:
-        logger.error(e, exc_info=True)
-        created = datetime.datetime.utcnow()
-        return created
-
-
 class CheckTaf(QObject):
     """docstring for CheckTaf"""
     def __init__(self, tt, message=None, time=None, prev=0):
@@ -185,7 +173,7 @@ class CheckMetar(object):
         last = db.query(Metar).filter_by(tt=self.tt).order_by(Metar.created.desc()).first()
         
         if last is None or last.rpt != self.message:
-            item = Metar(tt=self.tt, rpt=self.message, created=formatTimez(self.message))
+            item = Metar(tt=self.tt, rpt=self.message)
             db.add(item)
             db.commit()
             logger.info('Save {} {}'.format(self.tt, self.message))
