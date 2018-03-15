@@ -1,3 +1,5 @@
+import copy
+
 from PyQt5.QtCore import QObject, pyqtSignal
 
 
@@ -59,6 +61,7 @@ class TafState(QObject):
         return self._state
 
     def setState(self, values):
+        refs = copy.deepcopy(self._state)
         self._state.update(values)
 
         for tt, state in values.items():
@@ -66,8 +69,8 @@ class TafState(QObject):
                 self.warningSignal.emit()
 
             if 'clock' in state:
-                if self._state[tt]['clock'] != state['clock']:
-                    self.warningSignal.emit()
+                if refs[tt]['clock'] != state['clock']:
+                    self.clockSignal.emit(tt)
 
 
 class Context(object):

@@ -295,12 +295,13 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             return None
 
         state = context.taf.state()
-        clock = state['tt']['clock']
-        current = state['tt']['current']
-        warning = state['tt']['warning']
+        clock = state[tt]['clock']
+        period = state[tt]['period']
+        sent = state[tt]['sent']
+        warnning = state[tt]['warnning']
 
-        if clock and not warning and not current['sent']:
-            current = tt + current['period'][2:]
+        if clock and not warnning and not sent:
+            current = tt + period[2:]
             text = QCoreApplication.translate('MainWindow', 'Time to post {}').format(current)
             self.ringSound.play()
             self.remindBox.setText(text)
