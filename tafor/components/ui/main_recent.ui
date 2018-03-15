@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>845</width>
-    <height>86</height>
+    <height>88</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -40,7 +40,7 @@
       <item row="3" column="0" colspan="2">
        <widget class="QLabel" name="rpt">
         <property name="styleSheet">
-         <string notr="true">font: 11pt &quot;Consolas&quot;;</string>
+         <string notr="true">font: 14px &quot;Segoe UI&quot;;</string>
         </property>
         <property name="text">
          <string notr="true">Report Content</string>

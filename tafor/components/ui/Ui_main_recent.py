@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\components\ui\main_recent.ui'
+# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\main_recent.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Recent(object):
     def setupUi(self, Recent):
         Recent.setObjectName("Recent")
-        Recent.resize(845, 86)
+        Recent.resize(845, 88)
         Recent.setWindowTitle("Recent")
         self.verticalLayout = QtWidgets.QVBoxLayout(Recent)
         self.verticalLayout.setObjectName("verticalLayout")
@@ -30,7 +30,7 @@ class Ui_Recent(object):
         self.sendTime.setObjectName("sendTime")
         self.gridLayout.addWidget(self.sendTime, 0, 0, 1, 1)
         self.rpt = QtWidgets.QLabel(self.groupBox)
-        self.rpt.setStyleSheet("font: 11pt \"Consolas\";")
+        self.rpt.setStyleSheet("font: 14px \"Segoe UI\";")
         self.rpt.setText("Report Content")
         self.rpt.setObjectName("rpt")
         self.gridLayout.addWidget(self.rpt, 3, 0, 1, 2)
