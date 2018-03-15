@@ -180,7 +180,7 @@ class BaseTafEditor(BaseEditor):
 
     def setNormalPeriod(self, isTask=False):
         prev = 1 if self.primary.prev.isChecked() else 0
-        taf = CheckTaf(self.tt, self.time, prev=prev)
+        taf = CheckTaf(self.tt, time=self.time, prev=prev)
         period = taf.normalPeriod() if isTask else taf.warningPeriod()
 
         if period and taf.local(period) or not self.primary.date.hasAcceptableInput():
@@ -221,7 +221,7 @@ class BaseTafEditor(BaseEditor):
     def periodDuration(self):
         period = self.primary.period.text()
         if len(period) == 6:
-            return parseTimeInterval(period[2:])
+            return parseTimeInterval(period[2:], self.time)
 
     def groupInterval(self, interval):
         start, end = parseTimeInterval(interval)
@@ -232,10 +232,10 @@ class BaseTafEditor(BaseEditor):
 
     def verifyTemperatureHour(self, line):
         if self.periods is not None:
-            tempHour = parseTimeInterval(line.text())[0]
+            tempHour = parseTimeInterval(line.text(), self.time)[0]
 
             if tempHour < self.periods[0]:
-                tempHour += datetime.timedelta(days=1) 
+                tempHour += datetime.timedelta(days=1)
 
             valid = self.periods[0] <= tempHour <= self.periods[1] and self.primary.tmaxTime.text() != self.primary.tminTime.text()
 
@@ -349,30 +349,25 @@ class TaskTafEditor(BaseTafEditor):
 
     def __init__(self, parent=None, sender=None):
         super(TaskTafEditor, self).__init__(parent, sender)
-
         self.setWindowTitle(QCoreApplication.translate('Editor', 'Timing Tasks'))
         self.setWindowIcon(QIcon(':/time.png'))
 
         self.primary.sortGroup.hide()
-
-        self.primary.date.editingFinished.connect(self.updateTime)
-        self.primary.date.editingFinished.connect(lambda :self.setNormalPeriod(isTask=True))
-        self.primary.date.editingFinished.connect(self.changeWindowTitle)
-        self.primary.date.editingFinished.connect(self.periodDuration)
-
-        self.sender.sendSignal.connect(self.hide)
-        self.sender.sendSignal.connect(self.sender.hide)
-        self.sender.sendSignal.connect(self.parent.taskBrowser.show)
-        self.sender.sendSignal.connect(self.parent.taskBrowser.updateGui)
+        self.primary.date.editingFinished.connect(self.updateState)
+        self.sender.sendSignal.connect(self.afterSend)
         
     def previewMessage(self):
         message = {'sign': self.sign, 'rpt':self.rpt, 'full': '\n'.join([self.sign, self.rpt]), 'planning': self.time}
         self.previewSignal.emit(message)
 
-    def updateTime(self):
+    def updateState(self):
         date = self.primary.date.text()
         self.time = parseDateTime(date)
-
-    def changeWindowTitle(self):
         self.setWindowTitle(self.time.strftime('%Y-%m-%d %H:%M'))
+        self.setNormalPeriod(isTask=True)
+        self.periods = self.periodDuration()
+
+    def afterSend(self):
+        self.parent.taskBrowser.show()
+        self.parent.taskBrowser.updateGui()
 

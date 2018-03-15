@@ -108,12 +108,14 @@ class SerialThread(QThread):
         stopbits = conf.value('Communication/SerialStopbits')
 
         try:
+            context.serial.lock()
             serialComm(self.message, port, baudrate=baudrate, bytesize=bytesize, parity=parity, stopbits=stopbits)
             error = ''
         except Exception as e:
             error = str(e)
             logger.error(e)
         finally:
+            context.serial.release()
             self.doneSignal.emit(error)
 
 

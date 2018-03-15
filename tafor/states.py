@@ -32,6 +32,19 @@ class CallServiceState(object):
         self._state = value
 
 
+class SerialState(object):
+    _lock = False
+
+    def isBusy(self):
+        return self._lock
+
+    def lock(self):
+        self._lock = True
+
+    def release(self):
+        self._lock = False
+
+
 class TafState(QObject):
     warningSignal = pyqtSignal()
     clockSignal = pyqtSignal(str)
@@ -78,6 +91,7 @@ class Context(object):
     webApi = WebApiState(message)
     callService = CallServiceState()
     taf = TafState()
+    serial = SerialState()
 
 
 context = Context()

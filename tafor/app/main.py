@@ -88,12 +88,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.trendAction.triggered.connect(self.trendEditor.show)
         self.sigmetAction.triggered.connect(self.sigmetEditor.show)
 
-        # 添加定时任务菜单
-        # self.taskTafAction = QAction(self)
-        # self.post_menu.addAction(self.taskTafAction)
-        # self.taskTafAction.setText('定时任务')
-        # self.taskTafAction.triggered.connect(self.taskTafEditor.show)
-
         # 连接设置对话框的槽
         self.settingAction.triggered.connect(self.settingDialog.exec_)
         self.settingAction.triggered.connect(self.showWindow)

@@ -140,13 +140,13 @@ class TaskTafSender(BaseSender):
         self.autoSendTimer.start(30 * 1000)
 
         # 测试数据
-        # self.Task_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=1)
+        # self.taskTime = datetime.datetime.utcnow() + datetime.timedelta(minutes=1)
 
     def save(self):
         item = Task(tt=self.message['sign'][0:2], sign=self.message['sign'], rpt=self.message['rpt'], planning=self.message['planning'])
         db.add(item)
         db.commit()
-        logger.debug('Save Task', item.planning.strftime("%b %d %Y %H:%M:%S"))
+        logger.debug('Save Task {}'.format(item.planning.strftime('%b %d %Y %H:%M:%S')))
         self.sendSignal.emit()
 
     def autoSend(self):

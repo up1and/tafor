@@ -8,5 +8,6 @@
         <file alias="repeat.png">../../icons/repeat.png</file>
         <file alias="next.png">../../icons/next.png</file>
         <file alias="prev.png">../../icons/prev.png</file>
+        <file alias="trash.png">../../icons/trash.png</file>
     </qresource>
 </RCC>
