@@ -214,5 +214,11 @@ class SigmetSender(BaseSender):
         db.add(item)
         db.commit()
         logger.debug('Save ' + item.rpt)
+        self.remind(item)
         self.sendSignal.emit()
+
+    def remind(self, item):
+        if not item.isCnl():
+            delta = item.expire() - datetime.datetime.utcnow() - datetime.timedelta(minutes=15)
+            QTimer.singleShot(delta.total_seconds() * 1000, self.parent.remindSigmet)
     

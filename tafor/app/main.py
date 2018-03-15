@@ -23,7 +23,7 @@ from tafor.components.setting import SettingDialog
 from tafor.components.task import TaskBrowser
 
 from tafor.components.widgets.table import TafTable, MetarTable, SigmetTable
-from tafor.components.widgets.widget import alarmMessageBox, Clock, CurrentTaf, RecentMessage
+from tafor.components.widgets.widget import remindBox, Clock, CurrentTaf, RecentMessage
 from tafor.components.widgets.status import WebAPIStatus, CallServiceStatus
 from tafor.components.widgets.sound import Sound
         
@@ -34,13 +34,28 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         super(MainWindow, self).__init__(parent)
         self.setupUi(self)
 
-        self.alarmMessageBox = alarmMessageBox(self)
+        # 时钟计时器
+        self.clockTimer = QTimer()
+        self.clockTimer.timeout.connect(self.singer)
+        self.clockTimer.start(1 * 1000)
 
-        context.taf.warningSignal.connect(self.dialer)
-        context.taf.clockSignal.connect(self.reminder)
+        self.workerTimer = QTimer()
+        self.workerTimer.timeout.connect(self.worker)
+        self.workerTimer.start(60 * 1000)
+
+        self.setup()
+        self.bindSignal()
+        self.updateGui()
+        self.worker()
+
+    def setup(self):
+        self.setWindowIcon(QIcon(':/logo.png'))
 
         # 初始化剪贴板
         self.clip = QApplication.clipboard()
+
+        # 闹钟提示框
+        self.remindBox = remindBox(self)
 
         # 初始化窗口
         self.taskBrowser = TaskBrowser(self)
@@ -56,31 +71,18 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.trendEditor = TrendEditor(self, self.trendSender)
         self.sigmetEditor = SigmetEditor(self, self.sigmetSender)
 
-        self.setWindowIcon(QIcon(':/logo.png'))
-
-        self.setupRecent()
-        self.setupTable()
-        self.setupContractMenu() # 设置切换联系人菜单
-        self.setupSysTray()
-        self.setupStatusBar()
-        self.setupThread()
-        self.setupSound()
-
-        # 时钟计时器
-        self.clockTimer = QTimer()
-        self.clockTimer.timeout.connect(self.singer)
-        self.clockTimer.start(1 * 1000)
-
-        self.workerTimer = QTimer()
-        self.workerTimer.timeout.connect(self.worker)
-        self.workerTimer.start(60 * 1000)
-
-        self.bindSignal()
-
-        self.updateGui()
-        self.worker()
+        self.setRecent()
+        self.setTable()
+        self.setContractMenu() # 设置切换联系人菜单
+        self.setSysTray()
+        self.setStatus()
+        self.setThread()
+        self.setSound()
 
     def bindSignal(self):
+        context.taf.warningSignal.connect(self.dialer)
+        context.taf.clockSignal.connect(self.remindTaf)
+
         # 连接菜单信号
         self.tafAction.triggered.connect(self.tafEditor.show)
         self.trendAction.triggered.connect(self.trendEditor.show)
@@ -108,7 +110,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.contractsActionGroup.triggered.connect(self.changeContract)
         self.contractsActionGroup.triggered.connect(self.settingDialog.load)
 
-    def setupRecent(self):
+    def setRecent(self):
         self.clock = Clock(self, self.tipsLayout)
         self.tipsLayout.addSpacerItem(QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
         self.currentTaf = CurrentTaf(self, self.tipsLayout)
@@ -117,12 +119,12 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.recentSigmet = RecentMessage(self, self.recentLayout, 'WS')
         self.recentTrend = RecentMessage(self, self.recentLayout, 'TREND')
 
-    def setupTable(self):
+    def setTable(self):
         self.tafTable = TafTable(self, self.tafLayout)
         self.metarTable = MetarTable(self, self.metarLayout)
         self.sigmetTable = SigmetTable(self, self.sigmetLayout)
 
-    def setupContractMenu(self):
+    def setContractMenu(self):
         self.contractsActionGroup = QActionGroup(self)
         self.contractsActionGroup.addAction(self.contractNo)
         
@@ -139,7 +141,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.updateContractMenu()
 
-    def setupSysTray(self):
+    def setSysTray(self):
         # 设置系统托盘
         self.tray = QSystemTrayIcon(self)
         self.tray.setIcon(QIcon(':/logo.png'))
@@ -161,13 +163,13 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         message = '预报发报软件 v' + __version__
         self.tray.setToolTip(message)
 
-    def setupStatusBar(self):
+    def setStatus(self):
         self.webApiStatus = WebAPIStatus(self, self.statusBar)
         self.callServiceStatus = CallServiceStatus(self, self.statusBar, last=True)
 
         # self.statusBar.setStyleSheet('QStatusBar::item{border: 0px}')
 
-    def setupThread(self):
+    def setThread(self):
         self.workThread = WorkThread(self)
         self.workThread.finished.connect(self.updateMessage)
 
@@ -176,7 +178,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.checkUpgradeThread = CheckUpgradeThread(self)
         self.checkUpgradeThread.doneSignal.connect(self.checkUpgrade)
 
-    def setupSound(self):
+    def setSound(self):
         self.ringSound = Sound('ring.wav', conf.value('Monitor/RemindTAFVolume'))
         self.notificationSound = Sound('notification.wav', 100)
         self.alarmSound = Sound('alarm.wav', conf.value('Monitor/WarnTAFVolume'))
@@ -278,7 +280,16 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         else:
             self.alarmSound.stop()
 
-    def reminder(self, tt):
+    def worker(self):
+        self.workThread.start()
+
+    def dialer(self, test=False):
+        callSwitch = conf.value('Monitor/SelectedMobile')
+
+        if callSwitch and context.taf.isWarning() or test:
+            self.callThread.start()
+
+    def remindTaf(self, tt):
         remindSwitch = boolean(conf.value('Monitor/RemindTAF'))
         if not remindSwitch:
             return None
@@ -292,21 +303,26 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             current = tt + current['period'][2:]
             text = QCoreApplication.translate('MainWindow', 'Time to post {}').format(current)
             self.ringSound.play()
-            self.alarmMessageBox.setText(text)
-            ret = self.alarmMessageBox.exec_()
+            self.remindBox.setText(text)
+            ret = self.remindBox.exec_()
             if not ret:
-                QTimer.singleShot(1000 * 60 * 5, lambda: self.reminder(tt))
+                QTimer.singleShot(1000 * 60 * 5, lambda: self.remindTaf(tt))
 
             self.ringSound.stop()
 
-    def worker(self):
-        self.workThread.start()
+    def remindSigmet(self):
+        remindSwitch = boolean(conf.value('Monitor/RemindSIGMET'))
+        if not remindSwitch:
+            return None
 
-    def dialer(self, test=False):
-        callSwitch = conf.value('Monitor/SelectedMobile')
+        text = QCoreApplication.translate('MainWindow', 'Time to post {}').format('SIGMET')
+        self.sigmetSound.play()
+        self.remindBox.setText(text)
+        ret = self.remindBox.exec_()
+        if not ret:
+            QTimer.singleShot(1000 * 60 * 5, self.remindSigmet)
 
-        if callSwitch and context.taf.isWarning() or test:
-            self.callThread.start()
+        self.sigmetSound.stop()
 
     def updateMessage(self):
         listen = Listen(parent=self)

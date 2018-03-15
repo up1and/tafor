@@ -195,7 +195,7 @@ class Listen(object):
 
         def afterSave():
             self.parent.notificationSound.play(loop=False)
-            self.parent.alarmMessageBox.close()
+            self.parent.remindBox.close()
 
         expired = False
 

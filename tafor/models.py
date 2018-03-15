@@ -132,6 +132,16 @@ class Sigmet(Base):
         parts = [self.sign, self.rpt]
         return '\n'.join(filter(None, parts))
 
+    def isCnl(self):
+        return 'CNL' in self.rpt
+
+    def expire(self):
+        import re
+        from tafor.utils.convert import parseDateTime
+        pattern = re.compile(r'(\d{6})/(\d{6})')
+        endingTime = pattern.search(self.rpt).group(2)
+        return parseDateTime(endingTime, self.sent)
+
 class User(Base):
     __tablename__ = 'users'
 

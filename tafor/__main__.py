@@ -10,8 +10,8 @@ from tafor.app.main import main
 
 @click.command()
 @click.option('--whysoserious', is_flag=True)
-def cli(serious):
-    conf.setValue('General/Serious', serious)
+def cli(whysoserious):
+    conf.setValue('General/Serious', whysoserious)
     main()
 
 if __name__ == '__main__':

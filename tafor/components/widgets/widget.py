@@ -9,7 +9,7 @@ from tafor.utils import CheckTaf
 from tafor.components.ui import Ui_main_recent
 
 
-def alarmMessageBox(parent):
+def remindBox(parent):
     title = QCoreApplication.translate('MainWindow', 'Alarm')
     messageBox = QMessageBox(QMessageBox.Question, title, 'Display Text', parent=parent)
     snooze = messageBox.addButton(QCoreApplication.translate('MainWindow', 'Snooze'), QMessageBox.ApplyRole)
