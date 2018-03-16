@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QLabel
 
 from tafor import conf, logger
 from tafor.utils import Pattern
-from tafor.utils.convert import parseTime, ceilTime, calcPosition
+from tafor.utils.convert import parseTime, parseDateTime, ceilTime, calcPosition
 from tafor.models import db, Sigmet
 from tafor.components.widgets.forecast import SegmentMixin
 from tafor.components.ui import (Ui_sigmet_type, Ui_sigmet_general, Ui_sigmet_head, 
@@ -45,8 +45,17 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
         self.setValidator()
         self.bindSignal()
 
-        self.endingTime.setEnabled(False)
-        self.endingTimeLabel.setEnabled(False)
+    def bindSignal(self):
+        self.forecast.currentTextChanged.connect(self.enbaleOBSTime)
+        self.endingTime.textEdited.connect(self.validEndingTime)
+
+        self.typhoonName.textEdited.connect(lambda: self.upperText(self.typhoonName))
+
+        self.beginningTime.textEdited.connect(lambda: self.coloredText(self.beginningTime))
+        self.endingTime.textEdited.connect(lambda: self.coloredText(self.endingTime))
+        self.obsTime.textEdited.connect(lambda: self.coloredText(self.obsTime))
+
+        self.register()
 
     def enbaleOBSTime(self, text):
         if text == 'OBS':
@@ -60,20 +69,38 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
         self.setValidTime()
         self.setSquence()
 
-    def validTime(self):
+    def durationTime(self):
         self.time = datetime.datetime.utcnow()
         start = ceilTime(self.time, amount=15)
         end = start + datetime.timedelta(hours=self.duration)
         return start, end
 
     def validEndingTime(self):
-        pass
+        if self.beginningTime.hasAcceptableInput() and self.endingTime.hasAcceptableInput():
+            start = parseDateTime(self.beginningTime.text())
+            end = parseDateTime(self.endingTime.text())
+
+            if end <= start:
+                self.endingTime.clear()
+                logger.debug('Ending time must be greater than the beginning time')
+
+            if end - start > datetime.timedelta(hours=self.duration):
+                self.endingTime.clear()
+                logger.debug('Valid period more than {} hours'.format(self.duration))
+
+    def validObsTime(self):
+        if self.beginningTime.hasAcceptableInput() and self.obsTime.hasAcceptableInput():
+            start = parseDateTime(self.beginningTime.text())
+            obs = parseTime(self.obsTime.text())
+            if obs > start:
+                self.obsTime.clear()
+                logger.debug('Observation time should before the beginning time')
 
     def setDuration(self, duration):
         self.duration = duration
 
     def setValidTime(self):
-        beginningTime, endingTime = self.validTime()
+        beginningTime, endingTime = self.durationTime()
         self.beginningTime.setText(beginningTime.strftime('%d%H%M'))
         self.endingTime.setText(endingTime.strftime('%d%H%M'))
 
@@ -98,17 +125,6 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
 
     def setPhenomena(self, text):
         raise NotImplemented
-
-    def bindSignal(self):
-        self.forecast.currentTextChanged.connect(self.enbaleOBSTime)
-
-        self.typhoonName.textEdited.connect(lambda: self.upperText(self.typhoonName))
-
-        self.beginningTime.textEdited.connect(lambda: self.coloredText(self.beginningTime))
-        self.endingTime.textEdited.connect(lambda: self.coloredText(self.endingTime))
-        self.obsTime.textEdited.connect(lambda: self.coloredText(self.obsTime))
-
-        self.register()
 
     def checkComplete(self):
         raise NotImplemented
@@ -336,7 +352,7 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         self.base.setValidator(fightLevel)
         self.top.setValidator(fightLevel)
 
-        self.speed.setValidator(QIntValidator(self.speed))
+        self.speed.setValidator(QIntValidator(1, 99, self.speed))
 
     def setArea(self):
         if self.latitudeAndLongitude.isChecked():
@@ -421,7 +437,7 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         else:
             text = 'MOV {movement} {speed}KMH'.format(
                     movement=movement,
-                    speed=self.speed.text()
+                    speed=int(self.speed.text())
                 )
 
         return text
@@ -562,8 +578,8 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         time = QRegExpValidator(QRegExp(self.rules.time))
         self.forecastTime.setValidator(time)
 
-        self.speed.setValidator(QIntValidator(self.speed))
-        self.range.setValidator(QIntValidator(self.range))
+        self.speed.setValidator(QIntValidator(1, 99, self.speed))
+        self.range.setValidator(QIntValidator(1, 999, self.range))
 
     def setSpeed(self, text):
         if text == 'STNR':
@@ -577,9 +593,8 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         if len(text) != 6:
             return
 
-        hour, minute = int(text[2:4]), int(text[4:])
-        self.time = datetime.datetime.utcnow().replace(hour=hour, minute=minute)
-        time = self.time + datetime.timedelta(hours=6) - datetime.timedelta(minutes=self.time.minute)
+        time = parseDateTime(text)
+        time = time - datetime.timedelta(minutes=time.minute)
         fcstTime = time.strftime('%H%M')
 
         self.forecastTime.setText(fcstTime)
@@ -642,7 +657,7 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         else:
             text = 'MOV {movement} {speed}KMH'.format(
                     movement=movement,
-                    speed=self.speed.text()
+                    speed=int(self.speed.text())
                 )
 
         return text
@@ -652,7 +667,7 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
                 latitude=self.currentLatitude.text(),
                 Longitude=self.currentLongitude.text(),
                 height=self.height.text(),
-                range=self.range.text()
+                range=int(self.range.text())
             )
         moveState = self.moveState()
         intensityChange = self.intensityChange.currentText()
@@ -792,7 +807,6 @@ class SigmetTyphoonSegment(BaseSegment):
         super(SigmetTyphoonSegment, self).__init__(typeSegment)
         self.head = SigmetTyphoonHead()
         self.content = SigmetTyphoonContent(self.head)
-        self.content.setForecastTime(self.head.beginningTime.text())
 
         self.initUI()
         self.bindSignal()
@@ -800,7 +814,7 @@ class SigmetTyphoonSegment(BaseSegment):
     def bindSignal(self):
         self.changeSignal.connect(self.head.updateState)
 
-        self.head.beginningTime.textChanged.connect(self.content.setForecastTime)
+        self.head.endingTime.textChanged.connect(lambda: self.content.setForecastTime(self.head.endingTime.text()))
         self.head.beginningTime.textEdited.connect(self.content.setForecastPosition)
         self.head.obsTime.textEdited.connect(self.content.setForecastPosition)
         self.content.currentLatitude.textEdited.connect(self.content.setForecastPosition)
@@ -867,7 +881,7 @@ class SigmetCustomSegment(BaseSegment):
         tips = {
             'WS': 'EMBD TS FCST N OF N2000 TOP FL360 MOV N 25KMH NC',
             'WC': 'TC YAGI OBS AT 1400Z N2300 E11304 CB TOP FL420 WI 300KM OF CENTER MOV NE 30KMH INTSF\nFCST 1925Z TC CENTER N2401 E11411',
-            'WV': 'VA MT ERUPTION AOBA',
+            'WV': 'VA ERUPTION MT ASHVAL LOC E S1500 E07348 VA CLD OBS AT 1100Z FL310/450\nAPRX 220KM BY 35KM S1500 E07348 - S1530 E07642 MOV ESE 65KMH\nFCST 1700Z VA CLD APRX S1506 E07500 - S1518 E08112 - S1712 E08330 - S1824 E07836',
         }
         tip = tips[self.type.tt]
         self.content.text.setPlaceholderText(tip)
