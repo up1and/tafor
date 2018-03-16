@@ -875,7 +875,12 @@ class SigmetCustomSegment(BaseSegment):
 
     def bindSignal(self):
         self.changeSignal.connect(self.head.updateState)
-        self.changeSignal.connect(self.setPlaceholder)
+        self.changeSignal.connect(self.updateText)
+        self.changeSignal.connect(self.setText)
+
+    def updateText(self):
+        self.setText()
+        self.setPlaceholder()
 
     def setPlaceholder(self):
         tips = {
@@ -885,6 +890,18 @@ class SigmetCustomSegment(BaseSegment):
         }
         tip = tips[self.type.tt]
         self.content.text.setPlaceholderText(tip)
+
+    def setText(self):
+        last = db.query(Sigmet).filter(Sigmet.tt == self.type.tt).order_by(Sigmet.sent.desc()).first()
+        if last:
+            fir = conf.value('Message/FIR')
+            _, text = last.rpt.split('\n')
+            text = text.replace(fir, '')
+            text = text.replace('=', '').strip()
+
+            self.content.text.setText(text)
+        else:
+            self.content.text.clear()
 
     def clear(self):
         self.head.clear()
