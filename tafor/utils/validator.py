@@ -60,10 +60,14 @@ class Pattern(object):
     trendInterval = r'([01][0-9]|2[0-3])([0-5][0-9])'
     time = r'([01][0-9]|2[0-3])([0-5][0-9])'
 
+    aaa = r'(AA[A-Z])'
+    ccc = r'(CC[A-Z])'
+
     latitude = r'(N|S)(90(0{2})?|[0-8]\d([0-5]\d)?)'
     longitude = r'(E|W)(180(0{2})?|((1[0-7]\d)|(0\d{2}))([0-5]\d)?)'
     fightLevel = r'([1-9]\d{2})'
-
+    speed = r'(\d{2})'
+    tcRadius = r'(\d{3})'
 
 class Validator(object):
     """docstring for Validator"""

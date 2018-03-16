@@ -236,16 +236,30 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.tmaxTime.setValidator(tempHours)
         self.tminTime.setValidator(tempHours)
 
+        aaa = QRegExpValidator(QRegExp(self.rules.aaa, Qt.CaseInsensitive))
+        self.aaa.setValidator(aaa)
+        self.aaaCnl.setValidator(aaa)
+
+        ccc = QRegExpValidator(QRegExp(self.rules.ccc, Qt.CaseInsensitive))
+        self.ccc.setValidator(ccc)
+
     def bindSignal(self):
         super(TafPrimarySegment, self).bindSignal()
 
         self.tmax.textEdited.connect(lambda: self.upperText(self.tmax))
         self.tmin.textEdited.connect(lambda: self.upperText(self.tmin))
-
+        self.aaa.textEdited.connect(lambda: self.upperText(self.aaa))
+        self.ccc.textEdited.connect(lambda: self.upperText(self.ccc))
+        self.aaaCnl.textEdited.connect(lambda: self.upperText(self.aaaCnl))
+        
+        self.date.textEdited.connect(lambda: self.coloredText(self.date))
         self.tmax.textEdited.connect(lambda: self.coloredText(self.tmax))
         self.tmin.textEdited.connect(lambda: self.coloredText(self.tmin))
         self.tmaxTime.textEdited.connect(lambda: self.coloredText(self.tmaxTime))
         self.tminTime.textEdited.connect(lambda: self.coloredText(self.tminTime))
+        self.aaa.textEdited.connect(lambda: self.coloredText(self.aaa))
+        self.ccc.textEdited.connect(lambda: self.coloredText(self.ccc))
+        self.aaaCnl.textEdited.connect(lambda: self.coloredText(self.aaaCnl))
 
     def checkComplete(self):
         self.complete = False
@@ -272,17 +286,17 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             elif self.vis.hasAcceptableInput() and any(oneRequired):
                 self.complete = True
 
-        if self.cor.isChecked() and not self.ccc.text():
+        if self.cor.isChecked() and not self.ccc.hasAcceptableInput():
             self.complete = False
 
-        if self.amd.isChecked() and not self.aaa.text():
+        if self.amd.isChecked() and not self.aaa.hasAcceptableInput():
             self.complete = False
 
         if self.cnl.isChecked():
             mustRequired = (
                         self.date.hasAcceptableInput(), 
                         self.period.text(), 
-                        self.aaaCnl.text(),
+                        self.aaaCnl.hasAcceptableInput(),
                         )
             if all(mustRequired):
                 self.complete = True
