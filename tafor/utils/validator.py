@@ -317,7 +317,7 @@ class Lexer(object):
         if not grammar:
             grammar = self.grammarClass()
         self.grammar = grammar
-        self.part = part
+        self.part = part.strip()
         self.tokens = OrderedDict()
 
         self.parse(part)
@@ -435,16 +435,16 @@ class Parser(object):
         self.primary = self.parse(elements[0])
 
         if len(elements) > 1:
-            becmg_index = [i for i, item in enumerate(elements) if item == 'BECMG']
-            tempo_index = [i for i, item in enumerate(elements) if 'TEMPO' in item]
+            becmgIndex = [i for i, item in enumerate(elements) if item == 'BECMG']
+            tempoIndex = [i for i, item in enumerate(elements) if 'TEMPO' in item]
 
-            for i, index in enumerate(becmg_index):
+            for i, index in enumerate(becmgIndex):
                 e = elements[index] + elements[index+1]
                 becmg = self.parse(e)
                 becmg.generatePeriod(becmg.tokens['interval']['text'], self.primary.period[0])
                 self.becmgs.append(becmg)
 
-            for i, index in enumerate(tempo_index):
+            for i, index in enumerate(tempoIndex):
                 e = elements[index] + elements[index+1]
                 tempo = self.parse(e)
                 tempo.generatePeriod(tempo.tokens['interval']['text'], self.primary.period[0])
