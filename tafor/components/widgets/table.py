@@ -74,6 +74,11 @@ class TafTable(BaseDataTable):
     def __init__(self, parent, layout):
         super(TafTable, self).__init__(parent, layout)
 
+    def bindSignal(self):
+        super(TafTable, self).bindSignal()
+        self.table.currentItemChanged.connect(self.updateResendButton)
+        self.resendButton.clicked.connect(self.resend)
+
     def updateTable(self):
         queryset = db.query(Taf).order_by(Taf.sent.desc())
         self.pagination = paginate(queryset, self.page, perPage=12)
@@ -102,6 +107,18 @@ class TafTable(BaseDataTable):
                 self.table.setItem(row, 3, checkedItem)
 
         self.table.resizeRowsToContents()
+
+    def updateResendButton(self, item):
+        text = item.text()
+        if text.startswith('TAF'):
+            self.selected = db.query(Taf).filter_by(rpt=text).order_by(Taf.sent.desc()).first()
+            if self.selected.confirmed:
+                self.resendButton.hide()
+            else:
+                self.resendButton.show()
+
+    def resend(self):
+        print(self.selected)
 
 
 class MetarTable(BaseDataTable):

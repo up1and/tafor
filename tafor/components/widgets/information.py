@@ -47,7 +47,7 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
 
     def bindSignal(self):
         self.forecast.currentTextChanged.connect(self.enbaleOBSTime)
-        self.endingTime.textEdited.connect(self.validEndingTime)
+        self.endingTime.textChanged.connect(self.validEndingTime)
 
         self.typhoonName.textEdited.connect(lambda: self.upperText(self.typhoonName))
 
@@ -634,7 +634,7 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         beginningTime = self.head.beginningTime.text()[2:] if self.head.beginningTime.hasAcceptableInput() else ''
         fcstTime = self.forecastTime.text()
 
-        time = self.duration(obsTime or beginningTime, fcstTime).seconds
+        time = self.moveTime(obsTime or beginningTime, fcstTime).seconds
         degree = direction[movement]
         speed = self.speed.text()
         latitude = self.currentLatitude.text()
@@ -644,10 +644,8 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         self.forecastLatitude.setText(forecastLatitude)
         self.forecastLongitude.setText(forecastLongitude)
 
-    def duration(self, start, end):
-        startTime = parseTime(start)
-        endTime = parseTime(end)
-        return endTime - startTime
+    def moveTime(self, start, end):
+        return parseTime(end) - parseTime(start)
 
     def moveState(self):
         movement = self.movement.currentText()
@@ -892,7 +890,7 @@ class SigmetCustomSegment(BaseSegment):
         self.content.text.setPlaceholderText(tip)
 
     def setText(self):
-        last = db.query(Sigmet).filter(Sigmet.tt == self.type.tt).order_by(Sigmet.sent.desc()).first()
+        last = db.query(Sigmet).filter(Sigmet.tt == self.type.tt, ~Sigmet.rpt.contains('CNL')).order_by(Sigmet.sent.desc()).first()
         if last:
             fir = conf.value('Message/FIR')
             _, text = last.rpt.split('\n')
