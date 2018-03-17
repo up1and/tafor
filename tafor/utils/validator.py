@@ -67,20 +67,30 @@ class Pattern(object):
     longitude = r'(E|W)(180(0{2})?|((1[0-7]\d)|(0\d{2}))([0-5]\d)?)'
     fightLevel = r'([1-9]\d{2})'
 
-class Validator(object):
-    """docstring for Validator"""
 
+class Validator(object):
+    """根据行业标准验证 TAF 报文单项要素之间的转折"""
     grammarClass = Grammar
 
-    @classmethod
-    def wind(cls, refWind, wind):
+    def __init__(self, **kwargs):
+
+        self.visThresholds = [150, 350, 600, 800, 1500, 3000]
+        self.cloudHeightThresholds = [1, 2, 5, 10]
+
+        if kwargs.get('visHas5000', True):
+            self.visThresholds.append(5000)
+
+        if kwargs.get('cloudHeightHas450', True):
+            self.cloudHeightThresholds.append(15)
+
+    def wind(self, refWind, wind):
         """
         风
         1. 当预报平均地面风向的变化大于等于 60°，且平均风速在变化前和（或）变化后大于等于 5m/s 时
         2. 当预报平均地面风速的变化大于等于 5m/s 时
         3. 当预报平均地面风风速变差（阵风）增加(或减少)大于等于 5m/s，且平均风速在变化前和（或）变化后大于等于 8m/s 时  ***有异议
         """
-        pattern = cls.grammarClass.wind
+        pattern = self.grammarClass.wind
         refWindMatch = pattern.match(refWind)
         windMatch = pattern.match(wind)
 
@@ -138,8 +148,7 @@ class Validator(object):
 
         return False
 
-    @classmethod
-    def vis(cls, refVis, vis, thresholds=None):
+    def vis(self, refVis, vis):
         """
         能见度
         当预报主导能见度上升并达到或经过下列一个或多个数值，或下降并经过下列一个或多个数值时：
@@ -147,11 +156,10 @@ class Validator(object):
         2. 5000 m（当有大量的按目视飞行规则的飞行时）
 
         """
-        thresholds = thresholds if thresholds else [150, 350, 600, 800, 1500, 3000, 5000]
-        return cls.compare(refVis, vis, thresholds)
+        thresholds = self.visThresholds
+        return self.compare(refVis, vis, thresholds)
 
-    @classmethod
-    def vv(cls, refVv, vv, thresholds=None):
+    def vv(self, refVv, vv):
         """
         垂直能见度
         当预报垂直能见度上升并达到或经过下列一个或多个数值，或下降并经过下列一个或多个数值时：
@@ -159,14 +167,14 @@ class Validator(object):
 
         # 编报时对应 VV001、VV002、VV005、VV010
         """
-        pattern = cls.grammarClass.vv
+        pattern = self.grammarClass.vv
         matches = [pattern.match(refVv), pattern.match(vv)]
-        thresholds = thresholds if thresholds else [1, 2, 5, 10]
+        thresholds = [1, 2, 5, 10]
 
         # 两者都包含 VV, 计算高度是否跨越阈值
         if all(matches):
             refVvHeight, vvHeight = matches[0].group(2), matches[1].group(2)
-            return cls.compare(refVvHeight, vvHeight, thresholds)
+            return self.compare(refVvHeight, vvHeight, thresholds)
 
         # 两者有一个是 VV, VV 高度小于最大阈值
         if any(matches):
@@ -176,8 +184,7 @@ class Validator(object):
 
         return False
 
-    @classmethod
-    def compare(cls, refValue, value, thresholds):
+    def compare(self, refValue, value, thresholds):
         refValue = int(refValue)
         value = int(value)
         trend = 'down' if refValue > value else 'up'
@@ -192,8 +199,7 @@ class Validator(object):
 
         return False
 
-    @classmethod
-    def weather(cls, refWeather, weather):
+    def weather(self, refWeather, weather):
         """
         天气现象
         1. 当预报下列一种或几种天气现象开始、终止或强度变化时：
@@ -234,8 +240,7 @@ class Validator(object):
 
         return False
 
-    @classmethod
-    def cloud(cls, refCloud, cloud, thresholds=None):
+    def cloud(self, refCloud, cloud):
         '''
         云
         当预报 BKN 或 OVC 云量的最低云层的云高抬升并达到或经过下列一个或多个数值，或降低并经过下列一个或多个数值时：
@@ -248,8 +253,8 @@ class Validator(object):
 
         当预报积雨云将发展或消失时
         '''
-        pattern = cls.grammarClass.cloud
-        thresholds = thresholds if thresholds else [1, 2, 5, 10, 15]
+        pattern = self.grammarClass.cloud
+        thresholds = self.cloudHeightThresholds
         cloudCover = {'SKC': 0, 'FEW': 1, 'SCT': 2, 'BKN': 3, 'OVC': 4}
 
         refClouds = refCloud.split()
@@ -288,7 +293,7 @@ class Validator(object):
 
         # 当预报 BKN 或 OVC 云量的最低云层的云高抬升并达到或经过下列一个或多个数值，或降低并经过下列一个或多个数值
         if any([refMinHeight, minHeight]):
-            return cls.compare(refMinHeight, minHeight, thresholds)
+            return self.compare(refMinHeight, minHeight, thresholds)
 
         # 当预报低于 450 m 的云层或云块的量的变化满足下列条件之一
         if refMaxCover > 2 and maxCover < 3 or refMaxCover < 3 and maxCover > 2:
@@ -296,18 +301,18 @@ class Validator(object):
 
         return False
 
-    @classmethod
-    def cavok(cls, vis, weather, cloud):
+    def cavok(self, vis, weather, cloud):
         validations = [
-            cls.vis(vis, 9999),
-            cls.weather(weather, 'NSW'),
-            cls.cloud(cloud, 'NSC')
+            self.vis(vis, 9999),
+            self.weather(weather, 'NSW'),
+            self.cloud(cloud, 'NSC')
         ]
 
         return all(validations)
 
 
 class Lexer(object):
+    """TAF 报文一组要素的解析器"""
     grammarClass = Grammar
 
     defaultRules = [
@@ -329,9 +334,11 @@ class Lexer(object):
 
     @property
     def sign(self):
+        """返回报文的标识符 TAF, BECMG, TEMPO"""
         return self.tokens['sign']['text']
 
     def parse(self, part, rules=None):
+        """识别报文的每一项要素"""
         if not rules:
             rules = self.defaultRules
 
@@ -359,13 +366,15 @@ class Lexer(object):
         if self.tokens['sign']['text'] == 'TAF':
             period = self.tokens['period']['text'][:4]
             time = parseTimez(self.tokens['timez']['text'])
-            self.period = self.generatePeriod(period, time)
+            self.generatePeriod(period, time)
 
     def generatePeriod(self, period, time):
+        """生成报文的有效期"""
         self.period = parseTimeInterval(period, time)
         return self.period
 
     def isValid(self):
+        """报文是否有错误"""
         for k, e in self.tokens.items():
                 if e['error']:
                     return False
@@ -373,7 +382,7 @@ class Lexer(object):
         return True
 
     def renderer(self, style='plain'):
-
+        """将解析后的报文重新渲染"""
         def terminal():
             from colorama import init, Fore
             init(autoreset=True)
@@ -406,11 +415,12 @@ class Lexer(object):
 
 
 class Parser(object):
+    """解析 TAF 报文"""
     defaultRules = [
         'wind', 'vis', 'weather', 'cloud'
     ]
 
-    def __init__(self, message, parse=None, validator=None):
+    def __init__(self, message, parse=None, validator=None, **kwargs):
         self.message = message
         self.becmgs = []
         self.tempos = []
@@ -422,16 +432,18 @@ class Parser(object):
             self.parse = Lexer
 
         if not validator:
-            self.validator = Validator()
+            self.validator = Validator(**kwargs)
 
         self.split()
 
     def __eq__(self, other):
+        """判断两份报文是否相等"""
         if isinstance(other, self.__class__):
             return self.elements == other.elements
         return False
 
     def split(self):
+        """拆分主报文和变化组"""
         message = self.message.replace('=', '')
         elements = splitPattern.split(message)
         self.primary = self.parse(elements[0])
@@ -455,6 +467,7 @@ class Parser(object):
         self.elements = [self.primary] + self.becmgs + self.tempos
 
     def regroup(self):
+        """根据报文的时序重新分组 TEMPO BECMG"""
         self.becmgs.sort(key=lambda x: x.period[1])
         self.tempos.sort(key=lambda x: x.period[0])
 
@@ -484,6 +497,7 @@ class Parser(object):
             return groups
 
         def reduce(items):
+            """去除分组中重复的元素"""
             groups = []
             cache = []
             for e in items:
@@ -499,6 +513,7 @@ class Parser(object):
         self.groups = reduce(group(self.becmgs, self.tempos))
 
     def refs(self):
+        """生成参照组"""
         self.reference = copy.deepcopy(self.primary.tokens)
         if 'weather' not in self.reference:
             self.reference['weather'] = {
@@ -517,6 +532,7 @@ class Parser(object):
             }
 
     def validate(self):
+        """验证报文"""
         self.regroup()
         self.refs()
 
@@ -553,6 +569,7 @@ class Parser(object):
         self.tips = list(set(self.tips))
 
     def validateMutiElements(self, ref, tokens):
+        """验证多个元素之间的匹配规则"""
         mixture = copy.deepcopy(ref)
         for key in tokens:
             if key in self.defaultRules:
@@ -619,8 +636,8 @@ class Parser(object):
                 tokens['weather']['error'] = True
                 self.tips.append('NSW 不能和其他天气现象同时存在')
 
-            intWeather = set(weathers) & set(['BR', 'HZ', 'FG', 'FU'])
-            if len(intWeather) > 1:
+            weatherCount = set(weathers) & set(['BR', 'HZ', 'FG', 'FU'])
+            if len(weatherCount) > 1:
                 tokens['weather']['error'] = True
                 self.tips.append('BR，HZ，FG，FU 不能同时存在')
 
@@ -650,6 +667,7 @@ class Parser(object):
         return all(valids)
  
     def renderer(self, style='plain'):
+        """将解析后的报文重新渲染"""
         outputs = [e.renderer(style) for e in self.elements]
 
         if style == 'html':

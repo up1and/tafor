@@ -142,6 +142,9 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.setValue('General/Debug', 'debugMode', 'bool')
         self.setValue('General/AlwaysShowEditor', 'alwaysShowEditor', 'bool')
 
+        self.setValue('Validator/VisHas5000', 'visHas5000', 'bool')
+        self.setValue('Validator/CloudHeightHas450', 'cloudHeightHas450', 'bool')
+
         self.setValue('Message/ICAO', 'icao')
         self.setValue('Message/Area', 'area')
         self.setValue('Message/FIR', 'fir')
@@ -191,6 +194,9 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.loadValue('General/CloseToMinimize', 'closeToMinimize', 'bool')
         self.loadValue('General/Debug', 'debugMode', 'bool')
         self.loadValue('General/AlwaysShowEditor', 'alwaysShowEditor', 'bool')
+
+        self.loadValue('Validator/VisHas5000', 'visHas5000', 'bool')
+        self.loadValue('Validator/CloudHeightHas450', 'cloudHeightHas450', 'bool')
 
         self.loadValue('Message/ICAO', 'icao')
         self.loadValue('Message/Area', 'area')

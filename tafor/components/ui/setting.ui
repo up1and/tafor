@@ -123,14 +123,14 @@
            </property>
            <layout class="QGridLayout" name="gridLayout_4">
             <item row="0" column="0">
-             <widget class="QCheckBox" name="visibility5000">
+             <widget class="QCheckBox" name="visHas5000">
               <property name="text">
                <string>Visibility has 5000 meters</string>
               </property>
              </widget>
             </item>
             <item row="1" column="0">
-             <widget class="QCheckBox" name="cloudHeight450">
+             <widget class="QCheckBox" name="cloudHeightHas450">
               <property name="text">
                <string>Cloud height has 450 meters</string>
               </property>

@@ -10,7 +10,7 @@ class TestValidator(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        self.validator = tafor.utils.Validator
+        self.validator = tafor.utils.Validator()
 
     def testWind(self):
         self.assertTrue(self.validator.wind('01004MPS', '07005MPS'))
@@ -25,6 +25,7 @@ class TestValidator(unittest.TestCase):
         self.assertTrue(self.validator.vis(1400, 6000))
         self.assertTrue(self.validator.vis(200, 400))
         self.assertTrue(self.validator.vis(3000, 1600))
+        self.assertTrue(self.validator.vis(4000, 7000))
 
     def testVv(self):
         self.assertTrue(self.validator.vv('VV002', 'VV005'))
@@ -47,6 +48,8 @@ class TestValidator(unittest.TestCase):
         self.assertTrue(self.validator.cloud('SCT020', 'BKN010'))
         self.assertFalse(self.validator.cloud('SCT007', 'SCT015'))
         self.assertFalse(self.validator.cloud('NSC', 'SKC'))
+        # To be fixed 
+        # when cloudHeightHas450 equal False, BKN016, BKN011 always return True
         
 
 class TestParser(unittest.TestCase):

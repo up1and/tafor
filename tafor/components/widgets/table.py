@@ -113,7 +113,7 @@ class TafTable(BaseDataTable):
         self.resendButton.hide()
         if text.startswith('TAF'):
             self.selected = db.query(Taf).filter_by(rpt=text).order_by(Taf.sent.desc()).first()
-            if not self.selected.confirmed:
+            if self.selected and not self.selected.confirmed:
                 self.resendButton.show()
 
     def resend(self):

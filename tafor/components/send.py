@@ -3,7 +3,7 @@ import datetime
 from PyQt5.QtCore import QCoreApplication, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QMessageBox
 
-from tafor import conf, logger
+from tafor import conf, logger, boolean
 from tafor.components.ui import Ui_send
 from tafor.models import db, Taf, Task, Trend, Sigmet
 from tafor.utils import Parser, AFTNMessage
@@ -41,8 +41,10 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
 
     def receive(self, message):
         self.message = message
+        visHas5000 = boolean(conf.value('Validator/VisHas5000'))
+        cloudHeightHas450 = boolean(conf.value('Validator/CloudHeightHas450'))
         try:
-            self.parser = Parser(self.message['rpt'])
+            self.parser = Parser(self.message['rpt'], visHas5000=visHas5000, cloudHeightHas450=cloudHeightHas450)
             self.parser.validate()
             html = '<p>{}<br/>{}</p>'.format(self.message['sign'], self.parser.renderer(style='html'))
             if self.parser.tips:
