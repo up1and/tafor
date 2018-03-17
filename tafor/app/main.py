@@ -18,7 +18,7 @@ from tafor.components.ui import Ui_main, main_rc
 from tafor.components.taf import TafEditor, TaskTafEditor
 from tafor.components.trend import TrendEditor
 from tafor.components.sigmet import SigmetEditor
-from tafor.components.send import TaskTafSender, TafSender, TrendSender, SigmetSender
+from tafor.components.send import TaskTafSender, TafSender, TrendSender, SigmetSender, ReSender
 from tafor.components.setting import SettingDialog
 from tafor.components.task import TaskBrowser
 
@@ -63,6 +63,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.tafSender = TafSender(self)
         self.trendSender = TrendSender(self)
         self.sigmetSender = SigmetSender(self)
+        self.reSender = ReSender(self)
 
         self.tafEditor = TafEditor(self, self.tafSender)
         self.trendEditor = TrendEditor(self, self.trendSender)
@@ -156,7 +157,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.tray.setContextMenu(self.trayMenu)
 
-        message = '预报发报软件 v' + __version__
+        title = QCoreApplication.translate('MainWindow', 'Terminal Aerodrome Forecast Encoding Software')
+        message =  '{} v {}'.format(title, __version__)
         self.tray.setToolTip(message)
 
     def setStatus(self):

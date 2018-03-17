@@ -110,15 +110,21 @@ class TafTable(BaseDataTable):
 
     def updateResendButton(self, item):
         text = item.text()
+        self.resendButton.hide()
         if text.startswith('TAF'):
             self.selected = db.query(Taf).filter_by(rpt=text).order_by(Taf.sent.desc()).first()
-            if self.selected.confirmed:
-                self.resendButton.hide()
-            else:
+            if not self.selected.confirmed:
                 self.resendButton.show()
 
     def resend(self):
-        print(self.selected)
+        message = {
+            'item': self.selected,
+            'sign': self.selected.sign,
+            'rpt': self.selected.rpt,
+            'full': '\n'.join([self.selected.sign, self.selected.rpt])
+        }
+        self.parent.reSender.receive(message)
+        self.parent.reSender.show()
 
 
 class MetarTable(BaseDataTable):

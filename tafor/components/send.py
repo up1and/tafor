@@ -221,4 +221,24 @@ class SigmetSender(BaseSender):
         if not item.isCnl():
             delta = item.expire() - datetime.datetime.utcnow() - datetime.timedelta(minutes=15)
             QTimer.singleShot(delta.total_seconds() * 1000, self.parent.remindSigmet)
+
+
+class ReSender(BaseSender):
+
+    def __init__(self, parent=None):
+        super(ReSender, self).__init__(parent)
+        self.reportType = 'TAF'
+        self.buttonBox.accepted.connect(self.send)
+        title = QCoreApplication.translate('Sender', 'Resend Message')
+        self.setWindowTitle(title)
+
+    def save(self):
+        item = self.message['item']
+        item.raw = self.aftn.toJson()
+        db.add(item)
+        db.commit()
+
+    def closeEvent(self, event):
+        self.aftn = None
+        self.clear()
     

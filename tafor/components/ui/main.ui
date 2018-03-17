@@ -140,7 +140,7 @@
     <string>Terminal Aerodrome Forecast</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+F</string>
+    <string notr="true">Ctrl+F</string>
    </property>
   </action>
   <action name="trendAction">
@@ -148,7 +148,7 @@
     <string>Trend Forecast</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+T</string>
+    <string notr="true">Ctrl+T</string>
    </property>
   </action>
   <action name="sigmetAction">
@@ -156,7 +156,7 @@
     <string>Significant Meteorological Information</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+S</string>
+    <string notr="true">Ctrl+S</string>
    </property>
   </action>
   <action name="settingAction">
@@ -164,7 +164,7 @@
     <string>Settings</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+,</string>
+    <string notr="true">Ctrl+,</string>
    </property>
   </action>
   <action name="aboutAction">
