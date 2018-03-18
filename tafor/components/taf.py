@@ -72,18 +72,18 @@ class BaseTafEditor(BaseEditor):
 
         self.primary.period.textChanged.connect(self.clear)
 
-        self.primary.tmaxTime.editingFinished.connect(lambda :self.verifyTemperatureHour(self.primary.tmaxTime))
-        self.primary.tminTime.editingFinished.connect(lambda :self.verifyTemperatureHour(self.primary.tminTime))
+        self.primary.tmaxTime.editingFinished.connect(lambda :self.validTemperatureHour(self.primary.tmaxTime))
+        self.primary.tminTime.editingFinished.connect(lambda :self.validTemperatureHour(self.primary.tminTime))
 
-        self.primary.tmax.editingFinished.connect(self.verifyTemperature)
-        self.primary.tmin.editingFinished.connect(self.verifyTemperature)
+        self.primary.tmax.editingFinished.connect(self.validTemperature)
+        self.primary.tmin.editingFinished.connect(self.validTemperature)
 
-        self.becmg1.interval.editingFinished.connect(lambda :self.verifyGroupInterval(self.becmg1.interval))
-        self.becmg2.interval.editingFinished.connect(lambda :self.verifyGroupInterval(self.becmg2.interval))
-        self.becmg3.interval.editingFinished.connect(lambda :self.verifyGroupInterval(self.becmg3.interval))
+        self.becmg1.interval.editingFinished.connect(lambda :self.validGroupInterval(self.becmg1.interval))
+        self.becmg2.interval.editingFinished.connect(lambda :self.validGroupInterval(self.becmg2.interval))
+        self.becmg3.interval.editingFinished.connect(lambda :self.validGroupInterval(self.becmg3.interval))
 
-        self.tempo1.interval.editingFinished.connect(lambda :self.verifyGroupInterval(self.tempo1.interval, tempo=True))
-        self.tempo2.interval.editingFinished.connect(lambda :self.verifyGroupInterval(self.tempo2.interval, tempo=True))
+        self.tempo1.interval.editingFinished.connect(lambda :self.validGroupInterval(self.tempo1.interval, tempo=True))
+        self.tempo2.interval.editingFinished.connect(lambda :self.validGroupInterval(self.tempo2.interval, tempo=True))
 
         self.primary.completeSignal.connect(self.enbaleNextButton)
         self.becmg1.completeSignal.connect(self.enbaleNextButton)
@@ -230,7 +230,7 @@ class BaseTafEditor(BaseEditor):
             end += datetime.timedelta(days=1)
         return start, end
 
-    def verifyTemperatureHour(self, line):
+    def validTemperatureHour(self, line):
         if self.periods is not None:
             tempHour = parseTimeInterval(line.text(), self.time)[0]
 
@@ -243,7 +243,7 @@ class BaseTafEditor(BaseEditor):
                 line.clear()
                 self.parent.statusBar.showMessage(QCoreApplication.translate('Editor', 'Hour of temperature is not corret'), 5000)
 
-    def verifyTemperature(self):
+    def validTemperature(self):
         tmax = self.primary.tmax.text()
         tmin = self.primary.tmin.text()
         if tmax and tmin:
@@ -252,7 +252,11 @@ class BaseTafEditor(BaseEditor):
             if tmax <= tmin:
                 self.primary.tmin.clear()
 
-    def verifyGroupInterval(self, line, tempo=False):
+    def validGroupInterval(self, line, tempo=False):
+        if not self.periods:
+            line.clear()
+            return
+
         if tempo and self.tt == 'FC':
             maxTime = 4
         elif tempo and self.tt == 'FT':

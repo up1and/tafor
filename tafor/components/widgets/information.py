@@ -47,7 +47,7 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
 
     def bindSignal(self):
         self.forecast.currentTextChanged.connect(self.enbaleOBSTime)
-        self.endingTime.textChanged.connect(self.validEndingTime)
+        self.endingTime.editingFinished.connect(self.validEndingTime)
 
         self.typhoonName.textEdited.connect(lambda: self.upperText(self.typhoonName))
 

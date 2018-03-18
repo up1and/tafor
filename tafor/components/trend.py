@@ -5,6 +5,7 @@ from PyQt5.QtCore import QCoreApplication, Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLayout
 
 from tafor import boolean, conf, logger
+from tafor.utils.convert import parseTime
 from tafor.components.widgets.editor import BaseEditor
 from tafor.components.widgets import TrendSegment
 
@@ -34,6 +35,7 @@ class TrendEditor(BaseEditor):
         self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px}')
 
     def bindSignal(self):
+        self.trend.period.editingFinished.connect(self.validPeriod)
         self.trend.completeSignal.connect(self.enbaleNextButton)
 
         # 下一步
@@ -44,6 +46,16 @@ class TrendEditor(BaseEditor):
         enbale = self.trend.complete
         self.nextButton.setEnabled(enbale)
 
+    def validPeriod(self):
+        period = self.trend.period.text()
+        utc = datetime.datetime.utcnow()
+        time = parseTime(period)
+        delta = datetime.timedelta(hours=2, minutes=30)
+
+        if time - delta > utc:
+            self.trend.period.clear()
+            self.parent.statusBar.showMessage(QCoreApplication.translate('Editor', 'Trend valid time is not corret'), 5000)
+
     def assembleMessage(self):
         message = self.trend.message()
         self.rpt = message + '='
@@ -52,7 +64,6 @@ class TrendEditor(BaseEditor):
     def previewMessage(self):
         message = {'sign': self.sign, 'rpt': self.rpt, 'full': ' '.join([self.sign, self.rpt])}
         self.previewSignal.emit(message)
-        logger.debug('Emit', message)
 
     def clear(self):
         self.trend.clear()

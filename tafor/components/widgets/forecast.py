@@ -63,6 +63,9 @@ class BaseSegment(QWidget, SegmentMixin):
             self.prob30.toggled.connect(self.setProb30)
             self.prob40.toggled.connect(self.setProb40)
 
+        if hasattr(self, 'interval'):
+            self.interval.textEdited.connect(lambda: self.coloredText(self.interval))
+
         self.gust.editingFinished.connect(self.validGust)
 
         self.wind.textEdited.connect(lambda: self.upperText(self.wind))
@@ -491,7 +494,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         self.fm.toggled.connect(self.setFm)
         self.tl.toggled.connect(self.setTl)
 
-        self.period.editingFinished.connect(self.validPeriod)
+        self.period.textChanged.connect(lambda: self.coloredText(self.period))
 
     def setValidator(self):
         super(TrendSegment, self).setValidator()
@@ -499,6 +502,10 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         # 还未验证输入个数
         period = QRegExpValidator(QRegExp(self.rules.trendInterval))
         self.period.setValidator(period)
+
+    def setPeriod(self):
+        time = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+        self.period.setText('{:02d}'.format(time.hour))
 
     def setNosig(self, checked):
         status = not checked
@@ -529,32 +536,29 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
             self.fm.setChecked(False)
             self.tl.setChecked(False)
             self.period.setEnabled(True)
+            self.setPeriod()
         else:
             self.period.setEnabled(False)
+            self.period.clear()
 
     def setFm(self, checked):
         if checked:
             self.at.setChecked(False)
             self.tl.setChecked(False)
             self.period.setEnabled(True)
+            self.setPeriod()
         else:
             self.period.setEnabled(False)
+            self.period.clear()
 
     def setTl(self, checked):
         if checked:
             self.fm.setChecked(False)
             self.at.setChecked(False)
             self.period.setEnabled(True)
+            self.setPeriod()
         else:
             self.period.setEnabled(False)
-
-    def validPeriod(self):
-        period = self.period.text()
-        utc = datetime.datetime.utcnow()
-        time = datetime.datetime(utc.year, utc.month, utc.day, int(period[:2]), int(period[2:]))
-        delta = datetime.timedelta(hours=2)
-
-        if time < utc or time - delta > utc:
             self.period.clear()
 
     def checkComplete(self):
