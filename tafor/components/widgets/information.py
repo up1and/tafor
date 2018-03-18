@@ -493,7 +493,7 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
             point3 = point(self.pointsLatitude3, self.pointsLongitude3)
             point4 = point(self.pointsLatitude4, self.pointsLongitude4)
 
-            points = list(filter(None, [point1, point2, point3, point4]))
+            points = list(filter(None, [point1, point2, point3, point4, point1]))
             text = 'WI ' + ' - '.join(points) if len(points) > 3 else ''
 
         if self.local.isChecked():
