@@ -11,7 +11,7 @@ from tafor import conf, boolean, logger
 
 
 class SettingDialog(QDialog, Ui_setting.Ui_Settings):
-    """docstring for SettingDialog"""
+
     def __init__(self, parent=None):
         super(SettingDialog, self).__init__(parent)
         self.parent = parent

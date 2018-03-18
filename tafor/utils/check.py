@@ -1,19 +1,15 @@
 import re
 import datetime
 
-from PyQt5.QtCore import QObject
-
 from tafor import conf, logger
 from tafor.models import db, Taf, Metar
 from tafor.states import context
-
 from tafor.utils.validator import Grammar
 
 
-class CheckTaf(QObject):
-    """docstring for CheckTaf"""
+class CheckTaf(object):
+    """检查 TAF 报文"""
     def __init__(self, tt, message=None, time=None, prev=0):
-        super(CheckTaf, self).__init__()
         self.tt = tt
         self.message = message
         self.time = datetime.datetime.utcnow() if time is None else time
@@ -73,6 +69,7 @@ class CheckTaf(QObject):
         self.defaultPeriod = defaultPeriod.get(self.tt)
 
     def normalPeriod(self, withDay=True):
+        """根据普通模式的有效期生成时段"""
         period = self._findPeriod(self.endTimeDelta['normal'])
 
         if withDay:
@@ -81,6 +78,7 @@ class CheckTaf(QObject):
         return period
 
     def warningPeriod(self, withDay=True):
+        """根据告警模式的有效期生成时段"""
         period = self._findPeriod(self.endTimeDelta['warning'], self.defaultPeriod)
 
         if withDay:
@@ -89,12 +87,14 @@ class CheckTaf(QObject):
         return period
 
     def local(self, period=None):
+        """返回本地数据的最新报文"""
         period = self.warningPeriod() if period is None else period
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
         recent = db.query(Taf).filter(Taf.rpt.contains(period), Taf.sent > expired).order_by(Taf.sent.desc()).first()
         return recent
 
     def remote(self):
+        """返回远程数据的最新报文"""
         if self.message:
             match = Grammar.period.search(self.message)
             if match and match.group() == self.warningPeriod():
@@ -103,6 +103,7 @@ class CheckTaf(QObject):
         return None
 
     def save(self, callback=None):
+        """储存远程报文数据"""
         last = db.query(Taf).filter_by(tt=self.tt).order_by(Taf.sent.desc()).first()
 
         if last is None or last.rptInline != self.message:  # 如果数据表为空 或 最后一条数据和远程不相等
@@ -115,6 +116,7 @@ class CheckTaf(QObject):
                 callback()
 
     def confirm(self, callback=None):
+        """确认本地数据和远程数据"""
         last = db.query(Taf).filter_by(tt=self.tt).order_by(Taf.sent.desc()).first()
 
         if last is not None and last.rptInline == self.message:
@@ -126,6 +128,7 @@ class CheckTaf(QObject):
                 callback()
 
     def hasExpired(self, offset=None):
+        """当前时段报文是否过了有效发报时间"""
         offset = offset or conf.value('Monitor/WarnTAFTime')
         offset = int(offset) if offset else 30
         offsetTimeDelta = {
@@ -141,6 +144,7 @@ class CheckTaf(QObject):
         return threshold < self.time
 
     def _findPeriod(self, endTimeDelta, default=None):
+        """返回当前的报文时段"""
         for period, start in self.startTime.items():
             if start <= self.time <= start + endTimeDelta:
                 return period
@@ -149,6 +153,7 @@ class CheckTaf(QObject):
             return default
 
     def _withDay(self, period):
+        """返回报文时段带有日期"""
         if period is None:
             return None
         
@@ -164,7 +169,7 @@ class CheckTaf(QObject):
 
 
 class CheckMetar(object):
-    """docstring for CheckMetar"""
+    """检查 METAR 报文"""
     def __init__(self, tt, message):
         self.tt = tt
         self.message = message
@@ -180,7 +185,7 @@ class CheckMetar(object):
 
 
 class Listen(object):
-
+    """监听远程报文数据"""
     def __init__(self, parent=None):
         self.parent = parent
 

@@ -74,7 +74,6 @@ def calcPosition(latitude, longitude, speed, time, degree):
     """
     根据当前的经纬度，已知点的移动方向和速度，返回一定时间之后的经纬度坐标
     """
-
     def degreeToDecimal(text):
         """
         转换度分为十进制角度

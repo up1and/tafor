@@ -663,6 +663,7 @@ class Parser(object):
                     self.tips.append('云组第三层云量不能为 FEW 或 SCT')
 
     def isValid(self):
+        """报文是否有错误"""
         valids = [e.isValid() for e in self.elements]
         return all(valids)
  

@@ -24,6 +24,7 @@ def serialComm(message, port, baudrate=9600, bytesize='8', parity='NONE', stopbi
     parity = parityMap.get(parity, serial.PARITY_NONE)
     stopbits = stopbitsMap.get(stopbits, serial.STOPBITS_ONE)
 
+    # 一个 ascii 8 位，停止位 2 位，起始位 1 位，校验位 1 位
     timeout = math.ceil(12 * len(message) / baudrate)
 
     with serial.Serial(port, baudrate, timeout=timeout, bytesize=bytesize, 

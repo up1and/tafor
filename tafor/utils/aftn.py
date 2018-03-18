@@ -26,6 +26,7 @@ class AFTNMessage(object):
         return json.dumps(self.messages)
 
     def generate(self):
+        """生成 AFTN 电报格式的报文"""
         channel = conf.value('Communication/Channel')
         number = conf.value('Communication/ChannelSequenceNumber')
         number = int(number) if number else 0
@@ -52,6 +53,7 @@ class AFTNMessage(object):
         return self.messages
 
     def formatLinefeed(self, messages):
+        """对超过 maxLineChar 的行进行换行处理"""
         def findSubscript(parts):
             subscripts = []
             num = 0
@@ -81,6 +83,7 @@ class AFTNMessage(object):
         return items
 
     def divideAddress(self, address):
+        """根据 maxSendAddress 拆分地址，比如允许最大地址是 7，有 10 个地址就拆成 2 组"""
         def chunks(lists, n):
             """Yield successive n-sized chunks from lists."""
             for i in range(0, len(lists), n):

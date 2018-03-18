@@ -10,6 +10,7 @@ from tafor.components.ui import Ui_main_recent
 
 
 def remindBox(parent):
+    """闹钟对话框"""
     title = QCoreApplication.translate('MainWindow', 'Alarm')
     messageBox = QMessageBox(QMessageBox.Question, title, 'Display Text', parent=parent)
     snooze = messageBox.addButton(QCoreApplication.translate('MainWindow', 'Snooze'), QMessageBox.ApplyRole)

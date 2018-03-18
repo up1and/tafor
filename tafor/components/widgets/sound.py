@@ -7,7 +7,7 @@ from tafor import BASEDIR
 
 
 class Sound(object):
-    """docstring for ClassName"""
+
     def __init__(self, filename, volume):
         super(Sound, self).__init__()
         file = os.path.join(BASEDIR, 'sounds', filename)
