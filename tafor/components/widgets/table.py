@@ -4,9 +4,11 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QHeaderView
 
+from sqlalchemy import or_
+
 from tafor.components.ui import main_rc
 from tafor.models import db, Taf, Metar, Sigmet
-from tafor.utils import paginate
+from tafor.utils import paginate, Parser
 from tafor.components.ui import Ui_main_table
 
 
@@ -112,7 +114,8 @@ class TafTable(BaseDataTable):
         text = item.text()
         self.resendButton.hide()
         if text.startswith('TAF'):
-            self.selected = db.query(Taf).filter_by(rpt=text).order_by(Taf.sent.desc()).first()
+            taf = Parser(text)
+            self.selected = db.query(Taf).filter(or_(Taf.rpt == text, Taf.rpt == taf.renderer())).order_by(Taf.sent.desc()).first()
             if self.selected and not self.selected.confirmed:
                 self.resendButton.show()
 
