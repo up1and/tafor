@@ -104,28 +104,23 @@ class CheckTaf(object):
 
     def save(self, callback=None):
         """储存远程报文数据"""
-        last = db.query(Taf).filter_by(tt=self.tt).order_by(Taf.sent.desc()).first()
+        item = Taf(tt=self.tt, rpt=self.message, confirmed=self.time)
+        db.add(item)
+        db.commit()
+        logger.info('Save {} {}'.format(self.tt, self.message))
 
-        if last is None or last.rptInline != self.message:  # 如果数据表为空 或 最后一条数据和远程不相等
-            item = Taf(tt=self.tt, rpt=self.message, confirmed=self.time)
-            db.add(item)
-            db.commit()
-            logger.info('Save {} {}'.format(self.tt, self.message))
+        if callback:
+            callback()
 
-            if callback:
-                callback()
-
-    def confirm(self, callback=None):
+    def confirm(self, item, callback=None):
         """确认本地数据和远程数据"""
-        last = db.query(Taf).filter_by(tt=self.tt).order_by(Taf.sent.desc()).first()
+        item.confirmed = datetime.datetime.utcnow()
+        db.add(item)
+        db.commit()
+        logger.info('Confirm {} {}'.format(self.tt, self.message))
 
-        if last is not None and last.rptInline == self.message:
-            last.confirmed = self.time
-            db.commit()
-            logger.info('Confirm {} {}'.format(self.tt, self.message))
-
-            if callback:
-                callback()
+        if callback:
+            callback()
 
     def hasExpired(self, offset=None):
         """当前时段报文是否过了有效发报时间"""
@@ -206,15 +201,19 @@ class Listen(object):
 
         taf = CheckTaf(self.tt, message=self.message)
         local = taf.local()
+        remote = taf.remote()
 
         if local:
-            if not local.confirmed:
-                if taf.remote():
-                    taf.confirm(callback=afterSave)
+            if local.confirmed:
+                if 'AMD' in remote or 'COR' in remote and remote != local.rptInline:
+                    taf.save(callback=afterSave)
+            else:
+                if remote and remote == local.rptInline:
+                    taf.confirm(local, callback=afterSave)
                 elif taf.hasExpired():
                     expired = True
         else:
-            if taf.remote():
+            if remote:
                 taf.save(callback=afterSave)
             elif taf.hasExpired():
                 expired = True
