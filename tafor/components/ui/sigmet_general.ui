@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>662</width>
-    <height>550</height>
+    <height>277</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -25,7 +25,7 @@
      <property name="title">
       <string>Description</string>
      </property>
-     <layout class="QGridLayout" name="gridLayout_2">
+     <layout class="QGridLayout" name="descriptionLayout">
       <item row="1" column="1">
        <widget class="QLineEdit" name="speed"/>
       </item>
@@ -195,7 +195,7 @@
      <property name="title">
       <string>Area</string>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout_2">
+     <layout class="QVBoxLayout" name="areaLayout">
       <item>
        <widget class="QWidget" name="changeAreaWidget" native="true">
         <property name="sizePolicy">
@@ -206,9 +206,9 @@
         </property>
         <layout class="QHBoxLayout" name="changeAreaLayout">
          <item>
-          <widget class="QRadioButton" name="latitudeAndLongitude">
+          <widget class="QRadioButton" name="points">
            <property name="text">
-            <string>Latitude and Longitude</string>
+            <string>Points</string>
            </property>
            <property name="checked">
             <bool>true</bool>
@@ -216,16 +216,9 @@
           </widget>
          </item>
          <item>
-          <widget class="QRadioButton" name="line">
+          <widget class="QRadioButton" name="latitudeAndLongitude">
            <property name="text">
-            <string>Line</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QRadioButton" name="points">
-           <property name="text">
-            <string>Points</string>
+            <string>Latitude and Longitude</string>
            </property>
           </widget>
          </item>
@@ -248,45 +241,9 @@
          </sizepolicy>
         </property>
         <layout class="QGridLayout" name="latitudeAndLongitudeLayout">
-         <item row="4" column="2">
-          <widget class="QLabel" name="westLabel">
-           <property name="text">
-            <string>W OF</string>
-           </property>
-           <property name="buddy">
-            <cstring>west</cstring>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="1">
-          <widget class="QLabel" name="northLabel">
-           <property name="text">
-            <string>N OF</string>
-           </property>
-           <property name="buddy">
-            <cstring>north</cstring>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="2">
-          <widget class="QLabel" name="southLabel">
-           <property name="text">
-            <string>S OF</string>
-           </property>
-           <property name="buddy">
-            <cstring>south</cstring>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="2">
-          <widget class="QLineEdit" name="south"/>
-         </item>
-         <item row="5" column="2">
-          <widget class="QLineEdit" name="west"/>
-         </item>
-         <item row="5" column="1">
-          <widget class="QLineEdit" name="east"/>
-         </item>
+         <property name="topMargin">
+          <number>20</number>
+         </property>
          <item row="5" column="0">
           <widget class="QLabel" name="longtitudeLabel">
            <property name="minimumSize">
@@ -297,6 +254,32 @@
            </property>
            <property name="text">
             <string>Longitude</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QLineEdit" name="south"/>
+         </item>
+         <item row="5" column="1">
+          <widget class="QLineEdit" name="east"/>
+         </item>
+         <item row="4" column="1">
+          <widget class="QLabel" name="eastLabel">
+           <property name="text">
+            <string>E OF</string>
+           </property>
+           <property name="buddy">
+            <cstring>east</cstring>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="2">
+          <widget class="QLabel" name="westLabel">
+           <property name="text">
+            <string>W OF</string>
+           </property>
+           <property name="buddy">
+            <cstring>west</cstring>
            </property>
           </widget>
          </item>
@@ -313,252 +296,31 @@
            </property>
           </widget>
          </item>
-         <item row="4" column="1">
-          <widget class="QLabel" name="eastLabel">
+         <item row="0" column="2">
+          <widget class="QLabel" name="southLabel">
            <property name="text">
-            <string>E OF</string>
+            <string>S OF</string>
            </property>
            <property name="buddy">
-            <cstring>east</cstring>
+            <cstring>south</cstring>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="2">
+          <widget class="QLineEdit" name="west"/>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLabel" name="northLabel">
+           <property name="text">
+            <string>N OF</string>
+           </property>
+           <property name="buddy">
+            <cstring>north</cstring>
            </property>
           </widget>
          </item>
          <item row="1" column="1">
           <widget class="QLineEdit" name="north"/>
-         </item>
-        </layout>
-       </widget>
-      </item>
-      <item>
-       <widget class="QWidget" name="lineWidget" native="true">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <layout class="QGridLayout" name="lineLayout">
-         <item row="2" column="2">
-          <widget class="QLineEdit" name="lineLongitude1"/>
-         </item>
-         <item row="2" column="1">
-          <widget class="QLineEdit" name="lineLatitude1"/>
-         </item>
-         <item row="1" column="2">
-          <widget class="QLabel" name="lineLongitudeLabel">
-           <property name="text">
-            <string>Longitude</string>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="0">
-          <widget class="QLabel" name="lineLabel1">
-           <property name="minimumSize">
-            <size>
-             <width>77</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>Line</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QLabel" name="lineLatitudeLabel">
-           <property name="text">
-            <string>Latitude</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="1">
-          <widget class="QLineEdit" name="lineLatitude2"/>
-         </item>
-         <item row="3" column="2">
-          <widget class="QLineEdit" name="lineLongitude2"/>
-         </item>
-         <item row="3" column="3">
-          <widget class="QComboBox" name="lineDirection1">
-           <item>
-            <property name="text">
-             <string notr="true">N</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string notr="true">NE</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string notr="true">E</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string notr="true">SE</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string notr="true">S</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string notr="true">SW</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string notr="true">W</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string notr="true">NW</string>
-            </property>
-           </item>
-          </widget>
-         </item>
-         <item row="5" column="2">
-          <widget class="QLineEdit" name="lineLongitude4"/>
-         </item>
-         <item row="4" column="1">
-          <widget class="QLineEdit" name="lineLatitude3"/>
-         </item>
-         <item row="4" column="0">
-          <widget class="QLabel" name="lineLabel2">
-           <property name="minimumSize">
-            <size>
-             <width>77</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>Line</string>
-           </property>
-          </widget>
-         </item>
-         <item row="4" column="2">
-          <widget class="QLineEdit" name="lineLongitude3"/>
-         </item>
-         <item row="5" column="1">
-          <widget class="QLineEdit" name="lineLatitude4"/>
-         </item>
-         <item row="5" column="3">
-          <widget class="QComboBox" name="lineDirection2">
-           <item>
-            <property name="text">
-             <string notr="true">N</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string notr="true">NE</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string notr="true">E</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string notr="true">SE</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string notr="true">S</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string notr="true">SW</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string notr="true">W</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string notr="true">NW</string>
-            </property>
-           </item>
-          </widget>
-         </item>
-         <item row="1" column="3">
-          <widget class="QLabel" name="lineDirectionLabel">
-           <property name="text">
-            <string>Direction</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-      </item>
-      <item>
-       <widget class="QWidget" name="pointsWidget" native="true">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <layout class="QGridLayout" name="pointsLayout">
-         <item row="2" column="1">
-          <widget class="QLineEdit" name="pointsLatitude2"/>
-         </item>
-         <item row="0" column="2">
-          <widget class="QLabel" name="pointsLongitudeLabel">
-           <property name="text">
-            <string>Longitude</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="2">
-          <widget class="QLineEdit" name="pointsLongitude3"/>
-         </item>
-         <item row="1" column="2">
-          <widget class="QLineEdit" name="pointsLongitude1"/>
-         </item>
-         <item row="0" column="1">
-          <widget class="QLabel" name="pointsLatitudeLabel">
-           <property name="text">
-            <string>Latitude</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QLineEdit" name="pointsLatitude1"/>
-         </item>
-         <item row="2" column="2">
-          <widget class="QLineEdit" name="pointsLongitude2"/>
-         </item>
-         <item row="4" column="1">
-          <widget class="QLineEdit" name="pointsLatitude4"/>
-         </item>
-         <item row="1" column="0">
-          <widget class="QLabel" name="pointsLabel">
-           <property name="minimumSize">
-            <size>
-             <width>77</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>Points</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="1">
-          <widget class="QLineEdit" name="pointsLatitude3"/>
-         </item>
-         <item row="4" column="2">
-          <widget class="QLineEdit" name="pointsLongitude4"/>
          </item>
         </layout>
        </widget>
@@ -575,32 +337,6 @@
   <tabstop>base</tabstop>
   <tabstop>top</tabstop>
   <tabstop>intensityChange</tabstop>
-  <tabstop>latitudeAndLongitude</tabstop>
-  <tabstop>line</tabstop>
-  <tabstop>points</tabstop>
-  <tabstop>local</tabstop>
-  <tabstop>north</tabstop>
-  <tabstop>south</tabstop>
-  <tabstop>east</tabstop>
-  <tabstop>west</tabstop>
-  <tabstop>lineLatitude1</tabstop>
-  <tabstop>lineLongitude1</tabstop>
-  <tabstop>lineLatitude2</tabstop>
-  <tabstop>lineLongitude2</tabstop>
-  <tabstop>lineDirection1</tabstop>
-  <tabstop>lineLatitude3</tabstop>
-  <tabstop>lineLongitude3</tabstop>
-  <tabstop>lineLatitude4</tabstop>
-  <tabstop>lineLongitude4</tabstop>
-  <tabstop>lineDirection2</tabstop>
-  <tabstop>pointsLatitude1</tabstop>
-  <tabstop>pointsLongitude1</tabstop>
-  <tabstop>pointsLatitude2</tabstop>
-  <tabstop>pointsLongitude2</tabstop>
-  <tabstop>pointsLatitude3</tabstop>
-  <tabstop>pointsLongitude3</tabstop>
-  <tabstop>pointsLatitude4</tabstop>
-  <tabstop>pointsLongitude4</tabstop>
  </tabstops>
  <resources/>
  <connections/>

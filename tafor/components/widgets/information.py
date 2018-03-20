@@ -10,6 +10,7 @@ from tafor.utils import Pattern
 from tafor.utils.convert import parseTime, parseDateTime, ceilTime, calcPosition
 from tafor.models import db, Sigmet
 from tafor.components.widgets.forecast import SegmentMixin
+from tafor.components.widgets.area import AreaChooser
 from tafor.components.ui import (Ui_sigmet_type, Ui_sigmet_general, Ui_sigmet_head, 
 	Ui_sigmet_typhoon, Ui_sigmet_cancel, Ui_sigmet_custom)
 
@@ -261,13 +262,15 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
     def __init__(self, phenomena):
         super(SigmetGeneralContent, self).__init__(phenomena)
         self.setupUi(self)
+        self.pointsWidget = AreaChooser(self)
+        self.areaLayout.addWidget(self.pointsWidget)
+
         self.bindSignal()
         self.setValidator()
         self.setArea()
 
     def bindSignal(self):
         self.latitudeAndLongitude.clicked.connect(self.setArea)
-        self.line.clicked.connect(self.setArea)
         self.points.clicked.connect(self.setArea)
         self.local.clicked.connect(self.setArea)
 
@@ -276,47 +279,13 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
 
         self.north.textEdited.connect(lambda: self.upperText(self.north))
         self.south.textEdited.connect(lambda: self.upperText(self.south))
-        self.lineLatitude1.textEdited.connect(lambda: self.upperText(self.lineLatitude1))
-        self.lineLatitude2.textEdited.connect(lambda: self.upperText(self.lineLatitude2))
-        self.lineLatitude3.textEdited.connect(lambda: self.upperText(self.lineLatitude3))
-        self.lineLatitude4.textEdited.connect(lambda: self.upperText(self.lineLatitude4))
-        self.pointsLatitude1.textEdited.connect(lambda: self.upperText(self.pointsLatitude1))
-        self.pointsLatitude2.textEdited.connect(lambda: self.upperText(self.pointsLatitude2))
-        self.pointsLatitude3.textEdited.connect(lambda: self.upperText(self.pointsLatitude3))
-        self.pointsLatitude4.textEdited.connect(lambda: self.upperText(self.pointsLatitude4))
-
         self.east.textEdited.connect(lambda: self.upperText(self.east))
         self.west.textEdited.connect(lambda: self.upperText(self.west))
-        self.lineLongitude1.textEdited.connect(lambda: self.upperText(self.lineLongitude1))
-        self.lineLongitude2.textEdited.connect(lambda: self.upperText(self.lineLongitude2))
-        self.lineLongitude3.textEdited.connect(lambda: self.upperText(self.lineLongitude3))
-        self.lineLongitude4.textEdited.connect(lambda: self.upperText(self.lineLongitude4))
-        self.pointsLongitude1.textEdited.connect(lambda: self.upperText(self.pointsLongitude1))
-        self.pointsLongitude2.textEdited.connect(lambda: self.upperText(self.pointsLongitude2))
-        self.pointsLongitude3.textEdited.connect(lambda: self.upperText(self.pointsLongitude3))
-        self.pointsLongitude4.textEdited.connect(lambda: self.upperText(self.pointsLongitude4))
 
         self.north.textEdited.connect(lambda: self.coloredText(self.north))
         self.south.textEdited.connect(lambda: self.coloredText(self.south))
-        self.lineLatitude1.textEdited.connect(lambda: self.coloredText(self.lineLatitude1))
-        self.lineLatitude2.textEdited.connect(lambda: self.coloredText(self.lineLatitude2))
-        self.lineLatitude3.textEdited.connect(lambda: self.coloredText(self.lineLatitude3))
-        self.lineLatitude4.textEdited.connect(lambda: self.coloredText(self.lineLatitude4))
-        self.pointsLatitude1.textEdited.connect(lambda: self.coloredText(self.pointsLatitude1))
-        self.pointsLatitude2.textEdited.connect(lambda: self.coloredText(self.pointsLatitude2))
-        self.pointsLatitude3.textEdited.connect(lambda: self.coloredText(self.pointsLatitude3))
-        self.pointsLatitude4.textEdited.connect(lambda: self.coloredText(self.pointsLatitude4))
-
         self.east.textEdited.connect(lambda: self.coloredText(self.east))
         self.west.textEdited.connect(lambda: self.coloredText(self.west))
-        self.lineLongitude1.textEdited.connect(lambda: self.coloredText(self.lineLongitude1))
-        self.lineLongitude2.textEdited.connect(lambda: self.coloredText(self.lineLongitude2))
-        self.lineLongitude3.textEdited.connect(lambda: self.coloredText(self.lineLongitude3))
-        self.lineLongitude4.textEdited.connect(lambda: self.coloredText(self.lineLongitude4))
-        self.pointsLongitude1.textEdited.connect(lambda: self.coloredText(self.pointsLongitude1))
-        self.pointsLongitude2.textEdited.connect(lambda: self.coloredText(self.pointsLongitude2))
-        self.pointsLongitude3.textEdited.connect(lambda: self.coloredText(self.pointsLongitude3))
-        self.pointsLongitude4.textEdited.connect(lambda: self.coloredText(self.pointsLongitude4))
 
         self.base.textEdited.connect(lambda: self.coloredText(self.base))
         self.top.textEdited.connect(lambda: self.coloredText(self.top))
@@ -327,26 +296,10 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         latitude = QRegExpValidator(QRegExp(self.rules.latitude, Qt.CaseInsensitive))
         self.north.setValidator(latitude)
         self.south.setValidator(latitude)
-        self.lineLatitude1.setValidator(latitude)
-        self.lineLatitude2.setValidator(latitude)
-        self.lineLatitude3.setValidator(latitude)
-        self.lineLatitude4.setValidator(latitude)
-        self.pointsLatitude1.setValidator(latitude)
-        self.pointsLatitude2.setValidator(latitude)
-        self.pointsLatitude3.setValidator(latitude)
-        self.pointsLatitude4.setValidator(latitude)
 
         longitude = QRegExpValidator(QRegExp(self.rules.longitude, Qt.CaseInsensitive))
         self.east.setValidator(longitude)
         self.west.setValidator(longitude)
-        self.lineLongitude1.setValidator(longitude)
-        self.lineLongitude2.setValidator(longitude)
-        self.lineLongitude3.setValidator(longitude)
-        self.lineLongitude4.setValidator(longitude)
-        self.pointsLongitude1.setValidator(longitude)
-        self.pointsLongitude2.setValidator(longitude)
-        self.pointsLongitude3.setValidator(longitude)
-        self.pointsLongitude4.setValidator(longitude)
 
         fightLevel = QRegExpValidator(QRegExp(self.rules.fightLevel))
         self.base.setValidator(fightLevel)
@@ -357,22 +310,14 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
     def setArea(self):
         if self.latitudeAndLongitude.isChecked():
             self.latitudeAndLongitudeWidget.setVisible(True)
-            self.lineWidget.setVisible(False)
-            self.pointsWidget.setVisible(False)
-
-        if self.line.isChecked():
-            self.latitudeAndLongitudeWidget.setVisible(False)
-            self.lineWidget.setVisible(True)
             self.pointsWidget.setVisible(False)
 
         if self.points.isChecked():
             self.latitudeAndLongitudeWidget.setVisible(False)
-            self.lineWidget.setVisible(False)
             self.pointsWidget.setVisible(True)
 
         if self.local.isChecked():
             self.latitudeAndLongitudeWidget.setVisible(False)
-            self.lineWidget.setVisible(False)
             self.pointsWidget.setVisible(False)
 
     def setFightLevel(self, text):
@@ -475,26 +420,8 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
 
             text = ' AND '.join(filter(None, areas))
 
-        if self.line.isChecked():
-            point1 = point(self.lineLatitude1, self.lineLongitude1)
-            point2 = point(self.lineLatitude2, self.lineLongitude2)
-            line1 = '{} OF LINE {} - {}'.format(self.lineDirection1.currentText(), point1, point2) if all([point1, point2]) else ''
-
-            point3 = point(self.lineLatitude3, self.lineLongitude3)
-            point4 = point(self.lineLatitude4, self.lineLongitude4)
-            line2 = '{} OF LINE {} - {}'.format(self.lineDirection2.currentText(), point3, point4) if all([point3, point4]) else ''
-
-            lines = [line1, line2]
-            text = ' AND '.join(filter(None, lines))
-
         if self.points.isChecked():
-            point1 = point(self.pointsLatitude1, self.pointsLongitude1)
-            point2 = point(self.pointsLatitude2, self.pointsLongitude2)
-            point3 = point(self.pointsLatitude3, self.pointsLongitude3)
-            point4 = point(self.pointsLatitude4, self.pointsLongitude4)
-
-            points = list(filter(None, [point1, point2, point3, point4, point1]))
-            text = 'WI ' + ' - '.join(points) if len(points) > 3 else ''
+            text = 'Not Implemented'
 
         if self.local.isChecked():
             text = conf.value('Message/ICAO')
