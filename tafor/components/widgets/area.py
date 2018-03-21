@@ -31,6 +31,9 @@ class RenderArea(QWidget):
 
         self.drawCloudImage(painter)
 
+        if len(self.points) == 1:
+            self.drawOnePoint(painter)
+
         if self.done:
             self.drawArea(painter)
         else:
@@ -66,6 +69,12 @@ class RenderArea(QWidget):
 
         self.update()
 
+    def drawOnePoint(self, painter):
+        pen = QPen(Qt.white, 2)
+        painter.setPen(pen)
+        point = self.points[0]
+        painter.drawPoint(point)
+
     def drawOutline(self, painter):
         pen = QPen(Qt.white, 1, Qt.DashLine)
         painter.setPen(pen)
@@ -94,7 +103,6 @@ class RenderArea(QWidget):
     def showEvent(self, event):
         self.points = []
         self.done = False
-        self.update()
 
 
 class AreaChooser(QWidget):
