@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QSize, Qt, QRect, pyqtSignal
+from PyQt5.QtCore import QSize, Qt, QRect, QCoreApplication, pyqtSignal
 from PyQt5.QtGui import QPainter, QPolygon, QPixmap, QPen
 from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel
 
@@ -40,6 +40,9 @@ class RenderArea(QWidget):
             self.drawOutline(painter)
 
     def mousePressEvent(self, event):
+        if not self.fir['content']:
+            return 
+
         if event.button() == Qt.LeftButton:
             pos = event.pos()
             if len(self.points) > 2:
@@ -93,12 +96,18 @@ class RenderArea(QWidget):
         painter.drawPolygon(pol)
 
     def drawCloudImage(self, painter):
-        pixmap = QPixmap()
-        pixmap.loadFromData(self.fir['content'])
-        self.imageSize = pixmap.size()
-        rect = QRect(*self.fir['rect'])
-        image = pixmap.copy(rect)
-        painter.drawPixmap(0, 0, image)
+        if self.fir['content']:
+            pixmap = QPixmap()
+            pixmap.loadFromData(self.fir['content'])
+            self.imageSize = pixmap.size()
+            rect = QRect(*self.fir['rect'])
+            image = pixmap.copy(rect)
+            painter.drawPixmap(0, 0, image)
+        else:
+            rect = QRect(0, 0, 200, 200)
+            painter.setPen(Qt.DashLine)
+            painter.drawRect(rect)
+            painter.drawText(rect, Qt.AlignCenter, QCoreApplication.translate('Editor', 'No Satellite Image'))
 
     def showEvent(self, event):
         self.points = []
