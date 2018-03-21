@@ -17,8 +17,11 @@ class FirState(object):
     _state = {
         'image': '',
         'content': None,
-        'coordinates': [],
-        'rect': [],
+        'coordinates': [
+            [30, 90],
+            [10, 120],
+        ],
+        'rect': [0, 0, 0, 0],
         'boundaries': []
     }
 

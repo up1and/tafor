@@ -70,52 +70,53 @@ def ceilTime(time, amount=10):
                              microseconds=time.microsecond)
     return time + datetime.timedelta(minutes=amount)
 
+def degreeToDecimal(text):
+    """
+    转换度分为十进制角度
+    """
+    identifier = text[0]
+    value = text[1:]
+    if len(value) in [2, 3]:
+        degree = int(value)
+    else:
+        integer, decimal = value[:-2], value[-2:]
+        degree = int(integer) + int(decimal) / 60.0
+
+    if identifier in ['S', 'W']:
+        return -degree
+    
+    return degree
+
+def decimalToDegree(degree, fmt='latitude'):
+    """
+    转换十进制角度为度分
+    """
+    integer = int(abs(degree))
+    decimal = int(abs(degree) % 1 * 60) / 100
+
+    if fmt == 'latitude':
+        if degree >= 0:
+            identifier = 'N'
+        else:
+            identifier = 'S'
+
+        template = '{:05.2f}'
+    else:
+        if degree >= 0:
+            identifier = 'E'
+        else:
+            identifier = 'W'
+
+        template = '{:06.2f}'
+
+    value = template.format(integer + decimal)
+    text = identifier + str(value).replace('.', '')
+    return text
+
 def calcPosition(latitude, longitude, speed, time, degree):
     """
     根据当前的经纬度，已知点的移动方向和速度，返回一定时间之后的经纬度坐标
     """
-    def degreeToDecimal(text):
-        """
-        转换度分为十进制角度
-        """
-        identifier = text[0]
-        value = text[1:]
-        if len(value) in [2, 3]:
-            degree = int(value)
-        else:
-            integer, decimal = value[:-2], value[-2:]
-            degree = int(integer) + int(decimal) / 60.0
-
-        if identifier in ['S', 'W']:
-            return -degree
-        
-        return degree
-
-    def decimalToDegree(degree, fmt='latitude'):
-        """
-        转换十进制角度为度分
-        """
-        integer = int(abs(degree))
-        decimal = int(abs(degree) % 1 * 60) / 100
-
-        if fmt == 'latitude':
-            if degree >= 0:
-                identifier = 'N'
-            else:
-                identifier = 'S'
-
-            template = '{:05.2f}'
-        else:
-            if degree >= 0:
-                identifier = 'E'
-            else:
-                identifier = 'W'
-
-            template = '{:06.2f}'
-
-        value = template.format(integer + decimal)
-        text = identifier + str(value).replace('.', '')
-        return text
 
     def distance(speed, time, degree):
         dis = int(speed) * int(time) / 3600

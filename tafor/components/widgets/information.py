@@ -291,6 +291,8 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         self.base.textEdited.connect(lambda: self.coloredText(self.base))
         self.top.textEdited.connect(lambda: self.coloredText(self.top))
 
+        self.pointsWidget.renderArea.stateChanged.connect(self.checkComplete)
+
         self.register()
 
     def setValidator(self):
@@ -415,9 +417,7 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
             text = ' AND '.join(filter(None, areas))
 
         if self.points.isChecked():
-            text = 'Not Implemented'
-
-            text = 'WI ' + ' - '.join(['N20 E110'])
+            text = self.pointsWidget.text()
 
         if self.local.isChecked():
             text = conf.value('Message/ICAO')
