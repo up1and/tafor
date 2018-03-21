@@ -1,12 +1,12 @@
 import re
 import requests
 
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, url_for
 
 from bs4 import BeautifulSoup
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/static')
 
 
 def find_key(message):
@@ -36,8 +36,8 @@ def marshal(messages):
 def index():
     return render_template('index.html')
 
-@app.route('/latest/<icao>.json')
-def latest(icao):
+@app.route('/latest/<airport>.json')
+def latest(airport):
     cookies = {
         'LoginCookiesGuid': '5274c2de-632d-4611-ac89-8fc3e173',
         'LoginCookiesName': 'ZJHK'
@@ -49,21 +49,21 @@ def latest(icao):
         html = response.content
         soup = BeautifulSoup(html, "html.parser")
         items = [tag.string.strip() for tag in soup.find_all('td') if tag.string is not None]
-        messages = list(filter(lambda message: icao.upper() in message, items))
+        messages = list(filter(lambda message: airport.upper() in message, items))
 
         return jsonify(marshal(messages))
 
     except Exception as e:
         app.logger.error(e, exc_info=True)
-        return jsonify({'error': '{} not found'.format(icao)}), 404
+        return jsonify({'error': '{} not found'.format(airport)}), 404
 
-@app.route('/remote/latest/<icao>.json')
-def remote_latest(icao):
+@app.route('/remote/latest/<airport>.json')
+def remote_latest(airport):
     url = 'http://www.amsc.net.cn/Page/BaoWenJianSuo/BaoWenJianSuoHandler.ashx'
     post_data = {
         'cmd':'BaoWenJianSuo',
         'IsCCCC': '1', 
-        'CCCC': icao, 
+        'CCCC': airport, 
         'NewCount':1, 
         'StarDate':'',
         'EndDate':'',
@@ -86,7 +86,32 @@ def remote_latest(icao):
 
     except Exception as e:
         app.logger.error(e, exc_info=True)
-        return jsonify({'error': '{} not found'.format(icao)}), 404
+        return jsonify({'error': '{} not found'.format(airport)}), 404
+
+@app.route('/fir/<mwo>.json')
+def fir(mwo):
+    mwo = mwo.upper()
+    return jsonify({'error': 'Todo'})
+
+@app.route('/remote/fir/<mwo>.json')
+def remote_fir(mwo):
+    mwo = mwo.upper()
+    configs = {
+        'ZJSA': {
+            'image': url_for('static', filename='cloud.jpg', _external=True),
+            'coordinates': [[30, 85], [-20, 145]],
+            'rect': [475, 210, 200, 200],
+            'boundaries': [],
+        }
+    }
+
+    info = configs.get(mwo, None)
+    if not info:
+        return jsonify({'error': '{} not found'.format(mwo)}), 404
+
+    return jsonify(info)
+
+
 
 
 if __name__ == '__main__':
