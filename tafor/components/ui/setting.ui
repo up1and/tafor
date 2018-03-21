@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>620</width>
-    <height>408</height>
+    <height>434</height>
    </rect>
   </property>
   <property name="acceptDrops">
@@ -674,12 +674,29 @@
                </size>
               </property>
               <property name="text">
-               <string>Request URL</string>
+               <string>Message Request URL</string>
               </property>
              </widget>
             </item>
             <item row="0" column="1">
              <widget class="QLineEdit" name="webApiURL">
+              <property name="placeholderText">
+               <string>URL</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="firApiLabel">
+              <property name="text">
+               <string>FIR Request URL</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLineEdit" name="firApiURL">
+              <property name="text">
+               <string/>
+              </property>
               <property name="placeholderText">
                <string>URL</string>
               </property>

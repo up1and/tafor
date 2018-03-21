@@ -13,6 +13,21 @@ class MessageState(object):
         self._state = values
 
 
+class FirState(object):
+    _state = {
+        'image': '',
+        'content': None,
+        'coordinates': [],
+        'rect': [],
+        'boundaries': []
+    }
+
+    def state(self):
+        return self._state
+
+    def setState(self, values):
+        self._state.update(values)
+
 class WebApiState(object):
 
     def __init__(self, store):
@@ -91,6 +106,7 @@ class Context(object):
     webApi = WebApiState(message)
     callService = CallServiceState()
     taf = TafState()
+    fir = FirState()
     serial = SerialState()
 
 

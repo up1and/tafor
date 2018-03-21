@@ -126,7 +126,7 @@ class Ui_Editor(object):
         self.latitudeAndLongitudeWidget.setSizePolicy(sizePolicy)
         self.latitudeAndLongitudeWidget.setObjectName("latitudeAndLongitudeWidget")
         self.latitudeAndLongitudeLayout = QtWidgets.QGridLayout(self.latitudeAndLongitudeWidget)
-        self.latitudeAndLongitudeLayout.setContentsMargins(0, 20, 0, 0)
+        self.latitudeAndLongitudeLayout.setContentsMargins(0, 15, 0, 0)
         self.latitudeAndLongitudeLayout.setObjectName("latitudeAndLongitudeLayout")
         self.longtitudeLabel = QtWidgets.QLabel(self.latitudeAndLongitudeWidget)
         self.longtitudeLabel.setMinimumSize(QtCore.QSize(77, 0))

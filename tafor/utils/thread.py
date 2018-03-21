@@ -23,6 +23,26 @@ def remoteMessage(url):
 
     return {}
 
+def firInfo(url):
+    try:
+        r = requests.get(url, timeout=30)
+        if r.status_code == 200:
+            data = r.json()
+            imageUrl = data['image']
+            image = requests.get(imageUrl)
+            data['content'] = image.content
+            return data
+        else:
+            logger.warn('GET {} 404 Not Found'.format(url))
+
+    except requests.exceptions.ConnectionError:
+        logger.warn('GET {} 408 Request Timeout'.format(url))
+
+    except Exception as e:
+        logger.error(e)
+
+    return {}
+
 def callUp(url, token, mobile):
     try:
         r = requests.post(url, auth=('api', token), data={'mobile': mobile, 'code': '000000'}, timeout=30)
@@ -73,6 +93,10 @@ class WorkThread(QThread):
         if conf.value('Monitor/WebApiURL'):
             url = conf.value('Monitor/WebApiURL') or 'http://127.0.0.1:6575'
             context.message.setState(remoteMessage(url))
+
+        if conf.value('Monitor/FirApiURL'):
+            url = conf.value('Monitor/FirApiURL')
+            context.fir.setState(firInfo(url))
 
         if conf.value('Monitor/SelectedMobile'):
             url = conf.value('Monitor/CallServiceURL') or 'http://127.0.0.1:5000/api/call/'

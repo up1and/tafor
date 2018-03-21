@@ -169,6 +169,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.setValue('Communication/TrendAddress', 'trendAddress', 'plaintext')
 
         self.setValue('Monitor/WebApiURL', 'webApiURL')
+        self.setValue('Monitor/FirApiURL', 'firApiURL')
 
         # self.setValue('Monitor/WarnTAF', 'warnTAF', 'bool')
         self.setValue('Monitor/WarnTAFTime', 'warnTafTime')
@@ -222,6 +223,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.loadValue('Communication/TrendAddress', 'trendAddress')
 
         self.loadValue('Monitor/WebApiURL', 'webApiURL')
+        self.loadValue('Monitor/FirApiURL', 'firApiURL')
 
         self.loadValue('Monitor/WarnTAFTime', 'warnTafTime')
         self.loadValue('Monitor/WarnTAFVolume', 'warnTafVolume', 'slider')

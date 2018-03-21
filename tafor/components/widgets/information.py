@@ -262,8 +262,9 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
     def __init__(self, phenomena):
         super(SigmetGeneralContent, self).__init__(phenomena)
         self.setupUi(self)
-        self.pointsWidget = AreaChooser(self)
+        self.pointsWidget = AreaChooser()
         self.areaLayout.addWidget(self.pointsWidget)
+        self.areaGroup.setLayout(self.areaLayout)
 
         self.bindSignal()
         self.setValidator()
@@ -404,13 +405,6 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         return text
 
     def area(self):
-        def point(latitude, longitude):
-            lat = latitude.text() if latitude.text() else ''
-            lon = longitude.text() if longitude.text() else ''
-
-            text = '{} {}'.format(lat, lon) if all([lat, lon]) else ''
-            return text
-
         if self.latitudeAndLongitude.isChecked():
             north = 'N OF {}'.format(self.north.text()) if self.north.text() else ''
             south = 'S OF {}'.format(self.south.text()) if self.south.text() else ''
@@ -422,6 +416,8 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
 
         if self.points.isChecked():
             text = 'Not Implemented'
+
+            text = 'WI ' + ' - '.join(['N20 E110'])
 
         if self.local.isChecked():
             text = conf.value('Message/ICAO')
