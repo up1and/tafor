@@ -145,3 +145,42 @@ def calcPosition(latitude, longitude, speed, time, degree):
         newLongitude =  abs(newLongitude) % 180 - 180
 
     return decimalToDegree(newLatitude), decimalToDegree(newLongitude, fmt='longitude')
+
+def clipPolygon(boundaries, polygon):
+    """
+    Sutherland–Hodgman Algorithm
+    https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
+    """
+    def inside(point, p1, p2):
+        return (p2[0] - p1[0]) * (point[1] - p1[1]) > (p2[1] - p1[1]) * (point[0] - p1[0])
+
+    def intersection(start, end, s, e):
+        x1, y1 = start
+        x2, y2 = end
+        x3, y3 = s
+        x4, y4 = e
+        
+        numx = (x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)
+        numy = (x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)
+        den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+        return [numx / den, numy / den]
+
+    outputs = boundaries
+    start = polygon[-1]
+
+    for end in polygon:
+        inputs = outputs
+        outputs = []
+        s = inputs[-1]
+
+        for e in inputs:
+            if inside(e, start, end):
+                if not inside(s, start, end):
+                    outputs.append(intersection(start, end, s, e))
+                outputs.append(e)
+            elif inside(s, start, end):
+                outputs.append(intersection(start, end, s, e))
+            s = e
+        start = end
+    return outputs
+
