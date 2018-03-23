@@ -1,10 +1,13 @@
+import os
 import re
+import json
 import requests
 
 from flask import Flask, request, jsonify, render_template, url_for
 
 from bs4 import BeautifulSoup
 
+BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__, static_url_path='/static')
 
@@ -91,17 +94,26 @@ def remote_latest(airport):
 @app.route('/fir/<mwo>.json')
 def fir(mwo):
     mwo = mwo.upper()
-    return jsonify({'error': 'Todo'})
+    url = 'http://192.2.204.51/GetFileName.ashx?type=1&satellite=1&file=IEC'
 
-@app.route('/remote/fir/<mwo>.json')
-def remote_fir(mwo):
-    mwo = mwo.upper()
+    try:
+        path = os.path.join(BASEDIR, 'fir_boundaries.json')
+        with open(path) as data:
+            boundaries = json.load(data)
+        response = requests.get(url)
+        filename = response.text.split('$$')[-1]
+        image = 'http://192.2.204.51/FY2_IMAGE/IEC{}.jpg'.format(filename)
+
+    except Exception as e:
+        app.logger.error(e, exc_info=True)
+        return jsonify({'error': '{} not found'.format('satellite image')}), 404
+
     configs = {
         'ZJSA': {
-            'image': url_for('static', filename='cloud.jpg', _external=True),
-            'coordinates': [[30, 85], [-20, 145]],
-            'rect': [475, 210, 200, 200],
-            'boundaries': [],
+            'image': image,
+            'size': [1780, 1340],
+            'coordinates': [[52, 79], [-2, 151]],
+            'rect': [655, 720, 260, 260],
         }
     }
 
@@ -109,8 +121,33 @@ def remote_fir(mwo):
     if not info:
         return jsonify({'error': '{} not found'.format(mwo)}), 404
 
+    info['boundaries'] = boundaries.get(mwo, [])
+
     return jsonify(info)
 
+@app.route('/remote/fir/<mwo>.json')
+def remote_fir(mwo):
+    mwo = mwo.upper()
+    configs = {
+        'ZJSA': {
+            'image': url_for('static', filename='cloud.jpg', _external=True),
+            'size': [1336, 1154],
+            'coordinates': [[30, 85], [-20, 145]],
+            'rect': [475, 210, 200, 200],
+        }
+    }
+
+    info = configs.get(mwo, None)
+    if not info:
+        return jsonify({'error': '{} not found'.format(mwo)}), 404
+
+    path = os.path.join(BASEDIR, 'fir_boundaries.json')
+    with open(path) as data:
+        boundaries = json.load(data)
+
+    info['boundaries'] = boundaries.get(mwo, [])
+
+    return jsonify(info)
 
 
 
