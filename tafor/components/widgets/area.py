@@ -53,15 +53,14 @@ class RenderArea(QWidget):
                 dy = abs(pos.y() - initPoint.y())
 
                 if dx < deviation and dy < deviation:
+                    # Clip the area with boundaries
                     # boundaries = self.fir.boundaries()
-                    # ploygon = pointToList(self.points)
-
-                    # clippedPoints = clipPolygon(boundaries, ploygon)
-                    # self.points = listToPoint(clippedPoints)
+                    # area = pointToList(self.points)
+                    # clippedArea = clipPolygon(area, boundaries)
+                    # self.points = listToPoint(clippedArea)
 
                     # if len(self.points) < 7:
                     #     self.done = True
-
                     self.done = True
                     self.stateChanged.emit()
 

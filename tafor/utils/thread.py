@@ -94,13 +94,16 @@ class WorkThread(QThread):
             url = conf.value('Monitor/WebApiURL') or 'http://127.0.0.1:6575'
             context.message.setState(remoteMessage(url))
 
-        if conf.value('Monitor/FirApiURL'):
-            url = conf.value('Monitor/FirApiURL')
-            context.fir.setState(firInfo(url))
-
         if conf.value('Monitor/SelectedMobile'):
             url = conf.value('Monitor/CallServiceURL') or 'http://127.0.0.1:5000/api/call/'
             context.callService.setState(callService(url))
+
+
+class FirInfoThread(QThread):
+
+    def run(self):
+        url = conf.value('Monitor/FirApiURL')
+        context.fir.setState(firInfo(url))
 
 
 class CallThread(QThread):

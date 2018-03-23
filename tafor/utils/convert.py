@@ -153,10 +153,12 @@ def listToPoint(points):
 def pointToList(points):
     return [[p.x(), p.y()] for p in points]
 
-def clipPolygon(boundaries, polygon):
+def clipPolygon(subjectPolygon, clipPolygon):
     """
     Sutherland–Hodgman Algorithm
     https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
+
+    # Bug
     """
     def inside(point, p1, p2):
         return (p2[0] - p1[0]) * (point[1] - p1[1]) > (p2[1] - p1[1]) * (point[0] - p1[0])
@@ -172,10 +174,10 @@ def clipPolygon(boundaries, polygon):
         den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
         return [numx / den, numy / den]
 
-    outputs = boundaries
-    start = polygon[-1]
+    outputs = subjectPolygon
+    start = clipPolygon[-1]
 
-    for end in polygon:
+    for end in clipPolygon:
         inputs = outputs
         outputs = []
         s = inputs[-1]

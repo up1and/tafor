@@ -12,7 +12,7 @@ from tafor import BASEDIR, conf, logger, boolean, __version__
 from tafor.models import db, Taf, Task, Metar, Sigmet, User
 from tafor.states import context
 from tafor.utils import Listen, checkVersion
-from tafor.utils.thread import WorkThread, CallThread, CheckUpgradeThread
+from tafor.utils.thread import WorkThread, FirInfoThread, CallThread, CheckUpgradeThread
 
 from tafor.components.ui import Ui_main, main_rc
 from tafor.components.taf import TafEditor, TaskTafEditor
@@ -47,6 +47,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.bindSignal()
         self.updateGui()
         self.worker()
+        self.painter()
 
     def setup(self):
         self.setWindowIcon(QIcon(':/logo.png'))
@@ -173,6 +174,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.callThread = CallThread(self)
 
+        self.firInfoThread = FirInfoThread()
+
         self.checkUpgradeThread = CheckUpgradeThread(self)
         self.checkUpgradeThread.doneSignal.connect(self.checkUpgrade)
 
@@ -283,6 +286,14 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def worker(self):
         self.workThread.start()
+
+    def painter(self):
+        utc = datetime.datetime.utcnow()
+        nextTime = utc.replace(microsecond=0, second=0, minute=0) + datetime.timedelta(hours=1, minutes=10)
+        delta = nextTime - utc
+        QTimer.singleShot(delta.total_seconds() * 1000, self.painter)
+        if conf.value('Monitor/FirApiURL'):
+            self.firInfoThread.start()
 
     def dialer(self, test=False):
         callSwitch = conf.value('Monitor/SelectedMobile')
