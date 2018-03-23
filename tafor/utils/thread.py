@@ -30,7 +30,7 @@ def firInfo(url):
             data = r.json()
             imageUrl = data['image']
             image = requests.get(imageUrl)
-            data['content'] = image.content
+            data['raw'] = image.content
             return data
         else:
             logger.warn('GET {} 404 Not Found'.format(url))

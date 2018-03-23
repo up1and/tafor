@@ -146,6 +146,13 @@ def calcPosition(latitude, longitude, speed, time, degree):
 
     return decimalToDegree(newLatitude), decimalToDegree(newLongitude, fmt='longitude')
 
+def listToPoint(points):
+    from PyQt5.QtCore import QPoint
+    return [QPoint(p[0], p[1]) for p in points]
+
+def pointToList(points):
+    return [[p.x(), p.y()] for p in points]
+
 def clipPolygon(boundaries, polygon):
     """
     Sutherland–Hodgman Algorithm
@@ -159,7 +166,7 @@ def clipPolygon(boundaries, polygon):
         x2, y2 = end
         x3, y3 = s
         x4, y4 = e
-        
+
         numx = (x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)
         numy = (x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)
         den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)

@@ -1,6 +1,6 @@
 import copy
 
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtCore import QObject, QPoint, pyqtSignal
 
 
 class MessageState(object):
@@ -15,8 +15,8 @@ class MessageState(object):
 
 class FirState(object):
     _state = {
-        'image': '',
-        'content': None,
+        'raw': None,
+        'size': [0, 0],
         'coordinates': [
             [30, 90],
             [10, 120],
@@ -30,6 +30,51 @@ class FirState(object):
 
     def setState(self, values):
         self._state.update(values)
+
+        self.updateConst()
+
+    def updateConst(self):
+        latRange = self._state['coordinates'][0][0] - self._state['coordinates'][1][0]
+        longRange = self._state['coordinates'][1][1] - self._state['coordinates'][0][1]
+        self.initLat = self._state['coordinates'][0][0]
+        self.initLong = self._state['coordinates'][0][1]
+        self.dlat = latRange / self._state['size'][1]
+        self.dlong = longRange / self._state['size'][0]
+        self.offsetX = self._state['rect'][0]
+        self.offsetY = self._state['rect'][1]
+
+    def raw(self):
+        return self._state['raw']
+
+    def rect(self):
+        return self._state['rect']
+
+    def boundaries(self):
+        return self.degreeToPixel(self._state['boundaries'])
+
+    def degreeToPixel(self, degreePoints):
+        points = []
+        for p in degreePoints:
+            x = (p[0] - self.initLong) / self.dlong - self.offsetX
+            y = (self.initLat - p[1]) / self.dlat - self.offsetY
+            points.append([x, y])
+
+        return points
+
+    def pixelToDegree(self, pixelPoints):
+        from tafor.utils.convert import decimalToDegree
+
+        points = []
+        for p in pixelPoints:
+            longtitude = self.initLong + (p[0] + self.offsetX) * self.dlong
+            latitude = self.initLat - (p[1] + self.offsetY) * self.dlat
+            points.append([
+                decimalToDegree(longtitude, fmt='longitude'),
+                decimalToDegree(latitude)
+            ])
+
+        return points
+
 
 class WebApiState(object):
 

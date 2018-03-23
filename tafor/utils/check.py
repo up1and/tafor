@@ -205,7 +205,7 @@ class Listen(object):
 
         if local:
             if local.confirmed:
-                if 'AMD' in remote or 'COR' in remote and remote != local.rptInline:
+                if remote and 'AMD' in remote or 'COR' in remote and remote != local.rptInline:
                     taf.save(callback=afterSave)
             else:
                 if remote and remote == local.rptInline:

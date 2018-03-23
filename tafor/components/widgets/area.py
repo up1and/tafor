@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel
 
 from tafor import logger
 from tafor.states import context
-from tafor.utils.convert import decimalToDegree
+from tafor.utils.convert import listToPoint, pointToList, clipPolygon
 
 
 class RenderArea(QWidget):
@@ -16,13 +16,13 @@ class RenderArea(QWidget):
         self.points = []
         self.imageSize = None
         self.done = False
-        self.fir = context.fir.state()
+        self.fir = context.fir
 
     def minimumSizeHint(self):
         return QSize(200, 200)
 
     def sizeHint(self):
-        w, h = self.fir['rect'][-2:]
+        *_, w, h = self.fir.rect()
         return QSize(w, h)
 
     def paintEvent(self, event):
@@ -30,6 +30,7 @@ class RenderArea(QWidget):
         painter.setRenderHint(QPainter.Antialiasing)
 
         self.drawCloudImage(painter)
+        self.drawBoundaries(painter)
 
         if len(self.points) == 1:
             self.drawOnePoint(painter)
@@ -40,7 +41,7 @@ class RenderArea(QWidget):
             self.drawOutline(painter)
 
     def mousePressEvent(self, event):
-        if not self.fir['content']:
+        if not self.fir.raw():
             return 
 
         if event.button() == Qt.LeftButton:
@@ -52,6 +53,15 @@ class RenderArea(QWidget):
                 dy = abs(pos.y() - initPoint.y())
 
                 if dx < deviation and dy < deviation:
+                    # boundaries = self.fir.boundaries()
+                    # ploygon = pointToList(self.points)
+
+                    # clippedPoints = clipPolygon(boundaries, ploygon)
+                    # self.points = listToPoint(clippedPoints)
+
+                    # if len(self.points) < 7:
+                    #     self.done = True
+
                     self.done = True
                     self.stateChanged.emit()
 
@@ -95,12 +105,18 @@ class RenderArea(QWidget):
         painter.setPen(Qt.white)
         painter.drawPolygon(pol)
 
+    def drawBoundaries(self, painter):
+        points = listToPoint(self.fir.boundaries())
+        pol = QPolygon(points)
+        painter.setPen(Qt.red)
+        painter.drawPolygon(pol)
+
     def drawCloudImage(self, painter):
-        if self.fir['content']:
+        if self.fir.raw():
             pixmap = QPixmap()
-            pixmap.loadFromData(self.fir['content'])
+            pixmap.loadFromData(self.fir.raw())
             self.imageSize = pixmap.size()
-            rect = QRect(*self.fir['rect'])
+            rect = QRect(*self.fir.rect())
             image = pixmap.copy(rect)
             painter.drawPixmap(0, 0, image)
         else:
@@ -148,32 +164,10 @@ class AreaChooser(QWidget):
         return 'WI ' + ' - '.join(points)
 
     def calcPoints(self):
-        pixelPoints = self.renderArea.points
-        imageSize = self.renderArea.imageSize
-        fir = context.fir.state()
-
-        try:
-            initLat = fir['coordinates'][0][0]
-            initLong = fir['coordinates'][0][1]
-            latRange = fir['coordinates'][0][0] - fir['coordinates'][1][0]
-            longRange = fir['coordinates'][1][1] - fir['coordinates'][0][1]
-            dlat = latRange / imageSize.height()
-            dlong = longRange / imageSize.width()
-            offsetX = fir['rect'][0]
-            offsetY = fir['rect'][1]
-
-            self.points = []
-            for p in pixelPoints:
-                longtitude = initLong + (p.x() + offsetX) * dlong
-                latitude = initLat - (p.y() + offsetY) * dlat
-                self.points.append([
-                    decimalToDegree(latitude), 
-                    decimalToDegree(longtitude, fmt='longitude'),
-                ])
-
-            return self.points
-        except Exception as e:
-            logger.debug(e)
+        pixelPoints = pointToList(self.renderArea.points)
+        fir = context.fir
+        self.points = fir.pixelToDegree(pixelPoints)
+        return self.points
 
     def showEvent(self, event):
         self.points = []
