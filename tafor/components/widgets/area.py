@@ -19,7 +19,7 @@ class RenderArea(QWidget):
         self.fir = context.fir
 
     def minimumSizeHint(self):
-        return QSize(200, 200)
+        return QSize(260, 260)
 
     def sizeHint(self):
         *_, w, h = self.fir.rect()
@@ -45,31 +45,38 @@ class RenderArea(QWidget):
             return 
 
         if event.button() == Qt.LeftButton:
-            pos = event.pos()
+            pos = [event.x(), event.y()]
             if len(self.points) > 2:
                 deviation = 12
                 initPoint = self.points[0]
-                dx = abs(pos.x() - initPoint.x())
-                dy = abs(pos.y() - initPoint.y())
+                dx = abs(pos[0] - initPoint[0])
+                dy = abs(pos[1] - initPoint[1])
 
                 if dx < deviation and dy < deviation:
                     # Clip the area with boundaries
-                    # boundaries = self.fir.boundaries()
-                    # area = pointToList(self.points)
-                    # clippedArea = clipPolygon(area, boundaries)
-                    # self.points = listToPoint(clippedArea)
+                    boundaries = self.fir.boundaries()
 
-                    # if len(self.points) < 7:
-                    #     self.done = True
+                    # Todo, the points need to be clockwise
+
+                    try:
+                        self.points = clipPolygon(boundaries, self.points)
+                    except IndexError as e:
+                        self.points = clipPolygon(self.points, boundaries)
+
                     self.done = True
-                    self.stateChanged.emit()
+                    
+                    if len(self.points) < 8:
+                        self.done = True
+                    else:
+                        self.done = False
 
-            if len(self.points) > 7:
-                return
+                    self.stateChanged.emit()
+                    self.pointsChanged.emit()
 
             if not self.done:
-                self.points.append(pos)
-                self.pointsChanged.emit()
+                if len(self.points) < 7:
+                    self.points.append(pos)
+                    self.pointsChanged.emit()
         
         if event.button() == Qt.RightButton and self.points:
             if self.done:
@@ -84,14 +91,15 @@ class RenderArea(QWidget):
     def drawOnePoint(self, painter):
         pen = QPen(Qt.white, 2)
         painter.setPen(pen)
-        point = self.points[0]
+        point = listToPoint(self.points)[0]
         painter.drawPoint(point)
 
     def drawOutline(self, painter):
         pen = QPen(Qt.white, 1, Qt.DashLine)
         painter.setPen(pen)
         
-        for i, point in enumerate(self.points):
+        points = listToPoint(self.points)
+        for i, point in enumerate(points):
             if i == 0:
                 prev = point
                 continue
@@ -100,7 +108,8 @@ class RenderArea(QWidget):
                 prev = point
 
     def drawArea(self, painter):
-        pol = QPolygon(self.points)
+        points = listToPoint(self.points)
+        pol = QPolygon(points)
         painter.setPen(Qt.white)
         painter.drawPolygon(pol)
 
@@ -119,7 +128,7 @@ class RenderArea(QWidget):
             image = pixmap.copy(rect)
             painter.drawPixmap(0, 0, image)
         else:
-            rect = QRect(0, 0, 200, 200)
+            rect = QRect(0, 0, 260, 260)
             painter.setPen(Qt.DashLine)
             painter.drawRect(rect)
             painter.drawText(rect, Qt.AlignCenter, QCoreApplication.translate('Editor', 'No Satellite Image'))
@@ -163,7 +172,7 @@ class AreaChooser(QWidget):
         return 'WI ' + ' - '.join(points)
 
     def calcPoints(self):
-        pixelPoints = pointToList(self.renderArea.points)
+        pixelPoints = self.renderArea.points
         fir = context.fir
         self.points = fir.pixelToDegree(pixelPoints)
         return self.points

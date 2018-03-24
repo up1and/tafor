@@ -131,9 +131,9 @@ def remote_fir(mwo):
     configs = {
         'ZJSA': {
             'image': url_for('static', filename='cloud.jpg', _external=True),
-            'size': [1336, 1154],
-            'coordinates': [[30, 85], [-20, 145]],
-            'rect': [475, 210, 200, 200],
+            'size': [376, 376],
+            'coordinates': [[25, 105], [10, 120]],
+            'rect': [15, 50, 260, 260],
         }
     }
 

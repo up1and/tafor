@@ -16,7 +16,7 @@ class MessageState(object):
 class FirState(object):
     _state = {
         'raw': None,
-        'size': [0, 0],
+        'size': [100, 100],
         'coordinates': [
             [30, 90],
             [10, 120],
@@ -31,9 +31,9 @@ class FirState(object):
     def setState(self, values):
         self._state.update(values)
 
-        self.updateConst()
+        self.computed()
 
-    def updateConst(self):
+    def computed(self):
         latRange = self._state['coordinates'][0][0] - self._state['coordinates'][1][0]
         longRange = self._state['coordinates'][1][1] - self._state['coordinates'][0][1]
         self.initLat = self._state['coordinates'][0][0]
