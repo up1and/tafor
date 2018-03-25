@@ -16,6 +16,7 @@ class RenderArea(QWidget):
         self.points = []
         self.imageSize = None
         self.done = False
+        self.maxPoint = 7
         self.fir = context.fir
 
     def minimumSizeHint(self):
@@ -35,7 +36,7 @@ class RenderArea(QWidget):
         if len(self.points) == 1:
             self.drawOnePoint(painter)
 
-        if self.done:
+        if self.done or len(self.points) > self.maxPoint:
             self.drawArea(painter)
         else:
             self.drawOutline(painter)
@@ -54,18 +55,9 @@ class RenderArea(QWidget):
 
                 if dx < deviation and dy < deviation:
                     # Clip the area with boundaries
-                    boundaries = self.fir.boundaries()
-
-                    # Todo, the points need to be clockwise
-
-                    try:
-                        self.points = clipPolygon(boundaries, self.points)
-                    except IndexError as e:
-                        self.points = clipPolygon(self.points, boundaries)
-
-                    self.done = True
+                    self.points = clipPolygon(self.fir.boundaries(), self.points)
                     
-                    if len(self.points) < 8:
+                    if 2 < len(self.points) <= self.maxPoint:
                         self.done = True
                     else:
                         self.done = False
@@ -74,7 +66,7 @@ class RenderArea(QWidget):
                     self.pointsChanged.emit()
 
             if not self.done:
-                if len(self.points) < 7:
+                if len(self.points) < self.maxPoint:
                     self.points.append(pos)
                     self.pointsChanged.emit()
         
@@ -108,9 +100,14 @@ class RenderArea(QWidget):
                 prev = point
 
     def drawArea(self, painter):
+        if len(self.points) > self.maxPoint:
+            pen = QPen(Qt.white, 1, Qt.DashLine)
+        else:
+            pen = QPen(Qt.white)
+
         points = listToPoint(self.points)
         pol = QPolygon(points)
-        painter.setPen(Qt.white)
+        painter.setPen(pen)
         painter.drawPolygon(pol)
 
     def drawBoundaries(self, painter):

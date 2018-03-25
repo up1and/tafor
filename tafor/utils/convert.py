@@ -1,6 +1,8 @@
 import math
 import datetime
 
+from Polygon import Polygon, Utils
+
 
 def parseTimeInterval(interval, time=None):
     """
@@ -153,43 +155,17 @@ def listToPoint(points):
 def pointToList(points):
     return [[p.x(), p.y()] for p in points]
 
-def clipPolygon(subjectPolygon, clipPolygon):
+def clipPolygon(subj, clip):
     """
-    Sutherland–Hodgman Algorithm
-    https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
-
-    # Bug
+    A General Polygon Clipping Library
+    http://www.cs.man.ac.uk/~toby/alan/software/gpc.html
     """
-    def inside(point, p1, p2):
-        return (p2[0] - p1[0]) * (point[1] - p1[1]) > (p2[1] - p1[1]) * (point[0] - p1[0])
-
-    def intersection(start, end, s, e):
-        x1, y1 = start
-        x2, y2 = end
-        x3, y3 = s
-        x4, y4 = e
-
-        numx = (x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)
-        numy = (x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)
-        den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
-        return [numx / den, numy / den]
-
-    outputs = subjectPolygon
-    start = clipPolygon[-1]
-
-    for end in clipPolygon:
-        inputs = outputs
-        outputs = []
-        s = inputs[-1]
-
-        for e in inputs:
-            if inside(e, start, end):
-                if not inside(s, start, end):
-                    outputs.append(intersection(start, end, s, e))
-                outputs.append(e)
-            elif inside(s, start, end):
-                outputs.append(intersection(start, end, s, e))
-            s = e
-        start = end
-    return outputs
-
+    subj = Polygon(subj)
+    clip = Polygon(clip)
+    try:
+        intersection = subj & clip
+        points = Utils.pointList(intersection)
+    except Exception as e:
+        points = []
+    finally:
+        return points
