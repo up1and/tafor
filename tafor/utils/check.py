@@ -1,10 +1,12 @@
 import re
 import datetime
 
+from sqlalchemy import or_
+
 from tafor import conf, logger
 from tafor.models import db, Taf, Metar
 from tafor.states import context
-from tafor.utils.validator import Grammar
+from tafor.utils.validator import Grammar, Parser
 
 
 class CheckTaf(object):
@@ -87,40 +89,49 @@ class CheckTaf(object):
         return period
 
     def local(self, period=None):
-        """返回本地数据的最新报文"""
+        """返回本地数据当前时次的最新报文，忽略 AMD COR 报文"""
         period = self.warningPeriod() if period is None else period
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        recent = db.query(Taf).filter(Taf.rpt.contains(period), Taf.sent > expired).order_by(Taf.sent.desc()).first()
+        recent = db.query(Taf).filter(Taf.rpt.contains(period), ~Taf.rpt.contains('AMD'), 
+            ~Taf.rpt.contains('COR'), Taf.sent > expired).order_by(Taf.sent.desc()).first()
         return recent
 
-    def remote(self):
-        """返回远程数据的最新报文"""
-        if self.message:
-            match = Grammar.period.search(self.message)
-            if match and match.group() == self.warningPeriod():
-                return self.message
+    def isExist(self):
+        """查询有没有已经入库的报文"""
+        expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+        taf = Parser(self.message)
+        last = db.query(Taf).filter(or_(Taf.rpt == self.message, Taf.rpt == taf.renderer()), Taf.sent > expired).order_by(Taf.sent.desc()).first()
+        return last
 
-        return None
+    def latest(self):
+        """查询本地最新的报文"""
+        last = db.query(Taf).filter_by(tt=self.tt).order_by(Taf.sent.desc()).first()
+        return last
 
     def save(self, callback=None):
         """储存远程报文数据"""
-        item = Taf(tt=self.tt, rpt=self.message, confirmed=self.time)
-        db.add(item)
-        db.commit()
-        logger.info('Save {} {}'.format(self.tt, self.message))
+        isExist = self.isExist()
 
-        if callback:
-            callback()
+        if isExist is None:  # 没有已经入库的报文
+            item = Taf(tt=self.tt, rpt=self.message, confirmed=self.time)
+            db.add(item)
+            db.commit()
+            logger.info('Save {} {}'.format(self.tt, self.message))
 
-    def confirm(self, item, callback=None):
+            if callback:
+                callback()
+
+    def confirm(self, callback=None):
         """确认本地数据和远程数据"""
-        item.confirmed = datetime.datetime.utcnow()
-        db.add(item)
-        db.commit()
-        logger.info('Confirm {} {}'.format(self.tt, self.message))
+        last = self.latest()
 
-        if callback:
-            callback()
+        if last is not None and last.rptInline == self.message:
+            last.confirmed = self.time
+            db.commit()
+            logger.info('Confirm {} {}'.format(self.tt, self.message))
+
+            if callback:
+                callback()
 
     def hasExpired(self, offset=None):
         """当前时段报文是否过了有效发报时间"""
@@ -200,22 +211,17 @@ class Listen(object):
         expired = False
 
         taf = CheckTaf(self.tt, message=self.message)
+        latest = taf.latest()
         local = taf.local()
-        remote = taf.remote()
+
+        if self.message:
+            taf.save(callback=afterSave)
+
+            if latest and not latest.confirmed:
+                taf.confirm(callback=afterSave)
 
         if local:
-            if local.confirmed:
-                if remote and 'AMD' in remote or 'COR' in remote and remote != local.rptInline:
-                    taf.save(callback=afterSave)
-            else:
-                if remote and remote == local.rptInline:
-                    taf.confirm(local, callback=afterSave)
-                elif taf.hasExpired():
-                    expired = True
-        else:
-            if remote:
-                taf.save(callback=afterSave)
-            elif taf.hasExpired():
+            if not local.confirmed and taf.hasExpired():
                 expired = True
 
         context.taf.setState({

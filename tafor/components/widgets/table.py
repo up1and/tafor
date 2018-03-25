@@ -108,14 +108,20 @@ class TafTable(BaseDataTable):
                 checkedItem.setIcon(QIcon(':/cross.png'))
                 self.table.setItem(row, 3, checkedItem)
 
+            if 'COR' in item.rpt or 'AMD' in item.rpt:
+                self.table.item(row, 0).setForeground(Qt.darkYellow)
+                self.table.item(row, 1).setForeground(Qt.darkYellow)
+                self.table.item(row, 2).setForeground(Qt.darkYellow)
+
         self.table.resizeRowsToContents()
 
     def updateResendButton(self, item):
         text = item.text()
         self.resendButton.hide()
         if text.startswith('TAF'):
+            expired = datetime.datetime.utcnow() - datetime.timedelta(hours=6)
             taf = Parser(text)
-            self.selected = db.query(Taf).filter(or_(Taf.rpt == text, Taf.rpt == taf.renderer())).order_by(Taf.sent.desc()).first()
+            self.selected = db.query(Taf).filter(or_(Taf.rpt == text, Taf.rpt == taf.renderer()), Taf.sent > expired).order_by(Taf.sent.desc()).first()
             if self.selected and not self.selected.confirmed:
                 self.resendButton.show()
 
@@ -152,8 +158,8 @@ class MetarTable(BaseDataTable):
             self.table.setItem(row, 0,  QTableWidgetItem(item.tt))
             self.table.setItem(row, 1,  QTableWidgetItem(item.rpt))
             if item.tt == 'SP':
-                self.table.item(row, 0).setForeground(Qt.red)
-                self.table.item(row, 1).setForeground(Qt.red)
+                self.table.item(row, 0).setForeground(Qt.darkYellow)
+                self.table.item(row, 1).setForeground(Qt.darkYellow)
 
         self.table.resizeRowsToContents()
 
