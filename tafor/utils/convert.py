@@ -155,7 +155,7 @@ def listToPoint(points):
 def pointToList(points):
     return [[p.x(), p.y()] for p in points]
 
-def clipPolygon(subj, clip):
+def clipPolygon(subj, clip, maxPoint=7):
     """
     A General Polygon Clipping Library
     http://www.cs.man.ac.uk/~toby/alan/software/gpc.html
@@ -168,4 +168,6 @@ def clipPolygon(subj, clip):
     except Exception as e:
         points = []
     finally:
+        if len(points) > maxPoint:
+            points = Utils.reducePoints(points, maxPoint)
         return points

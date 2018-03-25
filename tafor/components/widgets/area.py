@@ -36,7 +36,7 @@ class RenderArea(QWidget):
         if len(self.points) == 1:
             self.drawOnePoint(painter)
 
-        if self.done or len(self.points) > self.maxPoint:
+        if self.done:
             self.drawArea(painter)
         else:
             self.drawOutline(painter)
@@ -55,12 +55,8 @@ class RenderArea(QWidget):
 
                 if dx < deviation and dy < deviation:
                     # Clip the area with boundaries
-                    self.points = clipPolygon(self.fir.boundaries(), self.points)
-                    
-                    if 2 < len(self.points) <= self.maxPoint:
-                        self.done = True
-                    else:
-                        self.done = False
+                    self.points = clipPolygon(self.fir.boundaries(), self.points, self.maxPoint)
+                    self.done = True if len(self.points) > 2 else False
 
                     self.stateChanged.emit()
                     self.pointsChanged.emit()
@@ -100,14 +96,9 @@ class RenderArea(QWidget):
                 prev = point
 
     def drawArea(self, painter):
-        if len(self.points) > self.maxPoint:
-            pen = QPen(Qt.white, 1, Qt.DashLine)
-        else:
-            pen = QPen(Qt.white)
-
         points = listToPoint(self.points)
         pol = QPolygon(points)
-        painter.setPen(pen)
+        painter.setPen(Qt.white)
         painter.drawPolygon(pol)
 
     def drawBoundaries(self, painter):
