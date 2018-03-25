@@ -16,28 +16,27 @@ class MessageState(object):
 class FirState(object):
     _state = {
         'raw': None,
-        'size': [100, 100],
+        'size': [260, 260],
         'coordinates': [
-            [30, 90],
-            [10, 120],
+            [105.6333, 23],
+            [115.9167, 12.6667],
         ],
         'rect': [0, 0, 0, 0],
         'boundaries': []
-    }
+    } # 这里的参数会被远程参数覆盖
 
     def state(self):
         return self._state
 
     def setState(self, values):
         self._state.update(values)
-
         self.computed()
 
     def computed(self):
-        latRange = self._state['coordinates'][0][0] - self._state['coordinates'][1][0]
-        longRange = self._state['coordinates'][1][1] - self._state['coordinates'][0][1]
-        self.initLat = self._state['coordinates'][0][0]
-        self.initLong = self._state['coordinates'][0][1]
+        latRange = self._state['coordinates'][0][1] - self._state['coordinates'][1][1]
+        longRange = self._state['coordinates'][1][0] - self._state['coordinates'][0][0]
+        self.initLong = self._state['coordinates'][0][0]
+        self.initLat = self._state['coordinates'][0][1]
         self.dlat = latRange / self._state['size'][1]
         self.dlong = longRange / self._state['size'][0]
         self.offsetX = self._state['rect'][0]

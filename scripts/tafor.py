@@ -112,7 +112,7 @@ def fir(mwo):
         'ZJSA': {
             'image': image,
             'size': [1780, 1340],
-            'coordinates': [[52, 79], [-2, 151]],
+            'coordinates': [[79, 52], [151, -2]],
             'rect': [655, 720, 260, 260],
         }
     }
@@ -132,7 +132,7 @@ def remote_fir(mwo):
         'ZJSA': {
             'image': url_for('static', filename='cloud.jpg', _external=True),
             'size': [376, 376],
-            'coordinates': [[25, 105], [10, 120]],
+            'coordinates': [[105, 25], [120, 10]],
             'rect': [15, 50, 260, 260],
         }
     }
