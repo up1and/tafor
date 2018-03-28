@@ -19,6 +19,7 @@ class TestValidator(unittest.TestCase):
         self.assertTrue(self.validator.wind('03008G13MPS', '36005MPS'))
         self.assertTrue(self.validator.wind('03004GP49MPS', '36008MPS'))
         self.assertFalse(self.validator.wind('VRB01MPS', '36004MPS'))
+        self.assertTrue(self.validator.wind('00000MPS', '07005MPS'))
 
     def testVis(self):
         self.assertTrue(self.validator.vis(1600, 3000))
@@ -70,6 +71,9 @@ class TestParser(unittest.TestCase):
         messages = [
             ('TAF ZJHK 150726Z 150918 03003G10MPS 1600 OVC040=', False),
             ('TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR=', True),
+            ('''TAF ZJHK 271533Z 271818 16004MPS 5000 BR SCT020 TX30/07Z TN22/21Z 
+                BECMG 2021 0300 FG
+                BECMG 0001 3000 BR=''', True),
             ('''TAF ZJHK 240130Z 240312 01004MPS 8000 BKN040 
                 BECMG 0506 5000 -RA OVC030 
                 TEMPO 0610 02008MPS 3000 TSRA FEW010 SCT030CB=''', False),

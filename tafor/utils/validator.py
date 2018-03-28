@@ -95,6 +95,10 @@ class Validator(object):
         windMatch = pattern.match(wind)
 
         def splitWind(m):
+            # 考虑静风的特殊情况
+            if m.group() == '00000MPS':
+                return 360, 0, None
+
             direction = m.group(1)
             speed = 50 if m.group(2) == 'P49' else int(m.group(2))
             gust = m.group(3)
