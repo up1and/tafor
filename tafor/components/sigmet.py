@@ -44,7 +44,7 @@ class SigmetEditor(BaseEditor):
         self.sigmetCustom.hide()
 
     def bindSignal(self):
-        self.nextButton.clicked.connect(self.previewMessage)
+        self.nextButton.clicked.connect(self.beforeNext)
 
         self.type.significantWeather.clicked.connect(self.changeSegment)
         self.type.tropicalCyclone.clicked.connect(self.changeSegment)
@@ -113,6 +113,12 @@ class SigmetEditor(BaseEditor):
             self.currentSegment.setType('WV')
             self.type.template.setEnabled(False)
 
+    def beforeNext(self):
+        self.currentSegment.head.validEndingTime()
+
+        if self.enbale:
+            self.previewMessage()
+
     def previewMessage(self):
         self.rpt = self.currentSegment.message()
         self.sign = self.type.message()
@@ -121,8 +127,8 @@ class SigmetEditor(BaseEditor):
 
     def enbaleNextButton(self):
         completes = [self.currentSegment.head.complete, self.currentSegment.content.complete]
-        enbale = all(completes)
-        self.nextButton.setEnabled(enbale)
+        self.enbale = all(completes)
+        self.nextButton.setEnabled(self.enbale)
 
     def clear(self):
         self.sigmetGeneral.clear()

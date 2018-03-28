@@ -93,8 +93,7 @@ class BaseTafEditor(BaseEditor):
         self.tempo2.completeSignal.connect(self.enbaleNextButton)
 
         # 下一步
-        self.nextButton.clicked.connect(self.assembleMessage)
-        self.nextButton.clicked.connect(self.previewMessage)
+        self.nextButton.clicked.connect(self.beforeNext)
 
     def addGroup(self):
         # BECMG
@@ -288,6 +287,36 @@ class BaseTafEditor(BaseEditor):
         self.rpt = '\n'.join(filter(None, messages)) + '='
         self.sign = self.primary.sign()
 
+    def beforeNext(self):
+        self.validTemperature()
+        self.validTemperatureHour(self.primary.tmaxTime)
+        self.validTemperatureHour(self.primary.tminTime)
+        self.primary.validGust()
+
+        if self.primary.becmg1Checkbox.isChecked():
+            self.validGroupInterval(self.becmg1.interval)
+            self.becmg1.validGust()
+
+        if self.primary.becmg2Checkbox.isChecked():
+            self.validGroupInterval(self.becmg2.interval)
+            self.becmg2.validGust()
+
+        if self.primary.becmg3Checkbox.isChecked():
+            self.validGroupInterval(self.becmg3.interval)
+            self.becmg3.validGust()
+
+        if self.primary.tempo1Checkbox.isChecked():
+            self.validGroupInterval(self.tempo1.interval, tempo=True)
+            self.tempo1.validGust()
+
+        if self.primary.tempo2Checkbox.isChecked():
+            self.validGroupInterval(self.tempo2.interval, tempo=True)
+            self.tempo2.validGust()
+        
+        if self.enbale:
+            self.assembleMessage()
+            self.previewMessage()
+
     def setDate(self):
         self.time = datetime.datetime.utcnow()
         self.primary.date.setText(self.time.strftime('%d%H%M'))
@@ -311,9 +340,9 @@ class BaseTafEditor(BaseEditor):
         if self.primary.tempo2Checkbox.isChecked():
             completes.append(self.tempo2.complete)
 
-        enbale = all(completes)
+        self.enbale = all(completes)
 
-        self.nextButton.setEnabled(enbale)
+        self.nextButton.setEnabled(self.enbale)
 
     def clear(self):
         self.primary.clear()

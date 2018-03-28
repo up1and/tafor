@@ -39,12 +39,19 @@ class TrendEditor(BaseEditor):
         self.trend.completeSignal.connect(self.enbaleNextButton)
 
         # 下一步
-        self.nextButton.clicked.connect(self.assembleMessage)
-        self.nextButton.clicked.connect(self.previewMessage)
+        self.nextButton.clicked.connect(self.beforeNext)
 
     def enbaleNextButton(self):
-        enbale = self.trend.complete
-        self.nextButton.setEnabled(enbale)
+        self.enbale = self.trend.complete
+        self.nextButton.setEnabled(self.enbale)
+
+    def beforeNext(self):
+        self.validPeriod()
+        self.trend.validGust()
+
+        if self.enbale:
+            self.assembleMessage()
+            self.previewMessage()
 
     def validPeriod(self):
         period = self.trend.period.text()

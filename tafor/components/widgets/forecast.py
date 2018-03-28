@@ -153,6 +153,9 @@ class BaseSegment(QWidget, SegmentMixin):
         self.weatherWithIntensity.addItems(intensityWeathers)
 
     def validGust(self):
+        if not self.gust.hasAcceptableInput():
+            return
+
         windSpeed = self.wind.text()[-2:] if self.wind.hasAcceptableInput() else 0
         gust = self.gust.text()
 
