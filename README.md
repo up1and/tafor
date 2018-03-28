@@ -27,7 +27,8 @@
     - 迟发报文提供电话和声音的告警
 
 ## 预览
-![preview](https://github.com/up1and/tafor/blob/master/docs/images/home.png)
+![preview](https://github.com/up1and/tafor/blob/master/docs/images/home.png)[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fup1and%2Ftafor.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fup1and%2Ftafor?ref=badge_shield)
+
 
 ## 安装
 - 操作系统限制为 Windows 7 SP1 以上
@@ -40,3 +41,6 @@
 
   [TAF Decode]: https://www.aviationweather.gov/static/help/taf-decode.php
   [SIGMET Introduction]: https://en.wikipedia.org/wiki/SIGMET
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fup1and%2Ftafor.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fup1and%2Ftafor?ref=badge_large)
