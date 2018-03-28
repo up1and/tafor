@@ -654,7 +654,7 @@ class Parser(object):
                 tokens['cloud']['error'] = True
                 self.tips.append('阵性降水应包含 CB')
 
-            # 不用高度云组云量的验证
+            # 不同高度云组云量的验证
             clouds = [c for c in cloud.split() if 'CB' not in c]
 
             for i, cloud in enumerate(clouds):
@@ -665,6 +665,13 @@ class Parser(object):
                 if i == 2 and ('FEW' in cloud or 'SCT' in cloud):
                     tokens['cloud']['error'] = True
                     self.tips.append('云组第三层云量不能为 FEW 或 SCT')
+
+            # 非积雨云的云高不能相同
+            cloudHeights = [c[3:] for c in clouds]
+            for h in cloudHeights:
+                if cloudHeights.count(h) > 1:
+                    tokens['cloud']['error'] = True
+                    self.tips.append('非积雨云的云高不能相同')
 
     def isValid(self):
         """报文是否有错误"""
