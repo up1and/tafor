@@ -27,10 +27,10 @@
     - 迟发报文提供电话和声音的告警
 
 ## 预览
-![preview](https://github.com/up1and/tafor/blob/master/docs/images/home.png)
+![preview](https://github.com/up1and/tafor/blob/master/docs/images/main.png)
 
 ## 安装
-- 操作系统限制为 Windows 7 SP1 以上
+- 操作系统需 Windows 7 SP1 或以上
 - 遇到缺失 api-ms-win-crt-runtime-l1-1-0.dll，请确保安装
     Microsoft Visual C++ 2015 Redistriuutaule
 
