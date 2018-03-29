@@ -66,7 +66,10 @@ class BaseSegment(QWidget, SegmentMixin):
         if hasattr(self, 'interval'):
             self.interval.textEdited.connect(lambda: self.coloredText(self.interval))
 
-        self.gust.editingFinished.connect(self.validGust)
+        self.gust.editingFinished.connect(self.validateGust)
+        self.cloud1.editingFinished.connect(lambda: self.validateCloud(self.cloud1))
+        self.cloud2.editingFinished.connect(lambda: self.validateCloud(self.cloud2))
+        self.cloud3.editingFinished.connect(lambda: self.validateCloud(self.cloud3))
 
         self.wind.textEdited.connect(lambda: self.upperText(self.wind))
         self.gust.textEdited.connect(lambda: self.upperText(self.gust))
@@ -85,7 +88,7 @@ class BaseSegment(QWidget, SegmentMixin):
 
         self.register()
 
-    def clouds(self, enbale):
+    def setClouds(self, enbale):
         if enbale:
             self.cloud1.setEnabled(True)
             self.cloud2.setEnabled(True)
@@ -111,19 +114,19 @@ class BaseSegment(QWidget, SegmentMixin):
             self.weather.setCurrentIndex(-1)
             self.weatherWithIntensity.setEnabled(False)
             self.weatherWithIntensity.setCurrentIndex(-1)
-            self.clouds(False)
+            self.setClouds(False)
         else:
             self.vis.setEnabled(True)
             self.weather.setEnabled(True)
             self.weatherWithIntensity.setEnabled(True)
-            self.clouds(True)
+            self.setClouds(True)
 
     def setNsc(self, checked):
         if checked:
             self.cavok.setChecked(False)
-            self.clouds(False)
+            self.setClouds(False)
         else:
-            self.clouds(True)
+            self.setClouds(True)
 
     def setValidator(self):
         wind = QRegExpValidator(QRegExp(self.rules.wind, Qt.CaseInsensitive))
@@ -152,7 +155,7 @@ class BaseSegment(QWidget, SegmentMixin):
                 intensityWeathers.extend(['-' + w, w, '+' + w])
         self.weatherWithIntensity.addItems(intensityWeathers)
 
-    def validGust(self):
+    def validateGust(self):
         if not self.gust.hasAcceptableInput():
             return
 
@@ -164,6 +167,26 @@ class BaseSegment(QWidget, SegmentMixin):
 
         if windSpeed == 0 or int(gust) - int(windSpeed) < 5:
             self.gust.clear()
+
+    def validateCloud(self, line):
+        if not line.hasAcceptableInput():
+            return
+
+        cloud1 = self.cloud1.text() if self.cloud1.hasAcceptableInput() else None
+        cloud2 = self.cloud2.text() if self.cloud2.hasAcceptableInput() else None
+        cloud3 = self.cloud3.text() if self.cloud3.hasAcceptableInput() else None
+        clouds = filter(None, [cloud1, cloud2, cloud3])
+
+        height = line.text()[3:]
+        cloudHeights = [c[3:] for c in clouds]
+        if cloudHeights.count(height) > 1:
+            line.clear()
+
+    def validate(self):
+        self.validateGust()
+        self.validateCloud(self.cloud3)
+        self.validateCloud(self.cloud2)
+        self.validateCloud(self.cloud1)
 
     def message(self):
         wind = self.wind.text() if self.wind.hasAcceptableInput() else None
@@ -368,10 +391,6 @@ class TafBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Editor):
         self.name.setText(name)
 
         self.setValidator()
-
-        # self.cavok.clicked.connect(self.setCavok)
-        # self.nsc.clicked.connect(self.setNsc)
-
         self.bindSignal()
 
     def setValidator(self):
@@ -425,7 +444,6 @@ class TafTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Editor):
         self.name.setText(name)
 
         self.setValidator()
-
         self.bindSignal()
 
     def setValidator(self):
@@ -451,7 +469,6 @@ class TafTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Editor):
         if self.prob40.isChecked():
             messages.insert(0, 'PROB40')
         self.msg = ' '.join(messages)
-        # logger.debug(self.msg)
         return self.msg
 
     def checkComplete(self):

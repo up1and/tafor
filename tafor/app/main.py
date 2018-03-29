@@ -97,6 +97,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.settingAction.triggered.connect(self.showWindow)
         self.settingAction.setIcon(QIcon(':/setting.png'))
 
+        self.openDocsAction.triggered.connect(self.openDocs)
         self.reportIssueAction.triggered.connect(self.reportIssue)
         self.checkUpgradeAction.triggered.connect(self.checkUpgradeThread.start)
 
@@ -384,6 +385,10 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         text = '<p>'.join([head, description, tail, copyright])
 
         QMessageBox.about(self, title, text)
+
+    def openDocs(self):
+        docs = os.path.join(BASEDIR, '..', 'docs/_build/html/index.html')
+        QDesktopServices.openUrl(QUrl.fromLocalFile(docs))
 
     def reportIssue(self):
         QDesktopServices.openUrl(QUrl('https://github.com/up1and/tafor/issues'))

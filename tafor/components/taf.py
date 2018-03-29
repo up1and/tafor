@@ -72,18 +72,18 @@ class BaseTafEditor(BaseEditor):
 
         self.primary.period.textChanged.connect(self.clear)
 
-        self.primary.tmaxTime.editingFinished.connect(lambda :self.validTemperatureHour(self.primary.tmaxTime))
-        self.primary.tminTime.editingFinished.connect(lambda :self.validTemperatureHour(self.primary.tminTime))
+        self.primary.tmaxTime.editingFinished.connect(lambda :self.validateTemperatureHour(self.primary.tmaxTime))
+        self.primary.tminTime.editingFinished.connect(lambda :self.validateTemperatureHour(self.primary.tminTime))
 
-        self.primary.tmax.editingFinished.connect(self.validTemperature)
-        self.primary.tmin.editingFinished.connect(self.validTemperature)
+        self.primary.tmax.editingFinished.connect(self.validateTemperature)
+        self.primary.tmin.editingFinished.connect(self.validateTemperature)
 
-        self.becmg1.interval.editingFinished.connect(lambda :self.validGroupInterval(self.becmg1.interval))
-        self.becmg2.interval.editingFinished.connect(lambda :self.validGroupInterval(self.becmg2.interval))
-        self.becmg3.interval.editingFinished.connect(lambda :self.validGroupInterval(self.becmg3.interval))
+        self.becmg1.interval.editingFinished.connect(lambda :self.validateChangeGroupInterval(self.becmg1.interval))
+        self.becmg2.interval.editingFinished.connect(lambda :self.validateChangeGroupInterval(self.becmg2.interval))
+        self.becmg3.interval.editingFinished.connect(lambda :self.validateChangeGroupInterval(self.becmg3.interval))
 
-        self.tempo1.interval.editingFinished.connect(lambda :self.validGroupInterval(self.tempo1.interval, tempo=True))
-        self.tempo2.interval.editingFinished.connect(lambda :self.validGroupInterval(self.tempo2.interval, tempo=True))
+        self.tempo1.interval.editingFinished.connect(lambda :self.validateChangeGroupInterval(self.tempo1.interval, tempo=True))
+        self.tempo2.interval.editingFinished.connect(lambda :self.validateChangeGroupInterval(self.tempo2.interval, tempo=True))
 
         self.primary.completeSignal.connect(self.enbaleNextButton)
         self.becmg1.completeSignal.connect(self.enbaleNextButton)
@@ -229,7 +229,7 @@ class BaseTafEditor(BaseEditor):
             end += datetime.timedelta(days=1)
         return start, end
 
-    def validTemperatureHour(self, line):
+    def validateTemperatureHour(self, line):
         if self.periods is not None:
             tempHour = parseTimeInterval(line.text(), self.time)[0]
 
@@ -242,7 +242,7 @@ class BaseTafEditor(BaseEditor):
                 line.clear()
                 self.parent.statusBar.showMessage(QCoreApplication.translate('Editor', 'Hour of temperature is not corret'), 5000)
 
-    def validTemperature(self):
+    def validateTemperature(self):
         tmax = self.primary.tmax.text()
         tmin = self.primary.tmin.text()
         if tmax and tmin:
@@ -251,7 +251,7 @@ class BaseTafEditor(BaseEditor):
             if tmax <= tmin:
                 self.primary.tmin.clear()
 
-    def validGroupInterval(self, line, tempo=False):
+    def validateChangeGroupInterval(self, line, tempo=False):
         if not self.periods:
             line.clear()
             return
@@ -288,30 +288,30 @@ class BaseTafEditor(BaseEditor):
         self.sign = self.primary.sign()
 
     def beforeNext(self):
-        self.validTemperature()
-        self.validTemperatureHour(self.primary.tmaxTime)
-        self.validTemperatureHour(self.primary.tminTime)
-        self.primary.validGust()
+        self.validateTemperature()
+        self.validateTemperatureHour(self.primary.tmaxTime)
+        self.validateTemperatureHour(self.primary.tminTime)
+        self.primary.validate()
 
         if self.primary.becmg1Checkbox.isChecked():
-            self.validGroupInterval(self.becmg1.interval)
-            self.becmg1.validGust()
+            self.validateChangeGroupInterval(self.becmg1.interval)
+            self.becmg1.validate()
 
         if self.primary.becmg2Checkbox.isChecked():
-            self.validGroupInterval(self.becmg2.interval)
-            self.becmg2.validGust()
+            self.validateChangeGroupInterval(self.becmg2.interval)
+            self.becmg2.validate()
 
         if self.primary.becmg3Checkbox.isChecked():
-            self.validGroupInterval(self.becmg3.interval)
-            self.becmg3.validGust()
+            self.validateChangeGroupInterval(self.becmg3.interval)
+            self.becmg3.validate()
 
         if self.primary.tempo1Checkbox.isChecked():
-            self.validGroupInterval(self.tempo1.interval, tempo=True)
-            self.tempo1.validGust()
+            self.validateChangeGroupInterval(self.tempo1.interval, tempo=True)
+            self.tempo1.validate()
 
         if self.primary.tempo2Checkbox.isChecked():
-            self.validGroupInterval(self.tempo2.interval, tempo=True)
-            self.tempo2.validGust()
+            self.validateChangeGroupInterval(self.tempo2.interval, tempo=True)
+            self.tempo2.validate()
         
         if self.enbale:
             self.assembleMessage()

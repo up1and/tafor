@@ -114,7 +114,7 @@ class SigmetEditor(BaseEditor):
             self.type.template.setEnabled(False)
 
     def beforeNext(self):
-        self.currentSegment.head.validEndingTime()
+        self.currentSegment.head.validate()
 
         if self.enbale:
             self.previewMessage()

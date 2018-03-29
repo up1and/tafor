@@ -35,7 +35,7 @@ class TrendEditor(BaseEditor):
         self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px}')
 
     def bindSignal(self):
-        self.trend.period.editingFinished.connect(self.validPeriod)
+        self.trend.period.editingFinished.connect(self.validatePeriod)
         self.trend.completeSignal.connect(self.enbaleNextButton)
 
         # 下一步
@@ -46,14 +46,16 @@ class TrendEditor(BaseEditor):
         self.nextButton.setEnabled(self.enbale)
 
     def beforeNext(self):
-        self.validPeriod()
-        self.trend.validGust()
+        self.trend.validate()
+
+        if self.trend.period.isEnabled():
+            self.validatePeriod()
 
         if self.enbale:
             self.assembleMessage()
             self.previewMessage()
 
-    def validPeriod(self):
+    def validatePeriod(self):
         period = self.trend.period.text()
         utc = datetime.datetime.utcnow()
         time = parseTime(period)

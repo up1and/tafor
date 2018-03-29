@@ -666,13 +666,6 @@ class Parser(object):
                     tokens['cloud']['error'] = True
                     self.tips.append('云组第三层云量不能为 FEW 或 SCT')
 
-            # 非积雨云的云高不能相同
-            cloudHeights = [c[3:] for c in clouds]
-            for h in cloudHeights:
-                if cloudHeights.count(h) > 1:
-                    tokens['cloud']['error'] = True
-                    self.tips.append('非积雨云的云高不能相同')
-
     def isValid(self):
         """报文是否有错误"""
         valids = [e.isValid() for e in self.elements]

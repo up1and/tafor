@@ -48,7 +48,7 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
 
     def bindSignal(self):
         self.forecast.currentTextChanged.connect(self.enbaleOBSTime)
-        self.endingTime.editingFinished.connect(self.validEndingTime)
+        self.endingTime.editingFinished.connect(self.validateEndingTime)
 
         self.typhoonName.textEdited.connect(lambda: self.upperText(self.typhoonName))
 
@@ -76,7 +76,7 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
         end = start + datetime.timedelta(hours=self.duration)
         return start, end
 
-    def validEndingTime(self):
+    def validateEndingTime(self):
         if self.beginningTime.hasAcceptableInput() and self.endingTime.hasAcceptableInput():
             start = parseDateTime(self.beginningTime.text())
             end = parseDateTime(self.endingTime.text())
@@ -89,13 +89,16 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
                 self.endingTime.clear()
                 logger.debug('Valid period more than {} hours'.format(self.duration))
 
-    def validObsTime(self):
+    def validateObsTime(self):
         if self.beginningTime.hasAcceptableInput() and self.obsTime.hasAcceptableInput():
             start = parseDateTime(self.beginningTime.text())
             obs = parseTime(self.obsTime.text())
             if obs > start:
                 self.obsTime.clear()
                 logger.debug('Observation time should before the beginning time')
+
+    def validate(self):
+        self.validateEndingTime()
 
     def setDuration(self, duration):
         self.duration = duration
@@ -248,6 +251,7 @@ class SigmetGeneralHead(BaseSigmetHead):
     def checkComplete(self):
         mustRequired = [
             self.beginningTime.hasAcceptableInput(),
+            self.endingTime.hasAcceptableInput(),
             self.sequence.hasAcceptableInput(),
         ]
         if self.obsTime.isEnabled():
@@ -451,6 +455,7 @@ class SigmetTyphoonHead(BaseSigmetHead):
     def checkComplete(self):
         mustRequired = [
                         self.beginningTime.hasAcceptableInput(), 
+                        self.endingTime.hasAcceptableInput(),
                         self.sequence.hasAcceptableInput(), 
                         self.typhoonName.text(),
                         ]
