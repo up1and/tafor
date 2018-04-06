@@ -69,7 +69,14 @@ class Pattern(object):
 
 
 class Validator(object):
-    """根据行业标准验证 TAF 报文单项要素之间的转折"""
+    """根据行业标准验证 TAF 报文单项要素之间的转折
+
+    :param kwargs: 额外参数
+
+                    * `isHas5000=True` 开启能见度 5000 的验证
+                    * `cloudHeightHas450=True` 开启云高 450 的验证
+
+    """
     grammarClass = Grammar
 
     def __init__(self, **kwargs):
@@ -84,11 +91,15 @@ class Validator(object):
             self.cloudHeightThresholds.append(15)
 
     def wind(self, refWind, wind):
-        """
-        风
-        1. 当预报平均地面风向的变化大于等于 60°，且平均风速在变化前和（或）变化后大于等于 5m/s 时
-        2. 当预报平均地面风速的变化大于等于 5m/s 时
-        3. 当预报平均地面风风速变差（阵风）增加(或减少)大于等于 5m/s，且平均风速在变化前和（或）变化后大于等于 8m/s 时  ***有异议
+        """风组的转折验证
+
+            1. 当预报平均地面风向的变化大于等于 60°，且平均风速在变化前和（或）变化后大于等于 5m/s 时
+            2. 当预报平均地面风速的变化大于等于 5m/s 时
+            3. 当预报平均地面风风速变差（阵风）变化 5m/s 或以上，且平均风速在变化前和变化后大于等于 8m/s 时
+
+        :param refWind: 参照风组
+        :param wind: 风组
+        :returns: 验证是否通过
         """
         pattern = self.grammarClass.wind
         refWindMatch = pattern.match(refWind)
@@ -153,23 +164,28 @@ class Validator(object):
         return False
 
     def vis(self, refVis, vis):
-        """
-        能见度
-        当预报主导能见度上升并达到或经过下列一个或多个数值，或下降并经过下列一个或多个数值时：
-        1. 150 m、350 m、600 m、800 m、1500 m 或 3000 m
-        2. 5000 m（当有大量的按目视飞行规则的飞行时）
+        """能见度的转折验证
 
+        当预报主导能见度上升并达到或经过下列一个或多个数值，或下降并经过下列一个或多个数值时：
+            1. 150 m、350 m、600 m、800 m、1500 m 或 3000 m
+            2. 5000 m（当有大量的按目视飞行规则的飞行时）
+
+        :param refWind: 参照能见度
+        :param wind: 能见度
+        :returns: 验证是否通过
         """
         thresholds = self.visThresholds
         return self.compare(refVis, vis, thresholds)
 
     def vv(self, refVv, vv):
-        """
-        垂直能见度
-        当预报垂直能见度上升并达到或经过下列一个或多个数值，或下降并经过下列一个或多个数值时：
-        30 m、60 m、150 m 或 300 m
+        """垂直能见度的转折验证
 
-        # 编报时对应 VV001、VV002、VV005、VV010
+        当预报垂直能见度上升并达到或经过下列一个或多个数值，或下降并经过下列一个或多个数值时：
+            30 m、60 m、150 m 或 300 m，编报时对应 VV001、VV002、VV005、VV010
+
+        :param refVv: 参照垂直能见度
+        :param vv: 垂直能见度
+        :returns: 验证是否通过
         """
         pattern = self.grammarClass.vv
         matches = [pattern.match(refVv), pattern.match(vv)]
@@ -204,21 +220,25 @@ class Validator(object):
         return False
 
     def weather(self, refWeather, weather):
-        """
-        天气现象
-        1. 当预报下列一种或几种天气现象开始、终止或强度变化时：
-           冻降水
-           中或大的降水（包括阵性降水）包括雷暴
-           尘暴
-           沙暴
+        """天气现象的转折验证
 
-        2. 当预报下列一种或几种天气现象开始、终止时：
-           冻雾
-           低吹尘、低吹沙或低吹雪
-           高吹尘、高吹沙或高吹雪
-           雷暴（伴或不伴有降水）
-           飑
-           漏斗云（陆龙卷或水龙卷）
+            1. 当预报下列一种或几种天气现象开始、终止或强度变化时：
+                * 冻降水
+                * 中或大的降水（包括阵性降水）包括雷暴
+                * 尘暴
+                * 沙暴
+
+            2. 当预报下列一种或几种天气现象开始、终止时：
+                * 冻雾
+                * 低吹尘、低吹沙或低吹雪
+                * 高吹尘、高吹沙或高吹雪
+                * 雷暴（伴或不伴有降水）
+                * 飑
+                * 漏斗云（陆龙卷或水龙卷）
+
+        :param refWeather: 参照天气现象
+        :param weather: 天气现象
+        :returns: 验证是否通过
         """
         weatherWithIntensityPattern = re.compile(r'([+-])?(DZ|RA|SN|SG|PL|DS|SS|SHRA|SHSN|SHGR|SHGS|FZRA|FZDZ|TSRA|TSSN|TSPL|TSGR|TSGS|TSSH)')
         weatherPattern = re.compile(r'(SQ|PO|FC|TS|FZFG|BLSN|BLSA|BLDU|DRSN|DRSA|DRDU)')
@@ -245,17 +265,21 @@ class Validator(object):
         return False
 
     def cloud(self, refCloud, cloud):
-        '''
-        云
+        '''云的转折验证
+
         当预报 BKN 或 OVC 云量的最低云层的云高抬升并达到或经过下列一个或多个数值，或降低并经过下列一个或多个数值时：
-        1. 30 m、60 m、150 m 或 300 m
-        2. 450 m（在有大量的按目视飞行规则的飞行时）
+            1. 30 m、60 m、150 m 或 300 m
+            2. 450 m（在有大量的按目视飞行规则的飞行时）
 
         当预报低于 450 m 的云层或云块的量的变化满足下列条件之一时：
-        1. 从 SCT 或更少到 BKN、OVC
-        2. 从 BKN、OVC 到 SCT 或更少
+            1. 从 SCT 或更少到 BKN、OVC
+            2. 从 BKN、OVC 到 SCT 或更少
 
         当预报积雨云将发展或消失时
+
+        :param refCloud: 参照云组
+        :param cloud: 云组
+        :returns: 验证是否通过
         '''
         pattern = self.grammarClass.cloud
         thresholds = self.cloudHeightThresholds
@@ -306,6 +330,13 @@ class Validator(object):
         return False
 
     def cavok(self, vis, weather, cloud):
+        '''CAVOK 的转折验证
+
+        :param vis: 能见度
+        :param weather: 天气现象
+        :param cloud: 云组
+        :returns: 验证是否通过
+        '''
         validations = [
             self.vis(vis, 9999),
             self.weather(weather, 'NSW'),
@@ -316,7 +347,12 @@ class Validator(object):
 
 
 class Lexer(object):
-    """TAF 报文一组要素的解析器"""
+    """TAF 报文一组要素的解析器
+
+    :param part: 单组主报文、BECMG 或 TEMPO
+    :param grammar: 解析 TAF 报文的语法类
+    :param kwargs: 额外参数
+    """
     grammarClass = Grammar
 
     defaultRules = [
@@ -338,11 +374,9 @@ class Lexer(object):
 
     @property
     def sign(self):
-        """返回报文的标识符 TAF, BECMG, TEMPO"""
         return self.tokens['sign']['text']
 
     def parse(self, part, rules=None):
-        """识别报文的每一项要素"""
         if not rules:
             rules = self.defaultRules
 
@@ -373,12 +407,15 @@ class Lexer(object):
             self.generatePeriod(period, time)
 
     def generatePeriod(self, period, time):
-        """生成报文的有效期"""
+        # 生成报文的有效期
         self.period = parseTimeInterval(period, time)
         return self.period
 
     def isValid(self):
-        """报文是否有错误"""
+        """检查报文是否有错误
+
+        :return: 报文是否通过验证
+        """
         for k, e in self.tokens.items():
                 if e['error']:
                     return False
@@ -386,7 +423,14 @@ class Lexer(object):
         return True
 
     def renderer(self, style='plain'):
-        """将解析后的报文重新渲染"""
+        """将解析后的报文重新渲染
+
+        :param style: 
+            * plain 纯字符串风格
+            * terminal 终端高亮风格
+            * html HTML 高亮风格
+        :return: 根据不同风格重新渲染的报文
+        """
         def terminal():
             from colorama import init, Fore
             init(autoreset=True)
@@ -419,7 +463,14 @@ class Lexer(object):
 
 
 class Parser(object):
-    """解析 TAF 报文"""
+    """解析 TAF 报文
+
+    :param message: TAF 报文
+    :param parse: 解析报文的类
+    :param validator: 验证报文转折关系的类
+    :param kwargs: 额外参数
+    """
+
     defaultRules = [
         'wind', 'vis', 'weather', 'cloud'
     ]
@@ -536,7 +587,7 @@ class Parser(object):
             }
 
     def validate(self):
-        """验证报文"""
+        """验证报文转折逻辑"""
         self.regroup()
         self.refs()
 
@@ -573,7 +624,11 @@ class Parser(object):
         self.tips = list(set(self.tips))
 
     def validateMutiElements(self, ref, tokens):
-        """验证多个元素之间的匹配规则"""
+        """验证多个元素之间的匹配规则
+
+        :param ref: 报文参照组
+        :param tokens: 当前报文解析后的要素， `OrderedDict`
+        """
         mixture = copy.deepcopy(ref)
         for key in tokens:
             if key in self.defaultRules:
@@ -667,12 +722,22 @@ class Parser(object):
                     self.tips.append('云组第三层云量不能为 FEW 或 SCT')
 
     def isValid(self):
-        """报文是否有错误"""
+        """检查报文是否有错误
+
+        :return: 报文是否通过验证
+        """
         valids = [e.isValid() for e in self.elements]
         return all(valids)
  
     def renderer(self, style='plain'):
-        """将解析后的报文重新渲染"""
+        """将解析后的报文重新渲染
+
+        :param style: 
+            * plain 纯字符串风格
+            * terminal 终端高亮风格
+            * html HTML 高亮风格
+        :return: 根据不同风格重新渲染的报文
+        """
         outputs = [e.renderer(style) for e in self.elements]
 
         if style == 'html':
