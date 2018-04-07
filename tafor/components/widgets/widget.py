@@ -1,21 +1,30 @@
 import json
 import datetime
 
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox, QLabel, QHBoxLayout
 
+from tafor.components.ui import main_rc
 from tafor.models import db, Taf, Sigmet, Trend
 from tafor.utils import CheckTaf
 from tafor.components.ui import Ui_main_recent
 
 
-def remindBox(parent):
+class RemindMessageBox(QMessageBox):
     """闹钟对话框"""
-    title = QCoreApplication.translate('MainWindow', 'Alarm')
-    messageBox = QMessageBox(QMessageBox.Question, title, 'Display Text', parent=parent)
-    snooze = messageBox.addButton(QCoreApplication.translate('MainWindow', 'Snooze'), QMessageBox.ApplyRole)
-    dismiss = messageBox.addButton(QCoreApplication.translate('MainWindow', 'Dismiss'), QMessageBox.RejectRole)
-    return messageBox
+    def __init__(self, parent):
+        super(RemindMessageBox, self).__init__(parent=parent)
+        icon = QPixmap(':/time.png')
+        title = QCoreApplication.translate('MainWindow', 'Alarm')
+        self.setIconPixmap(icon)
+        self.setWindowTitle(title)
+        self.addButton(QCoreApplication.translate('MainWindow', 'Snooze'), QMessageBox.ApplyRole)
+        self.addButton(QCoreApplication.translate('MainWindow', 'Dismiss'), QMessageBox.RejectRole)
+        self.parent = parent
+
+    def showEvent(self, event):
+        self.parent.showNormal()
 
 
 class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):

@@ -23,7 +23,7 @@ from tafor.components.setting import SettingDialog
 from tafor.components.task import TaskBrowser
 
 from tafor.components.widgets.table import TafTable, MetarTable, SigmetTable
-from tafor.components.widgets.widget import remindBox, Clock, CurrentTaf, RecentMessage
+from tafor.components.widgets.widget import Clock, CurrentTaf, RecentMessage, RemindMessageBox
 from tafor.components.widgets.status import WebAPIStatus, CallServiceStatus
 from tafor.components.widgets.sound import Sound
         
@@ -56,7 +56,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.clip = QApplication.clipboard()
 
         # 闹钟提示框
-        self.remindBox = remindBox(self)
+        self.remindBox = RemindMessageBox(self)
 
         # 初始化窗口
         self.settingDialog = SettingDialog(self)
@@ -94,7 +94,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         # 连接设置对话框的槽
         self.settingAction.triggered.connect(self.settingDialog.exec_)
-        self.settingAction.triggered.connect(self.showWindow)
         self.settingAction.setIcon(QIcon(':/setting.png'))
 
         self.openDocsAction.triggered.connect(self.openDocs)
@@ -103,7 +102,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         # 连接关于信息的槽
         self.aboutAction.triggered.connect(self.about)
-        self.aboutAction.triggered.connect(self.showWindow)
 
         # 连接切换联系人的槽
         self.contractsActionGroup.triggered.connect(self.changeContract)
@@ -246,7 +244,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.trendEditor.close()
             self.sigmetEditor.close()
             self.settingDialog.close()
-            self.remindBox.close()
 
             if boolean(conf.value('General/Serious')):
                 self.taskTafSender.setAttribute(Qt.WA_DeleteOnClose)
@@ -261,10 +258,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def restoreWindow(self, reason):
         if reason == QSystemTrayIcon.Trigger:
-            self.showNormal()
-
-    def showWindow(self):
-        if self.isMinimized():
             self.showNormal()
 
     def singer(self):
@@ -384,6 +377,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         copyright = '<br/>© UP1AND 2018'
         text = '<p>'.join([head, description, tail, copyright])
 
+        self.showNormal()
         QMessageBox.about(self, title, text)
 
     def openDocs(self):

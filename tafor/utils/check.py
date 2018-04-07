@@ -208,20 +208,23 @@ class Listen(object):
             self.parent.notificationSound.play(loop=False)
             self.parent.remindBox.close()
 
-        expired = False
-
         taf = CheckTaf(self.tt, message=self.message)
-        latest = taf.latest()
-        local = taf.local()
 
         if self.message:
             taf.save(callback=afterSave)
 
+            latest = taf.latest()
             if latest and not latest.confirmed:
                 taf.confirm(callback=afterSave)
 
-        if local:
-            if not local.confirmed and taf.hasExpired():
+        expired = False
+        
+        if taf.hasExpired():
+            local = taf.local()
+            if local:
+                if not local.confirmed:
+                    expired = True
+            else:
                 expired = True
 
         context.taf.setState({

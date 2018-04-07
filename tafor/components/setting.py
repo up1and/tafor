@@ -304,3 +304,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
         conf.setValue(path, val)
 
+    def showEvent(self, event):
+        self.parent.showNormal()
+

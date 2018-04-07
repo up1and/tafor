@@ -5,7 +5,7 @@ import logging
 from PyQt5 import QtCore
 
 
-__version__ = '1.0.1-beta'
+__version__ = '1.0.2-beta'
 
 BASEDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
