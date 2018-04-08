@@ -28,6 +28,8 @@ API 相关
     :maxdepth: 2
 
     api/validator
+    api/aftn
+    api/check
 
 
 参考

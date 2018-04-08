@@ -5,7 +5,21 @@ from tafor import conf
 
 
 class AFTNMessage(object):
-    """Aeronautical Fixed Telecommunication Network Message"""
+    """航空固定电信网络（Aeronautical Fixed Telecommunication Network Message）报文的生成
+
+    :param text: 报文内容
+    :param reportType: 报文类型，默认 TAF
+    :param time: AFTN 报文生成时间
+
+    使用方法::
+
+        m = AFTNMessage('TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR=')
+        # 返回字符串格式 AFTN 报文
+        m.toString()
+        # 返回 JSON 格式 AFTN 报文
+        m.toJson()
+
+    """
     def __init__(self, text, reportType='TAF', time=None):
         super(AFTNMessage, self).__init__()
         self.text = text.split('\n')
@@ -20,13 +34,24 @@ class AFTNMessage(object):
         self.generate()
 
     def toString(self):
+        """生成字符串格式的报文
+        
+        :return: 字符串，多份报文用 4 个换行符连接
+        """
         return '\n\n\n\n'.join(self.messages)
 
     def toJson(self):
+        """生成 JSON 格式的报文
+
+        :return: JSON
+        """
         return json.dumps(self.messages)
 
     def generate(self):
-        """生成 AFTN 电报格式的报文"""
+        """生成 AFTN 电报格式的报文
+
+        :return: 报文列表
+        """
         channel = conf.value('Communication/Channel')
         number = conf.value('Communication/ChannelSequenceNumber')
         number = int(number) if number else 0
@@ -53,7 +78,10 @@ class AFTNMessage(object):
         return self.messages
 
     def formatLinefeed(self, messages):
-        """对超过 maxLineChar 的行进行换行处理"""
+        """对超过最大字符限制的行进行换行处理
+        
+        :return: 报文行列表
+        """
         def findSubscript(parts):
             subscripts = []
             num = 0
@@ -83,7 +111,10 @@ class AFTNMessage(object):
         return items
 
     def divideAddress(self, address):
-        """根据 maxSendAddress 拆分地址，比如允许最大地址是 7，有 10 个地址就拆成 2 组"""
+        """根据最大发送地址拆分地址组，比如允许最大地址是 7，有 10 个地址就拆成 2 组
+
+        :return: 迭代器，拆分后的地址
+        """
         def chunks(lists, n):
             """Yield successive n-sized chunks from lists."""
             for i in range(0, len(lists), n):

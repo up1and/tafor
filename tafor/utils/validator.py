@@ -73,7 +73,7 @@ class Validator(object):
 
     :param kwargs: 额外参数
 
-                    * `isHas5000=True` 开启能见度 5000 的验证
+                    * `visHas5000=True` 开启能见度 5000 的验证
                     * `cloudHeightHas450=True` 开启云高 450 的验证
 
     """
@@ -466,9 +466,21 @@ class Parser(object):
     """解析 TAF 报文
 
     :param message: TAF 报文
-    :param parse: 解析报文的类
-    :param validator: 验证报文转折关系的类
+    :param parse: 解析报文的类，默认 :class:`Lexer`
+    :param validator: 验证报文转折关系的类，默认 :class:`Validator`
     :param kwargs: 额外参数
+
+    使用方法::
+
+        p = Parser('TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR=')
+        p.validate()
+
+        # 报文是否通过验证
+        p.isValid()
+
+        # 报文重新渲染成 HTML 格式，并高亮标注出错误
+        p.renderer(style='html')
+        
     """
 
     defaultRules = [

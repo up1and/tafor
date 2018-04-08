@@ -3,11 +3,10 @@ TAF 报文验证
 
 .. module:: tafor.utils.validator
 
-.. autoclass:: Validator
+.. autoclass:: Parser
     :members:
 
 .. autoclass:: Lexer
-    :members:
 
-.. autoclass:: Parser
+.. autoclass:: Validator
     :members:

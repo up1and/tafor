@@ -41,8 +41,6 @@ Windows 下如何安装 `PyInstaller` 的请参考 `这里 <https://pythonhosted
 
 打包成功～
 
-.. note:: 打包之前请先在 :file:`tafor/tafor/__init__.py` 文件中注释第 11 行，``BASEDIR = os.path.abspath(os.path.dirname(__file__))``，这是个蠢办法，但有效。
-
 下载发行版
 ^^^^^^^^^^^
 Tafor 的发行版同样放在 GitHub, 你可以在这里 `下载 <https://github.com/up1and/tafor/releases>`_。
