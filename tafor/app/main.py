@@ -381,8 +381,17 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         QMessageBox.about(self, title, text)
 
     def openDocs(self):
-        docs = os.path.join(BASEDIR, '..', 'docs/_build/html/index.html')
-        QDesktopServices.openUrl(QUrl.fromLocalFile(docs))
+        devDocs = os.path.join(BASEDIR, '../docs/_build/html/index.html')
+        releaseDocs = os.path.join(BASEDIR, 'docs/_build/html/index.html')
+
+        if os.path.exists(devDocs):
+            url = QUrl.fromLocalFile(devDocs)
+        elif os.path.exists(releaseDocs):
+            url = QUrl.fromLocalFile(releaseDocs)
+        else:
+            url = QUrl('https://tafor.readthedocs.io')
+
+        QDesktopServices.openUrl(url)
 
     def reportIssue(self):
         QDesktopServices.openUrl(QUrl('https://github.com/up1and/tafor/issues'))
