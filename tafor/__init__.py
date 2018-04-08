@@ -7,9 +7,14 @@ from PyQt5 import QtCore
 
 __version__ = '1.0.2-beta'
 
-BASEDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
-BASEDIR = os.path.abspath(os.path.dirname(__file__))
+def basedir():
+    sysdir = os.path.abspath(os.path.dirname(sys.argv[0]))
+    filedir = os.path.abspath(os.path.dirname(__file__))
 
+    if os.path.exists(os.path.join(filedir, 'sounds')):
+        return filedir
+
+    return sysdir
 
 def boolean(value):
     return value if isinstance(value, bool) else value == 'true'
@@ -38,6 +43,8 @@ def setupLog(debug=False):
 
     return log
 
+
+BASEDIR = basedir()
 conf = QtCore.QSettings('Up1and', 'Tafor')
 debug = boolean(conf.value('General/Debug'))
 logger = setupLog(debug=debug)
