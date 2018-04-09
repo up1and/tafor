@@ -140,7 +140,14 @@ class CheckTaf(object):
         """
         isExist = self.isExist()
 
-        if isExist is None:  # 没有已经入库的报文
+        if isExist is None:  # 没有报文入库
+            # 本地正常报已发，远程数据和本地数据不一样的情况不作入库处理
+            # 修订报报文如果字符出了错误无法识别是否和本地是同一份，则会直接入库
+            local = self.local()
+            remote = Parser(self.message)
+            if local and not remote.isAmended() and remote.primary.tokens['period']['text'] in local.rpt:
+                return 
+
             item = Taf(tt=self.tt, rpt=self.message, confirmed=self.time)
             db.add(item)
             db.commit()
@@ -236,6 +243,8 @@ class CheckMetar(object):
 
 class Listen(object):
     """监听远程报文数据
+
+    :param parent: 父窗口
 
     使用方法::
 

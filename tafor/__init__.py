@@ -5,7 +5,8 @@ import logging
 from PyQt5 import QtCore
 
 
-__version__ = '1.0.2-beta'
+__version__ = '1.0.3-beta'
+
 
 def basedir():
     sysdir = os.path.abspath(os.path.dirname(sys.argv[0]))

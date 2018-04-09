@@ -751,12 +751,13 @@ class Parser(object):
                     self.tips.append('云组第三层云量不能为 FEW 或 SCT')
 
     def isValid(self):
-        """检查报文是否有错误
-
-        :return: 报文是否通过验证
-        """
+        """报文是否通过验证"""
         valids = [e.isValid() for e in self.elements]
         return all(valids)
+
+    def isAmended(self):
+        """报文是否是修订报或者更正报"""
+        return 'COR' in self.message or 'AMD' in self.message
  
     def renderer(self, style='plain'):
         """将解析后的报文重新渲染
