@@ -93,9 +93,9 @@ class Validator(object):
     def wind(self, refWind, wind):
         """风组的转折验证
 
-            1. 当预报平均地面风向的变化大于等于 60°，且平均风速在变化前和（或）变化后大于等于 5m/s 时
-            2. 当预报平均地面风速的变化大于等于 5m/s 时
-            3. 当预报平均地面风风速变差（阵风）变化 5m/s 或以上，且平均风速在变化前和变化后大于等于 8m/s 时
+        1. 当预报平均地面风向的变化大于等于 60°，且平均风速在变化前和（或）变化后大于等于 5m/s 时
+        2. 当预报平均地面风速的变化大于等于 5m/s 时
+        3. 当预报平均地面风风速变差（阵风）变化 5m/s 或以上，且平均风速在变化前和变化后大于等于 8m/s 时
 
         :param refWind: 参照风组
         :param wind: 风组
@@ -146,15 +146,15 @@ class Validator(object):
 
             return True
 
-        # 1.当预报平均地面风向的变化大于等于 60°，且平均风速在变化前和（或）变化后大于等于 5m/s 时
+        # 1. 当预报平均地面风向的变化大于等于 60°，且平均风速在变化前和（或）变化后大于等于 5m/s 时
         if angle(refDirection, direction) and max(refSpeed, speed) >= 5:
             return True
 
-        # 2.当预报平均地面风速的变化大于等于 5m/s 时
+        # 2. 当预报平均地面风速的变化大于等于 5m/s 时
         if abs(refSpeed - speed) >= 5:
             return True
 
-        # 3.当预报平均地面风风速变差（阵风）增加 (或减少) 大于等于 5m/s，且平均风速在变化前和（或）变化后大于等于 8m/s 时
+        # 3. 当预报平均地面风风速变差（阵风）变化 5m/s 或以上，且平均风速在变化前和变化后大于等于 8m/s 时
         if refGust and gust and abs(refGust - gust) >= 5 and max(refSpeed, speed) >= 8:
             return True
 
@@ -166,9 +166,9 @@ class Validator(object):
     def vis(self, refVis, vis):
         """能见度的转折验证
 
-        当预报主导能见度上升并达到或经过下列一个或多个数值，或下降并经过下列一个或多个数值时：
-            1. 150 m、350 m、600 m、800 m、1500 m 或 3000 m
-            2. 5000 m（当有大量的按目视飞行规则的飞行时）
+        1. 当预报主导能见度上升并达到或经过下列一个或多个数值，或下降并经过下列一个或多个数值时：
+            * 150 m、350 m、600 m、800 m、1500 m 或 3000 m
+            * 5000 m（当有大量的按目视飞行规则的飞行时）
 
         :param refWind: 参照能见度
         :param wind: 能见度
@@ -180,8 +180,8 @@ class Validator(object):
     def vv(self, refVv, vv):
         """垂直能见度的转折验证
 
-        当预报垂直能见度上升并达到或经过下列一个或多个数值，或下降并经过下列一个或多个数值时：
-            30 m、60 m、150 m 或 300 m，编报时对应 VV001、VV002、VV005、VV010
+        1. 当预报垂直能见度上升并达到或经过下列一个或多个数值，或下降并经过下列一个或多个数值时：
+            * 30 m、60 m、150 m 或 300 m，编报时对应 VV001、VV002、VV005、VV010
 
         :param refVv: 参照垂直能见度
         :param vv: 垂直能见度
@@ -222,19 +222,19 @@ class Validator(object):
     def weather(self, refWeather, weather):
         """天气现象的转折验证
 
-            1. 当预报下列一种或几种天气现象开始、终止或强度变化时：
-                * 冻降水
-                * 中或大的降水（包括阵性降水）包括雷暴
-                * 尘暴
-                * 沙暴
+        1. 当预报下列一种或几种天气现象开始、终止或强度变化时：
+            * 冻降水
+            * 中或大的降水（包括阵性降水）包括雷暴
+            * 尘暴
+            * 沙暴
 
-            2. 当预报下列一种或几种天气现象开始、终止时：
-                * 冻雾
-                * 低吹尘、低吹沙或低吹雪
-                * 高吹尘、高吹沙或高吹雪
-                * 雷暴（伴或不伴有降水）
-                * 飑
-                * 漏斗云（陆龙卷或水龙卷）
+        2. 当预报下列一种或几种天气现象开始、终止时：
+            * 冻雾
+            * 低吹尘、低吹沙或低吹雪
+            * 高吹尘、高吹沙或高吹雪
+            * 雷暴（伴或不伴有降水）
+            * 飑
+            * 漏斗云（陆龙卷或水龙卷）
 
         :param refWeather: 参照天气现象
         :param weather: 天气现象
@@ -267,15 +267,15 @@ class Validator(object):
     def cloud(self, refCloud, cloud):
         '''云的转折验证
 
-        当预报 BKN 或 OVC 云量的最低云层的云高抬升并达到或经过下列一个或多个数值，或降低并经过下列一个或多个数值时：
-            1. 30 m、60 m、150 m 或 300 m
-            2. 450 m（在有大量的按目视飞行规则的飞行时）
+        1. 当预报 BKN 或 OVC 云量的最低云层的云高抬升并达到或经过下列一个或多个数值，或降低并经过下列一个或多个数值时：
+            * 30 m、60 m、150 m 或 300 m
+            * 450 m（在有大量的按目视飞行规则的飞行时）
 
-        当预报低于 450 m 的云层或云块的量的变化满足下列条件之一时：
-            1. 从 SCT 或更少到 BKN、OVC
-            2. 从 BKN、OVC 到 SCT 或更少
+        2. 当预报低于 450 m 的云层或云块的量的变化满足下列条件之一时：
+            * 从 SCT 或更少到 BKN、OVC
+            * 从 BKN、OVC 到 SCT 或更少
 
-        当预报积雨云将发展或消失时
+        3. 当预报积雨云将发展或消失时
 
         :param refCloud: 参照云组
         :param cloud: 云组
@@ -638,6 +638,23 @@ class Parser(object):
     def validateMutiElements(self, ref, tokens):
         """验证多个元素之间的匹配规则
 
+        1. 能见度和天气现象
+            * 能见度跨 1000 米时应变化天气现象
+            * 能见度降低到 5000 米以下时应有天气现象
+            * 能见度小于 5000 米时应有天气现象
+            * 能见度小于 1000 米，BR、-DZ 不能有
+            * 能见度大于 1000 米、小于 5000 米，FG、+DZ 不能有
+            * 能见度大于 5000 米，FG、FU、BR、HZ 不能有
+
+        2. 天气现象
+            * 阵性降水应包含 CB
+            * NSW 不能和其他天气现象同时存在
+            * BR，HZ，FG，FU 不能同时存在
+
+        3. 云组
+            * 云组第二层云量不能为 FEW
+            * 云组第三层云量不能为 FEW 或 SCT
+
         :param ref: 报文参照组
         :param tokens: 当前报文解析后的要素， `OrderedDict`
         """
@@ -674,7 +691,7 @@ class Parser(object):
                     else:
                         tokens['vis']['error'] = True
 
-                    self.tips.append('能见度小于 1000，BR -DZ 不能有')
+                    self.tips.append('能见度小于 1000 米，BR、-DZ 不能有')
 
                 if 1000 <= vis <= 5000 and set(weathers) & set(['FG', '+DZ']):
                     tokens['vis']['error'] = True
@@ -683,7 +700,7 @@ class Parser(object):
                     else:
                         tokens['vis']['error'] = True
 
-                    self.tips.append('能见度大于 1000、小于 5000，FG +DZ 不能有')
+                    self.tips.append('能见度大于 1000 米、小于 5000 米，FG、+DZ 不能有')
                 
                 if vis > 5000 and set(weathers) & set(['FG', 'FU', 'BR', 'HZ']):
                     if 'weather' in tokens:
@@ -691,7 +708,7 @@ class Parser(object):
                     else:
                         tokens['vis']['error'] = True
 
-                    self.tips.append('能见度大于 5000，FG、FU、BR、HZ 不能有')
+                    self.tips.append('能见度大于 5000 米，FG、FU、BR、HZ 不能有')
 
         if 'weather' in tokens:
             weather = tokens['weather']['text']
