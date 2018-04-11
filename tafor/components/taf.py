@@ -1,14 +1,13 @@
-import json
 import datetime
 
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QCoreApplication, Qt, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox, QVBoxLayout, QPushButton, QLayout
 
-from tafor import boolean, conf, logger
-from tafor.utils import CheckTaf, Grammar
+from tafor import logger
+from tafor.utils import CheckTaf
 from tafor.utils.convert import parseTimeInterval, parseDateTime
-from tafor.models import db, Taf, Task
+from tafor.models import db, Taf
 from tafor.components.widgets.editor import BaseEditor
 from tafor.components.widgets import TafPrimarySegment, TafBecmgSegment, TafTempoSegment
 

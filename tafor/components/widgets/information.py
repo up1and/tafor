@@ -3,7 +3,7 @@ import datetime
 
 from PyQt5.QtGui import QRegExpValidator, QIntValidator, QTextCharFormat, QFont
 from PyQt5.QtCore import Qt, QRegExp, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QLabel
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit
 
 from tafor import conf, logger
 from tafor.utils import Pattern

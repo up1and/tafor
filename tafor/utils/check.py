@@ -1,4 +1,3 @@
-import re
 import datetime
 
 from sqlalchemy import or_
@@ -6,7 +5,7 @@ from sqlalchemy import or_
 from tafor import conf, logger
 from tafor.models import db, Taf, Metar
 from tafor.states import context
-from tafor.utils.validator import Grammar, Parser
+from tafor.utils.validator import Parser
 
 
 class CheckTaf(object):

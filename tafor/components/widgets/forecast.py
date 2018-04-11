@@ -3,10 +3,10 @@ import datetime
 
 from PyQt5.QtGui import QRegExpValidator
 from PyQt5.QtCore import Qt, QRegExp, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QComboBox, QRadioButton, QCheckBox
+from PyQt5.QtWidgets import QWidget, QLineEdit, QComboBox, QRadioButton, QCheckBox
 
 from tafor import conf, logger
-from tafor.utils import CheckTaf, Pattern
+from tafor.utils import Pattern
 from tafor.components.ui import Ui_taf_primary, Ui_taf_becmg, Ui_taf_tempo, Ui_trend
 
 

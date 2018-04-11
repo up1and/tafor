@@ -1,10 +1,9 @@
-import json
 import datetime
 
 from PyQt5.QtCore import QCoreApplication, Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLayout
 
-from tafor import boolean, conf, logger
+from tafor import conf
 from tafor.utils.convert import parseTime
 from tafor.components.widgets.editor import BaseEditor
 from tafor.components.widgets import TrendSegment

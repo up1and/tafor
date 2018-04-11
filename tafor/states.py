@@ -1,6 +1,6 @@
 import copy
 
-from PyQt5.QtCore import QObject, QPoint, pyqtSignal
+from PyQt5.QtCore import QObject, pyqtSignal
 
 
 class MessageState(object):

@@ -4,12 +4,11 @@ import datetime
 from PyQt5.QtGui import QIcon, QDesktopServices
 from PyQt5.QtCore import QCoreApplication, QTranslator, QLocale, QEvent, QTimer, Qt, QUrl
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy, QActionGroup, QAction, 
-        QSystemTrayIcon, QMenu, QSystemTrayIcon, QMessageBox, QStyleFactory)
+        QSystemTrayIcon, QMenu, QMessageBox)
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
-from PyQt5.QtMultimedia import QSound, QSoundEffect
 
 from tafor import BASEDIR, conf, logger, boolean, __version__
-from tafor.models import db, Taf, Task, Metar, Sigmet, User
+from tafor.models import db, User
 from tafor.states import context
 from tafor.utils import Listen, checkVersion
 from tafor.utils.thread import WorkThread, FirInfoThread, CallThread, CheckUpgradeThread
@@ -263,7 +262,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def singer(self):
         warnSwitch = self.warnTafAction.isChecked()
         trendSwitch = boolean(conf.value('Monitor/RemindTrend'))
-        sigmetSwitch = boolean(conf.value('Monitor/RemindSIGMET'))
 
         # 管理趋势声音
         utc = datetime.datetime.utcnow()

@@ -1,4 +1,3 @@
-import json
 import datetime
 
 from PyQt5.QtGui import QPixmap

@@ -1,5 +1,3 @@
-import requests
-
 from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel
 

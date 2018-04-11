@@ -1,12 +1,9 @@
-import datetime
-
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QCoreApplication, QTimer
-from PyQt5.QtWidgets import QDialog, QAction, QMenu, QHeaderView, QTableWidgetItem
+from PyQt5.QtWidgets import QDialog, QHeaderView, QTableWidgetItem
 
+from tafor import logger
 from tafor.components.ui import main_rc, Ui_task
 from tafor.models import db, Task
-from tafor import logger
 
 
 class TaskBrowser(QDialog, Ui_task.Ui_Tasks):

@@ -1,5 +1,3 @@
-import datetime
-
 from PyQt5.QtCore import QCoreApplication, Qt
 from PyQt5.QtWidgets import QVBoxLayout, QPushButton, QLayout
 

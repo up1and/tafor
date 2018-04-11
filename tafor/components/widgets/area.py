@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel
 
 from tafor import logger
 from tafor.states import context
-from tafor.utils.convert import listToPoint, pointToList, clipPolygon
+from tafor.utils.convert import listToPoint, clipPolygon
 
 
 class RenderArea(QWidget):
