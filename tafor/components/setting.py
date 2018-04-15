@@ -10,7 +10,32 @@ from tafor.models import db, User
 from tafor import conf, boolean, logger
 
 
+def isConfigured(reportType='TAF'):
+    """检查发布不同类型报文基础配置是否完成"""
+    serial = ['Communication/SerialPort', 'Communication/SerialBaudrate', 'Communication/SerialParity', 
+            'Communication/SerialBytesize', 'Communication/SerialStopbits']
+    aftn = ['Communication/Channel', 'Communication/ChannelSequenceNumber', 'Communication/MaxLineChar', 
+            'Communication/MaxSendAddress', 'Communication/OriginatorAddress']
+    taf = ['Message/ICAO', 'Message/Area', 'Communication/TAFAddress']
+    trend = ['Message/TrendSign', 'Communication/TrendAddress']
+    sigmet = ['Message/ICAO', 'Message/FIR', 'Message/Area', 'Communication/SIGMETAddress']
+
+    options = serial + aftn
+    if reportType == 'TAF':
+        options += taf
+
+    if reportType == 'Trend':
+        options += trend
+
+    if reportType == 'SIGMET':
+        options += sigmet
+
+    values = [conf.value(path) for path in options]
+    return all(values)
+
+
 class SettingDialog(QDialog, Ui_setting.Ui_Settings):
+    """设置窗口"""
 
     def __init__(self, parent=None):
         super(SettingDialog, self).__init__(parent)
@@ -25,11 +50,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.clockTimer.timeout.connect(self.checkSerialNumber)
         self.clockTimer.start(1 * 1000)
 
-        self.bindSignal()
-        self.setValidator()
-        self.updateContract()
-        self.load()
-
         # 禁用项
         self.closeToMinimize.setEnabled(False)
         self.closeToMinimize.setChecked(True)
@@ -38,7 +58,62 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.buttonBox.button(QDialogButtonBox.Apply).setText(QCoreApplication.translate('Settings', 'Apply'))
         self.buttonBox.button(QDialogButtonBox.Cancel).setText(QCoreApplication.translate('Settings', 'Cancel'))
 
+        self.options = [
+            # 通用设置
+            ('General/CloseToMinimize', 'closeToMinimize', 'bool'),
+            ('General/Debug', 'debugMode', 'bool'),
+            ('General/AlwaysShowEditor', 'alwaysShowEditor', 'bool'),
+            # 验证选项
+            ('Validator/VisHas5000', 'visHas5000', 'bool'),
+            ('Validator/CloudHeightHas450', 'cloudHeightHas450', 'bool'),
+            # 报文字符
+            ('Message/ICAO', 'icao', 'text'),
+            ('Message/Area', 'area', 'text'),
+            ('Message/FIR', 'fir', 'text'),
+            ('Message/TrendSign', 'trendSign', 'text'),
+            ('Message/Weather', 'weatherList', 'list'),
+            ('Message/WeatherWithIntensity', 'weatherWithIntensityList', 'list'),
+            # 串口设置
+            ('Communication/SerialPort', 'port', 'text'),
+            ('Communication/SerialBaudrate', 'baudrate', 'text'),
+            ('Communication/SerialParity', 'parity', 'combox'),
+            ('Communication/SerialBytesize', 'bytesize', 'combox'),
+            ('Communication/SerialStopbits', 'stopbits', 'combox'),
+            # AFTN 配置
+            ('Communication/Channel', 'channel', 'text'),
+            ('Communication/ChannelSequenceNumber', 'channelSequenceNumber', 'text'),
+            ('Communication/MaxLineChar', 'maxLineChar', 'text'),
+            ('Communication/MaxSendAddress', 'maxSendAddress', 'text'),
+            ('Communication/OriginatorAddress', 'originatorAddress', 'text'),
+            ('Communication/TAFAddress', 'tafAddress', 'plaintext'),
+            ('Communication/SIGMETAddress', 'sigmetAddress', 'plaintext'),
+            ('Communication/TrendAddress', 'trendAddress', 'plaintext'),
+            # 数据源
+            ('Monitor/WebApiURL', 'webApiURL', 'text'),
+            ('Monitor/FirApiURL', 'firApiURL', 'text'),
+            # TAF 报文迟发告警
+            ('Monitor/WarnTAFTime', 'warnTafTime', 'text'),
+            ('Monitor/WarnTAFVolume', 'warnTafVolume', 'slider'),
+            # 报文发送提醒
+            ('Monitor/RemindTAF', 'remindTaf', 'bool'),
+            ('Monitor/RemindTAFVolume', 'remindTafVolume', 'slider'),
+            ('Monitor/RemindTrend', 'remindTrend', 'bool'),
+            ('Monitor/RemindTrendVolume', 'remindTrendVolume', 'slider'),
+            ('Monitor/RemindSIGMET', 'remindSigmet', 'bool'),
+            ('Monitor/RemindSIGMETVolume', 'remindSigmetVolume', 'slider'),
+            # 电话服务
+            ('Monitor/CallServiceURL', 'callServiceURL', 'text'),
+            ('Monitor/CallServiceToken', 'callServiceToken', 'text'),
+            ('Monitor/SelectedMobile', 'selectedContract', 'mobile'),
+        ]
+
+        self.bindSignal()
+        self.setValidator()
+        self.updateContract()
+        self.load()
+
     def bindSignal(self):
+        """绑定信号"""
         self.addWeatherButton.clicked.connect(lambda: self.addWeather('weather'))
         self.addWeatherWithIntensityButton.clicked.connect(lambda: self.addWeather('weatherWithIntensity'))
 
@@ -52,13 +127,13 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
         self.callUpButton.clicked.connect(self.testCallUp)
 
-        # self.buttonBox.button(QDialogButtonBox.Reset).clicked.connect(self.load)
         self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.save)
         self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.parent.updateGui)
         self.buttonBox.accepted.connect(self.save)
         self.buttonBox.accepted.connect(self.parent.updateGui)
 
     def setValidator(self):
+        """设置验证器"""
         self.baudrate.setValidator(QIntValidator(self.baudrate))
         self.channelSequenceNumber.setValidator(QIntValidator(self.channelSequenceNumber))
         self.maxSendAddress.setValidator(QIntValidator(self.maxSendAddress))
@@ -66,29 +141,35 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.warnTafTime.setValidator(QIntValidator(self.warnTafTime))
 
     def checkSerialNumber(self):
+        """检查是否是世界时日界，如果是重置流水号"""
         utc = datetime.datetime.utcnow()
         if utc.hour == 0 and utc.minute == 0 and utc.second == 0:
             self.resetSerialNumber()
 
     def resetSerialNumber(self):
+        """重置流水号"""
         conf.setValue('Communication/ChannelSequenceNumber', '1')
         self.channelSequenceNumber.setText('1')
         logger.info('Reset channel sequence number to one')
 
     def loadSerialNumber(self):
+        """单独载入流水号"""
         self.loadValue('Communication/ChannelSequenceNumber', 'channelSequenceNumber')
 
     def addWeather(self, weather):
+        """添加天气现象"""
         line = getattr(self, weather)
         if line.text():
             getattr(self, weather + 'List').addItem(line.text())
             line.clear()
 
     def delWeather(self, weather):
-        target = getattr(self, weather + 'List')
-        target.takeItem(target.currentRow())
+        """删除天气现象"""
+        option = getattr(self, weather + 'List')
+        option.takeItem(option.currentRow())
 
     def addPerson(self):
+        """添加联系人"""
         name = self.personName.text()
         number = self.personMobile.text()
         if name and number:
@@ -99,6 +180,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.updateContract()
 
     def delPerson(self):
+        """删除联系人"""
         row = self.contractTable.currentRow()
         name = self.contractTable.item(row, 0).text()
 
@@ -109,6 +191,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.updateContract()
 
     def updateContract(self):
+        """更新联系人列表"""
         items = db.query(User).all()
         self.contractTable.setRowCount(len(items))
 
@@ -122,15 +205,18 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.selectedContract.addItems(options)
 
     def updateSoundVolume(self):
+        """更新提醒声音音量"""
         self.parent.ringSound.setVolume(conf.value('Monitor/RemindTAFVolume'))
         self.parent.alarmSound.setVolume(conf.value('Monitor/WarnTAFVolume'))
         self.parent.trendSound.setVolume(conf.value('Monitor/RemindTrendVolume'))
         self.parent.sigmetSound.setVolume(conf.value('Monitor/RemindSIGMETVolume'))
 
     def testCallUp(self):
+        """手动测试电话拨号"""
         self.parent.dialer(test=True)
 
     def save(self):
+        """保存设置"""
         import sys
 
         if self.runOnStart.isChecked():
@@ -138,167 +224,76 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         else:
             self.autoRun.remove('Tafor')
 
-        self.setValue('General/CloseToMinimize', 'closeToMinimize', 'bool')
-        self.setValue('General/Debug', 'debugMode', 'bool')
-        self.setValue('General/AlwaysShowEditor', 'alwaysShowEditor', 'bool')
-
-        self.setValue('Validator/VisHas5000', 'visHas5000', 'bool')
-        self.setValue('Validator/CloudHeightHas450', 'cloudHeightHas450', 'bool')
-
-        self.setValue('Message/ICAO', 'icao')
-        self.setValue('Message/Area', 'area')
-        self.setValue('Message/FIR', 'fir')
-        self.setValue('Message/TrendSign', 'trendSign')
-        self.setValue('Message/Weather', 'weatherList', 'list')
-        self.setValue('Message/WeatherWithIntensity', 'weatherWithIntensityList', 'list')
-
-        self.setValue('Communication/SerialPort', 'port')
-        self.setValue('Communication/SerialBaudrate', 'baudrate')
-        self.setValue('Communication/SerialParity', 'parity', 'combox')
-        self.setValue('Communication/SerialBytesize', 'bytesize', 'combox')
-        self.setValue('Communication/SerialStopbits', 'stopbits', 'combox')
-
-        self.setValue('Communication/Channel', 'channel')
-        self.setValue('Communication/ChannelSequenceNumber', 'channelSequenceNumber')
-        self.setValue('Communication/MaxLineChar', 'maxLineChar')
-        self.setValue('Communication/MaxSendAddress', 'maxSendAddress')
-
-        self.setValue('Communication/OriginatorAddress', 'originatorAddress')
-        self.setValue('Communication/TAFAddress', 'tafAddress', 'plaintext')
-        self.setValue('Communication/SIGMETAddress', 'sigmetAddress', 'plaintext')
-        self.setValue('Communication/TrendAddress', 'trendAddress', 'plaintext')
-
-        self.setValue('Monitor/WebApiURL', 'webApiURL')
-        self.setValue('Monitor/FirApiURL', 'firApiURL')
-
-        # self.setValue('Monitor/WarnTAF', 'warnTAF', 'bool')
-        self.setValue('Monitor/WarnTAFTime', 'warnTafTime')
-        self.setValue('Monitor/WarnTAFVolume', 'warnTafVolume', 'slider')
-
-        self.setValue('Monitor/RemindTAF', 'remindTaf', 'bool')
-        self.setValue('Monitor/RemindTAFVolume', 'remindTafVolume', 'slider')
-        self.setValue('Monitor/RemindTrend', 'remindTrend', 'bool')
-        self.setValue('Monitor/RemindTrendVolume', 'remindTrendVolume', 'slider')
-        self.setValue('Monitor/RemindSIGMET', 'remindSigmet', 'bool')
-        self.setValue('Monitor/RemindSIGMETVolume', 'remindSigmetVolume', 'slider')
-
-        self.setValue('Monitor/CallServiceURL', 'callServiceURL')
-        self.setValue('Monitor/CallServiceToken', 'callServiceToken')
-
-        self.setValue('Monitor/SelectedMobile', 'selectedContract', 'mobile')
+        for path, option, category in self.options:
+            self.setValue(path, option, category)
 
         self.updateSoundVolume()
 
     def load(self):
+        """载入设置"""
         self.runOnStart.setChecked(self.autoRun.contains('Tafor'))
 
-        self.loadValue('General/CloseToMinimize', 'closeToMinimize', 'bool')
-        self.loadValue('General/Debug', 'debugMode', 'bool')
-        self.loadValue('General/AlwaysShowEditor', 'alwaysShowEditor', 'bool')
+        for path, option, category in self.options:
+            self.loadValue(path, option, category)
 
-        self.loadValue('Validator/VisHas5000', 'visHas5000', 'bool')
-        self.loadValue('Validator/CloudHeightHas450', 'cloudHeightHas450', 'bool')
-
-        self.loadValue('Message/ICAO', 'icao')
-        self.loadValue('Message/Area', 'area')
-        self.loadValue('Message/FIR', 'fir')
-        self.loadValue('Message/TrendSign', 'trendSign')
-        self.loadValue('Message/Weather', 'weatherList', 'list')
-        self.loadValue('Message/WeatherWithIntensity', 'weatherWithIntensityList', 'list')
-
-        self.loadValue('Communication/SerialPort', 'port')
-        self.loadValue('Communication/SerialBaudrate', 'baudrate')
-        self.loadValue('Communication/SerialParity', 'parity', 'combox')
-        self.loadValue('Communication/SerialBytesize', 'bytesize', 'combox')
-        self.loadValue('Communication/SerialStopbits', 'stopbits', 'combox')
-
-        self.loadValue('Communication/Channel', 'channel')
-        self.loadValue('Communication/ChannelSequenceNumber', 'channelSequenceNumber')
-        self.loadValue('Communication/MaxLineChar', 'maxLineChar')
-        self.loadValue('Communication/MaxSendAddress', 'maxSendAddress')
-
-        self.loadValue('Communication/OriginatorAddress', 'originatorAddress')
-        self.loadValue('Communication/TAFAddress', 'tafAddress')
-        self.loadValue('Communication/SIGMETAddress', 'sigmetAddress')
-        self.loadValue('Communication/TrendAddress', 'trendAddress')
-
-        self.loadValue('Monitor/WebApiURL', 'webApiURL')
-        self.loadValue('Monitor/FirApiURL', 'firApiURL')
-
-        self.loadValue('Monitor/WarnTAFTime', 'warnTafTime')
-        self.loadValue('Monitor/WarnTAFVolume', 'warnTafVolume', 'slider')
-
-        self.loadValue('Monitor/RemindTAF', 'remindTaf', 'bool')
-        self.loadValue('Monitor/RemindTAFVolume', 'remindTafVolume', 'slider')
-        self.loadValue('Monitor/RemindTrend', 'remindTrend', 'bool')
-        self.loadValue('Monitor/RemindTrendVolume', 'remindTrendVolume', 'slider')
-        self.loadValue('Monitor/RemindSIGMET', 'remindSigmet', 'bool')
-        self.loadValue('Monitor/RemindSIGMETVolume', 'remindSigmetVolume', 'slider')
-
-        self.loadValue('Monitor/CallServiceURL', 'callServiceURL')
-        self.loadValue('Monitor/CallServiceToken', 'callServiceToken')
-
-        self.loadValue('Monitor/SelectedMobile', 'selectedContract', 'mobile')
-
-    def loadValue(self, path, target, mold='text'):
-
+    def loadValue(self, path, option, category='text'):
         val = conf.value(path)
-        target = getattr(self, target)
+        option = getattr(self, option)
 
         if val is None:
             return 0
 
-        if mold == 'text':
-            target.setText(val)
+        if category in ['text', 'plaintext']:
+            option.setText(val)
 
-        if mold == 'bool':
+        if category == 'bool':
             val = boolean(val)
-            target.setChecked(val)
+            option.setChecked(val)
 
-        if mold == 'combox':
-            index = target.findText(val, Qt.MatchFixedString)
-            target.setCurrentIndex(index)
+        if category == 'combox':
+            index = option.findText(val, Qt.MatchFixedString)
+            option.setCurrentIndex(index)
 
-        if mold == 'slider':
-            target.setValue(int(val))
+        if category == 'slider':
+            option.setValue(int(val))
 
-        if mold == 'list':
+        if category == 'list':
             try:
                 items = json.loads(val)
-                target.addItems(items)
+                option.addItems(items)
             except (ValueError, TypeError):
                 pass
 
-        if mold == 'mobile':
+        if category == 'mobile':
             person = db.query(User).filter_by(mobile=val).first()
             if person:
-                index = target.findText(person.name, Qt.MatchFixedString)
-                target.setCurrentIndex(index)
+                index = option.findText(person.name, Qt.MatchFixedString)
+                option.setCurrentIndex(index)
 
-    def setValue(self, path, target, mold='text'):
-        target = getattr(self, target)
+    def setValue(self, path, option, category='text'):
+        option = getattr(self, option)
 
-        if mold == 'text':
-            val = target.text()
+        if category == 'text':
+            val = option.text()
 
-        if mold == 'bool':
-            val = target.isChecked()
+        if category == 'bool':
+            val = option.isChecked()
 
-        if mold == 'combox':
-            val = target.currentText()
+        if category == 'combox':
+            val = option.currentText()
 
-        if mold == 'slider':
-            val = target.value()
+        if category == 'slider':
+            val = option.value()
 
-        if mold == 'plaintext':
-            val = target.toPlainText()
+        if category == 'plaintext':
+            val = option.toPlainText()
 
-        if mold == 'list':
-            items = [item.text() for item in target.findItems('', Qt.MatchContains)]
+        if category == 'list':
+            items = [option.item(i).text() for i in range(option.count())]
             val = json.dumps(items)
 
-        if mold == 'mobile':
-            name = target.currentText()
+        if category == 'mobile':
+            name = option.currentText()
             person = db.query(User).filter_by(name=name).first()
             val = person.mobile if person else ''
 

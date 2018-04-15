@@ -1,7 +1,8 @@
-from PyQt5.QtCore import QCoreApplication, Qt
+from PyQt5.QtCore import QCoreApplication, QTimer, Qt
 from PyQt5.QtWidgets import QVBoxLayout, QPushButton, QLayout
 
 from tafor import logger
+from tafor.components.setting import isConfigured
 from tafor.components.widgets.editor import BaseEditor
 from tafor.components.widgets import SigmetTypeSegment, SigmetGeneralSegment, SigmetTyphoonSegment, SigmetCancelSegment, SigmetCustomSegment
 
@@ -138,5 +139,8 @@ class SigmetEditor(BaseEditor):
         self.clear()
 
     def showEvent(self, event):
-        self.currentSegment.head.updateState()
-
+        # 检查必要配置是否完成
+        if isConfigured('SIGMET'):
+            self.currentSegment.head.updateState()
+        else:
+            QTimer.singleShot(0, self.showConfigError)

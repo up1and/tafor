@@ -1,10 +1,11 @@
 import datetime
 
-from PyQt5.QtCore import QCoreApplication, Qt
+from PyQt5.QtCore import QCoreApplication, QTimer, Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLayout
 
 from tafor import conf
 from tafor.utils.convert import parseTime
+from tafor.components.setting import isConfigured
 from tafor.components.widgets.editor import BaseEditor
 from tafor.components.widgets import TrendSegment
 
@@ -80,6 +81,6 @@ class TrendEditor(BaseEditor):
         self.clear()
 
     def showEvent(self, event):
-        # Check Settings
-        pass
+        if not isConfigured('Trend'):
+            QTimer.singleShot(0, self.showConfigError)
 

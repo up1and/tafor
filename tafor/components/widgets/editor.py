@@ -1,5 +1,5 @@
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QDialog
+from PyQt5.QtCore import QCoreApplication, pyqtSignal
+from PyQt5.QtWidgets import QDialog, QMessageBox
 
 from tafor import boolean, conf
 
@@ -31,6 +31,11 @@ class BaseEditor(QDialog):
         self.sender.sendSignal.connect(self.parent.updateGui)
         self.sender.backSignal.connect(self.show)
         self.sender.closeSignal.connect(self.close)
+
+    def showConfigError(self):
+        title = QCoreApplication.translate('Editor', 'Config Error')
+        text = QCoreApplication.translate('Editor', 'Please complete the basic configuration first, otherwise you cannot send messages correctly.')
+        QMessageBox.warning(self, title, text)
 
     def assembleMessage(self):
         raise NotImplementedError

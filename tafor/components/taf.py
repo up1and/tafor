@@ -1,13 +1,14 @@
 import datetime
 
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QCoreApplication, Qt, QTimer
+from PyQt5.QtCore import QCoreApplication, QTimer, Qt
 from PyQt5.QtWidgets import QWidget, QMessageBox, QVBoxLayout, QPushButton, QLayout
 
 from tafor import logger
 from tafor.utils import CheckTaf
 from tafor.utils.convert import parseTimeInterval, parseDateTime
 from tafor.models import db, Taf
+from tafor.components.setting import isConfigured
 from tafor.components.widgets.editor import BaseEditor
 from tafor.components.widgets import TafPrimarySegment, TafBecmgSegment, TafTempoSegment
 
@@ -355,10 +356,12 @@ class BaseTafEditor(BaseEditor):
         self.clear()
 
     def showEvent(self, event):
-        self.setDate()
-        self.changeMessageType()
-
-        # Check Settings
+        # 检查必要配置是否完成
+        if isConfigured('TAF'):
+            self.setDate()
+            self.changeMessageType()
+        else:
+            QTimer.singleShot(0, self.showConfigError)
 
 
 class TafEditor(BaseTafEditor):
