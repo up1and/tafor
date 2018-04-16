@@ -47,7 +47,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.autoRun = QSettings('HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run', QSettings.NativeFormat)
 
         self.clockTimer = QTimer()
-        self.clockTimer.timeout.connect(self.checkSerialNumber)
+        self.clockTimer.timeout.connect(self.checkChannelNumber)
         self.clockTimer.start(1 * 1000)
 
         # 禁用项
@@ -125,7 +125,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.addPersonButton.clicked.connect(self.addPerson)
         self.delPersonButton.clicked.connect(self.delPerson)
 
-        self.resetNumberButton.clicked.connect(self.resetSerialNumber)
+        self.resetNumberButton.clicked.connect(self.resetChannelNumber)
 
         self.callUpButton.clicked.connect(self.testCallUp)
 
@@ -142,13 +142,13 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.maxLineChar.setValidator(QIntValidator(self.maxLineChar))
         self.warnTafTime.setValidator(QIntValidator(self.warnTafTime))
 
-    def checkSerialNumber(self):
+    def checkChannelNumber(self):
         """检查是否是世界时日界，如果是重置流水号"""
         utc = datetime.datetime.utcnow()
         if utc.hour == 0 and utc.minute == 0 and utc.second == 0:
-            self.resetSerialNumber()
+            self.resetChannelNumber()
 
-    def resetSerialNumber(self):
+    def resetChannelNumber(self):
         """重置流水号"""
         conf.setValue('Communication/ChannelSequenceNumber', '1')
         self.channelSequenceNumber.setText('1')
