@@ -54,6 +54,8 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.closeToMinimize.setEnabled(False)
         self.closeToMinimize.setChecked(True)
 
+        self.contractTable.setColumnWidth(0, 210)
+
         self.buttonBox.button(QDialogButtonBox.Ok).setText(QCoreApplication.translate('Settings', 'OK'))
         self.buttonBox.button(QDialogButtonBox.Apply).setText(QCoreApplication.translate('Settings', 'Apply'))
         self.buttonBox.button(QDialogButtonBox.Cancel).setText(QCoreApplication.translate('Settings', 'Cancel'))
