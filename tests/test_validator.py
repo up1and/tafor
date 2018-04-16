@@ -2,8 +2,42 @@
 
 from .context import tafor
 
-import unittest
+import os
 import re
+import unittest
+
+root = os.path.dirname(__file__)
+
+
+def listdir(folder):
+    folder = os.path.join(root, 'fixtures', folder)
+    files = os.listdir(folder)
+    files = filter(lambda o: o.endswith('.text'), files)
+    names = map(lambda o: o[:-5], files)
+    return folder, names
+
+
+class TestParser(unittest.TestCase):
+
+    def testTaf(self):
+        folder, names = listdir('taf')
+        for name in names:
+            filepath = os.path.join(folder, name + '.text')
+            with open(filepath) as f:
+                content = f.read()
+
+            parse = tafor.utils.Parser
+            m = parse(content)
+            m.validate()
+            html = m.renderer(style='html')
+
+            filepath = os.path.join(folder, name + '.html')
+            with open(filepath) as f:
+                result = f.read()
+
+            html = re.sub(r'\s', '', html)
+            result = re.sub(r'\s', '', result)
+            self.assertEqual(result, html)
 
 
 class TestValidator(unittest.TestCase):
@@ -51,56 +85,6 @@ class TestValidator(unittest.TestCase):
         self.assertFalse(self.validator.cloud('NSC', 'SKC'))
         # To be fixed 
         # when cloudHeightHas450 equal False, BKN016, BKN011 always return True
-        
-
-class TestParser(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(self):
-        self.parser = tafor.utils.Parser
-
-    def testMessage(self):
-        def validate(message):
-            e = self.parser(message)
-            e.validate()
-            isValid = e.isValid()
-
-            print(e.renderer(style='terminal'), '\n')
-            return isValid
-        
-        messages = [
-            ('TAF ZJHK 150726Z 150918 03003G10MPS 1600 OVC040=', False),
-            ('TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR=', True),
-            ('''TAF ZJHK 271533Z 271818 16004MPS 5000 BR SCT020 TX30/07Z TN22/21Z 
-                BECMG 2021 0300 FG
-                BECMG 0001 3000 BR=''', True),
-            ('''TAF ZJHK 240130Z 240312 01004MPS 8000 BKN040 
-                BECMG 0506 5000 -RA OVC030 
-                TEMPO 0610 02008MPS 3000 TSRA FEW010 SCT030CB=''', False),
-            ('''TAF ZJHK 240130Z 240312 01004MPS 8000 BKN040 
-                BECMG 0506 5000 -RA FEW010 SCT030CB
-                TEMPO 0610 02008MPS 3000 TSRA=''', False),
-            ('''TAF ZJHK 150726Z 150918 03006G20MPS 7000 SA OVC030 BKN040 TX12/12Z TN11/21Z 
-                BECMG 1112 36002MPS 3000 -SN BR SCT020 OVC030 
-                BECMG 1415 0800 SN OVC020 PROB30 
-                TEMPO 1518 0550 +SN BKN010 OVC020=''', False),
-            ('''TAF AMD ZJHK 211338Z 211524 14004MPS 4500 -RA BKN030
-                BECMG 2122 2500 BR BKN012
-                TEMPO 1519 07005MPS=''', True),
-            ('''TAF ZJHK 211338Z 211524 14004MPS 4500 BKN030
-                BECMG 2122 3000 -RA BKN012=''', False),
-            ('''TAF ZJHK 211338Z 211524 14004MPS 9999 SCT020 FEW026CB
-                BECMG 1718 3000 SHRA
-                BECMG 1920 SCT020
-                TEMPO 1620 1000 +TSRA
-                TEMPO 2024 -SHRA=''', False)
-        ]
-
-        for msg, result in messages:
-            if result:
-                self.assertTrue(validate(msg))
-            else:
-                self.assertFalse(validate(msg))
 
 
 if __name__ == '__main__':
