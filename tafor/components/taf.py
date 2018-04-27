@@ -266,15 +266,15 @@ class BaseTafEditor(BaseEditor):
         start, end = self.groupInterval(line.text())
         if start < self.periods[0] or self.periods[1] < start:
             line.clear()
-            self.parent.statusBar.showMessage(QCoreApplication.translate('Editor', 'Start time of change group is not corret %s') % start.strftime('%Y-%m-%d %H:%M:%S'), 5000)
+            self.parent.statusBar.showMessage(QCoreApplication.translate('Editor', 'Start time of change group is not corret {}').format(start.strftime('%Y-%m-%d %H:%M:%S')), 5000)
 
         if end < self.periods[0] or self.periods[1] < end:
             line.clear()
-            self.parent.statusBar.showMessage(QCoreApplication.translate('Editor', 'End time of change group is not corret %s') % end.strftime('%Y-%m-%d %H:%M:%S'), 5000)
+            self.parent.statusBar.showMessage(QCoreApplication.translate('Editor', 'End time of change group is not corret {}').format(end.strftime('%Y-%m-%d %H:%M:%S')), 5000)
 
         if end - start > datetime.timedelta(hours=maxTime):
             line.clear()
-            self.parent.statusBar.showMessage(QCoreApplication.translate('Editor', 'Change group time more than %s hours') % str(maxTime), 5000)
+            self.parent.statusBar.showMessage(QCoreApplication.translate('Editor', 'Change group time more than {} hours').format(maxTime), 5000)
 
     def assembleMessage(self):
         primaryMessage = self.primary.message()

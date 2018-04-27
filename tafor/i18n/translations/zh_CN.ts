@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE TS><TS version="2.0" language="zh_CN" sourcelanguage="en">
+<!DOCTYPE TS>
+<TS version="2.1" language="zh_CN" sourcelanguage="en">
 <context>
     <name>DataTable</name>
     <message>
@@ -129,21 +130,6 @@
         <location filename="../../components/taf.py" line="243"/>
         <source>Hour of temperature is not corret</source>
         <translation>温度组时间不正确</translation>
-    </message>
-    <message>
-        <location filename="../../components/taf.py" line="269"/>
-        <source>Start time of change group is not corret %s</source>
-        <translation>变化组起始时间不正确</translation>
-    </message>
-    <message>
-        <location filename="../../components/taf.py" line="273"/>
-        <source>End time of change group is not corret %s</source>
-        <translation>变化组结束时间不正确</translation>
-    </message>
-    <message>
-        <location filename="../../components/taf.py" line="277"/>
-        <source>Change group time more than %s hours</source>
-        <translation>变化组时间超过 %s 小时</translation>
     </message>
     <message>
         <location filename="../../components/taf.py" line="376"/>
@@ -375,7 +361,7 @@
     <message>
         <location filename="../../components/widgets/area.py" line="122"/>
         <source>No Satellite Image</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <location filename="../../components/widgets/editor.py" line="36"/>
@@ -386,6 +372,21 @@
         <location filename="../../components/widgets/editor.py" line="37"/>
         <source>Please complete the basic configuration first, otherwise you cannot send messages correctly.</source>
         <translation>请先完成基础设置，否则你很可能发送错误的报文。</translation>
+    </message>
+    <message>
+        <location filename="../../components/taf.py" line="269"/>
+        <source>Start time of change group is not corret {}</source>
+        <translation>变化组起始时间不正确 {}</translation>
+    </message>
+    <message>
+        <location filename="../../components/taf.py" line="273"/>
+        <source>End time of change group is not corret {}</source>
+        <translation>变化组结束时间不正确 {}</translation>
+    </message>
+    <message>
+        <location filename="../../components/taf.py" line="277"/>
+        <source>Change group time more than {} hours</source>
+        <translation>变化组时间超过 {} 小时</translation>
     </message>
 </context>
 <context>
