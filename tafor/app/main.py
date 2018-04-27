@@ -1,7 +1,7 @@
 import os
 import datetime
 
-from PyQt5.QtGui import QIcon, QDesktopServices
+from PyQt5.QtGui import QIcon, QFont, QDesktopServices
 from PyQt5.QtCore import QCoreApplication, QTranslator, QLocale, QEvent, QTimer, Qt, QUrl
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy, QActionGroup, QAction, 
         QSystemTrayIcon, QMenu, QMessageBox)
@@ -417,6 +417,10 @@ def main():
         app.installTranslator(translator)
 
     # QApplication.setStyle(QStyleFactory.create('Fusion'))
+
+    if boolean(conf.value('General/LargeFont')):
+        font = QFont('Courier New', 14)
+        app.setFont(font)
 
     serverName = 'Tafor'
     socket = QLocalSocket()

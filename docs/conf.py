@@ -90,7 +90,11 @@ html_theme = 'alabaster'
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-# html_theme_options = {}
+html_theme_options = {
+    'logo': 'tafor.png',
+    'github_user': 'up1and',
+    'github_repo': 'tafor',
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

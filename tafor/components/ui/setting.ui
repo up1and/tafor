@@ -86,17 +86,10 @@
               </property>
              </widget>
             </item>
-            <item row="2" column="0">
+            <item row="3" column="0">
              <widget class="QCheckBox" name="debugMode">
               <property name="text">
                <string>Debug mode</string>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="0">
-             <widget class="QCheckBox" name="alwaysShowEditor">
-              <property name="text">
-               <string>Always show forecast editor</string>
               </property>
              </widget>
             </item>
@@ -107,7 +100,7 @@
               </property>
              </widget>
             </item>
-            <item row="4" column="0">
+            <item row="8" column="0">
              <spacer name="verticalSpacer">
               <property name="orientation">
                <enum>Qt::Vertical</enum>
@@ -119,6 +112,20 @@
                </size>
               </property>
              </spacer>
+            </item>
+            <item row="4" column="0">
+             <widget class="QCheckBox" name="largeFont">
+              <property name="text">
+               <string>Large Font</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QCheckBox" name="alwaysShowEditor">
+              <property name="text">
+               <string>Always show forecast editor</string>
+              </property>
+             </widget>
             </item>
            </layout>
           </widget>

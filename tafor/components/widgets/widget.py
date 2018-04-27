@@ -1,13 +1,13 @@
 import datetime
 
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QFont, QPixmap
 from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox, QLabel, QHBoxLayout
 
-from tafor.components.ui import main_rc
+from tafor import conf, boolean
 from tafor.models import db, Taf, Sigmet, Trend
 from tafor.utils import CheckTaf
-from tafor.components.ui import Ui_main_recent
+from tafor.components.ui import main_rc, Ui_main_recent
 
 
 class RemindMessageBox(QMessageBox):
@@ -31,9 +31,18 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
     def __init__(self, parent, layout, tt):
         super(RecentMessage, self).__init__(parent)
         self.setupUi(self)
+        self.setFont()
         self.tt = tt
 
         layout.addWidget(self)
+
+    def setFont(self):
+        size = 11
+        if boolean(conf.value('General/LargeFont')):
+            size = 15
+
+        font = QFont('Segoe UI', size)
+        self.rpt.setFont(font)
 
     def updateGui(self):
         item = self.item()

@@ -65,6 +65,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             ('General/CloseToMinimize', 'closeToMinimize', 'bool'),
             ('General/Debug', 'debugMode', 'bool'),
             ('General/AlwaysShowEditor', 'alwaysShowEditor', 'bool'),
+            ('General/LargeFont', 'largeFont', 'bool'),
             # 验证选项
             ('Validator/VisHas5000', 'visHas5000', 'bool'),
             ('Validator/CloudHeightHas450', 'cloudHeightHas450', 'bool'),
