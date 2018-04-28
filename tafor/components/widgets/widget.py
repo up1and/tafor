@@ -52,6 +52,7 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
             self.groupBox.setTitle(item.tt)
             self.sendTime.setText(item.sent.strftime('%Y-%m-%d %H:%M:%S'))
             self.rpt.setText(item.report)
+            self.rpt.setWordWrap(True)
             self.showConfirm(item)
             
         self.showOrHide(item)

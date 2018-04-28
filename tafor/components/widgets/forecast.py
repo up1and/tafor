@@ -546,6 +546,12 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         self.cavok.setEnabled(status)
         self.nsc.setEnabled(status)
 
+        if self.nsc.isChecked():
+            self.setNsc(True)
+
+        if self.cavok.isChecked():
+            self.setCavok(True)
+
         if any([self.fm.isChecked(), self.tl.isChecked(), self.at.isChecked()]):
             self.period.setEnabled(status)
         else:
