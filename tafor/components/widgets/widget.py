@@ -37,11 +37,12 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         layout.addWidget(self)
 
     def setFont(self):
-        size = 11
+        font = QFont('Segoe UI')
         if boolean(conf.value('General/LargeFont')):
-            size = 15
-
-        font = QFont('Segoe UI', size)
+            font.setPointSize(15)
+        else:
+            font.setPixelSize(14)
+        
         self.rpt.setFont(font)
 
     def updateGui(self):

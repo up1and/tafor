@@ -99,6 +99,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             self.closeSignal.emit()
 
     def clear(self):
+        self.aftn = None
         self.rpt.setText('')
         self.rawGroup.hide()
         self.sendButton.setEnabled(True)
