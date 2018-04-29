@@ -92,14 +92,29 @@ html_theme = 'alabaster'
 #
 html_theme_options = {
     'logo': 'tafor.png',
+    'logo_name': True,
+    'logo_text_align': 'center',
+    'description': 'A Terminal Aerodrome Forecast Encoding Software',
     'github_user': 'up1and',
     'github_repo': 'tafor',
+    'github_type': 'star',
+    'analytics_id': 'UA-118398681-1',
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+html_sidebars = {
+    '**': [
+        'about.html',
+        'localtoc.html',
+        'relations.html',
+        'links.html',
+        'searchbox.html',
+    ]
+}
 
 
 # -- Options for HTMLHelp output ------------------------------------------
