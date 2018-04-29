@@ -55,6 +55,7 @@ class AFTNMessage(object):
         channel = conf.value('Communication/Channel')
         number = conf.value('Communication/ChannelSequenceNumber')
         number = int(number) if number else 0
+        level = 'FF' if self.reportType in ['SIGMET', 'AIRMET'] else 'GG'
         sendAddress = conf.value('Communication/{}Address'.format(self.reportType)) or ''
         originatorAddress = conf.value('Communication/OriginatorAddress') or ''
 
@@ -67,7 +68,7 @@ class AFTNMessage(object):
         self.messages = []
         for addr in groups:
             heading = ' '.join(['ZCZC', channel + str(number).zfill(4)])
-            address = ' '.join(['GG'] + addr)
+            address = ' '.join([level] + addr)
             items = [heading, address, origin] + self.text + [ending]
             items = self.formatLinefeed(items)
             self.messages.append(self.lineBreak.join(items))
