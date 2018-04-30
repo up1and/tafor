@@ -46,6 +46,13 @@ class Ui_DataTable(object):
         self.horizontalLayout.addWidget(self.resendButton)
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
+        self.search = QtWidgets.QLineEdit(self.pagination)
+        self.search.setMaximumSize(QtCore.QSize(100, 16777215))
+        self.search.setStyleSheet("border: 0;")
+        self.search.setInputMethodHints(QtCore.Qt.ImhDate)
+        self.search.setClearButtonEnabled(True)
+        self.search.setObjectName("search")
+        self.horizontalLayout.addWidget(self.search)
         self.prevButton = QtWidgets.QToolButton(self.pagination)
         self.prevButton.setText("...")
         self.prevButton.setAutoRaise(True)
@@ -76,6 +83,7 @@ class Ui_DataTable(object):
         item.setText(_translate("DataTable", "Sent Time"))
         item = self.table.horizontalHeaderItem(3)
         item.setText(_translate("DataTable", "Check"))
+        self.search.setPlaceholderText(_translate("DataTable", "Search..."))
 
 
 if __name__ == "__main__":

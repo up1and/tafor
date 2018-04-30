@@ -95,6 +95,28 @@
        </spacer>
       </item>
       <item>
+       <widget class="QLineEdit" name="search">
+        <property name="maximumSize">
+         <size>
+          <width>100</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">border: 0;</string>
+        </property>
+        <property name="inputMethodHints">
+         <set>Qt::ImhDate</set>
+        </property>
+        <property name="placeholderText">
+         <string>Search...</string>
+        </property>
+        <property name="clearButtonEnabled">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QToolButton" name="prevButton">
         <property name="text">
          <string notr="true">...</string>

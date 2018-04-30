@@ -1,10 +1,10 @@
 import datetime
 
-from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon, QRegExpValidator
+from PyQt5.QtCore import Qt, QRegExp
 from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QHeaderView
 
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 
 from tafor.components.ui import main_rc
 from tafor.models import db, Taf, Metar, Sigmet
@@ -18,14 +18,18 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         super(BaseDataTable, self).__init__()
         self.setupUi(self)
         self.setStyle()
+        self.setValidator()
         self.page = 1
         self.pagination = None
+        self.searchText = ''
+        self.date = None
         self.parent = parent
 
         layout.addWidget(self)
         self.bindSignal()
 
     def bindSignal(self):
+        self.search.textEdited.connect(self.autoSearch)
         self.table.itemDoubleClicked.connect(self.copySelected)
         self.prevButton.clicked.connect(self.prev)
         self.nextButton.clicked.connect(self.next)
@@ -39,6 +43,54 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.nextButton.setIcon(QIcon(':/next.png'))
         self.resendButton.setIcon(QIcon(':/repeat.png'))
         self.resendButton.hide()
+
+    def setValidator(self):
+        pattern = r'\d{4}\/\d{1,2}\/\d{1,2}'
+        date = QRegExpValidator(QRegExp(pattern))
+        self.search.setValidator(date)
+
+    def queryset(self):
+        if hasattr(self.model, 'sent'):
+            dateField = self.model.sent
+        else:
+            dateField = self.model.created
+
+        query = db.query(self.model).order_by(dateField.desc())
+
+        if self.date:
+            delta = datetime.timedelta(days=1)
+            query = query.filter(and_(dateField >= self.date, dateField < self.date + delta))
+
+        return query
+
+    def fillDate(self):
+        text = self.search.text()
+        if len(text) > len(self.searchText):
+            if len(text) == 4:
+                text += '/'
+            elif len(text) == 7 and not text.endswith('/'):
+                text += '/'
+
+            self.search.setText(text)
+
+        self.searchText = text
+
+    def autoSearch(self):
+        self.fillDate()
+        dates = [int(n) for n in self.search.text().split('/') if n]
+        if len(dates) == 3:
+            try:
+                self.date = datetime.date(*dates)
+                self.page = 1
+                self.updateGui()
+            except Exception as e:
+                pass
+        else:
+            self.date = None
+        
+        if len(dates) == 0:
+            self.page = 1
+            self.updateGui()
 
     def hideColumns(self):
         raise NotImplemented
@@ -75,6 +127,7 @@ class TafTable(BaseDataTable):
 
     def __init__(self, parent, layout):
         super(TafTable, self).__init__(parent, layout)
+        self.model = Taf
 
     def bindSignal(self):
         super(TafTable, self).bindSignal()
@@ -82,7 +135,7 @@ class TafTable(BaseDataTable):
         self.resendButton.clicked.connect(self.resend)
 
     def updateTable(self):
-        queryset = db.query(Taf).order_by(Taf.sent.desc())
+        queryset = self.queryset()
         self.pagination = paginate(queryset, self.page, perPage=12)
         items = self.pagination.items
         self.table.setRowCount(len(items))
@@ -116,6 +169,9 @@ class TafTable(BaseDataTable):
         self.table.resizeRowsToContents()
 
     def updateResendButton(self, item):
+        if not item:
+            return
+
         text = item.text()
         self.resendButton.hide()
         if text.startswith('TAF'):
@@ -140,7 +196,7 @@ class MetarTable(BaseDataTable):
 
     def __init__(self, parent, layout):
         super(MetarTable, self).__init__(parent, layout)
-
+        self.model = Metar
         self.hideColumns()
 
     def hideColumns(self):
@@ -148,7 +204,7 @@ class MetarTable(BaseDataTable):
         self.table.setColumnHidden(3, True)
 
     def updateTable(self):
-        queryset = db.query(Metar).order_by(Metar.created.desc())
+        queryset = self.queryset()
         self.pagination = paginate(queryset, self.page, perPage=12)
         items = self.pagination.items
         self.table.setRowCount(len(items))
@@ -168,14 +224,14 @@ class SigmetTable(BaseDataTable):
 
     def __init__(self, parent, layout):
         super(SigmetTable, self).__init__(parent, layout)
-
+        self.model = Sigmet
         self.hideColumns()
 
     def hideColumns(self):
         self.table.setColumnHidden(3, True)
 
     def updateTable(self):
-        queryset = db.query(Sigmet).order_by(Sigmet.sent.desc())
+        queryset = self.queryset()
         self.pagination = paginate(queryset, self.page, perPage=6)
         items = self.pagination.items
         self.table.setRowCount(len(items))
