@@ -1,13 +1,14 @@
+import os
 import json
 import datetime
 
 from PyQt5.QtGui import QIcon, QIntValidator
 from PyQt5.QtCore import QCoreApplication, QSettings, QTimer, Qt
-from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QTableWidgetItem
+from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QTableWidgetItem, QFileDialog
 
 from tafor.components.ui import Ui_setting, main_rc
 from tafor.models import db, User
-from tafor import conf, boolean, logger
+from tafor import conf, boolean, logger, BASEDIR
 
 
 def isConfigured(reportType='TAF'):
@@ -129,6 +130,11 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.resetNumberButton.clicked.connect(self.resetChannelNumber)
 
         self.callUpButton.clicked.connect(self.testCallUp)
+
+        self.importBrowseButton.clicked.connect(lambda: self.openFile(self.importPath))
+        self.exportBrowseButton.clicked.connect(lambda: self.openDirectory(self.exportPath))
+        self.importButton.clicked.connect(self.importConf)
+        self.exportButton.clicked.connect(self.exportConf)
 
         self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.save)
         self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.parent.updateGui)
@@ -301,6 +307,61 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             val = person.mobile if person else ''
 
         conf.setValue(path, val)
+
+    def exportConf(self, defaultPath=False):
+        if defaultPath:
+            filename = os.path.join(BASEDIR, 'default.json')
+            
+        paths = [option[0] for option in self.options]
+        options = {path: conf.value(path) for path in paths}
+        path = self.exportPath.text()
+        if path:
+            filedir, _= os.path.split(path)
+            if os.path.isdir(filedir):
+                filename = self.exportPath.text()
+
+        try:
+            with open(filename, 'w') as file:
+                json.dump(options, file)
+
+        except Exception as e:
+            pass
+
+        else:
+            self.parent.statusBar.showMessage(QCoreApplication.translate('Settings', 'Configuration has been exported'), 5000)
+
+    def importConf(self, defaultPath=False):
+        if defaultPath:
+            filename = os.path.join(BASEDIR, 'default.json')
+
+        path = self.importPath.text()
+        if path and os.path.isfile(path):
+            filename = self.exportPath.text()
+
+        try:
+            with open(filename) as file:
+                data = json.load(file)
+
+            for path, val in data.items():
+                conf.setValue(path, val)
+
+        except Exception as e:
+            pass
+
+        else:
+            self.load()
+            self.parent.statusBar.showMessage(QCoreApplication.translate('Settings', 'Configuration has been imported'), 5000)
+
+    def openFile(self, receiver):
+        title = QCoreApplication.translate('Settings', 'Open Configuration File')
+        filename, _ = QFileDialog.getOpenFileName(self, title, '.', '(*.json)')
+        receiver.setText(filename)
+
+    def openDirectory(self, receiver):
+        title = QCoreApplication.translate('Settings', 'Open Directory')
+        path = str(QFileDialog.getExistingDirectory(self, title))
+        filename = os.path.join(path, 'default.json').replace('\\', '/') if path else path
+        receiver.setText(filename)
 
     def showEvent(self, event):
         self.parent.showNormal()

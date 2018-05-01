@@ -4,24 +4,29 @@
 <context>
     <name>DataTable</name>
     <message>
-        <location filename="../../components/ui/main_table.ui" line="51"/>
+        <location filename="../../components/ui/Ui_main_table.py" line="79"/>
         <source>Type</source>
         <translation>类型</translation>
     </message>
     <message>
-        <location filename="../../components/ui/main_table.ui" line="56"/>
+        <location filename="../../components/ui/Ui_main_table.py" line="81"/>
         <source>Message Content</source>
         <translation>报文内容</translation>
     </message>
     <message>
-        <location filename="../../components/ui/main_table.ui" line="61"/>
+        <location filename="../../components/ui/Ui_main_table.py" line="83"/>
         <source>Sent Time</source>
         <translation>发布时间</translation>
     </message>
     <message>
-        <location filename="../../components/ui/main_table.ui" line="66"/>
+        <location filename="../../components/ui/Ui_main_table.py" line="85"/>
         <source>Check</source>
         <translation>查询</translation>
+    </message>
+    <message>
+        <location filename="../../components/ui/Ui_main_table.py" line="86"/>
+        <source>Search...</source>
+        <translation>搜索...</translation>
     </message>
 </context>
 <context>
@@ -249,17 +254,17 @@
         <translation>经度</translation>
     </message>
     <message>
-        <location filename="../../components/ui/sigmet_head.ui" line="26"/>
+        <location filename="../../components/ui/Ui_sigmet_head.py" line="103"/>
         <source>Head</source>
         <translation>报头</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_cancel.py" line="57"/>
+        <location filename="../../components/ui/Ui_sigmet_head.py" line="109"/>
         <source>Sequence</source>
         <translation>序号</translation>
     </message>
     <message>
-        <location filename="../../components/ui/sigmet_head.ui" line="51"/>
+        <location filename="../../components/ui/Ui_sigmet_head.py" line="104"/>
         <source>OBS Time</source>
         <translation>观测时间</translation>
     </message>
@@ -269,17 +274,17 @@
         <translation>预测</translation>
     </message>
     <message>
-        <location filename="../../components/ui/sigmet_head.ui" line="71"/>
+        <location filename="../../components/ui/Ui_sigmet_head.py" line="106"/>
         <source>Typhoon Name</source>
         <translation>热带气旋名称</translation>
     </message>
     <message>
-        <location filename="../../components/ui/sigmet_head.ui" line="114"/>
+        <location filename="../../components/ui/Ui_sigmet_head.py" line="110"/>
         <source>Phenomena</source>
         <translation>天气现象</translation>
     </message>
     <message>
-        <location filename="../../components/ui/sigmet_head.ui" line="81"/>
+        <location filename="../../components/ui/Ui_sigmet_head.py" line="107"/>
         <source>Phenomena Description</source>
         <translation>天气描述</translation>
     </message>
@@ -339,12 +344,12 @@
         <translation>编发重要气象情报</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_cancel.py" line="56"/>
+        <location filename="../../components/ui/Ui_sigmet_head.py" line="108"/>
         <source>Beginning Time</source>
         <translation>起始时间</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_cancel.py" line="58"/>
+        <location filename="../../components/ui/Ui_sigmet_head.py" line="111"/>
         <source>Ending Time</source>
         <translation>结束时间</translation>
     </message>
@@ -586,7 +591,7 @@
         <translation>重新发送</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="132"/>
+        <location filename="../../components/send.py" line="133"/>
         <source>Timing Tasks</source>
         <translation>定时任务</translation>
     </message>
@@ -611,7 +616,7 @@
         <translation>报文没有通过校验，你还要发送么？</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="234"/>
+        <location filename="../../components/send.py" line="235"/>
         <source>Resend Message</source>
         <translation>重新发送报文</translation>
     </message>
@@ -909,17 +914,17 @@
         <translation>电话服务</translation>
     </message>
     <message>
-        <location filename="../../components/setting.py" line="59"/>
+        <location filename="../../components/setting.py" line="60"/>
         <source>OK</source>
         <translation>确定</translation>
     </message>
     <message>
-        <location filename="../../components/setting.py" line="60"/>
+        <location filename="../../components/setting.py" line="61"/>
         <source>Apply</source>
         <translation>应用</translation>
     </message>
     <message>
-        <location filename="../../components/setting.py" line="61"/>
+        <location filename="../../components/setting.py" line="62"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
@@ -942,6 +947,26 @@
         <location filename="../../components/ui/Ui_setting.py" line="571"/>
         <source>Large Font</source>
         <translation>大号字体</translation>
+    </message>
+    <message>
+        <location filename="../../components/setting.py" line="362"/>
+        <source>Open Directory</source>
+        <translation>打开目录</translation>
+    </message>
+    <message>
+        <location filename="../../components/setting.py" line="332"/>
+        <source>Configuration has been exported</source>
+        <translation>配置已导出</translation>
+    </message>
+    <message>
+        <location filename="../../components/setting.py" line="354"/>
+        <source>Configuration has been imported</source>
+        <translation>配置已导入</translation>
+    </message>
+    <message>
+        <location filename="../../components/setting.py" line="357"/>
+        <source>Open Configuration File</source>
+        <translation>打开配置文件</translation>
     </message>
 </context>
 <context>
