@@ -454,11 +454,11 @@ class SigmetTyphoonHead(BaseSigmetHead):
 
     def checkComplete(self):
         mustRequired = [
-                        self.beginningTime.hasAcceptableInput(), 
-                        self.endingTime.hasAcceptableInput(),
-                        self.sequence.hasAcceptableInput(), 
-                        self.typhoonName.text(),
-                        ]
+            self.beginningTime.hasAcceptableInput(), 
+            self.endingTime.hasAcceptableInput(),
+            self.sequence.hasAcceptableInput(), 
+            self.typhoonName.text(),
+        ]
         if self.forecast.currentText() == 'OBS':
             mustRequired.append(self.obsTime.hasAcceptableInput())
 
@@ -721,6 +721,11 @@ class SigmetGeneralSegment(BaseSegment):
 
         self.head.description.currentTextChanged.connect(self.head.setPhenomena)
         self.head.phenomena.currentTextChanged.connect(self.content.setPosition)
+
+    def showEvent(self, event):
+        # 手动触发信号
+        self.head.phenomena.setCurrentIndex(-1)
+        self.head.phenomena.setCurrentIndex(0)
 
     def clear(self):
         self.head.clear()

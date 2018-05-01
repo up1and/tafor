@@ -40,7 +40,7 @@ class SegmentMixin(object):
             line.clear()
 
         for combox in self.findChildren(QComboBox):
-            combox.setCurrentIndex(1)
+            combox.setCurrentIndex(0)
 
         for checkbox in self.findChildren(QCheckBox):
             checkbox.setChecked(False)
