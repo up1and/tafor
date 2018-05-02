@@ -32,6 +32,7 @@
 
 表格右下角 ``蓝色箭头`` 为翻页按钮。
 
+表格右下角搜索框支持按日期过滤报文，如 `2018/03/17`，查询当日报文。
 
 .. note:: TAF 报文在发送后没有出现绿色对勾的标志，请务必检查报文是否正确发出。
 
@@ -44,12 +45,36 @@
 
 .. image:: /images/general_settings.png
 
-- **调试模式** 勾选后用于开启低级别的日志记录模式
+通用
+""""""""""""
+- **开机自动启动** 程序在系统启动时自动启动
 - **总是显示报文编辑器** 报文发送窗口打开时报文编辑器会默认隐藏，勾选后同时显示报文编辑器和发送窗口
+- **调试模式** 勾选后用于开启低级别的日志记录模式
+- **大号字体** 界面显示更换大号字体，重启后生效
 
 校验
 """"""""""""
 用于开启或者关闭 TAF 报文验证的阈值。
+
+备份
+""""""""""""
+设置导入导出支持 JSON 格式的配置文件，部分配置样例如下。
+
+.. code-block:: json
+
+    {
+      "Message/ICAO":"ZJHK",
+      "Monitor/WebApiURL":"https://tafor.herokuapp.com/remote/latest/zjhk.json",
+      "Communication/SerialPort":"COM1",
+      "Message/WeatherWithIntensity":"[\"RA\", \"SHRA\", \"TSRA\", \"SHGRRA\"]",
+      "General/Debug":"true"
+    }
+
+载入配置文件时，先点击 ``浏览`` 选择配置文件，再点击 ``导入`` 按钮。
+
+备份配置文件时，先点击 ``浏览`` 选择导出目录，再点击 ``导出`` 按钮。
+
+.. note:: 导入配置文件后会覆盖本机当前设置，使用时请注意备份好数据。
 
 
 报文参数
@@ -176,11 +201,11 @@ AFTN 参数
 
 .. code-block:: python
 
-    requests.post(:url, auth=('api', :token), data={'mobile': :mobile})
+    requests.post(url, auth=('api', token), data={'mobile': mobile})
 
-- **:url** 请求电话拨号服务的地址
-- **:token** 用于认证用户身份的密钥
-- **:mobile** 所要呼叫的手机号
+- **url** 请求电话拨号服务的地址
+- **token** 用于认证用户身份的密钥
+- **mobile** 所要呼叫的手机号
 
 .. note:: 认证 Token 需要电话服务网站注册账号后生成。
 
@@ -258,6 +283,10 @@ TAF 报文的编辑
 
 趋势报文的编辑
 -----------------
+
+.. image:: /images/trend_editor.png
+
+
 趋势预报选择 FM、TL、AT 时间组时，只能提前 150 分钟添加。
 
 首页会显示最近一次发布的趋势预报，如果最后一条记录是 NOSIG，则不会显示趋势相关信息。
