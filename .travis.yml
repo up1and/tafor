@@ -9,6 +9,8 @@ before_script:
   - sleep 3
 
 install:
+  - sudo apt-get update
+  - sudo apt-get install libpulse-mainloop-glib0
   - pip install -r requirements.txt
 
 script:
