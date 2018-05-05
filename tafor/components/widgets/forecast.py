@@ -223,7 +223,7 @@ class BaseSegment(QWidget, SegmentMixin):
         # logger.debug(self.msg)
 
     def checkComplete(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     def clear(self):
         self.wind.clear()

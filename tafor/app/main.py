@@ -211,7 +211,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.tray.show()
             return True
         else:
-            return super(self.__class__, self).event(event)
+            return super(MainWindow, self).event(event)
 
     def keyPressEvent(self, event):
         if boolean(conf.value('General/Serious')):

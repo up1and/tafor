@@ -3,6 +3,7 @@
 # Tafor
 
 [![Build Status](https://travis-ci.org/up1and/tafor.svg?branch=master)](https://travis-ci.org/up1and/tafor)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/8560a0cc9a3e4793b3476f32234dafe3)](https://www.codacy.com/app/up1and/tafor?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=up1and/tafor&amp;utm_campaign=Badge_Grade)
 
 本软件用于民航气象部门智能发布预报报文、趋势报文、重要气象情报，监控预报报文，以声音或电话的方式返回告警。
 
@@ -29,6 +30,9 @@
 
 ## 感谢
 软件 TAF 报文编辑界面参考了湛江空管站张永华先生所写的湛江预报发报软件，感谢张永华先生的支持与理解。
+
+### 贡献者
+* [Li Jiapeng](https://github.com/jpli)
 
 ## 贡献代码
 欢迎提交 Issue 或者 Pull Request。

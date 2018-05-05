@@ -93,7 +93,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
             self.updateGui()
 
     def hideColumns(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     def prev(self):
         if self.pagination.hasPrev:
@@ -111,8 +111,8 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.updateTable()
         self.updatePages()
 
-    def updateTable():
-        raise NotImplemented
+    def updateTable(self):
+        raise NotImplementedError
 
     def updatePages(self):
         text = '{}/{}'.format(self.page, self.pagination.pages)

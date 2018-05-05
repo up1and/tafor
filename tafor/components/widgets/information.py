@@ -125,13 +125,13 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
         self.sequence.setText(str(count))
 
     def setPhenomenaDescription(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     def setPhenomena(self, text):
-        raise NotImplemented
+        raise NotImplementedError
 
     def checkComplete(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     def message(self):
         fir = conf.value('Message/FIR')
@@ -441,7 +441,6 @@ class SigmetTyphoonHead(BaseSigmetHead):
 
     def setPhenomena(self):
         self.phenomena.addItems(['TC'])
-        # self.phenomena.setEnabled(False)
 
     def hideDescription(self):
         self.description.setVisible(False)

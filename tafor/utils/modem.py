@@ -39,4 +39,4 @@ def serialComm(message, port, baudrate=9600, bytesize='8', parity='NONE', stopbi
 
 
 if __name__ == '__main__':
-    s = serialComm('The quick brown fox jumped over the lazy dog', 'COM5')
+    serialComm('The quick brown fox jumped over the lazy dog', 'COM5')
