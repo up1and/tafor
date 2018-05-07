@@ -254,17 +254,17 @@
         <translation>经度</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_head.py" line="103"/>
+        <location filename="../../components/ui/sigmet_head.ui" line="26"/>
         <source>Head</source>
         <translation>报头</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_head.py" line="109"/>
+        <location filename="../../components/ui/Ui_sigmet_cancel.py" line="57"/>
         <source>Sequence</source>
         <translation>序号</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_head.py" line="104"/>
+        <location filename="../../components/ui/sigmet_head.ui" line="51"/>
         <source>OBS Time</source>
         <translation>观测时间</translation>
     </message>
@@ -274,17 +274,17 @@
         <translation>预测</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_head.py" line="106"/>
+        <location filename="../../components/ui/sigmet_head.ui" line="71"/>
         <source>Typhoon Name</source>
         <translation>热带气旋名称</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_head.py" line="110"/>
+        <location filename="../../components/ui/sigmet_head.ui" line="114"/>
         <source>Phenomena</source>
         <translation>天气现象</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_head.py" line="107"/>
+        <location filename="../../components/ui/sigmet_head.ui" line="81"/>
         <source>Phenomena Description</source>
         <translation>天气描述</translation>
     </message>
@@ -344,12 +344,12 @@
         <translation>编发重要气象情报</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_head.py" line="108"/>
+        <location filename="../../components/ui/Ui_sigmet_cancel.py" line="56"/>
         <source>Beginning Time</source>
         <translation>起始时间</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_head.py" line="111"/>
+        <location filename="../../components/ui/Ui_sigmet_cancel.py" line="58"/>
         <source>Ending Time</source>
         <translation>结束时间</translation>
     </message>
@@ -517,7 +517,7 @@
         <translation>项目遵循 GPL-2.0 协议，欢迎提交 Pull Request 或者 Issue</translation>
     </message>
     <message>
-        <location filename="../../app/main.py" line="405"/>
+        <location filename="../../app/main.py" line="413"/>
         <source>New version found {}, do you want to download now?</source>
         <translation>发现新版本 {}，想现在下载么？</translation>
     </message>
@@ -556,6 +556,16 @@
         <location filename="../../components/ui/Ui_main.py" line="152"/>
         <source>Next Page</source>
         <translation>下一页</translation>
+    </message>
+    <message>
+        <location filename="../../app/main.py" line="408"/>
+        <source>The current version is already the latest version.</source>
+        <translation>当前版本已经是最新版本</translation>
+    </message>
+    <message>
+        <location filename="../../app/main.py" line="402"/>
+        <source>Unable to get the latest version information.</source>
+        <translation>无法获取最新版本信息。</translation>
     </message>
 </context>
 <context>

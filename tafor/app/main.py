@@ -395,12 +395,20 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         QDesktopServices.openUrl(QUrl('https://github.com/up1and/tafor/issues'))
 
     def checkUpgrade(self, data):
-        hasNewVersion = checkVersion(data.get('tag_name', __version__), __version__)
+        title = QCoreApplication.translate('MainWindow', 'Check for Updates')
+        release = data.get('tag_name')
+        if not release:
+            text = QCoreApplication.translate('MainWindow', 'Unable to get the latest version information.')
+            QMessageBox.information(self, title, text)
+            return False
+
+        hasNewVersion = checkVersion(release, __version__)
         if not hasNewVersion:
+            text = QCoreApplication.translate('MainWindow', 'The current version is already the latest version.')
+            QMessageBox.information(self, title, text)
             return False
 
         download = 'https://github.com/up1and/tafor/releases'
-        title = QCoreApplication.translate('MainWindow', 'Check for Updates')
         text = QCoreApplication.translate('MainWindow', 'New version found {}, do you want to download now?').format(data.get('tag_name'))
         ret = QMessageBox.question(self, title, text)
         if ret == QMessageBox.Yes:
