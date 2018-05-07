@@ -347,14 +347,14 @@ class Validator(object):
 class Lexer(object):
     """TAF 报文一组要素的解析器
 
-    :param part: 单组主报文、BECMG 或 TEMPO
+    :param part: 单组主报文 BECMG 或 TEMPO
     :param grammar: 解析 TAF 报文的语法类
     :param kwargs: 额外参数
     """
     grammarClass = Grammar
 
     defaultRules = [
-        'sign', 'amend', 'icao', 'timez', 'period', 'prob', 'interval', 'cnl',
+        'prob', 'sign', 'amend', 'icao', 'timez', 'period', 'interval', 'cnl',
         'wind', 'vis', 'cavok', 'weather', 'cloud', 'vv', 'tmax', 'tmin'
     ]
 
