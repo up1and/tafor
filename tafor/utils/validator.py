@@ -559,6 +559,9 @@ class Parser(object):
                     if tempo.period[0] >= becmg.period[1]:
                         groups.append(tempo)
 
+            if not becmgs:
+                groups = tempos
+
             return groups
 
         def reduce(items):

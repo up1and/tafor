@@ -5,7 +5,7 @@ import logging
 from PyQt5 import QtCore
 
 
-__version__ = '1.0.6-beta'
+__version__ = '1.0.7-beta'
 
 
 def basedir():

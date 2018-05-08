@@ -162,9 +162,9 @@ class TafTable(BaseDataTable):
                 self.table.setItem(row, 3, checkedItem)
 
             if 'COR' in item.rpt or 'AMD' in item.rpt:
-                self.table.item(row, 0).setForeground(Qt.darkYellow)
-                self.table.item(row, 1).setForeground(Qt.darkYellow)
-                self.table.item(row, 2).setForeground(Qt.darkYellow)
+                self.table.item(row, 0).setForeground(Qt.darkRed)
+                self.table.item(row, 1).setForeground(Qt.darkRed)
+                self.table.item(row, 2).setForeground(Qt.darkRed)
 
         self.table.resizeRowsToContents()
 
@@ -214,8 +214,8 @@ class MetarTable(BaseDataTable):
             self.table.setItem(row, 0,  QTableWidgetItem(item.tt))
             self.table.setItem(row, 1,  QTableWidgetItem(item.rpt))
             if item.tt == 'SP':
-                self.table.item(row, 0).setForeground(Qt.darkYellow)
-                self.table.item(row, 1).setForeground(Qt.darkYellow)
+                self.table.item(row, 0).setForeground(Qt.darkRed)
+                self.table.item(row, 1).setForeground(Qt.darkRed)
 
         self.table.resizeRowsToContents()
 
