@@ -24,6 +24,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.searchText = ''
         self.date = None
         self.parent = parent
+        self.color = Qt.red
 
         layout.addWidget(self)
         self.bindSignal()
@@ -162,9 +163,9 @@ class TafTable(BaseDataTable):
                 self.table.setItem(row, 3, checkedItem)
 
             if 'COR' in item.rpt or 'AMD' in item.rpt:
-                self.table.item(row, 0).setForeground(Qt.darkRed)
-                self.table.item(row, 1).setForeground(Qt.darkRed)
-                self.table.item(row, 2).setForeground(Qt.darkRed)
+                self.table.item(row, 0).setForeground(self.color)
+                self.table.item(row, 1).setForeground(self.color)
+                self.table.item(row, 2).setForeground(self.color)
 
         self.table.resizeRowsToContents()
 
@@ -214,8 +215,8 @@ class MetarTable(BaseDataTable):
             self.table.setItem(row, 0,  QTableWidgetItem(item.tt))
             self.table.setItem(row, 1,  QTableWidgetItem(item.rpt))
             if item.tt == 'SP':
-                self.table.item(row, 0).setForeground(Qt.darkRed)
-                self.table.item(row, 1).setForeground(Qt.darkRed)
+                self.table.item(row, 0).setForeground(self.color)
+                self.table.item(row, 1).setForeground(self.color)
 
         self.table.resizeRowsToContents()
 
