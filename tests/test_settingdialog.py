@@ -1,27 +1,24 @@
-# -*- coding: utf-8 -*-
-
-from .context import tafor
-
 import sys
-import unittest
+
+import pytest
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtTest import QTest
-from PyQt5.QtWidgets import QApplication
 
-app = QApplication(sys.argv)
+from tafor.app import MainWindow
+from tafor.components import SettingDialog
 
 
-class TestMainWindow(unittest.TestCase):
-    def setUp(self):
-        self.main = tafor.app.MainWindow()
-        self.dialog = tafor.components.SettingDialog(self.main)
+@pytest.fixture
+def window():
+    widget = MainWindow()
+    return widget
 
-    def testResetChannelNumber(self):
-        button = self.dialog.resetNumberButton
-        QTest.mouseClick(button, Qt.LeftButton)
-        self.assertEqual(self.dialog.channelSequenceNumber.text(), '1')
+def test_reset_channel_number(qtbot, window):
+    dialog = SettingDialog(window)
+    qtbot.addWidget(dialog)
+    qtbot.mouseClick(dialog.resetNumberButton, Qt.LeftButton)
+    assert dialog.channelSequenceNumber.text() == '1'
 
 
 if __name__ == '__main__':
-    unittest.main()
+    pytest.main()

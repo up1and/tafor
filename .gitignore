@@ -43,5 +43,6 @@ default.json
 docs/_build
 _eric6project/
 .eric6project/
+.cache/
 .vscode
 .python-version
