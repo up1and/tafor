@@ -5,17 +5,16 @@ from setuptools.command.test import test as TestCommand
 
 
 class PyTest(TestCommand):
-    user_options = [('pytest-args=', 'a', "Arguments to pass to pytest")]
 
-    def initialize_options(self):
-        TestCommand.initialize_options(self)
-        self.pytest_args = ''
+    def finalize_options(self):
+        TestCommand.finalize_options(self)
+        self.test_args = ['--cov=tafor']
 
     def run_tests(self):
-        import shlex
         import pytest
-        errno = pytest.main(shlex.split(self.pytest_args))
-        sys.exit(errno)
+        errno = pytest.main(self.test_args)
+        if errno != 0:
+            raise SystemExit(errno)
 
 
 setup(

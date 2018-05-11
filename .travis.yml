@@ -16,7 +16,10 @@ install:
   - pip install -r tests/test_requirements.txt
 
 script:
-  - pytest
+  - python setup.py test
+
+after_success:
+  - codecov
 
 notifications:
     email: false
