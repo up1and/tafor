@@ -13,7 +13,7 @@ install:
   - sudo apt-get install libpulse-mainloop-glib0
   - sudo apt-get install pulseaudio
   - pip install -r requirements.txt
-  - pip install -r tests/test_requirements.txt
+  - pip install -r tests/requirements.txt
 
 script:
   - python setup.py test

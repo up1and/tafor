@@ -296,7 +296,9 @@ class Validator(object):
 
         if any(matches):
             if all(matches):
-                return matches[0].group() != matches[1].group()
+                # 积雨云将发展或消失
+                if matches[0].group() != matches[1].group():
+                    return True
             return True
 
         def analyze(clouds):
@@ -641,7 +643,6 @@ class Parser(object):
 
         1. 能见度和天气现象
             * 能见度跨 1000 米时应变化天气现象
-            * 能见度降低到 5000 米以下时应有天气现象
             * 能见度小于 5000 米时应有天气现象
             * 能见度小于 1000 米，BR、-DZ 不能有
             * 能见度大于 1000 米、小于 5000 米，FG、+DZ 不能有
@@ -675,18 +676,12 @@ class Parser(object):
                     tokens['vis']['error'] = True
                     self.tips.append('能见度跨 1000 米时应变化天气现象')
 
-                if vis <= 5000 and refVis > 5000:
+                if vis <= 5000:
                     tokens['vis']['error'] = True
-                    self.tips.append('能见度降低到 5000 米以下时应有天气现象')
-
-                if vis == refVis:
-                    if vis <= 5000:
-                        tokens['vis']['error'] = True
-                        self.tips.append('能见度小于 5000 米时应有天气现象')
+                    self.tips.append('能见度小于 5000 米时应有天气现象')
 
             else:
                 if vis < 1000 and set(weathers) & set(['BR', '-DZ']):
-                    tokens['vis']['error'] = True
                     if 'weather' in tokens:
                         tokens['weather']['error'] = True
                     else:
@@ -695,7 +690,6 @@ class Parser(object):
                     self.tips.append('能见度小于 1000 米，BR、-DZ 不能有')
 
                 if 1000 <= vis <= 5000 and set(weathers) & set(['FG', '+DZ']):
-                    tokens['vis']['error'] = True
                     if 'weather' in tokens:
                         tokens['weather']['error'] = True
                     else:
@@ -706,8 +700,6 @@ class Parser(object):
                 if vis > 5000 and set(weathers) & set(['FG', 'FU', 'BR', 'HZ']):
                     if 'weather' in tokens:
                         tokens['weather']['error'] = True
-                    else:
-                        tokens['vis']['error'] = True
 
                     self.tips.append('能见度大于 5000 米，FG、FU、BR、HZ 不能有')
 

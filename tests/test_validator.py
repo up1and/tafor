@@ -58,7 +58,9 @@ def test_vis(validator):
 def test_vv(validator):
     assert validator.vv('VV002', 'VV005')
     assert validator.vv('VV005', 'VV002')
+    assert validator.vv('VV005', 'SCT020')
     assert not validator.vv('VV002', 'VV003')
+    assert not validator.vv('VV015', 'BKN010')
     
 def test_weather(validator):
     assert validator.weather('TS', '-TSRA')
@@ -74,10 +76,23 @@ def test_cloud(validator):
     assert validator.cloud('BKN010', 'BKN004')
     assert validator.cloud('SCT007', 'BKN010')
     assert validator.cloud('SCT020', 'BKN010')
+    assert validator.cloud('SCT020 FEW026CB', 'SCT010 SCT030CB')
+    assert validator.cloud('BKN010', 'SCT010 BKN030')
     assert not validator.cloud('SCT007', 'SCT015')
     assert not validator.cloud('NSC', 'SKC')
+    assert not validator.cloud('SCT020', 'SCT020')
     # To be fixed 
     # when cloudHeightHas450 equal False, BKN016, BKN011 always return True
+
+def test_cavok(validator):
+    assert validator.cavok('4000', '-TSRA', 'SCT020 FEW026CB')
+    assert not validator.cavok('4000', 'BR', 'SCT020')
+
+def test_extra():
+    m = Parser('TAF AMD ZJHK 211338Z 211524 14004MPS 4500 -RA BKN030 BECMG 2122 2500 BR BKN012 TEMPO 1519 07005MPS=')
+    assert m.isValid()
+    assert m.isAmended()
+
 
 if __name__ == "__main__":
     pytest.main()

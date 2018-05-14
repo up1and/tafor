@@ -3,6 +3,13 @@ import sys
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
 
+from tafor import __version__
+
+
+def fread(filepath):
+    with open(filepath, 'r') as f:
+        return f.read()
+
 
 class PyTest(TestCommand):
 
@@ -18,6 +25,15 @@ class PyTest(TestCommand):
 
 
 setup(
+    name='tafor',
+    version=__version__,
+    url='https://github.com/up1and/tafor',
+    author='up1and',
+    author_email='piratecb@gmail.com',
+    description='A Terminal Aerodrome Forecast Encoding Software',
+    long_description=fread('README.md'),
+    license='GPLv2',
     tests_require=['pytest'],
     cmdclass = {'test': PyTest},
+    platforms='any',
     )
