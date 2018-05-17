@@ -35,9 +35,9 @@ Windows 下如何安装 `PyInstaller` 的请参考 `这里 <https://pythonhosted
 编译
 """""""""""""
 
-打包成可执行的 exe 程序，请切换到 :file:`tafor/tafor/` 目录下::
+打包成可执行的 exe 程序，请在仓库根目录下运行::
 
-    $ pyinstaller __main__.py -w -F -i icons\icon.ico
+    $ python setup.py build_exe
 
 打包成功～
 
