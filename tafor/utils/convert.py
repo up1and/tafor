@@ -30,7 +30,7 @@ def parseTime(timeString, time=None):
     :return: 返回 Datetime 对象
     """
     time = time if time else datetime.datetime.utcnow()
-    hour = int(timeString[0:2])
+    hour = 0 if timeString[0:2] == '24' else int(timeString[0:2])
     minute = int(timeString[2:])
 
     base = time.replace(hour=hour, minute=minute)

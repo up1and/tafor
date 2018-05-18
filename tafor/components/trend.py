@@ -61,6 +61,12 @@ class TrendEditor(BaseEditor):
         time = parseTime(period)
         delta = datetime.timedelta(hours=2, minutes=30)
 
+        if self.trend.at.isChecked() or self.trend.fm.isChecked() and period == '2400':
+            self.trend.period.setText('0000')
+
+        if self.trend.tl.isChecked() and period == '0000':
+            self.trend.period.setText('2400')
+
         if time - delta > utc:
             self.trend.period.clear()
             self.parent.statusBar.showMessage(QCoreApplication.translate('Editor', 'Trend valid time is not corret'), 5000)
