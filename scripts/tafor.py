@@ -34,6 +34,21 @@ def marshal(messages):
 
     return resp_dict
 
+def load_fir(mwo, remote=False):
+    mwo = mwo.upper()
+    boundary_path = os.path.join(BASEDIR, 'config', 'boundary.json')
+    with open(boundary_path) as data:
+        boundaries = json.load(data)
+
+    file = 'remote.json' if remote else 'local.json'
+    info_path = os.path.join(BASEDIR, 'config', file)
+    with open(info_path) as data:
+        infos = json.load(data)
+
+    info = infos.get(mwo, None)
+    info['boundaries'] = boundaries.get(mwo, [])
+    return info
+
 
 @app.route('/')
 def index():
@@ -97,58 +112,35 @@ def fir(mwo):
     url = 'http://192.2.204.51/GetFileName.ashx?type=1&satellite=1&file=IEC'
 
     try:
-        path = os.path.join(BASEDIR, 'fir_boundaries.json')
-        with open(path) as data:
-            boundaries = json.load(data)
-        response = requests.get(url)
+        info = load_fir(mwo)
+        response = requests.get(url, timeout=2)
         filename = response.text.split('$$')[-1]
         image = 'http://192.2.204.51/FY2_IMAGE/IEC{}.jpg'.format(filename)
+        info['image'] = image
+
+    except requests.exceptions.ConnectionError:
+        app.logger.warn('GET {} 408 Request Timeout'.format(url))
+        return jsonify({'error': '{} not found'.format('satellite image')}), 404
 
     except Exception as e:
         app.logger.error(e, exc_info=True)
-        return jsonify({'error': '{} not found'.format('satellite image')}), 404
-
-    configs = {
-        'ZJSA': {
-            'image': image,
-            'size': [1780, 1340],
-            'coordinates': [[79, 52], [151, -2]],
-            'rect': [655, 720, 260, 260],
-        }
-    }
-
-    info = configs.get(mwo, None)
-    if not info:
         return jsonify({'error': '{} not found'.format(mwo)}), 404
-
-    info['boundaries'] = boundaries.get(mwo, [])
-
+        
     return jsonify(info)
 
 @app.route('/remote/fir/<mwo>.json')
 def remote_fir(mwo):
     mwo = mwo.upper()
-    configs = {
-        'ZJSA': {
-            'image': url_for('static', filename='cloud.jpg', _external=True),
-            'size': [376, 376],
-            'coordinates': [[105, 25], [120, 10]],
-            'rect': [15, 50, 260, 260],
-        }
-    }
+    image = url_for('static', filename='{}.jpg'.format(mwo.lower()), _external=True)
 
-    info = configs.get(mwo, None)
-    if not info:
+    try:
+        info = load_fir(mwo, remote=True)
+        info['image'] = image
+        
+    except Exception as e:
         return jsonify({'error': '{} not found'.format(mwo)}), 404
 
-    path = os.path.join(BASEDIR, 'fir_boundaries.json')
-    with open(path) as data:
-        boundaries = json.load(data)
-
-    info['boundaries'] = boundaries.get(mwo, [])
-
     return jsonify(info)
-
 
 
 if __name__ == '__main__':
