@@ -11,6 +11,57 @@ from tafor.models import db, User
 from tafor import conf, boolean, logger, BASEDIR
 
 
+_options = [
+    # 通用设置
+    ('General/CloseToMinimize', 'closeToMinimize', 'bool'),
+    ('General/Debug', 'debugMode', 'bool'),
+    ('General/AlwaysShowEditor', 'alwaysShowEditor', 'bool'),
+    ('General/LargeFont', 'largeFont', 'bool'),
+    # 验证选项
+    ('Validator/VisHas5000', 'visHas5000', 'bool'),
+    ('Validator/CloudHeightHas450', 'cloudHeightHas450', 'bool'),
+    # 报文字符
+    ('Message/ICAO', 'icao', 'text'),
+    ('Message/Area', 'area', 'text'),
+    ('Message/FIR', 'fir', 'text'),
+    ('Message/TrendSign', 'trendSign', 'text'),
+    ('Message/Weather', 'weatherList', 'list'),
+    ('Message/WeatherWithIntensity', 'weatherWithIntensityList', 'list'),
+    # 串口设置
+    ('Communication/SerialPort', 'port', 'text'),
+    ('Communication/SerialBaudrate', 'baudrate', 'text'),
+    ('Communication/SerialParity', 'parity', 'combox'),
+    ('Communication/SerialBytesize', 'bytesize', 'combox'),
+    ('Communication/SerialStopbits', 'stopbits', 'combox'),
+    # AFTN 配置
+    ('Communication/Channel', 'channel', 'text'),
+    ('Communication/ChannelSequenceNumber', 'channelSequenceNumber', 'text'),
+    ('Communication/MaxLineChar', 'maxLineChar', 'text'),
+    ('Communication/MaxSendAddress', 'maxSendAddress', 'text'),
+    ('Communication/OriginatorAddress', 'originatorAddress', 'text'),
+    ('Communication/TAFAddress', 'tafAddress', 'plaintext'),
+    ('Communication/SIGMETAddress', 'sigmetAddress', 'plaintext'),
+    ('Communication/TrendAddress', 'trendAddress', 'plaintext'),
+    # 数据源
+    ('Monitor/WebApiURL', 'webApiURL', 'text'),
+    ('Monitor/FirApiURL', 'firApiURL', 'text'),
+    # TAF 报文迟发告警
+    ('Monitor/WarnTAFTime', 'warnTafTime', 'text'),
+    ('Monitor/WarnTAFVolume', 'warnTafVolume', 'slider'),
+    # 报文发送提醒
+    ('Monitor/RemindTAF', 'remindTaf', 'bool'),
+    ('Monitor/RemindTAFVolume', 'remindTafVolume', 'slider'),
+    ('Monitor/RemindTrend', 'remindTrend', 'bool'),
+    ('Monitor/RemindTrendVolume', 'remindTrendVolume', 'slider'),
+    ('Monitor/RemindSIGMET', 'remindSigmet', 'bool'),
+    ('Monitor/RemindSIGMETVolume', 'remindSigmetVolume', 'slider'),
+    # 电话服务
+    ('Monitor/CallServiceURL', 'callServiceURL', 'text'),
+    ('Monitor/CallServiceToken', 'callServiceToken', 'text'),
+    ('Monitor/SelectedMobile', 'selectedContract', 'mobile'),
+]
+
+
 def isConfigured(reportType='TAF'):
     """检查发布不同类型报文基础配置是否完成"""
     serial = ['Communication/SerialPort', 'Communication/SerialBaudrate', 'Communication/SerialParity', 
@@ -33,6 +84,19 @@ def isConfigured(reportType='TAF'):
 
     values = [conf.value(path) for path in options]
     return all(values)
+
+def loadConf(filename):
+    with open(filename) as file:
+        data = json.load(file)
+
+    for path, val in data.items():
+        conf.setValue(path, val)
+
+def saveConf(filename, options=_options):
+    paths = [option[0] for option in options]
+    data = {path: conf.value(path) for path in paths}
+    with open(filename, 'w') as file:
+        json.dump(data, file)
 
 
 class SettingDialog(QDialog, Ui_setting.Ui_Settings):
@@ -60,56 +124,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.buttonBox.button(QDialogButtonBox.Ok).setText(QCoreApplication.translate('Settings', 'OK'))
         self.buttonBox.button(QDialogButtonBox.Apply).setText(QCoreApplication.translate('Settings', 'Apply'))
         self.buttonBox.button(QDialogButtonBox.Cancel).setText(QCoreApplication.translate('Settings', 'Cancel'))
-
-        self.options = [
-            # 通用设置
-            ('General/CloseToMinimize', 'closeToMinimize', 'bool'),
-            ('General/Debug', 'debugMode', 'bool'),
-            ('General/AlwaysShowEditor', 'alwaysShowEditor', 'bool'),
-            ('General/LargeFont', 'largeFont', 'bool'),
-            # 验证选项
-            ('Validator/VisHas5000', 'visHas5000', 'bool'),
-            ('Validator/CloudHeightHas450', 'cloudHeightHas450', 'bool'),
-            # 报文字符
-            ('Message/ICAO', 'icao', 'text'),
-            ('Message/Area', 'area', 'text'),
-            ('Message/FIR', 'fir', 'text'),
-            ('Message/TrendSign', 'trendSign', 'text'),
-            ('Message/Weather', 'weatherList', 'list'),
-            ('Message/WeatherWithIntensity', 'weatherWithIntensityList', 'list'),
-            # 串口设置
-            ('Communication/SerialPort', 'port', 'text'),
-            ('Communication/SerialBaudrate', 'baudrate', 'text'),
-            ('Communication/SerialParity', 'parity', 'combox'),
-            ('Communication/SerialBytesize', 'bytesize', 'combox'),
-            ('Communication/SerialStopbits', 'stopbits', 'combox'),
-            # AFTN 配置
-            ('Communication/Channel', 'channel', 'text'),
-            ('Communication/ChannelSequenceNumber', 'channelSequenceNumber', 'text'),
-            ('Communication/MaxLineChar', 'maxLineChar', 'text'),
-            ('Communication/MaxSendAddress', 'maxSendAddress', 'text'),
-            ('Communication/OriginatorAddress', 'originatorAddress', 'text'),
-            ('Communication/TAFAddress', 'tafAddress', 'plaintext'),
-            ('Communication/SIGMETAddress', 'sigmetAddress', 'plaintext'),
-            ('Communication/TrendAddress', 'trendAddress', 'plaintext'),
-            # 数据源
-            ('Monitor/WebApiURL', 'webApiURL', 'text'),
-            ('Monitor/FirApiURL', 'firApiURL', 'text'),
-            # TAF 报文迟发告警
-            ('Monitor/WarnTAFTime', 'warnTafTime', 'text'),
-            ('Monitor/WarnTAFVolume', 'warnTafVolume', 'slider'),
-            # 报文发送提醒
-            ('Monitor/RemindTAF', 'remindTaf', 'bool'),
-            ('Monitor/RemindTAFVolume', 'remindTafVolume', 'slider'),
-            ('Monitor/RemindTrend', 'remindTrend', 'bool'),
-            ('Monitor/RemindTrendVolume', 'remindTrendVolume', 'slider'),
-            ('Monitor/RemindSIGMET', 'remindSigmet', 'bool'),
-            ('Monitor/RemindSIGMETVolume', 'remindSigmetVolume', 'slider'),
-            # 电话服务
-            ('Monitor/CallServiceURL', 'callServiceURL', 'text'),
-            ('Monitor/CallServiceToken', 'callServiceToken', 'text'),
-            ('Monitor/SelectedMobile', 'selectedContract', 'mobile'),
-        ]
 
         self.bindSignal()
         self.setValidator()
@@ -233,7 +247,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         else:
             self.autoRun.remove('Tafor')
 
-        for path, option, category in self.options:
+        for path, option, category in _options:
             self.setValue(path, option, category)
 
         self.updateSoundVolume()
@@ -242,7 +256,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         """载入设置"""
         self.runOnStart.setChecked(self.autoRun.contains('Tafor'))
 
-        for path, option, category in self.options:
+        for path, option, category in _options:
             self.loadValue(path, option, category)
 
     def loadValue(self, path, option, category='text'):
@@ -308,45 +322,24 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
         conf.setValue(path, val)
 
-    def exportConf(self, defaultPath=False):
-        if defaultPath:
-            filename = os.path.join(BASEDIR, 'default.json')
-            
-        paths = [option[0] for option in self.options]
-        options = {path: conf.value(path) for path in paths}
-        path = self.exportPath.text()
-        if path:
-            filedir, _= os.path.split(path)
-            if os.path.isdir(filedir):
-                filename = self.exportPath.text()
-
+    def exportConf(self):
+        filename = self.exportPath.text()
         try:
-            with open(filename, 'w') as file:
-                json.dump(options, file)
+            saveConf(filename)
 
         except Exception as e:
-            pass
+            logger.error(e)
 
         else:
             self.parent.statusBar.showMessage(QCoreApplication.translate('Settings', 'Configuration has been exported'), 5000)
 
-    def importConf(self, defaultPath=False):
-        if defaultPath:
-            filename = os.path.join(BASEDIR, 'default.json')
-
-        path = self.importPath.text()
-        if path and os.path.isfile(path):
-            filename = self.exportPath.text()
-
+    def importConf(self):
+        filename = self.exportPath.text()
         try:
-            with open(filename) as file:
-                data = json.load(file)
-
-            for path, val in data.items():
-                conf.setValue(path, val)
+            loadConf(filename)
 
         except Exception as e:
-            pass
+            logger.error(e)
 
         else:
             self.load()

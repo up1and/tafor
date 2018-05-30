@@ -4,14 +4,8 @@ import pytest
 
 from PyQt5.QtCore import Qt
 
-from tafor.app import MainWindow
 from tafor.components import SettingDialog
 
-
-@pytest.fixture
-def window():
-    widget = MainWindow()
-    return widget
 
 def test_reset_channel_number(qtbot, window):
     dialog = SettingDialog(window)

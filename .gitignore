@@ -39,7 +39,6 @@ nosetests.xml
 *.spec
 *.autosave
 db.sqlite3
-default.json
 docs/_build
 _eric6project/
 .eric6project/
