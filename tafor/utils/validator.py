@@ -72,6 +72,8 @@ class SigmetGrammar(object):
     speed = re.compile(r'(\d{2})(KMH|KT)')
     obsTime = re.compile(r'(\d{4}Z)')
     typhoonRange = re.compile(r'(\d{1,3}KM)')
+    sequence = re.compile(r'(\d{1,2})')
+    valid = re.compile(r'(\d{6}/\d{6})')
 
 
 class TafValidator(object):
@@ -794,10 +796,10 @@ class SigmetLexer(object):
         'OBS', 'FCST', 'AT', 'TOP', 'BLW', 'BTN', 'CENTRE', 'CENTER',
         'N', 'NE', 'NNE', 'NNW', 'E', 'ENE', 'ESE', 'SE', 'SSE', 'SSW', 'S', 'SW', 'W', 'NW', 'WNW', 'WSW',
         'MOV', 'STNR', 'AND', 'OF', 'WKN', 'NC', 'INTSF', 'OBSC',
-        'LINE', 'WI', '-', 'CNL', 'TO', 'FIR', 'CB'
+        'LINE', 'WI', '-', 'CNL', 'TO', 'FIR', 'CB', 'SIGMET'
     ]
 
-    defaultRules = ['area', 'latitude', 'longitude', 'fightLevel', 'speed', 'obsTime', 'typhoonRange']
+    defaultRules = ['area', 'latitude', 'longitude', 'fightLevel', 'speed', 'obsTime', 'typhoonRange', 'sequence', 'valid']
 
     def __init__(self, part, grammar=None, keywords=None, isFirst=False, **kwargs):
         super(SigmetLexer, self).__init__()
@@ -872,7 +874,7 @@ class SigmetLexer(object):
 
     def renderer(self, style='plain'):
         """将解析后的报文重新渲染
-        
+
         :param style: 
             * plain 纯字符串风格
             * terminal 终端高亮风格
