@@ -17,6 +17,7 @@ class RenderArea(QWidget):
         self.imageSize = None
         self.done = False
         self.maxPoint = 7
+        self.color = Qt.yellow
         self.fir = context.fir
 
     def minimumSizeHint(self):
@@ -77,13 +78,13 @@ class RenderArea(QWidget):
         self.update()
 
     def drawOnePoint(self, painter):
-        pen = QPen(Qt.white, 2)
+        pen = QPen(self.color, 2)
         painter.setPen(pen)
         point = listToPoint(self.points)[0]
         painter.drawPoint(point)
 
     def drawOutline(self, painter):
-        pen = QPen(Qt.white, 1, Qt.DashLine)
+        pen = QPen(self.color, 1, Qt.DashLine)
         painter.setPen(pen)
         
         points = listToPoint(self.points)
@@ -98,7 +99,7 @@ class RenderArea(QWidget):
     def drawArea(self, painter):
         points = listToPoint(self.points)
         pol = QPolygon(points)
-        painter.setPen(Qt.white)
+        painter.setPen(self.color)
         painter.drawPolygon(pol)
 
     def drawBoundaries(self, painter):

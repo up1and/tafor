@@ -1,12 +1,17 @@
-TAF 报文验证
+报文校验
 ================
 
 .. module:: tafor.utils.validator
 
-.. autoclass:: Parser
+.. autoclass:: TafParser
     :members:
 
-.. autoclass:: Lexer
+.. autoclass:: TafLexer
 
-.. autoclass:: Validator
+.. autoclass:: TafValidator
     :members:
+
+.. autoclass:: SigmetParser
+    :members:
+
+.. autoclass:: SigmetLexer

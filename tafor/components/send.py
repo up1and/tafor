@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QMessageBox
 from tafor import conf, logger, boolean
 from tafor.components.ui import Ui_send
 from tafor.models import db, Taf, Task, Trend, Sigmet
-from tafor.utils import Parser, AFTNMessage
+from tafor.utils import TafParser, SigmetParser, AFTNMessage
 from tafor.utils.thread import SerialThread
 
 
@@ -44,7 +44,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         visHas5000 = boolean(conf.value('Validator/VisHas5000'))
         cloudHeightHas450 = boolean(conf.value('Validator/CloudHeightHas450'))
         try:
-            self.parser = Parser(self.message['rpt'], visHas5000=visHas5000, cloudHeightHas450=cloudHeightHas450)
+            self.parser = TafParser(self.message['rpt'], visHas5000=visHas5000, cloudHeightHas450=cloudHeightHas450)
             self.parser.validate()
             html = '<p>{}<br/>{}</p>'.format(self.message['sign'], self.parser.renderer(style='html'))
             if self.parser.tips:
@@ -210,7 +210,13 @@ class SigmetSender(BaseSender):
 
     def receive(self, message):
         self.message = message
-        self.rpt.setText(self.message['full'])
+        try:
+            self.parser = SigmetParser(self.message['rpt'])
+            html = '<p>{}<br/>{}</p>'.format(self.message['sign'], self.parser.renderer(style='html'))
+            self.rpt.setHtml(html)
+
+        except Exception as e:
+            logger.error(e)
 
     def save(self):
         item = Sigmet(tt=self.message['sign'][0:2], sign=self.message['sign'], rpt=self.message['rpt'], raw=self.aftn.toJson())

@@ -15,35 +15,12 @@ weatherWithIntensity = [
     'TSGR', 'TSGS', 'SHRA', 'SHSN', 'SHGR', 'SHGS', 'FZRA', 'FZDZ'
 ]
 
-splitPattern = re.compile(r'(BECMG|FM|TEMPO|PROB[34]0\sTEMPO)')
-
 
 def _purePattern(regex):
     pattern = regex.pattern
     if pattern.startswith('^'):
         pattern = pattern[1:]
     return pattern
-
-
-class Grammar(object):
-    sign = re.compile(r'(TAF|BECMG|FM|TEMPO)\b')
-    amend = re.compile(r'\b(AMD|COR)\b')
-    icao = re.compile(r'\b((A|B|E|K|P|L|R|Y|U|V|Z)[A-Z]{3})\b')
-    timez = re.compile(r'\b(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])Z\b')
-    period = re.compile(r'\b(0[1-9]|[12][0-9]|3[0-1])(0009|0312|0615|0918|1221|1524|1803|2106|0024|0606|1212|1818)\b')
-    cnl = re.compile(r'\b(CNL)\b')
-    tmax = re.compile(r'\b(TXM?(\d{2})/(\d{2})Z)\b')
-    tmin = re.compile(r'\b(TNM?(\d{2})/(\d{2})Z)\b')
-
-    wind = re.compile(r'\b(?:00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)(?:G(0[1-9]|[1-4][0-9]|P49))?)MPS\b')
-    vis = re.compile(r'\b(9999|[5-9]000|[01234][0-9]00|0[0-7]50)\b')
-    weather = re.compile(r'([-+]?({})\b)|(\b({})\b)'.format('|'.join(weatherWithIntensity), '|'.join(weather)))
-    cloud = re.compile(r'\bSKC|NSC|(FEW|SCT|BKN|OVC)(\d{3})(CB|TCU)?\b')
-    vv = re.compile(r'\b(VV/{3}|VV(\d{3}))\b')
-    cavok = re.compile(r'\bCAVOK\b')
-
-    prob = re.compile(r'\b(PROB[34]0)\b')
-    interval = re.compile(r'\b([01][0-9]|2[0-3])([01][0-9]|2[0-4])\b')
 
 
 class Pattern(object):
@@ -66,7 +43,38 @@ class Pattern(object):
     fightLevel = r'([1-9]\d{2})'
 
 
-class Validator(object):
+class TafGrammar(object):
+    sign = re.compile(r'(TAF|BECMG|FM|TEMPO)\b')
+    amend = re.compile(r'\b(AMD|COR)\b')
+    icao = re.compile(r'\b((A|B|E|K|P|L|R|Y|U|V|Z)[A-Z]{3})\b')
+    timez = re.compile(r'\b(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])Z\b')
+    period = re.compile(r'\b(0[1-9]|[12][0-9]|3[0-1])(0009|0312|0615|0918|1221|1524|1803|2106|0024|0606|1212|1818)\b')
+    cnl = re.compile(r'\b(CNL)\b')
+    tmax = re.compile(r'\b(TXM?(\d{2})/(\d{2})Z)\b')
+    tmin = re.compile(r'\b(TNM?(\d{2})/(\d{2})Z)\b')
+
+    wind = re.compile(r'\b(?:00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)(?:G(0[1-9]|[1-4][0-9]|P49))?)MPS\b')
+    vis = re.compile(r'\b(9999|[5-9]000|[01234][0-9]00|0[0-7]50)\b')
+    weather = re.compile(r'([-+]?({})\b)|(\b({})\b)'.format('|'.join(weatherWithIntensity), '|'.join(weather)))
+    cloud = re.compile(r'\bSKC|NSC|(FEW|SCT|BKN|OVC)(\d{3})(CB|TCU)?\b')
+    vv = re.compile(r'\b(VV/{3}|VV(\d{3}))\b')
+    cavok = re.compile(r'\bCAVOK\b')
+
+    prob = re.compile(r'\b(PROB[34]0)\b')
+    interval = re.compile(r'\b([01][0-9]|2[0-3])([01][0-9]|2[0-4])\b')
+
+
+class SigmetGrammar(object):
+    area = re.compile(r'(AREA\(\d+\))')
+    latitude = re.compile(r'(N|S)(90(0{2})?|[0-8]\d([0-5]\d)?)')
+    longitude = re.compile(r'(E|W)(180(0{2})?|((1[0-7]\d)|(0\d{2}))([0-5]\d)?)')
+    fightLevel = re.compile(r'(FL[1-9]\d{2}/[1-9]\d{2})|(FL[1-9]\d{2})')
+    speed = re.compile(r'(\d{2})(KMH|KT)')
+    obsTime = re.compile(r'(\d{4}Z)')
+    typhoonRange = re.compile(r'(\d{1,3}KM)')
+
+
+class TafValidator(object):
     """根据行业标准验证 TAF 报文单项要素之间的转折
 
     :param kwargs: 额外参数
@@ -75,7 +83,7 @@ class Validator(object):
                     * `cloudHeightHas450=True` 开启云高 450 的验证
 
     """
-    grammarClass = Grammar
+    grammarClass = TafGrammar
 
     def __init__(self, **kwargs):
 
@@ -346,14 +354,14 @@ class Validator(object):
         return all(validations)
 
 
-class Lexer(object):
+class TafLexer(object):
     """TAF 报文一组要素的解析器
 
     :param part: 单组主报文 BECMG 或 TEMPO
     :param grammar: 解析 TAF 报文的语法类
     :param kwargs: 额外参数
     """
-    grammarClass = Grammar
+    grammarClass = TafGrammar
 
     defaultRules = [
         'prob', 'sign', 'amend', 'icao', 'timez', 'period', 'interval', 'cnl',
@@ -370,7 +378,7 @@ class Lexer(object):
         self.parse(part)
 
     def __repr__(self):
-        return self.part
+        return '<TafLexer {}>'.format(self.part)
 
     @property
     def sign(self):
@@ -461,18 +469,17 @@ class Lexer(object):
         return func()
 
 
-
-class Parser(object):
+class TafParser(object):
     """解析 TAF 报文
 
     :param message: TAF 报文
-    :param parse: 解析报文的类，默认 :class:`Lexer`
-    :param validator: 验证报文转折关系的类，默认 :class:`Validator`
+    :param parse: 解析报文的类，默认 :class:`TafLexer`
+    :param validator: 验证报文转折关系的类，默认 :class:`TafValidator`
     :param kwargs: 额外参数
 
     使用方法::
 
-        p = Parser('TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR=')
+        p = TafParser('TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR=')
         p.validate()
 
         # 报文是否通过验证
@@ -496,10 +503,10 @@ class Parser(object):
         self.reference = None
 
         if not parse:
-            self.parse = Lexer
+            self.parse = TafLexer
 
         if not validator:
-            self.validator = Validator(**kwargs)
+            self.validator = TafValidator(**kwargs)
 
         self.split()
 
@@ -512,6 +519,7 @@ class Parser(object):
     def split(self):
         """拆分主报文和变化组"""
         message = self.message.replace('=', '')
+        splitPattern = re.compile(r'(BECMG|FM|TEMPO|PROB[34]0\sTEMPO)')
         elements = splitPattern.split(message)
         self.primary = self.parse(elements[0])
 
@@ -768,4 +776,195 @@ class Parser(object):
 
         return '\n'.join(outputs) + '='
 
+
+class SigmetLexer(object):
+    """SIGMET 报文要素的解析器
+
+    :param part: 单行保温内容
+    :param grammar: 解析 SIGMET 报文的语法类
+    :param keywords: SIGMET 报文允许的关键字
+    :param isFirst: 是否是正文的第一组
+    :param kwargs: 额外参数
+    """
+    grammarClass = SigmetGrammar
+
+    defaultKeywords = ['OBSC', 'EMBD', 'FRQ', 'SQL', 'ISOL', 'SEV', 'HVY', 'MOD',
+        'TS', 'GR', 'ICE', 'TURB', 'TC', 'VA', 'MTW', 'DS', 'SS', '(FZRA)',
+        'ERUPTION', 'MT', 'LOC', 'CLD', 'OTLK', 'RAPID', 'APRX', 'BY',
+        'OBS', 'FCST', 'AT', 'TOP', 'BLW', 'BTN', 'CENTRE', 'CENTER',
+        'N', 'NE', 'NNE', 'NNW', 'E', 'ENE', 'ESE', 'SE', 'SSE', 'SSW', 'S', 'SW', 'W', 'NW', 'WNW', 'WSW',
+        'MOV', 'STNR', 'AND', 'OF', 'WKN', 'NC', 'INTSF', 'OBSC',
+        'LINE', 'WI', '-', 'CNL', 'TO', 'FIR', 'CB'
+    ]
+
+    defaultRules = ['area', 'latitude', 'longitude', 'fightLevel', 'speed', 'obsTime', 'typhoonRange']
+
+    def __init__(self, part, grammar=None, keywords=None, isFirst=False, **kwargs):
+        super(SigmetLexer, self).__init__()
+        if not grammar:
+            grammar = self.grammarClass()
+
+        if not keywords:
+            keywords = self.defaultKeywords
+
+        self.grammar = grammar
+        self.keywords = keywords
+        self.isFirst = isFirst
+        self.part = part.strip()
+        self.tokens = []
+
+        self.parse(part)
+
+    def __repr__(self):
+        return '<SigmetLexer {}>'.format(self.part)
+
+    def parse(self, part):
+        """解析报文要素字符是否正确"""
+        parts = self.part.split()
+        for i, text in enumerate(parts):
+            error = True
+            if self.isFirst and i < 1:
+                error = False
+            else:
+                if text in self.keywords or self.isMatch(text) or self.isSpecialName(i, parts):
+                    error = False
+
+            self.tokens.append({
+                'text': text,
+                'error': error
+            })
+
+    def isMatch(self, text):
+        """检查字符是否被特殊的正则表达式匹配
+
+        :return: 是否正确匹配
+        """
+        rules = self.defaultRules
+        for key in rules:
+            pattern = getattr(self.grammar, key)
+            m = pattern.match(text)
+            if m:
+                if m.group() == text:
+                    return True
+
+    def isSpecialName(self, index, parts):
+        """检查字符是否是特殊名字，如情报区名、热带气旋名、火山名
+
+        :return: 是否是特殊名字
+        """
+        try:
+            if parts[index+1] == 'FIR' or parts[index-1] in ['TC', 'MT']:
+                return True
+
+        except IndexError:
+            pass
+
+    def isValid(self):
+        """检查报文是否有错误
+
+        :return: 报文是否通过验证
+        """
+        for e in self.tokens:
+                if e['error']:
+                    return False
+        
+        return True
+
+    def renderer(self, style='plain'):
+        """将解析后的报文重新渲染
+        
+        :param style: 
+            * plain 纯字符串风格
+            * terminal 终端高亮风格
+            * html HTML 高亮风格
+        :return: 根据不同风格重新渲染的报文
+        """
+        def terminal():
+            from colorama import init, Fore
+            init(autoreset=True)
+
+            elements = []
+            for e in self.tokens:
+                if e['error']:
+                    elements.append(Fore.RED + e['text'])
+                else:
+                    elements.append(Fore.GREEN + e['text'])
+
+            return ' '.join(elements)
+
+        def html():
+            elements = []
+            for e in self.tokens:
+                if e['error']:
+                    elements.append('<span style="color: red">{}</span>'.format(e['text']))
+                else:
+                    elements.append(e['text'])
+
+            return ' '.join(elements)
+
+        def plain():
+            return self.part
+
+        func = locals().get(style, plain)
+        return func()
+
+
+class SigmetParser(object):
+    """解析 SIGMET 报文
+
+    :param message: SIGMET 报文
+    :param parse: 解析报文的类，默认 :class:`SigmetLexer`
+    :param kwargs: 额外参数
+
+    使用方法::
+
+        p = SigmetParser('ZJSA SIGMET 1 VALID 300855/301255 ZJHK-
+                        ZJSA SANYA FIR VA ERUPTION MT ASHVAL LOC E S1500 E07348 VA CLD OBS AT 1100Z FL310/450
+                        APRX 220KM BY 35KM S1500 E07348 - S1530 E07642 MOV ESE 65KMH
+                        FCST 1700Z VA CLD APRX S1506 E07500 - S1518 E08112 - S1712 E08330 - S1824 E07836=')
+
+        # 报文字符是否通过验证
+        p.isValid()
+
+        # 报文重新渲染成 HTML 格式，并高亮标注出错误
+        p.renderer(style='html')
+        
+    """
+    def __init__(self, message, parse=None, **kwargs):
+        self.message = message.strip()
+
+        if not parse:
+            self.parse = SigmetLexer
+
+        self.split()
+
+    def split(self):
+        """拆分报头和报文内容"""
+        message = self.message.replace('=', '')
+        splitPattern = re.compile(r'([A-Z]{4}-)')
+        *heads, elements = splitPattern.split(message)
+        self.heads = [e.strip() for e in ''.join(heads).split('\n')]
+        elements = elements.strip().split('\n')
+        self.elements = [self.parse(e, isFirst=True) if i == 0 else self.parse(e) for i, e in enumerate(elements)]
+        
+    def isValid(self):
+        """报文是否通过验证"""
+        valids = [e.isValid() for e in self.elements]
+        return all(valids)
+
+    def renderer(self, style='plain'):
+        """将解析后的报文重新渲染
+
+        :param style: 
+            * plain 纯字符串风格
+            * terminal 终端高亮风格
+            * html HTML 高亮风格
+        :return: 根据不同风格重新渲染的报文
+        """
+        outputs = self.heads + [e.renderer(style) for e in self.elements]
+
+        if style == 'html':
+            return '<br/>'.join(outputs) + '='
+
+        return '\n'.join(outputs) + '='
 

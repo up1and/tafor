@@ -400,7 +400,7 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         top = self.top.text()
 
         if not position:
-            text = 'FL{}/FL{}'.format(base, top) if all([top, base]) else ''
+            text = 'FL{}/{}'.format(base, top) if all([top, base]) else ''
 
         if position in ['TOP', 'ABV']:
             text = '{} FL{}'.format(position, top) if top else ''

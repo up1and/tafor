@@ -42,8 +42,8 @@ class Taf(Base):
 
     @property
     def report(self):
-        from tafor.utils import Parser
-        rpt = Parser(self.rpt)
+        from tafor.utils import TafParser
+        rpt = TafParser(self.rpt)
         parts = [self.sign, rpt.renderer()]
         return '\n'.join(filter(None, parts))
 

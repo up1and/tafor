@@ -8,7 +8,7 @@ from sqlalchemy import or_, and_
 
 from tafor.components.ui import main_rc
 from tafor.models import db, Taf, Metar, Sigmet
-from tafor.utils import paginate, Parser
+from tafor.utils import paginate, TafParser
 from tafor.components.ui import Ui_main_table
 
 
@@ -177,7 +177,7 @@ class TafTable(BaseDataTable):
         self.resendButton.hide()
         if text.startswith('TAF'):
             expired = datetime.datetime.utcnow() - datetime.timedelta(hours=6)
-            taf = Parser(text)
+            taf = TafParser(text)
             self.selected = db.query(Taf).filter(or_(Taf.rpt == text, Taf.rpt == taf.renderer()), Taf.sent > expired).order_by(Taf.sent.desc()).first()
             if self.selected and not self.selected.confirmed:
                 self.resendButton.show()

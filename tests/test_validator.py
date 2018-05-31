@@ -3,7 +3,7 @@ import re
 
 import pytest
 
-from tafor.utils import Parser, Validator
+from tafor.utils import TafParser, TafValidator, SigmetParser
 
 root = os.path.dirname(__file__)
 
@@ -17,17 +17,36 @@ def listdir(folder):
 
 @pytest.fixture
 def validator():
-    return Validator()
+    return TafValidator()
 
-def test_parser():
+def test_taf_parser():
     folder, names = listdir('taf')
     for name in names:
         filepath = os.path.join(folder, name + '.text')
         with open(filepath) as f:
             content = f.read()
 
-        m = Parser(content)
+        m = TafParser(content)
         m.validate()
+        html = m.renderer(style='html')
+
+        filepath = os.path.join(folder, name + '.html')
+        with open(filepath) as f:
+            result = f.read()
+
+        html = re.sub(r'\s', '', html)
+        result = re.sub(r'\s', '', result)
+        assert result == html
+
+
+def test_sigmet_parser():
+    folder, names = listdir('sigmet')
+    for name in names:
+        filepath = os.path.join(folder, name + '.text')
+        with open(filepath) as f:
+            content = f.read()
+
+        m = SigmetParser(content)
         html = m.renderer(style='html')
 
         filepath = os.path.join(folder, name + '.html')
@@ -89,7 +108,7 @@ def test_cavok(validator):
     assert not validator.cavok('4000', 'BR', 'SCT020')
 
 def test_extra():
-    m = Parser('TAF AMD ZJHK 211338Z 211524 14004MPS 4500 -RA BKN030 BECMG 2122 2500 BR BKN012 TEMPO 1519 07005MPS=')
+    m = TafParser('TAF AMD ZJHK 211338Z 211524 14004MPS 4500 -RA BKN030 BECMG 2122 2500 BR BKN012 TEMPO 1519 07005MPS=')
     assert m.isValid()
     assert m.isAmended()
 

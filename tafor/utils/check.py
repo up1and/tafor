@@ -5,7 +5,7 @@ from sqlalchemy import or_
 from tafor import conf, logger
 from tafor.models import db, Taf, Metar
 from tafor.states import context
-from tafor.utils.validator import Parser
+from tafor.utils.validator import TafParser
 
 
 class CheckTaf(object):
@@ -120,7 +120,7 @@ class CheckTaf(object):
         :return: ORM 对象
         """
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        taf = Parser(self.message)
+        taf = TafParser(self.message)
         last = db.query(Taf).filter(or_(Taf.rpt == self.message, Taf.rpt == taf.renderer()), Taf.sent > expired).order_by(Taf.sent.desc()).first()
         return last
 
@@ -143,7 +143,7 @@ class CheckTaf(object):
             # 本地正常报已发，远程数据和本地数据不一样的情况不作入库处理
             # 修订报报文如果字符出了错误无法识别是否和本地是同一份，则会直接入库
             local = self.local()
-            remote = Parser(self.message)
+            remote = TafParser(self.message)
             if local and not remote.isAmended() and remote.primary.tokens['period']['text'] in local.rpt:
                 return 
 
