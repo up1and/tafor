@@ -8,15 +8,16 @@ from tafor.components.setting import loadConf, saveConf
 root = os.path.dirname(__file__)
 
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def window():
     widget = MainWindow()
     return widget
 
-@pytest.fixture
-def mock():
-    # tmpfile = tmpdir.join('config.json')
-    tmpfile = os.path.join(root, 'fixtures', 'default.json')
-    saveConf(tmpfile)
-    yield
-    loadConf(tmpfile)
+@pytest.fixture(scope='session', autouse=True)
+def load_conf():
+    fixture = os.path.join(root, 'fixtures', 'config.json')
+    backup = os.path.join(root, 'fixtures', 'backup.json')
+    saveConf(backup)
+    loadConf(fixture)
+    yield 
+    loadConf(backup)

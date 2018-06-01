@@ -40,6 +40,7 @@ nosetests.xml
 *.autosave
 db.sqlite3
 docs/_build
+tests/fixtures/backup.json
 _eric6project/
 .eric6project/
 .pytest_cache/
