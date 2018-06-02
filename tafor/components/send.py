@@ -210,8 +210,9 @@ class SigmetSender(BaseSender):
 
     def receive(self, message):
         self.message = message
+        firCode = conf.value('Message/FIR')
         try:
-            self.parser = SigmetParser(self.message['rpt'])
+            self.parser = SigmetParser(self.message['rpt'], firCode=firCode)
             html = '<p>{}<br/>{}</p>'.format(self.message['sign'], self.parser.renderer(style='html'))
             self.rpt.setHtml(html)
 

@@ -46,7 +46,7 @@ def test_sigmet_parser():
         with open(filepath) as f:
             content = f.read()
 
-        m = SigmetParser(content)
+        m = SigmetParser(content, firCode='ZJSA SANYA FIR')
         html = m.renderer(style='html')
 
         filepath = os.path.join(folder, name + '.html')

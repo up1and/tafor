@@ -65,7 +65,7 @@ class TafGrammar(object):
 
 
 class SigmetGrammar(object):
-    area = re.compile(r'(AREA\(\d+\))')
+    area = re.compile(r'(AREA\([1-9]{1}\))')
     latitude = re.compile(r'(N|S)(90(0{2})?|[0-8]\d([0-5]\d)?)')
     longitude = re.compile(r'(E|W)(180(0{2})?|((1[0-7]\d)|(0\d{2}))([0-5]\d)?)')
     fightLevel = re.compile(r'(FL[1-9]\d{2}/[1-9]\d{2})|(FL[1-9]\d{2})')
@@ -801,7 +801,7 @@ class SigmetLexer(object):
 
     defaultRules = ['area', 'latitude', 'longitude', 'fightLevel', 'speed', 'obsTime', 'typhoonRange', 'sequence', 'valid']
 
-    def __init__(self, part, grammar=None, keywords=None, isFirst=False, **kwargs):
+    def __init__(self, part, firCode, grammar=None, keywords=None, **kwargs):
         super(SigmetLexer, self).__init__()
         if not grammar:
             grammar = self.grammarClass()
@@ -811,7 +811,7 @@ class SigmetLexer(object):
 
         self.grammar = grammar
         self.keywords = keywords
-        self.isFirst = isFirst
+        self.firCode = firCode
         self.part = part.strip()
         self.tokens = []
 
@@ -822,14 +822,16 @@ class SigmetLexer(object):
 
     def parse(self, part):
         """解析报文要素字符是否正确"""
-        parts = self.part.split()
+        if self.firCode and part.startswith(self.firCode):
+            part = part[len(self.firCode):].strip()
+            parts = [self.firCode] + part.split()
+        else:
+            parts = part.split()
+
         for i, text in enumerate(parts):
             error = True
-            if self.isFirst and i < 1:
+            if text in self.keywords or self.isMatch(text) or self.isSpecialName(i, parts):
                 error = False
-            else:
-                if text in self.keywords or self.isMatch(text) or self.isSpecialName(i, parts):
-                    error = False
 
             self.tokens.append({
                 'text': text,
@@ -855,7 +857,7 @@ class SigmetLexer(object):
         :return: 是否是特殊名字
         """
         try:
-            if parts[index+1] == 'FIR' or parts[index-1] in ['TC', 'MT']:
+            if parts[index-1] in ['TC', 'MT'] or parts[index] == self.firCode:
                 return True
 
         except IndexError:
@@ -917,13 +919,15 @@ class SigmetParser(object):
     :param message: SIGMET 报文
     :param parse: 解析报文的类，默认 :class:`SigmetLexer`
     :param kwargs: 额外参数
+                * `firCode` 气象情报编码前缀
 
     使用方法::
 
         p = SigmetParser('ZJSA SIGMET 1 VALID 300855/301255 ZJHK-
                         ZJSA SANYA FIR VA ERUPTION MT ASHVAL LOC E S1500 E07348 VA CLD OBS AT 1100Z FL310/450
                         APRX 220KM BY 35KM S1500 E07348 - S1530 E07642 MOV ESE 65KMH
-                        FCST 1700Z VA CLD APRX S1506 E07500 - S1518 E08112 - S1712 E08330 - S1824 E07836=')
+                        FCST 1700Z VA CLD APRX S1506 E07500 - S1518 E08112 - S1712 E08330 - S1824 E07836=',
+                        firCode='ZJSA SANYA FIR')
 
         # 报文字符是否通过验证
         p.isValid()
@@ -938,6 +942,8 @@ class SigmetParser(object):
         if not parse:
             self.parse = SigmetLexer
 
+        self.firCode = kwargs.get('firCode', None)
+
         self.split()
 
     def split(self):
@@ -947,7 +953,7 @@ class SigmetParser(object):
         *heads, elements = splitPattern.split(message)
         self.heads = [e.strip() for e in ''.join(heads).split('\n')]
         elements = elements.strip().split('\n')
-        self.elements = [self.parse(e, isFirst=True) if i == 0 else self.parse(e) for i, e in enumerate(elements)]
+        self.elements = [self.parse(e, firCode=self.firCode) for e in elements]
         
     def isValid(self):
         """报文是否通过验证"""
