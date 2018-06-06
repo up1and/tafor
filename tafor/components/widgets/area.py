@@ -1,5 +1,5 @@
 from PyQt5.QtCore import QSize, Qt, QRect, QCoreApplication, pyqtSignal
-from PyQt5.QtGui import QPainter, QPolygon, QPixmap, QPen
+from PyQt5.QtGui import QPainter, QPolygon, QPixmap, QPen, QColor
 from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel
 
 from tafor import logger
@@ -18,6 +18,7 @@ class RenderArea(QWidget):
         self.done = False
         self.maxPoint = 7
         self.color = Qt.yellow
+        self.boundaryColor = Qt.red
         self.fir = context.fir
 
     def minimumSizeHint(self):
@@ -105,7 +106,7 @@ class RenderArea(QWidget):
     def drawBoundaries(self, painter):
         points = listToPoint(self.fir.boundaries())
         pol = QPolygon(points)
-        painter.setPen(Qt.red)
+        painter.setPen(self.boundaryColor)
         painter.drawPolygon(pol)
 
     def drawCloudImage(self, painter):
@@ -125,6 +126,7 @@ class RenderArea(QWidget):
     def showEvent(self, event):
         self.points = []
         self.done = False
+        self.updateGeometry()
 
 
 class AreaChooser(QWidget):

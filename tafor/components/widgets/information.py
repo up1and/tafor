@@ -440,7 +440,7 @@ class SigmetTyphoonHead(BaseSigmetHead):
         self.forecast.setCurrentIndex(self.forecast.findText('OBS'))
 
     def setPhenomena(self):
-        self.phenomena.addItems(['TC'])
+        self.phenomena.addItems(['TC', 'TD'])
 
     def hideDescription(self):
         self.description.setVisible(False)

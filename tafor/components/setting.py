@@ -334,7 +334,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             self.parent.statusBar.showMessage(QCoreApplication.translate('Settings', 'Configuration has been exported'), 5000)
 
     def importConf(self):
-        filename = self.exportPath.text()
+        filename = self.importPath.text()
         try:
             loadConf(filename)
 
