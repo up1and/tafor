@@ -4,6 +4,18 @@ import datetime
 from Polygon import Polygon, Utils
 
 
+def isOverlap(datetime1, datetime2):
+    """判断时间是否有重叠
+
+    :param datetime1: Datetime 对象
+    :param datetime2: Datetime 对象
+    :return: 返回布尔值，时间是否有重叠
+    """
+    start = max(datetime1[0], datetime2[0])
+    end = min(datetime1[1], datetime2[1])
+    total = (end - start).total_seconds()
+    return total >= 0
+
 def parseTimeInterval(interval, time=None):
     """解析字符为时间间隔
 

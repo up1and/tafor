@@ -32,7 +32,7 @@
 <context>
     <name>Editor</name>
     <message>
-        <location filename="../../components/taf.py" line="392"/>
+        <location filename="../../components/taf.py" line="409"/>
         <source>Timing Tasks</source>
         <translation>定时任务</translation>
     </message>
@@ -87,42 +87,42 @@
         <translation>天气现象1</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_taf_primary.py" line="241"/>
+        <location filename="../../components/ui/Ui_taf_primary.py" line="245"/>
         <source>Datetime</source>
         <translation>日期</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_taf_primary.py" line="248"/>
+        <location filename="../../components/ui/Ui_taf_primary.py" line="252"/>
         <source>Max Temperature</source>
         <translation>最高温</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_taf_primary.py" line="250"/>
+        <location filename="../../components/ui/Ui_taf_primary.py" line="254"/>
         <source>Min Temperature</source>
         <translation>最低温</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_taf_primary.py" line="251"/>
+        <location filename="../../components/ui/Ui_taf_primary.py" line="255"/>
         <source>Valid Period</source>
         <translation>时段</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_taf_primary.py" line="252"/>
+        <location filename="../../components/ui/Ui_taf_primary.py" line="256"/>
         <source>Cancel</source>
         <translation>取消报</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_taf_primary.py" line="253"/>
+        <location filename="../../components/ui/Ui_taf_primary.py" line="257"/>
         <source>Correct</source>
         <translation>更正报</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_taf_primary.py" line="254"/>
+        <location filename="../../components/ui/Ui_taf_primary.py" line="258"/>
         <source>Amend</source>
         <translation>修订报</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_taf_primary.py" line="255"/>
+        <location filename="../../components/ui/Ui_taf_primary.py" line="259"/>
         <source>Normal</source>
         <translation>正常报</translation>
     </message>
@@ -132,12 +132,12 @@
         <translation>下一步</translation>
     </message>
     <message>
-        <location filename="../../components/taf.py" line="243"/>
+        <location filename="../../components/taf.py" line="244"/>
         <source>Hour of temperature is not corret</source>
         <translation>温度组时间不正确</translation>
     </message>
     <message>
-        <location filename="../../components/taf.py" line="376"/>
+        <location filename="../../components/taf.py" line="393"/>
         <source>Encoding Terminal Aerodrome Forecast</source>
         <translation>编发预报</translation>
     </message>
@@ -147,17 +147,17 @@
         <translation>编发趋势</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_taf_primary.py" line="256"/>
+        <location filename="../../components/ui/Ui_taf_primary.py" line="260"/>
         <source>Previous</source>
         <translation>上一份</translation>
     </message>
     <message>
-        <location filename="../../components/taf.py" line="198"/>
+        <location filename="../../components/taf.py" line="199"/>
         <source>Tips</source>
         <translation>提示</translation>
     </message>
     <message>
-        <location filename="../../components/taf.py" line="199"/>
+        <location filename="../../components/taf.py" line="200"/>
         <source>Do you want to change the message valid period to previous?</source>
         <translation>报文有效时段要变更为上一份吗？</translation>
     </message>
@@ -359,12 +359,12 @@
         <translation>取消信息</translation>
     </message>
     <message>
-        <location filename="../../components/trend.py" line="66"/>
+        <location filename="../../components/trend.py" line="72"/>
         <source>Trend valid time is not corret</source>
         <translation>趋势有效时段不正确</translation>
     </message>
     <message>
-        <location filename="../../components/widgets/area.py" line="122"/>
+        <location filename="../../components/widgets/area.py" line="124"/>
         <source>No Satellite Image</source>
         <translation></translation>
     </message>
@@ -379,19 +379,24 @@
         <translation>请先完成基础设置，否则你很可能发送错误的报文。</translation>
     </message>
     <message>
-        <location filename="../../components/taf.py" line="269"/>
+        <location filename="../../components/taf.py" line="272"/>
         <source>Start time of change group is not corret {}</source>
         <translation>变化组起始时间不正确 {}</translation>
     </message>
     <message>
-        <location filename="../../components/taf.py" line="273"/>
+        <location filename="../../components/taf.py" line="276"/>
         <source>End time of change group is not corret {}</source>
         <translation>变化组结束时间不正确 {}</translation>
     </message>
     <message>
-        <location filename="../../components/taf.py" line="277"/>
+        <location filename="../../components/taf.py" line="280"/>
         <source>Change group time more than {} hours</source>
         <translation>变化组时间超过 {} 小时</translation>
+    </message>
+    <message>
+        <location filename="../../components/taf.py" line="292"/>
+        <source>Change group time is overlap</source>
+        <translation>变化组时间有重叠</translation>
     </message>
 </context>
 <context>
@@ -565,7 +570,7 @@
     <message>
         <location filename="../../app/main.py" line="402"/>
         <source>Unable to get the latest version information.</source>
-        <translation>无法获取最新版本信息。</translation>
+        <translation>无法获取最新版本信息</translation>
     </message>
 </context>
 <context>
@@ -626,7 +631,7 @@
         <translation>报文没有通过校验，你还要发送么？</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="235"/>
+        <location filename="../../components/send.py" line="242"/>
         <source>Resend Message</source>
         <translation>重新发送报文</translation>
     </message>
@@ -924,17 +929,17 @@
         <translation>电话服务</translation>
     </message>
     <message>
-        <location filename="../../components/setting.py" line="60"/>
+        <location filename="../../components/setting.py" line="124"/>
         <source>OK</source>
         <translation>确定</translation>
     </message>
     <message>
-        <location filename="../../components/setting.py" line="61"/>
+        <location filename="../../components/setting.py" line="125"/>
         <source>Apply</source>
         <translation>应用</translation>
     </message>
     <message>
-        <location filename="../../components/setting.py" line="62"/>
+        <location filename="../../components/setting.py" line="126"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
@@ -959,22 +964,22 @@
         <translation>大号字体</translation>
     </message>
     <message>
-        <location filename="../../components/setting.py" line="362"/>
+        <location filename="../../components/setting.py" line="355"/>
         <source>Open Directory</source>
         <translation>打开目录</translation>
     </message>
     <message>
-        <location filename="../../components/setting.py" line="332"/>
+        <location filename="../../components/setting.py" line="335"/>
         <source>Configuration has been exported</source>
         <translation>配置已导出</translation>
     </message>
     <message>
-        <location filename="../../components/setting.py" line="354"/>
+        <location filename="../../components/setting.py" line="347"/>
         <source>Configuration has been imported</source>
         <translation>配置已导入</translation>
     </message>
     <message>
-        <location filename="../../components/setting.py" line="357"/>
+        <location filename="../../components/setting.py" line="350"/>
         <source>Open Configuration File</source>
         <translation>打开配置文件</translation>
     </message>

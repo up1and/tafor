@@ -49,10 +49,12 @@ class SegmentMixin(object):
 class BaseSegment(QWidget, SegmentMixin):
     completeSignal = pyqtSignal(bool)
 
-    def __init__(self):
+    def __init__(self, name=None):
         super(BaseSegment, self).__init__()
         self.rules = Pattern()
         self.complete = False
+        self.id = name
+        self.periods = None
 
     def bindSignal(self):
         if hasattr(self, 'cavok'):
@@ -65,6 +67,7 @@ class BaseSegment(QWidget, SegmentMixin):
 
         if hasattr(self, 'interval'):
             self.interval.textEdited.connect(lambda: self.coloredText(self.interval))
+            self.interval.textChanged.connect(self.clearInterval)
 
         self.gust.editingFinished.connect(self.validateGust)
         self.cloud1.editingFinished.connect(lambda: self.validateCloud(self.cloud1))
@@ -225,6 +228,13 @@ class BaseSegment(QWidget, SegmentMixin):
     def checkComplete(self):
         raise NotImplementedError
 
+    def clearInterval(self):
+        if len(self.interval.text()) < 4:
+            self.periods = None
+
+    def hideEvent(self, event):
+        self.periods = None
+
     def clear(self):
         self.wind.clear()
         self.gust.clear()
@@ -235,12 +245,13 @@ class BaseSegment(QWidget, SegmentMixin):
         self.cloud2.clear()
         self.cloud3.clear()
         self.cb.clear()
+        self.periods = None
 
 
 class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
-    def __init__(self):
-        super(TafPrimarySegment, self).__init__()
+    def __init__(self, name='PRIMARY'):
+        super(TafPrimarySegment, self).__init__(name)
         self.setupUi(self)
 
         self.setValidator()
@@ -385,8 +396,8 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
 class TafBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Editor):
 
-    def __init__(self, name='becmg'):
-        super(TafBecmgSegment, self).__init__()
+    def __init__(self, name='BECMG'):
+        super(TafBecmgSegment, self).__init__(name)
         self.setupUi(self)
         self.name.setText(name)
 
@@ -438,8 +449,8 @@ class TafBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Editor):
 
 class TafTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Editor):
 
-    def __init__(self, name='tempo'):
-        super(TafTempoSegment, self).__init__()
+    def __init__(self, name='TEMPO'):
+        super(TafTempoSegment, self).__init__(name)
         self.setupUi(self)
         self.name.setText(name)
 
@@ -500,8 +511,8 @@ class TafTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Editor):
 
 class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
-    def __init__(self):
-        super(TrendSegment, self).__init__()
+    def __init__(self, name='TREND'):
+        super(TrendSegment, self).__init__(name)
         self.setupUi(self)
         self.setValidator()
         self.bindSignal()
