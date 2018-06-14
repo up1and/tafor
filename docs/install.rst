@@ -16,7 +16,7 @@ Tafor 的源码公开在 GitHub, 你可以在这里找到项目的 `介绍 <http
 
 你可以使用 Git 工具克隆仓库::
 
-    $ git clone git@github.com:up1and/tafor.git
+    $ git clone https://github.com/up1and/tafor.git
 
 安装依赖
 """""""""""""

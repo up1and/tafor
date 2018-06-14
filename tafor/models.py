@@ -8,8 +8,10 @@ from sqlalchemy.ext.declarative import declarative_base
 
 from tafor import BASEDIR
 
-
-SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(BASEDIR, 'db.sqlite3')
+if os.environ.get('TAFOR_ENV') == 'TEST':
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(BASEDIR, 'test-db.sqlite3')
+else:
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(BASEDIR, 'db.sqlite3')
 
 Base = declarative_base()
 

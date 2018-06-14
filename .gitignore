@@ -38,7 +38,7 @@ nosetests.xml
 *.e4p
 *.spec
 *.autosave
-db.sqlite3
+*.sqlite3
 docs/_build
 tests/fixtures/backup.json
 _eric6project/

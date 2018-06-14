@@ -17,7 +17,7 @@ class RenderArea(QWidget):
         self.imageSize = None
         self.done = False
         self.maxPoint = 7
-        self.color = Qt.yellow
+        self.color = QColor(140, 140, 140)
         self.boundaryColor = Qt.red
         self.fir = context.fir
 

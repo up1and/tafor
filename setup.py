@@ -20,6 +20,7 @@ class PyTest(TestCommand):
 
     def run_tests(self):
         import pytest
+        os.environ['TAFOR_ENV'] = 'TEST'
         errno = pytest.main(self.test_args)
         if errno != 0:
             raise SystemExit(errno)

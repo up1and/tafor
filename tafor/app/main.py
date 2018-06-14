@@ -42,6 +42,10 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.workerTimer.timeout.connect(self.worker)
         self.workerTimer.start(60 * 1000)
 
+        self.painterTimer = QTimer()
+        self.painterTimer.timeout.connect(self.painter)
+        self.painterTimer.start(10 * 60 * 1000)
+
         self.setup()
         self.bindSignal()
         self.updateGui()
@@ -280,10 +284,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.workThread.start()
 
     def painter(self):
-        utc = datetime.datetime.utcnow()
-        nextTime = utc.replace(microsecond=0, second=0, minute=0) + datetime.timedelta(hours=1, minutes=10)
-        delta = nextTime - utc
-        QTimer.singleShot(delta.total_seconds() * 1000, self.painter)
         if conf.value('Monitor/FirApiURL'):
             self.firInfoThread.start()
 
