@@ -1,5 +1,5 @@
-from PyQt5.QtCore import QSize, Qt, QRect, QCoreApplication, pyqtSignal
-from PyQt5.QtGui import QPainter, QPolygon, QPixmap, QPen, QColor
+from PyQt5.QtCore import QSize, Qt, QRect, QCoreApplication, QPoint, pyqtSignal
+from PyQt5.QtGui import QPainter, QPolygon, QPixmap, QPen, QColor, QBrush
 from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel
 
 from tafor import logger
@@ -18,6 +18,8 @@ class RenderArea(QWidget):
         self.done = False
         self.maxPoint = 7
         self.color = Qt.white
+        self.shadowColor = QColor(0, 0, 0, 127)
+        self.areaColor = QColor(240, 156, 0, 178)
         self.boundaryColor = Qt.red
         self.fir = context.fir
 
@@ -80,13 +82,17 @@ class RenderArea(QWidget):
 
     def drawOnePoint(self, painter):
         pen = QPen(self.color, 2)
-        painter.setPen(pen)
+        shadowPen = QPen(self.shadowColor, 3)
         point = listToPoint(self.points)[0]
+
+        painter.setPen(shadowPen)
+        painter.drawPoint(point)
+        painter.setPen(pen)
         painter.drawPoint(point)
 
     def drawOutline(self, painter):
         pen = QPen(self.color, 1, Qt.DashLine)
-        painter.setPen(pen)
+        shadowPen = QPen(self.shadowColor, 2)
         
         points = listToPoint(self.points)
         for i, point in enumerate(points):
@@ -94,12 +100,17 @@ class RenderArea(QWidget):
                 prev = point
                 continue
             else:
+                painter.setPen(shadowPen)
+                painter.drawLine(prev, point)
+                painter.setPen(pen)
                 painter.drawLine(prev, point)
                 prev = point
 
     def drawArea(self, painter):
         points = listToPoint(self.points)
         pol = QPolygon(points)
+        brush = QBrush(self.areaColor)
+        painter.setBrush(brush)
         painter.setPen(self.color)
         painter.drawPolygon(pol)
 
