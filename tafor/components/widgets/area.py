@@ -17,7 +17,7 @@ class RenderArea(QWidget):
         self.imageSize = None
         self.done = False
         self.maxPoint = 7
-        self.color = QColor(140, 140, 140)
+        self.color = Qt.white
         self.boundaryColor = Qt.red
         self.fir = context.fir
 
@@ -149,7 +149,7 @@ class AreaChooser(QWidget):
 
     def updatePointsInfo(self):
         if self.points:
-            points = ['{}, {}'.format(*p) for p in self.points]
+            points = ['{}, {}'.format(p[1], p[0]) for p in self.points]
             self.info.setText('\n'.join(points))
         else:
             self.info.setText('')
@@ -159,7 +159,7 @@ class AreaChooser(QWidget):
             return ''
 
         circles = self.points + [self.points[0]]
-        points = ['{} {}'.format(*p) for p in circles]
+        points = ['{} {}'.format(p[1], p[0]) for p in circles]
         return 'WI ' + ' - '.join(points)
 
     def calcPoints(self):

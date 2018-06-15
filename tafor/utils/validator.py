@@ -74,6 +74,7 @@ class SigmetGrammar(object):
     typhoonRange = re.compile(r'(\d{1,3}KM)')
     sequence = re.compile(r'(\d{1,2})')
     valid = re.compile(r'(\d{6}/\d{6})')
+    longlat = re.compile(r'(E|W)(\d{5}|\d{3})-(N|S)(\d{4}|\d{2})')
 
 
 class TafValidator(object):
@@ -799,7 +800,7 @@ class SigmetLexer(object):
         'LINE', 'WI', '-', 'CNL', 'TO', 'FIR', 'CB', 'SIGMET'
     ]
 
-    defaultRules = ['area', 'latitude', 'longitude', 'fightLevel', 'speed', 'obsTime', 'typhoonRange', 'sequence', 'valid']
+    defaultRules = ['area', 'latitude', 'longitude', 'fightLevel', 'speed', 'obsTime', 'typhoonRange', 'sequence', 'valid', 'longlat']
 
     def __init__(self, part, firCode, grammar=None, keywords=None, **kwargs):
         super(SigmetLexer, self).__init__()
