@@ -134,15 +134,18 @@ class Sigmet(Base):
         parts = [self.sign, self.rpt]
         return '\n'.join(filter(None, parts))
 
+    def expired(self):
+        from tafor.utils.validator import SigmetGrammar
+        from tafor.utils.convert import parseDateTime
+        pattern = SigmetGrammar.valid
+        ending = pattern.search(self.rpt).group(2)
+        return parseDateTime(ending, self.sent)
+
     def isCnl(self):
         return 'CNL' in self.rpt
 
-    def expire(self):
-        import re
-        from tafor.utils.convert import parseDateTime
-        pattern = re.compile(r'(\d{6})/(\d{6})')
-        endingTime = pattern.search(self.rpt).group(2)
-        return parseDateTime(endingTime, self.sent)
+    def isExpired(self):
+        return datetime.datetime.utcnow() > self.expired()
 
 class User(Base):
     __tablename__ = 'users'

@@ -211,8 +211,9 @@ class SigmetSender(BaseSender):
     def receive(self, message):
         self.message = message
         firCode = conf.value('Message/FIR')
+        airportCode = conf.value('Message/ICAO')
         try:
-            self.parser = SigmetParser(self.message['rpt'], firCode=firCode)
+            self.parser = SigmetParser(self.message['rpt'], firCode=firCode, airportCode=airportCode)
             html = '<p>{}<br/>{}</p>'.format(self.message['sign'], self.parser.renderer(style='html'))
             self.rpt.setHtml(html)
 
@@ -229,7 +230,7 @@ class SigmetSender(BaseSender):
 
     def remind(self, item):
         if not item.isCnl():
-            delta = item.expire() - datetime.datetime.utcnow() - datetime.timedelta(minutes=15)
+            delta = item.expired() - datetime.datetime.utcnow() - datetime.timedelta(minutes=15)
             QTimer.singleShot(delta.total_seconds() * 1000, self.parent.remindSigmet)
 
 

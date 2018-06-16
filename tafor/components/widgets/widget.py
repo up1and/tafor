@@ -5,7 +5,6 @@ from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox, QLabel, QHBoxLayout
 
 from tafor import conf, boolean
-from tafor.models import db, Taf, Sigmet, Trend
 from tafor.utils import CheckTaf
 from tafor.components.ui import main_rc, Ui_main_recent
 
@@ -28,11 +27,12 @@ class RemindMessageBox(QMessageBox):
 
 class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
 
-    def __init__(self, parent, layout, tt):
+    def __init__(self, parent, layout, item):
         super(RecentMessage, self).__init__(parent)
         self.setupUi(self)
         self.setFont()
-        self.tt = tt
+        self.item = item
+        self.setText()
 
         layout.addWidget(self)
 
@@ -45,44 +45,32 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         
         self.rpt.setFont(font)
 
-    def updateGui(self):
-        item = self.item()
+    def setText(self):
+        self.groupBox.setTitle(self.item.tt)
+        self.sendTime.setText(self.item.sent.strftime('%Y-%m-%d %H:%M:%S'))
+        self.rpt.setText(self.item.report)
+        self.rpt.setWordWrap(True)
+        self.showConfirm(self.item)
 
-        if item:
-            self.groupBox.setTitle(item.tt)
-            self.sendTime.setText(item.sent.strftime('%Y-%m-%d %H:%M:%S'))
-            self.rpt.setText(item.report)
-            self.rpt.setWordWrap(True)
-            self.showConfirm(item)
-            
-        self.showOrHide(item)
+    # def item(self):
+    #     item = None
+    #     recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
 
-    def item(self):
-        item = None
-        recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+    #     if self.tt in ['FC', 'FT']:
+    #         item = db.query(Taf).filter(Taf.sent > recent, Taf.tt == self.tt).order_by(Taf.sent.desc()).first()
 
-        if self.tt in ['FC', 'FT']:
-            item = db.query(Taf).filter(Taf.sent > recent, Taf.tt == self.tt).order_by(Taf.sent.desc()).first()
+    #     if self.tt in ['WS', 'WC', 'WV']:
+    #         item = db.query(Sigmet).filter(Sigmet.sent > recent).order_by(Sigmet.sent.desc()).first()
 
-        if self.tt in ['WS', 'WC', 'WV']:
-            item = db.query(Sigmet).filter(Sigmet.sent > recent).order_by(Sigmet.sent.desc()).first()
+    #     if self.tt == 'TREND':
+    #         item = db.query(Trend).filter(Trend.sent > recent).order_by(Trend.sent.desc()).first()
+    #         if item and item.isNosig():
+    #             item = None
 
-        if self.tt == 'TREND':
-            item = db.query(Trend).filter(Trend.sent > recent).order_by(Trend.sent.desc()).first()
-            if item and item.isNosig():
-                item = None
-
-        return item
-
-    def showOrHide(self, item):
-        if item:
-            if not self.isVisible():
-                self.show()
-        else:
-            self.hide()
+    #     return item
 
     def showConfirm(self, item):
-        if self.tt not in ['FC', 'FT']:
+        if item.tt not in ['FC', 'FT']:
             self.check.hide()
             return
 

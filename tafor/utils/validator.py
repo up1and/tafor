@@ -73,7 +73,7 @@ class SigmetGrammar(object):
     obsTime = re.compile(r'(\d{4}Z)')
     typhoonRange = re.compile(r'(\d{1,3}KM)')
     sequence = re.compile(r'(\d{1,2})')
-    valid = re.compile(r'(\d{6}/\d{6})')
+    valid = re.compile(r'(\d{6})/(\d{6})')
     longlat = re.compile(r'(E|W)(\d{5}|\d{3})-(N|S)(\d{4}|\d{2})')
 
 
@@ -415,12 +415,7 @@ class TafLexer(object):
         if self.tokens['sign']['text'] == 'TAF':
             period = self.tokens['period']['text'][:4]
             time = parseTimez(self.tokens['timez']['text'])
-            self.generatePeriod(period, time)
-
-    def generatePeriod(self, period, time):
-        # 生成报文的有效期
-        self.period = parseTimeInterval(period, time)
-        return self.period
+            self.period = parseTimeInterval(period, time)
 
     def isValid(self):
         """检查报文是否有错误
@@ -533,13 +528,13 @@ class TafParser(object):
             for i, index in enumerate(becmgIndex):
                 e = elements[index] + elements[index+1]
                 becmg = self.parse(e)
-                becmg.generatePeriod(becmg.tokens['interval']['text'], self.primary.period[0])
+                becmg.period = parseTimeInterval(becmg.tokens['interval']['text'], self.primary.period[0])
                 self.becmgs.append(becmg)
 
             for i, index in enumerate(tempoIndex):
                 e = elements[index] + elements[index+1]
                 tempo = self.parse(e)
-                tempo.generatePeriod(tempo.tokens['interval']['text'], self.primary.period[0])
+                tempo.period = parseTimeInterval(tempo.tokens['interval']['text'], self.primary.period[0])
                 self.tempos.append(tempo)
 
         self.elements = [self.primary] + self.becmgs + self.tempos
@@ -802,13 +797,16 @@ class SigmetLexer(object):
 
     defaultRules = ['area', 'latitude', 'longitude', 'fightLevel', 'speed', 'obsTime', 'typhoonRange', 'sequence', 'valid', 'longlat']
 
-    def __init__(self, part, firCode, grammar=None, keywords=None, **kwargs):
+    def __init__(self, part, firCode=None, aiportCode=None, grammar=None, keywords=None, **kwargs):
         super(SigmetLexer, self).__init__()
         if not grammar:
             grammar = self.grammarClass()
 
         if not keywords:
             keywords = self.defaultKeywords
+
+        if aiportCode:
+            keywords.append(aiportCode)
 
         self.grammar = grammar
         self.keywords = keywords
@@ -921,6 +919,7 @@ class SigmetParser(object):
     :param parse: 解析报文的类，默认 :class:`SigmetLexer`
     :param kwargs: 额外参数
                 * `firCode` 气象情报编码前缀
+                * `airportCode` 发布机场编码
 
     使用方法::
 
@@ -944,6 +943,7 @@ class SigmetParser(object):
             self.parse = SigmetLexer
 
         self.firCode = kwargs.get('firCode', None)
+        self.airportCode = kwargs.get('airportCode', None)
 
         self.split()
 
@@ -954,7 +954,7 @@ class SigmetParser(object):
         *heads, elements = splitPattern.split(message)
         self.heads = [e.strip() for e in ''.join(heads).split('\n')]
         elements = elements.strip().split('\n')
-        self.elements = [self.parse(e, firCode=self.firCode) for e in elements]
+        self.elements = [self.parse(e, firCode=self.firCode, airportCode=self.airportCode) for e in elements]
         
     def isValid(self):
         """报文是否通过验证"""

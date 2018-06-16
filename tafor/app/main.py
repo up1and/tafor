@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 
 from tafor import BASEDIR, conf, logger, boolean, __version__
-from tafor.models import db, User
+from tafor.models import db, User, Taf, Sigmet, Trend
 from tafor.states import context
 from tafor.utils import Listen, checkVersion
 from tafor.utils.thread import WorkThread, FirInfoThread, CallThread, CheckUpgradeThread
@@ -114,10 +114,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.clock = Clock(self, self.tipsLayout)
         self.tipsLayout.addSpacerItem(QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
         self.currentTaf = CurrentTaf(self, self.tipsLayout)
-        self.recentFt = RecentMessage(self, self.recentLayout, 'FT')
-        self.recentFc = RecentMessage(self, self.recentLayout, 'FC')
-        self.recentSigmet = RecentMessage(self, self.recentLayout, 'WS')
-        self.recentTrend = RecentMessage(self, self.recentLayout, 'TREND')
 
     def setTable(self):
         self.tafTable = TafTable(self, self.tafLayout)
@@ -354,10 +350,25 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def updateRecent(self):
         self.currentTaf.updateGui()
-        self.recentFt.updateGui()
-        self.recentFc.updateGui()
-        self.recentSigmet.updateGui()
-        self.recentTrend.updateGui()
+
+        for i in range(self.recentLayout.count()):
+            if i > 0:
+                self.recentLayout.itemAt(i).widget().deleteLater()
+
+        recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+
+        fc = db.query(Taf).filter(Taf.sent > recent, Taf.tt == 'FC').order_by(Taf.sent.desc()).first()
+        ft = db.query(Taf).filter(Taf.sent > recent, Taf.tt == 'FT').order_by(Taf.sent.desc()).first()
+        sigmets = db.query(Sigmet).filter(Sigmet.sent > recent).order_by(Sigmet.sent.asc()).all()
+        sigmets = [sig for sig in sigmets if not sig.isExpired()]
+        trend = db.query(Trend).order_by(Trend.sent.desc()).first()
+        if trend and trend.isNosig():
+            trend = None
+
+        queryset = [fc, ft, trend] + sigmets
+        for query in queryset:
+            if query:
+                RecentMessage(self, self.recentLayout, query)
 
     def updateTable(self):
         self.tafTable.updateGui()
