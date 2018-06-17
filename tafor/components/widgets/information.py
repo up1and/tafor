@@ -116,7 +116,7 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
         time = QRegExpValidator(QRegExp(self.rules.time))
         self.obsTime.setValidator(time)
 
-        self.sequence.setValidator(QIntValidator(self.sequence))
+        self.sequence.setValidator(QIntValidator(1, 99, self.sequence))
 
     def setSquence(self):
         time = datetime.datetime.utcnow()
@@ -663,17 +663,17 @@ class SigmetCancelContent(BaseSigmetContent, Ui_sigmet_cancel.Ui_Editor):
         self.beginningTime.setValidator(date)
         self.endingTime.setValidator(date)
 
-        self.sequence.setValidator(QIntValidator(self.sequence))
+        self.sequence.setValidator(QIntValidator(1, 99, self.sequence))
 
     def message(self):
-        text = 'CNL SIGMET {} {}/{}'.format(self.sequence.text(), self.beginningTime.text(), self.endingTime.text())
+        text = 'CNL SIGMET {} {}/{}'.format(int(self.sequence.currentText()), self.beginningTime.text(), self.endingTime.text())
         return text
 
     def checkComplete(self):
         mustRequired = [
             self.beginningTime.hasAcceptableInput(),
             self.endingTime.hasAcceptableInput(),
-            self.sequence.hasAcceptableInput(),
+            self.sequence.currentText() and int(self.sequence.currentText()),
         ]
 
         self.complete = all(mustRequired)
@@ -765,28 +765,33 @@ class SigmetCancelSegment(BaseSegment):
 
     def bindSignal(self):
         self.changeSignal.connect(self.head.updateState)
-        self.changeSignal.connect(self.setPrev)
+        self.changeSignal.connect(self.updateState)
 
         self.content.endingTime.textChanged.connect(self.setEndingTime)
+        self.content.sequence.currentTextChanged.connect(self.setValids)
 
     def setEndingTime(self):
         ending = self.content.endingTime.text()
         self.head.endingTime.setText(ending)
 
-    def setPrev(self):
+    def updateState(self):
+        self.prevs = {}
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=self.head.duration)
-        last = db.query(Sigmet).filter(Sigmet.sent > expired, Sigmet.tt == self.type.tt).order_by(Sigmet.sent.desc()).first()
+        sigmets = db.query(Sigmet).filter(Sigmet.sent > expired, Sigmet.tt == self.type.tt).order_by(Sigmet.sent.desc()).all()
 
-        if last:
-            validPattern = re.compile(r'(\d{6})/(\d{6})')
-            sequencePattern = re.compile(r'\b(\d)\b')
+        for sig in sigmets:
+            if not sig.isCnl():
+                self.prevs[sig.sequence] = sig.valids
 
-            beginningTime, endingTime = validPattern.search(last.rpt).groups()
-            sequence = sequencePattern.search(last.rpt).group()
+        sequences = [s for s in self.prevs]
+        self.content.sequence.clear()
+        self.content.sequence.addItems(sequences)
 
-            self.content.beginningTime.setText(beginningTime)
-            self.content.endingTime.setText(endingTime)
-            self.content.sequence.setText(sequence)
+    def setValids(self, sequence):
+        valids = self.prevs.get(sequence)
+        if valids:
+            self.content.beginningTime.setText(valids[0])
+            self.content.endingTime.setText(valids[1])
 
     def clear(self):
         self.head.clear()

@@ -797,7 +797,7 @@ class SigmetLexer(object):
 
     defaultRules = ['area', 'latitude', 'longitude', 'fightLevel', 'speed', 'obsTime', 'typhoonRange', 'sequence', 'valid', 'longlat']
 
-    def __init__(self, part, firCode=None, aiportCode=None, grammar=None, keywords=None, **kwargs):
+    def __init__(self, part, firCode=None, airportCode=None, grammar=None, keywords=None, **kwargs):
         super(SigmetLexer, self).__init__()
         if not grammar:
             grammar = self.grammarClass()
@@ -805,8 +805,8 @@ class SigmetLexer(object):
         if not keywords:
             keywords = self.defaultKeywords
 
-        if aiportCode:
-            keywords.append(aiportCode)
+        if airportCode:
+            keywords.append(airportCode)
 
         self.grammar = grammar
         self.keywords = keywords
@@ -942,8 +942,8 @@ class SigmetParser(object):
         if not parse:
             self.parse = SigmetLexer
 
-        self.firCode = kwargs.get('firCode', None)
-        self.airportCode = kwargs.get('airportCode', None)
+        self.firCode = kwargs.get('firCode')
+        self.airportCode = kwargs.get('airportCode')
 
         self.split()
 

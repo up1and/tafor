@@ -46,12 +46,6 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
-       <widget class="QLineEdit" name="sequence"/>
-      </item>
-      <item row="1" column="1">
-       <widget class="QLineEdit" name="beginningTime"/>
-      </item>
       <item row="0" column="2">
        <widget class="QLabel" name="endingTimeLabel">
         <property name="text">
@@ -62,14 +56,29 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="2">
+      <item row="2" column="2">
        <widget class="QLineEdit" name="endingTime"/>
+      </item>
+      <item row="2" column="1">
+       <widget class="QLineEdit" name="beginningTime"/>
+      </item>
+      <item row="2" column="0">
+       <widget class="QComboBox" name="sequence">
+        <property name="editable">
+         <bool>true</bool>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>sequence</tabstop>
+  <tabstop>beginningTime</tabstop>
+  <tabstop>endingTime</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

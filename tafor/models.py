@@ -1,4 +1,5 @@
 import os
+import re
 import datetime
 
 from sqlalchemy import Column, Integer, String, DateTime, create_engine
@@ -134,11 +135,20 @@ class Sigmet(Base):
         parts = [self.sign, self.rpt]
         return '\n'.join(filter(None, parts))
 
-    def expired(self):
+    @property
+    def sequence(self):
+        pattern = re.compile(r'\b(\d)\b')
+        return pattern.search(self.rpt).group()
+
+    @property
+    def valids(self):
         from tafor.utils.validator import SigmetGrammar
-        from tafor.utils.convert import parseDateTime
         pattern = SigmetGrammar.valid
-        ending = pattern.search(self.rpt).group(2)
+        return pattern.search(self.rpt).groups()
+
+    def expired(self):
+        from tafor.utils.convert import parseDateTime
+        ending = self.valids[1]
         return parseDateTime(ending, self.sent)
 
     def isCnl(self):
