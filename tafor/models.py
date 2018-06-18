@@ -146,6 +146,19 @@ class Sigmet(Base):
         pattern = SigmetGrammar.valid
         return pattern.search(self.rpt).groups()
 
+    def area(self):
+        _area = {}
+        if self.tt == 'WS':
+            if 'WI' in self.rpt:
+                pattern = re.compile(r'((?:N|S)(?:\d{4}|\d{2})) ((?:E|W)(?:\d{5}|\d{3}))')
+                points = pattern.findall(self.rpt)
+                _area = {
+                    'type': 'WI',
+                    'area': [p for p in points]
+                }
+
+        return _area
+
     def expired(self):
         from tafor.utils.convert import parseDateTime
         ending = self.valids[1]

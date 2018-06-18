@@ -2,6 +2,8 @@ from PyQt5.QtCore import QSize, Qt, QRect, QCoreApplication, QPoint, pyqtSignal
 from PyQt5.QtGui import QPainter, QPolygon, QPixmap, QPen, QColor, QBrush
 from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel
 
+from Polygon import Polygon
+
 from tafor import logger
 from tafor.states import context
 from tafor.utils.convert import listToPoint, clipPolygon
@@ -36,6 +38,7 @@ class RenderArea(QWidget):
 
         self.drawCloudImage(painter)
         self.drawBoundaries(painter)
+        self.drawSigmets(painter)
 
         if len(self.points) == 1:
             self.drawOnePoint(painter)
@@ -133,6 +136,24 @@ class RenderArea(QWidget):
             painter.setPen(Qt.DashLine)
             painter.drawRect(rect)
             painter.drawText(rect, Qt.AlignCenter, QCoreApplication.translate('Editor', 'No Satellite Image'))
+
+    def drawSigmets(self, painter):
+        if not self.fir.raw():
+            return 
+
+        pen = QPen(QColor(204, 204, 204), 1, Qt.DashLine)
+        brush = QBrush(QColor(240, 156, 0, 100))
+
+        sigmets = self.fir.sigmetsArea()
+        for i, sig in enumerate(sigmets):
+            center = Polygon(sig).center()
+            met = self.fir.sigmets()[i]
+            points = listToPoint(sig)
+            pol = QPolygon(points)
+            painter.setBrush(brush)
+            painter.setPen(pen)
+            painter.drawPolygon(pol)
+            painter.drawText(center[0]-5, center[1]+5, met.sequence)
 
     def showEvent(self, event):
         self.points = []

@@ -52,23 +52,6 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         self.rpt.setWordWrap(True)
         self.showConfirm(self.item)
 
-    # def item(self):
-    #     item = None
-    #     recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-
-    #     if self.tt in ['FC', 'FT']:
-    #         item = db.query(Taf).filter(Taf.sent > recent, Taf.tt == self.tt).order_by(Taf.sent.desc()).first()
-
-    #     if self.tt in ['WS', 'WC', 'WV']:
-    #         item = db.query(Sigmet).filter(Sigmet.sent > recent).order_by(Sigmet.sent.desc()).first()
-
-    #     if self.tt == 'TREND':
-    #         item = db.query(Trend).filter(Trend.sent > recent).order_by(Trend.sent.desc()).first()
-    #         if item and item.isNosig():
-    #             item = None
-
-    #     return item
-
     def showConfirm(self, item):
         if item.tt not in ['FC', 'FT']:
             self.check.hide()

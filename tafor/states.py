@@ -22,7 +22,8 @@ class FirState(object):
             [115.9167, 12.6667],
         ],
         'rect': [0, 0, 0, 0],
-        'boundaries': []
+        'boundaries': [],
+        'sigmets': []
     } # 这里的参数会被远程参数覆盖
 
     def state(self):
@@ -30,7 +31,8 @@ class FirState(object):
 
     def setState(self, values):
         self._state.update(values)
-        self.computed()
+        if self._state['raw']:
+            self.computed()
 
     def computed(self):
         latRange = self._state['coordinates'][0][1] - self._state['coordinates'][1][1]
@@ -48,8 +50,22 @@ class FirState(object):
     def rect(self):
         return self._state['rect']
 
+    def sigmets(self):
+        return self._state['sigmets']
+
     def boundaries(self):
         return self.degreeToPixel(self._state['boundaries'])
+
+    def sigmetsArea(self):
+        from tafor.utils.convert import degreeToDecimal
+        areas = []
+        for sig in self._state['sigmets']:
+            area = sig.area()
+            degrees = [[degreeToDecimal(p[1]), degreeToDecimal(p[0])] for p in area['area']]
+            pixels = self.degreeToPixel(degrees)
+            areas.append(pixels)
+
+        return areas
 
     def degreeToPixel(self, degreePoints):
         points = []

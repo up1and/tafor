@@ -331,10 +331,19 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.updateGui()
 
+    def updateSigmet(self):
+        recent = datetime.datetime.utcnow() - datetime.timedelta(hours=8)
+        sigmets = db.query(Sigmet).filter(Sigmet.sent > recent, Sigmet.tt == 'WS').order_by(Sigmet.sent.desc()).all()
+        sigmets = [sig for sig in sigmets if not sig.isExpired()]
+        context.fir.setState({
+            'sigmets': sigmets
+        })
+
     def updateGui(self):
         self.updateTable()
         self.updateRecent()
         self.updateContractMenu()
+        self.updateSigmet()
 
         logger.debug('Update GUI')
 
