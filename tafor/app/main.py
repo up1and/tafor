@@ -11,6 +11,7 @@ from tafor import BASEDIR, conf, logger, boolean, __version__
 from tafor.models import db, User, Taf, Sigmet, Trend
 from tafor.states import context
 from tafor.utils import Listen, checkVersion
+from tafor.utils.service import currentSigmet
 from tafor.utils.thread import WorkThread, FirInfoThread, CallThread, CheckUpgradeThread
 
 from tafor.components.ui import Ui_main, main_rc
@@ -332,9 +333,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.updateGui()
 
     def updateSigmet(self):
-        recent = datetime.datetime.utcnow() - datetime.timedelta(hours=8)
-        sigmets = db.query(Sigmet).filter(Sigmet.sent > recent, Sigmet.tt == 'WS').order_by(Sigmet.sent.desc()).all()
-        sigmets = [sig for sig in sigmets if not sig.isExpired()]
+        sigmets = currentSigmet(tt='WS')
         context.fir.setState({
             'sigmets': sigmets
         })
@@ -368,8 +367,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         fc = db.query(Taf).filter(Taf.sent > recent, Taf.tt == 'FC').order_by(Taf.sent.desc()).first()
         ft = db.query(Taf).filter(Taf.sent > recent, Taf.tt == 'FT').order_by(Taf.sent.desc()).first()
-        sigmets = db.query(Sigmet).filter(Sigmet.sent > recent).order_by(Sigmet.sent.asc()).all()
-        sigmets = [sig for sig in sigmets if not sig.isExpired()]
+        sigmets = currentSigmet(order='asc', hasCnl=True)
         trend = db.query(Trend).order_by(Trend.sent.desc()).first()
         if trend and trend.isNosig():
             trend = None

@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit
 from tafor import conf, logger
 from tafor.utils import Pattern
 from tafor.utils.convert import parseTime, parseDateTime, ceilTime, calcPosition
+from tafor.utils.service import currentSigmet
 from tafor.models import db, Sigmet
 from tafor.components.widgets.forecast import SegmentMixin
 from tafor.components.widgets.area import AreaChooser
@@ -776,12 +777,10 @@ class SigmetCancelSegment(BaseSegment):
 
     def updateState(self):
         self.prevs = {}
-        expired = datetime.datetime.utcnow() - datetime.timedelta(hours=self.head.duration)
-        sigmets = db.query(Sigmet).filter(Sigmet.sent > expired, Sigmet.tt == self.type.tt).order_by(Sigmet.sent.desc()).all()
+        sigmets = currentSigmet(tt=self.type.tt)
 
         for sig in sigmets:
-            if not sig.isCnl():
-                self.prevs[sig.sequence] = sig.valids
+            self.prevs[sig.sequence] = sig.valids
 
         sequences = [s for s in self.prevs]
         self.content.sequence.clear()

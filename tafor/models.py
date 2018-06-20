@@ -137,8 +137,13 @@ class Sigmet(Base):
 
     @property
     def sequence(self):
-        pattern = re.compile(r'\b(\d)\b')
-        return pattern.search(self.rpt).group()
+        pattern = re.compile(r'SIGMET ([A-Z]?\d{1,2}) VALID')
+        return pattern.search(self.rpt).group(1)
+
+    @property
+    def cancelSequence(self):
+        pattern = re.compile(r'CNL SIGMET ([A-Z]?\d{1,2})')
+        return pattern.search(self.rpt).group(1)
 
     @property
     def valids(self):
