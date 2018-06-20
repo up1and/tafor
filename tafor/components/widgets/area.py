@@ -2,7 +2,7 @@ from PyQt5.QtCore import QSize, Qt, QRect, QCoreApplication, QPoint, pyqtSignal
 from PyQt5.QtGui import QPainter, QPolygon, QPixmap, QPen, QColor, QBrush
 from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel
 
-from Polygon import Polygon
+from shapely.geometry import Polygon
 
 from tafor import logger
 from tafor.states import context
@@ -146,14 +146,14 @@ class RenderArea(QWidget):
 
         sigmets = self.fir.sigmetsArea()
         for i, sig in enumerate(sigmets):
-            center = Polygon(sig).center()
+            center = Polygon(sig).centroid
             met = self.fir.sigmets()[i]
             points = listToPoint(sig)
             pol = QPolygon(points)
             painter.setBrush(brush)
             painter.setPen(pen)
             painter.drawPolygon(pol)
-            painter.drawText(center[0]-5, center[1]+5, met.sequence)
+            painter.drawText(center.x-5, center.y+5, met.sequence)
 
     def showEvent(self, event):
         self.points = []

@@ -1,7 +1,7 @@
 import math
 import datetime
 
-from Polygon import Polygon, Utils
+from shapely.geometry import Polygon
 
 
 def isOverlap(datetime1, datetime2):
@@ -203,10 +203,7 @@ def pointToList(points):
 
 def clipPolygon(subj, clip, maxPoint=7):
     """计算两个多边形之间的交集，并根据允许的最大点平滑多边形
-
-        A General Polygon Clipping Library
-        http://www.cs.man.ac.uk/~toby/alan/software/gpc.html
-
+    
     :param subj: 列表，目标多边形的坐标集
     :param clip: 列表，相切多边形的坐标集
     :param maxPoint: 数字，交集允许的最大点
@@ -215,11 +212,14 @@ def clipPolygon(subj, clip, maxPoint=7):
     subj = Polygon(subj)
     clip = Polygon(clip)
     try:
-        intersection = subj & clip
-        points = Utils.pointList(intersection)
+        intersection = subj.intersection(clip)
+        tolerance = 1
+        while len(intersection.exterior.coords) > maxPoint + 1:
+            intersection = intersection.simplify(tolerance, preserve_topology=False)
+            tolerance += 1
+
+        points = list(intersection.exterior.coords)
     except Exception as e:
         points = []
-    finally:
-        if len(points) > maxPoint:
-            points = Utils.reducePoints(points, maxPoint)
-        return points
+    
+    return points

@@ -152,7 +152,6 @@ class Sigmet(Base):
         return pattern.search(self.rpt).groups()
 
     def area(self):
-        _area = {}
         if self.tt == 'WS':
             if 'WI' in self.rpt:
                 pattern = re.compile(r'((?:N|S)(?:\d{4}|\d{2})) ((?:E|W)(?:\d{5}|\d{3}))')
@@ -161,7 +160,27 @@ class Sigmet(Base):
                     'type': 'WI',
                     'area': [p for p in points]
                 }
-
+            elif 'LINE' in self.rpt:
+                pattern = re.compile(r'([A-Z{1,2}]) OF LINE ((?:N|S)(?:\d{4}|\d{2})) ((?:E|W)(?:\d{5}|\d{3}))')
+                lines = pattern.findall(self.rpt)
+                _area = {
+                    'type': 'LINE',
+                    'area': [p for p in lines]
+                }
+            else:
+                pattern = re.compile(r'(N|S|W|E) OF ((?:N|S)(?:\d{4}|\d{2})|(?:E|W)(?:\d{5}|\d{3}))')
+                lines = pattern.findall(self.rpt)
+                if lines:
+                    _area = {
+                        'type': 'LATLNG',
+                        'area': [p for p in lines]
+                    }
+                else:
+                    _area = {
+                        'type': 'LOCAL',
+                        'area': []
+                    }
+                    
         return _area
 
     def expired(self):

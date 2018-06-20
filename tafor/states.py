@@ -2,6 +2,8 @@ import copy
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
+from shapely.geometry import box
+
 
 class MessageState(object):
     _state = {}
@@ -44,6 +46,12 @@ class FirState(object):
         self.offsetX = self._state['rect'][0]
         self.offsetY = self._state['rect'][1]
 
+        rect = self.rect()
+        self.topLeft = [rect[0], rect[1]]
+        self.topRight = [rect[0] + rect[2], rect[1]]
+        self.bottomRight = [rect[0] + rect[2], rect[1] + rect[3]]
+        self.bottomLeft = [rect[0], rect[1] + rect[3]]
+
     def raw(self):
         return self._state['raw']
 
@@ -61,17 +69,27 @@ class FirState(object):
         areas = []
         for sig in self._state['sigmets']:
             area = sig.area()
-            degrees = [[degreeToDecimal(p[1]), degreeToDecimal(p[0])] for p in area['area']]
-            pixels = self.degreeToPixel(degrees)
-            areas.append(pixels)
+            if area['type'] == 'WI':
+                degrees = [[degreeToDecimal(lng), degreeToDecimal(lat)] for lat, lng in area['area']]
+                pixels = self.degreeToPixel(degrees)
+                areas.append(pixels)
+
+            elif area['type'] == 'LINE':
+                pass
+
+            elif area['type'] == 'LATLNG':
+                polygons = []
+                rect = box(*self.rect())
+                for identifier, line in area['area']:
+                    pass
 
         return areas
 
     def degreeToPixel(self, degreePoints):
         points = []
-        for p in degreePoints:
-            x = (p[0] - self.initLong) / self.dlong - self.offsetX
-            y = (self.initLat - p[1]) / self.dlat - self.offsetY
+        for lng, lat in degreePoints:
+            x = (lng - self.initLong) / self.dlong - self.offsetX
+            y = (self.initLat - lat) / self.dlat - self.offsetY
             points.append([x, y])
 
         return points
@@ -80,9 +98,9 @@ class FirState(object):
         from tafor.utils.convert import decimalToDegree
 
         points = []
-        for p in pixelPoints:
-            longtitude = self.initLong + (p[0] + self.offsetX) * self.dlong
-            latitude = self.initLat - (p[1] + self.offsetY) * self.dlat
+        for lng, lat in pixelPoints:
+            longtitude = self.initLong + (lng + self.offsetX) * self.dlong
+            latitude = self.initLat - (lat + self.offsetY) * self.dlat
             points.append([
                 decimalToDegree(longtitude, fmt='longitude'),
                 decimalToDegree(latitude)
