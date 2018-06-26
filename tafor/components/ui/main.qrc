@@ -9,5 +9,8 @@
         <file alias="next.png">../../icons/next.png</file>
         <file alias="prev.png">../../icons/prev.png</file>
         <file alias="trash.png">../../icons/trash.png</file>
+        <file alias="line.png">../../icons/line.png</file>
+        <file alias="polygon.png">../../icons/polygon.png</file>
+        <file alias="rectangular.png">../../icons/rectangular.png</file>
     </qresource>
 </RCC>

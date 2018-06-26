@@ -154,21 +154,21 @@ class Sigmet(Base):
     def area(self):
         if self.tt == 'WS':
             if 'WI' in self.rpt:
-                pattern = re.compile(r'((?:N|S)(?:\d{4}|\d{2})) ((?:E|W)(?:\d{5}|\d{3}))')
+                pattern = re.compile(r'((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))')
                 points = pattern.findall(self.rpt)
                 _area = {
                     'type': 'WI',
                     'area': [p for p in points]
                 }
             elif 'LINE' in self.rpt:
-                pattern = re.compile(r'([A-Z{1,2}]) OF LINE ((?:N|S)(?:\d{4}|\d{2})) ((?:E|W)(?:\d{5}|\d{3}))')
+                pattern = re.compile(r'([A-Z{1,2}])\sOF\sLINE\s((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))\s?-\s?((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))')
                 lines = pattern.findall(self.rpt)
                 _area = {
                     'type': 'LINE',
                     'area': [p for p in lines]
                 }
             else:
-                pattern = re.compile(r'(N|S|W|E) OF ((?:N|S)(?:\d{4}|\d{2})|(?:E|W)(?:\d{5}|\d{3}))')
+                pattern = re.compile(r'(N|S|W|E)\sOF\s((?:N|S)(?:\d{4}|\d{2})|(?:E|W)(?:\d{5}|\d{3}))')
                 lines = pattern.findall(self.rpt)
                 if lines:
                     _area = {

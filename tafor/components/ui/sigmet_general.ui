@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>662</width>
-    <height>277</height>
+    <height>278</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -165,6 +165,11 @@
           <string notr="true">BLW</string>
          </property>
         </item>
+        <item>
+         <property name="text">
+          <string notr="true">SFC</string>
+         </property>
+        </item>
        </widget>
       </item>
       <item row="0" column="3">
@@ -198,17 +203,11 @@
      <layout class="QVBoxLayout" name="areaLayout">
       <item>
        <widget class="QWidget" name="changeAreaWidget" native="true">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
         <layout class="QHBoxLayout" name="changeAreaLayout">
          <item>
-          <widget class="QRadioButton" name="points">
+          <widget class="QRadioButton" name="canvas">
            <property name="text">
-            <string>Points</string>
+            <string>Canvas</string>
            </property>
            <property name="checked">
             <bool>true</bool>
@@ -216,16 +215,45 @@
           </widget>
          </item>
          <item>
-          <widget class="QRadioButton" name="latitudeAndLongitude">
+          <widget class="QRadioButton" name="manual">
            <property name="text">
-            <string>Latitude and Longitude</string>
+            <string>Manual</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QRadioButton" name="local">
+          <widget class="QRadioButton" name="entire">
            <property name="text">
-            <string>Local</string>
+            <string>Entire FIR</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QToolButton" name="modeButton">
+           <property name="text">
+            <string notr="true"/>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>16</width>
+             <height>16</height>
+            </size>
+           </property>
+           <property name="autoRaise">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
@@ -244,6 +272,35 @@
          <property name="topMargin">
           <number>15</number>
          </property>
+         <item row="4" column="1">
+          <widget class="QLabel" name="eastLabel">
+           <property name="text">
+            <string>E OF</string>
+           </property>
+           <property name="buddy">
+            <cstring>east</cstring>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLineEdit" name="north"/>
+         </item>
+         <item row="4" column="2">
+          <widget class="QLabel" name="westLabel">
+           <property name="text">
+            <string>W OF</string>
+           </property>
+           <property name="buddy">
+            <cstring>west</cstring>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="1">
+          <widget class="QLineEdit" name="east"/>
+         </item>
+         <item row="1" column="2">
+          <widget class="QLineEdit" name="south"/>
+         </item>
          <item row="5" column="0">
           <widget class="QLabel" name="longtitudeLabel">
            <property name="minimumSize">
@@ -257,31 +314,8 @@
            </property>
           </widget>
          </item>
-         <item row="1" column="2">
-          <widget class="QLineEdit" name="south"/>
-         </item>
-         <item row="5" column="1">
-          <widget class="QLineEdit" name="east"/>
-         </item>
-         <item row="4" column="1">
-          <widget class="QLabel" name="eastLabel">
-           <property name="text">
-            <string>E OF</string>
-           </property>
-           <property name="buddy">
-            <cstring>east</cstring>
-           </property>
-          </widget>
-         </item>
-         <item row="4" column="2">
-          <widget class="QLabel" name="westLabel">
-           <property name="text">
-            <string>W OF</string>
-           </property>
-           <property name="buddy">
-            <cstring>west</cstring>
-           </property>
-          </widget>
+         <item row="5" column="2">
+          <widget class="QLineEdit" name="west"/>
          </item>
          <item row="1" column="0">
           <widget class="QLabel" name="latitudeLabel">
@@ -306,9 +340,6 @@
            </property>
           </widget>
          </item>
-         <item row="5" column="2">
-          <widget class="QLineEdit" name="west"/>
-         </item>
          <item row="0" column="1">
           <widget class="QLabel" name="northLabel">
            <property name="text">
@@ -318,9 +349,6 @@
             <cstring>north</cstring>
            </property>
           </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QLineEdit" name="north"/>
          </item>
         </layout>
        </widget>

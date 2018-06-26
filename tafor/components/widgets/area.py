@@ -203,6 +203,3 @@ class AreaChooser(QWidget):
     def showEvent(self, event):
         self.points = []
         self.info.setText('')
-
-
-

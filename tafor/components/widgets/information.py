@@ -1,7 +1,9 @@
 import re
 import datetime
 
-from PyQt5.QtGui import QRegExpValidator, QIntValidator, QTextCharFormat, QFont
+from itertools import cycle
+
+from PyQt5.QtGui import QIcon, QRegExpValidator, QIntValidator, QTextCharFormat, QFont
 from PyQt5.QtCore import Qt, QRegExp, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit
 
@@ -13,7 +15,7 @@ from tafor.models import db, Sigmet
 from tafor.components.widgets.forecast import SegmentMixin
 from tafor.components.widgets.area import AreaChooser
 from tafor.components.ui import (Ui_sigmet_type, Ui_sigmet_general, Ui_sigmet_head, 
-	Ui_sigmet_typhoon, Ui_sigmet_cancel, Ui_sigmet_custom)
+    Ui_sigmet_typhoon, Ui_sigmet_cancel, Ui_sigmet_custom, main_rc)
 
 
 class SigmetTypeSegment(QWidget, Ui_sigmet_type.Ui_Editor):
@@ -241,7 +243,7 @@ class SigmetGeneralHead(BaseSigmetHead):
         elif text == 'HVY':
             phenomenas = ['DS', 'SS']
         else:
-            phenomenas = ['TS', 'TS GR']
+            phenomenas = ['TS', 'TSGR']
 
         self.phenomena.addItems(phenomenas)
 
@@ -267,18 +269,21 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
     def __init__(self, phenomena):
         super(SigmetGeneralContent, self).__init__(phenomena)
         self.setupUi(self)
-        self.pointsWidget = AreaChooser()
-        self.areaLayout.addWidget(self.pointsWidget)
+        self.canvasWidget = AreaChooser()
+        self.areaLayout.addWidget(self.canvasWidget)
         self.areaGroup.setLayout(self.areaLayout)
 
         self.bindSignal()
         self.setValidator()
         self.setArea()
+        self.setCanvasMode()
 
     def bindSignal(self):
-        self.latitudeAndLongitude.clicked.connect(self.setArea)
-        self.points.clicked.connect(self.setArea)
-        self.local.clicked.connect(self.setArea)
+        self.manual.clicked.connect(self.setArea)
+        self.canvas.clicked.connect(self.setArea)
+        self.entire.clicked.connect(self.setArea)
+
+        self.modeButton.clicked.connect(self.switchCanvasMode)
 
         self.position.currentTextChanged.connect(self.setFightLevel)
         self.movement.currentTextChanged.connect(self.setSpeed)
@@ -296,7 +301,7 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         self.base.textEdited.connect(lambda: self.coloredText(self.base))
         self.top.textEdited.connect(lambda: self.coloredText(self.top))
 
-        self.pointsWidget.renderArea.stateChanged.connect(self.checkComplete)
+        self.canvasWidget.renderArea.stateChanged.connect(self.checkComplete)
 
         self.register()
 
@@ -316,17 +321,29 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         self.speed.setValidator(QIntValidator(1, 99, self.speed))
 
     def setArea(self):
-        if self.latitudeAndLongitude.isChecked():
+        if self.manual.isChecked():
             self.latitudeAndLongitudeWidget.setVisible(True)
-            self.pointsWidget.setVisible(False)
+            self.canvasWidget.setVisible(False)
+            self.modeButton.setVisible(False)
 
-        if self.points.isChecked():
+        if self.canvas.isChecked():
             self.latitudeAndLongitudeWidget.setVisible(False)
-            self.pointsWidget.setVisible(True)
+            self.canvasWidget.setVisible(True)
+            self.modeButton.setVisible(True)
 
-        if self.local.isChecked():
+        if self.entire.isChecked():
             self.latitudeAndLongitudeWidget.setVisible(False)
-            self.pointsWidget.setVisible(False)
+            self.canvasWidget.setVisible(False)
+            self.modeButton.setVisible(False)
+
+    def setCanvasMode(self):
+        canvasMode = [
+            {'icon': ':/polygon.png', 'mode': 'polygon'},
+            {'icon': ':/line.png', 'mode': 'line'},
+            {'icon': ':/rectangular.png', 'mode': 'rectangular'}
+        ]
+        self.canvasMode = cycle(canvasMode)
+        self.switchCanvasMode()
 
     def setFightLevel(self, text):
         if text in ['TOP', 'ABV']:
@@ -358,6 +375,10 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
             self.position.setCurrentIndex(self.position.findText('TOP'))
         else:
             self.position.setCurrentIndex(-1)
+
+    def switchCanvasMode(self):
+        canvasMode = next(self.canvasMode)
+        self.modeButton.setIcon(QIcon(canvasMode['icon']))
 
     def checkComplete(self):
         mustRequired = [self.area()]
@@ -412,7 +433,7 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         return text
 
     def area(self):
-        if self.latitudeAndLongitude.isChecked():
+        if self.manual.isChecked():
             north = 'N OF {}'.format(self.north.text()) if self.north.text() else ''
             south = 'S OF {}'.format(self.south.text()) if self.south.text() else ''
             east = 'E OF {}'.format(self.east.text()) if self.east.text() else ''
@@ -421,11 +442,11 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
 
             text = ' AND '.join(filter(None, areas))
 
-        if self.points.isChecked():
-            text = self.pointsWidget.text()
+        if self.canvas.isChecked():
+            text = self.canvasWidget.text()
 
-        if self.local.isChecked():
-            text = conf.value('Message/ICAO')
+        if self.entire.isChecked():
+            text = 'ENTIRE FIR'
 
         return text
 
@@ -589,7 +610,7 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         return text
 
     def message(self):
-        area = '{latitude} {Longitude} CB TOP FL{height} WI {range}KM OF CENTER'.format(
+        area = '{latitude} {Longitude} CB TOP FL{height} WI {range}KM OF CENTRE'.format(
                 latitude=self.currentLatitude.text(),
                 Longitude=self.currentLongitude.text(),
                 height=self.height.text(),
@@ -597,7 +618,7 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
             )
         moveState = self.moveState()
         intensityChange = self.intensityChange.currentText()
-        forecast = 'FCST {forecastTime}Z TC CENTER {forecastLatitude} {forecastLongitude}'.format(
+        forecast = 'FCST {forecastTime}Z TC CENTRE {forecastLatitude} {forecastLongitude}'.format(
                 forecastTime=self.forecastTime.text(),
                 forecastLatitude=self.forecastLatitude.text(),
                 forecastLongitude=self.forecastLongitude.text()
@@ -819,7 +840,7 @@ class SigmetCustomSegment(BaseSegment):
     def setPlaceholder(self):
         tips = {
             'WS': 'EMBD TS FCST N OF N2000 TOP FL360 MOV N 25KMH NC',
-            'WC': 'TC YAGI OBS AT 1400Z N2300 E11304 CB TOP FL420 WI 300KM OF CENTER MOV NE 30KMH INTSF\nFCST 1925Z TC CENTER N2401 E11411',
+            'WC': 'TC YAGI OBS AT 1400Z N2300 E11304 CB TOP FL420 WI 300KM OF CENTRE MOV NE 30KMH INTSF\nFCST 1925Z TC CENTRE N2401 E11411',
             'WV': 'VA ERUPTION MT ASHVAL LOC E S1500 E07348 VA CLD OBS AT 1100Z FL310/450\nAPRX 220KM BY 35KM S1500 E07348 - S1530 E07642 MOV ESE 65KMH\nFCST 1700Z VA CLD APRX S1506 E07500 - S1518 E08112 - S1712 E08330 - S1824 E07836',
         }
         tip = tips[self.type.tt]
