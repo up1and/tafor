@@ -66,22 +66,61 @@ class FirState(object):
 
     def sigmetsArea(self):
         from tafor.utils.convert import degreeToDecimal
+        from tafor.utils.sigmet import decodeSigmetArea, findOrientation
+
         areas = []
+        maxx, maxy = self.rect()[2:]
         for sig in self._state['sigmets']:
             area = sig.area()
             if area['type'] == 'WI':
-                degrees = [[degreeToDecimal(lng), degreeToDecimal(lat)] for lat, lng in area['area']]
-                pixels = self.degreeToPixel(degrees)
-                areas.append(pixels)
+                degrees = [(degreeToDecimal(lng), degreeToDecimal(lat)) for lat, lng in area['area']]
+                polygon = self.degreeToPixel(degrees)
+                areas.append(polygon)
 
             elif area['type'] == 'LINE':
-                pass
+                decimals = []
+                for identifier, *points in area['area']:
+                    points = [(degreeToDecimal(lng), degreeToDecimal(lat)) for lat, lng in points]
+                    points = sorted(points, key=lambda p: p[0])
+
+                    if len(points) == 2:
+                        line = points
+                    else:
+                        line = [points[0], points[-1]]
+
+                    orientations = findOrientation(identifier, line)
+                    decimals.append((orientations, points))
+
+                polygon = decodeSigmetArea(self._state['boundaries'], decimals)
+                polygon = self.degreeToPixel(polygon)
+                areas.append(polygon)
 
             elif area['type'] == 'LATLNG':
-                polygons = []
-                rect = box(*self.rect())
-                for identifier, line in area['area']:
-                    pass
+                maxx, maxy = self.rect()[2:]
+                decimals = []
+                for identifier, deg in area['area']:
+                    dec = degreeToDecimal(deg)
+                    if identifier in ['N', 'S']:
+                        y = (self.initLat - dec) / self.dlat - self.offsetY
+                        points = [
+                            (0, y),
+                            (maxx, y)
+                        ]
+                    else:
+                        x = (dec - self.initLong) / self.dlong - self.offsetX
+                        points = [
+                            (x, 0),
+                            (x, maxy)
+                        ]
+                    
+                    decimals.append((identifier, self.pixelToDecimal(points)))
+
+                polygon = decodeSigmetArea(self._state['boundaries'], decimals)
+                polygon = self.degreeToPixel(polygon)
+                areas.append(polygon)
+
+            elif area['type'] == 'ENTIRE':
+                areas.append(self.boundaries())
 
         return areas
 
@@ -90,7 +129,16 @@ class FirState(object):
         for lng, lat in degreePoints:
             x = (lng - self.initLong) / self.dlong - self.offsetX
             y = (self.initLat - lat) / self.dlat - self.offsetY
-            points.append([x, y])
+            points.append((x, y))
+
+        return points
+
+    def pixelToDecimal(self, pixelPoints):
+        points = []
+        for lng, lat in pixelPoints:
+            longtitude = self.initLong + (lng + self.offsetX) * self.dlong
+            latitude = self.initLat - (lat + self.offsetY) * self.dlat
+            points.append((longtitude, latitude))
 
         return points
 
@@ -101,10 +149,10 @@ class FirState(object):
         for lng, lat in pixelPoints:
             longtitude = self.initLong + (lng + self.offsetX) * self.dlong
             latitude = self.initLat - (lat + self.offsetY) * self.dlat
-            points.append([
+            points.append((
                 decimalToDegree(longtitude, fmt='longitude'),
                 decimalToDegree(latitude)
-            ])
+            ))
 
         return points
 

@@ -161,11 +161,31 @@ class Sigmet(Base):
                     'area': [p for p in points]
                 }
             elif 'LINE' in self.rpt:
-                pattern = re.compile(r'([A-Z{1,2}])\sOF\sLINE\s((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))\s?-\s?((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))')
-                lines = pattern.findall(self.rpt)
+                _point = r'((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))'
+                _spacer = r'\s?-\s?'
+                line = re.compile(
+                    r'([A-Z{1,2}])'
+                    r'\sOF\sLINE\s'
+                    r'(%s(?:%s)?)+' % (_point, _spacer)
+                )
+                point = re.compile(_point)
+
+                locations = []
+                for l in line.finditer(self.rpt):
+                    identifier = l.group(1)
+                    text = l.group()
+                    points = point.findall(text)
+                    points.insert(0, identifier)
+                    locations.append(points)
+
                 _area = {
                     'type': 'LINE',
-                    'area': [p for p in lines]
+                    'area': locations
+                }
+            elif 'ENTIRE' in self.rpt:
+                _area = {
+                    'type': 'ENTIRE',
+                    'area': []
                 }
             else:
                 pattern = re.compile(r'(N|S|W|E)\sOF\s((?:N|S)(?:\d{4}|\d{2})|(?:E|W)(?:\d{5}|\d{3}))')
@@ -177,10 +197,10 @@ class Sigmet(Base):
                     }
                 else:
                     _area = {
-                        'type': 'LOCAL',
+                        'type': 'UNKNOW',
                         'area': []
                     }
-                    
+
         return _area
 
     def expired(self):
