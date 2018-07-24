@@ -91,9 +91,12 @@ class FirState(object):
                     orientations = findOrientation(identifier, line)
                     decimals.append((orientations, points))
 
-                polygon = decodeSigmetArea(self._state['boundaries'], decimals)
-                polygon = self.degreeToPixel(polygon)
-                areas.append(polygon)
+                try:
+                    polygon = decodeSigmetArea(self._state['boundaries'], decimals)
+                    polygon = self.degreeToPixel(polygon)
+                    areas.append(polygon)
+                except Exception as e:
+                    print(e)
 
             elif area['type'] == 'LATLNG':
                 maxx, maxy = self.rect()[2:]
@@ -115,9 +118,12 @@ class FirState(object):
                     
                     decimals.append((identifier, self.pixelToDecimal(points)))
 
-                polygon = decodeSigmetArea(self._state['boundaries'], decimals)
-                polygon = self.degreeToPixel(polygon)
-                areas.append(polygon)
+                try:
+                    polygon = decodeSigmetArea(self._state['boundaries'], decimals)
+                    polygon = self.degreeToPixel(polygon)
+                    areas.append(polygon)
+                except Exception as e:
+                    print(e)
 
             elif area['type'] == 'ENTIRE':
                 areas.append(self.boundaries())

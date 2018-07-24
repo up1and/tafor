@@ -164,7 +164,7 @@ class Sigmet(Base):
                 _point = r'((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))'
                 _spacer = r'\s?-\s?'
                 line = re.compile(
-                    r'([A-Z{1,2}])'
+                    r'([A-Z]{1,2})'
                     r'\sOF\sLINE\s'
                     r'(%s(?:%s)?)+' % (_point, _spacer)
                 )

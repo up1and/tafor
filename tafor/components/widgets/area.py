@@ -250,11 +250,11 @@ class AreaBoard(QWidget):
     def updateArea(self):
         self.message = ''
 
-        if self.canvas.mode == 'rectangular':
+        if self.canvas.mode == 'rectangular' and self.canvas.done:
 
             boundaries = context.fir._state['boundaries']
             points = context.fir.pixelToDecimal(self.canvas.points)
-            self.area = encodeSigmetArea(boundaries, points)
+            self.area = encodeSigmetArea(boundaries, points, mode='rectangular')
 
             lines = []
             for identifier, *points in self.area:
@@ -268,7 +268,27 @@ class AreaBoard(QWidget):
             self.message = ' AND '.join(lines)
 
         if self.canvas.mode == 'line':
-            pass
+            if self.canvas.done:
+                boundaries = context.fir._state['boundaries']
+                points = context.fir.pixelToDecimal(self.canvas.points)
+                self.area = encodeSigmetArea(boundaries, points, mode='line')
+                
+                lines = []
+                for identifier, *points in self.area:
+                    points = context.fir.decimalToDegree(points)
+                    coordinates = []
+                    for lng, lat in points:
+                        coordinates.append('{} {}'.format(lat, lng))
+
+                    line = '{} OF LINE {}'.format(identifier, ' - '.join(coordinates))
+                    lines.append(line)
+
+                self.message = ' AND '.join(lines)
+            else:
+                points = context.fir.pixelToDegree(self.canvas.points)
+                coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
+                self.message = '\n'.join(coordinates)
+
 
         if self.canvas.mode == 'polygon':
             points = context.fir.pixelToDegree(self.canvas.points)

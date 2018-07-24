@@ -30,6 +30,26 @@ def pointsToPolygon(points):
     points = list(map(tuple, points))
     return points
 
+def simplifyLine(line):
+    values = []
+    for p in line:
+        values += list(p)
+
+    for v in values:
+        if values.count(v) > 1:
+            return v
+
+def expandLine(line, rng):
+    p1, p2 = line
+    ratio = (p1[1] - p2[1]) / (p1[0] - p2[0])
+    const = (p1[0] * p2[1] - p2[0] * p1[1]) / (p1[0] - p2[0])
+    equation = lambda x: ratio * x + const
+    points = [
+        [rng[0], equation(rng[0])],
+        [rng[1], equation(rng[1])]
+    ]
+    return points
+
 def insertPoints(points, boundaries):
     center = [0, 0]
     length = len(points) + len(boundaries)
@@ -109,7 +129,7 @@ def decodeSigmetArea(boundaries, area):
 
     return list(current.exterior.coords)
 
-def encodeSigmetArea(boundaries, area):
+def encodeSigmetArea(boundaries, area, mode='rectangular'):
 
     def foot(p1, p2, p3):
         ratio = ((p3[0]- p1[0]) * (p2[0] - p1[0]) + (p3[1] - p1[1]) * (p2[1] - p1[1])) / ((p2[0] - p1[0]) * (p2[0] - p1[0]) + (p2[1] - p1[1]) * (p2[1] - p1[1]))
@@ -131,38 +151,56 @@ def encodeSigmetArea(boundaries, area):
 
         return identifier
 
-    segment = []
-    boundary = LineString(boundaries).buffer(0.01)
-    for p, q in zip(area, area[1:]):
-        line = LineString([p, q])
-        if not boundary.contains(line):
-            exclude = set(area) - set([p, q])
+    def nonOverlappingLines(boundaries, area):
+        lines = []
+        boundary = LineString(boundaries).buffer(0.2)
+        for p, q in zip(area, area[1:]):
+            line = LineString([p, q])
+            if not boundary.contains(line):
+                lines.append(list(line.coords))
+
+        return lines
+
+    def connectLine(lines):
+        for line in lines:
+            for current in lines:
+                if line[-1] == current[0]:
+                    points = line[:-1] + current
+                elif line[0] == current[-1]:
+                    points = current[:-1] + line
+
+                if line[-1] == current[0] or line[0] == current[-1]:
+                    lines.append(points)
+                    lines.remove(line)
+                    lines.remove(current)
+
+        return lines
+
+    def createArea(lines):
+        segment = []
+        for line in lines:
+            exclude = set(area) - set(line)
             origin = centroid(list(exclude))
-            point = foot(p, q, origin)
+            point = foot(line[0], line[-1], origin)
             identifier = bearing(origin, point)
-            segment.append([identifier, p, q])
+            segment.append([identifier] + line)
 
-    return segment
+        return segment
 
-def simplifyLine(line):
-    values = []
-    for p in line:
-        values += list(p)
+    def rectangular():
+        lines = nonOverlappingLines(boundaries, area)
+        segment = createArea(lines)
+        return segment
 
-    for v in values:
-        if values.count(v) > 1:
-            return v
+    def line():
+        segment = []
+        lines = nonOverlappingLines(boundaries, area)
+        lines = connectLine(lines)
+        segment = createArea(lines)
+        return segment
 
-def expandLine(line, rng):
-    p1, p2 = line
-    ratio = (p1[1] - p2[1]) / (p1[0] - p2[0])
-    const = (p1[0] * p2[1] - p2[0] * p1[1]) / (p1[0] - p2[0])
-    equation = lambda x: ratio * x + const
-    points = [
-        [rng[0], equation(rng[0])],
-        [rng[1], equation(rng[1])]
-    ]
-    return points
+    func = locals().get(mode, rectangular)
+    return func()
 
 def findOrientation(identifier, line):
     p1, p2 = line[0], line[-1]
