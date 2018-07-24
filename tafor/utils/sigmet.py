@@ -3,6 +3,16 @@ import math
 from shapely.geometry import Polygon, LineString
 
 
+def centroid(points):
+    point = [0, 0]
+    length = len(points)
+    for x, y in points:
+        point[0] += x
+        point[1] += y
+
+    point = [point[0] / length, point[1] / length]
+    return point
+
 def pointsToPolygon(points):
     center = [0, 0]
     for x, y in points:
@@ -89,9 +99,7 @@ def decodeSigmetArea(boundaries, area):
         exclude = set([tuple(p) for p in exclude])
         bounds = [tuple(p) for p in boundaries if tuple(p) not in exclude]
         polygon = insertPoints(list(intersection.coords), bounds)
-            
         polygons.append(polygon)
-
             
     for i, polygon in enumerate(polygons):
         if i == 0:
@@ -99,8 +107,51 @@ def decodeSigmetArea(boundaries, area):
         else:
             current = current.intersection(Polygon(polygon))
 
-
     return list(current.exterior.coords)
+
+def encodeSigmetArea(boundaries, area):
+
+    def foot(p1, p2, p3):
+        ratio = ((p3[0]- p1[0]) * (p2[0] - p1[0]) + (p3[1] - p1[1]) * (p2[1] - p1[1])) / ((p2[0] - p1[0]) * (p2[0] - p1[0]) + (p2[1] - p1[1]) * (p2[1] - p1[1]))
+        x = p1[0] + ratio * (p2[0] - p1[0])
+        y = p1[1] + ratio * (p2[1] - p1[1])
+        return (x, y)
+
+    def bearing(origin, point):
+        directions = {'SE': -0.25, 'NE': 0.25, 'N': 0.5, 'SW': -0.75, 'W': 1.0, 'NW': 0.75, 'E': 0.0, 'S': -0.5}
+        angle = math.atan2(origin[1] - point[1], origin[0] - point[0]) / math.pi
+        
+        deviation = 10
+        identifier = ''
+        for k, v in directions.items():
+            value = abs(angle - v)
+            if value < deviation or (value == deviation and len(k) < len(identifier)):
+                deviation = value
+                identifier = k
+
+        return identifier
+
+    segment = []
+    boundary = LineString(boundaries).buffer(0.01)
+    for p, q in zip(area, area[1:]):
+        line = LineString([p, q])
+        if not boundary.contains(line):
+            exclude = set(area) - set([p, q])
+            origin = centroid(list(exclude))
+            point = foot(p, q, origin)
+            identifier = bearing(origin, point)
+            segment.append([identifier, p, q])
+
+    return segment
+
+def simplifyLine(line):
+    values = []
+    for p in line:
+        values += list(p)
+
+    for v in values:
+        if values.count(v) > 1:
+            return v
 
 def expandLine(line, rng):
     p1, p2 = line

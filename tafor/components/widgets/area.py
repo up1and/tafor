@@ -6,18 +6,21 @@ from shapely.geometry import Polygon
 
 from tafor import logger
 from tafor.states import context
-from tafor.utils.convert import listToPoint, clipPolygon
+from tafor.utils.convert import listToPoint, pointToList, clipPolygon, simplifyPolygon
+from tafor.utils.sigmet import encodeSigmetArea, simplifyLine
 
 
-class RenderArea(QWidget):
+class Canvas(QWidget):
     pointsChanged = pyqtSignal()
     stateChanged = pyqtSignal()
 
     def __init__(self, parent=None):
-        super(RenderArea, self).__init__(parent)
+        super(Canvas, self).__init__(parent)
         self.points = []
+        self.rectangular = []
         self.imageSize = None
         self.done = False
+        self.mode = 'rectangular'
         self.maxPoint = 7
         self.color = Qt.white
         self.shadowColor = QColor(0, 0, 0, 127)
@@ -47,13 +50,23 @@ class RenderArea(QWidget):
             self.drawArea(painter)
         else:
             self.drawOutline(painter)
+            self.drawRectangular(painter)
 
     def mousePressEvent(self, event):
         if not self.fir.raw():
             return 
 
+        if self.mode in ['polygon', 'line']:
+            self.polygonMousePressEvent(event)
+
+        if self.mode == 'rectangular':
+            self.rectangularMousePressEvent(event)
+
+        self.update()
+
+    def polygonMousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            pos = [event.x(), event.y()]
+            pos = (event.x(), event.y())
             if len(self.points) > 2:
                 deviation = 12
                 initPoint = self.points[0]
@@ -62,7 +75,11 @@ class RenderArea(QWidget):
 
                 if dx < deviation and dy < deviation:
                     # Clip the area with boundaries
-                    self.points = clipPolygon(self.fir.boundaries(), self.points, self.maxPoint)
+                    self.points = clipPolygon(self.fir.boundaries(), self.points)
+
+                    if self.mode == 'polygon':
+                        self.points = simplifyPolygon(self.points)
+
                     self.done = True if len(self.points) > 2 else False
 
                     self.stateChanged.emit()
@@ -80,6 +97,38 @@ class RenderArea(QWidget):
             else:
                 self.points.pop()
                 self.pointsChanged.emit()
+
+    def rectangularMousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            if not self.rectangular:
+                self.rectangular = [event.pos(), event.pos()]
+        
+        if event.button() == Qt.RightButton:
+            self.clear()
+
+    def mouseMoveEvent(self, event):
+        if self.mode != 'rectangular' or self.done or len(self.rectangular) != 2:
+            return
+
+        self.rectangular[1] = event.pos()
+        self.update()
+
+    def mouseReleaseEvent(self, event):
+        if self.mode != 'rectangular':
+            return
+
+        rect = QRect(*self.rectangular)
+        points = [rect.topLeft(), rect.topRight(), rect.bottomRight(), rect.bottomLeft()]
+        points = pointToList(points)
+        self.points = clipPolygon(self.fir.boundaries(), points)
+
+        if self.points:
+            self.done = True
+        else:
+            self.done = False
+        
+        self.pointsChanged.emit()
+        self.stateChanged.emit()
 
         self.update()
 
@@ -155,51 +204,95 @@ class RenderArea(QWidget):
             painter.drawPolygon(pol)
             painter.drawText(center.x-5, center.y+5, met.sequence)
 
-    def showEvent(self, event):
+    def drawRectangular(self, painter):
+        pen = QPen(QColor(0, 120, 215))
+        brush = QBrush(QColor(0, 120, 215, 40))
+        painter.setPen(pen)
+        painter.setBrush(brush)
+        rect = QRect(*self.rectangular)
+        painter.drawRect(QRect(*self.rectangular))
+
+    def clear(self):
         self.points = []
+        self.rectangular = []
         self.done = False
+        self.pointsChanged.emit()
+        self.stateChanged.emit()
+        self.update()
+
+    def showEvent(self, event):
+        self.clear()
         self.updateGeometry()
 
 
-class AreaChooser(QWidget):
+class AreaBoard(QWidget):
 
     def __init__(self):
-        super(AreaChooser, self).__init__()
+        super(AreaBoard, self).__init__()
 
-        self.info = QLabel()
-        self.info.setAlignment(Qt.AlignTop)
-        self.renderArea = RenderArea()
+        self.board = QLabel()
+        self.board.setAlignment(Qt.AlignTop)
+        self.board.setMaximumWidth(280)
+        self.board.setWordWrap(True)
+        self.canvas = Canvas()
 
         layout = QGridLayout()
-        layout.addWidget(self.renderArea, 0, 0)
-        layout.addWidget(self.info, 0, 1)
+        layout.addWidget(self.canvas, 0, 0)
+        layout.addWidget(self.board, 0, 1)
 
         self.setLayout(layout)
 
-        self.renderArea.pointsChanged.connect(self.calcPoints)
-        self.renderArea.pointsChanged.connect(self.updatePointsInfo)
+        self.area = []
+        self.message = ''
 
-    def updatePointsInfo(self):
-        if self.points:
-            points = ['{}, {}'.format(p[1], p[0]) for p in self.points]
-            self.info.setText('\n'.join(points))
-        else:
-            self.info.setText('')
+        self.canvas.pointsChanged.connect(self.updateArea)
+
+    def updateArea(self):
+        self.message = ''
+
+        if self.canvas.mode == 'rectangular':
+
+            boundaries = context.fir._state['boundaries']
+            points = context.fir.pixelToDecimal(self.canvas.points)
+            self.area = encodeSigmetArea(boundaries, points)
+
+            lines = []
+            for identifier, *points in self.area:
+                points = context.fir.decimalToDegree(points)
+                latlng = simplifyLine(points)
+
+                if latlng:
+                    line = '{} OF {}'.format(identifier, latlng)
+                    lines.append(line)
+
+            self.message = ' AND '.join(lines)
+
+        if self.canvas.mode == 'line':
+            pass
+
+        if self.canvas.mode == 'polygon':
+            points = context.fir.pixelToDegree(self.canvas.points)
+            if self.canvas.done:
+                circles = points + [points[0]]
+                coordinates = ['{} {}'.format(p[1], p[0]) for p in circles]
+                self.message = 'WI ' + ' - '.join(coordinates)
+            else:
+                coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
+                self.message = '\n'.join(coordinates)
+
+        self.board.setText(self.message)
+
+    def setMode(self, mode):
+        self.canvas.mode = mode
 
     def text(self):
-        if not self.renderArea.done or not self.points:
-            return ''
+        return self.message
 
-        circles = self.points + [self.points[0]]
-        points = ['{} {}'.format(p[1], p[0]) for p in circles]
-        return 'WI ' + ' - '.join(points)
-
-    def calcPoints(self):
-        pixelPoints = self.renderArea.points
-        fir = context.fir
-        self.points = fir.pixelToDegree(pixelPoints)
-        return self.points
+    def clear(self):
+        self.area = []
+        self.message = ''
+        self.board.setText('')
+        self.canvas.clear()
 
     def showEvent(self, event):
-        self.points = []
-        self.info.setText('')
+        self.clear()

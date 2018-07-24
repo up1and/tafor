@@ -13,7 +13,7 @@ from tafor.utils.convert import parseTime, parseDateTime, ceilTime, calcPosition
 from tafor.utils.service import currentSigmet
 from tafor.models import db, Sigmet
 from tafor.components.widgets.forecast import SegmentMixin
-from tafor.components.widgets.area import AreaChooser
+from tafor.components.widgets.area import AreaBoard
 from tafor.components.ui import (Ui_sigmet_type, Ui_sigmet_general, Ui_sigmet_head, 
     Ui_sigmet_typhoon, Ui_sigmet_cancel, Ui_sigmet_custom, main_rc)
 
@@ -269,7 +269,7 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
     def __init__(self, phenomena):
         super(SigmetGeneralContent, self).__init__(phenomena)
         self.setupUi(self)
-        self.canvasWidget = AreaChooser()
+        self.canvasWidget = AreaBoard()
         self.areaLayout.addWidget(self.canvasWidget)
         self.areaGroup.setLayout(self.areaLayout)
 
@@ -301,7 +301,7 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         self.base.textEdited.connect(lambda: self.coloredText(self.base))
         self.top.textEdited.connect(lambda: self.coloredText(self.top))
 
-        self.canvasWidget.renderArea.stateChanged.connect(self.checkComplete)
+        self.canvasWidget.canvas.stateChanged.connect(self.checkComplete)
 
         self.register()
 
@@ -378,7 +378,9 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
 
     def switchCanvasMode(self):
         canvasMode = next(self.canvasMode)
+        self.canvasWidget.setMode(canvasMode['mode'])
         self.modeButton.setIcon(QIcon(canvasMode['icon']))
+        self.canvasWidget.canvas.clear()
 
     def checkComplete(self):
         mustRequired = [self.area()]

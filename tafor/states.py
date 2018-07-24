@@ -156,6 +156,18 @@ class FirState(object):
 
         return points
 
+    def decimalToDegree(self, decimalPoints):
+        from tafor.utils.convert import decimalToDegree
+
+        points = []
+        for lng, lat in decimalPoints:
+            points.append((
+                decimalToDegree(lng, fmt='longitude'),
+                decimalToDegree(lat)
+            ))
+
+        return points
+
 
 class WebApiState(object):
 

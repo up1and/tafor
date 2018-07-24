@@ -201,25 +201,39 @@ def pointToList(points):
     """
     return [[p.x(), p.y()] for p in points]
 
-def clipPolygon(subj, clip, maxPoint=7):
+def clipPolygon(subj, clip):
     """计算两个多边形之间的交集，并根据允许的最大点平滑多边形
     
     :param subj: 列表，目标多边形的坐标集
     :param clip: 列表，相切多边形的坐标集
-    :param maxPoint: 数字，交集允许的最大点
     :return: 列表，新的多边形坐标集
     """
     subj = Polygon(subj)
     clip = Polygon(clip)
     try:
         intersection = subj.intersection(clip)
-        tolerance = 1
-        while len(intersection.exterior.coords) > maxPoint + 1:
-            intersection = intersection.simplify(tolerance, preserve_topology=False)
-            tolerance += 1
-
         points = list(intersection.exterior.coords)
     except Exception as e:
         points = []
     
+    return points
+
+def simplifyPolygon(points, maxPoint=6):
+    """简化多边形
+    
+    :param points: 列表，多边形的坐标集
+    :param maxPoint: 数字，交集允许的最大点
+    :return: 列表，简化后的多边形坐标集
+    """
+    polygon = Polygon(points)
+    try:
+        tolerance = 1
+        while len(polygon.exterior.coords) > maxPoint:
+            polygon = polygon.simplify(tolerance, preserve_topology=False)
+            tolerance += 1
+
+        points = list(polygon.exterior.coords)
+    except Exception as e:
+        points = []
+
     return points
