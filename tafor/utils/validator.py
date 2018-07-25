@@ -413,7 +413,7 @@ class TafLexer(object):
                 }
 
         if self.tokens['sign']['text'] == 'TAF':
-            period = self.tokens['period']['text'][:4]
+            period = self.tokens['period']['text'][2:]
             time = parseTimez(self.tokens['timez']['text'])
             self.period = parseTimeInterval(period, time)
 

@@ -32,6 +32,10 @@ def parseTimeInterval(interval, time=None):
     start = base + datetime.timedelta(hours=startHour)
     end = base + delta
 
+    if start < time:
+        start += datetime.timedelta(days=1)
+        end += datetime.timedelta(days=1)
+
     return start, end
 
 def parseTime(timeString, time=None):
@@ -206,6 +210,7 @@ def clipPolygon(subj, clip):
     
     :param subj: 列表，目标多边形的坐标集
     :param clip: 列表，相切多边形的坐标集
+    :param clockwise: 布尔值，点坐标是否顺时针排序，默认否
     :return: 列表，新的多边形坐标集
     """
     subj = Polygon(subj)

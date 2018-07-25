@@ -79,7 +79,9 @@ class Canvas(QWidget):
 
                     if self.mode == 'polygon':
                         self.points = simplifyPolygon(self.points)
-
+                    
+                    # make the points clockwise
+                    self.points.reverse()
                     self.done = True if len(self.points) > 2 else False
 
                     self.stateChanged.emit()
@@ -246,6 +248,7 @@ class AreaBoard(QWidget):
         self.message = ''
 
         self.canvas.pointsChanged.connect(self.updateArea)
+        self.canvas.stateChanged.connect(self.updateArea)
 
     def updateArea(self):
         self.message = ''

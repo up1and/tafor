@@ -750,6 +750,10 @@ class SigmetGeneralSegment(BaseSegment):
         self.head.phenomena.setCurrentIndex(-1)
         self.head.phenomena.setCurrentIndex(0)
 
+        if conf.value('Monitor/FirApiURL'):
+            self.content.manual.hide()
+            self.content.latitudeAndLongitudeWidget.hide()
+
     def clear(self):
         self.head.clear()
         self.content.clear()
