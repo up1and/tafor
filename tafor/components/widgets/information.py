@@ -448,7 +448,8 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
             text = self.canvasWidget.text()
 
         if self.entire.isChecked():
-            text = 'ENTIRE FIR'
+            suffix = conf.value('Message/FIR').split()[-1]
+            text = 'ENTIRE {}'.format(suffix)
 
         return text
 
@@ -464,7 +465,7 @@ class SigmetTyphoonHead(BaseSigmetHead):
         self.forecast.setCurrentIndex(self.forecast.findText('OBS'))
 
     def setPhenomena(self):
-        self.phenomena.addItems(['TC', 'TD'])
+        self.phenomena.addItems(['TC'])
 
     def hideDescription(self):
         self.description.setVisible(False)
