@@ -78,7 +78,7 @@ class Canvas(QWidget):
                     self.points = clipPolygon(self.fir.boundaries(), self.points)
 
                     if self.mode == 'polygon':
-                        self.points = simplifyPolygon(self.points)
+                        self.points = simplifyPolygon(self.points, self.maxPoint)
                     
                     # make the points clockwise
                     self.points.reverse()
@@ -296,8 +296,7 @@ class AreaBoard(QWidget):
         if self.canvas.mode == 'polygon':
             points = context.fir.pixelToDegree(self.canvas.points)
             if self.canvas.done:
-                circles = points + [points[0]]
-                coordinates = ['{} {}'.format(p[1], p[0]) for p in circles]
+                coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
                 self.message = 'WI ' + ' - '.join(coordinates)
             else:
                 coordinates = ['{} {}'.format(p[1], p[0]) for p in points]

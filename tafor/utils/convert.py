@@ -223,7 +223,7 @@ def clipPolygon(subj, clip):
     
     return points
 
-def simplifyPolygon(points, maxPoint=6):
+def simplifyPolygon(points, maxPoint=7):
     """简化多边形
     
     :param points: 列表，多边形的坐标集
