@@ -4,6 +4,8 @@ from PyQt5.QtCore import QObject, pyqtSignal
 
 from shapely.geometry import box
 
+from tafor import logger
+
 
 class MessageState(object):
     _state = {}
@@ -66,39 +68,32 @@ class FirState(object):
 
     def sigmetsArea(self):
         from tafor.utils.convert import degreeToDecimal
-        from tafor.utils.sigmet import decodeSigmetArea, findOrientation
+        from tafor.utils.sigmet import decodeSigmetArea
 
         areas = []
         maxx, maxy = self.rect()[2:]
         for sig in self._state['sigmets']:
             area = sig.area()
-            if area['type'] == 'WI':
+            if area['type'] == 'polygon':
                 degrees = [(degreeToDecimal(lng), degreeToDecimal(lat)) for lat, lng in area['area']]
                 polygon = self.degreeToPixel(degrees)
                 areas.append(polygon)
 
-            elif area['type'] == 'LINE':
+            elif area['type'] == 'line':
                 decimals = []
                 for identifier, *points in area['area']:
                     points = [(degreeToDecimal(lng), degreeToDecimal(lat)) for lat, lng in points]
                     points = sorted(points, key=lambda p: p[0])
-
-                    if len(points) == 2:
-                        line = points
-                    else:
-                        line = [points[0], points[-1]]
-
-                    orientations = findOrientation(identifier, line)
-                    decimals.append((orientations, points))
+                    decimals.append((identifier, points))
 
                 try:
                     polygon = decodeSigmetArea(self._state['boundaries'], decimals)
                     polygon = self.degreeToPixel(polygon)
                     areas.append(polygon)
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
 
-            elif area['type'] == 'LATLNG':
+            elif area['type'] == 'rectangular':
                 maxx, maxy = self.rect()[2:]
                 decimals = []
                 for identifier, deg in area['area']:
@@ -123,9 +118,9 @@ class FirState(object):
                     polygon = self.degreeToPixel(polygon)
                     areas.append(polygon)
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
 
-            elif area['type'] == 'ENTIRE':
+            elif area['type'] == 'entire':
                 areas.append(self.boundaries())
 
         return areas

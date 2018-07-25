@@ -5,6 +5,10 @@ from shapely.geometry import Polygon, LineString
 
 def centroid(points):
     point = [0, 0]
+
+    if not points:
+    	return point
+
     length = len(points)
     for x, y in points:
         point[0] += x
@@ -14,12 +18,7 @@ def centroid(points):
     return point
 
 def pointsToPolygon(points):
-    center = [0, 0]
-    for x, y in points:
-        center[0] += x
-        center[1] += y
-
-    origin = [center[0] / len(points), center[1] / len(points)]
+    origin = centroid(points)
 
     def compare(origin, point):
         distance = (origin[0] - point[0]) * (origin[0] - point[0]) + (origin[1] - point[1]) * (origin[1] - point[1])
@@ -51,13 +50,7 @@ def expandLine(line, rng):
     return points
 
 def insertPoints(points, boundaries):
-    center = [0, 0]
-    length = len(points) + len(boundaries)
-    for x, y in points + boundaries:
-        center[0] += x
-        center[1] += y
-
-    origin = [center[0] / length, center[1] / length]
+    origin = centroid(points + boundaries)
 
     def compare(origin, point):
         distance = (origin[0] - point[0]) * (origin[0] - point[0]) + (origin[1] - point[1]) * (origin[1] - point[1])
@@ -91,6 +84,26 @@ def insertPoints(points, boundaries):
 
     return polygon
 
+def onSameSide(line, direction, point):
+    angle = lambda origin, point: math.atan2(point[1] - origin[1], (point[0] - origin[0])) / math.pi
+
+    startAngle = angle(*line)
+    endAngle = startAngle + 1
+    if endAngle > 1:
+        endAngle = endAngle - 2
+
+    start, end = min(startAngle, endAngle), max(startAngle, endAngle)
+    section = [start, end]
+
+    origin = centroid(line)
+    originBearing = angle(origin, direction)
+    side = start <= originBearing <= end
+
+    pointBearing = angle(origin, point)
+    sameside = start <= pointBearing <= end
+
+    return sameside == side
+
 def decodeSigmetArea(boundaries, area):
     boundary = Polygon(boundaries)
     polygons = []
@@ -101,23 +114,26 @@ def decodeSigmetArea(boundaries, area):
         if not intersection:
             continue
 
-        exclude = []
+        straightLine = [points[0], points[-1]]
+        direction = centroid(straightLine)
+
+        if 'N' in identifier:
+            direction[1] += 1
+
+        if 'S' in identifier:
+            direction[1] -= 1
+
+        if 'W' in identifier:
+            direction[0] -= 1 
+
+        if 'E' in identifier:
+            direction[0] += 1
+
+        bounds = []
         for point in boundaries:
+            if onSameSide(straightLine, direction, point):
+                bounds.append(point)
 
-            if 'N' in identifier and point[1] <= intersection.bounds[3]:
-                exclude.append(point)
-
-            if 'S' in identifier and point[1] >= intersection.bounds[3]:
-                exclude.append(point)
-
-            if 'W' in identifier and point[0] >= intersection.bounds[2]:
-                exclude.append(point)
-
-            if 'E' in identifier and point[0] <= intersection.bounds[2]:
-                exclude.append(point)
-
-        exclude = set([tuple(p) for p in exclude])
-        bounds = [tuple(p) for p in boundaries if tuple(p) not in exclude]
         polygon = insertPoints(list(intersection.coords), bounds)
         polygons.append(polygon)
             
@@ -153,7 +169,7 @@ def encodeSigmetArea(boundaries, area, mode='rectangular'):
 
     def nonOverlappingLines(boundaries, area):
         lines = []
-        boundary = LineString(boundaries).buffer(0.2)
+        boundary = LineString(boundaries).buffer(0.3)
         for p, q in zip(area, area[1:]):
             line = LineString([p, q])
             if not boundary.contains(line):
@@ -201,25 +217,3 @@ def encodeSigmetArea(boundaries, area, mode='rectangular'):
 
     func = locals().get(mode, rectangular)
     return func()
-
-def findOrientation(identifier, line):
-    p1, p2 = line[0], line[-1]
-    angle = math.atan2(p2[1] - p1[1], (p2[0] - p1[0]))
-    directions = {'SE': -0.25, 'NE': 0.25, 'N': 0.5, 'SW': -0.75, 'W': 1.0, 'NW': 0.75, 'E': 0.0, 'S': -0.5}
-
-    startAngle = angle / math.pi
-    endAngle = startAngle + 1
-    if endAngle > 1:
-        endAngle = endAngle - 2
-
-    start, end = min(startAngle, endAngle), max(startAngle, endAngle)
-    section = [start, end]
-    side = start < directions[identifier] < end
-
-    orientations = []
-    for k, v in directions.items():
-        sameside = start < v < end
-        if sameside == side:
-            orientations.append(k)
-
-    return orientations

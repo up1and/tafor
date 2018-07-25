@@ -20,7 +20,7 @@ class Canvas(QWidget):
         self.rectangular = []
         self.imageSize = None
         self.done = False
-        self.mode = 'rectangular'
+        self.mode = 'polygon'
         self.maxPoint = 7
         self.color = Qt.white
         self.shadowColor = QColor(0, 0, 0, 127)

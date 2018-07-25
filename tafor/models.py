@@ -157,7 +157,7 @@ class Sigmet(Base):
                 pattern = re.compile(r'((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))')
                 points = pattern.findall(self.rpt)
                 _area = {
-                    'type': 'WI',
+                    'type': 'polygon',
                     'area': [p for p in points]
                 }
             elif 'LINE' in self.rpt:
@@ -179,12 +179,12 @@ class Sigmet(Base):
                     locations.append(points)
 
                 _area = {
-                    'type': 'LINE',
+                    'type': 'line',
                     'area': locations
                 }
             elif 'ENTIRE' in self.rpt:
                 _area = {
-                    'type': 'ENTIRE',
+                    'type': 'entire',
                     'area': []
                 }
             else:
@@ -192,12 +192,12 @@ class Sigmet(Base):
                 lines = pattern.findall(self.rpt)
                 if lines:
                     _area = {
-                        'type': 'LATLNG',
+                        'type': 'rectangular',
                         'area': [p for p in lines]
                     }
                 else:
                     _area = {
-                        'type': 'UNKNOW',
+                        'type': 'unknow',
                         'area': []
                     }
 
