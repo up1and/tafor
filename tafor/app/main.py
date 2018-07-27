@@ -115,6 +115,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.clock = Clock(self, self.tipsLayout)
         self.tipsLayout.addSpacerItem(QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
         self.currentTaf = CurrentTaf(self, self.tipsLayout)
+        self.recentLayout.setAlignment(Qt.AlignTop)
 
     def setTable(self):
         self.tafTable = TafTable(self, self.tafLayout)
@@ -361,7 +362,9 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         for i in range(self.recentLayout.count()):
             if i > 0:
-                self.recentLayout.itemAt(i).widget().deleteLater()
+                widget = self.recentLayout.itemAt(i).widget()
+                if widget:
+                    widget.deleteLater()
 
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
 

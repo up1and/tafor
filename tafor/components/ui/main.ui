@@ -33,32 +33,70 @@
        <attribute name="title">
         <string>RECENT</string>
        </attribute>
-       <layout class="QVBoxLayout" name="recentLayout">
+       <layout class="QVBoxLayout" name="verticalLayout_3">
         <property name="sizeConstraint">
-         <enum>QLayout::SetFixedSize</enum>
+         <enum>QLayout::SetDefaultConstraint</enum>
         </property>
         <item>
-         <widget class="QWidget" name="tips" native="true">
-          <property name="minimumSize">
-           <size>
-            <width>845</width>
-            <height>0</height>
-           </size>
+         <widget class="QScrollArea" name="recentArea">
+          <property name="frameShape">
+           <enum>QFrame::NoFrame</enum>
           </property>
-          <layout class="QHBoxLayout" name="tipsLayout">
-           <property name="leftMargin">
-            <number>10</number>
+          <property name="horizontalScrollBarPolicy">
+           <enum>Qt::ScrollBarAlwaysOff</enum>
+          </property>
+          <property name="sizeAdjustPolicy">
+           <enum>QAbstractScrollArea::AdjustToContents</enum>
+          </property>
+          <property name="widgetResizable">
+           <bool>true</bool>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+          </property>
+          <widget class="QWidget" name="scrollContents">
+           <property name="styleSheet">
+            <string notr="true">background:#FFF</string>
            </property>
-           <property name="topMargin">
-            <number>20</number>
-           </property>
-           <property name="rightMargin">
-            <number>10</number>
-           </property>
-           <property name="bottomMargin">
-            <number>20</number>
-           </property>
-          </layout>
+           <layout class="QVBoxLayout" name="recentLayout">
+            <property name="spacing">
+             <number>0</number>
+            </property>
+            <property name="sizeConstraint">
+             <enum>QLayout::SetDefaultConstraint</enum>
+            </property>
+            <item>
+             <widget class="QWidget" name="tips" native="true">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>845</width>
+                <height>0</height>
+               </size>
+              </property>
+              <layout class="QHBoxLayout" name="tipsLayout">
+               <property name="leftMargin">
+                <number>10</number>
+               </property>
+               <property name="topMargin">
+                <number>20</number>
+               </property>
+               <property name="rightMargin">
+                <number>10</number>
+               </property>
+               <property name="bottomMargin">
+                <number>20</number>
+               </property>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
          </widget>
         </item>
        </layout>

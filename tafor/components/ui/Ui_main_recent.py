@@ -12,6 +12,11 @@ class Ui_Recent(object):
     def setupUi(self, Recent):
         Recent.setObjectName("Recent")
         Recent.resize(845, 88)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(Recent.sizePolicy().hasHeightForWidth())
+        Recent.setSizePolicy(sizePolicy)
         Recent.setWindowTitle("Recent")
         self.verticalLayout = QtWidgets.QVBoxLayout(Recent)
         self.verticalLayout.setObjectName("verticalLayout")
