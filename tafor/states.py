@@ -86,7 +86,7 @@ class FirState(object):
                     decimals.append((identifier, points))
 
                 try:
-                    polygon = decodeSigmetArea(self._state['boundaries'], decimals)
+                    polygon = decodeSigmetArea(self._state['boundaries'], decimals, mode='line')
                     polygon = self.degreeToPixel(polygon)
                     areas.append(polygon)
                 except Exception as e:
@@ -113,7 +113,7 @@ class FirState(object):
                     decimals.append((identifier, self.pixelToDecimal(points)))
 
                 try:
-                    polygon = decodeSigmetArea(self._state['boundaries'], decimals)
+                    polygon = decodeSigmetArea(self._state['boundaries'], decimals, mode='rectangular')
                     polygon = self.degreeToPixel(polygon)
                     areas.append(polygon)
                 except Exception as e:

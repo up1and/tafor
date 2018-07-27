@@ -49,7 +49,7 @@ def expandLine(line, rng):
     ]
     return points
 
-def insertPoints(points, boundaries):
+def insertPoints(points, boundaries, mode):
     origin = centroid(points + boundaries)
 
     def compare(origin, point):
@@ -61,7 +61,7 @@ def insertPoints(points, boundaries):
         point = compare(origin, p)
         polygon = boundaries.copy()
 
-        if points.index(p) > 0:
+        if mode == 'line' and points.index(p) > 0:
             prev = points[points.index(p) - 1]
             loc = polygon.index(prev)
             polygon.insert(loc + 1, p)
@@ -85,7 +85,9 @@ def insertPoints(points, boundaries):
     start = boundaries.index(initial)
     polygon = boundaries[start:] + boundaries[:start]
 
-    points.reverse()
+    if mode == 'line':
+        points.reverse()
+
     for p in points:
         polygon = insert(polygon, points, p)
 
@@ -111,7 +113,7 @@ def onSameSide(line, direction, point):
 
     return sameside == side
 
-def decodeSigmetArea(boundaries, area):
+def decodeSigmetArea(boundaries, area, mode='rectangular'):
     boundary = Polygon(boundaries)
     polygons = []
     for identifier, points in area:
@@ -141,7 +143,7 @@ def decodeSigmetArea(boundaries, area):
             if onSameSide(straightLine, direction, point):
                 bounds.append(point)
 
-        polygon = insertPoints(list(intersection.coords), bounds)
+        polygon = insertPoints(list(intersection.coords), bounds, mode)
         polygons.append(polygon)
             
     for i, polygon in enumerate(polygons):
