@@ -57,9 +57,15 @@ def insertPoints(points, boundaries):
         angle = math.atan2(point[1] - origin[1], point[0] - origin[0])
         return angle, distance
 
-    def insert(boundaries, p):
+    def insert(boundaries, points, p):
         point = compare(origin, p)
         polygon = boundaries.copy()
+
+        if points.index(p) > 0:
+            prev = points[points.index(p) - 1]
+            loc = polygon.index(prev)
+            polygon.insert(loc + 1, p)
+
         for i, b in enumerate(boundaries, start=1):
             bound = compare(origin, b)
 
@@ -79,8 +85,9 @@ def insertPoints(points, boundaries):
     start = boundaries.index(initial)
     polygon = boundaries[start:] + boundaries[:start]
 
+    points.reverse()
     for p in points:
-        polygon = insert(polygon, p)
+        polygon = insert(polygon, points, p)
 
     return polygon
 

@@ -83,7 +83,6 @@ class FirState(object):
                 decimals = []
                 for identifier, *points in area['area']:
                     points = [(degreeToDecimal(lng), degreeToDecimal(lat)) for lat, lng in points]
-                    points = sorted(points, key=lambda p: p[0])
                     decimals.append((identifier, points))
 
                 try:
