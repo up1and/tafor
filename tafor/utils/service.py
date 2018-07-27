@@ -11,9 +11,6 @@ def currentSigmet(tt=None, order='desc', hasCnl=False):
     if tt:
         queryset = queryset.filter(Sigmet.tt == tt)
 
-    if order == 'asc':
-        queryset = queryset.order_by(Sigmet.sent.asc())
-
     sigmets = []
     cancels = []
     for sig in queryset.all():
@@ -37,5 +34,8 @@ def currentSigmet(tt=None, order='desc', hasCnl=False):
                 cnls.remove(cnl)
                 
         currents = currents + cnls
+
+    if order == 'asc':
+        currents.reverse()
 
     return currents

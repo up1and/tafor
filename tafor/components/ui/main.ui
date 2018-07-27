@@ -55,6 +55,14 @@
            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
           </property>
           <widget class="QWidget" name="scrollContents">
+           <property name="geometry">
+            <rect>
+             <x>0</x>
+             <y>0</y>
+             <width>828</width>
+             <height>544</height>
+            </rect>
+           </property>
            <property name="styleSheet">
             <string notr="true">background:#FFF</string>
            </property>
@@ -72,12 +80,6 @@
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
-              </property>
-              <property name="minimumSize">
-               <size>
-                <width>845</width>
-                <height>0</height>
-               </size>
               </property>
               <layout class="QHBoxLayout" name="tipsLayout">
                <property name="leftMargin">

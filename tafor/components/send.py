@@ -1,6 +1,7 @@
 import datetime
 
-from PyQt5.QtCore import QCoreApplication, QTimer, pyqtSignal
+from PyQt5.QtGui import QFontMetrics
+from PyQt5.QtCore import QCoreApplication, QTimer, QSize, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QMessageBox
 
 from tafor import conf, logger, boolean
@@ -55,6 +56,8 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         except Exception as e:
             logger.error(e)
 
+        self.resizeRpt()
+
     def showRawGroup(self, error):
         self.raw.setText(self.aftn.toString())
         self.rawGroup.show()
@@ -97,6 +100,15 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             self.backSignal.emit()
         else:
             self.closeSignal.emit()
+
+    def resizeRpt(self):
+        text = self.rpt.toPlainText()
+        font = self.rpt.document().defaultFont()
+        fontMetrics = QFontMetrics(font)
+        textSize = fontMetrics.size(0, text)
+        height = 60 if boolean(conf.value('General/LargeFont')) else 30
+        textHeight = textSize.height() + height
+        self.rpt.setMaximumSize(QSize(16777215, textHeight))
 
     def clear(self):
         self.aftn = None
