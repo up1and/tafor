@@ -78,13 +78,13 @@ Tafor 的发行版同样放在 GitHub, 你可以在这里 `下载 <https://githu
 
 安装 `Python`::
 
-    $ pyenv install 3.6.1
+    $ pyenv install 3.6.5
 
 把 :file:`tafor/scripts/` 目录下的文件放入 :file:`/var/www/tafor_api` 目录下，
 创建虚拟环境并安装依赖::
 
     $ cd /var/www/tafor_api
-    $ pyenv virtualenv 3.6.1 tafor_api
+    $ pyenv virtualenv 3.6.5 tafor_api
     $ pyenv activate tafor_api
     $ pip install -r requirements.txt
 
@@ -112,7 +112,7 @@ Tafor 的发行版同样放在 GitHub, 你可以在这里 `下载 <https://githu
 
     [program:tafor_api]
     environment = TAFOR_API_ENV=prod
-    command = /home/user/.pyenv/versions/tafor_api/bin/gunicorn tafor:app --workers 1 --bind unix:tafor_api.sock -m 007
+    command = /home/user/.pyenv/versions/tafor_api/bin/gunicorn tafor:app --workers 1 --bind unix:tafor_api.sock -m 644
     directory = /var/www/tafor_api
     user = root
     startsecs = 0
