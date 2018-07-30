@@ -113,6 +113,16 @@ def onSameSide(line, direction, point):
 
     return sameside == side
 
+def onBoundary(boundaries, line):
+    for points in zip(boundaries, boundaries[1:]):
+        bound = LineString(points).buffer(0.1)
+        line = LineString(line)
+
+        if bound.contains(line):
+            return True
+
+    return False
+
 def decodeSigmetArea(boundaries, area, mode='rectangular'):
     boundary = Polygon(boundaries)
     polygons = []
@@ -138,12 +148,16 @@ def decodeSigmetArea(boundaries, area, mode='rectangular'):
         if 'E' in identifier:
             direction[0] += 1
 
-        bounds = []
-        for point in boundaries:
-            if onSameSide(straightLine, direction, point):
-                bounds.append(point)
+        if onBoundary(boundaries, straightLine):
+            polygon = list(intersection.coords)
+        else:
+            bounds = []
+            for point in boundaries:
+                if onSameSide(straightLine, direction, point):
+                    bounds.append(point)
 
-        polygon = insertPoints(list(intersection.coords), bounds, mode)
+            polygon = insertPoints(list(intersection.coords), bounds, mode)
+
         polygons.append(polygon)
             
     for i, polygon in enumerate(polygons):
@@ -156,20 +170,27 @@ def decodeSigmetArea(boundaries, area, mode='rectangular'):
 
 def encodeSigmetArea(boundaries, area, mode='rectangular'):
 
+    def angle(origin, point):
+        return math.atan2(origin[1] - point[1], origin[0] - point[0])
+
+    def distance(p1, p2):
+        length = (p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2
+        return math.sqrt(length)
+
     def foot(p1, p2, p3):
         ratio = ((p3[0]- p1[0]) * (p2[0] - p1[0]) + (p3[1] - p1[1]) * (p2[1] - p1[1])) / ((p2[0] - p1[0]) * (p2[0] - p1[0]) + (p2[1] - p1[1]) * (p2[1] - p1[1]))
         x = p1[0] + ratio * (p2[0] - p1[0])
         y = p1[1] + ratio * (p2[1] - p1[1])
         return (x, y)
 
-    def bearing(origin, point):
+    def findBearing(angle):
         directions = {'SE': -0.25, 'NE': 0.25, 'N': 0.5, 'SW': -0.75, 'W': 1.0, 'NW': 0.75, 'E': 0.0, 'S': -0.5}
-        angle = math.atan2(origin[1] - point[1], origin[0] - point[0]) / math.pi
+        bearing = angle / math.pi
         
         deviation = 10
         identifier = ''
         for k, v in directions.items():
-            value = abs(angle - v)
+            value = abs(bearing - v)
             if value < deviation or (value == deviation and len(k) < len(identifier)):
                 deviation = value
                 identifier = k
@@ -203,11 +224,25 @@ def encodeSigmetArea(boundaries, area, mode='rectangular'):
 
     def createArea(lines):
         segment = []
+
+        points = []
         for line in lines:
-            exclude = set(area) - set(line)
-            origin = centroid(list(exclude))
-            point = foot(line[0], line[-1], origin)
-            identifier = bearing(origin, point)
+            points += line
+
+        exlude = set(area) - set(points)
+        center = centroid(exlude)
+
+        for line in lines:
+            vector = [0, 0]
+            for p, q in zip(line, line[1:]):
+                point = foot(p, q, center)
+                radian = angle(center, point)
+                scale = distance(p, q)
+                vec = (math.cos(radian) * scale, math.sin(radian) * scale)
+                vector[0] += vec[0]
+                vector[1] += vec[1]
+
+            identifier = findBearing(angle(vector, [0, 0]))
             segment.append([identifier] + line)
 
         return segment
