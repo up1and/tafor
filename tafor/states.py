@@ -1,4 +1,5 @@
 import copy
+import datetime
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
@@ -27,6 +28,7 @@ class FirState(object):
         ],
         'rect': [0, 0, 0, 0],
         'boundaries': [],
+        'updated': None,
         'sigmets': []
     } # 这里的参数会被远程参数覆盖
 
@@ -62,6 +64,13 @@ class FirState(object):
 
     def sigmets(self):
         return self._state['sigmets']
+
+    def cloudUpdatedTime(self):
+        gmt = '%a, %d %b %Y %H:%M:%S GMT'
+        try:
+            return datetime.datetime.strptime(self._state['updated'], gmt)
+        except Exception as e:
+            return None
 
     def boundaries(self):
         return self.degreeToPixel(self._state['boundaries'])

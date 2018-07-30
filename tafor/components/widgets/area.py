@@ -1,6 +1,6 @@
 from PyQt5.QtCore import QSize, Qt, QRect, QCoreApplication, QPoint, pyqtSignal
 from PyQt5.QtGui import QPainter, QPolygon, QPixmap, QPen, QColor, QBrush
-from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel
 
 from shapely.geometry import Polygon
 
@@ -182,6 +182,14 @@ class Canvas(QWidget):
             rect = QRect(*self.fir.rect())
             image = pixmap.copy(rect)
             painter.drawPixmap(0, 0, image)
+
+            updatedTime = self.fir.cloudUpdatedTime()
+            if updatedTime:
+                pen = QPen(QColor(150, 150, 150))
+                painter.setPen(pen)
+                rect = QRect(10, 0, image.size().width(), image.size().height() - 10)
+                text = updatedTime.strftime('%H:%M')
+                painter.drawText(rect, Qt.AlignBottom, '{}'.format(text))
         else:
             rect = QRect(0, 0, 260, 260)
             painter.setPen(Qt.DashLine)
@@ -204,7 +212,7 @@ class Canvas(QWidget):
             painter.setBrush(brush)
             painter.setPen(pen)
             painter.drawPolygon(pol)
-            painter.drawText(center.x-5, center.y+5, met.sequence)
+            painter.drawText(center.x - 5, center.y + 5, met.sequence)
 
     def drawRectangular(self, painter):
         pen = QPen(QColor(0, 120, 215))
@@ -238,9 +246,9 @@ class AreaBoard(QWidget):
         self.board.setWordWrap(True)
         self.canvas = Canvas()
 
-        layout = QGridLayout()
-        layout.addWidget(self.canvas, 0, 0)
-        layout.addWidget(self.board, 0, 1)
+        layout = QHBoxLayout()
+        layout.addWidget(self.canvas)
+        layout.addWidget(self.board)
 
         self.setLayout(layout)
 
