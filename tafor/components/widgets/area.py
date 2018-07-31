@@ -183,7 +183,7 @@ class Canvas(QWidget):
             image = pixmap.copy(rect)
             painter.drawPixmap(0, 0, image)
 
-            updatedTime = self.fir.cloudUpdatedTime()
+            updatedTime = self.fir.updatedTime()
             if updatedTime:
                 pen = QPen(QColor(150, 150, 150))
                 painter.setPen(pen)
@@ -231,7 +231,6 @@ class Canvas(QWidget):
         self.update()
 
     def showEvent(self, event):
-        self.clear()
         self.updateGeometry()
 
 
@@ -323,6 +322,3 @@ class AreaBoard(QWidget):
         self.message = ''
         self.board.setText('')
         self.canvas.clear()
-
-    def showEvent(self, event):
-        self.clear()

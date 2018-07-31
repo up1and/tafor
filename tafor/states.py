@@ -65,7 +65,7 @@ class FirState(object):
     def sigmets(self):
         return self._state['sigmets']
 
-    def cloudUpdatedTime(self):
+    def updatedTime(self):
         gmt = '%a, %d %b %Y %H:%M:%S GMT'
         try:
             return datetime.datetime.strptime(self._state['updated'], gmt)

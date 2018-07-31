@@ -230,6 +230,8 @@ def encodeSigmetArea(boundaries, area, mode='rectangular'):
             points += line
 
         exlude = set(area) - set(points)
+        if not exlude:
+            exlude = area
         center = centroid(exlude)
 
         for line in lines:

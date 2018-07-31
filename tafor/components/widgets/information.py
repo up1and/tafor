@@ -453,6 +453,9 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
 
         return text
 
+    def clear(self):
+        super(SigmetGeneralContent, self).clear()
+        self.canvasWidget.clear()
 
 class SigmetTyphoonHead(BaseSigmetHead):
 
