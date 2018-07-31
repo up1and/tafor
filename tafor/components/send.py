@@ -23,6 +23,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
 
         self.parent = parent
         self.aftn = None
+        self.item = None
 
         self.sendButton = self.buttonBox.button(QDialogButtonBox.Ok)
         self.resendButton = self.buttonBox.button(QDialogButtonBox.Retry)
@@ -33,7 +34,6 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.cancelButton.setText(QCoreApplication.translate('Sender', 'Cancel'))
         self.resendButton.setVisible(False)
         self.resendButton.setEnabled(False)
-        # self.buttonBox.addButton("TEST", QDialogButtonBox.ActionRole)
         self.rejected.connect(self.cancel)
         self.closeSignal.connect(self.clear)
         self.backSignal.connect(self.clear)
@@ -112,6 +112,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
 
     def clear(self):
         self.aftn = None
+        self.item = None
         self.rpt.setText('')
         self.rawGroup.hide()
         self.sendButton.setEnabled(True)
@@ -130,10 +131,15 @@ class TafSender(BaseSender):
         self.buttonBox.accepted.connect(self.send)
 
     def save(self):
-        item = Taf(tt=self.message['sign'][0:2], sign=self.message['sign'], rpt=self.message['rpt'], raw=self.aftn.toJson())
-        db.add(item)
+        if self.item:
+            self.item.sent = datetime.datetime.utcnow()
+            logger.debug('Resend ' + self.item.rpt)
+        else:
+            self.item = Taf(tt=self.message['sign'][0:2], sign=self.message['sign'], rpt=self.message['rpt'], raw=self.aftn.toJson())
+            logger.debug('Send ' + self.item.rpt)
+
+        db.add(self.item)
         db.commit()
-        logger.debug('Save ' + item.rpt)
         self.sendSignal.emit()
 
 
@@ -158,10 +164,10 @@ class TaskTafSender(BaseSender):
         # self.taskTime = datetime.datetime.utcnow() + datetime.timedelta(minutes=1)
 
     def save(self):
-        item = Task(tt=self.message['sign'][0:2], sign=self.message['sign'], rpt=self.message['rpt'], planning=self.message['planning'])
-        db.add(item)
+        self.item = Task(tt=self.message['sign'][0:2], sign=self.message['sign'], rpt=self.message['rpt'], planning=self.message['planning'])
+        db.add(self.item)
         db.commit()
-        logger.debug('Save Task {}'.format(item.planning.strftime('%b %d %Y %H:%M:%S')))
+        logger.debug('Save Task {}'.format(self.item.planning.strftime('%b %d %Y %H:%M:%S')))
         self.sendSignal.emit()
 
     def autoSend(self):
@@ -204,10 +210,15 @@ class TrendSender(BaseSender):
         self.rpt.setText(self.message['rpt'])
 
     def save(self):
-        item = Trend(sign=self.message['sign'], rpt=self.message['rpt'], raw=self.aftn.toJson())
-        db.add(item)
+        if self.item:
+            self.item.sent = datetime.datetime.utcnow()
+            logger.debug('Resend ' + self.item.rpt)
+        else:
+            self.item = Trend(sign=self.message['sign'], rpt=self.message['rpt'], raw=self.aftn.toJson())
+            logger.debug('Send ' + self.item.rpt)
+
+        db.add(self.item)
         db.commit()
-        logger.debug('Save ' + item.rpt)
         self.sendSignal.emit()
 
 
@@ -233,11 +244,16 @@ class SigmetSender(BaseSender):
             logger.error(e)
 
     def save(self):
-        item = Sigmet(tt=self.message['sign'][0:2], sign=self.message['sign'], rpt=self.message['rpt'], raw=self.aftn.toJson())
-        db.add(item)
+        if self.item:
+            self.item.sent = datetime.datetime.utcnow()
+            logger.debug('Resend ' + self.item.rpt)
+        else:
+            self.item = Sigmet(tt=self.message['sign'][0:2], sign=self.message['sign'], rpt=self.message['rpt'], raw=self.aftn.toJson())
+            logger.debug('Send ' + self.item.rpt)
+
+        db.add(self.item)
         db.commit()
-        logger.debug('Save ' + item.rpt)
-        self.remind(item)
+        self.remind(self.item)
         self.sendSignal.emit()
 
     def remind(self, item):
