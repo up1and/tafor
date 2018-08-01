@@ -1,5 +1,5 @@
 from PyQt5.QtCore import QSize, Qt, QRect, QCoreApplication, QPoint, pyqtSignal
-from PyQt5.QtGui import QPainter, QPolygon, QPixmap, QPen, QColor, QBrush
+from PyQt5.QtGui import QPainter, QPainterPath, QPolygon, QPixmap, QPen, QColor, QBrush, QFont
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel
 
 from shapely.geometry import Polygon
@@ -185,11 +185,16 @@ class Canvas(QWidget):
 
             updatedTime = self.fir.updatedTime()
             if updatedTime:
-                pen = QPen(QColor(150, 150, 150))
-                painter.setPen(pen)
                 rect = QRect(10, 0, image.size().width(), image.size().height() - 10)
                 text = updatedTime.strftime('%H:%M')
-                painter.drawText(rect, Qt.AlignBottom, '{}'.format(text))
+                path = QPainterPath()
+                font = QFont()
+                font.setBold(True)
+                path.addText(rect.bottomLeft(), font, text)
+                pen = QPen(QColor(0, 0, 0, 120), 2)
+                brush = QBrush(Qt.white)
+                painter.strokePath(path, pen)
+                painter.fillPath(path, brush)
         else:
             rect = QRect(0, 0, 260, 260)
             painter.setPen(Qt.DashLine)

@@ -1,11 +1,13 @@
 import os
 import re
 import json
+import datetime
 import requests
 
-from flask import Flask, request, jsonify, render_template, url_for
-
+from pytz import timezone
 from bs4 import BeautifulSoup
+
+from flask import Flask, request, jsonify, render_template, url_for
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -72,7 +74,7 @@ def latest(airport):
         return jsonify(marshal(messages))
 
     except Exception as e:
-        app.logger.error(e, exc_info=True)
+        app.logger.exception(e)
         return jsonify({'error': '{} not found'.format(airport)}), 404
 
 @app.route('/remote/latest/<airport>.json')
@@ -103,7 +105,7 @@ def remote_latest(airport):
         return jsonify(marshal(messages))
 
     except Exception as e:
-        app.logger.error(e, exc_info=True)
+        app.logger.exception(e)
         return jsonify({'error': '{} not found'.format(airport)}), 404
 
 @app.route('/fir/<mwo>.json')
@@ -118,12 +120,17 @@ def fir(mwo):
         image = 'http://192.2.204.51/FY2_IMAGE/IEC{}.jpg'.format(filename)
         info['image'] = image
 
+        fmt = '%Y%m%d%H%M'
+        navie = datetime.datetime.strptime(filename, fmt)
+        local = timezone('Asia/Shanghai').localize(navie)
+        info['updated'] = local.astimezone(timezone('UTC'))
+
     except requests.exceptions.ConnectionError:
         app.logger.warn('GET {} 408 Request Timeout'.format(url))
         return jsonify({'error': '{} not found'.format('satellite image')}), 404
 
     except Exception as e:
-        app.logger.error(e, exc_info=True)
+        app.logger.exception(e)
         return jsonify({'error': '{} not found'.format(mwo)}), 404
         
     return jsonify(info)
@@ -136,8 +143,10 @@ def remote_fir(mwo):
     try:
         info = load_fir(mwo, remote=True)
         info['image'] = image
+        info['updated'] = datetime.datetime.utcnow()
         
     except Exception as e:
+        app.logger.exception(e)
         return jsonify({'error': '{} not found'.format(mwo)}), 404
 
     return jsonify(info)

@@ -66,9 +66,9 @@ class FirState(object):
         return self._state['sigmets']
 
     def updatedTime(self):
-        gmt = '%a, %d %b %Y %H:%M:%S GMT'
+        fmt = '%a, %d %b %Y %H:%M:%S GMT'
         try:
-            return datetime.datetime.strptime(self._state['updated'], gmt)
+            return datetime.datetime.strptime(self._state['updated'], fmt)
         except Exception as e:
             return None
 
