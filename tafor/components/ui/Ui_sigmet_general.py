@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\components\ui\sigmet_general.ui'
+# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\sigmet_general.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -198,7 +198,7 @@ class Ui_Editor(object):
         self.areaGroup.setTitle(_translate("Editor", "Area"))
         self.canvas.setText(_translate("Editor", "Canvas"))
         self.manual.setText(_translate("Editor", "Manual"))
-        self.entire.setText(_translate("Editor", "Entire FIR"))
+        self.entire.setText(_translate("Editor", "Entire"))
         self.eastLabel.setText(_translate("Editor", "E OF"))
         self.westLabel.setText(_translate("Editor", "W OF"))
         self.longtitudeLabel.setText(_translate("Editor", "Longitude"))

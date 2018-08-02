@@ -4,7 +4,7 @@ import datetime
 from itertools import cycle
 
 from PyQt5.QtGui import QIcon, QRegExpValidator, QIntValidator, QTextCharFormat, QFont
-from PyQt5.QtCore import Qt, QRegExp, pyqtSignal
+from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit
 
 from tafor import conf, logger
@@ -38,11 +38,12 @@ class SigmetTypeSegment(QWidget, Ui_sigmet_type.Ui_Editor):
 class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
     completeSignal = pyqtSignal(bool)
 
-    def __init__(self):
+    def __init__(self, mainwindow=None):
         super(BaseSigmetHead, self).__init__()
         self.duration = 4
         self.complete = True
         self.rules = Pattern()
+        self.mainwindow = mainwindow
 
         self.setupUi(self)
         self.updateState()
@@ -86,19 +87,20 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
 
             if end <= start:
                 self.endingTime.clear()
-                logger.debug('Ending time must be greater than the beginning time')
+                self.mainwindow.statusBar.showMessage(QCoreApplication.translate('Editor', 'Ending time must be greater than the beginning time'), 5000)
 
             if end - start > datetime.timedelta(hours=self.duration):
                 self.endingTime.clear()
-                logger.debug('Valid period more than {} hours'.format(self.duration))
+                self.mainwindow.statusBar.showMessage(QCoreApplication.translate('Editor', 'Valid period more than {} hours').format(self.duration), 5000)
 
     def validateObsTime(self):
+        # 未启用
         if self.beginningTime.hasAcceptableInput() and self.obsTime.hasAcceptableInput():
             start = parseDateTime(self.beginningTime.text())
             obs = parseTime(self.obsTime.text())
             if obs > start:
                 self.obsTime.clear()
-                logger.debug('Observation time should before the beginning time')
+                self.mainwindow.statusBar.showMessage(QCoreApplication.translate('Editor', 'Observation time should before the beginning time'), 5000)
 
     def validate(self):
         self.validateEndingTime()
@@ -181,9 +183,10 @@ class BaseSigmetContent(QWidget, SegmentMixin):
 class BaseSegment(QWidget):
     changeSignal = pyqtSignal()
 
-    def __init__(self, typeSegment):
+    def __init__(self, typeSegment, mainwindow=None):
         super(BaseSegment, self).__init__()
         self.type = typeSegment
+        self.mainwindow = mainwindow
 
     def initUI(self):
         layout = QVBoxLayout(self)
@@ -225,8 +228,8 @@ class BaseSegment(QWidget):
 
 class SigmetGeneralHead(BaseSigmetHead):
 
-    def __init__(self):
-        super(SigmetGeneralHead, self).__init__()
+    def __init__(self, mainwindow=None):
+        super(SigmetGeneralHead, self).__init__(mainwindow)
         self.hideTyphoonName()
         self.setPhenomenaDescription()
         self.setPhenomena()
@@ -459,8 +462,8 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
 
 class SigmetTyphoonHead(BaseSigmetHead):
 
-    def __init__(self):
-        super(SigmetTyphoonHead, self).__init__()
+    def __init__(self, mainwindow=None):
+        super(SigmetTyphoonHead, self).__init__(mainwindow)
         self.hideDescription()
         self.setPhenomena()
         self.duration = 6
@@ -641,8 +644,8 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
 
 class SigmetSimpleHead(BaseSigmetHead):
 
-    def __init__(self):
-        super(SigmetSimpleHead, self).__init__()
+    def __init__(self, mainwindow=None):
+        super(SigmetSimpleHead, self).__init__(mainwindow)
         self.hidePhenomena()
 
     def hidePhenomena(self):
@@ -735,9 +738,9 @@ class SigmetCustomContent(BaseSigmetContent, Ui_sigmet_custom.Ui_Editor):
 
 class SigmetGeneralSegment(BaseSegment):
 
-    def __init__(self, typeSegment):
-        super(SigmetGeneralSegment, self).__init__(typeSegment)
-        self.head = SigmetGeneralHead()
+    def __init__(self, typeSegment, mainwindow=None):
+        super(SigmetGeneralSegment, self).__init__(typeSegment, mainwindow)
+        self.head = SigmetGeneralHead(mainwindow)
         self.content = SigmetGeneralContent(self.head)
 
         self.initUI()
@@ -765,9 +768,9 @@ class SigmetGeneralSegment(BaseSegment):
 
 class SigmetTyphoonSegment(BaseSegment):
 
-    def __init__(self, typeSegment):
-        super(SigmetTyphoonSegment, self).__init__(typeSegment)
-        self.head = SigmetTyphoonHead()
+    def __init__(self, typeSegment, mainwindow=None):
+        super(SigmetTyphoonSegment, self).__init__(typeSegment, mainwindow)
+        self.head = SigmetTyphoonHead(mainwindow)
         self.content = SigmetTyphoonContent(self.head)
 
         self.initUI()
@@ -787,9 +790,9 @@ class SigmetTyphoonSegment(BaseSegment):
 
 class SigmetCancelSegment(BaseSegment):
 
-    def __init__(self, typeSegment):
-        super(SigmetCancelSegment, self).__init__(typeSegment)
-        self.head = SigmetSimpleHead()
+    def __init__(self, typeSegment, mainwindow=None):
+        super(SigmetCancelSegment, self).__init__(typeSegment, mainwindow)
+        self.head = SigmetSimpleHead(mainwindow)
         self.content = SigmetCancelContent(self.head)
 
         self.initUI()
@@ -830,9 +833,9 @@ class SigmetCancelSegment(BaseSegment):
 
 class SigmetCustomSegment(BaseSegment):
 
-    def __init__(self, typeSegment):
-        super(SigmetCustomSegment, self).__init__(typeSegment)
-        self.head = SigmetSimpleHead()
+    def __init__(self, typeSegment, mainwindow=None):
+        super(SigmetCustomSegment, self).__init__(typeSegment, mainwindow)
+        self.head = SigmetSimpleHead(mainwindow)
         self.content = SigmetCustomContent(self.head)
 
         self.initUI()

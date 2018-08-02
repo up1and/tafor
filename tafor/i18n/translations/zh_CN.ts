@@ -184,7 +184,7 @@
         <translation>速度</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_general.py" line="191"/>
+        <location filename="../../components/ui/Ui_sigmet_general.py" line="194"/>
         <source>Position</source>
         <translation>位置</translation>
     </message>
@@ -194,37 +194,37 @@
         <translation>强度变化</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_general.py" line="193"/>
+        <location filename="../../components/ui/Ui_sigmet_general.py" line="196"/>
         <source>FL Base</source>
         <translation>底高</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_general.py" line="194"/>
+        <location filename="../../components/ui/Ui_sigmet_general.py" line="197"/>
         <source>FL Top</source>
         <translation>顶高</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_general.py" line="195"/>
+        <location filename="../../components/ui/Ui_sigmet_general.py" line="198"/>
         <source>Area</source>
         <translation>区域</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_general.py" line="204"/>
+        <location filename="../../components/ui/Ui_sigmet_general.py" line="207"/>
         <source>N OF</source>
         <translation>以北</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_general.py" line="203"/>
+        <location filename="../../components/ui/Ui_sigmet_general.py" line="206"/>
         <source>S OF</source>
         <translation>以南</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_general.py" line="199"/>
+        <location filename="../../components/ui/Ui_sigmet_general.py" line="202"/>
         <source>E OF</source>
         <translation>以东</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_general.py" line="200"/>
+        <location filename="../../components/ui/Ui_sigmet_general.py" line="203"/>
         <source>W OF</source>
         <translation>以西</translation>
     </message>
@@ -239,17 +239,17 @@
         <translation>经度</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_head.py" line="103"/>
+        <location filename="../../components/ui/sigmet_head.ui" line="26"/>
         <source>Head</source>
         <translation>报头</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_head.py" line="109"/>
+        <location filename="../../components/ui/Ui_sigmet_cancel.py" line="60"/>
         <source>Sequence</source>
         <translation>序号</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_head.py" line="104"/>
+        <location filename="../../components/ui/sigmet_head.ui" line="51"/>
         <source>OBS Time</source>
         <translation>观测时间</translation>
     </message>
@@ -259,17 +259,17 @@
         <translation>预测</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_head.py" line="106"/>
+        <location filename="../../components/ui/sigmet_head.ui" line="71"/>
         <source>Typhoon Name</source>
         <translation>热带气旋名称</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_head.py" line="110"/>
+        <location filename="../../components/ui/sigmet_head.ui" line="114"/>
         <source>Phenomena</source>
         <translation>天气现象</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_head.py" line="107"/>
+        <location filename="../../components/ui/sigmet_head.ui" line="81"/>
         <source>Phenomena Description</source>
         <translation>天气描述</translation>
     </message>
@@ -329,12 +329,12 @@
         <translation>编发重要气象情报</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_head.py" line="108"/>
+        <location filename="../../components/ui/Ui_sigmet_cancel.py" line="59"/>
         <source>Beginning Time</source>
         <translation>起始时间</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_head.py" line="111"/>
+        <location filename="../../components/ui/Ui_sigmet_cancel.py" line="61"/>
         <source>Ending Time</source>
         <translation>结束时间</translation>
     </message>
@@ -349,7 +349,7 @@
         <translation>趋势有效时段不正确</translation>
     </message>
     <message>
-        <location filename="../../components/widgets/area.py" line="138"/>
+        <location filename="../../components/widgets/area.py" line="202"/>
         <source>No Satellite Image</source>
         <translation></translation>
     </message>
@@ -384,115 +384,130 @@
         <translation>变化组时间有重叠</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_general.py" line="196"/>
+        <location filename="../../components/ui/Ui_sigmet_general.py" line="199"/>
         <source>Canvas</source>
         <translation>画布</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_general.py" line="197"/>
+        <location filename="../../components/ui/Ui_sigmet_general.py" line="200"/>
         <source>Manual</source>
         <translation>文本</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_sigmet_general.py" line="198"/>
-        <source>Entire FIR</source>
+        <location filename="../../components/ui/Ui_sigmet_general.py" line="201"/>
+        <source>Entire</source>
         <translation>全区域</translation>
+    </message>
+    <message>
+        <location filename="../../components/widgets/information.py" line="91"/>
+        <source>Ending time must be greater than the beginning time</source>
+        <translation>有效结束时间需要大于有效开始时间</translation>
+    </message>
+    <message>
+        <location filename="../../components/widgets/information.py" line="104"/>
+        <source>Observation time should before the beginning time</source>
+        <translation>观测时间需要早于有效开始时间</translation>
+    </message>
+    <message>
+        <location filename="../../components/widgets/information.py" line="95"/>
+        <source>Valid period more than {} hours</source>
+        <translation>有效期大于 {} 小时</translation>
     </message>
 </context>
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="../../components/ui/Ui_main.py" line="132"/>
+        <location filename="../../components/ui/Ui_main.py" line="154"/>
         <source>Terminal Aerodrome Forecast Encoding Software</source>
         <translation>预报发报软件</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_main.py" line="133"/>
+        <location filename="../../components/ui/Ui_main.py" line="155"/>
         <source>RECENT</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_main.py" line="134"/>
+        <location filename="../../components/ui/Ui_main.py" line="156"/>
         <source>TAF</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_main.py" line="135"/>
+        <location filename="../../components/ui/Ui_main.py" line="157"/>
         <source>METAR</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_main.py" line="136"/>
+        <location filename="../../components/ui/Ui_main.py" line="158"/>
         <source>Post</source>
         <translation>编发</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_main.py" line="137"/>
+        <location filename="../../components/ui/Ui_main.py" line="159"/>
         <source>Options</source>
         <translation>选项</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_main.py" line="138"/>
+        <location filename="../../components/ui/Ui_main.py" line="160"/>
         <source>Contacts</source>
         <translation>联系人</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_main.py" line="139"/>
+        <location filename="../../components/ui/Ui_main.py" line="161"/>
         <source>Help</source>
         <translation>帮助</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_main.py" line="140"/>
+        <location filename="../../components/ui/Ui_main.py" line="162"/>
         <source>Terminal Aerodrome Forecast</source>
         <translation>预报</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_main.py" line="141"/>
+        <location filename="../../components/ui/Ui_main.py" line="163"/>
         <source>Trend Forecast</source>
         <translation>趋势</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_main.py" line="142"/>
+        <location filename="../../components/ui/Ui_main.py" line="164"/>
         <source>Significant Meteorological Information</source>
         <translation>重要气象情报</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_main.py" line="143"/>
+        <location filename="../../components/ui/Ui_main.py" line="165"/>
         <source>Settings</source>
         <translation>设置</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_main.py" line="144"/>
+        <location filename="../../components/ui/Ui_main.py" line="166"/>
         <source>About</source>
         <translation>关于</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_main.py" line="145"/>
+        <location filename="../../components/ui/Ui_main.py" line="167"/>
         <source>Exit</source>
         <translation>退出</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_main.py" line="146"/>
+        <location filename="../../components/ui/Ui_main.py" line="168"/>
         <source>None</source>
         <translation>无</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_main.py" line="147"/>
+        <location filename="../../components/ui/Ui_main.py" line="169"/>
         <source>Report Issue</source>
         <translation>报告问题</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_main.py" line="148"/>
+        <location filename="../../components/ui/Ui_main.py" line="170"/>
         <source>Documents</source>
         <translation>文档</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_main.py" line="149"/>
+        <location filename="../../components/ui/Ui_main.py" line="171"/>
         <source>Alarm Sound</source>
         <translation>声音</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_main.py" line="150"/>
+        <location filename="../../components/ui/Ui_main.py" line="172"/>
         <source>Check for Updates</source>
         <translation>检查更新</translation>
     </message>
@@ -517,23 +532,23 @@
         <translation>离线</translation>
     </message>
     <message>
-        <location filename="../../app/main.py" line="392"/>
+        <location filename="../../app/main.py" line="395"/>
         <source>The project is under GPL-2.0 License, Pull Request and Issue are welcome</source>
         <translation>项目遵循 GPL-2.0 协议，欢迎提交 Pull Request 或者 Issue</translation>
     </message>
     <message>
-        <location filename="../../app/main.py" line="431"/>
+        <location filename="../../app/main.py" line="434"/>
         <source>New version found {}, do you want to download now?</source>
         <translation>发现新版本 {}，想现在下载么？</translation>
     </message>
     <message>
-        <location filename="../../app/main.py" line="389"/>
+        <location filename="../../app/main.py" line="392"/>
         <source>The software is used to encode and post terminal aerodrome forecast, trend forecast, 
                     significant meteorological information, monitor the message, return the alarm by sound or telephone</source>
         <translation>本软件用于智能发布预报报文、趋势报文、重要气象情报，监控预报报文，以声音或电话的方式返回告警</translation>
     </message>
     <message>
-        <location filename="../../app/main.py" line="321"/>
+        <location filename="../../app/main.py" line="322"/>
         <source>Time to post {}</source>
         <translation>发布 {}</translation>
     </message>
@@ -553,22 +568,22 @@
         <translation>闹钟</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_main.py" line="151"/>
+        <location filename="../../components/ui/Ui_main.py" line="173"/>
         <source>Previous Page</source>
         <translation>上一页</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_main.py" line="152"/>
+        <location filename="../../components/ui/Ui_main.py" line="174"/>
         <source>Next Page</source>
         <translation>下一页</translation>
     </message>
     <message>
-        <location filename="../../app/main.py" line="426"/>
+        <location filename="../../app/main.py" line="429"/>
         <source>The current version is already the latest version.</source>
         <translation>当前版本已经是最新版本</translation>
     </message>
     <message>
-        <location filename="../../app/main.py" line="420"/>
+        <location filename="../../app/main.py" line="423"/>
         <source>Unable to get the latest version information.</source>
         <translation>无法获取最新版本信息</translation>
     </message>
@@ -591,47 +606,47 @@
         <translation>已向串口发送数据</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="30"/>
+        <location filename="../../components/send.py" line="32"/>
         <source>Send</source>
         <translation>发送</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="65"/>
+        <location filename="../../components/send.py" line="68"/>
         <source>Send Failed</source>
         <translation>发送失败</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="31"/>
+        <location filename="../../components/send.py" line="33"/>
         <source>Resend</source>
         <translation>重新发送</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="133"/>
+        <location filename="../../components/send.py" line="151"/>
         <source>Timing Tasks</source>
         <translation>定时任务</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="32"/>
+        <location filename="../../components/send.py" line="34"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="70"/>
+        <location filename="../../components/send.py" line="73"/>
         <source>Error</source>
         <translation>错误</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="75"/>
+        <location filename="../../components/send.py" line="78"/>
         <source>Validator Warning</source>
         <translation>校验提醒</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="76"/>
+        <location filename="../../components/send.py" line="79"/>
         <source>The message did not pass the validator, do you still want to send?</source>
         <translation>报文没有通过校验，你还要发送么？</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="243"/>
+        <location filename="../../components/send.py" line="271"/>
         <source>Resend Message</source>
         <translation>重新发送报文</translation>
     </message>

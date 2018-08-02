@@ -175,7 +175,7 @@ Tafor 的发行版同样放在 GitHub, 你可以在这里 `下载 <https://githu
 部署电话拨号服务
 -----------------
 
-`UPSMS <https://github.com/up1and/upsms>`_ 的部署方式和数据源类似，先使用 `Gunicorn` 启动应用，再用 `Nginx` 代理请求，不过这里需额外启动监听电话模块的脚本。
+`UPSMS <https://gitee.com/up1and/upsms>`_ 的部署方式和数据源类似，先使用 `Gunicorn` 启动应用，再用 `Nginx` 代理请求，不过这里需额外启动监听电话模块的脚本。
 
 创建配置文件::
 

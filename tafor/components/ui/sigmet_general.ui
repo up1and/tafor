@@ -224,7 +224,7 @@
          <item>
           <widget class="QRadioButton" name="entire">
            <property name="text">
-            <string>Entire FIR</string>
+            <string>Entire</string>
            </property>
           </widget>
          </item>

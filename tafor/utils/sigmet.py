@@ -1,5 +1,6 @@
 import math
 
+from shapely.ops import split
 from shapely.geometry import Polygon, LineString
 
 
@@ -17,18 +18,6 @@ def centroid(points):
     point = [point[0] / length, point[1] / length]
     return point
 
-def pointsToPolygon(points):
-    origin = centroid(points)
-
-    def compare(origin, point):
-        distance = (origin[0] - point[0]) * (origin[0] - point[0]) + (origin[1] - point[1]) * (origin[1] - point[1])
-        angle = math.atan2(point[1] - origin[1], point[0] - origin[0])
-        return angle, distance
-
-    points = sorted(points, key=lambda p: compare(origin, p))
-    points = list(map(tuple, points))
-    return points
-
 def simplifyLine(line):
     values = []
     for p in line:
@@ -38,80 +27,18 @@ def simplifyLine(line):
         if values.count(v) > 1:
             return v
 
-def expandLine(line, rng):
-    p1, p2 = line
-    ratio = (p1[1] - p2[1]) / (p1[0] - p2[0])
-    const = (p1[0] * p2[1] - p2[0] * p1[1]) / (p1[0] - p2[0])
-    equation = lambda x: ratio * x + const
-    points = [
-        [rng[0], equation(rng[0])],
-        [rng[1], equation(rng[1])]
-    ]
-    return points
+    return line
 
-def insertPoints(points, boundaries, mode):
-    origin = centroid(points + boundaries)
+def extrapolatePoint(origin, point):
+    ratio = 10
+    result = (point[0] + ratio * (point[0] - origin[0]), point[1] + ratio * (point[1] - origin[1]))
+    return result
 
-    def compare(origin, point):
-        distance = (origin[0] - point[0]) * (origin[0] - point[0]) + (origin[1] - point[1]) * (origin[1] - point[1])
-        angle = math.atan2(point[1] - origin[1], point[0] - origin[0])
-        return angle, distance
-
-    def insert(boundaries, points, p):
-        point = compare(origin, p)
-        polygon = boundaries.copy()
-
-        if mode == 'line' and points.index(p) > 0:
-            prev = points[points.index(p) - 1]
-            loc = polygon.index(prev)
-            polygon.insert(loc + 1, p)
-
-        for i, b in enumerate(boundaries, start=1):
-            bound = compare(origin, b)
-
-            if p in polygon:
-                continue
-
-            if point[0] < bound[0] or (point[0] == bound[0] and point[1] < bound[1]):
-                index = polygon.index(b)
-                polygon.insert(index, p)
-            elif len(polygon) == i:
-                polygon.append(p)
-
-        return polygon
-
-    initial = min(boundaries, key=lambda p: compare(origin, p))
-    boundaries.reverse()
-    start = boundaries.index(initial)
-    polygon = boundaries[start:] + boundaries[:start]
-
-    if mode == 'line':
-        points.reverse()
-
-    for p in points:
-        polygon = insert(polygon, points, p)
-
-    return polygon
-
-def onSameSide(line, direction, point):
-    angle = lambda origin, point: math.atan2(point[1] - origin[1], (point[0] - origin[0])) / math.pi
-
-    startAngle = angle(*line)
-    endAngle = startAngle + 1
-    if endAngle > 1:
-        endAngle = endAngle - 2
-
-    start, end = min(startAngle, endAngle), max(startAngle, endAngle)
-    section = [start, end]
-
-    origin = centroid(line)
-    originBearing = angle(origin, direction)
-    side = start <= originBearing <= end
-
-    pointBearing = angle(origin, point)
-    sameside = start <= pointBearing <= end
-
-    return sameside == side
+def expandLine(points):
+    line = points.copy()
+    line[0] = extrapolatePoint(points[1], points[0])
+    line[-1] = extrapolatePoint(points[-2], points[-1])
+    return line
 
 def onBoundary(boundaries, line):
     for points in zip(boundaries, boundaries[1:]):
@@ -127,44 +54,33 @@ def decodeSigmetArea(boundaries, area, mode='rectangular'):
     boundary = Polygon(boundaries)
     polygons = []
     for identifier, points in area:
-        line = LineString(points)
-        intersection = boundary.intersection(line)
+        expands = expandLine(points)
+        line = LineString(expands)
+        parts = split(boundary, line)
+        lat = lambda p: p.centroid.y
+        lng = lambda p: p.centroid.x
 
-        if not intersection:
-            continue
-
-        straightLine = [points[0], points[-1]]
-        direction = centroid(straightLine)
-
+        shapes = []
         if 'N' in identifier:
-            direction[1] += 1
+            shapes.append(max(parts, key=lat))
 
         if 'S' in identifier:
-            direction[1] -= 1
+            shapes.append(min(parts, key=lat))
 
         if 'W' in identifier:
-            direction[0] -= 1 
+            shapes.append(min(parts, key=lng)) 
 
         if 'E' in identifier:
-            direction[0] += 1
+            shapes.append(max(parts, key=lng))
 
-        if onBoundary(boundaries, straightLine):
-            polygon = list(intersection.coords)
-        else:
-            bounds = []
-            for point in boundaries:
-                if onSameSide(straightLine, direction, point):
-                    bounds.append(point)
-
-            polygon = insertPoints(list(intersection.coords), bounds, mode)
-
+        polygon = max(shapes, key=lambda p: shapes.count(p))
         polygons.append(polygon)
             
     for i, polygon in enumerate(polygons):
         if i == 0:
-            current = Polygon(polygon)
+            current = polygon
         else:
-            current = current.intersection(Polygon(polygon))
+            current = current.intersection(polygon)
 
     return list(current.exterior.coords)
 
@@ -206,6 +122,14 @@ def encodeSigmetArea(boundaries, area, mode='rectangular'):
                 lines.append(list(line.coords))
 
         return lines
+
+    def suitableForLine(boundaries, lines):
+        for line in lines:
+            straightLine = [line[0], line[-1]]
+            if onBoundary(boundaries, straightLine):
+                return False
+
+        return True
 
     def connectLine(lines):
         for line in lines:
