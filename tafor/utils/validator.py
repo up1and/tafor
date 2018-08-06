@@ -68,7 +68,7 @@ class SigmetGrammar(object):
     area = re.compile(r'(AREA\([1-9]{1}\))')
     latitude = re.compile(r'(N|S)(90(0{2})?|[0-8]\d([0-5]\d)?)')
     longitude = re.compile(r'(E|W)(180(0{2})?|((1[0-7]\d)|(0\d{2}))([0-5]\d)?)')
-    fightLevel = re.compile(r'(FL[1-9]\d{2}/[1-9]\d{2})|(FL[1-9]\d{2})|(\d{4,5}FT)|(\d{4,5}M)')
+    fightLevel = re.compile(r'(FL[1-9]\d{2}/[1-9]\d{2})|(FL[1-9]\d{2})|(\d{4,5}FT)|(\d{4,5}M)|(SFC/FL[1-9]\d{2})')
     speed = re.compile(r'(\d{1,2})(KMH|KT)')
     obsTime = re.compile(r'(\d{4}Z)')
     typhoonRange = re.compile(r'(\d{1,3}KM)')

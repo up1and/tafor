@@ -63,7 +63,7 @@ class AFTNMessage(object):
         time = self.time.strftime('%d%H%M')
 
         origin = ' '.join([time, originatorAddress])
-        ending = 'NNNN'
+        ending = '\n\n\n' + 'NNNN'
 
         self.messages = []
         for addr in groups:

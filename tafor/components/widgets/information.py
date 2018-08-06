@@ -237,6 +237,7 @@ class SigmetGeneralHead(BaseSigmetHead):
     def setPhenomenaDescription(self):
         descriptions = ['OBSC', 'EMBD', 'FRQ', 'SQL', 'SEV', 'HVY']
         self.description.addItems(descriptions)
+        self.description.setCurrentIndex(1)
 
     def setPhenomena(self, text='OBSC'):
         self.phenomena.clear()
@@ -279,6 +280,7 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         self.bindSignal()
         self.setValidator()
         self.setArea()
+        self.setPosition('TS')
         self.setCanvasMode()
 
     def bindSignal(self):
@@ -354,7 +356,7 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
             self.top.setEnabled(True)
             self.baseLabel.setEnabled(False)
             self.topLabel.setEnabled(True)
-        elif text == 'BLW':
+        elif text in ['BLW', 'SFC']:
             self.base.setEnabled(True)
             self.top.setEnabled(False)
             self.baseLabel.setEnabled(True)
@@ -434,6 +436,9 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
 
         if position == 'BLW':
             text = 'BLW FL{}'.format(base) if base else ''
+
+        if position == 'SFC':
+            text = 'SFC/FL{}'.format(base) if base else ''
 
         return text
 
@@ -753,10 +758,6 @@ class SigmetGeneralSegment(BaseSegment):
         self.head.phenomena.currentTextChanged.connect(self.content.setPosition)
 
     def showEvent(self, event):
-        # 手动触发信号
-        self.head.phenomena.setCurrentIndex(-1)
-        self.head.phenomena.setCurrentIndex(0)
-
         if conf.value('Monitor/FirApiURL'):
             self.content.manual.hide()
             self.content.latitudeAndLongitudeWidget.hide()
@@ -764,6 +765,8 @@ class SigmetGeneralSegment(BaseSegment):
     def clear(self):
         self.head.clear()
         self.content.clear()
+        self.head.description.setCurrentIndex(1)
+        self.content.position.setCurrentIndex(1)
 
 
 class SigmetTyphoonSegment(BaseSegment):
