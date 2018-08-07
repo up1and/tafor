@@ -606,7 +606,7 @@
         <translation>已向串口发送数据</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="32"/>
+        <location filename="../../components/send.py" line="64"/>
         <source>Send</source>
         <translation>发送</translation>
     </message>
@@ -621,7 +621,7 @@
         <translation>重新发送</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="151"/>
+        <location filename="../../components/send.py" line="154"/>
         <source>Timing Tasks</source>
         <translation>定时任务</translation>
     </message>
@@ -646,9 +646,14 @@
         <translation>报文没有通过校验，你还要发送么？</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="271"/>
+        <location filename="../../components/send.py" line="274"/>
         <source>Resend Message</source>
         <translation>重新发送报文</translation>
+    </message>
+    <message>
+        <location filename="../../components/send.py" line="88"/>
+        <source>Sending</source>
+        <translation type="unfinished">发送中</translation>
     </message>
 </context>
 <context>

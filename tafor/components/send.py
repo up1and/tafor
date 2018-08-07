@@ -61,7 +61,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
     def showRawGroup(self, error):
         self.raw.setText(self.aftn.toString())
         self.rawGroup.show()
-        self.sendButton.setEnabled(False)
+        self.sendButton.setText(QCoreApplication.translate('Sender', 'Send'))
         self.parent.settingDialog.loadSerialNumber()
 
         if error:
@@ -83,6 +83,9 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
 
         if not isinstance(self.aftn, AFTNMessage):
             self.aftn = AFTNMessage(self.message['full'], self.reportType)
+
+        self.sendButton.setEnabled(False)
+        self.sendButton.setText(QCoreApplication.translate('Sender', 'Sending'))
 
         message = self.aftn.toString()
 
