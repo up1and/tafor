@@ -1,3 +1,4 @@
+import time
 import math
 import serial
 
@@ -24,19 +25,26 @@ def serialComm(message, port, baudrate=9600, bytesize='8', parity='NONE', stopbi
     parity = parityMap.get(parity, serial.PARITY_NONE)
     stopbits = stopbitsMap.get(stopbits, serial.STOPBITS_ONE)
 
-    # 一个 ascii 8 位，停止位 2 位，起始位 1 位，校验位 1 位
-    timeout = math.ceil(12 * len(message) / baudrate)
+    if baudrate < 300:
+        timeout = 4
+    elif baudrate < 9600:
+        timeout = 2
+    else:
+        timeout = 1
 
-    with serial.Serial(port, baudrate, timeout=timeout, bytesize=bytesize, 
+    with serial.Serial(port, baudrate, bytesize=bytesize, 
                         parity=parity, stopbits=stopbits) as ser:
+        ser.reset_output_buffer()
         lenth = len(message)
         message = bytes(message, 'ascii')
         sentLenth = ser.write(message)
-        end = ser.readline()
+        ser.flush()
+        time.sleep(timeout)
 
         if lenth != sentLenth:
             raise serial.SerialException('Send data is incomplete')
 
 
 if __name__ == '__main__':
-    serialComm('The quick brown fox jumped over the lazy dog', 'COM5')
+    text = 'The quick brown fox jumped over the lazy dog\r\n'
+    serialComm(text * 10, 'COM4', baudrate=300)
