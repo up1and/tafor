@@ -18,26 +18,14 @@ def centroid(points):
     point = [point[0] / length, point[1] / length]
     return point
 
-def simplifyLine(line):
-    values = []
-    for p in line:
-        values += list(p)
-
-    for v in values:
-        if values.count(v) > 1:
-            return v
-
-    return line
-
-def extrapolatePoint(origin, point):
-    ratio = 10
+def extrapolatePoint(origin, point, ratio=10):
     result = (point[0] + ratio * (point[0] - origin[0]), point[1] + ratio * (point[1] - origin[1]))
     return result
 
-def expandLine(points):
+def expandLine(points, ratio=10):
     line = points.copy()
-    line[0] = extrapolatePoint(points[1], points[0])
-    line[-1] = extrapolatePoint(points[-2], points[-1])
+    line[0] = extrapolatePoint(points[1], points[0], ratio)
+    line[-1] = extrapolatePoint(points[-2], points[-1], ratio)
     return line
 
 def onBoundary(boundaries, line):
@@ -49,6 +37,124 @@ def onBoundary(boundaries, line):
             return True
 
     return False
+
+def simplifyLine(line):
+    values = []
+    for p in line:
+        values += list(p)
+
+    for v in values:
+        if values.count(v) > 1:
+            return v
+
+    return line
+
+def connectLine(lines):
+    for line in lines:
+        for current in lines:
+            if line[-1] == current[0]:
+                points = line[:-1] + current
+            elif line[0] == current[-1]:
+                points = current[:-1] + line
+
+            if line[-1] == current[0] or line[0] == current[-1]:
+                lines.append(points)
+                lines.remove(line)
+                lines.remove(current)
+
+    return lines
+
+def clipPolygon(subj, clip):
+    """计算两个多边形之间的交集，并根据允许的最大点平滑多边形
+    
+    :param subj: 列表，目标多边形的坐标集
+    :param clip: 列表，相切多边形的坐标集
+    :param clockwise: 布尔值，点坐标是否顺时针排序，默认否
+    :return: 列表，新的多边形坐标集
+    """
+    subj = Polygon(subj)
+    clip = Polygon(clip)
+    try:
+        intersection = subj.intersection(clip)
+        points = list(intersection.exterior.coords)
+    except Exception as e:
+        points = []
+    
+    return points
+
+def simplifyPolygon(points, maxPoint=7, boundaries=None):
+    """简化多边形
+    
+    :param points: 列表，多边形的坐标集
+    :param maxPoint: 数字，交集允许的最大点
+    :param boundaries: 列表，边界的做标集，如果存在则简化多边形包含边界
+    :return: 列表，简化后的多边形坐标集
+    """
+    def simplify(points):
+        polygon = Polygon(points)
+        try:
+            tolerance = 0
+            while len(polygon.exterior.coords) > maxPoint:
+                tolerance += 1
+                polygon = polygon.simplify(tolerance, preserve_topology=False)
+                
+            points = list(polygon.exterior.coords)
+        except Exception as e:
+            points = []
+
+        return points, tolerance
+
+    def extend(points, boundaries):
+        simples, tolerance = simplify(points)
+        original = LineString(points).buffer(1)
+        boundary = LineString(boundaries).buffer(1)
+
+        tolerance += 5
+        simples = simples[:-1]
+
+        baselines = []
+        for p, q in zip(simples, simples[1:]):
+            line = LineString([p, q])
+            if not original.contains(line) or boundary.contains(line):
+                baselines.append([p, q])
+
+        baselines = connectLine(baselines)
+
+        parts = []
+        for lines in baselines:
+            prev = simples.index(lines[0]) - 1
+            foward = (simples.index(lines[-1]) + 1) % len(simples)
+            prevTangent = expandLine([simples[prev], lines[0]], ratio=100)
+            fowardTangent = expandLine([simples[foward], lines[-1]], ratio=100)
+            tangents = [LineString(prevTangent), LineString(fowardTangent)]
+
+            part = LineString(lines).buffer(tolerance, cap_style=2, join_style=3)
+
+            for t in tangents:
+                shapes = split(part, t)
+                part = max(shapes, key=lambda p: p.area)
+
+            parts.append(part)
+
+        extend = Polygon()
+        for part in parts:
+            extend = extend.union(part)
+
+        segment = Polygon(simples).union(extend)
+        segment = segment.simplify(tolerance, preserve_topology=False)
+
+        try:
+            return list(segment.exterior.coords)
+        except Exception as e:
+            return []
+
+    if len(points) <= maxPoint:
+        return points
+    
+    if boundaries:
+        return extend(points, boundaries)
+
+    return simplify(points)
 
 def decodeSigmetArea(boundaries, area, mode='rectangular'):
     boundary = Polygon(boundaries)
@@ -130,21 +236,6 @@ def encodeSigmetArea(boundaries, area, mode='rectangular'):
                 return False
 
         return True
-
-    def connectLine(lines):
-        for line in lines:
-            for current in lines:
-                if line[-1] == current[0]:
-                    points = line[:-1] + current
-                elif line[0] == current[-1]:
-                    points = current[:-1] + line
-
-                if line[-1] == current[0] or line[0] == current[-1]:
-                    lines.append(points)
-                    lines.remove(line)
-                    lines.remove(current)
-
-        return lines
 
     def createArea(lines):
         segment = []

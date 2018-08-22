@@ -6,8 +6,8 @@ from shapely.geometry import Polygon
 
 from tafor import logger
 from tafor.states import context
-from tafor.utils.convert import listToPoint, pointToList, clipPolygon, simplifyPolygon
-from tafor.utils.sigmet import encodeSigmetArea, simplifyLine
+from tafor.utils.convert import listToPoint, pointToList
+from tafor.utils.sigmet import encodeSigmetArea, simplifyLine, clipPolygon, simplifyPolygon
 
 
 class Canvas(QWidget):
@@ -78,7 +78,7 @@ class Canvas(QWidget):
                     self.points = clipPolygon(self.fir.boundaries(), self.points)
 
                     if self.mode == 'polygon':
-                        self.points = simplifyPolygon(self.points, self.maxPoint)
+                        self.points = simplifyPolygon(self.points, maxPoint=self.maxPoint, boundaries=self.fir.boundaries())
                     
                     # make the points clockwise
                     self.points.reverse()
