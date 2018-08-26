@@ -88,16 +88,16 @@ def simplifyPolygon(points, maxPoint=7, boundaries=None):
     :param points: 列表，多边形的坐标集
     :param maxPoint: 数字，交集允许的最大点
     :param boundaries: 列表，边界的做标集，如果存在则简化多边形包含边界
-    :return: 列表，简化后的多边形坐标集
+    :return: 列表，简化后的多边形坐标集和简化的误差值
     """
     def simplify(points):
-        polygon = Polygon(points)
+        polygon = Polygon(points) if isinstance(points, list) else points
         try:
             tolerance = 0
             while len(polygon.exterior.coords) > maxPoint:
                 tolerance += 1
                 polygon = polygon.simplify(tolerance, preserve_topology=False)
-                
+
             points = list(polygon.exterior.coords)
         except Exception as e:
             points = []
@@ -128,7 +128,7 @@ def simplifyPolygon(points, maxPoint=7, boundaries=None):
             fowardTangent = expandLine([simples[foward], lines[-1]], ratio=100)
             tangents = [LineString(prevTangent), LineString(fowardTangent)]
 
-            part = LineString(lines).buffer(tolerance, cap_style=2, join_style=3)
+            part = LineString(lines).buffer(tolerance, cap_style=3, join_style=3)
 
             for t in tangents:
                 shapes = split(part, t)
@@ -141,12 +141,8 @@ def simplifyPolygon(points, maxPoint=7, boundaries=None):
             extend = extend.union(part)
 
         segment = Polygon(simples).union(extend)
-        segment = segment.simplify(tolerance, preserve_topology=False)
-
-        try:
-            return list(segment.exterior.coords)
-        except Exception as e:
-            return []
+        points, _ = simplify(segment)
+        return points
 
     if len(points) <= maxPoint:
         return points
