@@ -168,7 +168,7 @@ class TafValidator(object):
         if refGust and gust and abs(refGust - gust) >= 5 and max(refSpeed, speed) >= 8:
             return True
 
-        if (refGust or gust) and max(refSpeed, speed) >= 8:
+        if refGust != gust and max(refSpeed, speed) >= 8:
             return True
 
         return False

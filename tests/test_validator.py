@@ -66,6 +66,8 @@ def test_wind(validator):
     assert validator.wind('03004GP49MPS', '36008MPS')
     assert validator.wind('00000MPS', '07005MPS')
     assert not validator.wind('VRB01MPS', '36004MPS')
+    assert not validator.wind('36010G15MPS', '36008G15MPS')
+    assert not validator.wind('36020GP49MPS', '36020GP49MPS')
 
 def test_vis(validator):
     assert validator.vis(1600, 3000)
