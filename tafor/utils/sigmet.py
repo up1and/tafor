@@ -1,7 +1,7 @@
 import math
 
 from shapely.ops import split
-from shapely.geometry import Polygon, LineString
+from shapely.geometry import Polygon, LineString, Point
 
 
 def centroid(points):
@@ -82,44 +82,51 @@ def clipPolygon(subj, clip):
     
     return points
 
-def simplifyPolygon(points, maxPoint=7, boundaries=None):
-    """简化多边形
-    
-    :param points: 列表，多边形的坐标集
-    :param maxPoint: 数字，交集允许的最大点
-    :param boundaries: 列表，边界的做标集，如果存在则简化多边形包含边界
-    :return: 列表，简化后的多边形坐标集和简化的误差值
-    """
-    def simplify(points):
+class SimplifyPolygon(object):
+
+    def __init__(self, maxPoint=7, extend=False):
+        super(SimplifyPolygon, self).__init__()
+        self.maxPoint = maxPoint
+        self.extend = extend
+        self.tolerance = 3
+
+    def simplify(self, points):
         polygon = Polygon(points) if isinstance(points, list) else points
         try:
-            tolerance = 0
-            while len(polygon.exterior.coords) > maxPoint:
-                tolerance += 1
-                polygon = polygon.simplify(tolerance, preserve_topology=False)
+            polygon = polygon.simplify(self.tolerance)
+            while len(polygon.exterior.coords) > self.maxPoint:
+                self.tolerance += 1
+                polygon = polygon.simplify(self.tolerance)
 
-            points = list(polygon.exterior.coords)
+            outputs = list(polygon.exterior.coords)
         except Exception as e:
-            points = []
+            outputs = []
 
-        return points, tolerance
+        return outputs
 
-    def extend(points, boundaries):
-        simples, tolerance = simplify(points)
-        original = LineString(points).buffer(1)
-        boundary = LineString(boundaries).buffer(1)
-
-        tolerance += 5
-        simples = simples[:-1]
-
+    def findBaseline(self, points, simples):
+        baseshape = Polygon(simples)
         baselines = []
         for p, q in zip(simples, simples[1:]):
-            line = LineString([p, q])
-            if not original.contains(line) or boundary.contains(line):
-                baselines.append([p, q])
+            pidx = points.index(p)
+            qidx = points.index(q)
+
+            if pidx < qidx:
+                line = points[pidx:qidx]
+            else:
+                line = points[qidx:] + points[:pidx]
+
+            if len(line) > 1:
+                for v in line[1:]:
+                    vertex = Point(v)
+                    if not baseshape.contains(vertex):
+                        baselines.append([p, q])
+                        break
 
         baselines = connectLine(baselines)
+        return baselines
 
+    def unionParts(self, baselines, simples, bufferSize):
         parts = []
         for lines in baselines:
             prev = simples.index(lines[0]) - 1
@@ -128,29 +135,79 @@ def simplifyPolygon(points, maxPoint=7, boundaries=None):
             fowardTangent = expandLine([simples[foward], lines[-1]], ratio=100)
             tangents = [LineString(prevTangent), LineString(fowardTangent)]
 
-            part = LineString(lines).buffer(tolerance, cap_style=3, join_style=3)
+            part = LineString(lines).buffer(bufferSize, cap_style=3, join_style=3)
 
             for t in tangents:
                 shapes = split(part, t)
                 part = max(shapes, key=lambda p: p.area)
+                part = part.buffer(1, cap_style=3, join_style=3)
 
             parts.append(part)
 
-        extend = Polygon()
-        for part in parts:
-            extend = extend.union(part)
+        return parts
 
-        segment = Polygon(simples).union(extend)
-        points, _ = simplify(segment)
-        return points
+    def removeStraightLine(self, points):
 
-    if len(points) <= maxPoint:
-        return points
+        def angle(origin, point):
+            return math.atan2(origin[1] - point[1], origin[0] - point[0])
+
+        outputs = points[:-1]
+        deviation = angle(outputs[-1], outputs[0]) - angle(outputs[0], outputs[1])
+
+        if abs(deviation) < 0.03:
+            outputs = outputs[1:]
+
+        outputs.append(outputs[0])
+        return outputs
+
+    def expand(self, points):
+        simples = self.simplify(points)
+        simples = simples[:-1]
+
+        origin = Polygon(points)
+        bufferSize = self.tolerance
+        maxBufferSize = self.tolerance + 5
+        baselines = self.findBaseline(points, simples)
+
+        while bufferSize < maxBufferSize:
+            parts = self.unionParts(baselines, simples, bufferSize)
+            extended = Polygon()
+            for part in parts:
+                extended = extended.union(part)
+
+            segment = Polygon(simples).union(extended)
+            outputs = self.simplify(segment)
+            bufferSize += 2
+
+            if Polygon(outputs).buffer(1).contains(origin):
+                break
+
+        outputs = self.removeStraightLine(outputs)
+
+        return outputs
+
+    def process(self, points):
+        if len(points) <= self.maxPoint:
+            return points
+
+        if self.extend:
+            return self.expand(points)
+
+        return self.simplify(points)
+
+    def __call__(self, points):
+        return self.process(points)
+
+
+def simplifyPolygon(points, maxPoint=7, extend=False):
+    """简化多边形
     
-    if boundaries:
-        return extend(points, boundaries)
-
-    return simplify(points)
+    :param points: 列表，多边形的坐标集
+    :param maxPoint: 数字，交集允许的最大点
+    :param extend: 布尔值，边界的做标集，如果存在则简化多边形包含边界
+    :return: 列表，简化后的多边形坐标集和简化的误差值
+    """
+    return SimplifyPolygon(maxPoint=maxPoint, extend=extend)(points)
 
 def decodeSigmetArea(boundaries, area, mode='rectangular'):
     boundary = Polygon(boundaries)

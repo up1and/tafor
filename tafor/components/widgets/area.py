@@ -78,7 +78,7 @@ class Canvas(QWidget):
                     self.points = clipPolygon(self.fir.boundaries(), self.points)
 
                     if self.mode == 'polygon':
-                        self.points = simplifyPolygon(self.points, maxPoint=self.maxPoint, boundaries=self.fir.boundaries())
+                        self.points = simplifyPolygon(self.points, maxPoint=self.maxPoint, extend=True)
                     
                     # make the points clockwise
                     self.points.reverse()
