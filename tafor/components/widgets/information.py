@@ -76,7 +76,7 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
 
     def durationTime(self):
         self.time = datetime.datetime.utcnow()
-        start = ceilTime(self.time, amount=15)
+        start = ceilTime(self.time, amount=10)
         end = start + datetime.timedelta(hours=self.duration)
         return start, end
 

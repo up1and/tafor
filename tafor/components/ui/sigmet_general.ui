@@ -38,7 +38,17 @@
         </item>
         <item>
          <property name="text">
+          <string notr="true">NNE</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
           <string notr="true">NE</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string notr="true">ENE</string>
          </property>
         </item>
         <item>
@@ -48,7 +58,17 @@
         </item>
         <item>
          <property name="text">
+          <string notr="true">ESE</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
           <string notr="true">SE</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string notr="true">SSE</string>
          </property>
         </item>
         <item>
@@ -58,7 +78,17 @@
         </item>
         <item>
          <property name="text">
+          <string notr="true">SSW</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
           <string notr="true">SW</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string notr="true">WSW</string>
          </property>
         </item>
         <item>
@@ -68,7 +98,17 @@
         </item>
         <item>
          <property name="text">
+          <string notr="true">WNW</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
           <string notr="true">NW</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string notr="true">NNW</string>
          </property>
         </item>
         <item>
