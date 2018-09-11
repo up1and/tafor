@@ -18,6 +18,19 @@ def centroid(points):
     point = [point[0] / length, point[1] / length]
     return point
 
+def bearing(origin, point):
+    return math.atan2(origin[1] - point[1], origin[0] - point[0])
+
+def distance(p1, p2):
+    length = (p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2
+    return math.sqrt(length)
+
+def perpendicularFoot(p1, p2, p3):
+    ratio = ((p3[0]- p1[0]) * (p2[0] - p1[0]) + (p3[1] - p1[1]) * (p2[1] - p1[1])) / ((p2[0] - p1[0]) * (p2[0] - p1[0]) + (p2[1] - p1[1]) * (p2[1] - p1[1]))
+    x = p1[0] + ratio * (p2[0] - p1[0])
+    y = p1[1] + ratio * (p2[1] - p1[1])
+    return (x, y)
+
 def extrapolatePoint(origin, point, ratio=10):
     result = (point[0] + ratio * (point[0] - origin[0]), point[1] + ratio * (point[1] - origin[1]))
     return result
@@ -27,16 +40,6 @@ def expandLine(points, ratio=10):
     line[0] = extrapolatePoint(points[1], points[0], ratio)
     line[-1] = extrapolatePoint(points[-2], points[-1], ratio)
     return line
-
-def onBoundary(boundaries, line):
-    for points in zip(boundaries, boundaries[1:]):
-        bound = LineString(points).buffer(0.1)
-        line = LineString(line)
-
-        if bound.contains(line):
-            return True
-
-    return False
 
 def simplifyLine(line):
     values = []
@@ -85,7 +88,6 @@ def clipPolygon(subj, clip):
 class SimplifyPolygon(object):
 
     def __init__(self, maxPoint=7, extend=False):
-        super(SimplifyPolygon, self).__init__()
         self.maxPoint = maxPoint
         self.extend = extend
         self.tolerance = 3
@@ -147,12 +149,8 @@ class SimplifyPolygon(object):
         return parts
 
     def removeStraightLine(self, points):
-
-        def angle(origin, point):
-            return math.atan2(origin[1] - point[1], origin[0] - point[0])
-
         outputs = points[:-1]
-        deviation = angle(outputs[-1], outputs[0]) - angle(outputs[0], outputs[1])
+        deviation = bearing(outputs[-1], outputs[0]) - bearing(outputs[0], outputs[1])
 
         if abs(deviation) < 0.03:
             outputs = outputs[1:]
@@ -243,22 +241,15 @@ def decodeSigmetArea(boundaries, area, mode='rectangular'):
 
     return list(current.exterior.coords)
 
-def encodeSigmetArea(boundaries, area, mode='rectangular'):
 
-    def angle(origin, point):
-        return math.atan2(origin[1] - point[1], origin[0] - point[0])
+class EncodeSigmetArea(object):
 
-    def distance(p1, p2):
-        length = (p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2
-        return math.sqrt(length)
+    def __init__(self, boundaries, area, mode='rectangular'):
+        self.boundaries = boundaries
+        self.area = area
+        self.mode = mode
 
-    def foot(p1, p2, p3):
-        ratio = ((p3[0]- p1[0]) * (p2[0] - p1[0]) + (p3[1] - p1[1]) * (p2[1] - p1[1])) / ((p2[0] - p1[0]) * (p2[0] - p1[0]) + (p2[1] - p1[1]) * (p2[1] - p1[1]))
-        x = p1[0] + ratio * (p2[0] - p1[0])
-        y = p1[1] + ratio * (p2[1] - p1[1])
-        return (x, y)
-
-    def findBearing(angle):
+    def bearingToDirection(self, angle):
         directions = {'SE': -0.25, 'NE': 0.25, 'N': 0.5, 'SW': -0.75, 'W': 1.0, 'NW': 0.75, 'E': 0.0, 'S': -0.5}
         bearing = angle / math.pi
         
@@ -272,62 +263,86 @@ def encodeSigmetArea(boundaries, area, mode='rectangular'):
 
         return identifier
 
-    def nonOverlappingLines(boundaries, area):
+    def nonOverlappingLines(self):
         lines = []
-        boundary = LineString(boundaries).buffer(0.3)
-        for p, q in zip(area, area[1:]):
+        boundary = LineString(self.boundaries).buffer(0.3)
+        for p, q in zip(self.area, self.area[1:]):
             line = LineString([p, q])
             if not boundary.contains(line):
                 lines.append(list(line.coords))
 
         return lines
 
-    def suitableForLine(boundaries, lines):
+    def boundaryContainsLine(self, line):
+        for points in zip(self.boundaries, self.boundaries[1:]):
+            bound = LineString(points).buffer(0.1)
+            line = LineString(line)
+            if bound.contains(line):
+                return True
+
+        return False
+
+    def lineIntersectsSameBoundary(self, lines):
         for line in lines:
             straightLine = [line[0], line[-1]]
-            if onBoundary(boundaries, straightLine):
-                return False
+            if self.boundaryContainsLine(straightLine):
+                return True
 
-        return True
+        return False
 
-    def createArea(lines):
+    def centerNotInPolygon(self):
+        polygon = Polygon(self.area)
+        return polygon.disjoint(polygon.centroid)
+
+    def createArea(self, lines):
         segment = []
 
         points = []
         for line in lines:
             points += line
 
-        exlude = set(area) - set(points)
+        exlude = set(self.area) - set(points)
         if not exlude:
-            exlude = area
+            exlude = self.area
         center = centroid(exlude)
 
         for line in lines:
             vector = [0, 0]
             for p, q in zip(line, line[1:]):
-                point = foot(p, q, center)
-                radian = angle(center, point)
+                point = perpendicularFoot(p, q, center)
+                radian = bearing(center, point)
                 scale = distance(p, q)
                 vec = (math.cos(radian) * scale, math.sin(radian) * scale)
                 vector[0] += vec[0]
                 vector[1] += vec[1]
 
-            identifier = findBearing(angle(vector, [0, 0]))
+            identifier = self.bearingToDirection(bearing(vector, [0, 0]))
             segment.append([identifier] + line)
 
         return segment
 
-    def rectangular():
-        lines = nonOverlappingLines(boundaries, area)
-        segment = createArea(lines)
+    def rectangular(self):
+        lines = self.nonOverlappingLines()
+        segment = self.createArea(lines)
         return segment
 
-    def line():
-        segment = []
-        lines = nonOverlappingLines(boundaries, area)
+    def line(self):
+        lines = self.nonOverlappingLines()
         lines = connectLine(lines)
-        segment = createArea(lines)
+
+        if self.centerNotInPolygon() or self.lineIntersectsSameBoundary(lines):
+            return []
+
+        segment = self.createArea(lines)
         return segment
 
-    func = locals().get(mode, rectangular)
-    return func()
+    def encode(self):
+        if self.mode == 'rectangular':
+            return self.rectangular()
+
+        if self.mode == 'line':
+            return self.line()
+
+
+def encodeSigmetArea(boundaries, area, mode='rectangular'):
+    return EncodeSigmetArea(boundaries, area, mode=mode).encode()
