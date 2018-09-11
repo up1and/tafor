@@ -137,12 +137,12 @@ class SimplifyPolygon(object):
             fowardTangent = expandLine([simples[foward], lines[-1]], ratio=100)
             tangents = [LineString(prevTangent), LineString(fowardTangent)]
 
-            part = LineString(lines).buffer(bufferSize, cap_style=3, join_style=3)
+            part = LineString(lines).buffer(bufferSize, resolution=1, cap_style=3, join_style=3)
 
             for t in tangents:
                 shapes = split(part, t)
                 part = max(shapes, key=lambda p: p.area)
-                part = part.buffer(1, cap_style=3, join_style=3)
+                part = part.buffer(0.5, resolution=1, cap_style=3, join_style=3)
 
             parts.append(part)
 
@@ -152,7 +152,7 @@ class SimplifyPolygon(object):
         outputs = points[:-1]
         deviation = bearing(outputs[-1], outputs[0]) - bearing(outputs[0], outputs[1])
 
-        if abs(deviation) < 0.03:
+        if abs(deviation) < 0.04:
             outputs = outputs[1:]
 
         outputs.append(outputs[0])
