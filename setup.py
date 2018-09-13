@@ -79,7 +79,26 @@ setup(
     description='A Terminal Aerodrome Forecast Encoding Software',
     long_description=fread('README.md'),
     license='GPLv2',
+    keywords = 'aviation taf sigmet',
     tests_require=['pytest'],
-    cmdclass = {'test': PyTest, 'docs': SphinxCommand, 'build_exe': PyInstallerCommand},
-    platforms='any',
-    )
+    cmdclass ={'test': PyTest, 'docs': SphinxCommand, 'build_exe': PyInstallerCommand},
+    platforms=['Windows', 'Linux', 'Mac OS-X'],
+    classifiers=[
+        'Development Status :: 4 - Beta',
+        'Intended Audience :: Developers',
+        'Intended Audience :: Other Audience',
+        'License :: OSI Approved :: GNU General Public License v2 (GPLv2)',
+        'Operating System :: MacOS',
+        'Operating System :: Microsoft :: Windows',
+        'Operating System :: POSIX :: Linux',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Topic :: Scientific/Engineering',
+      ],
+    entry_points={
+        'gui_scripts': [
+            'tafor = tafor.app:main',
+        ],
+    },
+)
