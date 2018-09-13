@@ -4,8 +4,8 @@ from PyQt5.QtGui import QFont, QPixmap
 from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox, QLabel, QHBoxLayout
 
-from tafor import conf, boolean
-from tafor.utils import CheckTaf
+from tafor import conf
+from tafor.utils import boolean, CheckTaf
 from tafor.components.ui import main_rc, Ui_main_recent
 
 

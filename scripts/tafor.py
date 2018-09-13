@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 
 from flask import Flask, request, jsonify, render_template, url_for
 
-BASEDIR = os.path.abspath(os.path.dirname(__file__))
+root = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__, static_url_path='/static')
 
@@ -38,12 +38,12 @@ def marshal(messages):
 
 def load_fir(mwo, remote=False):
     mwo = mwo.upper()
-    boundary_path = os.path.join(BASEDIR, 'config', 'boundary.json')
+    boundary_path = os.path.join(root, 'config', 'boundary.json')
     with open(boundary_path) as data:
         boundaries = json.load(data)
 
     file = 'remote.json' if remote else 'local.json'
-    info_path = os.path.join(BASEDIR, 'config', file)
+    info_path = os.path.join(root, 'config', file)
     with open(info_path) as data:
         infos = json.load(data)
 

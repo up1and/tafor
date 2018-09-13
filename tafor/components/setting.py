@@ -6,9 +6,10 @@ from PyQt5.QtGui import QIcon, QIntValidator
 from PyQt5.QtCore import QCoreApplication, QSettings, QTimer, Qt
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QTableWidgetItem, QFileDialog
 
-from tafor.components.ui import Ui_setting, main_rc
+from tafor import conf, logger, root
+from tafor.utils import boolean
 from tafor.models import db, User
-from tafor import conf, boolean, logger, BASEDIR
+from tafor.components.ui import Ui_setting, main_rc
 
 
 _options = [

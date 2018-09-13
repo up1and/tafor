@@ -7,10 +7,10 @@ from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy
         QSystemTrayIcon, QMenu, QMessageBox)
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 
-from tafor import BASEDIR, conf, logger, boolean, __version__
+from tafor import root, conf, logger, __version__
 from tafor.models import db, User, Taf, Sigmet, Trend
 from tafor.states import context
-from tafor.utils import Listen, checkVersion
+from tafor.utils import boolean, checkVersion, Listen
 from tafor.utils.service import currentSigmet
 from tafor.utils.thread import WorkThread, FirInfoThread, CallThread, CheckUpgradeThread
 
@@ -393,15 +393,15 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
                     significant meteorological information, monitor the message, return the alarm by sound or telephone''')
         tail = QCoreApplication.translate('MainWindow', 
                     '''The project is under GPL-2.0 License, Pull Request and Issue are welcome''')
-        copyright = '<br/>© UP1AND 2018'
+        copyright = '<br/>© up1and 2018'
         text = '<p>'.join([head, description, tail, copyright])
 
         self.showNormal()
         QMessageBox.about(self, title, text)
 
     def openDocs(self):
-        devDocs = os.path.join(BASEDIR, '../docs/_build/html/index.html')
-        releaseDocs = os.path.join(BASEDIR, 'docs/_build/html/index.html')
+        devDocs = os.path.join(root, '../docs/_build/html/index.html')
+        releaseDocs = os.path.join(root, 'docs/_build/html/index.html')
 
         if os.path.exists(devDocs):
             url = QUrl.fromLocalFile(devDocs)
@@ -441,7 +441,7 @@ def main():
     app = QApplication(sys.argv)
     translator = QTranslator()
     locale = QLocale.system().name()
-    translateFile = os.path.join(BASEDIR, 'i18n\\translations', '{}.qm'.format(locale))
+    translateFile = os.path.join(root, 'i18n\\translations', '{}.qm'.format(locale))
     if translator.load(translateFile):
         app.installTranslator(translator)
 

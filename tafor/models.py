@@ -7,14 +7,15 @@ from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 
-from tafor import BASEDIR
+from tafor import root
 
 if os.environ.get('TAFOR_ENV') == 'TEST':
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(BASEDIR, 'test-db.sqlite3')
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(root, 'test-db.sqlite3')
 else:
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(BASEDIR, 'db.sqlite3')
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(root, 'db.sqlite3')
 
 Base = declarative_base()
+
 
 class Taf(Base):
     __tablename__ = 'tafs'

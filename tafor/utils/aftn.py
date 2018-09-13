@@ -21,7 +21,6 @@ class AFTNMessage(object):
 
     """
     def __init__(self, text, reportType='TAF', time=None):
-        super(AFTNMessage, self).__init__()
         self.text = text.split('\n')
         self.reportType = reportType
         self.time = datetime.datetime.utcnow() if time is None else time

@@ -4,7 +4,8 @@ from PyQt5.QtGui import QFontMetrics
 from PyQt5.QtCore import QCoreApplication, QTimer, QSize, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QMessageBox
 
-from tafor import conf, logger, boolean
+from tafor import conf, logger
+from tafor.utils import boolean
 from tafor.components.ui import Ui_send
 from tafor.models import db, Taf, Task, Trend, Sigmet
 from tafor.utils import TafParser, SigmetParser, AFTNMessage

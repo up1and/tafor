@@ -1,5 +1,6 @@
 import re
 import copy
+
 from collections import OrderedDict
 
 from tafor.utils.convert import parseTimez, parseTimeInterval

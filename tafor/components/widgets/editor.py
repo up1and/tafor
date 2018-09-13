@@ -1,7 +1,8 @@
 from PyQt5.QtCore import QCoreApplication, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QMessageBox
 
-from tafor import boolean, conf
+from tafor import conf
+from tafor.utils import boolean
 
 
 class BaseEditor(QDialog):
