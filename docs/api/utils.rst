@@ -25,5 +25,3 @@
 .. autofunction:: listToPoint
 
 .. autofunction:: pointToList
-
-.. autofunction:: clipPolygon
