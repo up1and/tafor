@@ -2,14 +2,19 @@ import requests
 
 from PyQt5.QtCore import QThread, pyqtSignal
 
-from tafor import conf, logger
+from tafor import conf, logger, __version__
 from tafor.states import context
 from tafor.utils import serialComm
 
 
+_headers = {
+    'User-Agent': 'tafor/{}'.format(__version__)
+}
+
+
 def remoteMessage(url):
     try:
-        r = requests.get(url, timeout=30)
+        r = requests.get(url, headers=_headers, timeout=30)
         if r.status_code == 200:
             return r.json()
         else:
@@ -25,7 +30,7 @@ def remoteMessage(url):
 
 def firInfo(url):
     try:
-        r = requests.get(url, timeout=30)
+        r = requests.get(url, headers=_headers, timeout=30)
         if r.status_code == 200:
             data = r.json()
             imageUrl = data['image']
@@ -45,7 +50,7 @@ def firInfo(url):
 
 def callUp(url, token, mobile):
     try:
-        r = requests.post(url, auth=('api', token), data={'mobile': mobile, 'code': '000000'}, timeout=30)
+        r = requests.post(url, headers=_headers, auth=('api', token), data={'mobile': mobile, 'code': '000000'}, timeout=30)
         if r.status_code in [200, 201]:
             logger.info('Dial {} successfully'.format(mobile))
             return r.json()
@@ -60,7 +65,7 @@ def callUp(url, token, mobile):
 
 def callService(url):
     try:
-        r = requests.get(url, timeout=5)
+        r = requests.get(url, headers=_headers, timeout=5)
         return r.json()
 
     except requests.exceptions.ConnectionError:
@@ -71,7 +76,7 @@ def callService(url):
 
 def repoRelease(url):
     try:
-        r = requests.get(url, timeout=30)
+        r = requests.get(url, headers=_headers, timeout=30)
         return r.json()
 
     except requests.exceptions.ConnectionError:

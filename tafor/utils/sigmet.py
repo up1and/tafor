@@ -209,6 +209,12 @@ def simplifyPolygon(points, maxPoint=7, extend=False):
 
 def decodeSigmetArea(boundaries, area, mode='rectangular'):
     boundary = Polygon(boundaries)
+
+    if mode == 'polygon':
+        polygon = Polygon(area)
+        polygon = polygon.intersection(boundary)
+        return list(polygon.exterior.coords)
+
     polygons = []
     for identifier, points in area:
         expands = expandLine(points)

@@ -84,9 +84,14 @@ class FirState(object):
         for sig in self._state['sigmets']:
             area = sig.area()
             if area['type'] == 'polygon':
-                degrees = [(degreeToDecimal(lng), degreeToDecimal(lat)) for lat, lng in area['area']]
-                polygon = self.degreeToPixel(degrees)
-                areas.append(polygon)
+                decimals = [(degreeToDecimal(lng), degreeToDecimal(lat)) for lat, lng in area['area']]
+
+                try:
+                    polygon = decodeSigmetArea(self._state['boundaries'], decimals, mode='polygon')
+                    polygon = self.degreeToPixel(polygon)
+                    areas.append(polygon)
+                except Exception as e:
+                    logger.error(e)
 
             elif area['type'] == 'line':
                 decimals = []
