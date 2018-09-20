@@ -24,6 +24,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
 
         self.parent = parent
         self.aftn = None
+        self.state = None
         self.item = None
 
         self.sendButton = self.buttonBox.button(QDialogButtonBox.Ok)
@@ -60,10 +61,13 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.resizeRpt()
 
     def showRawGroup(self, error):
+        self.sendButton.setText(QCoreApplication.translate('Sender', 'Send'))
+
+        if self.state is None:
+            return None
+
         self.raw.setText(self.aftn.toString())
         self.rawGroup.show()
-        self.sendButton.setText(QCoreApplication.translate('Sender', 'Send'))
-        self.parent.settingDialog.loadSerialNumber()
 
         if error:
             self.rawGroup.setTitle(QCoreApplication.translate('Sender', 'Send Failed'))
@@ -82,11 +86,14 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             if ret != QMessageBox.Yes:
                 return None
 
-        if not isinstance(self.aftn, AFTNMessage):
+        if self.state is None:
             self.aftn = AFTNMessage(self.message['full'], self.reportType)
+
+        self.state = self.aftn
 
         self.sendButton.setEnabled(False)
         self.sendButton.setText(QCoreApplication.translate('Sender', 'Sending'))
+        self.parent.settingDialog.loadSerialNumber()
 
         message = self.aftn.toString()
 
@@ -115,7 +122,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.rpt.setMaximumSize(QSize(16777215, textHeight))
 
     def clear(self):
-        self.aftn = None
+        self.state = None
         self.item = None
         self.rpt.setText('')
         self.rawGroup.hide()

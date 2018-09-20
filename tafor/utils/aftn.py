@@ -28,7 +28,7 @@ class AFTNMessage(object):
         maxLineChar = conf.value('Communication/MaxLineChar')
         self.maxSendAddress = int(maxSendAddress) if maxSendAddress else 21  # AFTN 线路最大发电地址数
         self.maxLineChar = int(maxLineChar) if maxLineChar else 69  # AFTN 线路每行最大字符数
-        self.lineBreak = '\n'
+        self.lineBreak = '\r\n'
 
         self.generate()
 
@@ -37,7 +37,7 @@ class AFTNMessage(object):
         
         :return: 字符串，多份报文用 4 个换行符连接
         """
-        return '\n\n\n\n'.join(self.messages)
+        return '\r\n\r\n\r\n\r\n'.join(self.messages)
 
     def toJson(self):
         """生成 JSON 格式的报文
