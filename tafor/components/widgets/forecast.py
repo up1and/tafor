@@ -162,13 +162,14 @@ class BaseSegment(QWidget, SegmentMixin):
         if not self.gust.hasAcceptableInput():
             return
 
+        wind = self.wind.text()
         windSpeed = self.wind.text()[-2:] if self.wind.hasAcceptableInput() else 0
         gust = self.gust.text()
 
         if gust == 'P49':
             return
 
-        if windSpeed == 0 or int(gust) - int(windSpeed) < 5:
+        if windSpeed == 0 or int(gust) - int(windSpeed) < 5 or wind == '00000':
             self.gust.clear()
 
     def validateCloud(self, line):
