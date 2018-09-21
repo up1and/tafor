@@ -61,6 +61,8 @@ class SigmetEditor(BaseEditor):
         self.sigmetCustom.head.completeSignal.connect(self.enbaleNextButton)
         self.sigmetCustom.content.completeSignal.connect(self.enbaleNextButton)
 
+        self.sender.sendSignal.connect(self.updateState)
+
     def changeSegment(self, a):
         if self.type.template.isChecked():
             if self.type.significantWeather.isChecked():
@@ -129,6 +131,11 @@ class SigmetEditor(BaseEditor):
         self.enbale = all(completes)
         self.nextButton.setEnabled(self.enbale)
 
+    def updateState(self):
+        self.currentSegment.head.updateState()
+        if self.currentSegment == self.sigmetCancel:
+            self.currentSegment.updateState()
+
     def clear(self):
         self.sigmetGeneral.clear()
         self.sigmetTyphoon.clear()
@@ -141,6 +148,6 @@ class SigmetEditor(BaseEditor):
     def showEvent(self, event):
         # 检查必要配置是否完成
         if isConfigured('SIGMET'):
-            self.currentSegment.head.updateState()
+            self.updateState()
         else:
             QTimer.singleShot(0, self.showConfigError)

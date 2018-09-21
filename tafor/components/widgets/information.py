@@ -824,6 +824,9 @@ class SigmetCancelSegment(BaseSegment):
         self.content.sequence.addItems(sequences)
 
     def setValids(self, sequence):
+        self.content.beginningTime.clear()
+        self.content.endingTime.clear()
+        
         valids = self.prevs.get(sequence)
         if valids:
             self.content.beginningTime.setText(valids[0])
