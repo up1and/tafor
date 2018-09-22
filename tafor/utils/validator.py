@@ -627,8 +627,9 @@ class TafParser(object):
                     else:
                         legal = verify(self.reference[key]['text'], e.tokens[key]['text'])
 
-                    if key == 'weather' and 'vis' in e.tokens and not e.tokens['vis']['error']:
+                    if key == 'weather' and 'vis' in e.tokens and not e.tokens['vis']['error'] or e.tokens[key]['error']:
                         # 引起能见度变化的天气现象
+                        # 天气现象已判断为有误
                         pass
                     else:
                         e.tokens[key]['error'] = not legal

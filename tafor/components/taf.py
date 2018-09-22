@@ -281,7 +281,6 @@ class BaseTafEditor(BaseEditor):
 
         def isIntervalOverlay(interval, periods):
             for p in periods:
-                print('overlap: ', interval, p, isOverlap(interval, p))
                 if isOverlap(interval, p):
                     return True
 
