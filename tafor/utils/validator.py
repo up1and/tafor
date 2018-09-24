@@ -394,7 +394,7 @@ class TafLexer(object):
             rules = self.defaultRules
 
         for key in rules:
-            if 'TAF' in self.part and key == 'interval':
+            if 'TAF' in self.part and key == 'interval' or 'TAF' not in self.part and key == 'icao':
                 continue
 
             pattern = getattr(self.grammar, key)
