@@ -1,5 +1,7 @@
 import math
 
+from itertools import chain
+
 from shapely.ops import split
 from shapely.geometry import Polygon, LineString, Point
 
@@ -53,17 +55,31 @@ def simplifyLine(line):
     return line
 
 def connectLine(lines):
-    for line in lines:
-        for current in lines:
-            if line[-1] == current[0]:
-                points = line[:-1] + current
-            elif line[0] == current[-1]:
-                points = current[:-1] + line
+    
+    def canConnect(lines):
+        points = list(chain(*lines))
+        return len(points) != len(set(points))
 
-            if line[-1] == current[0] or line[0] == current[-1]:
-                lines.append(points)
-                lines.remove(line)
-                lines.remove(current)
+    def connect(lines):
+        for line in lines:
+            for current in lines:
+                if line[-1] == current[0]:
+                    points = line[:-1] + current
+                elif line[0] == current[-1]:
+                    points = current[:-1] + line
+
+                if line[-1] == current[0] or line[0] == current[-1]:
+                    lines.append(points)
+                    lines.remove(line)
+                    lines.remove(current)
+
+        return lines
+
+    while canConnect(lines):
+        try:
+            lines = connect(lines)
+        except Exception as e:
+            lines = []
 
     return lines
 
