@@ -11,7 +11,7 @@ from tafor import root, conf, logger, __version__
 from tafor.models import db, User, Taf, Sigmet, Trend
 from tafor.states import context
 from tafor.utils import boolean, checkVersion, Listen
-from tafor.utils.service import currentSigmet
+from tafor.utils.service import currentSigmet, DelaySend
 from tafor.utils.thread import WorkThread, FirInfoThread, CallThread, CheckUpgradeThread
 
 from tafor.components.ui import Ui_main, main_rc
@@ -41,6 +41,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.workerTimer = QTimer()
         self.workerTimer.timeout.connect(self.worker)
+        self.workerTimer.timeout.connect(self.sender)
         self.workerTimer.start(60 * 1000)
 
         self.painterTimer = QTimer()
@@ -245,6 +246,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.trendEditor.close()
             self.sigmetEditor.close()
             self.settingDialog.close()
+            self.remindBox.close()
 
             if boolean(conf.value('General/Serious')):
                 self.taskTafSender.setAttribute(Qt.WA_DeleteOnClose)
@@ -290,6 +292,15 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         if callSwitch and context.taf.isWarning() or test:
             self.callThread.start()
+
+    def sender(self):
+        if boolean(conf.value('General/Serious')):
+            if context.serial.busy():
+                logger.info('Serial port is busy')
+                return
+
+            delay = DelaySend(self)
+            delay.start()
 
     def remindTaf(self, tt):
         remindSwitch = boolean(conf.value('Monitor/RemindTAF'))
@@ -457,7 +468,7 @@ def main():
 
     # 如果连接成功，表明server已经存在，当前已有实例在运行
     if socket.waitForConnected(500):
-        return(app.quit())
+        return app.quit()
 
     # 没有实例运行，创建服务器     
     localServer = QLocalServer()

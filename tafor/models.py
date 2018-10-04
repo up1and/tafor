@@ -82,7 +82,7 @@ class Task(Base):
         self.planning = planning
 
     def __repr__(self):
-        return '<Task TAF %r %r %r>' % (self.tt, self.rpt, self.planning)
+        return '<Task %r %r %r>' % (self.tt, self.rpt, self.planning)
 
 class Trend(Base):
     __tablename__ = 'trends'

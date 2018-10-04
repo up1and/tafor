@@ -136,9 +136,7 @@ class TafSender(BaseSender):
 
     def __init__(self, parent=None):
         super(TafSender, self).__init__(parent)
-
         self.reportType = 'TAF'
-
         self.buttonBox.accepted.connect(self.send)
 
     def save(self):
@@ -158,62 +156,24 @@ class TaskTafSender(BaseSender):
 
     def __init__(self, parent=None):
         super(TaskTafSender, self).__init__(parent)
-
         self.setWindowTitle(QCoreApplication.translate('Sender', 'Timing Tasks'))
-
         self.reportType = 'TAF'
-
         self.buttonBox.accepted.connect(self.save)
         self.buttonBox.accepted.connect(self.accept)
-
-        # 自动发送报文的计时器
-        self.autoSendTimer = QTimer()
-        self.autoSendTimer.timeout.connect(self.autoSend)
-        self.autoSendTimer.start(30 * 1000)
-
-        # 测试数据
-        # self.taskTime = datetime.datetime.utcnow() + datetime.timedelta(minutes=1)
 
     def save(self):
         self.item = Task(tt=self.message['sign'][0:2], sign=self.message['sign'], rpt=self.message['rpt'], planning=self.message['planning'])
         db.add(self.item)
         db.commit()
-        logger.debug('Save Task {}'.format(self.item.planning.strftime('%b %d %Y %H:%M:%S')))
+        logger.debug('Task {} will be sent on {}'.format(self.item.rpt, self.item.planning.strftime('%Y-%m-%d %H:%M:%S')))
         self.sendSignal.emit()
-
-    def autoSend(self):
-        tasks = db.query(Task).filter_by(taf_id=None).order_by(Task.planning).all()
-        now = datetime.datetime.utcnow()
-        sendStatus = False
-
-        for task in tasks:
-
-            if task.planning <= now:
-
-                message = '\n'.join([task.head, task.rpt])
-                aftn = AFTNMessage(message, time=task.planning)
-                item = Taf(tt=task.tt, sign=task.head, rpt=task.rpt, raw=aftn.toJson())
-                db.add(item)
-                db.flush()
-                task.taf_id = item.id
-                db.merge(task)
-                db.commit()
-
-                sendStatus = True
-
-        logger.debug('Tasks ' + ' '.join(task.rpt for task in tasks))
-        
-        if sendStatus:
-            logger.debug('Task complete')
 
 
 class TrendSender(BaseSender):
 
     def __init__(self, parent=None):
         super(TrendSender, self).__init__(parent)
-
         self.reportType = 'Trend'
-
         self.buttonBox.accepted.connect(self.send)
 
     def receive(self, message):
@@ -237,9 +197,7 @@ class SigmetSender(BaseSender):
 
     def __init__(self, parent=None):
         super(SigmetSender, self).__init__(parent)
-
         self.reportType = 'SIGMET'
-
         self.buttonBox.accepted.connect(self.send)
 
     def receive(self, message):

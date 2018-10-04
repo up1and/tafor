@@ -205,7 +205,7 @@ class CallServiceState(object):
 class SerialState(object):
     _lock = False
 
-    def isBusy(self):
+    def busy(self):
         return self._lock
 
     def lock(self):
