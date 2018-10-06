@@ -41,7 +41,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.workerTimer = QTimer()
         self.workerTimer.timeout.connect(self.worker)
-        self.workerTimer.timeout.connect(self.sender)
+        if boolean(conf.value('General/Serious')):
+            self.workerTimer.timeout.connect(self.sender)
         self.workerTimer.start(60 * 1000)
 
         self.painterTimer = QTimer()
@@ -111,6 +112,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         # 连接切换联系人的槽
         self.contractsActionGroup.triggered.connect(self.changeContract)
         self.contractsActionGroup.triggered.connect(self.settingDialog.load)
+
+        self.tray.messageClicked.connect(self.showNormal)
 
     def setRecent(self):
         self.clock = Clock(self, self.tipsLayout)
@@ -294,13 +297,21 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.callThread.start()
 
     def sender(self):
-        if boolean(conf.value('General/Serious')):
-            if context.serial.busy():
-                logger.info('Serial port is busy')
-                return
+        if context.serial.busy():
+            logger.info('Serial port is busy')
+            return
 
-            delay = DelaySend(self)
-            delay.start()
+        def afterSending(message, error):
+            if error:
+                self.showMessage(QCoreApplication.translate('MainWindow', 'Send Failed'),
+                    QCoreApplication.translate('MainWindow', error))
+            else:
+                self.showMessage(QCoreApplication.translate('MainWindow', 'Send Completed'),
+                    QCoreApplication.translate('MainWindow', message))
+                self.updateGui()
+
+        self.delaySend = DelaySend(callback=afterSending)
+        self.delaySend.start()
 
     def remindTaf(self, tt):
         remindSwitch = boolean(conf.value('Monitor/RemindTAF'))
@@ -311,9 +322,9 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         clock = state[tt]['clock']
         period = state[tt]['period']
         sent = state[tt]['sent']
-        warnning = state[tt]['warnning']
+        warning = state[tt]['warning']
 
-        if clock and not warnning and not sent:
+        if clock and not warning and not sent:
             current = tt + period[2:]
             text = QCoreApplication.translate('MainWindow', 'Time to post {}').format(current)
             self.ringSound.play()
@@ -339,7 +350,12 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.sigmetSound.stop()
 
     def updateMessage(self):
-        listen = Listen(parent=self)
+
+        def afterSaving():
+            self.notificationSound.play(loop=False)
+            self.remindBox.close()
+
+        listen = Listen(callback=afterSaving)
         [listen(i) for i in ('FC', 'FT', 'SA', 'SP')]
 
         self.updateGui()
@@ -395,6 +411,11 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.tafTable.updateGui()
         self.metarTable.updateGui()
         self.sigmetTable.updateGui()
+
+    def showMessage(self, title, content, icon='information'):
+        icons = ['noicon', 'information', 'warning', 'critical']
+        icon = QSystemTrayIcon.MessageIcon(icons.index(icon))
+        self.tray.showMessage(title, content, icon)
 
     def about(self):
         title = QCoreApplication.translate('MainWindow', 'Terminal Aerodrome Forecast Encoding Software')
@@ -466,11 +487,9 @@ def main():
     socket = QLocalSocket()
     socket.connectToServer(serverName)
 
-    # 如果连接成功，表明server已经存在，当前已有实例在运行
     if socket.waitForConnected(500):
         return app.quit()
 
-    # 没有实例运行，创建服务器     
     localServer = QLocalServer()
     localServer.listen(serverName)
 

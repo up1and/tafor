@@ -1,7 +1,7 @@
 import datetime
 
 from PyQt5.QtGui import QIcon, QRegExpValidator
-from PyQt5.QtCore import Qt, QRegExp
+from PyQt5.QtCore import QCoreApplication, Qt, QRegExp
 from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QHeaderView
 
 from sqlalchemy import or_, and_
@@ -121,7 +121,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
     def copySelected(self, item):
         self.parent.clip.setText(item.text())
-        self.parent.statusBar.showMessage(item.text(), 5000)
+        self.parent.statusBar.showMessage(QCoreApplication.translate('MainWindow', 'Selected message has been copied'), 5000)
         
 
 class TafTable(BaseDataTable):

@@ -2,7 +2,7 @@ import datetime
 
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QCoreApplication, QTimer, Qt
-from PyQt5.QtWidgets import QWidget, QMessageBox, QVBoxLayout, QPushButton, QLayout
+from PyQt5.QtWidgets import QWidget, QMessageBox, QVBoxLayout, QLayout
 
 from tafor import logger
 from tafor.utils import CheckTaf
@@ -27,9 +27,6 @@ class BaseTafEditor(BaseEditor):
         self.primary = TafPrimarySegment()
         self.becmgs = self.becmg1, self.becmg2, self.becmg3 = TafBecmgSegment('BECMG1'), TafBecmgSegment('BECMG2'), TafBecmgSegment('BECMG3')
         self.tempos = self.tempo1, self.tempo2, self.tempo3= TafTempoSegment('TEMPO1'), TafTempoSegment('TEMPO2'), TafTempoSegment('TEMPO3')
-        self.nextButton = QPushButton()
-        self.nextButton.setEnabled(False)
-        self.nextButton.setText(QCoreApplication.translate('Editor', 'Next'))
         layout.addWidget(self.primary)
         layout.addWidget(self.becmg1)
         layout.addWidget(self.becmg2)
@@ -37,10 +34,10 @@ class BaseTafEditor(BaseEditor):
         layout.addWidget(self.tempo1)
         layout.addWidget(self.tempo2)
         layout.addWidget(self.tempo3)
-        layout.addWidget(self.nextButton, 0, Qt.AlignRight|Qt.AlignBottom)
+        self.addBottomBox(layout)
         self.setLayout(layout)
 
-        self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px}')
+        self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px;}')
 
         self.becmg1.hide()
         self.becmg2.hide()
@@ -241,7 +238,7 @@ class BaseTafEditor(BaseEditor):
 
             if not valid:
                 line.clear()
-                self.parent.statusBar.showMessage(QCoreApplication.translate('Editor', 'Hour of temperature is not corret'), 5000)
+                self.showNotificationMessage(QCoreApplication.translate('Editor', 'The time of temperature is not corret'))
 
     def validateTemperature(self):
         tmax = self.primary.tmax.text()
@@ -269,15 +266,15 @@ class BaseTafEditor(BaseEditor):
         interval = start, end = self.groupInterval(line.text())
         if start < self.periods[0] or self.periods[1] < start:
             line.clear()
-            self.parent.statusBar.showMessage(QCoreApplication.translate('Editor', 'Start time of change group is not corret {}').format(start.strftime('%Y-%m-%d %H:%M:%S')), 5000)
+            self.showNotificationMessage(QCoreApplication.translate('Editor', 'Start time of change group is not corret'))
 
         if end < self.periods[0] or self.periods[1] < end:
             line.clear()
-            self.parent.statusBar.showMessage(QCoreApplication.translate('Editor', 'End time of change group is not corret {}').format(end.strftime('%Y-%m-%d %H:%M:%S')), 5000)
+            self.showNotificationMessage(QCoreApplication.translate('Editor', 'End time of change group is not corret'))
 
         if end - start > datetime.timedelta(hours=maxTime):
             line.clear()
-            self.parent.statusBar.showMessage(QCoreApplication.translate('Editor', 'Change group time more than {} hours').format(maxTime), 5000)
+            self.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time more than {} hours').format(maxTime))
 
         def isIntervalOverlay(interval, periods):
             for p in periods:
@@ -288,7 +285,7 @@ class BaseTafEditor(BaseEditor):
         periods = [g.periods for g in groups if g.periods and group != g]
         if isIntervalOverlay(interval, periods):
             line.clear()
-            self.parent.statusBar.showMessage(QCoreApplication.translate('Editor', 'Change group time is overlap').format(maxTime), 5000)
+            self.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time is overlap'))
         else:
             group.periods = interval
 

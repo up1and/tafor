@@ -1,4 +1,5 @@
 from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtWidgets import QDialog, QHeaderView, QTableWidgetItem
 
 from tafor import logger
@@ -52,6 +53,6 @@ class TaskBrowser(QDialog, Ui_task.Ui_Tasks):
 
     def copySelected(self, item):
         self.parent.clip.setText(item.text())
-        self.parent.statusBar.showMessage(item.text(), 5000)
+        self.parent.statusBar.showMessage(QCoreApplication.translate('MainWindow', 'Selected message has been copied'), 5000)
 
 

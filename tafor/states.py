@@ -225,20 +225,20 @@ class TafState(QObject):
             'FC': {
                 'period': '',
                 'sent': False,
-                'warnning': False,
+                'warning': False,
                 'clock': False,
             },
             'FT': {
                 'period': '',
                 'sent': False,
-                'warnning': False,
+                'warning': False,
                 'clock': False,
             }
         }
 
     def isWarning(self):
-        warnnings = [v['warnning'] for k, v in self._state.items()]
-        return any(warnnings)
+        warnings = [v['warning'] for k, v in self._state.items()]
+        return any(warnings)
 
     def state(self):
         return self._state
@@ -248,7 +248,7 @@ class TafState(QObject):
         self._state.update(values)
 
         for tt, state in values.items():
-            if 'warnning' in state:
+            if 'warning' in state:
                 self.warningSignal.emit()
 
             if 'clock' in state:

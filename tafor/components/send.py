@@ -5,11 +5,10 @@ from PyQt5.QtCore import QCoreApplication, QTimer, QSize, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QMessageBox
 
 from tafor import conf, logger
-from tafor.utils import boolean
-from tafor.components.ui import Ui_send
 from tafor.models import db, Taf, Task, Trend, Sigmet
-from tafor.utils import TafParser, SigmetParser, AFTNMessage
+from tafor.utils import boolean, TafParser, SigmetParser, AFTNMessage
 from tafor.utils.thread import SerialThread
+from tafor.components.ui import Ui_send
 
 
 class BaseSender(QDialog, Ui_send.Ui_Sender):
@@ -97,10 +96,10 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
 
         message = self.aftn.toString()
 
-        thread = SerialThread(message, self)
-        thread.doneSignal.connect(self.showRawGroup)
-        thread.doneSignal.connect(self.save)
-        thread.start()
+        self.thread = SerialThread(message, self)
+        self.thread.doneSignal.connect(self.showRawGroup)
+        self.thread.doneSignal.connect(self.save)
+        self.thread.start()
 
     def closeEvent(self, event):
         if event.spontaneous():

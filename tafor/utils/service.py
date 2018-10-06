@@ -46,11 +46,11 @@ def currentSigmet(tt=None, order='desc', hasCnl=False):
 
 class DelaySend(object):
 
-    def __init__(self, parent=None):
+    def __init__(self, callback=None):
         self.task = None
         self.item = None
         self.aftn = None
-        self.parent = parent
+        self.callback = callback
 
         now = datetime.datetime.utcnow()
         tasks = db.query(Task).filter(Task.taf_id==None, Task.planning<=now).all()
@@ -64,11 +64,13 @@ class DelaySend(object):
         message = '\n'.join([self.task.sign, self.task.rpt])
         self.aftn = AFTNMessage(message, time=self.task.planning)
 
-        thread = SerialThread(self.aftn.toString())
-        thread.doneSignal.connect(self.commit)
-        thread.start()
+        self.thread = SerialThread(self.aftn.toString())
+        self.thread.doneSignal.connect(self.commit)
+        self.thread.start()
 
     def commit(self, error):
+        self.callback(self.task.rpt, error)
+        
         if error:
             return 
 

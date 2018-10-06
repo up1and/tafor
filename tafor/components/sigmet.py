@@ -1,5 +1,5 @@
 from PyQt5.QtCore import QCoreApplication, QTimer, Qt
-from PyQt5.QtWidgets import QVBoxLayout, QPushButton, QLayout
+from PyQt5.QtWidgets import QVBoxLayout, QLayout
 
 from tafor import logger
 from tafor.components.setting import isConfigured
@@ -15,7 +15,7 @@ class SigmetEditor(BaseEditor):
         self.bindSignal()
         
         self.setWindowTitle(QCoreApplication.translate('Editor', 'Encoding Significant Meteorological Information'))
-        self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px}')
+        self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px;}')
 
         self.currentSegment = self.sigmetGeneral
 
@@ -23,19 +23,16 @@ class SigmetEditor(BaseEditor):
         layout = QVBoxLayout(self)
         layout.setSizeConstraint(QLayout.SetFixedSize)
         self.type = SigmetTypeSegment()
-        self.sigmetGeneral = SigmetGeneralSegment(self.type, self.parent)
-        self.sigmetTyphoon = SigmetTyphoonSegment(self.type, self.parent)
-        self.sigmetCancel = SigmetCancelSegment(self.type, self.parent)
-        self.sigmetCustom = SigmetCustomSegment(self.type, self.parent)
-        self.nextButton = QPushButton()
-        self.nextButton.setEnabled(False)
-        self.nextButton.setText(QCoreApplication.translate('Editor', 'Next'))
+        self.sigmetGeneral = SigmetGeneralSegment(self.type, self)
+        self.sigmetTyphoon = SigmetTyphoonSegment(self.type, self)
+        self.sigmetCancel = SigmetCancelSegment(self.type, self)
+        self.sigmetCustom = SigmetCustomSegment(self.type, self)
         layout.addWidget(self.type)
         layout.addWidget(self.sigmetGeneral)
         layout.addWidget(self.sigmetTyphoon)
         layout.addWidget(self.sigmetCancel)
         layout.addWidget(self.sigmetCustom)
-        layout.addWidget(self.nextButton, 0, Qt.AlignRight|Qt.AlignBottom)
+        self.addBottomBox(layout)
         self.setLayout(layout)
 
         self.sigmetTyphoon.hide()

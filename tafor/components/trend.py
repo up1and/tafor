@@ -1,7 +1,7 @@
 import datetime
 
 from PyQt5.QtCore import QCoreApplication, QTimer, Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLayout
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLayout
 
 from tafor import conf
 from tafor.utils.convert import parseTime
@@ -25,14 +25,11 @@ class TrendEditor(BaseEditor):
         layout = QVBoxLayout(window)
         layout.setSizeConstraint(QLayout.SetFixedSize)
         self.trend = TrendSegment()
-        self.nextButton = QPushButton()
-        self.nextButton.setEnabled(False)
-        self.nextButton.setText(QCoreApplication.translate('Editor', 'Next'))
         layout.addWidget(self.trend)
-        layout.addWidget(self.nextButton, 0, Qt.AlignRight|Qt.AlignBottom)
+        self.addBottomBox(layout)
         self.setLayout(layout)
 
-        self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px}')
+        self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px;}')
 
     def bindSignal(self):
         self.trend.period.editingFinished.connect(self.validatePeriod)
@@ -61,7 +58,7 @@ class TrendEditor(BaseEditor):
         time = parseTime(period)
         delta = datetime.timedelta(hours=2, minutes=30)
 
-        if self.trend.at.isChecked() or self.trend.fm.isChecked() and period == '2400':
+        if (self.trend.at.isChecked() or self.trend.fm.isChecked()) and period == '2400':
             self.trend.period.setText('0000')
 
         if self.trend.tl.isChecked() and period == '0000':
@@ -69,7 +66,7 @@ class TrendEditor(BaseEditor):
 
         if time - delta > utc:
             self.trend.period.clear()
-            self.parent.statusBar.showMessage(QCoreApplication.translate('Editor', 'Trend valid time is not corret'), 5000)
+            self.showNotificationMessage(QCoreApplication.translate('Editor', 'Trend valid time is not corret'))
 
     def assembleMessage(self):
         message = self.trend.message()

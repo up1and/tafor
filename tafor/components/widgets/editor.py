@@ -1,5 +1,5 @@
-from PyQt5.QtCore import QCoreApplication, pyqtSignal
-from PyQt5.QtWidgets import QDialog, QMessageBox
+from PyQt5.QtCore import QCoreApplication, QTimer, Qt, pyqtSignal
+from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QHBoxLayout, QLabel, QPushButton
 
 from tafor import conf
 from tafor.utils import boolean
@@ -37,6 +37,23 @@ class BaseEditor(QDialog):
         title = QCoreApplication.translate('Editor', 'Config Error')
         text = QCoreApplication.translate('Editor', 'Please complete the basic configuration first, otherwise you cannot send messages correctly.')
         QMessageBox.warning(self, title, text)
+
+    def addBottomBox(self, layout):
+        self.bottomBox = QWidget()
+        bottomLayout = QHBoxLayout()
+        self.nextButton = QPushButton()
+        self.nextButton.setEnabled(False)
+        self.nextButton.setText(QCoreApplication.translate('Editor', 'Next'))
+        self.notificationArea = QLabel()
+        self.notificationArea.setStyleSheet('QLabel {color: red;}')
+        bottomLayout.addWidget(self.notificationArea)
+        bottomLayout.addWidget(self.nextButton, 0, Qt.AlignRight|Qt.AlignBottom)
+        self.bottomBox.setLayout(bottomLayout)
+        layout.addWidget(self.bottomBox)
+
+    def showNotificationMessage(self, message):
+        self.notificationArea.setText(message)
+        QTimer.singleShot(10 * 1000, self.notificationArea.clear)
 
     def assembleMessage(self):
         raise NotImplementedError

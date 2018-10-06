@@ -243,7 +243,7 @@ class CheckMetar(object):
 class Listen(object):
     """监听远程报文数据
 
-    :param parent: 父窗口
+    :param callback: 回调函数
 
     使用方法::
 
@@ -254,8 +254,8 @@ class Listen(object):
         listen('FT')
         
     """
-    def __init__(self, parent=None):
-        self.parent = parent
+    def __init__(self, callback=None):
+        self.callback = callback
 
     def __call__(self, tt):
         self.tt = tt
@@ -266,19 +266,15 @@ class Listen(object):
 
     def taf(self):
         """储存并更新本地 TAF 报文状态"""
-        def afterSave():
-            self.parent.notificationSound.play(loop=False)
-            self.parent.remindBox.close()
-
         taf = CheckTaf(self.tt, message=self.message)
 
         # 储存确认报文
         if self.message:
-            taf.save(callback=afterSave)
+            taf.save(callback=self.callback)
 
             latest = taf.latest()
             if latest and not latest.confirmed:
-                taf.confirm(callback=afterSave)
+                taf.confirm(callback=self.callback)
 
         # 查询报文是否过期
         expired = False
@@ -296,7 +292,7 @@ class Listen(object):
             taf.tt: {
                 'period': taf.warningPeriod(),
                 'sent': True if taf.local() else False,
-                'warnning': expired,
+                'warning': expired,
                 'clock': taf.hasExpired(offset=5),
             }
         })
