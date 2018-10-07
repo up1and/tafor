@@ -201,7 +201,6 @@ class MetarTable(BaseDataTable):
         self.hideColumns()
 
     def hideColumns(self):
-        self.table.setColumnHidden(2, True)
         self.table.setColumnHidden(3, True)
 
     def updateTable(self):
@@ -214,6 +213,10 @@ class MetarTable(BaseDataTable):
         for row, item in enumerate(items):
             self.table.setItem(row, 0,  QTableWidgetItem(item.tt))
             self.table.setItem(row, 1,  QTableWidgetItem(item.rpt))
+            if item.created:
+                created = item.created.strftime('%Y-%m-%d %H:%M:%S')
+                self.table.setItem(row, 2, QTableWidgetItem(created))
+
             if item.tt == 'SP':
                 self.table.item(row, 0).setForeground(self.color)
                 self.table.item(row, 1).setForeground(self.color)

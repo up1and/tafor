@@ -272,7 +272,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         # 管理趋势声音
         utc = datetime.datetime.utcnow()
-        if trendSwitch and utc.minute in (58, 59):
+        if trendSwitch and utc.minute in (57, 58, 59):
             self.trendSound.play()
         else:
             self.trendSound.stop()

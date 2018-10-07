@@ -103,6 +103,15 @@ def ceilTime(time, amount=10):
                              microseconds=time.microsecond)
     return time + datetime.timedelta(minutes=amount)
 
+def roundTime(time):
+    """当前时间以小时为单位向前取整
+
+    :param time: Datetime 对象
+    :return: 返回 Datetime 对象
+    """
+    time = time.replace(minute=0, second=0, microsecond=0)
+    return time + datetime.timedelta(hours=1)
+
 def degreeToDecimal(text):
     """转换度分为十进制角度
 

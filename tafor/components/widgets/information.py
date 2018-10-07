@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit
 
 from tafor import conf, logger
 from tafor.utils import Pattern
-from tafor.utils.convert import parseTime, parseDateTime, ceilTime, calcPosition
+from tafor.utils.convert import parseTime, parseDateTime, ceilTime, roundTime, calcPosition
 from tafor.utils.service import currentSigmet
 from tafor.models import db, Sigmet
 from tafor.components.widgets.forecast import SegmentMixin
@@ -76,7 +76,10 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
 
     def durationTime(self):
         self.time = datetime.datetime.utcnow()
-        start = ceilTime(self.time, amount=10)
+        if self.parent.type.tt == 'WC':
+            start = roundTime(self.time)
+        else:
+            start = ceilTime(self.time, amount=10)
         end = start + datetime.timedelta(hours=self.duration)
         return start, end
 
