@@ -26,7 +26,9 @@ def serialComm(message, port, baudrate=9600, bytesize='8', parity='NONE', stopbi
     stopbits = stopbitsMap.get(stopbits, serial.STOPBITS_ONE)
 
     if baudrate < 300:
-        timeout = 4
+        timeout = 6
+    elif baudrate < 1200:
+        timeout = 3
     elif baudrate < 9600:
         timeout = 2
     else:
