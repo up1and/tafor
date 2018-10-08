@@ -284,6 +284,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         if category == 'list':
             try:
                 items = json.loads(val)
+                option.clear()
                 option.addItems(items)
             except (ValueError, TypeError):
                 pass
