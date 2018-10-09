@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Chen\Work\tafor\tafor\components\ui\sigmet_phenomena.ui'
+# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\sigmet_head.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -14,6 +14,7 @@ class Ui_Editor(object):
         Editor.resize(990, 88)
         Editor.setWindowTitle("Sigmet")
         self.verticalLayout = QtWidgets.QVBoxLayout(Editor)
+        self.verticalLayout.setContentsMargins(-1, 0, -1, 0)
         self.verticalLayout.setObjectName("verticalLayout")
         self.headGroup = QtWidgets.QGroupBox(Editor)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
@@ -44,9 +45,10 @@ class Ui_Editor(object):
         self.forecastLabel = QtWidgets.QLabel(self.headGroup)
         self.forecastLabel.setObjectName("forecastLabel")
         self.gridLayout_2.addWidget(self.forecastLabel, 0, 6, 1, 1)
-        self.typhoonNameLabel = QtWidgets.QLabel(self.headGroup)
-        self.typhoonNameLabel.setObjectName("typhoonNameLabel")
-        self.gridLayout_2.addWidget(self.typhoonNameLabel, 0, 5, 1, 1)
+        self.nameLabel = QtWidgets.QLabel(self.headGroup)
+        self.nameLabel.setText("Name")
+        self.nameLabel.setObjectName("nameLabel")
+        self.gridLayout_2.addWidget(self.nameLabel, 0, 5, 1, 1)
         self.descriptionLabel = QtWidgets.QLabel(self.headGroup)
         self.descriptionLabel.setObjectName("descriptionLabel")
         self.gridLayout_2.addWidget(self.descriptionLabel, 0, 3, 1, 1)
@@ -56,9 +58,9 @@ class Ui_Editor(object):
         self.sequenceLabel = QtWidgets.QLabel(self.headGroup)
         self.sequenceLabel.setObjectName("sequenceLabel")
         self.gridLayout_2.addWidget(self.sequenceLabel, 0, 2, 1, 1)
-        self.typhoonName = QtWidgets.QLineEdit(self.headGroup)
-        self.typhoonName.setObjectName("typhoonName")
-        self.gridLayout_2.addWidget(self.typhoonName, 1, 5, 1, 1)
+        self.name = QtWidgets.QLineEdit(self.headGroup)
+        self.name.setObjectName("name")
+        self.gridLayout_2.addWidget(self.name, 1, 5, 1, 1)
         self.phenomenaLabel = QtWidgets.QLabel(self.headGroup)
         self.phenomenaLabel.setObjectName("phenomenaLabel")
         self.gridLayout_2.addWidget(self.phenomenaLabel, 0, 4, 1, 1)
@@ -81,7 +83,7 @@ class Ui_Editor(object):
         self.verticalLayout.addWidget(self.headGroup)
         self.obsTimeLabel.setBuddy(self.obsTime)
         self.forecastLabel.setBuddy(self.forecast)
-        self.typhoonNameLabel.setBuddy(self.typhoonName)
+        self.nameLabel.setBuddy(self.name)
         self.descriptionLabel.setBuddy(self.description)
         self.beginningTimeLabel.setBuddy(self.beginningTime)
         self.sequenceLabel.setBuddy(self.sequence)
@@ -94,8 +96,8 @@ class Ui_Editor(object):
         Editor.setTabOrder(self.endingTime, self.sequence)
         Editor.setTabOrder(self.sequence, self.description)
         Editor.setTabOrder(self.description, self.phenomena)
-        Editor.setTabOrder(self.phenomena, self.typhoonName)
-        Editor.setTabOrder(self.typhoonName, self.forecast)
+        Editor.setTabOrder(self.phenomena, self.name)
+        Editor.setTabOrder(self.name, self.forecast)
         Editor.setTabOrder(self.forecast, self.obsTime)
 
     def retranslateUi(self, Editor):
@@ -103,7 +105,6 @@ class Ui_Editor(object):
         self.headGroup.setTitle(_translate("Editor", "Head"))
         self.obsTimeLabel.setText(_translate("Editor", "OBS Time"))
         self.forecastLabel.setText(_translate("Editor", "Forecast"))
-        self.typhoonNameLabel.setText(_translate("Editor", "Typhoon Name"))
         self.descriptionLabel.setText(_translate("Editor", "Phenomena Description"))
         self.beginningTimeLabel.setText(_translate("Editor", "Beginning Time"))
         self.sequenceLabel.setText(_translate("Editor", "Sequence"))

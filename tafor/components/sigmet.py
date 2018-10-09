@@ -111,6 +111,8 @@ class SigmetEditor(BaseEditor):
             self.currentSegment.setType('WV')
             self.type.template.setEnabled(False)
 
+        self.enbaleNextButton()
+
     def beforeNext(self):
         self.currentSegment.head.validate()
 

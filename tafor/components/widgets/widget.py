@@ -100,12 +100,13 @@ class Clock(QWidget):
         super(Clock, self).__init__(parent)
 
         layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(0, 0, 0, 5)
         self.setLayout(layout)
 
-        # layout.addWidget(QLabel('世界时'))
-        layout.addSpacing(5)
+        self.zone = QLabel('UTC')
+        self.zone.setStyleSheet('QLabel {color: grey;}')
         self.label = QLabel()
+        layout.addWidget(self.zone)
         layout.addWidget(self.label)
 
         self.timer = QTimer()

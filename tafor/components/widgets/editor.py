@@ -45,7 +45,7 @@ class BaseEditor(QDialog):
         self.nextButton.setEnabled(False)
         self.nextButton.setText(QCoreApplication.translate('Editor', 'Next'))
         self.notificationArea = QLabel()
-        self.notificationArea.setStyleSheet('QLabel {color: red;}')
+        self.notificationArea.setStyleSheet('QLabel {color: grey;}')
         bottomLayout.addWidget(self.notificationArea)
         bottomLayout.addWidget(self.nextButton, 0, Qt.AlignRight|Qt.AlignBottom)
         self.bottomBox.setLayout(bottomLayout)

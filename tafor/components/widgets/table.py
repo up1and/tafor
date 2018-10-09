@@ -209,6 +209,7 @@ class MetarTable(BaseDataTable):
         items = self.pagination.items
         self.table.setRowCount(len(items))
         self.table.setColumnWidth(0, 50)
+        self.table.setColumnWidth(2, 140)
 
         for row, item in enumerate(items):
             self.table.setItem(row, 0,  QTableWidgetItem(item.tt))

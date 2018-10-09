@@ -14,6 +14,7 @@ class Ui_Editor(object):
         Editor.resize(449, 88)
         Editor.setWindowTitle("Sigmet")
         self.verticalLayout = QtWidgets.QVBoxLayout(Editor)
+        self.verticalLayout.setContentsMargins(-1, 0, -1, 0)
         self.verticalLayout.setObjectName("verticalLayout")
         self.cancelGroup = QtWidgets.QGroupBox(Editor)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)

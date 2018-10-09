@@ -6,14 +6,20 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>662</width>
-    <height>278</height>
+    <width>680</width>
+    <height>88</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string notr="true">Sigmet</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QVBoxLayout" name="layout">
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
    <item>
     <widget class="QGroupBox" name="descriptionGroup">
      <property name="sizePolicy">
@@ -26,10 +32,13 @@
       <string>Description</string>
      </property>
      <layout class="QGridLayout" name="descriptionLayout">
-      <item row="1" column="1">
+      <item row="1" column="6">
        <widget class="QLineEdit" name="speed"/>
       </item>
-      <item row="1" column="0">
+      <item row="1" column="4">
+       <widget class="QLineEdit" name="top"/>
+      </item>
+      <item row="1" column="5">
        <widget class="QComboBox" name="movement">
         <item>
          <property name="text">
@@ -118,50 +127,7 @@
         </item>
        </widget>
       </item>
-      <item row="1" column="4">
-       <widget class="QLineEdit" name="top"/>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="movementLabel">
-        <property name="text">
-         <string>Movement</string>
-        </property>
-        <property name="buddy">
-         <cstring>movement</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QLabel" name="speedLabel">
-        <property name="text">
-         <string>Speed</string>
-        </property>
-        <property name="buddy">
-         <cstring>speed</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="2">
-       <widget class="QLabel" name="positionLabel">
-        <property name="text">
-         <string>Position</string>
-        </property>
-        <property name="buddy">
-         <cstring>position</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="5">
-       <widget class="QLabel" name="intensityChangeLabel">
-        <property name="text">
-         <string>Intensity Change</string>
-        </property>
-        <property name="buddy">
-         <cstring>intensityChange</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="5">
+      <item row="1" column="7">
        <widget class="QComboBox" name="intensityChange">
         <item>
          <property name="text">
@@ -183,8 +149,48 @@
       <item row="1" column="3">
        <widget class="QLineEdit" name="base"/>
       </item>
+      <item row="0" column="4">
+       <widget class="QLabel" name="topLabel">
+        <property name="text">
+         <string>FL Top</string>
+        </property>
+        <property name="buddy">
+         <cstring>top</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="5">
+       <widget class="QLabel" name="movementLabel">
+        <property name="text">
+         <string>Movement</string>
+        </property>
+        <property name="buddy">
+         <cstring>movement</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QLabel" name="levelLabel">
+        <property name="text">
+         <string>Fight Level</string>
+        </property>
+        <property name="buddy">
+         <cstring>level</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="3">
+       <widget class="QLabel" name="baseLabel">
+        <property name="text">
+         <string>FL Base</string>
+        </property>
+        <property name="buddy">
+         <cstring>base</cstring>
+        </property>
+       </widget>
+      </item>
       <item row="1" column="2">
-       <widget class="QComboBox" name="position">
+       <widget class="QComboBox" name="level">
         <item>
          <property name="text">
           <string notr="true"/>
@@ -212,185 +218,24 @@
         </item>
        </widget>
       </item>
-      <item row="0" column="3">
-       <widget class="QLabel" name="baseLabel">
+      <item row="0" column="6">
+       <widget class="QLabel" name="speedLabel">
         <property name="text">
-         <string>FL Base</string>
+         <string>Speed</string>
         </property>
         <property name="buddy">
-         <cstring>base</cstring>
+         <cstring>speed</cstring>
         </property>
        </widget>
       </item>
-      <item row="0" column="4">
-       <widget class="QLabel" name="topLabel">
+      <item row="0" column="7">
+       <widget class="QLabel" name="intensityChangeLabel">
         <property name="text">
-         <string>FL Top</string>
+         <string>Intensity Change</string>
         </property>
         <property name="buddy">
-         <cstring>top</cstring>
+         <cstring>intensityChange</cstring>
         </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="areaGroup">
-     <property name="title">
-      <string>Area</string>
-     </property>
-     <layout class="QVBoxLayout" name="areaLayout">
-      <item>
-       <widget class="QWidget" name="changeAreaWidget" native="true">
-        <layout class="QHBoxLayout" name="changeAreaLayout">
-         <item>
-          <widget class="QRadioButton" name="canvas">
-           <property name="text">
-            <string>Canvas</string>
-           </property>
-           <property name="checked">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QRadioButton" name="manual">
-           <property name="text">
-            <string>Manual</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QRadioButton" name="entire">
-           <property name="text">
-            <string>Entire</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="horizontalSpacer">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item>
-          <widget class="QToolButton" name="modeButton">
-           <property name="text">
-            <string notr="true"/>
-           </property>
-           <property name="iconSize">
-            <size>
-             <width>16</width>
-             <height>16</height>
-            </size>
-           </property>
-           <property name="autoRaise">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-      </item>
-      <item>
-       <widget class="QWidget" name="latitudeAndLongitudeWidget" native="true">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <layout class="QGridLayout" name="latitudeAndLongitudeLayout">
-         <property name="topMargin">
-          <number>15</number>
-         </property>
-         <item row="4" column="1">
-          <widget class="QLabel" name="eastLabel">
-           <property name="text">
-            <string>E OF</string>
-           </property>
-           <property name="buddy">
-            <cstring>east</cstring>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QLineEdit" name="north"/>
-         </item>
-         <item row="4" column="2">
-          <widget class="QLabel" name="westLabel">
-           <property name="text">
-            <string>W OF</string>
-           </property>
-           <property name="buddy">
-            <cstring>west</cstring>
-           </property>
-          </widget>
-         </item>
-         <item row="5" column="1">
-          <widget class="QLineEdit" name="east"/>
-         </item>
-         <item row="1" column="2">
-          <widget class="QLineEdit" name="south"/>
-         </item>
-         <item row="5" column="0">
-          <widget class="QLabel" name="longtitudeLabel">
-           <property name="minimumSize">
-            <size>
-             <width>77</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>Longitude</string>
-           </property>
-          </widget>
-         </item>
-         <item row="5" column="2">
-          <widget class="QLineEdit" name="west"/>
-         </item>
-         <item row="1" column="0">
-          <widget class="QLabel" name="latitudeLabel">
-           <property name="minimumSize">
-            <size>
-             <width>77</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>Latitude</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="2">
-          <widget class="QLabel" name="southLabel">
-           <property name="text">
-            <string>S OF</string>
-           </property>
-           <property name="buddy">
-            <cstring>south</cstring>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="1">
-          <widget class="QLabel" name="northLabel">
-           <property name="text">
-            <string>N OF</string>
-           </property>
-           <property name="buddy">
-            <cstring>north</cstring>
-           </property>
-          </widget>
-         </item>
-        </layout>
        </widget>
       </item>
      </layout>
@@ -399,11 +244,11 @@
   </layout>
  </widget>
  <tabstops>
-  <tabstop>movement</tabstop>
-  <tabstop>speed</tabstop>
-  <tabstop>position</tabstop>
+  <tabstop>level</tabstop>
   <tabstop>base</tabstop>
   <tabstop>top</tabstop>
+  <tabstop>movement</tabstop>
+  <tabstop>speed</tabstop>
   <tabstop>intensityChange</tabstop>
  </tabstops>
  <resources/>
