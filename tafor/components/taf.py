@@ -298,10 +298,11 @@ class BaseTafEditor(BaseEditor):
         self.sign = self.primary.sign()
 
     def beforeNext(self):
-        self.validateTemperature()
-        self.validateTemperatureHour(self.primary.tmaxTime)
-        self.validateTemperatureHour(self.primary.tminTime)
-        self.primary.validate()
+        if not self.primary.cnl.isChecked():
+            self.validateTemperature()
+            self.validateTemperatureHour(self.primary.tmaxTime)
+            self.validateTemperatureHour(self.primary.tminTime)
+            self.primary.validate()
 
         if self.primary.becmg1Checkbox.isChecked():
             self.validateChangeGroupInterval(self.becmg1)
