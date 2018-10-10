@@ -134,9 +134,9 @@
      <height>23</height>
     </rect>
    </property>
-   <widget class="QMenu" name="postMenu">
+   <widget class="QMenu" name="issueMenu">
     <property name="title">
-     <string>Post</string>
+     <string>Issue</string>
     </property>
     <addaction name="tafAction"/>
     <addaction name="trendAction"/>
@@ -170,7 +170,7 @@
     <addaction name="separator"/>
     <addaction name="aboutAction"/>
    </widget>
-   <addaction name="postMenu"/>
+   <addaction name="issueMenu"/>
    <addaction name="settingMenu"/>
    <addaction name="helpMenu"/>
   </widget>

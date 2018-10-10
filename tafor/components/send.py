@@ -155,7 +155,7 @@ class TaskTafSender(BaseSender):
 
     def __init__(self, parent=None):
         super(TaskTafSender, self).__init__(parent)
-        self.setWindowTitle(QCoreApplication.translate('Sender', 'Timing Tasks'))
+        self.setWindowTitle(QCoreApplication.translate('Sender', 'Delay Send Message'))
         self.reportType = 'TAF'
         self.buttonBox.accepted.connect(self.save)
         self.buttonBox.accepted.connect(self.accept)
@@ -227,7 +227,8 @@ class SigmetSender(BaseSender):
     def remind(self, item):
         if not item.isCnl():
             delta = item.expired() - datetime.datetime.utcnow() - datetime.timedelta(minutes=15)
-            QTimer.singleShot(delta.total_seconds() * 1000, self.parent.remindSigmet)
+            text = 'SIGMET {}'.format(item.sequence)
+            QTimer.singleShot(delta.total_seconds() * 1000, lambda: self.parent.remindSigmet(text))
 
 
 class ReSender(BaseSender):

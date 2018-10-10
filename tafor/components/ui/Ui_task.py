@@ -47,7 +47,7 @@ class Ui_Tasks(object):
 
     def retranslateUi(self, Tasks):
         _translate = QtCore.QCoreApplication.translate
-        Tasks.setWindowTitle(_translate("Tasks", "Timing Tasks"))
+        Tasks.setWindowTitle(_translate("Tasks", "Delayed Tasks"))
         item = self.table.horizontalHeaderItem(0)
         item.setText(_translate("Tasks", "Type"))
         item = self.table.horizontalHeaderItem(1)

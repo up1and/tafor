@@ -175,6 +175,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def setThread(self):
         self.workThread = WorkThread(self)
         self.workThread.finished.connect(self.updateMessage)
+        self.workThread.finished.connect(self.notifier)
 
         self.callThread = CallThread(self)
 
@@ -200,14 +201,14 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         if self.contractNo == target:
             conf.setValue('Monitor/SelectedMobile', '')
-            logger.info('关闭电话提醒')
+            logger.info('Turn off phone alerts')
         else:
             name = target.text()
             person = db.query(User).filter_by(name=name).first()
             mobile = person.mobile if person else ''
 
             conf.setValue('Monitor/SelectedMobile', mobile)
-            logger.info('切换联系人 %s %s' % (name, mobile))
+            logger.info('Switch contacts to %s %s' % (name, mobile))
 
     def event(self, event):
         if event.type() == QEvent.WindowStateChange and self.isMinimized():
@@ -301,17 +302,28 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             logger.info('Serial port is busy')
             return
 
-        def afterSending(message, error):
+        def afterSending(message, error=None):
             if error:
-                self.showMessage(QCoreApplication.translate('MainWindow', 'Send Failed'),
+                self.showNotifyMessage(QCoreApplication.translate('MainWindow', 'Send Failed'),
                     QCoreApplication.translate('MainWindow', error))
             else:
-                self.showMessage(QCoreApplication.translate('MainWindow', 'Send Completed'),
+                self.showNotifyMessage(QCoreApplication.translate('MainWindow', 'Send Completed'),
                     QCoreApplication.translate('MainWindow', message))
                 self.updateGui()
+                self.taskBrowser.updateGui()
 
         self.delaySend = DelaySend(callback=afterSending)
         self.delaySend.start()
+
+    def notifier(self):
+        connectionError = QCoreApplication.translate('MainWindow', 'Connection Error')
+        if not context.webApi.isOnline():
+            self.showNotifyMessage(connectionError, 
+                QCoreApplication.translate('MainWindow', 'Unable to connect remote data source, please check the settings or network status.'), 'warning')
+
+        if not context.callService.isOnline() and self.contractsActionGroup.checkedAction() != self.contractNo:
+            self.showNotifyMessage(connectionError, 
+                QCoreApplication.translate('MainWindow', 'Unable to connect phone call service, please check the settings or network status.'), 'warning')
 
     def remindTaf(self, tt):
         remindSwitch = boolean(conf.value('Monitor/RemindTAF'))
@@ -326,7 +338,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         if clock and not warning and not sent:
             current = tt + period[2:]
-            text = QCoreApplication.translate('MainWindow', 'Time to post {}').format(current)
+            text = QCoreApplication.translate('MainWindow', 'Time to issue {}').format(current)
             self.ringSound.play()
             self.remindBox.setText(text)
             ret = self.remindBox.exec_()
@@ -335,17 +347,17 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
             self.ringSound.stop()
 
-    def remindSigmet(self):
+    def remindSigmet(self, text):
         remindSwitch = boolean(conf.value('Monitor/RemindSIGMET'))
         if not remindSwitch:
             return None
 
-        text = QCoreApplication.translate('MainWindow', 'Time to post {}').format('SIGMET')
+        text = QCoreApplication.translate('MainWindow', 'Time to update {}').format(text)
         self.sigmetSound.play()
         self.remindBox.setText(text)
         ret = self.remindBox.exec_()
         if not ret:
-            QTimer.singleShot(1000 * 60 * 5, self.remindSigmet)
+            QTimer.singleShot(1000 * 60 * 5, lambda: self.remindSigmet(text))
 
         self.sigmetSound.stop()
 
@@ -412,9 +424,9 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.metarTable.updateGui()
         self.sigmetTable.updateGui()
 
-    def showMessage(self, title, content, icon='information'):
+    def showNotifyMessage(self, title, content, level='information'):
         icons = ['noicon', 'information', 'warning', 'critical']
-        icon = QSystemTrayIcon.MessageIcon(icons.index(icon))
+        icon = QSystemTrayIcon.MessageIcon(icons.index(level))
         self.tray.showMessage(title, content, icon)
 
     def about(self):

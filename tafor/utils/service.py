@@ -69,9 +69,8 @@ class DelaySend(object):
         self.thread.start()
 
     def commit(self, error):
-        self.callback(self.task.rpt, error)
-        
         if error:
+            self.callback(self.task.rpt, error)
             return 
 
         self.item = Taf(tt=self.task.tt, sign=self.task.sign, rpt=self.task.rpt, raw=self.aftn.toJson())
@@ -81,4 +80,5 @@ class DelaySend(object):
         db.merge(self.task)
         db.commit()
 
+        self.callback(self.task.rpt)
         logger.info('Task {} has been sent'.format(self.item.rpt))

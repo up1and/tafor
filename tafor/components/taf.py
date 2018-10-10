@@ -403,7 +403,8 @@ class TaskTafEditor(BaseTafEditor):
 
     def __init__(self, parent=None, sender=None):
         super(TaskTafEditor, self).__init__(parent, sender)
-        self.setWindowTitle(QCoreApplication.translate('Editor', 'Timing Tasks'))
+        self.title = QCoreApplication.translate('Editor', 'Encoding Terminal Aerodrome Forecast - Delay Send')
+        self.setWindowTitle(self.title)
         self.setWindowIcon(QIcon(':/time.png'))
 
         self.primary.sortGroup.hide()
@@ -417,7 +418,7 @@ class TaskTafEditor(BaseTafEditor):
     def updateState(self):
         date = self.primary.date.text()
         self.time = parseDateTime(date)
-        self.setWindowTitle(self.time.strftime('%Y-%m-%d %H:%M'))
+        self.setWindowTitle(self.title + ' - {}'.format(self.time.strftime('%Y-%m-%d %H:%M')))
         self.setNormalPeriod(isTask=True)
         self.periods = self.periodDuration()
 
