@@ -32,17 +32,17 @@
 <context>
     <name>Editor</name>
     <message>
-        <location filename="../../components/ui/Ui_trend.py" line="161"/>
+        <location filename="../../components/ui/Ui_trend.py" line="166"/>
         <source>Interval</source>
         <translation>时段</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_trend.py" line="168"/>
+        <location filename="../../components/ui/Ui_trend.py" line="170"/>
         <source>Cloud2</source>
         <translation>云组2</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_trend.py" line="162"/>
+        <location filename="../../components/ui/Ui_trend.py" line="167"/>
         <source>Wind</source>
         <translation>风向风速</translation>
     </message>
@@ -52,72 +52,72 @@
         <translation>阵风</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_trend.py" line="164"/>
+        <location filename="../../components/ui/Ui_trend.py" line="168"/>
         <source>Visibility</source>
         <translation>能见度</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_trend.py" line="169"/>
+        <location filename="../../components/ui/Ui_trend.py" line="172"/>
         <source>Cloud3</source>
         <translation>云组3</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_trend.py" line="167"/>
+        <location filename="../../components/ui/Ui_trend.py" line="169"/>
         <source>Cloud1</source>
         <translation>云组1</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_trend.py" line="170"/>
+        <location filename="../../components/ui/Ui_trend.py" line="171"/>
         <source>Cumulonimbus</source>
         <translation>积雨云</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_trend.py" line="166"/>
+        <location filename="../../components/ui/Ui_trend.py" line="165"/>
         <source>Weather2</source>
         <translation>天气现象2</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_trend.py" line="165"/>
+        <location filename="../../components/ui/Ui_trend.py" line="164"/>
         <source>Weather1</source>
         <translation>天气现象1</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_taf_primary.py" line="252"/>
+        <location filename="../../components/ui/Ui_taf_primary.py" line="250"/>
         <source>Datetime</source>
         <translation>日期</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_taf_primary.py" line="254"/>
+        <location filename="../../components/ui/Ui_taf_primary.py" line="255"/>
         <source>Max Temperature</source>
         <translation>最高温</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_taf_primary.py" line="253"/>
+        <location filename="../../components/ui/Ui_taf_primary.py" line="256"/>
         <source>Min Temperature</source>
         <translation>最低温</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_taf_primary.py" line="247"/>
+        <location filename="../../components/ui/Ui_taf_primary.py" line="249"/>
         <source>Valid Period</source>
         <translation>时段</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_taf_primary.py" line="255"/>
+        <location filename="../../components/ui/Ui_taf_primary.py" line="257"/>
         <source>Cancel</source>
         <translation>取消报</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_taf_primary.py" line="256"/>
+        <location filename="../../components/ui/Ui_taf_primary.py" line="258"/>
         <source>Correct</source>
         <translation>更正报</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_taf_primary.py" line="257"/>
+        <location filename="../../components/ui/Ui_taf_primary.py" line="259"/>
         <source>Amend</source>
         <translation>修订报</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_taf_primary.py" line="258"/>
+        <location filename="../../components/ui/Ui_taf_primary.py" line="260"/>
         <source>Normal</source>
         <translation>正常报</translation>
     </message>
@@ -137,7 +137,7 @@
         <translation>编发趋势</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_taf_primary.py" line="259"/>
+        <location filename="../../components/ui/Ui_taf_primary.py" line="261"/>
         <source>Previous</source>
         <translation>上一份</translation>
     </message>
@@ -527,17 +527,17 @@
         <translation>离线</translation>
     </message>
     <message>
-        <location filename="../../app/main.py" line="439"/>
+        <location filename="../../app/main.py" line="443"/>
         <source>The project is under GPL-2.0 License, Pull Request and Issue are welcome</source>
         <translation>项目遵循 GPL-2.0 协议，欢迎提交 Pull Request 或者 Issue</translation>
     </message>
     <message>
-        <location filename="../../app/main.py" line="478"/>
+        <location filename="../../app/main.py" line="482"/>
         <source>New version found {}, do you want to download now?</source>
         <translation>发现新版本 {}，想现在下载么？</translation>
     </message>
     <message>
-        <location filename="../../app/main.py" line="436"/>
+        <location filename="../../app/main.py" line="440"/>
         <source>The software is used to encode and post terminal aerodrome forecast, trend forecast, 
                     significant meteorological information, monitor the message, return the alarm by sound or telephone</source>
         <translation>本软件用于智能发布预报报文、趋势报文、重要气象情报，监控预报报文，以声音或电话的方式返回告警</translation>
@@ -568,12 +568,12 @@
         <translation>下一页</translation>
     </message>
     <message>
-        <location filename="../../app/main.py" line="473"/>
+        <location filename="../../app/main.py" line="477"/>
         <source>The current version is already the latest version.</source>
         <translation>当前版本已经是最新版本</translation>
     </message>
     <message>
-        <location filename="../../app/main.py" line="467"/>
+        <location filename="../../app/main.py" line="471"/>
         <source>Unable to get the latest version information.</source>
         <translation>无法获取最新版本信息</translation>
     </message>
@@ -598,17 +598,12 @@
         <translation>连接错误</translation>
     </message>
     <message>
-        <location filename="../../app/main.py" line="322"/>
-        <source>Unable to connect remote data source, please check the settings or network status.</source>
-        <translation>无法连接远程数据源，请检查设置或者网络状态。</translation>
-    </message>
-    <message>
-        <location filename="../../app/main.py" line="326"/>
+        <location filename="../../app/main.py" line="330"/>
         <source>Unable to connect phone call service, please check the settings or network status.</source>
         <translation>无法连接电话服务，请检查设置或者网络状态。</translation>
     </message>
     <message>
-        <location filename="../../app/main.py" line="342"/>
+        <location filename="../../app/main.py" line="346"/>
         <source>Time to issue {}</source>
         <translation>发布 {}</translation>
     </message>
@@ -618,9 +613,19 @@
         <translation>编发</translation>
     </message>
     <message>
-        <location filename="../../app/main.py" line="356"/>
+        <location filename="../../app/main.py" line="360"/>
         <source>Time to update {}</source>
         <translation>更新 {}</translation>
+    </message>
+    <message>
+        <location filename="../../app/main.py" line="322"/>
+        <source>Unable to connect remote message data source, please check the settings or network status.</source>
+        <translation>无法连接远程数据源，请检查设置或者网络状态。</translation>
+    </message>
+    <message>
+        <location filename="../../app/main.py" line="326"/>
+        <source>Unable to connect FIR information data source, please check the settings or network status.</source>
+        <translation>无法获取情报区信息数据，请检查设置或者网络状态。</translation>
     </message>
 </context>
 <context>

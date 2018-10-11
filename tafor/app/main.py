@@ -318,11 +318,15 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def notifier(self):
         connectionError = QCoreApplication.translate('MainWindow', 'Connection Error')
         if not context.webApi.isOnline():
-            self.showNotifyMessage(connectionError, 
-                QCoreApplication.translate('MainWindow', 'Unable to connect remote data source, please check the settings or network status.'), 'warning')
+            self.showNotificationMessage(connectionError, 
+                QCoreApplication.translate('MainWindow', 'Unable to connect remote message data source, please check the settings or network status.'), 'warning')
+
+        if conf.value('Monitor/FirApiURL') and context.fir.raw() is None and not self.firInfoThread.isRunning():
+            self.showNotificationMessage(connectionError, 
+                QCoreApplication.translate('MainWindow', 'Unable to connect FIR information data source, please check the settings or network status.'), 'warning')
 
         if not context.callService.isOnline() and self.contractsActionGroup.checkedAction() != self.contractNo:
-            self.showNotifyMessage(connectionError, 
+            self.showNotificationMessage(connectionError, 
                 QCoreApplication.translate('MainWindow', 'Unable to connect phone call service, please check the settings or network status.'), 'warning')
 
     def remindTaf(self, tt):
@@ -424,7 +428,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.metarTable.updateGui()
         self.sigmetTable.updateGui()
 
-    def showNotifyMessage(self, title, content, level='information'):
+    def showNotificationMessage(self, title, content, level='information'):
         icons = ['noicon', 'information', 'warning', 'critical']
         icon = QSystemTrayIcon.MessageIcon(icons.index(level))
         self.tray.showMessage(title, content, icon)
