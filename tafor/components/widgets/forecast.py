@@ -154,8 +154,13 @@ class BaseSegment(QWidget, SegmentMixin):
         weatherWithIntensity = conf.value('Message/WeatherWithIntensity')
         intensityWeathers = ['']
         if weatherWithIntensity:
-            for w in json.loads(weatherWithIntensity):
-                intensityWeathers.extend(['-' + w, w, '+' + w])
+            weathers = json.loads(weatherWithIntensity)
+            for w in weathers:
+                intensityWeathers.append('-{}'.format(w))
+            for w in weathers:
+                intensityWeathers.append(w)
+            for w in weathers:
+                intensityWeathers.append('+{}'.format(w))
         self.weatherWithIntensity.addItems(intensityWeathers)
 
     def validateGust(self):
@@ -224,7 +229,6 @@ class BaseSegment(QWidget, SegmentMixin):
         else:
             messages = [winds, vis, weatherWithIntensity, weather] + clouds
         self.msg = ' '.join(filter(None, messages))
-        # logger.debug(self.msg)
 
     def checkComplete(self):
         raise NotImplementedError
