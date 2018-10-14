@@ -463,7 +463,8 @@ class TafLexer(object):
             return ' '.join(elements)
 
         def plain():
-            return self.part
+            elements = [e['text'] for _, e in self.tokens.items()]
+            return ' '.join(elements)
 
         func = locals().get(style, plain)
         return func()
@@ -760,6 +761,10 @@ class TafParser(object):
     def isAmended(self):
         """报文是否是修订报或者更正报"""
         return 'COR' in self.message or 'AMD' in self.message
+
+    def hasMessageChanged(self):
+        """校验后的报文和原始报文相比是否有变化"""
+        return self.message != self.renderer()
  
     def renderer(self, style='plain'):
         """将解析后的报文重新渲染
@@ -964,6 +969,9 @@ class SigmetParser(object):
         """报文是否通过验证"""
         valids = [e.isValid() for e in self.elements]
         return all(valids)
+
+    def hasMessageChanged(self):
+        return False
 
     def renderer(self, style='plain'):
         """将解析后的报文重新渲染

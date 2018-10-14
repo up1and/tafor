@@ -21,7 +21,7 @@ class AFTNMessage(object):
 
     """
     def __init__(self, text, reportType='TAF', time=None):
-        self.text = text.split('\n')
+        self.texts = text.split('\n')
         self.reportType = reportType
         self.time = datetime.datetime.utcnow() if time is None else time
         maxSendAddress = conf.value('Communication/MaxSendAddress')
@@ -68,7 +68,7 @@ class AFTNMessage(object):
         for addr in groups:
             heading = ' '.join(['ZCZC', channel + str(number).zfill(4)])
             address = ' '.join([level] + addr)
-            items = [heading, address, origin] + self.text + [ending]
+            items = [heading, address, origin] + self.texts + [ending]
             items = self.formatLinefeed(items)
             self.messages.append(self.lineBreak.join(items))
             number += 1

@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE TS>
-<TS version="2.1" language="zh_CN" sourcelanguage="en">
+<!DOCTYPE TS><TS version="2.0" language="zh_CN" sourcelanguage="en">
 <context>
     <name>DataTable</name>
     <message>
@@ -646,12 +645,12 @@
         <translation>已向串口发送数据</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="63"/>
+        <location filename="../../components/send.py" line="68"/>
         <source>Send</source>
         <translation>发送</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="72"/>
+        <location filename="../../components/send.py" line="77"/>
         <source>Send Failed</source>
         <translation>发送失败</translation>
     </message>
@@ -666,34 +665,39 @@
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="77"/>
+        <location filename="../../components/send.py" line="82"/>
         <source>Error</source>
         <translation>错误</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="82"/>
+        <location filename="../../components/send.py" line="87"/>
         <source>Validator Warning</source>
         <translation>校验提醒</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="83"/>
+        <location filename="../../components/send.py" line="88"/>
         <source>The message did not pass the validator, do you still want to send?</source>
         <translation>报文没有通过校验，你还要发送么？</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="240"/>
+        <location filename="../../components/send.py" line="247"/>
         <source>Resend Message</source>
         <translation>重新发送报文</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="94"/>
+        <location filename="../../components/send.py" line="100"/>
         <source>Sending</source>
         <translation>发送中</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="158"/>
+        <location filename="../../components/send.py" line="165"/>
         <source>Delay Send Message</source>
         <translation>延迟发送报文</translation>
+    </message>
+    <message>
+        <location filename="../../components/send.py" line="53"/>
+        <source>The message is different from the original after validation</source>
+        <translation>经过校验后的报文和原始报文有些不同</translation>
     </message>
 </context>
 <context>

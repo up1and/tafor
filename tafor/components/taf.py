@@ -395,7 +395,7 @@ class TafEditor(BaseTafEditor):
         self.timer.start(1 * 1000)
 
     def previewMessage(self):
-        message = {'sign': self.sign, 'rpt': self.rpt, 'full': '\n'.join([self.sign, self.rpt])}
+        message = {'sign': self.sign, 'rpt': self.rpt}
         self.previewSignal.emit(message)
 
 
@@ -412,7 +412,7 @@ class TaskTafEditor(BaseTafEditor):
         self.sender.sendSignal.connect(self.afterSend)
         
     def previewMessage(self):
-        message = {'sign': self.sign, 'rpt':self.rpt, 'full': '\n'.join([self.sign, self.rpt]), 'planning': self.time}
+        message = {'sign': self.sign, 'rpt':self.rpt, 'planning': self.time}
         self.previewSignal.emit(message)
 
     def updateState(self):

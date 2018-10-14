@@ -48,11 +48,16 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         try:
             self.parser = TafParser(self.message['rpt'], visHas5000=visHas5000, cloudHeightHas450=cloudHeightHas450)
             self.parser.validate()
+
+            if self.parser.hasMessageChanged():
+                text = QCoreApplication.translate('Sender', 'The message is different from the original after validation')
+                self.parser.tips.insert(0, text)
+                self.message['rpt'] = self.parser.renderer()
+
             html = '<p>{}<br/>{}</p>'.format(self.message['sign'], self.parser.renderer(style='html'))
             if self.parser.tips:
                 html += '<p style="color: grey"># {}</p>'.format('<br/># '.join(self.parser.tips))
             self.rpt.setHtml(html)
-            self.message['rpt'] = self.parser.renderer()
 
         except Exception as e:
             logger.error(e)
@@ -86,7 +91,8 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
                 return None
 
         if self.state is None:
-            self.aftn = AFTNMessage(self.message['full'], self.reportType)
+            fullMessage = '\n'.join([self.message['sign'], self.message['rpt']])
+            self.aftn = AFTNMessage(fullMessage, self.reportType)
 
         self.state = self.aftn
 

@@ -122,7 +122,7 @@ class SigmetEditor(BaseEditor):
     def previewMessage(self):
         self.rpt = self.currentSegment.message()
         self.sign = self.type.message()
-        message = {'sign': self.sign, 'rpt': self.rpt, 'full': '\n'.join([self.sign, self.rpt])}
+        message = {'sign': self.sign, 'rpt': self.rpt}
         self.previewSignal.emit(message)
 
     def enbaleNextButton(self):

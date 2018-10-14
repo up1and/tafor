@@ -74,7 +74,7 @@ class TrendEditor(BaseEditor):
         self.sign = conf.value('Message/TrendSign')
 
     def previewMessage(self):
-        message = {'sign': self.sign, 'rpt': self.rpt, 'full': ' '.join([self.sign, self.rpt])}
+        message = {'sign': self.sign, 'rpt': self.rpt}
         self.previewSignal.emit(message)
 
     def clear(self):
