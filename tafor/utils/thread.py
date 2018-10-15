@@ -34,8 +34,11 @@ def firInfo(url):
         if r.status_code == 200:
             data = r.json()
             imageUrl = data['image']
-            image = requests.get(imageUrl)
-            data['raw'] = image.content
+            try:
+                req = requests.get(imageUrl)
+                data['image'] = req.content
+            except Exception as e:
+                data['image'] = None
             return data
         else:
             logger.warn('GET {} 404 Not Found'.format(url))

@@ -20,12 +20,9 @@ class MessageState(object):
 
 class FirState(object):
     _state = {
-        'raw': None,
+        'image': None,
         'size': [260, 260],
-        'coordinates': [
-            [105.6333, 23],
-            [115.9167, 12.6667],
-        ],
+        'coordinates': [],
         'rect': [0, 0, 0, 0],
         'boundaries': [],
         'updated': None,
@@ -37,7 +34,7 @@ class FirState(object):
 
     def setState(self, values):
         self._state.update(values)
-        if self._state['raw']:
+        if self._state['image']:
             self.computed()
 
     def computed(self):
@@ -56,8 +53,8 @@ class FirState(object):
         self.bottomRight = [rect[0] + rect[2], rect[1] + rect[3]]
         self.bottomLeft = [rect[0], rect[1] + rect[3]]
 
-    def raw(self):
-        return self._state['raw']
+    def image(self):
+        return self._state['image']
 
     def rect(self):
         return self._state['rect']

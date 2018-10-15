@@ -39,6 +39,10 @@ class Canvas(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 
+        if not self.fir.image():
+            self.drawEmpty(painter)
+            return
+
         self.drawCloudImage(painter)
         self.drawBoundaries(painter)
         self.drawSigmets(painter)
@@ -53,7 +57,7 @@ class Canvas(QWidget):
             self.drawRectangular(painter)
 
     def mousePressEvent(self, event):
-        if not self.fir.raw():
+        if not self.fir.image():
             return 
 
         if self.mode in ['polygon', 'line']:
@@ -175,36 +179,33 @@ class Canvas(QWidget):
         painter.drawPolygon(pol)
 
     def drawCloudImage(self, painter):
-        if self.fir.raw():
-            pixmap = QPixmap()
-            pixmap.loadFromData(self.fir.raw())
-            self.imageSize = pixmap.size()
-            rect = QRect(*self.fir.rect())
-            image = pixmap.copy(rect)
-            painter.drawPixmap(0, 0, image)
+        pixmap = QPixmap()
+        pixmap.loadFromData(self.fir.image())
+        self.imageSize = pixmap.size()
+        rect = QRect(*self.fir.rect())
+        image = pixmap.copy(rect)
+        painter.drawPixmap(0, 0, image)
 
-            updatedTime = self.fir.updatedTime()
-            if updatedTime:
-                rect = QRect(10, 0, image.size().width(), image.size().height() - 10)
-                text = updatedTime.strftime('%H:%M')
-                path = QPainterPath()
-                font = QFont()
-                font.setBold(True)
-                path.addText(rect.bottomLeft(), font, text)
-                pen = QPen(QColor(0, 0, 0, 120), 2)
-                brush = QBrush(Qt.white)
-                painter.strokePath(path, pen)
-                painter.fillPath(path, brush)
-        else:
-            rect = QRect(0, 0, 260, 260)
-            painter.setPen(Qt.DashLine)
-            painter.drawRect(rect)
-            painter.drawText(rect, Qt.AlignCenter, QCoreApplication.translate('Editor', 'No Satellite Image'))
+        updatedTime = self.fir.updatedTime()
+        if updatedTime:
+            rect = QRect(10, 0, image.size().width(), image.size().height() - 10)
+            text = updatedTime.strftime('%H:%M')
+            path = QPainterPath()
+            font = QFont()
+            font.setBold(True)
+            path.addText(rect.bottomLeft(), font, text)
+            pen = QPen(QColor(0, 0, 0, 120), 2)
+            brush = QBrush(Qt.white)
+            painter.strokePath(path, pen)
+            painter.fillPath(path, brush)
+
+    def drawEmpty(self, painter):
+        rect = QRect(0, 0, 260, 260)
+        painter.setPen(Qt.DashLine)
+        painter.drawRect(rect)
+        painter.drawText(rect, Qt.AlignCenter, QCoreApplication.translate('Editor', 'No Satellite Image'))
 
     def drawSigmets(self, painter):
-        if not self.fir.raw():
-            return 
-
         pen = QPen(QColor(204, 204, 204), 1, Qt.DashLine)
         brush = QBrush(QColor(240, 156, 0, 100))
 

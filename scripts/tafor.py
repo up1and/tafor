@@ -112,26 +112,33 @@ def remote_latest(airport):
 def fir(mwo):
     mwo = mwo.upper()
     url = 'http://192.2.204.51/GetFileName.ashx?type=1&satellite=1&file=IEC'
+    image = None
+    updated = None
 
     try:
         info = load_fir(mwo)
-        response = requests.get(url, timeout=2)
-        filename = response.text.split('$$')[-1]
-        image = 'http://192.2.204.51/FY2_IMAGE/IEC{}.jpg'.format(filename)
-        info['image'] = image
-
-        fmt = '%Y%m%d%H%M'
-        navie = datetime.datetime.strptime(filename, fmt)
-        local = timezone('Asia/Shanghai').localize(navie)
-        info['updated'] = local.astimezone(timezone('UTC'))
-
-    except requests.exceptions.ConnectionError:
-        app.logger.warn('GET {} 408 Request Timeout'.format(url))
-        return jsonify({'error': '{} not found'.format('satellite image')}), 404
 
     except Exception as e:
         app.logger.exception(e)
         return jsonify({'error': '{} not found'.format(mwo)}), 404
+
+    try:
+        response = requests.get(url, timeout=2)
+        filename = response.text.split('$$')[-1]
+        image = 'http://192.2.204.51/FY2_IMAGE/IEC{}.jpg'.format(filename)
+        fmt = '%Y%m%d%H%M'
+        navie = datetime.datetime.strptime(filename, fmt)
+        local = timezone('Asia/Shanghai').localize(navie)
+        updated = local.astimezone(timezone('UTC'))
+
+    except requests.exceptions.ConnectionError:
+        app.logger.warn('GET {} 408 Request Timeout'.format(url))
+
+    except Exception as e:
+        app.logger.exception(e)
+
+    info['image'] = image
+    info['updated'] = updated
         
     return jsonify(info)
 
