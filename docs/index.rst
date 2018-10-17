@@ -19,6 +19,7 @@
    intro
    install
    guide
+   faq
 
 
 API 相关
