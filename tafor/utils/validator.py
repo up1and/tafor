@@ -30,6 +30,7 @@ class Pattern(object):
     gust = r'(0[1-9]|[1-4][0-9]|P49)'
     vis = r'(9999|[5-9]000|[01234][0-9]00|0[0-7]50)'
     cloud = r'(FEW|SCT|BKN|OVC)(0[0-4][0-9]|050)'
+    vv = r'VV(00[0-9]|010)'
     temp = r'M?([0-5][0-9])'
     hours = r'([01][0-9]|2[0-4])'
     interval = r'([01][0-9]|2[0-3])(0[1-9]|1[0-9]|2[0-4])'
@@ -57,8 +58,7 @@ class TafGrammar(object):
     wind = re.compile(r'\b(?:00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)(?:G(0[1-9]|[1-4][0-9]|P49))?)MPS\b')
     vis = re.compile(r'\b(9999|[5-9]000|[01234][0-9]00|0[0-7]50)\b')
     weather = re.compile(r'([-+]?({})\b)|(\b({})\b)'.format('|'.join(weatherWithIntensity), '|'.join(weather)))
-    cloud = re.compile(r'\bSKC|NSC|(FEW|SCT|BKN|OVC)(\d{3})(CB|TCU)?\b')
-    vv = re.compile(r'\b(VV/{3}|VV(\d{3}))\b')
+    cloud = re.compile(r'\bSKC|NSC|(FEW|SCT|BKN|OVC|VV)(\d{3})(CB|TCU)?\b')
     cavok = re.compile(r'\bCAVOK\b')
 
     prob = re.compile(r'\b(PROB[34]0)\b')
@@ -188,33 +188,6 @@ class TafValidator(object):
         thresholds = self.visThresholds
         return self.compare(refVis, vis, thresholds)
 
-    def vv(self, refVv, vv):
-        """垂直能见度的转折验证
-
-        1. 当预报垂直能见度上升并达到或经过下列一个或多个数值，或下降并经过下列一个或多个数值时：
-            * 30 m、60 m、150 m 或 300 m，编报时对应 VV001、VV002、VV005、VV010
-
-        :param refVv: 参照垂直能见度
-        :param vv: 垂直能见度
-        :returns: 验证是否通过
-        """
-        pattern = self.grammarClass.vv
-        matches = [pattern.match(refVv), pattern.match(vv)]
-        thresholds = [1, 2, 5, 10]
-
-        # 两者都包含 VV, 计算高度是否跨越阈值
-        if all(matches):
-            refVvHeight, vvHeight = matches[0].group(2), matches[1].group(2)
-            return self.compare(refVvHeight, vvHeight, thresholds)
-
-        # 两者有一个是 VV, VV 高度小于最大阈值
-        if any(matches):
-            for m in matches:
-                if m and int(m.group(2)) <= thresholds[-1]:
-                    return True
-
-        return False
-
     def compare(self, refValue, value, thresholds):
         refValue = int(refValue)
         value = int(value)
@@ -288,13 +261,18 @@ class TafValidator(object):
 
         3. 当预报积雨云将发展或消失时
 
+        垂直能见度的转折验证，垂直能见度可视为一种特殊的云
+
+        1. 当预报垂直能见度上升并达到或经过下列一个或多个数值，或下降并经过下列一个或多个数值时：
+            * 30 m、60 m、150 m 或 300 m，编报时对应 VV001、VV002、VV005、VV010
+
         :param refCloud: 参照云组
         :param cloud: 云组
         :returns: 验证是否通过
         '''
         pattern = self.grammarClass.cloud
         thresholds = self.cloudHeightThresholds
-        cloudCover = {'SKC': 0, 'FEW': 1, 'SCT': 2, 'BKN': 3, 'OVC': 4}
+        cloudCover = {'SKC': 0, 'FEW': 1, 'SCT': 2, 'BKN': 3, 'OVC': 4, 'VV': 4}
 
         refClouds = refCloud.split()
         clouds = cloud.split()
@@ -304,7 +282,7 @@ class TafValidator(object):
             return False
 
         # 有积雨云 CB
-        cbPattern = re.compile(r'(FEW|SCT|BKN|OVC)(\d{3})(CB|TCU$)')
+        cbPattern = re.compile(r'(FEW|SCT|BKN|OVC)(\d{3})(CB|TCU)')
         matches = [cbPattern.search(refCloud), cbPattern.search(cloud)]
 
         if any(matches):
@@ -370,7 +348,7 @@ class TafLexer(object):
 
     defaultRules = [
         'prob', 'sign', 'amend', 'icao', 'timez', 'period', 'interval', 'cnl',
-        'wind', 'vis', 'cavok', 'weather', 'cloud', 'vv', 'tmax', 'tmin'
+        'wind', 'vis', 'cavok', 'weather', 'cloud', 'tmax', 'tmin'
     ]
 
     def __init__(self, part, grammar=None, **kwargs):

@@ -61,7 +61,7 @@
         <translation>云组3</translation>
     </message>
     <message>
-        <location filename="../../components/ui/Ui_trend.py" line="169"/>
+        <location filename="../../components/widgets/forecast.py" line="148"/>
         <source>Cloud1</source>
         <translation>云组1</translation>
     </message>
@@ -333,7 +333,7 @@
         <translation>趋势有效时段不正确</translation>
     </message>
     <message>
-        <location filename="../../components/widgets/area.py" line="202"/>
+        <location filename="../../components/widgets/area.py" line="206"/>
         <source>No Satellite Image</source>
         <translation></translation>
     </message>
@@ -411,6 +411,11 @@
         <location filename="../../components/taf.py" line="406"/>
         <source>Encoding Terminal Aerodrome Forecast - Delay Send</source>
         <translation>编发预报 - 延迟发送</translation>
+    </message>
+    <message>
+        <location filename="../../components/widgets/forecast.py" line="143"/>
+        <source>Vertical Visibility</source>
+        <translation>垂直能见度</translation>
     </message>
 </context>
 <context>
@@ -680,7 +685,7 @@
         <translation>报文没有通过校验，你还要发送么？</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="247"/>
+        <location filename="../../components/send.py" line="246"/>
         <source>Resend Message</source>
         <translation>重新发送报文</translation>
     </message>
@@ -690,7 +695,7 @@
         <translation>发送中</translation>
     </message>
     <message>
-        <location filename="../../components/send.py" line="165"/>
+        <location filename="../../components/send.py" line="164"/>
         <source>Delay Send Message</source>
         <translation>延迟发送报文</translation>
     </message>

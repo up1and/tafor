@@ -2,7 +2,7 @@ import json
 import datetime
 
 from PyQt5.QtGui import QRegExpValidator
-from PyQt5.QtCore import Qt, QRegExp, pyqtSignal
+from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QLineEdit, QComboBox, QRadioButton, QCheckBox
 
 from tafor import conf, logger
@@ -70,6 +70,7 @@ class BaseSegment(QWidget, SegmentMixin):
             self.interval.textChanged.connect(self.clearInterval)
 
         self.gust.editingFinished.connect(self.validateGust)
+        self.cloud1.textEdited.connect(self.setVv)
         self.cloud1.editingFinished.connect(lambda: self.validateCloud(self.cloud1))
         self.cloud2.editingFinished.connect(lambda: self.validateCloud(self.cloud2))
         self.cloud3.editingFinished.connect(lambda: self.validateCloud(self.cloud3))
@@ -131,6 +132,21 @@ class BaseSegment(QWidget, SegmentMixin):
         else:
             self.setClouds(True)
 
+    def setVv(self):
+        if self.cloud1.text().startswith('V'):
+            self.cloud2.setEnabled(False)
+            self.cloud3.setEnabled(False)
+            self.cb.setEnabled(False)
+            self.cloud2.clear()
+            self.cloud3.clear()
+            self.cb.clear()
+            self.cloud1Label.setText(QCoreApplication.translate('Editor', 'Vertical Visibility'))
+        else:
+            self.cloud2.setEnabled(True)
+            self.cloud3.setEnabled(True)
+            self.cb.setEnabled(True)
+            self.cloud1Label.setText(QCoreApplication.translate('Editor', 'Cloud1'))
+
     def setValidator(self):
         wind = QRegExpValidator(QRegExp(self.rules.wind, Qt.CaseInsensitive))
         self.wind.setValidator(wind)
@@ -142,7 +158,8 @@ class BaseSegment(QWidget, SegmentMixin):
         self.vis.setValidator(vis)
 
         cloud = QRegExpValidator(QRegExp(self.rules.cloud, Qt.CaseInsensitive))
-        self.cloud1.setValidator(cloud)
+        vvCloud = QRegExpValidator(QRegExp(r'({})|({})'.format(self.rules.cloud, self.rules.vv), Qt.CaseInsensitive))
+        self.cloud1.setValidator(vvCloud)
         self.cloud2.setValidator(cloud)
         self.cloud3.setValidator(cloud)
         self.cb.setValidator(cloud)

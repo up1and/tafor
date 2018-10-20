@@ -76,13 +76,6 @@ def test_vis(validator):
     assert validator.vis(3000, 1600)
     assert validator.vis(4000, 7000)
 
-def test_vv(validator):
-    assert validator.vv('VV002', 'VV005')
-    assert validator.vv('VV005', 'VV002')
-    assert validator.vv('VV005', 'SCT020')
-    assert not validator.vv('VV002', 'VV003')
-    assert not validator.vv('VV015', 'BKN010')
-    
 def test_weather(validator):
     assert validator.weather('TS', '-TSRA')
     assert validator.weather('-TSRA', 'TSRA')
@@ -102,6 +95,14 @@ def test_cloud(validator):
     assert not validator.cloud('SCT007', 'SCT015')
     assert not validator.cloud('NSC', 'SKC')
     assert not validator.cloud('SCT020', 'SCT020')
+
+    assert validator.cloud('VV002', 'VV005')
+    assert validator.cloud('VV005', 'VV002')
+    assert validator.cloud('VV005', 'SCT020')
+    assert validator.cloud('VV015', 'BKN010')
+    assert not validator.cloud('VV006', 'OVC009')
+    assert not validator.cloud('VV002', 'VV003')
+
     # To be fixed 
     # when cloudHeightHas450 equal False, BKN016, BKN011 always return True
 

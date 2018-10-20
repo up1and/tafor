@@ -60,7 +60,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             self.rpt.setHtml(html)
 
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
 
         self.resizeRpt()
 
