@@ -489,7 +489,7 @@ def main():
     app = QApplication(sys.argv)
     translator = QTranslator()
     locale = QLocale.system().name()
-    translateFile = os.path.join(root, 'i18n\\translations', '{}.qm'.format(locale))
+    translateFile = os.path.join(root, 'i18n', '{}.qm'.format(locale))
     if translator.load(translateFile):
         app.installTranslator(translator)
 

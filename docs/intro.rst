@@ -27,8 +27,7 @@ SIGMET 报文编辑优势在于图形化编发和解析，此功能在业内属�
 Tafor 采取便携的安装方式，可以放置在任意目录下，结构如下::
 
     |-- i18n
-        |-- translations
-            |-- zh_CN.qm
+        |-- zh_CN.qm
     |-- sounds
         |-- alarm.wav
         |-- notification.wav
@@ -40,7 +39,7 @@ Tafor 采取便携的安装方式，可以放置在任意目录下，结构如�
     |-- tafor.log
 
 
-- :file:`i18n/translations/zh_CN.qm` 用于加载中文语言，如果不存在载入的默认语言是 English 
+- :file:`i18n/zh_CN.qm` 用于加载中文语言，如果不存在载入的默认语言是 English 
 - :file:`sounds` 文件夹中包含内置的提醒声音，包括闹钟等提醒声音，可以随意替换，但必须是 `wav` 类型的文件
 - :file:`db.sqlite3` sqlite 数据库文件，日常的报文数据储存在这里，如果不存在程序会在启动时创建
 - :file:`tafor.exe` 程序执行文件
@@ -49,7 +48,7 @@ Tafor 采取便携的安装方式，可以放置在任意目录下，结构如�
 编码格式
 ^^^^^^^^^^
 
-Tafor 使用标准的 ASCII [#ascii]_ 发送报文，在业界内也俗称 ITA5。另一种业内使用的编码方式 ITA2 [#ita2]_ 是不支持的。
+Tafor 使用标准的 ASCII [#ascii]_ 发送报文，在业内也俗称 ITA5。另一种业内使用的编码 ITA2 [#ita2]_ 是不支持的。
 
 Tafor 发送的 AFTN 报文格式如下::
 
