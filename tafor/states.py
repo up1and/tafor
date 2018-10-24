@@ -1,7 +1,8 @@
 import copy
 import datetime
 
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import QObject, Qt, pyqtSignal
 
 from shapely.geometry import box
 
@@ -29,13 +30,18 @@ class FirState(object):
         'sigmets': []
     } # 这里的参数会被远程参数覆盖
 
+    drawable = False
+
     def state(self):
         return self._state
 
     def setState(self, values):
         self._state.update(values)
-        if self._state['image']:
+        try:
             self.computed()
+            self.drawable = True
+        except Exception:
+            self.drawable = False
 
     def computed(self):
         latRange = self._state['coordinates'][0][1] - self._state['coordinates'][1][1]
@@ -55,6 +61,15 @@ class FirState(object):
 
     def image(self):
         return self._state['image']
+
+    def pixmap(self):
+        if self._state['image'] is None:
+            image = QPixmap(*self._state['size'])
+            image.fill(Qt.gray)
+        else:
+            image = QPixmap()
+            image.loadFromData(self._state['image'])
+        return image
 
     def rect(self):
         return self._state['rect']

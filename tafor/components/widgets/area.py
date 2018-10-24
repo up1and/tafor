@@ -25,8 +25,12 @@ class Canvas(QWidget):
         self.color = Qt.white
         self.shadowColor = QColor(0, 0, 0, 127)
         self.areaColor = QColor(240, 156, 0, 178)
-        self.boundaryColor = Qt.red
         self.fir = context.fir
+        self.setSizePolicy(0, 0)
+
+    @property
+    def boundaryColor(self):
+        return Qt.red if self.fir.image() else Qt.white
 
     def minimumSizeHint(self):
         return QSize(260, 260)
@@ -39,7 +43,7 @@ class Canvas(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 
-        if not self.fir.image():
+        if not self.fir.drawable:
             self.drawEmpty(painter)
             return
 
@@ -57,7 +61,7 @@ class Canvas(QWidget):
             self.drawRectangular(painter)
 
     def mousePressEvent(self, event):
-        if not self.fir.image():
+        if not self.fir.drawable:
             return 
 
         if self.mode in ['polygon', 'line']:
@@ -179,8 +183,7 @@ class Canvas(QWidget):
         painter.drawPolygon(pol)
 
     def drawCloudImage(self, painter):
-        pixmap = QPixmap()
-        pixmap.loadFromData(self.fir.image())
+        pixmap = self.fir.pixmap()
         self.imageSize = pixmap.size()
         rect = QRect(*self.fir.rect())
         image = pixmap.copy(rect)
@@ -254,6 +257,7 @@ class AreaBoard(QWidget):
         layout = QHBoxLayout()
         layout.addWidget(self.canvas)
         layout.addWidget(self.board)
+        layout.setSpacing(20)
 
         self.setLayout(layout)
 
