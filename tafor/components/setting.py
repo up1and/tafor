@@ -2,7 +2,7 @@ import os
 import json
 import datetime
 
-from PyQt5.QtGui import QIcon, QIntValidator
+from PyQt5.QtGui import QIcon, QIntValidator, QDoubleValidator
 from PyQt5.QtCore import QCoreApplication, QSettings, QTimer, Qt
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QTableWidgetItem, QFileDialog
 
@@ -46,6 +46,7 @@ _options = [
     # 数据源
     ('Monitor/WebApiURL', 'webApiURL', 'text'),
     ('Monitor/FirApiURL', 'firApiURL', 'text'),
+    ('General/FirCanvasScale', 'firCanvasScale', 'text'),
     # TAF 报文迟发告警
     ('Monitor/WarnTAFTime', 'warnTafTime', 'text'),
     ('Monitor/WarnTAFVolume', 'warnTafVolume', 'slider'),
@@ -163,6 +164,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.maxSendAddress.setValidator(QIntValidator(self.maxSendAddress))
         self.maxLineChar.setValidator(QIntValidator(self.maxLineChar))
         self.warnTafTime.setValidator(QIntValidator(self.warnTafTime))
+        self.firCanvasScale.setValidator(QDoubleValidator(0.0, 5.0, 2, self.firCanvasScale))
 
     def checkChannelNumber(self):
         """检查是否是世界时日界，如果是重置流水号"""

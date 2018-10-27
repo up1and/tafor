@@ -18,7 +18,6 @@ class Canvas(QWidget):
         super(Canvas, self).__init__(parent)
         self.points = []
         self.rectangular = []
-        self.imageSize = None
         self.done = False
         self.mode = 'polygon'
         self.maxPoint = 7
@@ -32,11 +31,10 @@ class Canvas(QWidget):
     def boundaryColor(self):
         return Qt.red if self.fir.image() else Qt.white
 
-    def minimumSizeHint(self):
-        return QSize(260, 260)
-
     def sizeHint(self):
         *_, w, h = self.fir.rect()
+        if w == 0 or h == 0:
+            return QSize(260, 260)
         return QSize(w, h)
 
     def paintEvent(self, event):
@@ -183,12 +181,8 @@ class Canvas(QWidget):
         painter.drawPolygon(pol)
 
     def drawCloudImage(self, painter):
-        pixmap = self.fir.pixmap()
-        self.imageSize = pixmap.size()
-        rect = QRect(*self.fir.rect())
-        image = pixmap.copy(rect)
+        image = self.fir.pixmap()
         painter.drawPixmap(0, 0, image)
-
         updatedTime = self.fir.updatedTime()
         if updatedTime:
             rect = QRect(10, 0, image.size().width(), image.size().height() - 10)

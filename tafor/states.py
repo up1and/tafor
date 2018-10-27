@@ -2,11 +2,11 @@ import copy
 import datetime
 
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import QObject, Qt, pyqtSignal
+from PyQt5.QtCore import QObject, QRect, Qt, pyqtSignal
 
 from shapely.geometry import box
 
-from tafor import logger
+from tafor import conf, logger
 
 
 class MessageState(object):
@@ -22,7 +22,7 @@ class MessageState(object):
 class FirState(object):
     _state = {
         'image': None,
-        'size': [260, 260],
+        'size': [0, 0],
         'coordinates': [],
         'rect': [0, 0, 0, 0],
         'boundaries': [],
@@ -30,7 +30,10 @@ class FirState(object):
         'sigmets': []
     } # 这里的参数会被远程参数覆盖
 
-    drawable = False
+    def __init__(self):
+        self.drawable = False
+        scale = conf.value('General/FirCanvasScale') or 1.0
+        self.scale = float(scale)
 
     def state(self):
         return self._state
@@ -44,16 +47,17 @@ class FirState(object):
             self.drawable = False
 
     def computed(self):
+        size = self.size()
+        rect = self.rect()
         latRange = self._state['coordinates'][0][1] - self._state['coordinates'][1][1]
         longRange = self._state['coordinates'][1][0] - self._state['coordinates'][0][0]
         self.initLong = self._state['coordinates'][0][0]
         self.initLat = self._state['coordinates'][0][1]
-        self.dlat = latRange / self._state['size'][1]
-        self.dlong = longRange / self._state['size'][0]
-        self.offsetX = self._state['rect'][0]
-        self.offsetY = self._state['rect'][1]
+        self.dlat = latRange / size[1]
+        self.dlong = longRange / size[0]
+        self.offsetX = rect[0]
+        self.offsetY = rect[1]
 
-        rect = self.rect()
         self.topLeft = [rect[0], rect[1]]
         self.topRight = [rect[0] + rect[2], rect[1]]
         self.bottomRight = [rect[0] + rect[2], rect[1] + rect[3]]
@@ -64,15 +68,22 @@ class FirState(object):
 
     def pixmap(self):
         if self._state['image'] is None:
-            image = QPixmap(*self._state['size'])
-            image.fill(Qt.gray)
+            raw = QPixmap(*self.size())
+            raw.fill(Qt.gray)
         else:
-            image = QPixmap()
-            image.loadFromData(self._state['image'])
+            raw = QPixmap()
+            raw.loadFromData(self._state['image'])
+            raw = raw.scaled(*self.size())
+
+        rect = QRect(*self.rect())
+        image = raw.copy(rect)
         return image
 
     def rect(self):
-        return self._state['rect']
+        return [self.scale * i for i in self._state['rect']]
+
+    def size(self):
+        return [self.scale * i for i in self._state['size']]
 
     def sigmets(self):
         return self._state['sigmets']
