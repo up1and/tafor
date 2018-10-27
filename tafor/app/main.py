@@ -441,7 +441,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
                     significant meteorological information, monitor the message, return the alarm by sound or telephone''')
         tail = QCoreApplication.translate('MainWindow', 
                     '''The project is under GPL-2.0 License, Pull Request and Issue are welcome''')
-        copyright = '<br/>© up1and 2018'
+        copyright = '<br/>© 2018 up1and'
         text = '<p>'.join([head, description, tail, copyright])
 
         self.showNormal()
