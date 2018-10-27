@@ -57,7 +57,7 @@
    <item row="0" column="5">
     <widget class="QLabel" name="weatherWithIntensityLabel">
      <property name="text">
-      <string>Weather1</string>
+      <string>Weather</string>
      </property>
      <property name="buddy">
       <cstring>weatherWithIntensity</cstring>
@@ -67,7 +67,7 @@
    <item row="0" column="6">
     <widget class="QLabel" name="weatherLabel">
      <property name="text">
-      <string>Weather2</string>
+      <string>Weather</string>
      </property>
      <property name="buddy">
       <cstring>weather</cstring>
@@ -77,7 +77,7 @@
    <item row="0" column="7">
     <widget class="QLabel" name="cloud1Label">
      <property name="text">
-      <string>Cloud1</string>
+      <string>Cloud</string>
      </property>
      <property name="buddy">
       <cstring>cloud1</cstring>
@@ -87,7 +87,7 @@
    <item row="0" column="8">
     <widget class="QLabel" name="cloud2Label">
      <property name="text">
-      <string>Cloud2</string>
+      <string>Cloud</string>
      </property>
      <property name="buddy">
       <cstring>cloud2</cstring>
@@ -97,7 +97,7 @@
    <item row="0" column="9">
     <widget class="QLabel" name="cloud3Label">
      <property name="text">
-      <string>Cloud3</string>
+      <string>Cloud</string>
      </property>
      <property name="buddy">
       <cstring>cloud3</cstring>

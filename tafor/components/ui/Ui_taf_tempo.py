@@ -122,11 +122,11 @@ class Ui_Editor(object):
         self.windLabel.setText(_translate("Editor", "Wind"))
         self.gustLabel.setText(_translate("Editor", "Gust"))
         self.visLabel.setText(_translate("Editor", "Visibility"))
-        self.weatherWithIntensityLabel.setText(_translate("Editor", "Weather1"))
-        self.weatherLabel.setText(_translate("Editor", "Weather2"))
-        self.cloud1Label.setText(_translate("Editor", "Cloud1"))
-        self.cloud2Label.setText(_translate("Editor", "Cloud2"))
-        self.cloud3Label.setText(_translate("Editor", "Cloud3"))
+        self.weatherWithIntensityLabel.setText(_translate("Editor", "Weather"))
+        self.weatherLabel.setText(_translate("Editor", "Weather"))
+        self.cloud1Label.setText(_translate("Editor", "Cloud"))
+        self.cloud2Label.setText(_translate("Editor", "Cloud"))
+        self.cloud3Label.setText(_translate("Editor", "Cloud"))
         self.cbLabel.setText(_translate("Editor", "Cumulonimbus"))
 
 

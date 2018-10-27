@@ -37,11 +37,6 @@
         <translation>时段</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_trend.py" line="170"/>
-        <source>Cloud2</source>
-        <translation>云组2</translation>
-    </message>
-    <message>
         <location filename="../components/ui/Ui_trend.py" line="167"/>
         <source>Wind</source>
         <translation>风向风速</translation>
@@ -57,11 +52,6 @@
         <translation>能见度</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_trend.py" line="172"/>
-        <source>Cloud3</source>
-        <translation>云组3</translation>
-    </message>
-    <message>
         <location filename="../components/widgets/forecast.py" line="148"/>
         <source>Cloud1</source>
         <translation>云组1</translation>
@@ -70,16 +60,6 @@
         <location filename="../components/ui/Ui_trend.py" line="171"/>
         <source>Cumulonimbus</source>
         <translation>积雨云</translation>
-    </message>
-    <message>
-        <location filename="../components/ui/Ui_trend.py" line="165"/>
-        <source>Weather2</source>
-        <translation>天气现象2</translation>
-    </message>
-    <message>
-        <location filename="../components/ui/Ui_trend.py" line="164"/>
-        <source>Weather1</source>
-        <translation>天气现象1</translation>
     </message>
     <message>
         <location filename="../components/ui/Ui_taf_primary.py" line="250"/>
@@ -417,6 +397,16 @@
         <location filename="../components/widgets/forecast.py" line="143"/>
         <source>Vertical Visibility</source>
         <translation>垂直能见度</translation>
+    </message>
+    <message>
+        <location filename="../components/ui/Ui_trend.py" line="165"/>
+        <source>Weather</source>
+        <translation>天气现象</translation>
+    </message>
+    <message>
+        <location filename="../components/ui/Ui_trend.py" line="172"/>
+        <source>Cloud</source>
+        <translation>云</translation>
     </message>
 </context>
 <context>

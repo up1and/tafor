@@ -161,15 +161,15 @@ class Ui_Editor(object):
     def retranslateUi(self, Editor):
         _translate = QtCore.QCoreApplication.translate
         self.gustLabel.setText(_translate("Editor", "Gust"))
-        self.weatherWithIntensityLabel.setText(_translate("Editor", "Weather1"))
-        self.weatherLabel.setText(_translate("Editor", "Weather2"))
+        self.weatherWithIntensityLabel.setText(_translate("Editor", "Weather"))
+        self.weatherLabel.setText(_translate("Editor", "Weather"))
         self.periodLabel.setText(_translate("Editor", "Interval"))
         self.windLabel.setText(_translate("Editor", "Wind"))
         self.visLabel.setText(_translate("Editor", "Visibility"))
-        self.cloud1Label.setText(_translate("Editor", "Cloud1"))
-        self.cloud2Label.setText(_translate("Editor", "Cloud2"))
+        self.cloud1Label.setText(_translate("Editor", "Cloud"))
+        self.cloud2Label.setText(_translate("Editor", "Cloud"))
         self.cbLabel.setText(_translate("Editor", "Cumulonimbus"))
-        self.cloud3Label.setText(_translate("Editor", "Cloud3"))
+        self.cloud3Label.setText(_translate("Editor", "Cloud"))
 
 
 if __name__ == "__main__":
