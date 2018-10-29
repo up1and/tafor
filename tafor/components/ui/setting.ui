@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>620</width>
-    <height>434</height>
+    <height>462</height>
    </rect>
   </property>
   <property name="acceptDrops">
@@ -79,6 +79,20 @@
             <string>General</string>
            </property>
            <layout class="QGridLayout" name="gridLayout_9">
+            <item row="0" column="0">
+             <widget class="QCheckBox" name="runOnStart">
+              <property name="text">
+               <string>Run on system startup</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QCheckBox" name="alwaysShowEditor">
+              <property name="text">
+               <string>Always show forecast editor</string>
+              </property>
+             </widget>
+            </item>
             <item row="1" column="0">
              <widget class="QCheckBox" name="closeToMinimize">
               <property name="text">
@@ -93,10 +107,10 @@
               </property>
              </widget>
             </item>
-            <item row="0" column="0">
-             <widget class="QCheckBox" name="runOnStart">
+            <item row="4" column="0">
+             <widget class="QCheckBox" name="largeFont">
               <property name="text">
-               <string>Run on system startup</string>
+               <string>Large Font</string>
               </property>
              </widget>
             </item>
@@ -112,20 +126,6 @@
                </size>
               </property>
              </spacer>
-            </item>
-            <item row="4" column="0">
-             <widget class="QCheckBox" name="largeFont">
-              <property name="text">
-               <string>Large Font</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="0">
-             <widget class="QCheckBox" name="alwaysShowEditor">
-              <property name="text">
-               <string>Always show forecast editor</string>
-              </property>
-             </widget>
             </item>
            </layout>
           </widget>
@@ -698,13 +698,6 @@
               </property>
              </widget>
             </item>
-            <item row="1" column="0">
-             <widget class="QLabel" name="firApiLabel">
-              <property name="text">
-               <string>FIR Request URL</string>
-              </property>
-             </widget>
-            </item>
             <item row="1" column="1">
              <widget class="QLineEdit" name="firApiURL">
               <property name="text">
@@ -715,30 +708,37 @@
               </property>
              </widget>
             </item>
-            <item row="1" column="3">
-             <widget class="QLineEdit" name="firCanvasScale">
-              <property name="maximumSize">
-               <size>
-                <width>40</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="placeholderText">
-               <string notr="true">1.0</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="2">
-             <widget class="QLabel" name="firCanvasScaleLabel">
+            <item row="1" column="0">
+             <widget class="QLabel" name="firApiLabel">
               <property name="text">
-               <string>Canvas Scale</string>
+               <string>FIR Request URL</string>
               </property>
              </widget>
             </item>
-            <item row="0" column="1" colspan="3">
+            <item row="0" column="1">
              <widget class="QLineEdit" name="webApiURL">
               <property name="placeholderText">
                <string>URL</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QSlider" name="firCanvasSize">
+              <property name="minimum">
+               <number>300</number>
+              </property>
+              <property name="maximum">
+               <number>565</number>
+              </property>
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="firCanvasSizeLabel">
+              <property name="text">
+               <string>FIR Canvas Size</string>
               </property>
              </widget>
             </item>

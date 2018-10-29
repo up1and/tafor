@@ -19,6 +19,7 @@ class Ui_Editor(object):
         self.areaGroup = QtWidgets.QGroupBox(Editor)
         self.areaGroup.setObjectName("areaGroup")
         self.areaLayout = QtWidgets.QVBoxLayout(self.areaGroup)
+        self.areaLayout.setContentsMargins(-1, -1, -1, 5)
         self.areaLayout.setObjectName("areaLayout")
         self.changeAreaWidget = QtWidgets.QWidget(self.areaGroup)
         self.changeAreaWidget.setObjectName("changeAreaWidget")

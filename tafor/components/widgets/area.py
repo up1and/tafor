@@ -1,10 +1,10 @@
 from PyQt5.QtCore import QSize, Qt, QRect, QCoreApplication, QPoint, pyqtSignal
 from PyQt5.QtGui import QPainter, QPainterPath, QPolygon, QPixmap, QPen, QColor, QBrush, QFont
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel
+from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel
 
 from shapely.geometry import Polygon
 
-from tafor import logger
+from tafor import conf, logger
 from tafor.states import context
 from tafor.utils.convert import listToPoint, pointToList
 from tafor.utils.sigmet import encodeSigmetArea, simplifyLine, clipPolygon, simplifyPolygon
@@ -34,7 +34,8 @@ class Canvas(QWidget):
     def sizeHint(self):
         *_, w, h = self.fir.rect()
         if w == 0 or h == 0:
-            return QSize(260, 260)
+            width = conf.value('General/FirCanvasSize') or 300
+            return QSize(width, width)
         return QSize(w, h)
 
     def paintEvent(self, event):
@@ -197,7 +198,7 @@ class Canvas(QWidget):
             painter.fillPath(path, brush)
 
     def drawEmpty(self, painter):
-        rect = QRect(0, 0, 260, 260)
+        rect = QRect(QPoint(0, 0), self.sizeHint())
         painter.setPen(Qt.DashLine)
         painter.drawRect(rect)
         painter.drawText(rect, Qt.AlignCenter, QCoreApplication.translate('Editor', 'No Satellite Image'))
@@ -242,24 +243,32 @@ class AreaBoard(QWidget):
     def __init__(self):
         super(AreaBoard, self).__init__()
 
-        self.board = QLabel()
+        self.board = QLabel('')
         self.board.setAlignment(Qt.AlignTop)
-        self.board.setMaximumWidth(280)
         self.board.setWordWrap(True)
+        self.board.setMinimumHeight(26)
         self.canvas = Canvas()
-
-        layout = QHBoxLayout()
-        layout.addWidget(self.canvas)
-        layout.addWidget(self.board)
-        layout.setSpacing(20)
-
-        self.setLayout(layout)
+        self.layout = QGridLayout()
+        self.layout.addWidget(self.canvas, 0, 0)
+        self.layout.setSpacing(20)
+        self.layout.setContentsMargins(0, 5, 0, 5)
+        self.setLayout(self.layout)
+        self.setMaximumWidth(575)
 
         self.area = []
         self.message = ''
+        self.pointspacing = ''
 
         self.canvas.pointsChanged.connect(self.updateArea)
         self.canvas.stateChanged.connect(self.updateArea)
+
+    def showEvent(self, event):
+        if self.canvas.sizeHint().width() > 440:
+            self.layout.addWidget(self.board, 1, 0)
+            self.pointspacing = ' - '
+        else:
+            self.layout.addWidget(self.board, 0, 1)
+            self.pointspacing = '\n'
 
     def updateArea(self):
         self.message = ''
@@ -301,7 +310,7 @@ class AreaBoard(QWidget):
             else:
                 points = context.fir.pixelToDegree(self.canvas.points)
                 coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
-                self.message = '\n'.join(coordinates)
+                self.message = self.pointspacing.join(coordinates)
 
 
         if self.canvas.mode == 'polygon':
@@ -311,7 +320,7 @@ class AreaBoard(QWidget):
                 self.message = 'WI ' + ' - '.join(coordinates)
             else:
                 coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
-                self.message = '\n'.join(coordinates)
+                self.message = self.pointspacing.join(coordinates)
 
         self.board.setText(self.message)
 

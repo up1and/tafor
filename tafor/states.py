@@ -30,10 +30,15 @@ class FirState(object):
         'sigmets': []
     } # 这里的参数会被远程参数覆盖
 
-    def __init__(self):
-        self.drawable = False
-        scale = conf.value('General/FirCanvasScale') or 1.0
-        self.scale = float(scale)
+    drawable = False
+
+    @property
+    def scale(self):
+        width = conf.value('General/FirCanvasSize') or 300
+        imageWidth = self._state['rect'][2]
+        if imageWidth == 0:
+            return 1
+        return width / imageWidth
 
     def state(self):
         return self._state
