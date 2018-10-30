@@ -12,6 +12,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(870, 650)
+        MainWindow.setWindowTitle("Tafor")
         self.centralWidget = QtWidgets.QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.centralWidget)
@@ -151,7 +152,6 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "Terminal Aerodrome Forecast Encoding Software"))
         self.mainTab.setTabText(self.mainTab.indexOf(self.recentTab), _translate("MainWindow", "RECENT"))
         self.mainTab.setTabText(self.mainTab.indexOf(self.tafTab), _translate("MainWindow", "TAF"))
         self.mainTab.setTabText(self.mainTab.indexOf(self.metarTab), _translate("MainWindow", "METAR"))

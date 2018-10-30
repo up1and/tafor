@@ -58,10 +58,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def setup(self):
         self.setWindowIcon(QIcon(':/logo.png'))
 
-        # 初始化剪贴板
         self.clip = QApplication.clipboard()
-
-        # 闹钟提示框
         self.remindBox = RemindMessageBox(self)
 
         # 初始化窗口
@@ -162,8 +159,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.tray.setContextMenu(self.trayMenu)
 
-        title = QCoreApplication.translate('MainWindow', 'Terminal Aerodrome Forecast Encoding Software')
-        message =  '{} v {}'.format(title, __version__)
+        message =  'Tafor {}'.format(__version__)
         self.tray.setToolTip(message)
 
     def setStatus(self):
@@ -250,7 +246,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.trendEditor.close()
             self.sigmetEditor.close()
             self.settingDialog.close()
-            self.remindBox.close()
+            self.remindBox = None
 
             if boolean(conf.value('General/Serious')):
                 self.taskTafSender.setAttribute(Qt.WA_DeleteOnClose)
@@ -434,18 +430,24 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.tray.showMessage(title, content, icon)
 
     def about(self):
-        title = QCoreApplication.translate('MainWindow', 'Terminal Aerodrome Forecast Encoding Software')
-        head = '<b>{}</b> v <a href="https://github.com/up1and/tafor">{}</a>'.format(title, __version__)
-        description = QCoreApplication.translate('MainWindow', 
-                    '''The software is used to encode and post terminal aerodrome forecast, trend forecast, 
-                    significant meteorological information, monitor the message, return the alarm by sound or telephone''')
-        tail = QCoreApplication.translate('MainWindow', 
-                    '''The project is under GPL-2.0 License, Pull Request and Issue are welcome''')
-        copyright = '<br/>© 2018 up1and'
-        text = '<p>'.join([head, description, tail, copyright])
-
+        title = QCoreApplication.translate('MainWindow', 'About')
+        html = """
+        <div style="text-align:center">
+        <img src=":/logo.png">
+        <h2 style="margin:5px 0">Tafor</h2>
+        <p style="margin:0;color:#444;font-size:13px">A Terminal Aerodrome Forecast Encoding Software</p>
+        <p style="margin:5px 0"><a href="https://github.com/up1and/tafor" style="text-decoration:none;color:#0078d7">{} {}</a></p>
+        <p style="margin-top:25px;color:#444">Copyright © 2018 <a href="mailto:piratecb@gmail.com" style="text-decoration:none;color:#444">up1and</a></p>
+        </div>
+        """.format(QCoreApplication.translate('MainWindow', 'Version'), __version__)
+        
+        aboutBox = QMessageBox(self)
+        aboutBox.setText(html)
+        aboutBox.setWindowTitle(title)
+        layout = aboutBox.layout()
+        layout.removeItem(layout.itemAt(0))
         self.showNormal()
-        QMessageBox.about(self, title, text)
+        aboutBox.exec()
 
     def openDocs(self):
         devDocs = os.path.join(root, '../docs/_build/html/index.html')

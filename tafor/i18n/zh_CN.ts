@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE TS><TS version="2.0" language="zh_CN" sourcelanguage="en">
+<!DOCTYPE TS>
+<TS version="2.1" language="zh_CN" sourcelanguage="en">
 <context>
     <name>DataTable</name>
     <message>
@@ -411,11 +412,6 @@
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="154"/>
-        <source>Terminal Aerodrome Forecast Encoding Software</source>
-        <translation>预报发报软件</translation>
-    </message>
-    <message>
         <location filename="../components/ui/Ui_main.py" line="155"/>
         <source>RECENT</source>
         <translation></translation>
@@ -521,20 +517,9 @@
         <translation>离线</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="443"/>
-        <source>The project is under GPL-2.0 License, Pull Request and Issue are welcome</source>
-        <translation>项目遵循 GPL-2.0 协议，欢迎提交 Pull Request 或者 Issue</translation>
-    </message>
-    <message>
-        <location filename="../app/main.py" line="482"/>
+        <location filename="../app/main.py" line="486"/>
         <source>New version found {}, do you want to download now?</source>
         <translation>发现新版本 {}，想现在下载么？</translation>
-    </message>
-    <message>
-        <location filename="../app/main.py" line="440"/>
-        <source>The software is used to encode and post terminal aerodrome forecast, trend forecast, 
-                    significant meteorological information, monitor the message, return the alarm by sound or telephone</source>
-        <translation>本软件用于智能发布预报报文、趋势报文、重要气象情报，监控预报报文，以声音或电话的方式返回告警</translation>
     </message>
     <message>
         <location filename="../components/widgets/widget.py" line="21"/>
@@ -562,17 +547,17 @@
         <translation>下一页</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="477"/>
+        <location filename="../app/main.py" line="481"/>
         <source>The current version is already the latest version.</source>
         <translation>当前版本已经是最新版本</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="471"/>
+        <location filename="../app/main.py" line="475"/>
         <source>Unable to get the latest version information.</source>
         <translation>无法获取最新版本信息</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="311"/>
+        <location filename="../app/main.py" line="310"/>
         <source>Send Completed</source>
         <translation>发送完成</translation>
     </message>
@@ -582,22 +567,22 @@
         <translation>已复制选取的报文</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="308"/>
+        <location filename="../app/main.py" line="307"/>
         <source>Send Failed</source>
         <translation>发送失败</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="320"/>
+        <location filename="../app/main.py" line="319"/>
         <source>Connection Error</source>
         <translation>连接错误</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="330"/>
+        <location filename="../app/main.py" line="329"/>
         <source>Unable to connect phone call service, please check the settings or network status.</source>
         <translation>无法连接电话服务，请检查设置或者网络状态。</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="346"/>
+        <location filename="../app/main.py" line="345"/>
         <source>Time to issue {}</source>
         <translation>发布 {}</translation>
     </message>
@@ -607,19 +592,24 @@
         <translation>编发</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="360"/>
+        <location filename="../app/main.py" line="359"/>
         <source>Time to update {}</source>
         <translation>更新 {}</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="322"/>
+        <location filename="../app/main.py" line="321"/>
         <source>Unable to connect remote message data source, please check the settings or network status.</source>
         <translation>无法连接远程数据源，请检查设置或者网络状态。</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="326"/>
+        <location filename="../app/main.py" line="325"/>
         <source>Unable to connect FIR information data source, please check the settings or network status.</source>
         <translation>无法获取情报区信息数据，请检查设置或者网络状态。</translation>
+    </message>
+    <message>
+        <location filename="../app/main.py" line="446"/>
+        <source>Version</source>
+        <translation>版本</translation>
     </message>
 </context>
 <context>
