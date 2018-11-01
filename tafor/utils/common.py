@@ -4,37 +4,36 @@ def boolean(value):
 
 def checkVersion(releaseVersion, currentVersion):
     def versionNum(version):
-        version = version.replace('v', '')
-        if 'beta' in version:
-            version, betaNum = version.split('-beta')
-        else:
-            betaNum = None
+        if version.startswith('v'):
+            version = version[1:]
 
+        dev = None
         nums = version.split('.')
-        stableNum = 0
+
+        if 'dev' in nums:
+            dev = nums.pop()
+
+        number = 0
         multiple = 100
 
         for n in nums:
-            stableNum += int(n) * multiple
+            number += int(n) * multiple
             multiple = multiple / 10
 
         return {
-            'stable': stableNum,
-            'beta':  betaNum
+            'version': number,
+            'dev': dev
         }
 
     current = versionNum(currentVersion)
     release = versionNum(releaseVersion)
     hasNewVersion = False
 
-    if release['stable'] > current['stable']:
+    if release['version'] > current['version']:
         hasNewVersion = True
 
-    if release['stable'] == current['stable']:
-        if release['beta'] is None and current['beta']:
-            hasNewVersion = True
-
-        if release['beta'] and current['beta'] and release['beta'] > current['beta']:
+    if release['version'] == current['version']:
+        if release['dev'] and current['dev'] is None:
             hasNewVersion = True
 
     return hasNewVersion
