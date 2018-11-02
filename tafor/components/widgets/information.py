@@ -60,7 +60,7 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
         self.endingTime.textEdited.connect(lambda: self.coloredText(self.endingTime))
         self.obsTime.textEdited.connect(lambda: self.coloredText(self.obsTime))
 
-        self.register()
+        self.defaultSignal()
 
     def enbaleOBSTime(self, text):
         if text == 'OBS':
@@ -264,7 +264,7 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
 
         self.canvasWidget.canvas.stateChanged.connect(self.checkComplete)
 
-        self.register()
+        self.defaultSignal()
 
     def checkComplete(self):
         self.parent.checkComplete()
@@ -400,7 +400,7 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         self.base.textEdited.connect(lambda: self.coloredText(self.base))
         self.top.textEdited.connect(lambda: self.coloredText(self.top))
 
-        self.register()
+        self.defaultSignal()
 
     def setValidator(self):
         fightLevel = QRegExpValidator(QRegExp(self.rules.fightLevel))
@@ -562,7 +562,7 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         self.forecastLatitude.textEdited.connect(lambda: self.coloredText(self.forecastLatitude))
         self.forecastLongitude.textEdited.connect(lambda: self.coloredText(self.forecastLongitude))
 
-        self.register()
+        self.defaultSignal()
 
     def setValidator(self):
         latitude = QRegExpValidator(QRegExp(self.rules.latitude, Qt.CaseInsensitive))
@@ -730,7 +730,7 @@ class SigmetCancelContent(BaseSigmetContent, Ui_sigmet_cancel.Ui_Editor):
         self.beginningTime.textEdited.connect(lambda: self.coloredText(self.beginningTime))
         self.endingTime.textEdited.connect(lambda: self.coloredText(self.endingTime))
 
-        self.register()
+        self.defaultSignal()
 
     def setValidator(self):
         date = QRegExpValidator(QRegExp(self.rules.date))

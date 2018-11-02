@@ -21,7 +21,7 @@ class SegmentMixin(object):
         else:
             line.setStyleSheet('color: grey')
 
-    def register(self):
+    def defaultSignal(self):
         for line in self.findChildren(QLineEdit):
             line.textChanged.connect(self.checkComplete)
 
@@ -35,7 +35,7 @@ class SegmentMixin(object):
             checkbox.clicked.connect(self.checkComplete)
 
     def clear(self):
-        # Bug
+        # 部分组件不能用
         for line in self.findChildren(QLineEdit):
             line.clear()
 
@@ -90,7 +90,7 @@ class BaseSegment(QWidget, SegmentMixin):
         self.cloud3.textEdited.connect(lambda: self.coloredText(self.cloud3))
         self.cb.textEdited.connect(lambda: self.coloredText(self.cb))
 
-        self.register()
+        self.defaultSignal()
 
     def setClouds(self, enbale):
         if enbale:

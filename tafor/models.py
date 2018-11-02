@@ -10,7 +10,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from tafor import root
 
 if os.environ.get('TAFOR_ENV') == 'TEST':
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(root, 'test-db.sqlite3')
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(root, '../tests/db.sqlite3')
 else:
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(root, 'db.sqlite3')
 
