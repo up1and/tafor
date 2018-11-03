@@ -11,8 +11,8 @@ def test_check_version():
     assert checkVersion('1.1.1', '1.1')
     assert checkVersion('1.3', '1.1.2')
     assert checkVersion('1.2.dev', '1.1.dev')
+    assert checkVersion('v1.1.dev', 'v1.1')
     assert not checkVersion('1.0.1', '1.0.1.dev')
-    assert not checkVersion('1.1', '1.1')
 
 def test_basic_pagination():
     p = Pagination(None, 1, 20, 500, [])

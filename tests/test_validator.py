@@ -38,7 +38,6 @@ def test_taf_parser():
         result = re.sub(r'\s', '', result)
         assert result == html
 
-
 def test_sigmet_parser():
     folder, names = listdir('sigmet')
     for name in names:
@@ -56,7 +55,6 @@ def test_sigmet_parser():
         html = re.sub(r'\s', '', html)
         result = re.sub(r'\s', '', result)
         assert result == html
-
 
 def test_wind(validator):
     assert validator.wind('01004MPS', '07005MPS')
@@ -88,6 +86,7 @@ def test_cloud(validator):
     assert validator.cloud('BKN015', 'SCT007 OVC010')
     assert validator.cloud('SCT020', 'SCT020 FEW023CB')
     assert validator.cloud('BKN010', 'BKN004')
+    assert validator.cloud('SCT010', 'BKN010')
     assert validator.cloud('SCT007', 'BKN010')
     assert validator.cloud('SCT020', 'BKN010')
     assert validator.cloud('SCT020 FEW026CB', 'SCT010 SCT030CB')
@@ -112,8 +111,25 @@ def test_cavok(validator):
 
 def test_extra():
     m = TafParser('TAF AMD ZJHK 211338Z 211524 14004MPS 4500 -RA BKN030 BECMG 2122 2500 BR BKN012 TEMPO 1519 07005MPS=')
+    s = SigmetParser('ZJSA SIGMET 1 VALID 311430/311830 ZJHK-\nZJSA SANYA FIR EMBD TS FCST N OF N16 TOP FL300 MOV N 30KMH NC=', firCode='ZJSA SANYA FIR', airportCode='ZJHK')
+    text = m.renderer()
+    d = TafParser(text)
+    repr(m)
+    repr(s)
+    m.renderer('terminal')
+    s.renderer('terminal')
     assert m.isValid()
+    assert s.isValid()
     assert m.isAmended()
+    assert m == d
+    assert not m.hasMessageChanged()
+    assert not s.hasMessageChanged()
+
+def test_pure_pattern():
+    from tafor.utils.validator import _purePattern
+    pattern = r'^(0|[1-9][0-9]*)$'
+    regex = re.compile(pattern)
+    assert _purePattern(regex) == pattern[1:]
 
 
 if __name__ == "__main__":

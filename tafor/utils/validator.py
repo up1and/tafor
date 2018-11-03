@@ -492,7 +492,7 @@ class TafParser(object):
     def __eq__(self, other):
         """判断两份报文是否相等"""
         if isinstance(other, self.__class__):
-            return self.elements == other.elements
+            return self.renderer() == other.renderer()
         return False
 
     def split(self):
@@ -660,10 +660,6 @@ class TafParser(object):
             weathers = mixture['weather']['text'].split()
 
             if 'NSW' in weathers:
-                if max(refVis, vis) >= 1000 and min(refVis, vis) < 1000:
-                    tokens['vis']['error'] = True
-                    self.tips.append('能见度跨 1000 米时应变化天气现象')
-
                 if vis <= 5000:
                     tokens['vis']['error'] = True
                     self.tips.append('能见度小于 5000 米时应有天气现象')
@@ -742,7 +738,9 @@ class TafParser(object):
 
     def hasMessageChanged(self):
         """校验后的报文和原始报文相比是否有变化"""
-        return self.message != self.renderer()
+        origin = self.message.replace('\n', ' ')
+        output = self.renderer().replace('\n', ' ')
+        return origin != output
  
     def renderer(self, style='plain'):
         """将解析后的报文重新渲染
