@@ -38,7 +38,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
     def setStyle(self):
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(1, QHeaderView.Stretch)
-        self.table.setStyleSheet('QTableWidget::item {padding: 5px 0;}')
+        self.table.setStyleSheet('QTableWidget {border: 0;} QTableWidget::item {padding: 5px 0;}')
 
         self.prevButton.setIcon(QIcon(':/prev.png'))
         self.nextButton.setIcon(QIcon(':/next.png'))
@@ -205,7 +205,7 @@ class MetarTable(BaseDataTable):
 
     def updateTable(self):
         queryset = self.queryset()
-        self.pagination = paginate(queryset, self.page, perPage=12)
+        self.pagination = paginate(queryset, self.page, perPage=24)
         items = self.pagination.items
         self.table.setRowCount(len(items))
         self.table.setColumnWidth(0, 50)

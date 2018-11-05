@@ -30,25 +30,15 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
     def __init__(self, parent, layout, item):
         super(RecentMessage, self).__init__(parent)
         self.setupUi(self)
-        self.setFont()
         self.item = item
         self.setText()
-
         layout.addWidget(self)
-
-    def setFont(self):
-        font = QFont('Segoe UI')
-        if boolean(conf.value('General/LargeFont')):
-            font.setPointSize(15)
-        else:
-            font.setPixelSize(14)
-        
-        self.rpt.setFont(font)
 
     def setText(self):
         self.groupBox.setTitle(self.item.tt)
         self.sendTime.setText(self.item.sent.strftime('%Y-%m-%d %H:%M:%S'))
         self.rpt.setText(self.item.report)
+        self.rpt.setStyleSheet('font: 14px "Segoe UI";')
         self.rpt.setWordWrap(True)
         self.showConfirm(self.item)
 

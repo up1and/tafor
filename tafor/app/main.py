@@ -4,7 +4,7 @@ import datetime
 from PyQt5.QtGui import QIcon, QFont, QDesktopServices
 from PyQt5.QtCore import QCoreApplication, QTranslator, QLocale, QEvent, QTimer, Qt, QUrl
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy, QActionGroup, QAction, 
-        QSystemTrayIcon, QMenu, QMessageBox)
+        QSystemTrayIcon, QMenu, QMessageBox, QStyleFactory)
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 
 from tafor import root, conf, logger, __version__
@@ -488,6 +488,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
 def main():
     import sys
+    scale = conf.value('General/InterfaceScaling')
+    os.environ['QT_SCALE_FACTOR'] = str(scale * 0.25 + 1)
     app = QApplication(sys.argv)
     translator = QTranslator()
     locale = QLocale.system().name()
@@ -495,11 +497,8 @@ def main():
     if translator.load(translateFile):
         app.installTranslator(translator)
 
-    # QApplication.setStyle(QStyleFactory.create('Fusion'))
-
-    if boolean(conf.value('General/LargeFont')):
-        font = QFont('Courier New', 14)
-        app.setFont(font)
+    if conf.value('General/WindowsStyle') == 'Fusion':
+        app.setStyle(QStyleFactory.create('Fusion'))
 
     serverName = 'Tafor'
     socket = QLocalSocket()

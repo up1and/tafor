@@ -11,7 +11,6 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_DataTable(object):
     def setupUi(self, DataTable):
         DataTable.setObjectName("DataTable")
-        DataTable.resize(868, 381)
         DataTable.setWindowTitle("DataTable")
         self.verticalLayout = QtWidgets.QVBoxLayout(DataTable)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)

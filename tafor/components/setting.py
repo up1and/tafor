@@ -14,10 +14,11 @@ from tafor.components.ui import Ui_setting, main_rc
 
 _options = [
     # 通用设置
+    ('General/WindowsStyle', 'windowsStyle', 'combox'),
+    ('General/InterfaceScaling', 'interfaceScaling', 'comboxindex'),
     ('General/CloseToMinimize', 'closeToMinimize', 'bool'),
     ('General/Debug', 'debugMode', 'bool'),
     ('General/AlwaysShowEditor', 'alwaysShowEditor', 'bool'),
-    ('General/LargeFont', 'largeFont', 'bool'),
     # 验证选项
     ('Validator/VisHas5000', 'visHas5000', 'bool'),
     ('Validator/CloudHeightHas450', 'cloudHeightHas450', 'bool'),
@@ -282,6 +283,9 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             index = option.findText(val, Qt.MatchFixedString)
             option.setCurrentIndex(index)
 
+        if category == 'comboxindex':
+            option.setCurrentIndex(int(val))
+
         if category == 'slider':
             option.setValue(int(val))
 
@@ -310,6 +314,9 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
         if category == 'combox':
             val = option.currentText()
+
+        if category == 'comboxindex':
+            val = option.currentIndex()
 
         if category == 'slider':
             val = option.value()
