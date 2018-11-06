@@ -35,6 +35,7 @@ class FirState(object):
     @property
     def scale(self):
         width = conf.value('General/FirCanvasSize') or 300
+        width = int(width)
         imageWidth = self._state['rect'][2]
         if imageWidth == 0:
             return 1

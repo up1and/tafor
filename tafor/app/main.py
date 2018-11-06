@@ -488,9 +488,11 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
 def main():
     import sys
-    scale = conf.value('General/InterfaceScaling')
-    os.environ['QT_SCALE_FACTOR'] = str(scale * 0.25 + 1)
+    scale = conf.value('General/InterfaceScaling') or 0
+    os.environ['QT_SCALE_FACTOR'] = str(int(scale) * 0.25 + 1)
+
     app = QApplication(sys.argv)
+    
     translator = QTranslator()
     locale = QLocale.system().name()
     translateFile = os.path.join(root, 'i18n', '{}.qm'.format(locale))

@@ -35,6 +35,7 @@ class Canvas(QWidget):
         *_, w, h = self.fir.rect()
         if w == 0 or h == 0:
             width = conf.value('General/FirCanvasSize') or 300
+            width = int(width)
             return QSize(width, width)
         return QSize(w, h)
 
