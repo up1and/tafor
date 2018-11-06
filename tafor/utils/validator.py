@@ -43,6 +43,7 @@ class Pattern(object):
     latitude = r'(N|S)(90(0{2})?|[0-8]\d([0-5]\d)?)'
     longitude = r'(E|W)(180(0{2})?|((1[0-7]\d)|(0\d{2}))([0-5]\d)?)'
     fightLevel = r'([1-9]\d{2})'
+    sequence = r'([A-Z]?\d{1,2})'
 
 
 class TafGrammar(object):
@@ -73,7 +74,7 @@ class SigmetGrammar(object):
     speed = re.compile(r'(\d{1,2})(KMH|KT)')
     obsTime = re.compile(r'(\d{4}Z)')
     typhoonRange = re.compile(r'(\d{1,3}KM)')
-    sequence = re.compile(r'(\d{1,2})')
+    sequence = re.compile(r'([A-Z]?\d{1,2})')
     valid = re.compile(r'(\d{6})/(\d{6})')
     longlat = re.compile(r'(E|W)(\d{5}|\d{3})-(N|S)(\d{4}|\d{2})')
     width = re.compile(r'(\d{1,3})NM')

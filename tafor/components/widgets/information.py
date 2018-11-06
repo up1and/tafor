@@ -124,7 +124,8 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
         time = QRegExpValidator(QRegExp(self.rules.time))
         self.obsTime.setValidator(time)
 
-        self.sequence.setValidator(QIntValidator(1, 99, self.sequence))
+        sequence = QRegExpValidator(QRegExp(self.rules.sequence))
+        self.sequence.setValidator(sequence)
 
     def setSquence(self):
         time = datetime.datetime.utcnow()

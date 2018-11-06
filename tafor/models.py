@@ -28,8 +28,6 @@ class Taf(Base):
     sent = Column(DateTime, default=datetime.datetime.utcnow)
     confirmed = Column(DateTime, nullable=True)
 
-    # task = relationship('tasks', lazy='dynamic')
-
     def __init__(self, tt, rpt, sign=None, raw=None, confirmed=None):
         self.tt = tt
         self.sign = sign
