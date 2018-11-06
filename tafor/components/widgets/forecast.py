@@ -437,7 +437,6 @@ class TafBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Editor):
         interval = self.interval.text()
         messages = ['BECMG', interval, self.msg]
         self.msg = ' '.join(messages)
-        # logger.debug(self.msg)
         return self.msg
 
     def checkComplete(self):
@@ -547,6 +546,9 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         self.fm.toggled.connect(self.setFm)
         self.tl.toggled.connect(self.setTl)
 
+        self.becmg.clicked.connect(self.updateAtStatus)
+        self.tempo.clicked.connect(self.updateAtStatus)
+
         self.period.textChanged.connect(lambda: self.coloredText(self.period))
 
     def setValidator(self):
@@ -619,6 +621,13 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         else:
             self.period.setEnabled(False)
             self.period.clear()
+
+    def updateAtStatus(self):
+        if self.tempo.isChecked():
+            self.at.setEnabled(False)
+            self.at.setChecked(False)
+        else:
+            self.at.setEnabled(True)
 
     def checkComplete(self):
         self.complete = False
