@@ -347,6 +347,7 @@ class SigmetGeneralHead(BaseSigmetHead):
         self.hideName()
         self.setPhenomenaDescription()
         self.setPhenomena()
+        self.setFcstOrObs()
 
     def setPhenomenaDescription(self):
         descriptions = ['OBSC', 'EMBD', 'FRQ', 'SQL', 'SEV', 'HVY']
@@ -364,6 +365,10 @@ class SigmetGeneralHead(BaseSigmetHead):
             phenomenas = ['TS', 'TSGR']
 
         self.phenomena.addItems(phenomenas)
+
+    def setFcstOrObs(self):
+        forecasts = ['FCST', 'OBS']
+        self.forecast.addItems(forecasts)
 
     def hideName(self):
         self.name.setVisible(False)
@@ -510,12 +515,16 @@ class SigmetTyphoonHead(BaseSigmetHead):
         super(SigmetTyphoonHead, self).__init__(parent)
         self.hideDescription()
         self.setPhenomena()
+        self.setFcstOrObs()
         self.duration = 6
         self.nameLabel.setText(QCoreApplication.translate('Editor', 'Typhoon Name'))
-        self.forecast.setCurrentIndex(self.forecast.findText('OBS'))
 
     def setPhenomena(self):
         self.phenomena.addItems(['TC'])
+
+    def setFcstOrObs(self):
+        forecasts = ['OBS']
+        self.forecast.addItems(forecasts)
 
     def hideDescription(self):
         self.description.setVisible(False)
@@ -532,9 +541,8 @@ class SigmetTyphoonHead(BaseSigmetHead):
             self.endingTime.hasAcceptableInput(),
             self.sequence.hasAcceptableInput(), 
             self.name.text(),
+            self.obsTime.hasAcceptableInput()
         ]
-        if self.forecast.currentText() == 'OBS':
-            mustRequired.append(self.obsTime.hasAcceptableInput())
 
         self.complete = all(mustRequired)
         self.completeSignal.emit(self.complete)
@@ -624,13 +632,21 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
 
         direction = {
             'N': 0,
+            'NNE': 22.5,
             'NE': 45,
+            'ENE': 67.5,
             'E': 90,
+            'ESE': 112.5,
             'SE': 135,
+            'SSE': 157.5,
             'S': 180,
+            'SSW': 202.5,
             'SW': 225,
+            'WSW': 247.5,
             'W': 270,
-            'NW': 315
+            'WNW': 292.5,
+            'NW': 315,
+            'NNW': 337.5
         }
         obsTime = self.head.obsTime.text() if self.head.obsTime.hasAcceptableInput() else ''
         beginningTime = self.head.beginningTime.text()[2:] if self.head.beginningTime.hasAcceptableInput() else ''
