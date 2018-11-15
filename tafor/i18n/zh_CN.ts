@@ -1,30 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE TS>
-<TS version="2.1" language="zh_CN" sourcelanguage="en">
+<!DOCTYPE TS><TS version="2.0" language="zh_CN" sourcelanguage="en">
 <context>
     <name>DataTable</name>
     <message>
-        <location filename="../components/ui/Ui_main_table.py" line="79"/>
+        <location filename="../components/ui/Ui_main_table.py" line="78"/>
         <source>Type</source>
         <translation>类型</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main_table.py" line="81"/>
+        <location filename="../components/ui/Ui_main_table.py" line="80"/>
         <source>Message Content</source>
         <translation>报文内容</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main_table.py" line="83"/>
+        <location filename="../components/ui/Ui_main_table.py" line="82"/>
         <source>Sent Time</source>
         <translation>发布时间</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main_table.py" line="85"/>
+        <location filename="../components/ui/Ui_main_table.py" line="84"/>
         <source>Check</source>
         <translation>查询</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main_table.py" line="86"/>
+        <location filename="../components/ui/Ui_main_table.py" line="85"/>
         <source>Search...</source>
         <translation>搜索...</translation>
     </message>
@@ -50,11 +49,6 @@
         <location filename="../components/ui/Ui_trend.py" line="168"/>
         <source>Visibility</source>
         <translation>能见度</translation>
-    </message>
-    <message>
-        <location filename="../components/widgets/forecast.py" line="148"/>
-        <source>Cloud1</source>
-        <translation>云组1</translation>
     </message>
     <message>
         <location filename="../components/ui/Ui_trend.py" line="171"/>
@@ -204,17 +198,17 @@
         <translation>经度</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_head.py" line="105"/>
+        <location filename="../components/ui/Ui_sigmet_head.py" line="101"/>
         <source>Head</source>
         <translation>报头</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_head.py" line="110"/>
+        <location filename="../components/ui/Ui_sigmet_head.py" line="106"/>
         <source>Sequence</source>
         <translation>序号</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_head.py" line="106"/>
+        <location filename="../components/ui/Ui_sigmet_head.py" line="102"/>
         <source>OBS Time</source>
         <translation>观测时间</translation>
     </message>
@@ -224,17 +218,17 @@
         <translation>预测</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="526"/>
+        <location filename="../components/widgets/information.py" line="533"/>
         <source>Typhoon Name</source>
         <translation>热带气旋名称</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_head.py" line="111"/>
+        <location filename="../components/ui/Ui_sigmet_head.py" line="107"/>
         <source>Phenomena</source>
         <translation>天气现象</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_head.py" line="108"/>
+        <location filename="../components/ui/Ui_sigmet_head.py" line="104"/>
         <source>Phenomena Description</source>
         <translation>天气描述</translation>
     </message>
@@ -294,12 +288,12 @@
         <translation>编发重要气象情报</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_head.py" line="109"/>
+        <location filename="../components/ui/Ui_sigmet_head.py" line="105"/>
         <source>Beginning Time</source>
         <translation>起始时间</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_head.py" line="112"/>
+        <location filename="../components/ui/Ui_sigmet_head.py" line="108"/>
         <source>Ending Time</source>
         <translation>结束时间</translation>
     </message>
@@ -314,7 +308,7 @@
         <translation>趋势有效时段不正确</translation>
     </message>
     <message>
-        <location filename="../components/widgets/area.py" line="204"/>
+        <location filename="../components/widgets/area.py" line="205"/>
         <source>No Satellite Image</source>
         <translation></translation>
     </message>
@@ -404,7 +398,7 @@
         <translation>天气现象</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_trend.py" line="172"/>
+        <location filename="../components/widgets/forecast.py" line="148"/>
         <source>Cloud</source>
         <translation>云</translation>
     </message>
@@ -412,87 +406,87 @@
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="155"/>
+        <location filename="../components/ui/Ui_main.py" line="154"/>
         <source>RECENT</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="156"/>
+        <location filename="../components/ui/Ui_main.py" line="155"/>
         <source>TAF</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="157"/>
+        <location filename="../components/ui/Ui_main.py" line="156"/>
         <source>METAR</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="159"/>
+        <location filename="../components/ui/Ui_main.py" line="158"/>
         <source>Options</source>
         <translation>选项</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="160"/>
+        <location filename="../components/ui/Ui_main.py" line="159"/>
         <source>Contacts</source>
         <translation>联系人</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="161"/>
+        <location filename="../components/ui/Ui_main.py" line="160"/>
         <source>Help</source>
         <translation>帮助</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="162"/>
+        <location filename="../components/ui/Ui_main.py" line="161"/>
         <source>Terminal Aerodrome Forecast</source>
         <translation>预报</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="163"/>
+        <location filename="../components/ui/Ui_main.py" line="162"/>
         <source>Trend Forecast</source>
         <translation>趋势</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="164"/>
+        <location filename="../components/ui/Ui_main.py" line="163"/>
         <source>Significant Meteorological Information</source>
         <translation>重要气象情报</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="165"/>
+        <location filename="../components/ui/Ui_main.py" line="164"/>
         <source>Settings</source>
         <translation>设置</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="166"/>
+        <location filename="../components/ui/Ui_main.py" line="165"/>
         <source>About</source>
         <translation>关于</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="167"/>
+        <location filename="../components/ui/Ui_main.py" line="166"/>
         <source>Exit</source>
         <translation>退出</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="168"/>
+        <location filename="../components/ui/Ui_main.py" line="167"/>
         <source>None</source>
         <translation>无</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="169"/>
+        <location filename="../components/ui/Ui_main.py" line="168"/>
         <source>Report Issue</source>
         <translation>报告问题</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="170"/>
+        <location filename="../components/ui/Ui_main.py" line="169"/>
         <source>Documents</source>
         <translation>文档</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="171"/>
+        <location filename="../components/ui/Ui_main.py" line="170"/>
         <source>Alarm Sound</source>
         <translation>声音</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="172"/>
+        <location filename="../components/ui/Ui_main.py" line="171"/>
         <source>Check for Updates</source>
         <translation>检查更新</translation>
     </message>
@@ -537,12 +531,12 @@
         <translation>闹钟</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="173"/>
+        <location filename="../components/ui/Ui_main.py" line="172"/>
         <source>Previous Page</source>
         <translation>上一页</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="174"/>
+        <location filename="../components/ui/Ui_main.py" line="173"/>
         <source>Next Page</source>
         <translation>下一页</translation>
     </message>
@@ -587,7 +581,7 @@
         <translation>发布 {}</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="158"/>
+        <location filename="../components/ui/Ui_main.py" line="157"/>
         <source>Issue</source>
         <translation>编发</translation>
     </message>

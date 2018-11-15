@@ -145,7 +145,7 @@ class BaseSegment(QWidget, SegmentMixin):
             self.cloud2.setEnabled(True)
             self.cloud3.setEnabled(True)
             self.cb.setEnabled(True)
-            self.cloud1Label.setText(QCoreApplication.translate('Editor', 'Cloud1'))
+            self.cloud1Label.setText(QCoreApplication.translate('Editor', 'Cloud'))
 
     def setValidator(self):
         wind = QRegExpValidator(QRegExp(self.rules.wind, Qt.CaseInsensitive))
