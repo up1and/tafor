@@ -4,6 +4,7 @@ click==6.7
 idna==2.5
 PyQt5==5.9
 pyserial==3.4
+python-dateutil==2.7.5
 requests>=2.20.0
 sip==4.19.3
 SQLAlchemy==1.1.13

@@ -1,79 +1,81 @@
 import math
+import calendar
 import datetime
 
+from dateutil import relativedelta
 from shapely.ops import split
 from shapely.geometry import Polygon, LineString
 
 
-def isOverlap(datetime1, datetime2):
+def isOverlap(basetime, reftime):
     """判断时间是否有重叠
 
-    :param datetime1: Datetime 对象
-    :param datetime2: Datetime 对象
+    :param basetime: Datetime 对象
+    :param reftime: Datetime 对象
     :return: 返回布尔值，时间是否有重叠
     """
-    start = max(datetime1[0], datetime2[0])
-    end = min(datetime1[1], datetime2[1])
+    start = max(basetime[0], reftime[0])
+    end = min(basetime[1], reftime[1])
     total = (end - start).total_seconds()
     return total >= 0
 
-def parseTimeInterval(interval, time=None):
+def parseTimeInterval(interval, basetime=None):
     """解析字符为时间间隔
 
     :param interval: 时间间隔，如 0312
-    :param time: 基准时间，默认为当前时间，自定义时需传入 Datetime 对象
+    :param basetime: 基准时间，默认为当前时间，自定义时需传入 Datetime 对象
     :return: 返回元组，包含起始时间和结束时间的 Datetime 对象
     """
-    time = time if time else datetime.datetime.utcnow()
+    basetime = basetime if basetime else datetime.datetime.utcnow()
     startHour = int(interval[:2])
     endHour = 0 if interval[2:] in ['24', ''] else int(interval[2:])
 
-    base = datetime.datetime(time.year, time.month, time.day)
+    time = datetime.datetime(basetime.year, basetime.month, basetime.day)
     delta = datetime.timedelta(hours=endHour) if startHour < endHour else datetime.timedelta(days=1, hours=endHour)
-    start = base + datetime.timedelta(hours=startHour)
-    end = base + delta
+    start = time + datetime.timedelta(hours=startHour)
+    end = time + delta
 
-    if start < time:
+    if start < basetime:
         start += datetime.timedelta(days=1)
         end += datetime.timedelta(days=1)
 
     return start, end
 
-def parseTime(timeString, time=None):
+def parseTime(timeString, basetime=None):
     """解析小时分钟字符为 Datetime 对象, 如果小于当前时间视为第二天
 
     :param timeString: 小时分钟字符，如 1930
-    :param time: 基准时间，默认为当前时间，自定义时需传入 Datetime 对象
+    :param basetime: 基准时间，默认为当前时间，自定义时需传入 Datetime 对象
     :return: 返回 Datetime 对象
     """
-    time = time if time else datetime.datetime.utcnow()
+    basetime = basetime if basetime else datetime.datetime.utcnow()
     hour = 0 if timeString[0:2] == '24' else int(timeString[0:2])
     minute = int(timeString[2:])
 
-    base = time.replace(hour=hour, minute=minute)
-    current = base if base > time else base + datetime.timedelta(days=1)
+    time = basetime.replace(hour=hour, minute=minute)
+    current = time if time > basetime else time + datetime.timedelta(days=1)
     return current
 
-def parseDateTime(datetimeString, time=None):
+def parseDateTime(datetimeString, basetime=None):
     """解析包含日期的小时分钟字符为 Datetime 对象, 如果小于当前时间视为下一个月
 
     :param datetimeString: 包含日期的小时分钟字符，如 151930
-    :param time: 基准时间，默认为当前时间，自定义时需传入 Datetime 对象
+    :param basetime: 基准时间，默认为当前时间，自定义时需传入 Datetime 对象
     :return: 返回 Datetime 对象
     """
-    time = time if time else datetime.datetime.utcnow()
+    basetime = basetime if basetime else datetime.datetime.utcnow()
 
     day = int(datetimeString[0:2])
     hour = int(datetimeString[2:4])
     minute = int(datetimeString[4:])
 
-    try:
-        current = datetime.datetime(time.year, time.month, day, hour, minute)
-        if current < time:
-            current = datetime.datetime(time.year, time.month + 1, day, hour, minute)
-
-    except ValueError:
-        current = datetime.datetime(time.year, time.month + 2, day, hour, minute)
+    if day > calendar.monthrange(basetime.year, basetime.month)[1]:
+        basetime = basetime + relativedelta.relativedelta(months=1)
+        current = datetime.datetime(basetime.year, basetime.month, day, hour, minute)
+    else:
+        current = datetime.datetime(basetime.year, basetime.month, day, hour, minute)
+        if current < basetime:
+            current = current + relativedelta.relativedelta(months=1)
 
     return current
 
@@ -83,13 +85,16 @@ def parseTimez(timez):
     :param timez: 报文日期组，如 150113Z
     :return: 返回 Datetime 对象
     """
-    utc =  datetime.datetime.utcnow()
-    try:
-        time = datetime.datetime(utc.year, utc.month, int(timez[:2]), int(timez[2:4]), int(timez[4:6]))
-    except ValueError:
-        time = datetime.datetime(utc.year, utc.month - 1, int(timez[:2]), int(timez[2:4]), int(timez[4:6]))
+    basetime = datetime.datetime.utcnow()
+    day = int(timez[:2])
+    hour = int(timez[2:4])
+    minute = int(timez[4:6])
 
-    return time
+    if day > calendar.monthrange(basetime.year, basetime.month)[1]:
+        basetime = basetime - relativedelta.relativedelta(months=1)
+
+    current = datetime.datetime(basetime.year, basetime.month, day, hour, minute)
+    return current
 
 def ceilTime(time, amount=10):
     """时间添加一个增量，并使分钟为 5 的倍数

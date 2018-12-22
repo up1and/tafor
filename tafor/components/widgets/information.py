@@ -87,14 +87,22 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
         if self.beginningTime.hasAcceptableInput() and self.endingTime.hasAcceptableInput():
             start = parseDateTime(self.beginningTime.text())
             end = parseDateTime(self.endingTime.text())
+            time = datetime.datetime.utcnow()
+
+            if start - time > datetime.timedelta(hours=24):
+                self.beginningTime.clear()
+                self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Start time cannot be less than the current time'))
+                return
 
             if end <= start:
                 self.endingTime.clear()
                 self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Ending time must be greater than the beginning time'))
+                return
 
             if end - start > datetime.timedelta(hours=self.duration):
                 self.endingTime.clear()
                 self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Valid period more than {} hours').format(self.duration))
+                return
 
     def validateObsTime(self):
         # 未启用

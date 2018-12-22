@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE TS><TS version="2.0" language="zh_CN" sourcelanguage="en">
+<!DOCTYPE TS>
+<TS version="2.1" language="zh_CN" sourcelanguage="en">
 <context>
     <name>DataTable</name>
     <message>
@@ -101,7 +102,7 @@
         <translation>下一步</translation>
     </message>
     <message>
-        <location filename="../components/taf.py" line="390"/>
+        <location filename="../components/taf.py" line="393"/>
         <source>Encoding Terminal Aerodrome Forecast</source>
         <translation>编发预报</translation>
     </message>
@@ -218,7 +219,7 @@
         <translation>预测</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="533"/>
+        <location filename="../components/widgets/information.py" line="541"/>
         <source>Typhoon Name</source>
         <translation>热带气旋名称</translation>
     </message>
@@ -323,12 +324,12 @@
         <translation>请先完成基础设置，否则你很可能发送错误的报文。</translation>
     </message>
     <message>
-        <location filename="../components/taf.py" line="277"/>
+        <location filename="../components/taf.py" line="279"/>
         <source>Change group time more than {} hours</source>
         <translation>变化组时间超过 {} 小时</translation>
     </message>
     <message>
-        <location filename="../components/taf.py" line="288"/>
+        <location filename="../components/taf.py" line="291"/>
         <source>Change group time is overlap</source>
         <translation>变化组时间有重叠</translation>
     </message>
@@ -348,17 +349,17 @@
         <translation>全区域</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="94"/>
+        <location filename="../components/widgets/information.py" line="100"/>
         <source>Ending time must be greater than the beginning time</source>
         <translation>有效结束时间需要大于有效开始时间</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="107"/>
+        <location filename="../components/widgets/information.py" line="115"/>
         <source>Observation time should before the beginning time</source>
         <translation>观测时间需要早于有效开始时间</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="98"/>
+        <location filename="../components/widgets/information.py" line="105"/>
         <source>Valid period more than {} hours</source>
         <translation>有效期大于 {} 小时</translation>
     </message>
@@ -373,7 +374,7 @@
         <translation>变化组起始时间不正确</translation>
     </message>
     <message>
-        <location filename="../components/taf.py" line="273"/>
+        <location filename="../components/taf.py" line="274"/>
         <source>End time of change group is not corret</source>
         <translation>变化组结束时间不正确</translation>
     </message>
@@ -383,7 +384,7 @@
         <translation>高度层</translation>
     </message>
     <message>
-        <location filename="../components/taf.py" line="406"/>
+        <location filename="../components/taf.py" line="409"/>
         <source>Encoding Terminal Aerodrome Forecast - Delay Send</source>
         <translation>编发预报 - 延迟发送</translation>
     </message>
@@ -401,6 +402,11 @@
         <location filename="../components/widgets/forecast.py" line="148"/>
         <source>Cloud</source>
         <translation>云</translation>
+    </message>
+    <message>
+        <location filename="../components/widgets/information.py" line="95"/>
+        <source>Start time cannot be less than the current time</source>
+        <translation>起始时间不能小于当前时间</translation>
     </message>
 </context>
 <context>

@@ -267,14 +267,17 @@ class BaseTafEditor(BaseEditor):
         if start < self.periods[0] or self.periods[1] < start:
             line.clear()
             self.showNotificationMessage(QCoreApplication.translate('Editor', 'Start time of change group is not corret'))
+            return
 
         if end < self.periods[0] or self.periods[1] < end:
             line.clear()
             self.showNotificationMessage(QCoreApplication.translate('Editor', 'End time of change group is not corret'))
+            return
 
         if end - start > datetime.timedelta(hours=maxTime):
             line.clear()
             self.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time more than {} hours').format(maxTime))
+            return
 
         def isIntervalOverlay(interval, periods):
             for p in periods:
