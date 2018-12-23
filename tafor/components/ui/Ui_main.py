@@ -11,6 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
+        MainWindow.resize(870, 650)
         MainWindow.setMinimumSize(QtCore.QSize(870, 650))
         MainWindow.setWindowTitle("Tafor")
         self.centralWidget = QtWidgets.QWidget(MainWindow)
@@ -22,7 +23,6 @@ class Ui_MainWindow(object):
         self.mainTab.setMovable(True)
         self.mainTab.setObjectName("mainTab")
         self.recentTab = QtWidgets.QWidget()
-        self.recentTab.setStyleSheet("background:#fff")
         self.recentTab.setObjectName("recentTab")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.recentTab)
         self.verticalLayout_3.setSizeConstraint(QtWidgets.QLayout.SetDefaultConstraint)
@@ -37,6 +37,7 @@ class Ui_MainWindow(object):
         self.recentArea.setObjectName("recentArea")
         self.scrollContents = QtWidgets.QWidget()
         self.scrollContents.setGeometry(QtCore.QRect(0, 0, 828, 544))
+        self.scrollContents.setStyleSheet("background:#fff")
         self.scrollContents.setObjectName("scrollContents")
         self.recentLayout = QtWidgets.QVBoxLayout(self.scrollContents)
         self.recentLayout.setSizeConstraint(QtWidgets.QLayout.SetDefaultConstraint)
@@ -78,6 +79,7 @@ class Ui_MainWindow(object):
         self.verticalLayout.addWidget(self.mainTab)
         MainWindow.setCentralWidget(self.centralWidget)
         self.menuBar = QtWidgets.QMenuBar(MainWindow)
+        self.menuBar.setGeometry(QtCore.QRect(0, 0, 870, 23))
         self.menuBar.setObjectName("menuBar")
         self.issueMenu = QtWidgets.QMenu(self.menuBar)
         self.issueMenu.setObjectName("issueMenu")

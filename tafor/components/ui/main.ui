@@ -2,6 +2,14 @@
 <ui version="4.0">
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>870</width>
+    <height>650</height>
+   </rect>
+  </property>
   <property name="minimumSize">
    <size>
     <width>870</width>
@@ -28,9 +36,6 @@
        <bool>true</bool>
       </property>
       <widget class="QWidget" name="recentTab">
-       <property name="styleSheet">
-        <string notr="true">background:#fff</string>
-       </property>
        <attribute name="title">
         <string>RECENT</string>
        </attribute>
@@ -63,6 +68,9 @@
              <width>828</width>
              <height>544</height>
             </rect>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">background:#fff</string>
            </property>
            <layout class="QVBoxLayout" name="recentLayout">
             <property name="spacing">
@@ -124,6 +132,14 @@
    </layout>
   </widget>
   <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>870</width>
+     <height>23</height>
+    </rect>
+   </property>
    <widget class="QMenu" name="issueMenu">
     <property name="title">
      <string>Issue</string>

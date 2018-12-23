@@ -5,8 +5,8 @@ idna==2.5
 PyQt5==5.9
 pyserial==3.4
 python-dateutil==2.7.5
-requests>=2.20.0
+requests==2.21.0
 sip==4.19.3
 SQLAlchemy==1.1.13
-urllib3==1.22
+urllib3>=1.23
 Shapely==1.6.4
