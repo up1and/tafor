@@ -206,14 +206,22 @@ class Canvas(QWidget):
 
     def drawSigmets(self, painter):
         pen = QPen(QColor(204, 204, 204), 1, Qt.DashLine)
-        brush = QBrush(QColor(240, 156, 0, 100))
+        brushes = {
+            'ts': QBrush(QColor(240, 156, 0, 100)),
+            'turb': QBrush(QColor(37, 238, 44, 100)),
+            'ice': QBrush(QColor(67, 255, 255, 100)),
+            'ash': QBrush(QColor(250, 0, 25, 100)),
+            'typhoon': QBrush(QColor(250, 50, 250, 100)),
+            'other': QBrush(QColor(250, 250, 50, 100))
+        }
 
-        sigmets = self.fir.sigmetsArea()
+        sigmets = self.fir.sigmetsInfo()
         for i, sig in enumerate(sigmets):
-            center = Polygon(sig).centroid
+            center = Polygon(sig['area']).centroid
             met = self.fir.sigmets()[i]
-            points = listToPoint(sig)
+            points = listToPoint(sig['area'])
             pol = QPolygon(points)
+            brush = brushes.get(sig['type'], 'other')
             painter.setBrush(brush)
             painter.setPen(pen)
             painter.drawPolygon(pol)

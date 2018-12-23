@@ -150,6 +150,24 @@ class Sigmet(Base):
         pattern = SigmetGrammar.valid
         return pattern.search(self.rpt).groups()
 
+    def type(self):
+        text = 'other'
+        if self.tt == 'WS':
+            if 'TS' in self.rpt:
+                text = 'ts'
+            elif 'TURB' in self.rpt:
+                text = 'turb'
+            elif 'ICE' in self.rpt:
+                text = 'ice'
+
+        if self.tt == 'WV':
+            text = 'ash'
+
+        if self.tt == 'WC':
+            text = 'typhoon'
+
+        return text
+
     def area(self):
         if self.tt == 'WS':
             if 'WI' in self.rpt:

@@ -104,68 +104,74 @@ class FirState(object):
     def boundaries(self):
         return self.degreeToPixel(self._state['boundaries'])
 
-    def sigmetsArea(self):
+    def sigmetsInfo(self):
+        infos = []
+        for sig in self._state['sigmets']:
+            infos.append({
+                'type': sig.type(),
+                'area': self.decodeSigmetArea(sig.area())
+            })
+
+        return infos
+
+    def decodeSigmetArea(self, area):
         from tafor.utils.convert import degreeToDecimal
         from tafor.utils.sigmet import decodeSigmetArea
 
-        areas = []
+        polygon = []
         maxx, maxy = self.rect()[2:]
-        for sig in self._state['sigmets']:
-            area = sig.area()
-            if area['type'] == 'polygon':
-                decimals = [(degreeToDecimal(lng), degreeToDecimal(lat)) for lat, lng in area['area']]
 
-                try:
-                    polygon = decodeSigmetArea(self._state['boundaries'], decimals, mode='polygon')
-                    polygon = self.degreeToPixel(polygon)
-                    areas.append(polygon)
-                except Exception as e:
-                    logger.error(e)
+        if area['type'] == 'polygon':
+            decimals = [(degreeToDecimal(lng), degreeToDecimal(lat)) for lat, lng in area['area']]
 
-            elif area['type'] == 'line':
-                decimals = []
-                for identifier, *points in area['area']:
-                    points = [(degreeToDecimal(lng), degreeToDecimal(lat)) for lat, lng in points]
-                    decimals.append((identifier, points))
+            try:
+                polygon = decodeSigmetArea(self._state['boundaries'], decimals, mode='polygon')
+                polygon = self.degreeToPixel(polygon)
+            except Exception as e:
+                logger.error(e)
 
-                try:
-                    polygon = decodeSigmetArea(self._state['boundaries'], decimals, mode='line')
-                    polygon = self.degreeToPixel(polygon)
-                    areas.append(polygon)
-                except Exception as e:
-                    logger.error(e)
+        elif area['type'] == 'line':
+            decimals = []
+            for identifier, *points in area['area']:
+                points = [(degreeToDecimal(lng), degreeToDecimal(lat)) for lat, lng in points]
+                decimals.append((identifier, points))
 
-            elif area['type'] == 'rectangular':
-                maxx, maxy = self.rect()[2:]
-                decimals = []
-                for identifier, deg in area['area']:
-                    dec = degreeToDecimal(deg)
-                    if identifier in ['N', 'S']:
-                        y = (self.initLat - dec) / self.dlat - self.offsetY
-                        points = [
-                            (0, y),
-                            (maxx, y)
-                        ]
-                    else:
-                        x = (dec - self.initLong) / self.dlong - self.offsetX
-                        points = [
-                            (x, 0),
-                            (x, maxy)
-                        ]
-                    
-                    decimals.append((identifier, self.pixelToDecimal(points)))
+            try:
+                polygon = decodeSigmetArea(self._state['boundaries'], decimals, mode='line')
+                polygon = self.degreeToPixel(polygon)
+            except Exception as e:
+                logger.error(e)
 
-                try:
-                    polygon = decodeSigmetArea(self._state['boundaries'], decimals, mode='rectangular')
-                    polygon = self.degreeToPixel(polygon)
-                    areas.append(polygon)
-                except Exception as e:
-                    logger.error(e)
+        elif area['type'] == 'rectangular':
+            maxx, maxy = self.rect()[2:]
+            decimals = []
+            for identifier, deg in area['area']:
+                dec = degreeToDecimal(deg)
+                if identifier in ['N', 'S']:
+                    y = (self.initLat - dec) / self.dlat - self.offsetY
+                    points = [
+                        (0, y),
+                        (maxx, y)
+                    ]
+                else:
+                    x = (dec - self.initLong) / self.dlong - self.offsetX
+                    points = [
+                        (x, 0),
+                        (x, maxy)
+                    ]
+                
+                decimals.append((identifier, self.pixelToDecimal(points)))
 
-            elif area['type'] == 'entire':
-                areas.append(self.boundaries())
+            try:
+                polygon = decodeSigmetArea(self._state['boundaries'], decimals, mode='rectangular')
+                polygon = self.degreeToPixel(polygon)
+            except Exception as e:
+                logger.error(e)
 
-        return areas
+        elif area['type'] == 'entire':
+            polygon = self.boundaries()
+
+        return polygon
 
     def degreeToPixel(self, degreePoints):
         points = []
