@@ -52,7 +52,8 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
 
     def bindSignal(self):
         self.forecast.currentTextChanged.connect(self.enbaleOBSTime)
-        self.endingTime.editingFinished.connect(self.validateEndingTime)
+        self.beginningTime.editingFinished.connect(self.validateValidTime)
+        self.endingTime.editingFinished.connect(self.validateValidTime)
 
         self.name.textEdited.connect(lambda: self.upperText(self.name))
 
@@ -83,7 +84,7 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
         end = start + datetime.timedelta(hours=self.duration)
         return start, end
 
-    def validateEndingTime(self):
+    def validateValidTime(self):
         if self.beginningTime.hasAcceptableInput() and self.endingTime.hasAcceptableInput():
             start = parseDateTime(self.beginningTime.text())
             end = parseDateTime(self.endingTime.text())
@@ -114,7 +115,7 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
                 self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Observation time should before the beginning time'))
 
     def validate(self):
-        self.validateEndingTime()
+        self.validateValidTime()
 
     def setDuration(self, duration):
         self.duration = duration
