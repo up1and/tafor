@@ -2,6 +2,14 @@
 <ui version="4.0">
  <class>DataTable</class>
  <widget class="QWidget" name="DataTable">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>850</width>
+    <height>230</height>
+   </rect>
+  </property>
   <property name="windowTitle">
    <string notr="true">DataTable</string>
   </property>
@@ -64,16 +72,6 @@
     <widget class="QWidget" name="pagination" native="true">
      <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
-       <widget class="QToolButton" name="resendButton">
-        <property name="text">
-         <string notr="true">...</string>
-        </property>
-        <property name="autoRaise">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
        <spacer name="horizontalSpacer">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
@@ -85,6 +83,16 @@
          </size>
         </property>
        </spacer>
+      </item>
+      <item>
+       <widget class="QToolButton" name="infoButton">
+        <property name="text">
+         <string notr="true">...</string>
+        </property>
+        <property name="autoRaise">
+         <bool>true</bool>
+        </property>
+       </widget>
       </item>
       <item>
        <widget class="QLineEdit" name="search">

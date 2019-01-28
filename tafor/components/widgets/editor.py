@@ -19,7 +19,7 @@ class BaseEditor(QDialog):
         raise NotImplementedError
 
     def bindSignal(self):
-    	raise NotImplementedError
+        raise NotImplementedError
 
     def actionController(self):
         alwaysShow = boolean(conf.value('General/AlwaysShowEditor'))

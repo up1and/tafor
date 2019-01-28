@@ -18,7 +18,7 @@ from tafor.components.ui import Ui_main, main_rc
 from tafor.components.taf import TafEditor, TaskTafEditor
 from tafor.components.trend import TrendEditor
 from tafor.components.sigmet import SigmetEditor
-from tafor.components.send import TaskTafSender, TafSender, TrendSender, SigmetSender, ReSender
+from tafor.components.send import TaskTafSender, TafSender, TrendSender, SigmetSender
 from tafor.components.setting import SettingDialog
 from tafor.components.task import TaskBrowser
 
@@ -67,7 +67,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.tafSender = TafSender(self)
         self.trendSender = TrendSender(self)
         self.sigmetSender = SigmetSender(self)
-        self.reSender = ReSender(self)
 
         self.tafEditor = TafEditor(self, self.tafSender)
         self.trendEditor = TrendEditor(self, self.trendSender)
@@ -232,7 +231,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.tafSender.setAttribute(Qt.WA_DeleteOnClose)
             self.trendSender.setAttribute(Qt.WA_DeleteOnClose)
             self.sigmetSender.setAttribute(Qt.WA_DeleteOnClose)
-            self.reSender.setAttribute(Qt.WA_DeleteOnClose)
             self.tafEditor.setAttribute(Qt.WA_DeleteOnClose)
             self.trendEditor.setAttribute(Qt.WA_DeleteOnClose)
             self.sigmetEditor.setAttribute(Qt.WA_DeleteOnClose)
@@ -241,7 +239,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.tafSender.close()
             self.trendSender.close()
             self.sigmetSender.close()
-            self.reSender.close()
             self.tafEditor.close()
             self.trendEditor.close()
             self.sigmetEditor.close()

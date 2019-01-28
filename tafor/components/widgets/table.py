@@ -8,7 +8,7 @@ from sqlalchemy import or_, and_
 
 from tafor.components.ui import main_rc
 from tafor.models import db, Taf, Metar, Sigmet
-from tafor.utils import paginate, TafParser
+from tafor.utils import paginate, TafParser, SigmetParser
 from tafor.components.ui import Ui_main_table
 
 
@@ -34,6 +34,8 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.table.itemDoubleClicked.connect(self.copySelected)
         self.prevButton.clicked.connect(self.prev)
         self.nextButton.clicked.connect(self.next)
+        self.table.itemSelectionChanged.connect(self.updateInfoButton)
+        self.infoButton.clicked.connect(self.resend)
 
     def setStyle(self):
         header = self.table.horizontalHeader()
@@ -42,8 +44,8 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
         self.prevButton.setIcon(QIcon(':/prev.png'))
         self.nextButton.setIcon(QIcon(':/next.png'))
-        self.resendButton.setIcon(QIcon(':/repeat.png'))
-        self.resendButton.hide()
+        self.infoButton.setIcon(QIcon(':/info.png'))
+        self.infoButton.hide()
 
     def setValidator(self):
         pattern = r'\d{4}\/\d{1,2}\/\d{1,2}'
@@ -111,6 +113,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
     def updateGui(self):
         self.updateTable()
         self.updatePages()
+        self.updateInfoButton()
 
     def updateTable(self):
         raise NotImplementedError
@@ -119,9 +122,30 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         text = '{}/{}'.format(self.page, self.pagination.pages)
         self.pagesLabel.setText(text)
 
+    def updateInfoButton(self):
+        items = self.table.selectedItems()
+        if len(items) != 1:
+            self.selected = None
+            self.infoButton.hide()
+            return
+
+        index = items[0].row()
+        self.selected = self.pagination.items[index]
+        self.infoButton.show()
+
     def copySelected(self, item):
         self.parent.clip.setText(item.text())
         self.parent.statusBar.showMessage(QCoreApplication.translate('MainWindow', 'Selected message has been copied'), 5000)
+
+    def resend(self):
+        message = {
+            'item': self.selected,
+            'sign': self.selected.sign,
+            'rpt': self.selected.rpt,
+            'full': '\n'.join(filter(None, [self.selected.sign, self.selected.rpt]))
+        }
+        self.reviewer.receive(message, mode='view')
+        self.reviewer.show()
         
 
 class TafTable(BaseDataTable):
@@ -129,11 +153,7 @@ class TafTable(BaseDataTable):
     def __init__(self, parent, layout):
         super(TafTable, self).__init__(parent, layout)
         self.model = Taf
-
-    def bindSignal(self):
-        super(TafTable, self).bindSignal()
-        self.table.currentItemChanged.connect(self.updateResendButton)
-        self.resendButton.clicked.connect(self.resend)
+        self.reviewer = self.parent.tafSender
 
     def updateTable(self):
         queryset = self.queryset()
@@ -169,29 +189,6 @@ class TafTable(BaseDataTable):
 
         self.table.resizeRowsToContents()
 
-    def updateResendButton(self, item):
-        if not item:
-            return
-
-        text = item.text()
-        self.resendButton.hide()
-        if text.startswith('TAF'):
-            expired = datetime.datetime.utcnow() - datetime.timedelta(hours=6)
-            taf = TafParser(text)
-            self.selected = db.query(Taf).filter(or_(Taf.rpt == text, Taf.rpt == taf.renderer()), Taf.sent > expired).order_by(Taf.sent.desc()).first()
-            if self.selected and not self.selected.confirmed:
-                self.resendButton.show()
-
-    def resend(self):
-        message = {
-            'item': self.selected,
-            'sign': self.selected.sign,
-            'rpt': self.selected.rpt,
-            'full': '\n'.join([self.selected.sign, self.selected.rpt])
-        }
-        self.parent.reSender.receive(message)
-        self.parent.reSender.show()
-
 
 class MetarTable(BaseDataTable):
 
@@ -224,12 +221,16 @@ class MetarTable(BaseDataTable):
 
         self.table.resizeRowsToContents()
 
+    def updateInfoButton(self, current=None):
+        self.infoButton.hide()
+
 
 class SigmetTable(BaseDataTable):
 
     def __init__(self, parent, layout):
         super(SigmetTable, self).__init__(parent, layout)
         self.model = Sigmet
+        self.reviewer = self.parent.sigmetSender
         self.hideColumns()
 
     def hideColumns(self):

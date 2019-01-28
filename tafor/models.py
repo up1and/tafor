@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import datetime
 
 from sqlalchemy import Column, Integer, String, DateTime, create_engine
@@ -49,6 +50,12 @@ class Taf(Base):
         parts = [self.sign, rpt.renderer()]
         return '\n'.join(filter(None, parts))
 
+    def rawString(self):
+        if not self.raw:
+            return ''
+        messages = json.loads(self.raw)
+        return '\r\n\r\n\r\n\r\n'.join(messages)
+
 class Metar(Base):
     __tablename__ = 'metars'
 
@@ -60,6 +67,9 @@ class Metar(Base):
     def __init__(self, tt, rpt):
         self.tt = tt
         self.rpt = rpt
+
+    def __repr__(self):
+        return '<METAR %r %r>' % (self.tt, self.rpt)
 
 class Task(Base):
     __tablename__ = 'tasks'
@@ -119,12 +129,14 @@ class Sigmet(Base):
     rpt = Column(String(255))
     raw = Column(String(255))
     sent = Column(DateTime, default=datetime.datetime.utcnow)
+    confirmed = Column(DateTime, nullable=True)
 
-    def __init__(self, tt, sign, rpt, raw=None):
+    def __init__(self, tt, sign, rpt, raw=None, confirmed=None):
         self.tt = tt
         self.sign = sign
         self.rpt = rpt
         self.raw = raw
+        self.confirmed = confirmed
 
     def __repr__(self):
         return '<Sigmet %r %r>' % (self.tt, self.rpt)
@@ -149,6 +161,12 @@ class Sigmet(Base):
         from tafor.utils.validator import SigmetGrammar
         pattern = SigmetGrammar.valid
         return pattern.search(self.rpt).groups()
+
+    def rawString(self):
+        if not self.raw:
+            return ''
+        messages = json.loads(self.raw)
+        return '\r\n\r\n\r\n\r\n'.join(messages)
 
     def type(self):
         text = 'other'

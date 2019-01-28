@@ -25,23 +25,58 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.aftn = None
         self.state = None
         self.item = None
+        self.error = None
+        self.mode = 'send'
 
         self.sendButton = self.buttonBox.button(QDialogButtonBox.Ok)
         self.resendButton = self.buttonBox.button(QDialogButtonBox.Retry)
         self.cancelButton = self.buttonBox.button(QDialogButtonBox.Cancel)
+        self.printButton = self.buttonBox.button(QDialogButtonBox.Reset)
 
         self.sendButton.setText(QCoreApplication.translate('Sender', 'Send'))
         self.resendButton.setText(QCoreApplication.translate('Sender', 'Resend'))
         self.cancelButton.setText(QCoreApplication.translate('Sender', 'Cancel'))
-        self.resendButton.setVisible(False)
-        self.resendButton.setEnabled(False)
+        self.printButton.setText(QCoreApplication.translate('Sender', 'Print'))
+
         self.rejected.connect(self.cancel)
         self.closeSignal.connect(self.clear)
         self.backSignal.connect(self.clear)
 
         self.rawGroup.hide()
+        self.printButton.hide()
+        self.resendButton.hide()
 
-    def receive(self, message):
+    def setMode(self, mode):
+        if mode == 'view':
+            self.sendButton.hide()
+            self.printButton.show()
+            self.setWindowTitle(QCoreApplication.translate('Sender', 'View Message'))
+            self.rawGroup.setTitle(QCoreApplication.translate('Sender', 'Raw Data'))
+
+            if not self.item.confirmed and datetime.datetime.utcnow() - self.item.sent < datetime.timedelta(hours=4):
+                self.resendButton.show()
+
+            if self.item.raw:
+                self.rawGroup.show()
+
+        if mode == 'send':
+            self.setWindowTitle(QCoreApplication.translate('Sender', 'Send Message'))
+            self.rawGroup.setTitle(QCoreApplication.translate('Sender', 'Data has been sent to the serial port'))
+
+    def receive(self, message, mode='send'):
+        self.mode = mode
+        if mode == 'view':
+            self.item = message['item']
+            self.parse(message)
+            self.mode = 'view'
+            self.raw.setText(self.item.rawString())
+
+        if mode == 'send':
+            self.parse(message)
+
+        self.setMode(mode)
+
+    def parse(self, message):
         self.message = message
         visHas5000 = boolean(conf.value('Validator/VisHas5000'))
         cloudHeightHas450 = boolean(conf.value('Validator/CloudHeightHas450'))
@@ -54,7 +89,10 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
                 self.parser.tips.insert(0, text)
                 self.message['rpt'] = self.parser.renderer()
 
-            html = '<p>{}<br/>{}</p>'.format(self.message['sign'], self.parser.renderer(style='html'))
+            if self.message['sign'] is None:
+                html = '<p>{}</p>'.format(self.parser.renderer(style='html'))
+            else:
+                html = '<p>{}<br/>{}</p>'.format(self.message['sign'], self.parser.renderer(style='html'))
             if self.parser.tips:
                 html += '<p style="color: grey"># {}</p>'.format('<br/># '.join(self.parser.tips))
             self.rpt.setHtml(html)
@@ -72,12 +110,13 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
 
         self.raw.setText(self.aftn.toString())
         self.rawGroup.show()
+        self.printButton.show()
 
         if error:
+            self.error = error
             self.rawGroup.setTitle(QCoreApplication.translate('Sender', 'Send Failed'))
-            self.sendButton.setVisible(False)
-            self.resendButton.setVisible(True)
-            self.resendButton.setEnabled(True)
+            self.sendButton.setText(QCoreApplication.translate('Sender', 'Resend'))
+            self.sendButton.setEnabled(True)
 
             title = QCoreApplication.translate('Sender', 'Error')
             QMessageBox.critical(self, title, error)
@@ -86,6 +125,13 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         if hasattr(self, 'parser') and not self.parser.isValid():
             title = QCoreApplication.translate('Sender', 'Validator Warning')
             text = QCoreApplication.translate('Sender', 'The message did not pass the validator, do you still want to send?')
+            ret = QMessageBox.question(self, title, text)
+            if ret != QMessageBox.Yes:
+                return None
+
+        if self.mode == 'view':
+            title = QCoreApplication.translate('Sender', 'Resend Reminder')
+            text = QCoreApplication.translate('Sender', 'Some part of the AFTN message may be updated, do you still want to resend?')
             ret = QMessageBox.question(self, title, text)
             if ret != QMessageBox.Yes:
                 return None
@@ -107,12 +153,23 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.thread.doneSignal.connect(self.save)
         self.thread.start()
 
-    def closeEvent(self, event):
-        if event.spontaneous():
-            self.cancel()
+    def save(self):
+        if self.error or self.mode == 'view':
+            now = datetime.datetime.utcnow()
+            if now - self.item.sent > datetime.timedelta(minutes=5):
+                self.item.raw = self.aftn.toJson()
+            self.item.sent = datetime.datetime.utcnow()
+            logger.debug('Resend ' + self.item.rpt)
+        else:
+            self.item = self.model(tt=self.message['sign'][0:2], sign=self.message['sign'], rpt=self.message['rpt'], raw=self.aftn.toJson())
+            logger.debug('Send ' + self.item.rpt)
+
+        db.add(self.item)
+        db.commit()
+        self.sendSignal.emit()
 
     def cancel(self):
-        if self.sendButton.isEnabled() or self.resendButton.isEnabled():
+        if self.error and self.mode == 'send':
             self.backSignal.emit()
         else:
             self.closeSignal.emit()
@@ -126,15 +183,18 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         textHeight = textSize.height() + height
         self.rpt.setMaximumSize(QSize(16777215, textHeight))
 
+    def closeEvent(self, event):
+        if event.spontaneous():
+            self.cancel()
+
     def clear(self):
         self.state = None
         self.item = None
+        self.error = None
         self.rpt.setText('')
         self.rawGroup.hide()
-        self.sendButton.setEnabled(True)
-        self.sendButton.setVisible(True)
-        self.resendButton.setEnabled(False)
-        self.resendButton.setVisible(False)
+        self.printButton.hide()
+        self.sendButton.show()
 
 
 class TafSender(BaseSender):
@@ -142,19 +202,8 @@ class TafSender(BaseSender):
     def __init__(self, parent=None):
         super(TafSender, self).__init__(parent)
         self.reportType = 'TAF'
+        self.model = Taf
         self.buttonBox.accepted.connect(self.send)
-
-    def save(self):
-        if self.item:
-            self.item.sent = datetime.datetime.utcnow()
-            logger.debug('Resend ' + self.item.rpt)
-        else:
-            self.item = Taf(tt=self.message['sign'][0:2], sign=self.message['sign'], rpt=self.message['rpt'], raw=self.aftn.toJson())
-            logger.debug('Send ' + self.item.rpt)
-
-        db.add(self.item)
-        db.commit()
-        self.sendSignal.emit()
 
 
 class TaskTafSender(BaseSender):
@@ -181,7 +230,7 @@ class TrendSender(BaseSender):
         self.reportType = 'Trend'
         self.buttonBox.accepted.connect(self.send)
 
-    def receive(self, message):
+    def parse(self, message):
         self.message = message
         self.rpt.setText(self.message['rpt'])
 
@@ -202,10 +251,11 @@ class SigmetSender(BaseSender):
 
     def __init__(self, parent=None):
         super(SigmetSender, self).__init__(parent)
+        self.model = Sigmet
         self.reportType = 'SIGMET'
         self.buttonBox.accepted.connect(self.send)
 
-    def receive(self, message):
+    def parse(self, message):
         self.message = message
         firCode = conf.value('Message/FIR')
         airportCode = conf.value('Message/ICAO')
@@ -218,41 +268,9 @@ class SigmetSender(BaseSender):
             logger.error(e)
 
     def save(self):
-        if self.item:
-            self.item.sent = datetime.datetime.utcnow()
-            logger.debug('Resend ' + self.item.rpt)
-        else:
-            self.item = Sigmet(tt=self.message['sign'][0:2], sign=self.message['sign'], rpt=self.message['rpt'], raw=self.aftn.toJson())
-            logger.debug('Send ' + self.item.rpt)
-
-        db.add(self.item)
-        db.commit()
-        self.remind(self.item)
-        self.sendSignal.emit()
-
-    def remind(self, item):
-        if not item.isCnl():
-            delta = item.expired() - datetime.datetime.utcnow() - datetime.timedelta(minutes=15)
-            text = 'SIGMET {}'.format(item.sequence)
+        super(SigmetSender, self).save()
+        if not self.item.isCnl():
+            delta = self.item.expired() - datetime.datetime.utcnow() - datetime.timedelta(minutes=15)
+            text = 'SIGMET {}'.format(self.item.sequence)
             QTimer.singleShot(delta.total_seconds() * 1000, lambda: self.parent.remindSigmet(text))
-
-
-class ReSender(BaseSender):
-
-    def __init__(self, parent=None):
-        super(ReSender, self).__init__(parent)
-        self.reportType = 'TAF'
-        self.buttonBox.accepted.connect(self.send)
-        title = QCoreApplication.translate('Sender', 'Resend Message')
-        self.setWindowTitle(title)
-
-    def save(self):
-        item = self.message['item']
-        item.raw = self.aftn.toJson()
-        db.add(item)
-        db.commit()
-
-    def closeEvent(self, event):
-        self.aftn = None
-        self.clear()
     
