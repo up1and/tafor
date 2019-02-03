@@ -122,3 +122,33 @@ class AFTNMessage(object):
 
         items = address.split()
         return chunks(items, self.maxSendAddress)
+
+
+class AFTNDecoder(object):
+
+    def __init__(self, raw):
+        if isinstance(raw, str):
+            self.messages = json.loads(raw)
+        else:
+            self.messages = raw
+
+    @property
+    def priority(self):
+        texts = self.messages[0].split('\n')
+        texts = texts[1].split()
+        return texts[0]
+
+    @property
+    def originator(self):
+        texts = self.messages[0].split('\n')
+        texts = texts[2].split()
+        return texts[1]
+
+    @property
+    def address(self):
+        addressees = []
+        for message in self.messages:
+            texts = message.split('\n')
+            texts = texts[1].split()[1:]
+            addressees += texts
+        return ' '.join(addressees)

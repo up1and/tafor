@@ -2,11 +2,12 @@ import datetime
 
 from PyQt5.QtGui import QFontMetrics
 from PyQt5.QtCore import QCoreApplication, QTimer, QSize, pyqtSignal
-from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QMessageBox
+from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QMessageBox, QTextEdit
+from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
 
 from tafor import conf, logger
 from tafor.models import db, Taf, Task, Trend, Sigmet
-from tafor.utils import boolean, TafParser, SigmetParser, AFTNMessage
+from tafor.utils import boolean, TafParser, SigmetParser, AFTNMessage, AFTNDecoder
 from tafor.utils.thread import SerialThread
 from tafor.components.ui import Ui_send
 
@@ -41,6 +42,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.rejected.connect(self.cancel)
         self.closeSignal.connect(self.clear)
         self.backSignal.connect(self.clear)
+        self.printButton.clicked.connect(self.print)
 
         self.rawGroup.hide()
         self.printButton.hide()
@@ -49,7 +51,6 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
     def setMode(self, mode):
         if mode == 'view':
             self.sendButton.hide()
-            self.printButton.show()
             self.setWindowTitle(QCoreApplication.translate('Sender', 'View Message'))
             self.rawGroup.setTitle(QCoreApplication.translate('Sender', 'Raw Data'))
 
@@ -58,6 +59,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
 
             if self.item.raw:
                 self.rawGroup.show()
+                self.printButton.show()
 
         if mode == 'send':
             self.setWindowTitle(QCoreApplication.translate('Sender', 'Send Message'))
@@ -154,7 +156,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.thread.start()
 
     def save(self):
-        if self.error or self.mode == 'view':
+        if self.error and self.item or self.mode == 'view':
             now = datetime.datetime.utcnow()
             if now - self.item.sent > datetime.timedelta(minutes=5):
                 self.item.raw = self.aftn.toJson()
@@ -167,6 +169,33 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         db.add(self.item)
         db.commit()
         self.sendSignal.emit()
+
+    def print(self):
+        printer = QPrinter()
+        dialog = QPrintDialog(printer)
+        if dialog.exec() != QDialog.Accepted:
+            return
+
+        editor = QTextEdit()
+        priority = QCoreApplication.translate('Sender', 'Priority Indicator')
+        address = QCoreApplication.translate('Sender', 'Send Address')
+        originator = QCoreApplication.translate('Sender', 'Originator Address')
+        content = QCoreApplication.translate('Sender', 'Message Content')
+        time = QCoreApplication.translate('Sender', 'Sent Time')
+        raw = QCoreApplication.translate('Sender', 'Raw Data')
+        aftn = AFTNDecoder(self.item.raw)
+        texts = [priority, aftn.priority, address, aftn.address, originator, aftn.originator, 
+            content, self.item.report, raw, self.item.rawString(), time, '{} UTC'.format(self.item.sent)]
+
+        elements = []
+        for title, content in zip(texts[::2], texts[1::2]):
+            content = '<br>'.join(content.split('\n'))
+            text = '<p><b>{}</b><br>{}</p>'.format(title, content)
+            elements.append(text)
+
+        editor.setStyleSheet('font: 9pt "Courier"')
+        editor.setHtml(''.join(elements))
+        editor.print(printer)
 
     def cancel(self):
         if self.error and self.mode == 'send':
