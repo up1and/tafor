@@ -6,7 +6,7 @@ from PyQt5.QtGui import QIcon, QIntValidator
 from PyQt5.QtCore import QCoreApplication, QSettings, QTimer, Qt
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QTableWidgetItem, QFileDialog
 
-from tafor import conf, logger, root
+from tafor import conf, logger
 from tafor.utils import boolean
 from tafor.models import db, User
 from tafor.components.ui import Ui_setting, main_rc
@@ -67,9 +67,9 @@ _options = [
 
 def isConfigured(reportType='TAF'):
     """检查发布不同类型报文基础配置是否完成"""
-    serial = ['Communication/SerialPort', 'Communication/SerialBaudrate', 'Communication/SerialParity', 
+    serial = ['Communication/SerialPort', 'Communication/SerialBaudrate', 'Communication/SerialParity',
             'Communication/SerialBytesize', 'Communication/SerialStopbits']
-    aftn = ['Communication/Channel', 'Communication/ChannelSequenceNumber', 'Communication/MaxLineChar', 
+    aftn = ['Communication/Channel', 'Communication/ChannelSequenceNumber', 'Communication/MaxLineChar',
             'Communication/MaxSendAddress', 'Communication/OriginatorAddress']
     taf = ['Message/ICAO', 'Message/Area', 'Communication/TAFAddress']
     trend = ['Message/TrendSign', 'Communication/TrendAddress']
@@ -95,7 +95,8 @@ def loadConf(filename):
     for path, val in data.items():
         conf.setValue(path, val)
 
-def saveConf(filename, options=_options):
+def saveConf(filename, options=None):
+    options = _options if options is None else options
     paths = [option[0] for option in options]
     data = {path: conf.value(path) for path in paths}
     with open(filename, 'w') as file:

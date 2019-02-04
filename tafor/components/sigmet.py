@@ -1,7 +1,6 @@
-from PyQt5.QtCore import QCoreApplication, QTimer, Qt
+from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QVBoxLayout, QLayout
 
-from tafor import logger
 from tafor.components.setting import isConfigured
 from tafor.components.widgets.editor import BaseEditor
 from tafor.components.widgets import SigmetTypeSegment, SigmetGeneralSegment, SigmetTyphoonSegment, SigmetCancelSegment, SigmetCustomSegment
@@ -13,7 +12,7 @@ class SigmetEditor(BaseEditor):
         super(SigmetEditor, self).__init__(parent, sender)
         self.initUI()
         self.bindSignal()
-        
+
         self.setWindowTitle(QCoreApplication.translate('Editor', 'Encoding Significant Meteorological Information'))
         self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px;}')
 

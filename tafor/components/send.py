@@ -184,7 +184,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         time = QCoreApplication.translate('Sender', 'Sent Time')
         raw = QCoreApplication.translate('Sender', 'Raw Data')
         aftn = AFTNDecoder(self.item.raw)
-        texts = [priority, aftn.priority, address, aftn.address, originator, aftn.originator, 
+        texts = [priority, aftn.priority, address, aftn.address, originator, aftn.originator,
             content, self.item.report, raw, self.item.rawString(), time, '{} UTC'.format(self.item.sent)]
 
         elements = []

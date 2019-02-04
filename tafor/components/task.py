@@ -2,13 +2,12 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtWidgets import QDialog, QHeaderView, QTableWidgetItem
 
-from tafor import logger
 from tafor.components.ui import main_rc, Ui_task
 from tafor.models import db, Task
 
 
 class TaskBrowser(QDialog, Ui_task.Ui_Tasks):
-    
+
     def __init__(self, parent=None):
         super(TaskBrowser, self).__init__(parent)
         self.parent = parent

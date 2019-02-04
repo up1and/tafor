@@ -5,17 +5,19 @@ from PyQt5.QtGui import QRegExpValidator
 from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QLineEdit, QComboBox, QRadioButton, QCheckBox
 
-from tafor import conf, logger
+from tafor import conf
 from tafor.utils import Pattern
 from tafor.components.ui import Ui_taf_primary, Ui_taf_becmg, Ui_taf_tempo, Ui_trend
 
 
 class SegmentMixin(object):
 
-    def upperText(self, line):
+    @classmethod
+    def upperText(cls, line):
         line.setText(line.text().upper())
 
-    def coloredText(self, line):
+    @classmethod
+    def coloredText(cls, line):
         if line.hasAcceptableInput():
             line.setStyleSheet('color: black')
         else:
@@ -313,7 +315,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.aaa.textEdited.connect(lambda: self.upperText(self.aaa))
         self.ccc.textEdited.connect(lambda: self.upperText(self.ccc))
         self.aaaCnl.textEdited.connect(lambda: self.upperText(self.aaaCnl))
-        
+
         self.date.textEdited.connect(lambda: self.coloredText(self.date))
         self.tmax.textEdited.connect(lambda: self.coloredText(self.tmax))
         self.tmin.textEdited.connect(lambda: self.coloredText(self.tmin))
@@ -326,22 +328,22 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
     def checkComplete(self):
         self.complete = False
         mustRequired = (
-                        self.date.hasAcceptableInput(), 
-                        self.period.text(), 
-                        self.wind.hasAcceptableInput(), 
-                        self.tmax.hasAcceptableInput(), 
-                        self.tmaxTime.hasAcceptableInput(), 
-                        self.tmin.hasAcceptableInput(), 
+                        self.date.hasAcceptableInput(),
+                        self.period.text(),
+                        self.wind.hasAcceptableInput(),
+                        self.tmax.hasAcceptableInput(),
+                        self.tmaxTime.hasAcceptableInput(),
+                        self.tmin.hasAcceptableInput(),
                         self.tminTime.hasAcceptableInput()
                         )
         oneRequired = (
-                        self.nsc.isChecked(), 
-                        self.cloud1.hasAcceptableInput(), 
-                        self.cloud2.hasAcceptableInput(), 
-                        self.cloud3.hasAcceptableInput(), 
+                        self.nsc.isChecked(),
+                        self.cloud1.hasAcceptableInput(),
+                        self.cloud2.hasAcceptableInput(),
+                        self.cloud3.hasAcceptableInput(),
                         self.cb.hasAcceptableInput()
                         )
-        
+
         if all(mustRequired):
             if self.cavok.isChecked():
                 self.complete = True
@@ -356,8 +358,8 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
         if self.cnl.isChecked():
             mustRequired = (
-                        self.date.hasAcceptableInput(), 
-                        self.period.text(), 
+                        self.date.hasAcceptableInput(),
+                        self.period.text(),
                         self.aaaCnl.hasAcceptableInput(),
                         )
             if all(mustRequired):
@@ -487,7 +489,7 @@ class TafTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Editor):
     def setProb30(self, checked):
         if checked:
             self.prob40.setChecked(False)
-        
+
     def setProb40(self, checked):
         if checked:
             self.prob30.setChecked(False)
@@ -506,13 +508,13 @@ class TafTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Editor):
     def checkComplete(self):
         self.complete = False
         oneRequired = (
-            self.wind.hasAcceptableInput(), 
-            self.vis.hasAcceptableInput(), 
+            self.wind.hasAcceptableInput(),
+            self.vis.hasAcceptableInput(),
             self.weather.currentText(),
             self.weatherWithIntensity.currentText(),
-            self.cloud1.hasAcceptableInput(), 
-            self.cloud2.hasAcceptableInput(), 
-            self.cloud3.hasAcceptableInput(), 
+            self.cloud1.hasAcceptableInput(),
+            self.cloud2.hasAcceptableInput(),
+            self.cloud3.hasAcceptableInput(),
             self.cb.hasAcceptableInput()
         )
 

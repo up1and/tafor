@@ -85,7 +85,7 @@ def connectLine(lines):
 
 def clipPolygon(subj, clip):
     """计算两个多边形之间的交集，并根据允许的最大点平滑多边形
-    
+
     :param subj: 列表，目标多边形的坐标集
     :param clip: 列表，相切多边形的坐标集
     :param clockwise: 布尔值，点坐标是否顺时针排序，默认否
@@ -98,7 +98,7 @@ def clipPolygon(subj, clip):
         points = list(intersection.exterior.coords)
     except Exception as e:
         points = []
-    
+
     return points
 
 class SimplifyPolygon(object):
@@ -215,7 +215,7 @@ class SimplifyPolygon(object):
 
 def simplifyPolygon(points, maxPoint=7, extend=False):
     """简化多边形
-    
+
     :param points: 列表，多边形的坐标集
     :param maxPoint: 数字，交集允许的最大点
     :param extend: 布尔值，边界的做标集，如果存在则简化多边形包含边界
@@ -247,14 +247,14 @@ def decodeSigmetArea(boundaries, area, mode='rectangular'):
             shapes.append(min(parts, key=lat))
 
         if 'W' in identifier:
-            shapes.append(min(parts, key=lng)) 
+            shapes.append(min(parts, key=lng))
 
         if 'E' in identifier:
             shapes.append(max(parts, key=lng))
 
         polygon = max(shapes, key=lambda p: shapes.count(p))
         polygons.append(polygon)
-            
+
     for i, polygon in enumerate(polygons):
         if i == 0:
             current = polygon
@@ -271,10 +271,11 @@ class EncodeSigmetArea(object):
         self.area = area
         self.mode = mode
 
-    def bearingToDirection(self, angle):
+    @classmethod
+    def bearingToDirection(cls, angle):
         directions = {'SE': -0.25, 'NE': 0.25, 'N': 0.5, 'SW': -0.75, 'W': 1.0, 'NW': 0.75, 'E': 0.0, 'S': -0.5}
         bearing = angle / math.pi
-        
+
         deviation = 10
         identifier = ''
         for k, v in directions.items():

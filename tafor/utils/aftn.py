@@ -34,7 +34,7 @@ class AFTNMessage(object):
 
     def toString(self):
         """生成字符串格式的报文
-        
+
         :return: 字符串，多份报文用 4 个换行符连接
         """
         return '\r\n\r\n\r\n\r\n'.join(self.messages)
@@ -74,12 +74,12 @@ class AFTNMessage(object):
             number += 1
 
         conf.setValue('Communication/ChannelSequenceNumber', str(number))
-        
+
         return self.messages
 
     def formatLinefeed(self, messages):
         """对超过最大字符限制的行进行换行处理
-        
+
         :return: 报文行列表
         """
         def findSubscript(parts):

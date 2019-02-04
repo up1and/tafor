@@ -4,16 +4,16 @@ from PyQt5.QtGui import QIcon, QRegExpValidator
 from PyQt5.QtCore import QCoreApplication, Qt, QRegExp
 from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QHeaderView
 
-from sqlalchemy import or_, and_
+from sqlalchemy import and_
 
 from tafor.components.ui import main_rc
 from tafor.models import db, Taf, Metar, Sigmet
-from tafor.utils import paginate, TafParser, SigmetParser
+from tafor.utils import paginate
 from tafor.components.ui import Ui_main_table
 
 
 class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
-    
+
     def __init__(self, parent, layout):
         super(BaseDataTable, self).__init__()
         self.setupUi(self)
@@ -90,7 +90,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
                 pass
         else:
             self.date = None
-        
+
         if len(dates) == 0:
             self.page = 1
             self.updateGui()
@@ -146,7 +146,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         }
         self.reviewer.receive(message, mode='view')
         self.reviewer.show()
-        
+
 
 class TafTable(BaseDataTable):
 
@@ -221,7 +221,7 @@ class MetarTable(BaseDataTable):
 
         self.table.resizeRowsToContents()
 
-    def updateInfoButton(self, current=None):
+    def updateInfoButton(self):
         self.infoButton.hide()
 
 

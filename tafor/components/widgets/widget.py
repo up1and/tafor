@@ -1,11 +1,10 @@
 import datetime
 
-from PyQt5.QtGui import QFont, QPixmap
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox, QLabel, QHBoxLayout
 
-from tafor import conf
-from tafor.utils import boolean, CheckTaf
+from tafor.utils import CheckTaf
 from tafor.components.ui import main_rc, Ui_main_recent
 
 
@@ -85,7 +84,7 @@ class CurrentTaf(QWidget):
 
 
 class Clock(QWidget):
-    
+
     def __init__(self, parent, container):
         super(Clock, self).__init__(parent)
 

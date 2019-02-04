@@ -35,7 +35,7 @@ class BaseTimerStatus(StatusBarWidget):
         self.timer = QTimer()
         self.timer.timeout.connect(self.setValue)
         self.timer.start(2000)
-    
+
     def setValue(self):
         raise NotImplementedError
 

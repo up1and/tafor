@@ -19,7 +19,7 @@ def initialize():
     backup = os.path.join(root, 'fixtures', 'backup.json')
     saveConf(backup)
     loadConf(fixture)
-    yield 
+    yield
     loadConf(backup)
 
     # database = os.path.join(root, 'db.sqlite3')

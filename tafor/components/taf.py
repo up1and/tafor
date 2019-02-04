@@ -1,10 +1,9 @@
 import datetime
 
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QCoreApplication, QTimer, Qt
+from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox, QVBoxLayout, QLayout
 
-from tafor import logger
 from tafor.utils import CheckTaf
 from tafor.utils.convert import parseTimeInterval, parseDateTime, isOverlap
 from tafor.models import db, Taf
@@ -330,7 +329,7 @@ class BaseTafEditor(BaseEditor):
         if self.primary.tempo3Checkbox.isChecked():
             self.validateChangeGroupInterval(self.tempo3)
             self.tempo3.validate()
-        
+
         if self.enbale:
             self.assembleMessage()
             self.previewMessage()
@@ -413,7 +412,7 @@ class TaskTafEditor(BaseTafEditor):
         self.primary.sortGroup.hide()
         self.primary.date.editingFinished.connect(self.updateState)
         self.sender.sendSignal.connect(self.afterSend)
-        
+
     def previewMessage(self):
         message = {'sign': self.sign, 'rpt':self.rpt, 'planning': self.time}
         self.previewSignal.emit(message)

@@ -1,10 +1,10 @@
 from PyQt5.QtCore import QSize, Qt, QRect, QCoreApplication, QPoint, pyqtSignal
-from PyQt5.QtGui import QPainter, QPainterPath, QPolygon, QPixmap, QPen, QColor, QBrush, QFont
+from PyQt5.QtGui import QPainter, QPainterPath, QPolygon, QPen, QColor, QBrush, QFont
 from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel
 
 from shapely.geometry import Polygon
 
-from tafor import conf, logger
+from tafor import conf
 from tafor.states import context
 from tafor.utils.convert import listToPoint, pointToList
 from tafor.utils.sigmet import encodeSigmetArea, simplifyLine, clipPolygon, simplifyPolygon
@@ -62,7 +62,7 @@ class Canvas(QWidget):
 
     def mousePressEvent(self, event):
         if not self.fir.drawable:
-            return 
+            return
 
         if self.mode in ['polygon', 'line']:
             self.polygonMousePressEvent(event)
@@ -99,7 +99,7 @@ class Canvas(QWidget):
                 if len(self.points) < self.maxPoint:
                     self.points.append(pos)
                     self.pointsChanged.emit()
-        
+
         if event.button() == Qt.RightButton and self.points:
             if self.done:
                 self.done = False
@@ -112,7 +112,7 @@ class Canvas(QWidget):
         if event.button() == Qt.LeftButton:
             if not self.rectangular:
                 self.rectangular = [event.pos(), event.pos()]
-        
+
         if event.button() == Qt.RightButton:
             self.clear()
 
@@ -136,7 +136,7 @@ class Canvas(QWidget):
             self.done = True
         else:
             self.done = False
-        
+
         self.pointsChanged.emit()
         self.stateChanged.emit()
 
@@ -155,7 +155,7 @@ class Canvas(QWidget):
     def drawOutline(self, painter):
         pen = QPen(self.color, 1, Qt.DashLine)
         shadowPen = QPen(self.shadowColor, 2)
-        
+
         points = listToPoint(self.points)
         for i, point in enumerate(points):
             if i == 0:
@@ -233,7 +233,7 @@ class Canvas(QWidget):
         painter.setPen(pen)
         painter.setBrush(brush)
         rect = QRect(*self.rectangular)
-        painter.drawRect(QRect(*self.rectangular))
+        painter.drawRect(rect)
 
     def clear(self):
         self.points = []
@@ -304,7 +304,7 @@ class AreaBoard(QWidget):
                 boundaries = context.fir._state['boundaries']
                 points = context.fir.pixelToDecimal(self.canvas.points)
                 self.area = encodeSigmetArea(boundaries, points, mode='line')
-                
+
                 lines = []
                 for identifier, *points in self.area:
                     points = context.fir.decimalToDegree(points)

@@ -115,7 +115,7 @@ class FirInfoThread(QThread):
 
 
 class CallThread(QThread):
-    
+
     def __init__(self, parent=None):
         super(CallThread, self).__init__(parent)
         self.parent = parent

@@ -7,7 +7,7 @@ import requests
 from pytz import timezone
 from bs4 import BeautifulSoup
 
-from flask import Flask, request, jsonify, render_template, url_for
+from flask import Flask, jsonify, render_template, url_for
 
 root = os.path.abspath(os.path.dirname(__file__))
 
@@ -82,20 +82,20 @@ def remote_latest(airport):
     url = 'http://www.amsc.net.cn/Page/BaoWenJianSuo/BaoWenJianSuoHandler.ashx'
     post_data = {
         'cmd':'BaoWenJianSuo',
-        'IsCCCC': '1', 
-        'CCCC': airport, 
-        'NewCount':1, 
+        'IsCCCC': '1',
+        'CCCC': airport,
+        'NewCount':1,
         'StarDate':'',
         'EndDate':'',
-        'IsSA':1, 
-        'IsSP':1, 
-        'IsFC':1, 
+        'IsSA':1,
+        'IsSP':1,
+        'IsFC':1,
         'IsFT':1,
         'IsOther':'',
         'LianJie':'',
         'YaoSu':'',
         'YunSuanFu':'',
-        'ShuZhi':'',
+        'ShuZhi':''
     }
 
     try:
@@ -139,7 +139,7 @@ def fir(mwo):
 
     info['image'] = image
     info['updated'] = updated
-        
+
     return jsonify(info)
 
 @app.route('/remote/fir/<mwo>.json')
@@ -151,7 +151,7 @@ def remote_fir(mwo):
         info = load_fir(mwo, remote=True)
         info['image'] = image
         info['updated'] = datetime.datetime.utcnow()
-        
+
     except Exception as e:
         app.logger.exception(e)
         return jsonify({'error': '{} not found'.format(mwo)}), 404
@@ -160,8 +160,6 @@ def remote_fir(mwo):
 
 
 if __name__ == '__main__':
-    import os
-
     TAFOR_API_ENV = os.environ.get('TAFOR_API_ENV') or 'dev'
 
     if TAFOR_API_ENV == 'prod':

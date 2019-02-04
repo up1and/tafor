@@ -35,7 +35,7 @@ def currentSigmet(tt=None, order='desc', hasCnl=False):
         for cnl in cancels:
             if cnl.cancelSequence in sequences:
                 cnls.remove(cnl)
-                
+
         currents = currents + cnls
 
     if order == 'asc':
@@ -71,7 +71,7 @@ class DelaySend(object):
     def commit(self, error):
         if error:
             self.callback(self.task.rpt, error)
-            return 
+            return
 
         self.item = Taf(tt=self.task.tt, sign=self.task.sign, rpt=self.task.rpt, raw=self.aftn.toJson())
         db.add(self.item)

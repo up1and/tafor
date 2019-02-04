@@ -1,6 +1,6 @@
 import datetime
 
-from PyQt5.QtCore import QCoreApplication, QTimer, Qt
+from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLayout
 
 from tafor import conf
@@ -14,10 +14,10 @@ class TrendEditor(BaseEditor):
 
     def __init__(self, parent=None, sender=None):
         super(TrendEditor, self).__init__(parent, sender)
-        
+
         self.initUI()
         self.bindSignal()
-        
+
         self.setWindowTitle(QCoreApplication.translate('Editor', 'Encoding Trend Forecast'))
 
     def initUI(self):

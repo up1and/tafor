@@ -1,14 +1,14 @@
 import os
 import datetime
 
-from PyQt5.QtGui import QIcon, QFont, QDesktopServices
+from PyQt5.QtGui import QIcon, QDesktopServices
 from PyQt5.QtCore import QCoreApplication, QTranslator, QLocale, QEvent, QTimer, Qt, QUrl
-from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy, QActionGroup, QAction, 
+from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy, QActionGroup, QAction,
         QSystemTrayIcon, QMenu, QMessageBox, QStyleFactory)
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 
 from tafor import root, conf, logger, __version__
-from tafor.models import db, User, Taf, Sigmet, Trend
+from tafor.models import db, User, Taf, Trend
 from tafor.states import context
 from tafor.utils import boolean, checkVersion, Listen
 from tafor.utils.service import currentSigmet, DelaySend
@@ -26,7 +26,7 @@ from tafor.components.widgets.table import TafTable, MetarTable, SigmetTable
 from tafor.components.widgets.widget import Clock, CurrentTaf, RecentMessage, RemindMessageBox
 from tafor.components.widgets.status import WebAPIStatus, CallServiceStatus
 from tafor.components.widgets.sound import Sound
-        
+
 
 class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
@@ -125,7 +125,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def setContractMenu(self):
         self.contractsActionGroup = QActionGroup(self)
         self.contractsActionGroup.addAction(self.contractNo)
-        
+
         contacts = db.query(User).all()
 
         for person in contacts:
@@ -311,15 +311,15 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def notifier(self):
         connectionError = QCoreApplication.translate('MainWindow', 'Connection Error')
         if not context.webApi.isOnline():
-            self.showNotificationMessage(connectionError, 
+            self.showNotificationMessage(connectionError,
                 QCoreApplication.translate('MainWindow', 'Unable to connect remote message data source, please check the settings or network status.'), 'warning')
 
         if conf.value('Monitor/FirApiURL') and context.fir.image() is None and not self.firInfoThread.isRunning():
-            self.showNotificationMessage(connectionError, 
+            self.showNotificationMessage(connectionError,
                 QCoreApplication.translate('MainWindow', 'Unable to connect FIR information data source, please check the settings or network status.'), 'warning')
 
         if not context.callService.isOnline() and self.contractsActionGroup.checkedAction() != self.contractNo:
-            self.showNotificationMessage(connectionError, 
+            self.showNotificationMessage(connectionError,
                 QCoreApplication.translate('MainWindow', 'Unable to connect phone call service, please check the settings or network status.'), 'warning')
 
     def remindTaf(self, tt):
@@ -365,7 +365,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.remindBox.close()
 
         listen = Listen(callback=afterSaving)
-        [listen(i) for i in ('FC', 'FT', 'SA', 'SP')]
+        for i in ('FC', 'FT', 'SA', 'SP'):
+            listen(i)
 
         self.updateGui()
 
@@ -437,7 +438,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         <p style="margin-top:25px;color:#444">Copyright © 2018 <a href="mailto:piratecb@gmail.com" style="text-decoration:none;color:#444">up1and</a></p>
         </div>
         """.format(QCoreApplication.translate('MainWindow', 'Version'), __version__)
-        
+
         aboutBox = QMessageBox(self)
         aboutBox.setText(html)
         aboutBox.setWindowTitle(title)
@@ -489,7 +490,7 @@ def main():
     os.environ['QT_SCALE_FACTOR'] = str(int(scale) * 0.25 + 1)
 
     app = QApplication(sys.argv)
-    
+
     translator = QTranslator()
     locale = QLocale.system().name()
     translateFile = os.path.join(root, 'i18n', '{}.qm'.format(locale))
@@ -509,13 +510,13 @@ def main():
     localServer = QLocalServer()
     localServer.listen(serverName)
 
-    try:          
+    try:
         window = MainWindow()
         window.show()
         sys.exit(app.exec_())
     except Exception as e:
         logger.error(e, exc_info=True)
-    finally:  
+    finally:
         localServer.close()
 
 

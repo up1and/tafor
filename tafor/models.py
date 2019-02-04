@@ -4,7 +4,7 @@ import json
 import datetime
 
 from sqlalchemy import Column, Integer, String, DateTime, create_engine
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -20,7 +20,7 @@ Base = declarative_base()
 
 class Taf(Base):
     __tablename__ = 'tafs'
-    
+
     id = Column(Integer, primary_key=True)
     tt = Column(String(2))
     sign = Column(String(255), nullable=True)

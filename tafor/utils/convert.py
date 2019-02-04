@@ -3,8 +3,6 @@ import calendar
 import datetime
 
 from dateutil import relativedelta
-from shapely.ops import split
-from shapely.geometry import Polygon, LineString
 
 
 def isOverlap(basetime, reftime):
@@ -133,7 +131,7 @@ def degreeToDecimal(text):
 
     if identifier in ['S', 'W']:
         return -degree
-    
+
     return degree
 
 def decimalToDegree(degree, fmt='latitude'):
@@ -196,7 +194,7 @@ def calcPosition(latitude, longitude, speed, time, degree):
     newLongitude = longitude + dx / dlong
 
     if abs(newLatitude) > 90:
-        newLatitude = 90 if newLatitude > 0 else -90 
+        newLatitude = 90 if newLatitude > 0 else -90
 
     if abs(newLongitude) > 180:
         newLongitude =  abs(newLongitude) % 180 - 180

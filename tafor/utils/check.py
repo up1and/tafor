@@ -68,7 +68,7 @@ class CheckTaf(object):
 
         # 00 - 01 时次特殊情况
         defaultPeriod = {
-            'FC': '0009', 
+            'FC': '0009',
             'FT': '0024',
         }
 
@@ -110,7 +110,7 @@ class CheckTaf(object):
         """
         period = self.warningPeriod() if period is None else period
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        recent = db.query(Taf).filter(Taf.rpt.contains(period), ~Taf.rpt.contains('AMD'), 
+        recent = db.query(Taf).filter(Taf.rpt.contains(period), ~Taf.rpt.contains('AMD'),
             ~Taf.rpt.contains('COR'), Taf.sent > expired).order_by(Taf.sent.desc()).first()
         return recent
 
@@ -145,7 +145,7 @@ class CheckTaf(object):
             local = self.local()
             remote = TafParser(self.message)
             if local and not remote.isAmended() and remote.primary.tokens['period']['text'] in local.rpt:
-                return 
+                return
 
             item = Taf(tt=self.tt, rpt=self.message, confirmed=self.time)
             db.add(item)
@@ -178,7 +178,7 @@ class CheckTaf(object):
         offset = offset or conf.value('Monitor/WarnTAFTime')
         offset = int(offset) if offset else 30
         offsetTimeDelta = {
-            'FC': datetime.timedelta(minutes=offset), 
+            'FC': datetime.timedelta(minutes=offset),
             'FT': datetime.timedelta(hours=2, minutes=offset)
         }
 
@@ -207,7 +207,7 @@ class CheckTaf(object):
         """返回报文时段带有日期"""
         if period is None:
             return None
-        
+
         time = self.time
 
         # 跨越 UTC 日界
@@ -232,7 +232,7 @@ class CheckMetar(object):
     def save(self):
         """储存远程报文数据"""
         last = db.query(Metar).filter_by(tt=self.tt).order_by(Metar.created.desc()).first()
-        
+
         if last is None or last.rpt != self.message:
             item = Metar(tt=self.tt, rpt=self.message)
             db.add(item)
@@ -252,7 +252,7 @@ class Listen(object):
         listen('SA')
         listen('FC')
         listen('FT')
-        
+
     """
     def __init__(self, callback=None):
         self.callback = callback
@@ -278,7 +278,7 @@ class Listen(object):
 
         # 查询报文是否过期
         expired = False
-        
+
         if taf.hasExpired():
             local = taf.local()
             if local:

@@ -1,4 +1,3 @@
-import re
 import datetime
 
 from itertools import cycle
@@ -7,14 +6,14 @@ from PyQt5.QtGui import QIcon, QRegExpValidator, QIntValidator, QTextCharFormat,
 from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit
 
-from tafor import conf, logger
+from tafor import conf
 from tafor.utils import Pattern
 from tafor.utils.convert import parseTime, parseDateTime, ceilTime, roundTime, calcPosition
 from tafor.utils.service import currentSigmet
 from tafor.models import db, Sigmet
 from tafor.components.widgets.forecast import SegmentMixin
 from tafor.components.widgets.area import AreaBoard
-from tafor.components.ui import (Ui_sigmet_type, Ui_sigmet_general, Ui_sigmet_head, 
+from tafor.components.ui import (Ui_sigmet_type, Ui_sigmet_general, Ui_sigmet_head,
     Ui_sigmet_typhoon, Ui_sigmet_cancel, Ui_sigmet_custom, Ui_sigmet_area, main_rc)
 
 
@@ -155,7 +154,7 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
         fir = conf.value('Message/FIR')
         phenomena = self.weatherPhenomena()
         prediction = self.prediction()
-        
+
         text = ' '.join([fir, phenomena, prediction])
         return text
 
@@ -347,7 +346,7 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
 
     def clear(self):
         self.canvasWidget.clear()
-        
+
 
 class SigmetGeneralHead(BaseSigmetHead):
 
@@ -528,7 +527,7 @@ class SigmetTyphoonHead(BaseSigmetHead):
         self.duration = 6
         self.nameLabel.setText(QCoreApplication.translate('Editor', 'Typhoon Name'))
 
-    def setPhenomena(self):
+    def setPhenomena(self, text='TC'):
         self.phenomena.addItems(['TC'])
 
     def setFcstOrObs(self):
@@ -546,9 +545,9 @@ class SigmetTyphoonHead(BaseSigmetHead):
 
     def checkComplete(self):
         mustRequired = [
-            self.beginningTime.hasAcceptableInput(), 
+            self.beginningTime.hasAcceptableInput(),
             self.endingTime.hasAcceptableInput(),
-            self.sequence.hasAcceptableInput(), 
+            self.sequence.hasAcceptableInput(),
             self.name.text(),
             self.obsTime.hasAcceptableInput()
         ]
@@ -885,7 +884,7 @@ class SigmetCancelSegment(BaseSegment):
     def setValids(self, sequence):
         self.content.beginningTime.clear()
         self.content.endingTime.clear()
-        
+
         valids = self.prevs.get(sequence)
         if valids:
             self.content.beginningTime.setText(valids[0])

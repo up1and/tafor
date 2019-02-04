@@ -4,8 +4,6 @@ import datetime
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import QObject, QRect, Qt, pyqtSignal
 
-from shapely.geometry import box
-
 from tafor import conf, logger
 
 
@@ -159,7 +157,7 @@ class FirState(object):
                         (x, 0),
                         (x, maxy)
                     ]
-                
+
                 decimals.append((identifier, self.pixelToDecimal(points)))
 
             try:

@@ -24,7 +24,7 @@ class Sound(object):
             self.effect.setLoopCount(QSoundEffect.Infinite)
         else:
             self.effect.setLoopCount(1)
-        
+
         if not self.effect.isPlaying():
             self.effect.play()
 

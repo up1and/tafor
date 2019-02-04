@@ -7,12 +7,12 @@ from tafor.utils.convert import parseTimez, parseTimeInterval
 
 
 weather = [
-    'NSW', 'IC', 'FG', 'BR', 'SA', 'DU', 'HZ', 'FU', 'VA', 'SQ', 
-    'PO', 'FC', 'TS', 'FZFG', 'BLSN', 'BLSA', 'BLDU', 'DRSN', 'DRSA', 
+    'NSW', 'IC', 'FG', 'BR', 'SA', 'DU', 'HZ', 'FU', 'VA', 'SQ',
+    'PO', 'FC', 'TS', 'FZFG', 'BLSN', 'BLSA', 'BLDU', 'DRSN', 'DRSA',
     'DRDU', 'MIFG', 'BCFG', 'PRFG'
 ]
 weatherWithIntensity = [
-    'DZ', 'RA', 'SN', 'SG', 'PL', 'DS', 'SS', 'TSRA', 'TSSN', 'TSPL', 
+    'DZ', 'RA', 'SN', 'SG', 'PL', 'DS', 'SS', 'TSRA', 'TSSN', 'TSPL',
     'TSGR', 'TSGS', 'SHRA', 'SHSN', 'SHGR', 'SHGS', 'FZRA', 'FZDZ'
 ]
 
@@ -412,7 +412,7 @@ class TafLexer(object):
     def renderer(self, style='plain'):
         """将解析后的报文重新渲染
 
-        :param style: 
+        :param style:
             * plain 纯字符串风格
             * terminal 终端高亮风格
             * html HTML 高亮风格
@@ -507,13 +507,13 @@ class TafParser(object):
             becmgIndex = [i for i, item in enumerate(elements) if item == 'BECMG']
             tempoIndex = [i for i, item in enumerate(elements) if 'TEMPO' in item]
 
-            for i, index in enumerate(becmgIndex):
+            for index in becmgIndex:
                 e = elements[index] + elements[index+1]
                 becmg = self.parse(e)
                 becmg.period = parseTimeInterval(becmg.tokens['interval']['text'], self.primary.period[0])
                 self.becmgs.append(becmg)
 
-            for i, index in enumerate(tempoIndex):
+            for index in tempoIndex:
                 e = elements[index] + elements[index+1]
                 tempo = self.parse(e)
                 tempo.period = parseTimeInterval(tempo.tokens['interval']['text'], self.primary.period[0])
@@ -657,7 +657,6 @@ class TafParser(object):
         # 检查能见度和天气现象
         if 'vis' in tokens:
             vis = int(tokens['vis']['text'])
-            refVis = int(ref['vis']['text'])
             weathers = mixture['weather']['text'].split()
 
             if 'NSW' in weathers:
@@ -707,7 +706,7 @@ class TafParser(object):
                 tokens['weather']['error'] = True
                 self.tips.append('BR，HZ，FG，FU 不能同时存在')
 
-        
+
         if 'cloud' in tokens:
             # 检查云组转折天气现象的匹配
             weather = mixture['weather']['text']
@@ -742,11 +741,11 @@ class TafParser(object):
         origin = self.message.replace('\n', ' ')
         output = self.renderer().replace('\n', ' ')
         return origin != output
- 
+
     def renderer(self, style='plain'):
         """将解析后的报文重新渲染
 
-        :param style: 
+        :param style:
             * plain 纯字符串风格
             * terminal 终端高亮风格
             * html HTML 高亮风格
@@ -856,13 +855,13 @@ class SigmetLexer(object):
         for e in self.tokens:
                 if e['error']:
                     return False
-        
+
         return True
 
     def renderer(self, style='plain'):
         """将解析后的报文重新渲染
 
-        :param style: 
+        :param style:
             * plain 纯字符串风格
             * terminal 终端高亮风格
             * html HTML 高亮风格
@@ -920,7 +919,7 @@ class SigmetParser(object):
 
         # 报文重新渲染成 HTML 格式，并高亮标注出错误
         p.renderer(style='html')
-        
+
     """
     def __init__(self, message, parse=None, **kwargs):
         self.message = message.strip()
@@ -941,7 +940,7 @@ class SigmetParser(object):
         self.heads = [e.strip() for e in ''.join(heads).split('\n')]
         elements = elements.strip().split('\n')
         self.elements = [self.parse(e, firCode=self.firCode, airportCode=self.airportCode) for e in elements]
-        
+
     def isValid(self):
         """报文是否通过验证"""
         valids = [e.isValid() for e in self.elements]
@@ -953,7 +952,7 @@ class SigmetParser(object):
     def renderer(self, style='plain'):
         """将解析后的报文重新渲染
 
-        :param style: 
+        :param style:
             * plain 纯字符串风格
             * terminal 终端高亮风格
             * html HTML 高亮风格
