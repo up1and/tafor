@@ -27,6 +27,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.state = None
         self.item = None
         self.error = None
+        self.rawText = None
         self.mode = 'send'
 
         self.sendButton = self.buttonBox.button(QDialogButtonBox.Ok)
@@ -54,7 +55,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             self.setWindowTitle(QCoreApplication.translate('Sender', 'View Message'))
             self.rawGroup.setTitle(QCoreApplication.translate('Sender', 'Raw Data'))
 
-            if not self.item.confirmed and datetime.datetime.utcnow() - self.item.sent < datetime.timedelta(hours=4):
+            if not self.item.confirmed and datetime.datetime.utcnow() - self.item.sent < datetime.timedelta(hours=2):
                 self.resendButton.show()
 
             if self.item.raw:
@@ -71,7 +72,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             self.item = message['item']
             self.parse(message)
             self.mode = 'view'
-            self.raw.setText(self.item.rawString())
+            self.raw.setText(self.item.rawText())
 
         if mode == 'send':
             self.parse(message)
@@ -105,20 +106,21 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.resizeRpt()
 
     def showRawGroup(self, error):
-        self.sendButton.setText(QCoreApplication.translate('Sender', 'Send'))
-
-        if self.state is None:
+        if self.rawText is None:
             return None
 
-        self.raw.setText(self.aftn.toString())
+        self.raw.setText(self.rawText)
         self.rawGroup.show()
         self.printButton.show()
+        self.sendButton.hide()
+        self.resendButton.hide()
 
         if error:
             self.error = error
             self.rawGroup.setTitle(QCoreApplication.translate('Sender', 'Send Failed'))
-            self.sendButton.setText(QCoreApplication.translate('Sender', 'Resend'))
-            self.sendButton.setEnabled(True)
+            self.resendButton.setEnabled(True)
+            self.resendButton.setText(QCoreApplication.translate('Sender', 'Resend'))
+            self.resendButton.show()
 
             title = QCoreApplication.translate('Sender', 'Error')
             QMessageBox.critical(self, title, error)
@@ -138,27 +140,30 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             if ret != QMessageBox.Yes:
                 return None
 
-        if self.state is None:
-            fullMessage = '\n'.join([self.message['sign'], self.message['rpt']])
-            self.aftn = AFTNMessage(fullMessage, self.reportType)
-
-        self.state = self.aftn
-
         self.sendButton.setEnabled(False)
         self.sendButton.setText(QCoreApplication.translate('Sender', 'Sending'))
-        self.parent.settingDialog.loadSerialNumber()
+        self.resendButton.setEnabled(False)
+        self.resendButton.setText(QCoreApplication.translate('Sender', 'Sending'))
 
-        message = self.aftn.toString()
+        if self.item and self.error:
+            self.rawText = self.aftn.toString() if self.aftn else self.item.rawText()
+        else:
+            if self.state is None:
+                fullMessage = '\n'.join([self.message['sign'], self.message['rpt']])
+                self.aftn = AFTNMessage(fullMessage, self.reportType)
+                self.parent.settingDialog.loadSerialNumber()
 
-        self.thread = SerialThread(message, self)
+            self.state = self.aftn
+            self.rawText = self.aftn.toString()
+
+        self.thread = SerialThread(self.rawText, self)
         self.thread.doneSignal.connect(self.showRawGroup)
         self.thread.doneSignal.connect(self.save)
         self.thread.start()
 
     def save(self):
-        if self.error and self.item or self.mode == 'view':
-            now = datetime.datetime.utcnow()
-            if now - self.item.sent > datetime.timedelta(minutes=5):
+        if self.item:
+            if self.error and self.aftn or not self.error:
                 self.item.raw = self.aftn.toJson()
             self.item.sent = datetime.datetime.utcnow()
             logger.debug('Resend ' + self.item.rpt)
@@ -185,7 +190,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         raw = QCoreApplication.translate('Sender', 'Raw Data')
         aftn = AFTNDecoder(self.item.raw)
         texts = [priority, aftn.priority, address, aftn.address, originator, aftn.originator,
-            content, self.item.report, raw, self.item.rawString(), time, '{} UTC'.format(self.item.sent)]
+            content, self.item.report, raw, self.item.rawText(), time, '{} UTC'.format(self.item.sent)]
 
         elements = []
         for title, content in zip(texts[::2], texts[1::2]):
@@ -220,9 +225,15 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.state = None
         self.item = None
         self.error = None
+        self.rawText = None
         self.rpt.setText('')
         self.rawGroup.hide()
         self.printButton.hide()
+        self.resendButton.setEnabled(True)
+        self.resendButton.setText(QCoreApplication.translate('Sender', 'Resend'))
+        self.resendButton.hide()
+        self.sendButton.setEnabled(True)
+        self.sendButton.setText(QCoreApplication.translate('Sender', 'Send'))
         self.sendButton.show()
 
 

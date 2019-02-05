@@ -50,7 +50,7 @@ class Taf(Base):
         parts = [self.sign, rpt.renderer()]
         return '\n'.join(filter(None, parts))
 
-    def rawString(self):
+    def rawText(self):
         if not self.raw:
             return ''
         messages = json.loads(self.raw)
@@ -117,6 +117,12 @@ class Trend(Base):
     def report(self):
         return self.rpt
 
+    def rawText(self):
+        if not self.raw:
+            return ''
+        messages = json.loads(self.raw)
+        return '\r\n\r\n\r\n\r\n'.join(messages)
+
     def isNosig(self):
         return self.rpt == 'NOSIG='
 
@@ -162,7 +168,7 @@ class Sigmet(Base):
         pattern = SigmetGrammar.valid
         return pattern.search(self.rpt).groups()
 
-    def rawString(self):
+    def rawText(self):
         if not self.raw:
             return ''
         messages = json.loads(self.raw)
