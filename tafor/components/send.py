@@ -1,6 +1,6 @@
 import datetime
 
-from PyQt5.QtGui import QFontMetrics
+from PyQt5.QtGui import QFontMetrics, QFont
 from PyQt5.QtCore import QCoreApplication, QTimer, QSize, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QMessageBox, QTextEdit
 from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
@@ -198,7 +198,8 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             text = '<p><b>{}</b><br>{}</p>'.format(title, content)
             elements.append(text)
 
-        editor.setStyleSheet('font: 9pt "Courier"')
+        font = QFont('Courier', 10)
+        editor.setFont(font)
         editor.setHtml(''.join(elements))
         editor.print(printer)
 
