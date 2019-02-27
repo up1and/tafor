@@ -50,7 +50,7 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
         self.bindSignal()
 
     def bindSignal(self):
-        self.forecast.currentTextChanged.connect(self.enbaleOBSTime)
+        self.forecast.currentTextChanged.connect(self.setPrediction)
         self.beginningTime.editingFinished.connect(self.validateValidTime)
         self.endingTime.editingFinished.connect(self.validateValidTime)
 
@@ -62,7 +62,7 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
 
         self.defaultSignal()
 
-    def enbaleOBSTime(self, text):
+    def setPrediction(self, text):
         if text == 'OBS':
             self.obsTime.setEnabled(True)
             self.obsTimeLabel.setEnabled(True)
@@ -153,9 +153,8 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
     def message(self):
         fir = conf.value('Message/FIR')
         phenomena = self.weatherPhenomena()
-        prediction = self.prediction()
 
-        text = ' '.join([fir, phenomena, prediction])
+        text = ' '.join([fir, phenomena])
         return text
 
     def head(self):
@@ -397,8 +396,8 @@ class SigmetGeneralHead(BaseSigmetHead):
 
 class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
 
-    def __init__(self, phenomena):
-        super(SigmetGeneralContent, self).__init__(phenomena)
+    def __init__(self, head):
+        super(SigmetGeneralContent, self).__init__(head)
         self.setupUi(self)
         self.area = SigmetArea(self)
         self.layout.addWidget(self.area)
@@ -473,11 +472,12 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         self.completeSignal.emit(self.complete)
 
     def message(self):
+        prediction = self.head.prediction()
         area = self.area.text()
         fightLevel = self.fightLevel()
         moveState = self.moveState()
         intensityChange = self.intensityChange.currentText()
-        text = ' '.join([area, fightLevel, moveState, intensityChange])
+        text = ' '.join([prediction, area, fightLevel, moveState, intensityChange])
         return text
 
     def moveState(self):
@@ -558,8 +558,8 @@ class SigmetTyphoonHead(BaseSigmetHead):
 
 class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
 
-    def __init__(self, phenomena):
-        super(SigmetTyphoonContent, self).__init__(phenomena)
+    def __init__(self, head):
+        super(SigmetTyphoonContent, self).__init__(head)
         self.setupUi(self)
         self.bindSignal()
         self.setValidator()
@@ -673,38 +673,33 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
     def moveTime(self, start, end):
         return parseTime(end) - parseTime(start)
 
-    def moveState(self):
-        movement = self.movement.currentText()
-
-        if movement == 'STNR':
-            text = 'STNR'
-        else:
-            text = 'MOV {movement} {speed}KMH'.format(
-                    movement=movement,
-                    speed=int(self.speed.text())
-                )
-
-        return text
-
     def message(self):
-        area = '{latitude} {Longitude} CB TOP FL{height} WI {range}KM OF CENTRE'.format(
+        area = 'PSN {latitude} {Longitude} CB {prediction} WI {range}KM OF CENTRE TOP FL{height}'.format(
                 latitude=self.currentLatitude.text(),
                 Longitude=self.currentLongitude.text(),
+                prediction=self.head.prediction(),
                 height=self.height.text(),
                 range=int(self.range.text())
             )
-        moveState = self.moveState()
         intensityChange = self.intensityChange.currentText()
         forecast = 'FCST {forecastTime}Z TC CENTRE {forecastLatitude} {forecastLongitude}'.format(
                 forecastTime=self.forecastTime.text(),
                 forecastLatitude=self.forecastLatitude.text(),
                 forecastLongitude=self.forecastLongitude.text()
             )
-        text = ' '.join([area, moveState, intensityChange, forecast])
+        text = ' '.join([area, intensityChange, forecast])
         return text
 
     def checkComplete(self):
-        mustRequired = [line.hasAcceptableInput() for line in self.findChildren(QLineEdit) if line.isEnabled()]
+        mustRequired = [
+            self.currentLatitude.hasAcceptableInput(),
+            self.currentLongitude.hasAcceptableInput(),
+            self.height.hasAcceptableInput(),
+            self.range.hasAcceptableInput(),
+            self.forecastTime.hasAcceptableInput(),
+            self.forecastLatitude.hasAcceptableInput(),
+            self.forecastLongitude.hasAcceptableInput(),
+        ]
 
         self.complete = all(mustRequired)
         self.completeSignal.emit(self.complete)
@@ -745,8 +740,8 @@ class SigmetSimpleHead(BaseSigmetHead):
 
 class SigmetCancelContent(BaseSigmetContent, Ui_sigmet_cancel.Ui_Editor):
 
-    def __init__(self, phenomena):
-        super(SigmetCancelContent, self).__init__(phenomena)
+    def __init__(self, head):
+        super(SigmetCancelContent, self).__init__(head)
         self.setupUi(self)
         self.setValidator()
         self.bindSignal()
@@ -781,8 +776,8 @@ class SigmetCancelContent(BaseSigmetContent, Ui_sigmet_cancel.Ui_Editor):
 
 class SigmetCustomContent(BaseSigmetContent, Ui_sigmet_custom.Ui_Editor):
 
-    def __init__(self, phenomena):
-        super(SigmetCustomContent, self).__init__(phenomena)
+    def __init__(self, head):
+        super(SigmetCustomContent, self).__init__(head)
         self.setupUi(self)
         self.bindSignal()
         self.setUpper()
