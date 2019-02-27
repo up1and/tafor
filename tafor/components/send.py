@@ -204,7 +204,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         editor.print(printer)
 
     def cancel(self):
-        if self.error and self.mode == 'send':
+        if (self.error or not self.sendButton.isHidden()) and self.mode == 'send':
             self.backSignal.emit()
         else:
             self.closeSignal.emit()
