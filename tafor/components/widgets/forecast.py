@@ -1,13 +1,13 @@
 import json
 import datetime
 
-from PyQt5.QtGui import QRegExpValidator
+from PyQt5.QtGui import QIcon, QRegExpValidator
 from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QLineEdit, QComboBox, QRadioButton, QCheckBox
 
 from tafor import conf
 from tafor.utils import Pattern
-from tafor.components.ui import Ui_taf_primary, Ui_taf_becmg, Ui_taf_tempo, Ui_trend
+from tafor.components.ui import Ui_taf_primary, Ui_taf_becmg, Ui_taf_tempo, Ui_trend, main_rc
 
 
 class SegmentMixin(object):
@@ -283,6 +283,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.ccc.setEnabled(False)
         self.aaa.setEnabled(False)
         self.aaaCnl.setEnabled(False)
+        self.tempSwitchButton.setIcon(QIcon(':/switch.png'))
 
         self.bindSignal()
 

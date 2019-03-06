@@ -79,30 +79,17 @@
             <string>General</string>
            </property>
            <layout class="QGridLayout" name="gridLayout_9">
-            <item row="10" column="0">
-             <spacer name="verticalSpacer">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
+            <item row="1" column="0">
+             <widget class="QLabel" name="interfaceScalingLabel">
+              <property name="text">
+               <string>Interface Scaling</string>
               </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>40</height>
-               </size>
-              </property>
-             </spacer>
+             </widget>
             </item>
             <item row="3" column="0">
              <widget class="QCheckBox" name="runOnStart">
               <property name="text">
                <string>Run on system startup</string>
-              </property>
-             </widget>
-            </item>
-            <item row="6" column="0">
-             <widget class="QCheckBox" name="debugMode">
-              <property name="text">
-               <string>Debug mode</string>
               </property>
              </widget>
             </item>
@@ -113,6 +100,13 @@
               </property>
              </widget>
             </item>
+            <item row="6" column="0">
+             <widget class="QCheckBox" name="debugMode">
+              <property name="text">
+               <string>Debug mode</string>
+              </property>
+             </widget>
+            </item>
             <item row="4" column="0">
              <widget class="QCheckBox" name="closeToMinimize">
               <property name="text">
@@ -120,11 +114,18 @@
               </property>
              </widget>
             </item>
-            <item row="1" column="0">
-             <widget class="QLabel" name="interfaceScalingLabel">
-              <property name="text">
-               <string>Interface Scaling</string>
-              </property>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="windowsStyle">
+              <item>
+               <property name="text">
+                <string notr="true">System</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string notr="true">Fusion</string>
+               </property>
+              </item>
              </widget>
             </item>
             <item row="1" column="1">
@@ -153,16 +154,36 @@
               </property>
              </widget>
             </item>
-            <item row="0" column="1">
-             <widget class="QComboBox" name="windowsStyle">
+            <item row="9" column="0">
+             <spacer name="verticalSpacer">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item row="2" column="0">
+             <widget class="QCheckBox" name="internationalAirport">
+              <property name="text">
+               <string>International Airport</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QComboBox" name="validityPeriod">
               <item>
                <property name="text">
-                <string notr="true">System</string>
+                <string>24 hours</string>
                </property>
               </item>
               <item>
                <property name="text">
-                <string notr="true">Fusion</string>
+                <string>30 hours</string>
                </property>
               </item>
              </widget>
@@ -263,13 +284,6 @@
             <string>Prefix</string>
            </property>
            <layout class="QGridLayout" name="gridLayout_10">
-            <item row="0" column="0">
-             <widget class="QLabel" name="icaoLabel">
-              <property name="text">
-               <string>Airport Code</string>
-              </property>
-             </widget>
-            </item>
             <item row="0" column="1">
              <widget class="QLineEdit" name="icao">
               <property name="placeholderText">
@@ -284,17 +298,17 @@
               </property>
              </widget>
             </item>
+            <item row="0" column="0">
+             <widget class="QLabel" name="icaoLabel">
+              <property name="text">
+               <string>Airport Code</string>
+              </property>
+             </widget>
+            </item>
             <item row="1" column="1">
              <widget class="QLineEdit" name="area">
               <property name="placeholderText">
                <string notr="true">CI35</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="0">
-             <widget class="QLabel" name="firLabel">
-              <property name="text">
-               <string>SIGMET Area</string>
               </property>
              </widget>
             </item>
@@ -305,17 +319,24 @@
               </property>
              </widget>
             </item>
-            <item row="3" column="0">
-             <widget class="QLabel" name="trendSignLabel">
-              <property name="text">
-               <string>Trend Identifier</string>
-              </property>
-             </widget>
-            </item>
             <item row="3" column="1">
              <widget class="QLineEdit" name="trendSign">
               <property name="placeholderText">
                <string notr="true">TREND</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="firLabel">
+              <property name="text">
+               <string>SIGMET Area</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0">
+             <widget class="QLabel" name="trendSignLabel">
+              <property name="text">
+               <string>Trend Identifier</string>
               </property>
              </widget>
             </item>

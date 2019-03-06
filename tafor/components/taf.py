@@ -4,7 +4,8 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox, QVBoxLayout, QLayout
 
-from tafor.utils import CheckTaf
+from tafor import conf
+from tafor.utils import CheckTaf, boolean
 from tafor.utils.convert import parseTimeInterval, parseDateTime, isOverlap
 from tafor.models import db, Taf
 from tafor.components.setting import isConfigured
@@ -18,6 +19,7 @@ class BaseTafEditor(BaseEditor):
         super(BaseTafEditor, self).__init__(parent, sender)
         self.initUI()
         self.bindSignal()
+        self.setMessageType()
 
     def initUI(self):
         window = QWidget(self)
@@ -59,9 +61,6 @@ class BaseTafEditor(BaseEditor):
         self.primary.tempo1Checkbox.toggled.connect(self.tempo1.checkComplete)
         self.primary.tempo2Checkbox.toggled.connect(self.tempo2.checkComplete)
         self.primary.tempo3Checkbox.toggled.connect(self.tempo3.checkComplete)
-
-        self.primary.fc.clicked.connect(self.changeMessageType)
-        self.primary.ft.clicked.connect(self.changeMessageType)
 
         self.primary.normal.clicked.connect(self.changeMessageType)
         self.primary.cor.clicked.connect(self.changeMessageType)
@@ -125,16 +124,18 @@ class BaseTafEditor(BaseEditor):
         # TEMPO
         manipulate('tempo1', 'tempo2', 'tempo3')
 
-    def changeMessageType(self):
-        if self.primary.fc.isChecked():
+
+    def setMessageType(self):
+        international = boolean(conf.value('General/InternationalAirport'))
+        if international:
+            self.tt = 'FT'
+            self.primary.tempo3Checkbox.show()
+        else:
             self.tt = 'FC'
             self.primary.tempo3Checkbox.hide()
             self.primary.tempo3Checkbox.setChecked(False)
 
-        if self.primary.ft.isChecked():
-            self.tt = 'FT'
-            self.primary.tempo3Checkbox.show()
-
+    def changeMessageType(self):
         if self.primary.date.text():
             if self.primary.normal.isChecked():
                 self.setNormalPeriod()

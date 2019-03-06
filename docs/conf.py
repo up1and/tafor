@@ -48,7 +48,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Tafor'
-copyright = '2018, up1and'
+copyright = '2019, up1and'
 author = 'up1and'
 
 # The version info for the project you're documenting, acts as replacement for

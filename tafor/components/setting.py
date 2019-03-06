@@ -16,6 +16,8 @@ _options = [
     # 通用设置
     ('General/WindowsStyle', 'windowsStyle', 'combox'),
     ('General/InterfaceScaling', 'interfaceScaling', 'comboxindex'),
+    ('General/InternationalAirport', 'internationalAirport', 'bool'),
+    ('General/ValidityPeriod', 'validityPeriod', 'comboxindex'),
     ('General/CloseToMinimize', 'closeToMinimize', 'bool'),
     ('General/Debug', 'debugMode', 'bool'),
     ('General/AlwaysShowEditor', 'alwaysShowEditor', 'bool'),
@@ -131,6 +133,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
         self.bindSignal()
         self.setValidator()
+        self.setValidityPeriod()
         self.updateContract()
         self.load()
 
@@ -149,6 +152,8 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
         self.callUpButton.clicked.connect(self.testCallUp)
 
+        self.internationalAirport.clicked.connect(self.setValidityPeriod)
+
         self.importBrowseButton.clicked.connect(lambda: self.openFile(self.importPath))
         self.exportBrowseButton.clicked.connect(lambda: self.openDirectory(self.exportPath))
         self.importButton.clicked.connect(self.importConf)
@@ -166,6 +171,10 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.maxSendAddress.setValidator(QIntValidator(self.maxSendAddress))
         self.maxLineChar.setValidator(QIntValidator(self.maxLineChar))
         self.warnTafTime.setValidator(QIntValidator(self.warnTafTime))
+
+    def setValidityPeriod(self, enable=None):
+        enable = boolean(conf.value('General/InternationalAirport')) if enable is None else enable
+        self.validityPeriod.setEnabled(enable)
 
     def checkChannelNumber(self):
         """检查是否是世界时日界，如果是重置流水号"""
