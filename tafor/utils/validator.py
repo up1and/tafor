@@ -680,12 +680,11 @@ class TafParser(object):
                         tokens['vis']['error'] = True
 
                     self.tips.append('能见度大于 1000 米、小于 5000 米，FG、+DZ 不能有')
-                
+
                 if vis > 5000 and set(weathers) & set(['FG', 'FU', 'BR', 'HZ']):
                     if 'weather' in tokens:
                         tokens['weather']['error'] = True
-
-                    self.tips.append('能见度大于 5000 米，FG、FU、BR、HZ 不能有')
+                        self.tips.append('能见度大于 5000 米，FG、FU、BR、HZ 不能有')
 
         if 'weather' in tokens:
             weather = tokens['weather']['text']

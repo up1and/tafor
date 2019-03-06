@@ -55,7 +55,7 @@ def simplifyLine(line):
     return line
 
 def connectLine(lines):
-    
+
     def canConnect(lines):
         points = list(chain(*lines))
         return len(points) != len(set(points))

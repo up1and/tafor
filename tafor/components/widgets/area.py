@@ -87,7 +87,7 @@ class Canvas(QWidget):
 
                     if self.mode == 'polygon':
                         self.points = simplifyPolygon(self.points, maxPoint=self.maxPoint, extend=True)
-                    
+
                     # make the points clockwise
                     self.points.reverse()
                     self.done = True if len(self.points) > 2 else False
