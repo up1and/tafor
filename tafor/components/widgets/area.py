@@ -102,6 +102,8 @@ class Canvas(QWidget):
 
         if event.button() == Qt.RightButton and self.points:
             if self.done:
+                if len(self.points) > self.maxPoint:
+                    self.points = self.points[:self.maxPoint]
                 self.done = False
                 self.stateChanged.emit()
             else:
