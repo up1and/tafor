@@ -357,7 +357,7 @@ class SigmetGeneralHead(BaseSigmetHead):
         self.setFcstOrObs()
 
     def setPhenomenaDescription(self):
-        descriptions = ['OBSC', 'EMBD', 'FRQ', 'SQL', 'SEV', 'HVY']
+        descriptions = ['OBSC', 'EMBD', 'FRQ', 'SQL', 'SEV', 'HVY', 'RDOACT']
         self.description.addItems(descriptions)
         self.description.setCurrentIndex(1)
 
@@ -368,6 +368,8 @@ class SigmetGeneralHead(BaseSigmetHead):
             phenomenas = ['TURB', 'ICE', 'ICE (FZRA)', 'MTW']
         elif text == 'HVY':
             phenomenas = ['DS', 'SS']
+        elif text == 'RDOACT':
+            phenomenas = ['CLD']
         else:
             phenomenas = ['TS', 'TSGR']
 
@@ -409,6 +411,8 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
     def bindSignal(self):
         self.level.currentTextChanged.connect(self.setFightLevel)
         self.movement.currentTextChanged.connect(self.setSpeed)
+        self.base.editingFinished.connect(lambda :self.validateBaseTop(self.base))
+        self.top.editingFinished.connect(lambda :self.validateBaseTop(self.top))
 
         self.base.textEdited.connect(lambda: self.coloredText(self.base))
         self.top.textEdited.connect(lambda: self.coloredText(self.top))
@@ -452,6 +456,17 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
             self.level.setCurrentIndex(self.level.findText('TOP'))
         else:
             self.level.setCurrentIndex(-1)
+
+    def validateBaseTop(self, line):
+        if not (self.base.isEnabled() and self.top.isEnabled()):
+            return
+
+        base = self.base.text()
+        top = self.top.text()
+        if base and top:
+            if int(top) <= int(base):
+                line.clear()
+                self.head.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'The top flight level needs to be greater than the base flight level'))
 
     def checkComplete(self):
         mustRequired = []
@@ -912,8 +927,8 @@ class SigmetCustomSegment(BaseSegment):
     def setPlaceholder(self):
         tips = {
             'WS': 'EMBD TS FCST N OF N2000 TOP FL360 MOV N 25KMH NC',
-            'WC': 'TC YAGI OBS AT 1400Z N2300 E11304 CB TOP FL420 WI 300KM OF CENTRE MOV NE 30KMH INTSF\nFCST 1925Z TC CENTRE N2401 E11411',
-            'WV': 'VA ERUPTION MT ASHVAL LOC E S1500 E07348 VA CLD OBS AT 1100Z FL310/450\nAPRX 220KM BY 35KM S1500 E07348 - S1530 E07642 MOV ESE 65KMH\nFCST 1700Z VA CLD APRX S1506 E07500 - S1518 E08112 - S1712 E08330 - S1824 E07836',
+            'WC': 'TC YAGI PSN N2706 W07306 CB OBS AT 1600Z WI 300KM OF CENTRE TOP FL420 NC\nFCST 2200Z TC CENTRE N2740 W07345',
+            'WV': 'VA ERUPTION MT ASHVAL PSN S1500 E07348 VA CLD\nOBS AT 1100Z APRX 50KM WID LINE BTN S1500 E07348 - S1530 E07642 FL310/450 MOV ESE 65KMH\nFCST 1700Z VA CLD APRX 50KM WID LINE BTN S1506 E07500 - S1518 E08112 - S1712 E08330',
         }
         tip = tips[self.type.tt]
         self.content.text.setPlaceholderText(tip)

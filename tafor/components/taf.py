@@ -247,6 +247,7 @@ class BaseTafEditor(BaseEditor):
             tmin = -int(tmin[1:]) if 'M' in tmin else int(tmin)
             if tmax <= tmin:
                 self.primary.tmin.clear()
+                self.showNotificationMessage(QCoreApplication.translate('Editor', 'The maximum temperature needs to be greater than the minimum temperature'))
 
     def validateChangeGroupInterval(self, group):
         line = group.interval
