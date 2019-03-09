@@ -4,7 +4,8 @@ from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox, QLabel, QHBoxLayout
 
-from tafor.utils import CheckTaf
+from tafor.utils import CurrentTaf, CheckTaf
+from tafor.states import context
 from tafor.components.ui import main_rc, Ui_main_recent
 
 
@@ -52,34 +53,30 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
             self.check.setText('<img src=":/cross.png" width="24" height="24"/>')
 
 
-class CurrentTaf(QWidget):
+class TafBoard(QWidget):
 
     def __init__(self, parent, container):
-        super(CurrentTaf, self).__init__(parent)
+        super(TafBoard, self).__init__(parent)
 
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
 
-        self.fc = QLabel()
-        self.ft = QLabel()
-
-        layout.addWidget(self.fc)
-        layout.addSpacing(10)
-        layout.addWidget(self.ft)
+        self.board = QLabel()
+        layout.addWidget(self.board)
 
         container.addWidget(self)
 
     def updateGui(self):
-        self.fc.setText(self.current('FC'))
-        self.ft.setText(self.current('FT'))
+        self.board.setText(self.current())
 
-    def current(self, tt):
-        taf = CheckTaf(tt)
-        if taf.local():
+    def current(self):
+        taf = CurrentTaf(context.taf.spec)
+        check = CheckTaf(taf)
+        if check.local():
             text = ''
         else:
-            text = tt + taf.warningPeriod(withDay=False)
+            text = taf.spec.tt + taf.period(strict=False, withDay=False)
         return text
 
 

@@ -8,99 +8,156 @@ from tafor.states import context
 from tafor.utils.validator import TafParser
 
 
-class CheckTaf(object):
-    """检查 TAF 报文并储存
+class SpecFC(object):
+    tt = 'FC'
+    periods = ['0312', '0615', '0918', '1221', '1524', '1803', '2106', '0009']
+    default = '0009'
+    interval = datetime.timedelta(hours=3)
+    delay = datetime.timedelta(minutes=50)
+    begin = datetime.timedelta(hours=2)
+    duration = datetime.timedelta(hours=9)
 
-    :param tt: TAF 报文类型，FC 或 FT
-    :param message: TAF 报文内容
+
+class SpecFT24(object):
+    tt = 'FT'
+    periods = ['0606', '1212', '1818', '0024']
+    default = '0024'
+    interval = datetime.timedelta(hours=6)
+    delay = datetime.timedelta(hours=2, minutes=50)
+    begin = datetime.timedelta(hours=5)
+    duration = datetime.timedelta(hours=24)
+
+
+class SpecFT30(object):
+    tt = 'FT'
+    periods = ['0612', '1218', '1824', '0006']
+    default = '0006'
+    interval = datetime.timedelta(hours=6)
+    delay = datetime.timedelta(hours=2, minutes=50)
+    begin = datetime.timedelta(hours=5)
+    duration = datetime.timedelta(hours=30)
+
+
+class CurrentTaf(object):
+    """生成当前的 TAF 报文类型
+
+    :param spec: TAF 报文规格，选项 fc, ft24, ft30
     :param time: 报文的生成时间
     :param prev: 0 代表当前报文，1 代表上一份报文，以此类推
 
     """
-    def __init__(self, tt, message=None, time=None, prev=0):
-        self.tt = tt
-        self.message = message
+
+    specifications = {
+        'fc': SpecFC,
+        'ft24': SpecFT24,
+        'ft30': SpecFT30
+    }
+
+    def __init__(self, spec, time=None, prev=0):
+        self.spec = self.specifications[spec]
         self.time = datetime.datetime.utcnow() if time is None else time
 
-        interval = {
-            'FC': 3,
-            'FT': 6,
-        }
-
-        self.interval = interval.get(self.tt)
-
         if prev:
-            self.time -= datetime.timedelta(hours=self.interval * prev)
+            self.time -= self.spec.interval * prev
 
+        self._initStartTime()
+
+    def period(self, strict=True, withDay=True):
+        if strict:
+            return self._strict(withDay)
+        else:
+            return self._normal(withDay)
+
+    def valids(self):
+        """返回当前报文有效期
+
+        """
+        period = self._normal(withDay=False)
+        start = self.startTime[period] + self.spec.begin
+        end = start + self.spec.duration
+        return start, end
+
+    def hasExpired(self, offset=None):
+        """当前时段报文是否过了有效发报时间
+
+        :param offset: 过期时间，单位分钟
+        """
+        offset = offset or conf.value('Monitor/WarnTAFTime')
+        offset = int(offset) if offset else 30
+        hours = self.spec.delay // datetime.timedelta(hours=1)
+        delta = datetime.timedelta(hours=hours, minutes=offset)
+        period = self._normal(withDay=False)
+        start = self.startTime[period]
+        threshold = start + delta
+        return threshold < self.time
+
+    def _initStartTime(self):
         startOfTheDay = datetime.datetime(self.time.year, self.time.month, self.time.day)
-        startTime = dict()
-        startTime['FC'] = {
-                    '0312': startOfTheDay + datetime.timedelta(hours=1),
-                    '0615': startOfTheDay + datetime.timedelta(hours=4),
-                    '0918': startOfTheDay + datetime.timedelta(hours=7),
-                    '1221': startOfTheDay + datetime.timedelta(hours=10),
-                    '1524': startOfTheDay + datetime.timedelta(hours=13),
-                    '1803': startOfTheDay + datetime.timedelta(hours=16),
-                    '2106': startOfTheDay + datetime.timedelta(hours=19),
-                    '0009': startOfTheDay + datetime.timedelta(hours=22),
-        }
-        startTime['FT'] = {
-                    '0606': startOfTheDay + datetime.timedelta(hours=1),
-                    '1212': startOfTheDay + datetime.timedelta(hours=7),
-                    '1818': startOfTheDay + datetime.timedelta(hours=13),
-                    '0024': startOfTheDay + datetime.timedelta(hours=19),
-        }
+        delta = self.spec.interval - self.spec.begin
+
+        self.startTime = {}
+        for i, period in enumerate(self.spec.periods):
+            self.startTime[period] = startOfTheDay + delta + self.spec.interval * i
 
         if self.time < startOfTheDay + datetime.timedelta(hours=1):
-            startTime['FC']['0009'] -= datetime.timedelta(days=1)
-            startTime['FT']['0024'] -= datetime.timedelta(days=1)
+            self.startTime[self.spec.default] -= datetime.timedelta(days=1)
 
-        endTimeDelta = {
-            'FC': {
-                'normal': datetime.timedelta(minutes=50),
-                'warning': datetime.timedelta(hours=3),
-            },
-            'FT': {
-                'normal': datetime.timedelta(hours=2, minutes=50),
-                'warning': datetime.timedelta(hours=6),
-            }
-        }
-
-        # 00 - 01 时次特殊情况
-        defaultPeriod = {
-            'FC': '0009',
-            'FT': '0024',
-        }
-
-        self.startTime = startTime.get(self.tt)
-        self.endTimeDelta = endTimeDelta.get(self.tt)
-        self.defaultPeriod = defaultPeriod.get(self.tt)
-
-    def normalPeriod(self, withDay=True):
-        """严格按照报文的发送时间生成报文时段
-
-        :param withDay: 生成的时段是否带有日期
-        :return: 报文时段
-        """
-        period = self._findPeriod(self.endTimeDelta['normal'])
+    def _strict(self, withDay):
+        period = self._findPeriod(self.spec.delay)
 
         if withDay:
-            return self._withDay(period)
+            period = self._withDay(period)
 
         return period
 
-    def warningPeriod(self, withDay=True):
-        """根据告警模式的有效期生成报文时段
+    def _normal(self, withDay):
+        period = self._findPeriod(self.spec.interval)
 
-        :param withDay: 生成的时段是否带有日期
-        :return: 报文时段
-        """
-        period = self._findPeriod(self.endTimeDelta['warning'], self.defaultPeriod)
+        if period is None:
+            period = self.spec.default
 
         if withDay:
-            return self._withDay(period)
+            period = self._withDay(period)
 
         return period
+
+    def _findPeriod(self, delay):
+        """查找当前的报文时段
+
+        :param delay: 编辑报文的有效期
+        :return: 不包含日期的报文时段
+        """
+        for period, start in self.startTime.items():
+            if start <= self.time <= start + delay:
+                return period
+
+    def _withDay(self, period):
+        """返回报文时段带有日期"""
+        if period is None:
+            return
+
+        start = self.startTime[period] + self.spec.begin
+        end = start + self.spec.duration
+        
+        if '24' in period:
+            end -= datetime.timedelta(minutes=1)
+
+        periodWithDay = '{}{}/{}{}'.format(str(start.day).zfill(2), period[:2], str(end.day).zfill(2), period[2:])
+
+        return periodWithDay
+
+
+class CheckTaf(object):
+    """检查 TAF 报文并储存
+
+    :param taf: 当前报文对象
+    :param message: TAF 报文内容
+
+    """
+    def __init__(self, taf, message=None):
+        self.taf = taf
+        self.tt = self.taf.spec.tt
+        self.message = message
 
     def local(self, period=None):
         """返回本地数据当前时次的最新报文，忽略 AMD COR 报文
@@ -108,7 +165,7 @@ class CheckTaf(object):
         :param period: 报文的有效时段
         :return: ORM 对象
         """
-        period = self.warningPeriod() if period is None else period
+        period = self.taf.period(strict=False) if period is None else period
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
         recent = db.query(Taf).filter(Taf.rpt.contains(period), ~Taf.rpt.contains('AMD'),
             ~Taf.rpt.contains('COR'), Taf.sent > expired).order_by(Taf.sent.desc()).first()
@@ -147,7 +204,7 @@ class CheckTaf(object):
             if local and not remote.isAmended() and remote.primary.tokens['period']['text'] in local.rpt:
                 return
 
-            item = Taf(tt=self.tt, rpt=self.message, confirmed=self.time)
+            item = Taf(tt=self.tt, rpt=self.message, confirmed=self.taf.time)
             db.add(item)
             db.commit()
             logger.info('Save {} {}'.format(self.tt, self.message))
@@ -169,54 +226,6 @@ class CheckTaf(object):
 
             if callback:
                 callback()
-
-    def hasExpired(self, offset=None):
-        """当前时段报文是否过了有效发报时间
-
-        :param offset: 过期时间，单位分钟
-        """
-        offset = offset or conf.value('Monitor/WarnTAFTime')
-        offset = int(offset) if offset else 30
-        offsetTimeDelta = {
-            'FC': datetime.timedelta(minutes=offset),
-            'FT': datetime.timedelta(hours=2, minutes=offset)
-        }
-
-        timedelta = offsetTimeDelta.get(self.tt)
-        period = self.warningPeriod(withDay=False)
-        start = self.startTime.get(period)
-
-        threshold = start + timedelta
-        return threshold < self.time
-
-    def _findPeriod(self, endTimeDelta, default=None):
-        """查找当前的报文时段
-
-        :param endTimeDelta: 编辑报文的有效期
-        :param default: 查询不到时返回默认值
-        :return: 不包含日期的报文时段
-        """
-        for period, start in self.startTime.items():
-            if start <= self.time <= start + endTimeDelta:
-                return period
-
-        if default:
-            return default
-
-    def _withDay(self, period):
-        """返回报文时段带有日期"""
-        if period is None:
-            return None
-
-        time = self.time
-
-        # 跨越 UTC 日界
-        if period in ('0009', '0024') and self.time.hour != 0:
-            time = self.time + datetime.timedelta(days=1)
-
-        periodWithDay = str(time.day).zfill(2) + period
-
-        return periodWithDay
 
 
 class CheckMetar(object):
@@ -257,8 +266,9 @@ class Listen(object):
     def __init__(self, callback=None):
         self.callback = callback
 
-    def __call__(self, tt):
+    def __call__(self, tt, spec=None):
         self.tt = tt
+        self.spec = spec or context.taf.spec
         state = context.message.state()
         self.message = state.get(self.tt, None)
         method = {'FC': 'taf', 'FT': 'taf', 'SA': 'metar', 'SP': 'metar'}
@@ -266,21 +276,22 @@ class Listen(object):
 
     def taf(self):
         """储存并更新本地 TAF 报文状态"""
-        taf = CheckTaf(self.tt, message=self.message)
+        taf = CurrentTaf(self.spec)
+        check = CheckTaf(taf, message=self.message)
 
         # 储存确认报文
         if self.message:
-            taf.save(callback=self.callback)
+            check.save(callback=self.callback)
 
-            latest = taf.latest()
+            latest = check.latest()
             if latest and not latest.confirmed:
-                taf.confirm(callback=self.callback)
+                check.confirm(callback=self.callback)
 
         # 查询报文是否过期
         expired = False
 
         if taf.hasExpired():
-            local = taf.local()
+            local = check.local()
             if local:
                 if not local.confirmed:
                     expired = True
@@ -289,9 +300,9 @@ class Listen(object):
 
         # 更新状态
         context.taf.setState({
-            taf.tt: {
-                'period': taf.warningPeriod(),
-                'sent': True if taf.local() else False,
+            taf.spec.tt: {
+                'period': taf.period(strict=False),
+                'sent': True if check.local() else False,
                 'warning': expired,
                 'clock': taf.hasExpired(offset=5),
             }

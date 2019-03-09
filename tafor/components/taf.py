@@ -5,8 +5,9 @@ from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox, QVBoxLayout, QLayout
 
 from tafor import conf
-from tafor.utils import CheckTaf, boolean
+from tafor.utils import CurrentTaf, CheckTaf, boolean
 from tafor.utils.convert import parseTimeInterval, parseDateTime, isOverlap
+from tafor.states import context
 from tafor.models import db, Taf
 from tafor.components.setting import isConfigured
 from tafor.components.widgets.editor import BaseEditor
@@ -177,18 +178,19 @@ class BaseTafEditor(BaseEditor):
 
     def setNormalPeriod(self, isTask=False):
         prev = 1 if self.primary.prev.isChecked() else 0
-        taf = CheckTaf(self.tt, time=self.time, prev=prev)
-        period = taf.normalPeriod() if isTask else taf.warningPeriod()
+        taf = CurrentTaf(context.taf.spec, time=self.time, prev=prev)
+        check = CheckTaf(taf)
+        period = taf.period() if isTask else taf.period(strict=False)
 
-        if period and taf.local(period) or not self.primary.date.hasAcceptableInput():
+        if period and check.local(period) or not self.primary.date.hasAcceptableInput():
             self.primary.period.clear()
         else:
             self.primary.period.setText(period)
 
     def setAmendPeriod(self):
         prev = 1 if self.primary.prev.isChecked() else 0
-        taf = CheckTaf(self.tt, self.time, prev=prev)
-        self.amdPeriod = taf.warningPeriod()
+        taf = CurrentTaf(context.taf.spec, time=self.time, prev=prev)
+        self.amdPeriod = taf.period(strict=False)
         self.primary.period.setText(self.amdPeriod)
 
     def setPreviousPeriod(self, checked):

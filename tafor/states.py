@@ -276,6 +276,22 @@ class TafState(QObject):
     def state(self):
         return self._state
 
+    @property
+    def spec(self):
+        from tafor.utils import boolean
+
+        international = boolean(conf.value('General/InternationalAirport'))
+        index = conf.value('General/ValidityPeriod')
+        if international:
+            if index:
+                specification = 'ft30'
+            else:
+                specification = 'fc24'
+        else:
+            specification = 'fc'
+
+        return specification
+
     def setState(self, values):
         refs = copy.deepcopy(self._state)
         self._state.update(values)

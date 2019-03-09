@@ -23,7 +23,7 @@ from tafor.components.setting import SettingDialog
 from tafor.components.task import TaskBrowser
 
 from tafor.components.widgets.table import TafTable, MetarTable, SigmetTable
-from tafor.components.widgets.widget import Clock, CurrentTaf, RecentMessage, RemindMessageBox
+from tafor.components.widgets.widget import Clock, TafBoard, RecentMessage, RemindMessageBox
 from tafor.components.widgets.status import WebAPIStatus, CallServiceStatus
 from tafor.components.widgets.sound import Sound
 
@@ -114,7 +114,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def setRecent(self):
         self.clock = Clock(self, self.tipsLayout)
         self.tipsLayout.addSpacerItem(QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        self.currentTaf = CurrentTaf(self, self.tipsLayout)
+        self.tafBoard = TafBoard(self, self.tipsLayout)
         self.recentLayout.setAlignment(Qt.AlignTop)
 
     def setTable(self):
@@ -365,7 +365,15 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.remindBox.close()
 
         listen = Listen(callback=afterSaving)
-        for i in ('FC', 'FT', 'SA', 'SP'):
+
+        names = ['SA', 'SP']
+        international = boolean(conf.value('General/InternationalAirport'))
+        if international:
+            names.append('FT')
+        else:
+            names.append('FC')
+
+        for i in names:
             listen(i)
 
         self.updateGui()
@@ -395,7 +403,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.contractNo.setChecked(True)
 
     def updateRecent(self):
-        self.currentTaf.updateGui()
+        self.tafBoard.updateGui()
 
         for i in range(self.recentLayout.count()):
             if i > 0:
@@ -405,14 +413,13 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
 
-        fc = db.query(Taf).filter(Taf.sent > recent, Taf.tt == 'FC').order_by(Taf.sent.desc()).first()
-        ft = db.query(Taf).filter(Taf.sent > recent, Taf.tt == 'FT').order_by(Taf.sent.desc()).first()
+        taf = db.query(Taf).filter(Taf.sent > recent).order_by(Taf.sent.desc()).first()
         sigmets = currentSigmet(order='asc', hasCnl=True)
         trend = db.query(Trend).order_by(Trend.sent.desc()).first()
         if trend and trend.isNosig():
             trend = None
 
-        queryset = [fc, ft, trend] + sigmets
+        queryset = [taf, trend] + sigmets
         for query in queryset:
             if query:
                 RecentMessage(self, self.recentLayout, query)
