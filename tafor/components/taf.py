@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QWidget, QMessageBox, QVBoxLayout, QLayout
 
 from tafor import conf
 from tafor.utils import CurrentTaf, CheckTaf, boolean
-from tafor.utils.convert import parseTimeInterval, parseDateTime, isOverlap
+from tafor.utils.convert import parsePeriod, parseDateTime, isOverlap
 from tafor.states import context
 from tafor.models import db, Taf
 from tafor.components.setting import isConfigured
@@ -77,13 +77,13 @@ class BaseTafEditor(BaseEditor):
         self.primary.tmax.editingFinished.connect(self.validateTemperature)
         self.primary.tmin.editingFinished.connect(self.validateTemperature)
 
-        self.becmg1.interval.editingFinished.connect(lambda :self.validateChangeGroupInterval(self.becmg1))
-        self.becmg2.interval.editingFinished.connect(lambda :self.validateChangeGroupInterval(self.becmg2))
-        self.becmg3.interval.editingFinished.connect(lambda :self.validateChangeGroupInterval(self.becmg3))
+        self.becmg1.period.editingFinished.connect(lambda :self.validateChangeGroupPeriod(self.becmg1))
+        self.becmg2.period.editingFinished.connect(lambda :self.validateChangeGroupPeriod(self.becmg2))
+        self.becmg3.period.editingFinished.connect(lambda :self.validateChangeGroupPeriod(self.becmg3))
 
-        self.tempo1.interval.editingFinished.connect(lambda :self.validateChangeGroupInterval(self.tempo1))
-        self.tempo2.interval.editingFinished.connect(lambda :self.validateChangeGroupInterval(self.tempo2))
-        self.tempo3.interval.editingFinished.connect(lambda :self.validateChangeGroupInterval(self.tempo3))
+        self.tempo1.period.editingFinished.connect(lambda :self.validateChangeGroupPeriod(self.tempo1))
+        self.tempo2.period.editingFinished.connect(lambda :self.validateChangeGroupPeriod(self.tempo2))
+        self.tempo3.period.editingFinished.connect(lambda :self.validateChangeGroupPeriod(self.tempo3))
 
         self.primary.completeSignal.connect(self.enbaleNextButton)
         self.becmg1.completeSignal.connect(self.enbaleNextButton)
@@ -220,10 +220,10 @@ class BaseTafEditor(BaseEditor):
     def periodDuration(self):
         period = self.primary.period.text()
         if len(period) == 6:
-            return parseTimeInterval(period[2:], self.time)
+            return parsePeriod(period[2:], self.time)
 
-    def groupInterval(self, interval):
-        start, end = parseTimeInterval(interval)
+    def groupPeriod(self, period):
+        start, end = parsePeriod(period)
         if start < self.periods[0]:
             start += datetime.timedelta(days=1)
             end += datetime.timedelta(days=1)
@@ -231,7 +231,7 @@ class BaseTafEditor(BaseEditor):
 
     def validateTemperatureHour(self, line):
         if self.periods is not None:
-            tempHour = parseTimeInterval(line.text(), self.time)[0]
+            tempHour = parsePeriod(line.text(), self.time)[0]
 
             if tempHour < self.periods[0]:
                 tempHour += datetime.timedelta(days=1)
@@ -252,8 +252,8 @@ class BaseTafEditor(BaseEditor):
                 self.primary.tmin.clear()
                 self.showNotificationMessage(QCoreApplication.translate('Editor', 'The maximum temperature needs to be greater than the minimum temperature'))
 
-    def validateChangeGroupInterval(self, group):
-        line = group.interval
+    def validateChangeGroupPeriod(self, group):
+        line = group.period
         isTempo = group.id.startswith('TEMPO')
         if not self.periods:
             line.clear()
@@ -266,7 +266,7 @@ class BaseTafEditor(BaseEditor):
         else:
             maxTime = 2
 
-        interval = start, end = self.groupInterval(line.text())
+        period = start, end = self.groupPeriod(line.text())
         if start < self.periods[0] or self.periods[1] < start:
             line.clear()
             self.showNotificationMessage(QCoreApplication.translate('Editor', 'Start time of change group is not corret'))
@@ -282,18 +282,18 @@ class BaseTafEditor(BaseEditor):
             self.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time more than {} hours').format(maxTime))
             return
 
-        def isIntervalOverlay(interval, periods):
+        def isIntervalOverlay(period, periods):
             for p in periods:
-                if isOverlap(interval, p):
+                if isOverlap(period, p):
                     return True
 
         groups = self.tempos if isTempo else self.becmgs
         periods = [g.periods for g in groups if g.periods and group != g]
-        if isIntervalOverlay(interval, periods):
+        if isIntervalOverlay(period, periods):
             line.clear()
             self.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time is overlap'))
         else:
-            group.periods = interval
+            group.periods = period
 
     def assembleMessage(self):
         primaryMessage = self.primary.message()

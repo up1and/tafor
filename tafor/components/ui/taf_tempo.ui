@@ -15,12 +15,12 @@
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="0" column="1">
-    <widget class="QLabel" name="intervalLabel">
+    <widget class="QLabel" name="periodLabel">
      <property name="text">
-      <string>Interval</string>
+      <string>Period</string>
      </property>
      <property name="buddy">
-      <cstring>interval</cstring>
+      <cstring>period</cstring>
      </property>
     </widget>
    </item>
@@ -131,7 +131,7 @@
     </widget>
    </item>
    <item row="1" column="1">
-    <widget class="QLineEdit" name="interval"/>
+    <widget class="QLineEdit" name="period"/>
    </item>
    <item row="1" column="2">
     <widget class="QLineEdit" name="wind"/>
@@ -183,7 +183,7 @@
   </layout>
  </widget>
  <tabstops>
-  <tabstop>interval</tabstop>
+  <tabstop>period</tabstop>
   <tabstop>wind</tabstop>
   <tabstop>gust</tabstop>
   <tabstop>vis</tabstop>

@@ -286,7 +286,7 @@ class TafState(QObject):
             if index:
                 specification = 'ft30'
             else:
-                specification = 'fc24'
+                specification = 'ft24'
         else:
             specification = 'fc'
 

@@ -17,9 +17,30 @@ def isOverlap(basetime, reftime):
     total = (end - start).total_seconds()
     return total >= 0
 
-def parseTimeInterval(interval, basetime=None):
+def parseStandardPeriod(period, basetime=None):
     """解析字符为时间间隔
 
+    :param period: 时间间隔，如 0912/0921
+    :param basetime: 基准时间，默认为当前时间，自定义时需传入 Datetime 对象
+    :return: 返回元组，包含起始时间和结束时间的 Datetime 对象
+    """
+    basetime = basetime if basetime else datetime.datetime.utcnow()
+    startTime, endTime = period.split('/')
+    startHour = int(interval[:2])
+    endHour = 0 if interval[2:] in ['24', ''] else int(interval[2:])
+
+    time = datetime.datetime(basetime.year, basetime.month, basetime.day)
+    start = time.replace(day=int(startTime[:2]), hour=int(startTime[2:]))
+    end = time.replace(day=int(endTime[:2]), hour=int(endTime[2:]))
+
+    if end <= start:
+        time += datetime.timedelta(days=1)
+        end = time.replace(day=int(endTime[:2]), hour=int(endTime[2:]))
+
+    return start, end
+
+def parseInterval(interval, basetime=None):
+    """解析字符为时间间隔
     :param interval: 时间间隔，如 0312
     :param basetime: 基准时间，默认为当前时间，自定义时需传入 Datetime 对象
     :return: 返回元组，包含起始时间和结束时间的 Datetime 对象
@@ -38,6 +59,16 @@ def parseTimeInterval(interval, basetime=None):
         end += datetime.timedelta(days=1)
 
     return start, end
+
+def parsePeriod(period, basetime=None):
+    if len(period) == 9:
+        return parseStandardPeriod(period, basetime)
+
+    if len(period) == 6:
+        return parseInterval(period[2:], basetime)
+
+    if len(period) == 4:
+        return parseInterval(period, basetime)
 
 def parseTime(timeString, basetime=None):
     """解析小时分钟字符为 Datetime 对象, 如果小于当前时间视为第二天

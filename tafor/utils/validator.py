@@ -3,7 +3,7 @@ import copy
 
 from collections import OrderedDict
 
-from tafor.utils.convert import parseTimez, parseTimeInterval
+from tafor.utils.convert import parseTimez, parsePeriod
 
 
 weather = [
@@ -32,8 +32,8 @@ class Pattern(object):
     cloud = r'(FEW|SCT|BKN|OVC)(00[1-9]|0[1-4][0-9]|050)'
     vv = r'VV(00[1-9]|010)'
     temp = r'M?([0-5][0-9])'
-    hours = r'([01][0-9]|2[0-4])'
-    interval = r'(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-4])/(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-4])'
+    hours = r'(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-4])'
+    period = r'(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])/(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-4])'
     trendInterval = r'([01][0-9]|2[0-3])([0-5][0-9])|2400'
     time = r'([01][0-9]|2[0-3])([0-5][0-9])'
 
@@ -51,7 +51,7 @@ class TafGrammar(object):
     amend = re.compile(r'\b(AMD|COR)\b')
     icao = re.compile(r'\b((A|B|E|K|P|L|R|Y|U|V|Z)[A-Z]{3})\b')
     timez = re.compile(r'\b(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])Z\b')
-    period = re.compile(r'\b(0[1-9]|[12][0-9]|3[0-1])(0009|0312|0615|0918|1221|1524|1803|2106|0024|0606|1212|1818)\b')
+    period = re.compile(r'\b((?:\d{4}/\d{4})|(?:\d{6})|(?:[01][0-9]|2[0-3])(?:[01][0-9]|2[0-4]))\b')
     cnl = re.compile(r'\b(CNL)\b')
     tmax = re.compile(r'\b(TXM?(\d{2})/(\d{2})Z)\b')
     tmin = re.compile(r'\b(TNM?(\d{2})/(\d{2})Z)\b')
@@ -63,7 +63,6 @@ class TafGrammar(object):
     cavok = re.compile(r'\bCAVOK\b')
 
     prob = re.compile(r'\b(PROB[34]0)\b')
-    interval = re.compile(r'\b([01][0-9]|2[0-3])([01][0-9]|2[0-4])\b')
 
 
 class SigmetGrammar(object):
@@ -348,7 +347,7 @@ class TafLexer(object):
     grammarClass = TafGrammar
 
     defaultRules = [
-        'prob', 'sign', 'amend', 'icao', 'timez', 'period', 'interval', 'cnl',
+        'prob', 'sign', 'amend', 'icao', 'timez', 'period', 'cnl',
         'wind', 'vis', 'cavok', 'weather', 'cloud', 'tmax', 'tmin'
     ]
 
@@ -394,9 +393,9 @@ class TafLexer(object):
                 }
 
         if self.tokens['sign']['text'] == 'TAF':
-            period = self.tokens['period']['text'][2:]
             time = parseTimez(self.tokens['timez']['text'])
-            self.period = parseTimeInterval(period, time)
+            period = self.tokens['period']['text']
+            self.period = parsePeriod(period, time)
 
     def isValid(self):
         """检查报文是否有错误
@@ -510,13 +509,13 @@ class TafParser(object):
             for index in becmgIndex:
                 e = elements[index] + elements[index+1]
                 becmg = self.parse(e)
-                becmg.period = parseTimeInterval(becmg.tokens['interval']['text'], self.primary.period[0])
+                becmg.period = parsePeriod(becmg.tokens['period']['text'], self.primary.period[0])
                 self.becmgs.append(becmg)
 
             for index in tempoIndex:
                 e = elements[index] + elements[index+1]
                 tempo = self.parse(e)
-                tempo.period = parseTimeInterval(tempo.tokens['interval']['text'], self.primary.period[0])
+                tempo.period = parsePeriod(tempo.tokens['period']['text'], self.primary.period[0])
                 self.tempos.append(tempo)
 
         self.elements = [self.primary] + self.becmgs + self.tempos
@@ -681,10 +680,10 @@ class TafParser(object):
 
                     self.tips.append('能见度大于 1000 米、小于 5000 米，FG、+DZ 不能有')
 
-                if vis > 5000 and set(weathers) & set(['FG', 'FU', 'BR', 'HZ']):
+                if vis > 5000 and set(weathers) & set(['FG', 'FU', 'BR', 'HZ', 'SA', 'DU']):
                     if 'weather' in tokens:
                         tokens['weather']['error'] = True
-                        self.tips.append('能见度大于 5000 米，FG、FU、BR、HZ 不能有')
+                        self.tips.append('能见度大于 5000 米，FG、FU、BR、HZ、SA、DU 不能有')
 
         if 'weather' in tokens:
             weather = tokens['weather']['text']

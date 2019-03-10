@@ -163,7 +163,7 @@ class Ui_Editor(object):
         self.gustLabel.setText(_translate("Editor", "Gust"))
         self.weatherWithIntensityLabel.setText(_translate("Editor", "Weather"))
         self.weatherLabel.setText(_translate("Editor", "Weather"))
-        self.periodLabel.setText(_translate("Editor", "Interval"))
+        self.periodLabel.setText(_translate("Editor", "Period"))
         self.windLabel.setText(_translate("Editor", "Wind"))
         self.visLabel.setText(_translate("Editor", "Visibility"))
         self.cloud1Label.setText(_translate("Editor", "Cloud"))

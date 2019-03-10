@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QWidget, QLineEdit, QComboBox, QRadioButton, QCheckB
 
 from tafor import conf
 from tafor.utils import Pattern
+from tafor.states import context
 from tafor.components.ui import Ui_taf_primary, Ui_taf_becmg, Ui_taf_tempo, Ui_trend, main_rc
 
 
@@ -67,9 +68,8 @@ class BaseSegment(QWidget, SegmentMixin):
             self.prob30.toggled.connect(self.setProb30)
             self.prob40.toggled.connect(self.setProb40)
 
-        if hasattr(self, 'interval'):
-            self.interval.textEdited.connect(lambda: self.coloredText(self.interval))
-            self.interval.textChanged.connect(self.clearInterval)
+        self.period.textEdited.connect(lambda: self.coloredText(self.period))
+        self.period.textChanged.connect(self.clearPeriod)
 
         self.gust.editingFinished.connect(self.validateGust)
         self.cloud1.textEdited.connect(self.setVv)
@@ -252,8 +252,8 @@ class BaseSegment(QWidget, SegmentMixin):
     def checkComplete(self):
         raise NotImplementedError
 
-    def clearInterval(self):
-        if len(self.interval.text()) < 4:
+    def clearPeriod(self):
+        if len(self.period.text()) < 4:
             self.periods = None
 
     def hideEvent(self, event):
@@ -390,12 +390,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         area = conf.value('Message/Area') or ''
         icao = conf.value('Message/ICAO')
         time = self.date.text()
-        tt = ''
-        if self.fc.isChecked():
-            tt = 'FC'
-        elif self.ft.isChecked():
-            tt = 'FT'
-
+        tt = context.taf.spec[:2].upper()
         ccc = self.ccc.text() if self.cor.isChecked() else None
         aaa = self.aaa.text() if self.amd.isChecked() else None
         aaaCnl = self.aaaCnl.text() if self.cnl.isChecked() else None
@@ -432,13 +427,13 @@ class TafBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Editor):
     def setValidator(self):
         super(TafBecmgSegment, self).setValidator()
 
-        interval = QRegExpValidator(QRegExp(self.rules.interval))
-        self.interval.setValidator(interval)
+        period = QRegExpValidator(QRegExp(self.rules.period))
+        self.period.setValidator(period)
 
     def message(self):
         super(TafBecmgSegment, self).message()
-        interval = self.interval.text()
-        messages = ['BECMG', interval, self.msg]
+        period = self.period.text()
+        messages = ['BECMG', period, self.msg]
         self.msg = ' '.join(messages)
         return self.msg
 
@@ -457,7 +452,7 @@ class TafBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Editor):
             self.cb.hasAcceptableInput()
         )
 
-        if self.interval.hasAcceptableInput() and any(oneRequired):
+        if self.period.hasAcceptableInput() and any(oneRequired):
             self.complete = True
 
         self.completeSignal.emit(self.complete)
@@ -465,7 +460,7 @@ class TafBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Editor):
     def clear(self):
         super(TafBecmgSegment, self).clear()
 
-        self.interval.clear()
+        self.period.clear()
 
         self.cavok.setChecked(False)
         self.nsc.setChecked(False)
@@ -484,8 +479,8 @@ class TafTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Editor):
     def setValidator(self):
         super(TafTempoSegment, self).setValidator()
 
-        interval = QRegExpValidator(QRegExp(self.rules.interval))
-        self.interval.setValidator(interval)
+        period = QRegExpValidator(QRegExp(self.rules.period))
+        self.period.setValidator(period)
 
     def setProb30(self, checked):
         if checked:
@@ -497,8 +492,8 @@ class TafTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Editor):
 
     def message(self):
         super(TafTempoSegment, self).message()
-        interval = self.interval.text()
-        messages = ['TEMPO', interval, self.msg]
+        period = self.period.text()
+        messages = ['TEMPO', period, self.msg]
         if self.prob30.isChecked():
             messages.insert(0, 'PROB30')
         if self.prob40.isChecked():
@@ -519,7 +514,7 @@ class TafTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Editor):
             self.cb.hasAcceptableInput()
         )
 
-        if self.interval.hasAcceptableInput() and any(oneRequired):
+        if self.period.hasAcceptableInput() and any(oneRequired):
             self.complete = True
 
         self.completeSignal.emit(self.complete)
@@ -527,7 +522,7 @@ class TafTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Editor):
     def clear(self):
         super(TafTempoSegment, self).clear()
 
-        self.interval.clear()
+        self.period.clear()
 
         self.prob30.setChecked(False)
         self.prob40.setChecked(False)

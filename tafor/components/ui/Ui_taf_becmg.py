@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'C:\Users\Upland\Work\tafor\tafor\components\ui\taf_becmg.ui'
+# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\taf_becmg.ui'
 #
-# Created by: PyQt5 UI code generator 5.9.2
+# Created by: PyQt5 UI code generator 5.6
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -15,9 +15,9 @@ class Ui_Editor(object):
         Editor.setWindowTitle("BECMG")
         self.gridLayout = QtWidgets.QGridLayout(Editor)
         self.gridLayout.setObjectName("gridLayout")
-        self.intervalLabel = QtWidgets.QLabel(Editor)
-        self.intervalLabel.setObjectName("intervalLabel")
-        self.gridLayout.addWidget(self.intervalLabel, 0, 1, 1, 1)
+        self.periodLabel = QtWidgets.QLabel(Editor)
+        self.periodLabel.setObjectName("periodLabel")
+        self.gridLayout.addWidget(self.periodLabel, 0, 1, 1, 1)
         self.windLabel = QtWidgets.QLabel(Editor)
         self.windLabel.setObjectName("windLabel")
         self.gridLayout.addWidget(self.windLabel, 0, 2, 1, 1)
@@ -51,9 +51,9 @@ class Ui_Editor(object):
         self.name.setText("BECMG")
         self.name.setObjectName("name")
         self.gridLayout.addWidget(self.name, 1, 0, 1, 1)
-        self.interval = QtWidgets.QLineEdit(Editor)
-        self.interval.setObjectName("interval")
-        self.gridLayout.addWidget(self.interval, 1, 1, 1, 1)
+        self.period = QtWidgets.QLineEdit(Editor)
+        self.period.setObjectName("period")
+        self.gridLayout.addWidget(self.period, 1, 1, 1, 1)
         self.wind = QtWidgets.QLineEdit(Editor)
         self.wind.setObjectName("wind")
         self.gridLayout.addWidget(self.wind, 1, 2, 1, 1)
@@ -89,7 +89,7 @@ class Ui_Editor(object):
         self.nsc.setText("NSC")
         self.nsc.setObjectName("nsc")
         self.gridLayout.addWidget(self.nsc, 2, 7, 1, 1)
-        self.intervalLabel.setBuddy(self.interval)
+        self.periodLabel.setBuddy(self.period)
         self.windLabel.setBuddy(self.wind)
         self.gustLabel.setBuddy(self.gust)
         self.visLabel.setBuddy(self.vis)
@@ -102,7 +102,7 @@ class Ui_Editor(object):
 
         self.retranslateUi(Editor)
         QtCore.QMetaObject.connectSlotsByName(Editor)
-        Editor.setTabOrder(self.interval, self.wind)
+        Editor.setTabOrder(self.period, self.wind)
         Editor.setTabOrder(self.wind, self.gust)
         Editor.setTabOrder(self.gust, self.vis)
         Editor.setTabOrder(self.vis, self.cavok)
@@ -116,7 +116,7 @@ class Ui_Editor(object):
 
     def retranslateUi(self, Editor):
         _translate = QtCore.QCoreApplication.translate
-        self.intervalLabel.setText(_translate("Editor", "Interval"))
+        self.periodLabel.setText(_translate("Editor", "Period"))
         self.windLabel.setText(_translate("Editor", "Wind"))
         self.gustLabel.setText(_translate("Editor", "Gust"))
         self.visLabel.setText(_translate("Editor", "Visibility"))

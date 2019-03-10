@@ -177,8 +177,12 @@ class CheckTaf(object):
         :return: ORM 对象
         """
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        taf = TafParser(self.message)
-        last = db.query(Taf).filter(or_(Taf.rpt == self.message, Taf.rpt == taf.renderer()), Taf.sent > expired).order_by(Taf.sent.desc()).first()
+        try:
+            taf = TafParser(self.message)
+            last = db.query(Taf).filter(or_(Taf.rpt == self.message, Taf.rpt == taf.renderer()), Taf.sent > expired).order_by(Taf.sent.desc()).first()
+        except Exception:
+            last = db.query(Taf).filter(Taf.rpt == self.message, Taf.sent > expired).order_by(Taf.sent.desc()).first()
+
         return last
 
     def latest(self):
