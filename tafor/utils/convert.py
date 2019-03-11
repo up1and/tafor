@@ -26,8 +26,6 @@ def parseStandardPeriod(period, basetime=None):
     """
     basetime = basetime if basetime else datetime.datetime.utcnow()
     startTime, endTime = period.split('/')
-    startHour = int(interval[:2])
-    endHour = 0 if interval[2:] in ['24', ''] else int(interval[2:])
 
     time = datetime.datetime(basetime.year, basetime.month, basetime.day)
     start = time.replace(day=int(startTime[:2]), hour=int(startTime[2:]))

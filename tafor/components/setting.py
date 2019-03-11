@@ -172,9 +172,9 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.maxLineChar.setValidator(QIntValidator(self.maxLineChar))
         self.warnTafTime.setValidator(QIntValidator(self.warnTafTime))
 
-    def setValidityPeriod(self, enable=None):
-        enable = boolean(conf.value('General/InternationalAirport')) if enable is None else enable
-        self.validityPeriod.setEnabled(enable)
+    def setValidityPeriod(self, checked=None):
+        checked = boolean(conf.value('General/InternationalAirport')) if checked is None else checked
+        self.validityPeriod.setEnabled(checked)
 
     def checkChannelNumber(self):
         """检查是否是世界时日界，如果是重置流水号"""

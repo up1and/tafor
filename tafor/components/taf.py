@@ -5,8 +5,7 @@ from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox, QVBoxLayout, QLayout
 
 from tafor import conf
-from tafor.utils import CurrentTaf, CheckTaf, boolean
-from tafor.utils.convert import parsePeriod, parseDateTime, isOverlap
+from tafor.utils.convert import parseDateTime, isOverlap
 from tafor.states import context
 from tafor.models import db, Taf
 from tafor.components.setting import isConfigured
@@ -20,15 +19,14 @@ class BaseTafEditor(BaseEditor):
         super(BaseTafEditor, self).__init__(parent, sender)
         self.initUI()
         self.bindSignal()
-        self.setMessageType()
 
     def initUI(self):
         window = QWidget(self)
         layout = QVBoxLayout(window)
         layout.setSizeConstraint(QLayout.SetFixedSize)
-        self.primary = TafPrimarySegment()
-        self.becmgs = self.becmg1, self.becmg2, self.becmg3 = TafBecmgSegment('BECMG1'), TafBecmgSegment('BECMG2'), TafBecmgSegment('BECMG3')
-        self.tempos = self.tempo1, self.tempo2, self.tempo3= TafTempoSegment('TEMPO1'), TafTempoSegment('TEMPO2'), TafTempoSegment('TEMPO3')
+        self.primary = TafPrimarySegment(parent=self)
+        self.becmgs = self.becmg1, self.becmg2, self.becmg3 = TafBecmgSegment('BECMG1', self), TafBecmgSegment('BECMG2', self), TafBecmgSegment('BECMG3', self)
+        self.tempos = self.tempo1, self.tempo2, self.tempo3= TafTempoSegment('TEMPO1', self), TafTempoSegment('TEMPO2', self), TafTempoSegment('TEMPO3', self)
         layout.addWidget(self.primary)
         layout.addWidget(self.becmg1)
         layout.addWidget(self.becmg2)
@@ -63,19 +61,7 @@ class BaseTafEditor(BaseEditor):
         self.primary.tempo2Checkbox.toggled.connect(self.tempo2.checkComplete)
         self.primary.tempo3Checkbox.toggled.connect(self.tempo3.checkComplete)
 
-        self.primary.normal.clicked.connect(self.changeMessageType)
-        self.primary.cor.clicked.connect(self.changeMessageType)
-        self.primary.amd.clicked.connect(self.changeMessageType)
-        self.primary.cnl.clicked.connect(self.changeMessageType)
-        self.primary.prev.clicked.connect(self.setPreviousPeriod)
-
         self.primary.period.textChanged.connect(self.clear)
-
-        self.primary.tmaxTime.editingFinished.connect(lambda :self.validateTemperatureHour(self.primary.tmaxTime))
-        self.primary.tminTime.editingFinished.connect(lambda :self.validateTemperatureHour(self.primary.tminTime))
-
-        self.primary.tmax.editingFinished.connect(self.validateTemperature)
-        self.primary.tmin.editingFinished.connect(self.validateTemperature)
 
         self.becmg1.period.editingFinished.connect(lambda :self.validateChangeGroupPeriod(self.becmg1))
         self.becmg2.period.editingFinished.connect(lambda :self.validateChangeGroupPeriod(self.becmg2))
@@ -125,137 +111,10 @@ class BaseTafEditor(BaseEditor):
         # TEMPO
         manipulate('tempo1', 'tempo2', 'tempo3')
 
-
-    def setMessageType(self):
-        international = boolean(conf.value('General/InternationalAirport'))
-        if international:
-            self.tt = 'FT'
-            self.primary.tempo3Checkbox.show()
-        else:
-            self.tt = 'FC'
-            self.primary.tempo3Checkbox.hide()
-            self.primary.tempo3Checkbox.setChecked(False)
-
-    def changeMessageType(self):
-        if self.primary.date.text():
-            if self.primary.normal.isChecked():
-                self.setNormalPeriod()
-
-                self.primary.ccc.clear()
-                self.primary.ccc.setEnabled(False)
-                self.primary.aaa.clear()
-                self.primary.aaa.setEnabled(False)
-                self.primary.aaaCnl.clear()
-                self.primary.aaaCnl.setEnabled(False)
-            else:
-                self.setAmendPeriod()
-
-                if self.primary.cor.isChecked():
-                    self.primary.ccc.setEnabled(True)
-                    order = self.amendNumber('COR')
-                    self.primary.ccc.setText(order)
-                else:
-                    self.primary.ccc.clear()
-                    self.primary.ccc.setEnabled(False)
-
-                if self.primary.amd.isChecked():
-                    self.primary.aaa.setEnabled(True)
-                    order = self.amendNumber('AMD')
-                    self.primary.aaa.setText(order)
-                else:
-                    self.primary.aaa.clear()
-                    self.primary.aaa.setEnabled(False)
-
-                if self.primary.cnl.isChecked():
-                    self.primary.aaaCnl.setEnabled(True)
-                    order = self.amendNumber('AMD')
-                    self.primary.aaaCnl.setText(order)
-                else:
-                    self.primary.aaaCnl.clear()
-                    self.primary.aaaCnl.setEnabled(False)
-
-            self.periods = self.periodDuration()
-
-    def setNormalPeriod(self, isTask=False):
-        prev = 1 if self.primary.prev.isChecked() else 0
-        taf = CurrentTaf(context.taf.spec, time=self.time, prev=prev)
-        check = CheckTaf(taf)
-        period = taf.period() if isTask else taf.period(strict=False)
-
-        if period and check.local(period) or not self.primary.date.hasAcceptableInput():
-            self.primary.period.clear()
-        else:
-            self.primary.period.setText(period)
-
-    def setAmendPeriod(self):
-        prev = 1 if self.primary.prev.isChecked() else 0
-        taf = CurrentTaf(context.taf.spec, time=self.time, prev=prev)
-        self.amdPeriod = taf.period(strict=False)
-        self.primary.period.setText(self.amdPeriod)
-
-    def setPreviousPeriod(self, checked):
-        if checked:
-            title = QCoreApplication.translate('Editor', 'Tips')
-            text = QCoreApplication.translate('Editor', 'Do you want to change the message valid period to previous?')
-            ret = QMessageBox.question(self, title, text)
-            if ret == QMessageBox.Yes:
-                self.changeMessageType()
-            else:
-                self.primary.prev.setChecked(False)
-        else:
-            self.changeMessageType()
-
-    def amendNumber(self, sort):
-        expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        query = db.query(Taf).filter(Taf.rpt.contains(self.amdPeriod), Taf.sent > expired)
-        if sort == 'COR':
-            items = query.filter(Taf.rpt.contains('COR')).all()
-            order = chr(ord('A') + len(items))
-            return 'CC' + order
-        elif sort == 'AMD':
-            items = query.filter(Taf.rpt.contains('AMD')).all()
-            order = chr(ord('A') + len(items))
-            return 'AA' + order
-
-    def periodDuration(self):
-        period = self.primary.period.text()
-        if len(period) == 6:
-            return parsePeriod(period[2:], self.time)
-
-    def groupPeriod(self, period):
-        start, end = parsePeriod(period)
-        if start < self.periods[0]:
-            start += datetime.timedelta(days=1)
-            end += datetime.timedelta(days=1)
-        return start, end
-
-    def validateTemperatureHour(self, line):
-        if self.periods is not None:
-            tempHour = parsePeriod(line.text(), self.time)[0]
-
-            if tempHour < self.periods[0]:
-                tempHour += datetime.timedelta(days=1)
-
-            valid = self.periods[0] <= tempHour <= self.periods[1] and self.primary.tmaxTime.text() != self.primary.tminTime.text()
-
-            if not valid:
-                line.clear()
-                self.showNotificationMessage(QCoreApplication.translate('Editor', 'The time of temperature is not corret'))
-
-    def validateTemperature(self):
-        tmax = self.primary.tmax.text()
-        tmin = self.primary.tmin.text()
-        if tmax and tmin:
-            tmax = -int(tmax[1:]) if 'M' in tmax else int(tmax)
-            tmin = -int(tmin[1:]) if 'M' in tmin else int(tmin)
-            if tmax <= tmin:
-                self.primary.tmin.clear()
-                self.showNotificationMessage(QCoreApplication.translate('Editor', 'The maximum temperature needs to be greater than the minimum temperature'))
-
     def validateChangeGroupPeriod(self, group):
         line = group.period
         isTempo = group.id.startswith('TEMPO')
-        if not self.periods:
+        if not self.durations:
             line.clear()
             return
 
@@ -267,12 +126,12 @@ class BaseTafEditor(BaseEditor):
             maxTime = 2
 
         period = start, end = self.groupPeriod(line.text())
-        if start < self.periods[0] or self.periods[1] < start:
+        if start < self.durations[0] or self.durations[1] < start:
             line.clear()
             self.showNotificationMessage(QCoreApplication.translate('Editor', 'Start time of change group is not corret'))
             return
 
-        if end < self.periods[0] or self.periods[1] < end:
+        if end < self.durations[0] or self.durations[1] < end:
             line.clear()
             self.showNotificationMessage(QCoreApplication.translate('Editor', 'End time of change group is not corret'))
             return
@@ -383,8 +242,7 @@ class BaseTafEditor(BaseEditor):
     def showEvent(self, event):
         # 检查必要配置是否完成
         if isConfigured('TAF'):
-            self.setDate()
-            self.changeMessageType()
+            self.primary.setMessageType()
         else:
             QTimer.singleShot(0, self.showConfigError)
 
@@ -395,10 +253,6 @@ class TafEditor(BaseTafEditor):
         super(TafEditor, self).__init__(parent, sender)
         self.setWindowTitle(QCoreApplication.translate('Editor', 'Encoding Terminal Aerodrome Forecast'))
         self.primary.date.setEnabled(False)
-
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.setDate)
-        self.timer.start(1 * 1000)
 
     def previewMessage(self):
         message = {'sign': self.sign, 'rpt': self.rpt}
@@ -426,7 +280,7 @@ class TaskTafEditor(BaseTafEditor):
         self.time = parseDateTime(date)
         self.setWindowTitle(self.title + ' - {}'.format(self.time.strftime('%Y-%m-%d %H:%M')))
         self.setNormalPeriod(isTask=True)
-        self.periods = self.periodDuration()
+        self.durations = self.periodDuration()
 
     def afterSend(self):
         self.parent.taskBrowser.show()

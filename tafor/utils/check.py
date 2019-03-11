@@ -68,7 +68,7 @@ class CurrentTaf(object):
         else:
             return self._normal(withDay)
 
-    def valids(self):
+    def durations(self):
         """返回当前报文有效期
 
         """

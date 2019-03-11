@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\taf_tempo.ui'
+# Form implementation generated from reading ui file 'C:\Users\Upland\Work\tafor\tafor\components\ui\taf_group.ui'
 #
-# Created by: PyQt5 UI code generator 5.6
+# Created by: PyQt5 UI code generator 5.9.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -11,8 +11,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Editor(object):
     def setupUi(self, Editor):
         Editor.setObjectName("Editor")
-        Editor.resize(1024, 80)
-        Editor.setWindowTitle("TEMPO")
+        Editor.resize(1024, 109)
+        Editor.setWindowTitle("GROUP")
         self.gridLayout = QtWidgets.QGridLayout(Editor)
         self.gridLayout.setObjectName("gridLayout")
         self.periodLabel = QtWidgets.QLabel(Editor)
@@ -48,7 +48,7 @@ class Ui_Editor(object):
         self.name = QtWidgets.QLabel(Editor)
         self.name.setMinimumSize(QtCore.QSize(76, 0))
         self.name.setStyleSheet("color: rgb(120, 120, 120);")
-        self.name.setText("TEMPO")
+        self.name.setText("GROUP")
         self.name.setObjectName("name")
         self.gridLayout.addWidget(self.name, 1, 0, 1, 1)
         self.period = QtWidgets.QLineEdit(Editor)
@@ -81,16 +81,14 @@ class Ui_Editor(object):
         self.cb = QtWidgets.QLineEdit(Editor)
         self.cb.setObjectName("cb")
         self.gridLayout.addWidget(self.cb, 1, 10, 1, 1)
-        self.prob30 = QtWidgets.QCheckBox(Editor)
-        self.prob30.setText("PROB30")
-        self.prob30.setObjectName("prob30")
-        self.gridLayout.addWidget(self.prob30, 2, 1, 1, 1)
-        self.prob40 = QtWidgets.QCheckBox(Editor)
-        self.prob40.setEnabled(True)
-        self.prob40.setText("PROB40")
-        self.prob40.setTristate(False)
-        self.prob40.setObjectName("prob40")
-        self.gridLayout.addWidget(self.prob40, 2, 2, 1, 1)
+        self.cavok = QtWidgets.QCheckBox(Editor)
+        self.cavok.setText("CAVOK")
+        self.cavok.setObjectName("cavok")
+        self.gridLayout.addWidget(self.cavok, 2, 4, 1, 1)
+        self.nsc = QtWidgets.QCheckBox(Editor)
+        self.nsc.setText("NSC")
+        self.nsc.setObjectName("nsc")
+        self.gridLayout.addWidget(self.nsc, 2, 7, 1, 1)
         self.periodLabel.setBuddy(self.period)
         self.windLabel.setBuddy(self.wind)
         self.gustLabel.setBuddy(self.gust)
@@ -107,14 +105,14 @@ class Ui_Editor(object):
         Editor.setTabOrder(self.period, self.wind)
         Editor.setTabOrder(self.wind, self.gust)
         Editor.setTabOrder(self.gust, self.vis)
-        Editor.setTabOrder(self.vis, self.weatherWithIntensity)
+        Editor.setTabOrder(self.vis, self.cavok)
+        Editor.setTabOrder(self.cavok, self.weatherWithIntensity)
         Editor.setTabOrder(self.weatherWithIntensity, self.weather)
         Editor.setTabOrder(self.weather, self.cloud1)
         Editor.setTabOrder(self.cloud1, self.cloud2)
         Editor.setTabOrder(self.cloud2, self.cloud3)
         Editor.setTabOrder(self.cloud3, self.cb)
-        Editor.setTabOrder(self.cb, self.prob30)
-        Editor.setTabOrder(self.prob30, self.prob40)
+        Editor.setTabOrder(self.cb, self.nsc)
 
     def retranslateUi(self, Editor):
         _translate = QtCore.QCoreApplication.translate

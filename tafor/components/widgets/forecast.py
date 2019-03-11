@@ -2,13 +2,15 @@ import json
 import datetime
 
 from PyQt5.QtGui import QIcon, QRegExpValidator
-from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QLineEdit, QComboBox, QRadioButton, QCheckBox
+from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, QTimer, pyqtSignal
+from PyQt5.QtWidgets import QWidget, QLineEdit, QComboBox, QRadioButton, QCheckBox, QMessageBox
 
 from tafor import conf
-from tafor.utils import Pattern
+from tafor.utils import Pattern, CurrentTaf, CheckTaf, boolean
+from tafor.utils.convert import parsePeriod, parseDateTime, isOverlap
 from tafor.states import context
-from tafor.components.ui import Ui_taf_primary, Ui_taf_becmg, Ui_taf_tempo, Ui_trend, main_rc
+from tafor.models import db, Taf
+from tafor.components.ui import Ui_taf_primary, Ui_taf_group, Ui_trend, main_rc
 
 
 class SegmentMixin(object):
@@ -52,24 +54,22 @@ class SegmentMixin(object):
 class BaseSegment(QWidget, SegmentMixin):
     completeSignal = pyqtSignal(bool)
 
-    def __init__(self, name=None):
+    def __init__(self, name=None, parent=None):
         super(BaseSegment, self).__init__()
         self.rules = Pattern()
+        self.parent = parent
         self.complete = False
-        self.id = name
-        self.periods = None
+        self.identifier = name
+        self.durations = None
 
     def bindSignal(self):
         if hasattr(self, 'cavok'):
             self.cavok.toggled.connect(self.setCavok)
             self.nsc.toggled.connect(self.setNsc)
 
-        if hasattr(self, 'prob30'):
-            self.prob30.toggled.connect(self.setProb30)
-            self.prob40.toggled.connect(self.setProb40)
-
-        self.period.textEdited.connect(lambda: self.coloredText(self.period))
-        self.period.textChanged.connect(self.clearPeriod)
+        if self.identifier not in ['PRIMARY']:
+            self.period.textChanged.connect(lambda: self.coloredText(self.period))
+            self.period.textChanged.connect(self.clearPeriod)
 
         self.gust.editingFinished.connect(self.validateGust)
         self.cloud1.textEdited.connect(self.setVv)
@@ -93,6 +93,9 @@ class BaseSegment(QWidget, SegmentMixin):
         self.cb.textEdited.connect(lambda: self.coloredText(self.cb))
 
         self.defaultSignal()
+
+    def setPeriod(self):
+        raise NotImplementedError
 
     def setClouds(self, enbale):
         if enbale:
@@ -247,17 +250,14 @@ class BaseSegment(QWidget, SegmentMixin):
                 messages = [winds, vis, weatherWithIntensity, weather] + clouds
         else:
             messages = [winds, vis, weatherWithIntensity, weather] + clouds
-        self.msg = ' '.join(filter(None, messages))
+        self.text = ' '.join(filter(None, messages))
 
     def checkComplete(self):
         raise NotImplementedError
 
     def clearPeriod(self):
-        if len(self.period.text()) < 4:
-            self.periods = None
-
-    def hideEvent(self, event):
-        self.periods = None
+        if len(self.period.text()) < 9:
+            self.durations = None
 
     def clear(self):
         self.wind.clear()
@@ -269,13 +269,13 @@ class BaseSegment(QWidget, SegmentMixin):
         self.cloud2.clear()
         self.cloud3.clear()
         self.cb.clear()
-        self.periods = None
+        self.durations = None
 
 
 class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
-    def __init__(self, name='PRIMARY'):
-        super(TafPrimarySegment, self).__init__(name)
+    def __init__(self, name='PRIMARY', parent=None):
+        super(TafPrimarySegment, self).__init__(name, parent)
         self.setupUi(self)
 
         self.setValidator()
@@ -286,6 +286,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.tempSwitchButton.setIcon(QIcon(':/switch.png'))
 
         self.bindSignal()
+        self.initMessageSpec()
 
     def setValidator(self):
         super(TafPrimarySegment, self).setValidator()
@@ -311,6 +312,18 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
     def bindSignal(self):
         super(TafPrimarySegment, self).bindSignal()
 
+        self.normal.clicked.connect(self.setMessageType)
+        self.cor.clicked.connect(self.setMessageType)
+        self.amd.clicked.connect(self.setMessageType)
+        self.cnl.clicked.connect(self.setMessageType)
+        self.prev.clicked.connect(self.setPreviousPeriod)
+
+        self.tmaxTime.editingFinished.connect(lambda :self.validateTemperatureHour(self.tmaxTime))
+        self.tminTime.editingFinished.connect(lambda :self.validateTemperatureHour(self.tminTime))
+
+        self.tmax.editingFinished.connect(self.validateTemperature)
+        self.tmin.editingFinished.connect(self.validateTemperature)
+
         self.tmax.textEdited.connect(lambda: self.upperText(self.tmax))
         self.tmin.textEdited.connect(lambda: self.upperText(self.tmin))
         self.aaa.textEdited.connect(lambda: self.upperText(self.aaa))
@@ -326,24 +339,140 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.ccc.textEdited.connect(lambda: self.coloredText(self.ccc))
         self.aaaCnl.textEdited.connect(lambda: self.coloredText(self.aaaCnl))
 
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.setDate)
+        self.timer.start(1 * 1000)
+
+    def initMessageSpec(self):
+        international = boolean(conf.value('General/InternationalAirport'))
+        if international:
+            self.tt = 'FT'
+            self.tempo3Checkbox.show()
+        else:
+            self.tt = 'FC'
+            self.tempo3Checkbox.hide()
+            self.tempo3Checkbox.setChecked(False)
+
+    def setMessageType(self):
+        if self.date.text():
+            prev = 1 if self.prev.isChecked() else 0
+            self.taf = CurrentTaf(context.taf.spec, time=self.time, prev=prev)
+            if self.normal.isChecked():
+                self.setNormalPeriod()
+
+                self.ccc.clear()
+                self.ccc.setEnabled(False)
+                self.aaa.clear()
+                self.aaa.setEnabled(False)
+                self.aaaCnl.clear()
+                self.aaaCnl.setEnabled(False)
+            else:
+                self.setAmendPeriod()
+
+                if self.cor.isChecked():
+                    self.ccc.setEnabled(True)
+                    order = self.amendNumber('COR')
+                    self.ccc.setText(order)
+                else:
+                    self.ccc.clear()
+                    self.ccc.setEnabled(False)
+
+                if self.amd.isChecked():
+                    self.aaa.setEnabled(True)
+                    order = self.amendNumber('AMD')
+                    self.aaa.setText(order)
+                else:
+                    self.aaa.clear()
+                    self.aaa.setEnabled(False)
+
+                if self.cnl.isChecked():
+                    self.aaaCnl.setEnabled(True)
+                    order = self.amendNumber('AMD')
+                    self.aaaCnl.setText(order)
+                else:
+                    self.aaaCnl.clear()
+                    self.aaaCnl.setEnabled(False)
+
+            self.durations = self.taf.durations()
+
+    def setNormalPeriod(self, isTask=False):
+        check = CheckTaf(self.taf)
+        period = self.taf.period() if isTask else self.taf.period(strict=False)
+
+        if period and check.local(period) or not self.date.hasAcceptableInput():
+            self.period.clear()
+        else:
+            self.period.setText(period)
+
+    def setAmendPeriod(self):
+        self.amdPeriod = self.taf.period(strict=False)
+        self.period.setText(self.amdPeriod)
+
+    def setPreviousPeriod(self, checked):
+        if checked:
+            title = QCoreApplication.translate('Editor', 'Tips')
+            text = QCoreApplication.translate('Editor', 'Do you want to change the message valid period to previous?')
+            ret = QMessageBox.question(self, title, text)
+            if ret == QMessageBox.Yes:
+                self.setMessageType()
+            else:
+                self.prev.setChecked(False)
+        else:
+            self.setMessageType()
+
+    def amendNumber(self, sort):
+        expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+        query = db.query(Taf).filter(Taf.rpt.contains(self.amdPeriod), Taf.sent > expired)
+        if sort == 'COR':
+            items = query.filter(Taf.rpt.contains('COR')).all()
+            order = chr(ord('A') + len(items))
+            return 'CC' + order
+        elif sort == 'AMD':
+            items = query.filter(Taf.rpt.contains('AMD')).all()
+            order = chr(ord('A') + len(items))
+            return 'AA' + order
+
+    def validateTemperatureHour(self, line):
+        if self.durations is not None:
+            tempHour = parsePeriod(line.text(), self.time)[0]
+
+            if tempHour < self.durations[0]:
+                tempHour += datetime.timedelta(days=1)
+
+            valid = self.durations[0] <= tempHour <= self.durations[1] and self.tmaxTime.text() != self.tminTime.text()
+
+            if not valid:
+                line.clear()
+                self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'The time of temperature is not corret'))
+
+    def validateTemperature(self):
+        tmax = self.tmax.text()
+        tmin = self.tmin.text()
+        if tmax and tmin:
+            tmax = -int(tmax[1:]) if 'M' in tmax else int(tmax)
+            tmin = -int(tmin[1:]) if 'M' in tmin else int(tmin)
+            if tmax <= tmin:
+                self.tmin.clear()
+                self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'The maximum temperature needs to be greater than the minimum temperature'))
+
     def checkComplete(self):
         self.complete = False
         mustRequired = (
-                        self.date.hasAcceptableInput(),
-                        self.period.text(),
-                        self.wind.hasAcceptableInput(),
-                        self.tmax.hasAcceptableInput(),
-                        self.tmaxTime.hasAcceptableInput(),
-                        self.tmin.hasAcceptableInput(),
-                        self.tminTime.hasAcceptableInput()
-                        )
+            self.date.hasAcceptableInput(),
+            self.period.text(),
+            self.wind.hasAcceptableInput(),
+            self.tmax.hasAcceptableInput(),
+            self.tmaxTime.hasAcceptableInput(),
+            self.tmin.hasAcceptableInput(),
+            self.tminTime.hasAcceptableInput()
+        )
         oneRequired = (
-                        self.nsc.isChecked(),
-                        self.cloud1.hasAcceptableInput(),
-                        self.cloud2.hasAcceptableInput(),
-                        self.cloud3.hasAcceptableInput(),
-                        self.cb.hasAcceptableInput()
-                        )
+            self.nsc.isChecked(),
+            self.cloud1.hasAcceptableInput(),
+            self.cloud2.hasAcceptableInput(),
+            self.cloud3.hasAcceptableInput(),
+            self.cb.hasAcceptableInput()
+        )
 
         if all(mustRequired):
             if self.cavok.isChecked():
@@ -359,10 +488,10 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
         if self.cnl.isChecked():
             mustRequired = (
-                        self.date.hasAcceptableInput(),
-                        self.period.text(),
-                        self.aaaCnl.hasAcceptableInput(),
-                        )
+                self.date.hasAcceptableInput(),
+                self.period.text(),
+                self.aaaCnl.hasAcceptableInput(),
+            )
             if all(mustRequired):
                 self.complete = True
 
@@ -381,10 +510,10 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         if self.cnl.isChecked():
             messages = ['TAF', amd, icao, timez, period, 'CNL']
         else:
-            messages = ['TAF', amd, cor, icao, timez, period, self.msg, tmax, tmin]
+            messages = ['TAF', amd, cor, icao, timez, period, self.text, tmax, tmin]
 
-        self.msg = ' '.join(filter(None, messages))
-        return self.msg
+        self.text = ' '.join(filter(None, messages))
+        return self.text
 
     def sign(self):
         area = conf.value('Message/Area') or ''
@@ -396,6 +525,13 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         aaaCnl = self.aaaCnl.text() if self.cnl.isChecked() else None
         messages = [tt + area, icao, time, ccc, aaa, aaaCnl]
         return ' '.join(filter(None, messages))
+
+    def setDate(self):
+        self.time = datetime.datetime.utcnow()
+        self.date.setText(self.time.strftime('%d%H%M'))
+
+    def showEvent(self, event):
+        self.setDate()
 
     def clear(self):
         super(TafPrimarySegment, self).clear()
@@ -414,28 +550,61 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.tminTime.clear()
 
 
-class TafBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Editor):
+class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
-    def __init__(self, name='BECMG'):
-        super(TafBecmgSegment, self).__init__(name)
+    def __init__(self, name='TEMPO', parent=None):
+        super(TafGroupSegment, self).__init__(name, parent)
         self.setupUi(self)
         self.name.setText(name)
-
         self.setValidator()
         self.bindSignal()
 
     def setValidator(self):
-        super(TafBecmgSegment, self).setValidator()
+        super(TafGroupSegment, self).setValidator()
 
         period = QRegExpValidator(QRegExp(self.rules.period))
         self.period.setValidator(period)
 
-    def message(self):
-        super(TafBecmgSegment, self).message()
-        period = self.period.text()
-        messages = ['BECMG', period, self.msg]
-        self.msg = ' '.join(messages)
-        return self.msg
+    def setPeriod(self):
+        time = self.parent.primary.durations[0]
+        self.period.setText('{:02d}'.format(time.day))
+
+    def groupPeriod(self, period):
+        start, end = parsePeriod(period)
+        if start < self.parent.primary.durations[0]:
+            start += datetime.timedelta(days=1)
+            end += datetime.timedelta(days=1)
+        return start, end
+
+    def validatePeriod(self):
+        isTempo = self.identifier.startswith('TEMPO')
+        if not self.durations:
+            self.period.clear()
+            return
+
+        if isTempo and self.taf.spec.tt == 'FC':
+            maxTime = 4
+        elif isTempo and self.taf.spec.tt == 'FT':
+            maxTime = 6
+        else:
+            maxTime = 2
+
+        primaryDurations = self.parent.primary.durations
+        self.durations = start, end = self.groupPeriod(line.text())
+        if start < primaryDurations[0] or primaryDurations[1] < start:
+            self.period.clear()
+            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Start time of change group is not corret'))
+            return
+
+        if end < primaryDurations[0] or primaryDurations[1] < end:
+            self.period.clear()
+            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'End time of change group is not corret'))
+            return
+
+        if end - start > datetime.timedelta(hours=maxTime):
+            self.period.clear()
+            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time more than {} hours').format(maxTime))
+            return
 
     def checkComplete(self):
         self.complete = False
@@ -457,81 +626,55 @@ class TafBecmgSegment(BaseSegment, Ui_taf_becmg.Ui_Editor):
 
         self.completeSignal.emit(self.complete)
 
+    def showEvent(self, event):
+        self.setPeriod()
+
+    def hideEvent(self, event):
+        self.durations = None
+
+    def clear(self):
+        super(TafGroupSegment, self).clear()
+        self.period.clear()
+
+
+class TafBecmgSegment(TafGroupSegment):
+
+    def __init__(self, name='BECMG', parent=None):
+        super(TafBecmgSegment, self).__init__(name, parent)
+
+    def message(self):
+        super(TafBecmgSegment, self).message()
+        period = self.period.text()
+        messages = ['BECMG', period, self.text]
+        self.text = ' '.join(messages)
+        return self.text
+
     def clear(self):
         super(TafBecmgSegment, self).clear()
-
-        self.period.clear()
 
         self.cavok.setChecked(False)
         self.nsc.setChecked(False)
 
 
-class TafTempoSegment(BaseSegment, Ui_taf_tempo.Ui_Editor):
+class TafTempoSegment(TafGroupSegment):
 
-    def __init__(self, name='TEMPO'):
-        super(TafTempoSegment, self).__init__(name)
-        self.setupUi(self)
-        self.name.setText(name)
-
-        self.setValidator()
-        self.bindSignal()
-
-    def setValidator(self):
-        super(TafTempoSegment, self).setValidator()
-
-        period = QRegExpValidator(QRegExp(self.rules.period))
-        self.period.setValidator(period)
-
-    def setProb30(self, checked):
-        if checked:
-            self.prob40.setChecked(False)
-
-    def setProb40(self, checked):
-        if checked:
-            self.prob30.setChecked(False)
+    def __init__(self, name='TEMPO', parent=None):
+        super(TafTempoSegment, self).__init__(name, parent)
+        self.cavok.hide()
+        self.nsc.hide()
 
     def message(self):
         super(TafTempoSegment, self).message()
         period = self.period.text()
-        messages = ['TEMPO', period, self.msg]
-        if self.prob30.isChecked():
-            messages.insert(0, 'PROB30')
-        if self.prob40.isChecked():
-            messages.insert(0, 'PROB40')
-        self.msg = ' '.join(messages)
-        return self.msg
-
-    def checkComplete(self):
-        self.complete = False
-        oneRequired = (
-            self.wind.hasAcceptableInput(),
-            self.vis.hasAcceptableInput(),
-            self.weather.currentText(),
-            self.weatherWithIntensity.currentText(),
-            self.cloud1.hasAcceptableInput(),
-            self.cloud2.hasAcceptableInput(),
-            self.cloud3.hasAcceptableInput(),
-            self.cb.hasAcceptableInput()
-        )
-
-        if self.period.hasAcceptableInput() and any(oneRequired):
-            self.complete = True
-
-        self.completeSignal.emit(self.complete)
-
-    def clear(self):
-        super(TafTempoSegment, self).clear()
-
-        self.period.clear()
-
-        self.prob30.setChecked(False)
-        self.prob40.setChecked(False)
+        messages = ['TEMPO', period, self.text]
+        self.text = ' '.join(messages)
+        return self.text
 
 
 class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
-    def __init__(self, name='TREND'):
-        super(TrendSegment, self).__init__(name)
+    def __init__(self, name='TREND', parent=None):
+        super(TrendSegment, self).__init__(name, parent)
         self.setupUi(self)
         self.setValidator()
         self.bindSignal()
@@ -546,8 +689,6 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
         self.becmg.clicked.connect(self.updateAtStatus)
         self.tempo.clicked.connect(self.updateAtStatus)
-
-        self.period.textChanged.connect(lambda: self.coloredText(self.period))
 
     def setValidator(self):
         super(TrendSegment, self).setValidator()
@@ -664,7 +805,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         super(TrendSegment, self).message()
 
         if self.nosig.isChecked():
-            self.msg = 'NOSIG'
+            self.text = 'NOSIG'
         else:
             messages = []
 
@@ -686,10 +827,10 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
                 period = trendPrefix + self.period.text()
                 messages.append(period)
 
-            messages.append(self.msg)
-            self.msg = ' '.join(messages)
+            messages.append(self.text)
+            self.text = ' '.join(messages)
 
-        return self.msg
+        return self.text
 
     def clear(self):
         super(TrendSegment, self).clear()
