@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QWidget, QLineEdit, QComboBox, QRadioButton, QCheckB
 
 from tafor import conf
 from tafor.utils import Pattern, CurrentTaf, CheckTaf, boolean
-from tafor.utils.convert import parsePeriod, parseDateTime, isOverlap
+from tafor.utils.convert import parseDayHour, parsePeriod, parseDateTime, isOverlap
 from tafor.states import context
 from tafor.models import db, Taf
 from tafor.components.ui import Ui_taf_primary, Ui_taf_group, Ui_trend, main_rc
@@ -69,7 +69,6 @@ class BaseSegment(QWidget, SegmentMixin):
 
         if self.identifier not in ['PRIMARY']:
             self.period.textChanged.connect(lambda: self.coloredText(self.period))
-            self.period.textChanged.connect(self.clearPeriod)
 
         self.gust.editingFinished.connect(self.validateGust)
         self.cloud1.textEdited.connect(self.setVv)
@@ -255,10 +254,6 @@ class BaseSegment(QWidget, SegmentMixin):
     def checkComplete(self):
         raise NotImplementedError
 
-    def clearPeriod(self):
-        if len(self.period.text()) < 9:
-            self.durations = None
-
     def clear(self):
         self.wind.clear()
         self.gust.clear()
@@ -320,6 +315,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
         self.tmaxTime.editingFinished.connect(lambda :self.validateTemperatureHour(self.tmaxTime))
         self.tminTime.editingFinished.connect(lambda :self.validateTemperatureHour(self.tminTime))
+        self.tempTime.editingFinished.connect(lambda :self.validateTemperatureHour(self.tempTime))
 
         self.tmax.editingFinished.connect(self.validateTemperature)
         self.tmin.editingFinished.connect(self.validateTemperature)
@@ -433,17 +429,19 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             return 'AA' + order
 
     def validateTemperatureHour(self, line):
-        if self.durations is not None:
-            tempHour = parsePeriod(line.text(), self.time)[0]
+        if self.durations is None:
+            return
 
-            if tempHour < self.durations[0]:
-                tempHour += datetime.timedelta(days=1)
+        tempHour = parseDayHour(line.text(), self.time)
 
-            valid = self.durations[0] <= tempHour <= self.durations[1] and self.tmaxTime.text() != self.tminTime.text()
+        if tempHour < self.durations[0]:
+            tempHour += datetime.timedelta(days=1)
 
-            if not valid:
-                line.clear()
-                self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'The time of temperature is not corret'))
+        valid = self.durations[0] <= tempHour <= self.durations[1] and self.tmaxTime.text() != self.tminTime.text()
+
+        if not valid:
+            line.clear()
+            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'The time of temperature is not corret'))
 
     def validateTemperature(self):
         tmax = self.tmax.text()
@@ -558,29 +556,55 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.name.setText(name)
         self.setValidator()
         self.bindSignal()
+        self.periodText = ''
+
+    def bindSignal(self):
+        super(TafGroupSegment, self).bindSignal()
+        self.period.textEdited.connect(self.fillPeriod)
+        self.period.textEdited.connect(self.updateDurations)
+        self.period.editingFinished.connect(self.validatePeriod)
 
     def setValidator(self):
         super(TafGroupSegment, self).setValidator()
-
         period = QRegExpValidator(QRegExp(self.rules.period))
         self.period.setValidator(period)
 
     def setPeriod(self):
+        if not self.parent.primary.period.text():
+            return
+
         time = self.parent.primary.durations[0]
         self.period.setText('{:02d}'.format(time.day))
 
-    def groupPeriod(self, period):
-        start, end = parsePeriod(period)
-        if start < self.parent.primary.durations[0]:
-            start += datetime.timedelta(days=1)
-            end += datetime.timedelta(days=1)
-        return start, end
+    def fillPeriod(self):
+        text = self.period.text()
+        if len(text) > len(self.periodText):
+            if len(text) == 4:
+                text += '/'
+
+            self.period.setText(text)
+
+        self.periodText = text
+
+    def updateDurations(self):
+        if self.period.hasAcceptableInput() and self.parent.primary.period.text():
+            period = self.period.text()
+            basetime = self.parent.primary.durations[0]
+            durations = parsePeriod(period, basetime)
+            if durations[0] < basetime:
+                durations = list(durations)
+                durations[0] += datetime.timedelta(days=1)
+                durations[1] += datetime.timedelta(days=1)
+
+            self.durations = durations
+        else:
+            self.durations = None
 
     def validatePeriod(self):
-        isTempo = self.identifier.startswith('TEMPO')
-        if not self.durations:
-            self.period.clear()
+        if self.durations is None:
             return
+
+        isTempo = self.identifier.startswith('TEMPO')
 
         if isTempo and self.taf.spec.tt == 'FC':
             maxTime = 4
@@ -590,7 +614,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
             maxTime = 2
 
         primaryDurations = self.parent.primary.durations
-        self.durations = start, end = self.groupPeriod(line.text())
+        start, end = self.durations
         if start < primaryDurations[0] or primaryDurations[1] < start:
             self.period.clear()
             self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Start time of change group is not corret'))
@@ -631,6 +655,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
     def hideEvent(self, event):
         self.durations = None
+        self.periodText = ''
 
     def clear(self):
         super(TafGroupSegment, self).clear()
@@ -694,7 +719,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         super(TrendSegment, self).setValidator()
 
         # 还未验证输入个数
-        period = QRegExpValidator(QRegExp(self.rules.trendInterval))
+        period = QRegExpValidator(QRegExp(self.rules.trendPeriod))
         self.period.setValidator(period)
 
     def setPeriod(self):

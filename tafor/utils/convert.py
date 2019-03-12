@@ -17,6 +17,15 @@ def isOverlap(basetime, reftime):
     total = (end - start).total_seconds()
     return total >= 0
 
+def parseDayHour(dayHour, basetime):
+    day = int(dayHour[:2])
+    hour = int(dayHour[2:])
+    if hour == 24:
+        time = datetime.datetime(basetime.year, basetime.month, day) + datetime.timedelta(days=1)
+    else:
+        time = datetime.datetime(basetime.year, basetime.month, day, hour)
+    return time
+
 def parseStandardPeriod(period, basetime=None):
     """解析字符为时间间隔
 
@@ -27,13 +36,11 @@ def parseStandardPeriod(period, basetime=None):
     basetime = basetime if basetime else datetime.datetime.utcnow()
     startTime, endTime = period.split('/')
 
-    time = datetime.datetime(basetime.year, basetime.month, basetime.day)
-    start = time.replace(day=int(startTime[:2]), hour=int(startTime[2:]))
-    end = time.replace(day=int(endTime[:2]), hour=int(endTime[2:]))
+    start = parseDayHour(startTime, basetime)
+    end = parseDayHour(endTime, basetime)
 
     if end <= start:
-        time += datetime.timedelta(days=1)
-        end = time.replace(day=int(endTime[:2]), hour=int(endTime[2:]))
+        end += datetime.timedelta(days=1)
 
     return start, end
 

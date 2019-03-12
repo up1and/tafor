@@ -113,46 +113,18 @@ class BaseTafEditor(BaseEditor):
 
     def validateChangeGroupPeriod(self, group):
         line = group.period
-        isTempo = group.id.startswith('TEMPO')
-        if not self.durations:
-            line.clear()
-            return
+        isTempo = group.identifier.startswith('TEMPO')
 
-        if isTempo and self.tt == 'FC':
-            maxTime = 4
-        elif isTempo and self.tt == 'FT':
-            maxTime = 6
-        else:
-            maxTime = 2
-
-        period = start, end = self.groupPeriod(line.text())
-        if start < self.durations[0] or self.durations[1] < start:
-            line.clear()
-            self.showNotificationMessage(QCoreApplication.translate('Editor', 'Start time of change group is not corret'))
-            return
-
-        if end < self.durations[0] or self.durations[1] < end:
-            line.clear()
-            self.showNotificationMessage(QCoreApplication.translate('Editor', 'End time of change group is not corret'))
-            return
-
-        if end - start > datetime.timedelta(hours=maxTime):
-            line.clear()
-            self.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time more than {} hours').format(maxTime))
-            return
-
-        def isIntervalOverlay(period, periods):
+        def isPeriodOverlay(period, periods):
             for p in periods:
                 if isOverlap(period, p):
                     return True
 
         groups = self.tempos if isTempo else self.becmgs
-        periods = [g.periods for g in groups if g.periods and group != g]
-        if isIntervalOverlay(period, periods):
+        periods = [g.durations for g in groups if g.durations and group != g]
+        if isPeriodOverlay(group.durations, periods):
             line.clear()
             self.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time is overlap'))
-        else:
-            group.periods = period
 
     def assembleMessage(self):
         primaryMessage = self.primary.message()
