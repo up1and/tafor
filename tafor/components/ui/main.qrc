@@ -12,6 +12,7 @@
         <file alias="line.png">../../icons/line.png</file>
         <file alias="polygon.png">../../icons/polygon.png</file>
         <file alias="rectangular.png">../../icons/rectangular.png</file>
-        <file alias="switch.png">../../icons/switch.png</file>
+        <file alias="cold.png">../../icons/cold.png</file>
+        <file alias="warm.png">../../icons/warm.png</file>
     </qresource>
 </RCC>

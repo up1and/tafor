@@ -292,14 +292,14 @@ class TemperatureGroup(QWidget, SegmentMixin):
         lineLayout.addWidget(self.tempTime)
 
         self.label = QLabel()
-        self.setLabel()
+        self.switchButton = QToolButton()
+        self.switchButton.setAutoRaise(True)
         labelLayout.addWidget(self.label)
+        labelLayout.addWidget(self.switchButton)
+        self.setLabel()
 
-        if self.canSwitch:
-            self.switchButton = QToolButton()
-            self.switchButton.setAutoRaise(True)
-            self.switchButton.setIcon(QIcon(':/switch.png'))
-            labelLayout.addWidget(self.switchButton)
+        if not self.canSwitch:
+            self.switchButton.hide()
 
         layout.addLayout(labelLayout)
         layout.addLayout(lineLayout)
@@ -330,10 +330,13 @@ class TemperatureGroup(QWidget, SegmentMixin):
     def setLabel(self):
         if self.mode == 'max':
             text = QCoreApplication.translate('Editor', 'Max Temperature')
+            icon = 'warm'
         else:
             text = QCoreApplication.translate('Editor', 'Min Temperature')
+            icon = 'cold'
 
         self.label.setText(text)
+        self.switchButton.setIcon(QIcon(':/{}.png'.format(icon)))
 
     def validateTemperatureTime(self):
         if not self.parent.period.text():
