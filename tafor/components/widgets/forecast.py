@@ -3,7 +3,7 @@ import datetime
 
 from PyQt5.QtGui import QIcon, QRegExpValidator
 from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, QTimer, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QLineEdit, QComboBox, QRadioButton, QCheckBox, QMessageBox
+from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QComboBox, QRadioButton, QToolButton, QCheckBox, QMessageBox, QHBoxLayout, QVBoxLayout
 
 from tafor import conf
 from tafor.utils import Pattern, CurrentTaf, CheckTaf, boolean
@@ -267,6 +267,134 @@ class BaseSegment(QWidget, SegmentMixin):
         self.durations = None
 
 
+class TemperatureGroup(QWidget, SegmentMixin):
+
+    def __init__(self, mode='max', canSwitch=False, parent=None):
+        super(TemperatureGroup, self).__init__(parent)
+        self.mode = mode
+        self.canSwitch = canSwitch
+        self.parent = parent
+        self.temperature = None
+        self.time = None
+
+        self.setupUi()
+        self.setValidator()
+        self.bindSignal()
+
+    def setupUi(self):
+        layout = QVBoxLayout()
+        labelLayout = QHBoxLayout()
+        lineLayout = QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.temp = QLineEdit()
+        self.tempTime = QLineEdit()
+        lineLayout.addWidget(self.temp)
+        lineLayout.addWidget(self.tempTime)
+
+        self.label = QLabel()
+        self.setLabel()
+        labelLayout.addWidget(self.label)
+
+        if self.canSwitch:
+            self.switchButton = QToolButton()
+            self.switchButton.setAutoRaise(True)
+            self.switchButton.setIcon(QIcon(':/switch.png'))
+            labelLayout.addWidget(self.switchButton)
+
+        layout.addLayout(labelLayout)
+        layout.addLayout(lineLayout)
+        self.setLayout(layout)
+        self.setMaximumWidth(77)
+
+    def bindSignal(self):
+        if self.canSwitch:
+            self.switchButton.clicked.connect(self.switchMode)
+
+        self.temp.textEdited.connect(lambda: self.upperText(self.temp))
+        self.temp.textEdited.connect(lambda: self.coloredText(self.temp))
+        self.tempTime.textEdited.connect(lambda: self.coloredText(self.tempTime))
+
+        self.tempTime.editingFinished.connect(self.validateTemperatureTime)
+        self.temp.editingFinished.connect(self.validateTemperature)
+
+        self.temp.textChanged.connect(self.parent.checkComplete)
+        self.tempTime.textChanged.connect(self.parent.checkComplete)
+
+    def setValidator(self):
+        temperature = QRegExpValidator(QRegExp(self.parent.rules.temperature, Qt.CaseInsensitive))
+        self.temp.setValidator(temperature)
+
+        dayHour = QRegExpValidator(QRegExp(self.parent.rules.dayHour))
+        self.tempTime.setValidator(dayHour)
+
+    def setLabel(self):
+        if self.mode == 'max':
+            text = QCoreApplication.translate('Editor', 'Max Temperature')
+        else:
+            text = QCoreApplication.translate('Editor', 'Min Temperature')
+
+        self.label.setText(text)
+
+    def validateTemperatureTime(self):
+        if not self.parent.period.text():
+            return
+
+        durations = self.parent.durations
+        tempTime = parseDayHour(self.tempTime.text(), self.parent.time)
+
+        if tempTime < durations[0]:
+            tempTime += datetime.timedelta(days=1)
+
+        valid = durations[0] <= tempTime <= durations[1] and tempTime not in self.parent.findTemperatureTime(self)
+
+        if valid:
+            self.time = tempTime
+        else:
+            self.time = None
+            self.tempTime.clear()
+            self.parent.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'The time of temperature is not corret'))
+
+    def validateTemperature(self):
+        temp = self.temp.text()
+        temperature = -int(temp[1:]) if 'M' in temp else int(temp)
+
+        if self.mode == 'max':
+            minTemperature = self.parent.findTemperature(self)
+            if minTemperature and temperature <= minTemperature:
+                self.temperature = None
+                self.temp.clear()
+                self.parent.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'The maximum temperature needs to be greater than the minimum temperature'))
+            else:
+                self.temperature = temperature
+
+        if self.mode == 'min':
+            maxTemperature = self.parent.findTemperature(self)
+            if maxTemperature and maxTemperature <= temperature:
+                self.temperature = None
+                self.temp.clear()
+                self.parent.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'The minimum temperature needs to be less than the maximum temperature'))
+            else:
+                self.temperature = temperature
+
+    def switchMode(self):
+        self.mode = 'min' if self.mode == 'max' else 'max'
+        self.setLabel()
+
+    def hasAcceptableInput(self):
+        return self.temp.hasAcceptableInput() and self.tempTime.hasAcceptableInput()
+
+    def text(self):
+        sign = 'TX' if self.mode == 'max' else 'TN'
+        text = '{}{}/{}Z'.format(sign, self.temp.text(), self.tempTime.text())
+        return text
+
+    def clear(self):
+        self.temp.clear()
+        self.tempTime.clear()
+        self.time = None
+        self.temperature = None
+
+
 class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
     def __init__(self, name='PRIMARY', parent=None):
@@ -278,24 +406,34 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.ccc.setEnabled(False)
         self.aaa.setEnabled(False)
         self.aaaCnl.setEnabled(False)
-        self.tempSwitchButton.setIcon(QIcon(':/switch.png'))
+
+        self.tmax = TemperatureGroup(mode='max', parent=self)
+        self.tmin = TemperatureGroup(mode='min', parent=self)
+        self.temperatureLayout.addWidget(self.tmax)
+        self.temperatureLayout.addWidget(self.tmin)
+        self.temperatures = [self.tmax, self.tmin]
+
+        if context.taf.spec == 'ft30':
+            self.temp = TemperatureGroup(canSwitch=True, parent=self)
+            self.temperatureLayout.addWidget(self.temp)
+            self.temperatures.append(self.temp)
 
         self.bindSignal()
         self.initMessageSpec()
+        self.setOrder()
+
+    def setOrder(self):
+        orders = [self.nsc] + self.temperatures + [self.becmg1Checkbox, self.becmg2Checkbox, self.becmg3Checkbox, 
+            self.tempo1Checkbox, self.tempo2Checkbox, self.tempo3Checkbox] + [self.prev]
+
+        for p, n in zip(orders, orders[1:]):
+            self.setTabOrder(p, n)
 
     def setValidator(self):
         super(TafPrimarySegment, self).setValidator()
 
         date = QRegExpValidator(QRegExp(self.rules.date))
         self.date.setValidator(date)
-
-        temp = QRegExpValidator(QRegExp(self.rules.temp, Qt.CaseInsensitive))
-        self.tmax.setValidator(temp)
-        self.tmin.setValidator(temp)
-
-        tempHours = QRegExpValidator(QRegExp(self.rules.hours))
-        self.tmaxTime.setValidator(tempHours)
-        self.tminTime.setValidator(tempHours)
 
         aaa = QRegExpValidator(QRegExp(self.rules.aaa, Qt.CaseInsensitive))
         self.aaa.setValidator(aaa)
@@ -313,24 +451,11 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.cnl.clicked.connect(self.setMessageType)
         self.prev.clicked.connect(self.setPreviousPeriod)
 
-        self.tmaxTime.editingFinished.connect(lambda :self.validateTemperatureHour(self.tmaxTime))
-        self.tminTime.editingFinished.connect(lambda :self.validateTemperatureHour(self.tminTime))
-        self.tempTime.editingFinished.connect(lambda :self.validateTemperatureHour(self.tempTime))
-
-        self.tmax.editingFinished.connect(self.validateTemperature)
-        self.tmin.editingFinished.connect(self.validateTemperature)
-
-        self.tmax.textEdited.connect(lambda: self.upperText(self.tmax))
-        self.tmin.textEdited.connect(lambda: self.upperText(self.tmin))
         self.aaa.textEdited.connect(lambda: self.upperText(self.aaa))
         self.ccc.textEdited.connect(lambda: self.upperText(self.ccc))
         self.aaaCnl.textEdited.connect(lambda: self.upperText(self.aaaCnl))
 
         self.date.textEdited.connect(lambda: self.coloredText(self.date))
-        self.tmax.textEdited.connect(lambda: self.coloredText(self.tmax))
-        self.tmin.textEdited.connect(lambda: self.coloredText(self.tmin))
-        self.tmaxTime.textEdited.connect(lambda: self.coloredText(self.tmaxTime))
-        self.tminTime.textEdited.connect(lambda: self.coloredText(self.tminTime))
         self.aaa.textEdited.connect(lambda: self.coloredText(self.aaa))
         self.ccc.textEdited.connect(lambda: self.coloredText(self.ccc))
         self.aaaCnl.textEdited.connect(lambda: self.coloredText(self.aaaCnl))
@@ -338,6 +463,12 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.timer = QTimer()
         self.timer.timeout.connect(self.setDate)
         self.timer.start(1 * 1000)
+
+    def validate(self):
+        super(TafPrimarySegment, self).validate()
+        for t in self.temperatures:
+            t.validateTemperatureTime()
+            t.validateTemperature()
 
     def initMessageSpec(self):
         international = boolean(conf.value('General/InternationalAirport'))
@@ -428,49 +559,35 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             order = chr(ord('A') + len(items))
             return 'AA' + order
 
-    def validateTemperatureHour(self, line):
-        if self.durations is None:
-            return
+    def findTemperature(self, oneself):
+        temps = [t.temperature for t in self.temperatures if t.temperature is not None and t is not oneself]
+        if temps:
+            if oneself.mode == 'max':
+                return min(temps)
+            else:
+                return max(temps)
+        else:
+            return None
 
-        tempHour = parseDayHour(line.text(), self.time)
-
-        if tempHour < self.durations[0]:
-            tempHour += datetime.timedelta(days=1)
-
-        valid = self.durations[0] <= tempHour <= self.durations[1] and self.tmaxTime.text() != self.tminTime.text()
-
-        if not valid:
-            line.clear()
-            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'The time of temperature is not corret'))
-
-    def validateTemperature(self):
-        tmax = self.tmax.text()
-        tmin = self.tmin.text()
-        if tmax and tmin:
-            tmax = -int(tmax[1:]) if 'M' in tmax else int(tmax)
-            tmin = -int(tmin[1:]) if 'M' in tmin else int(tmin)
-            if tmax <= tmin:
-                self.tmin.clear()
-                self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'The maximum temperature needs to be greater than the minimum temperature'))
+    def findTemperatureTime(self, oneself):
+        times = [t.time for t in self.temperatures if t.time is not None and t is not oneself]
+        return times
 
     def checkComplete(self):
         self.complete = False
-        mustRequired = (
+        tempRequired = [t.hasAcceptableInput() for t in self.temperatures]
+        mustRequired = [
             self.date.hasAcceptableInput(),
             self.period.text(),
             self.wind.hasAcceptableInput(),
-            self.tmax.hasAcceptableInput(),
-            self.tmaxTime.hasAcceptableInput(),
-            self.tmin.hasAcceptableInput(),
-            self.tminTime.hasAcceptableInput()
-        )
-        oneRequired = (
+        ] + tempRequired
+        oneRequired = [
             self.nsc.isChecked(),
             self.cloud1.hasAcceptableInput(),
             self.cloud2.hasAcceptableInput(),
             self.cloud3.hasAcceptableInput(),
             self.cb.hasAcceptableInput()
-        )
+        ]
 
         if all(mustRequired):
             if self.cavok.isChecked():
@@ -485,11 +602,11 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             self.complete = False
 
         if self.cnl.isChecked():
-            mustRequired = (
+            mustRequired = [
                 self.date.hasAcceptableInput(),
                 self.period.text(),
                 self.aaaCnl.hasAcceptableInput(),
-            )
+            ]
             if all(mustRequired):
                 self.complete = True
 
@@ -502,13 +619,12 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         icao = conf.value('Message/ICAO')
         timez = self.date.text() + 'Z'
         period = self.period.text()
-        tmax = ''.join(['TX', self.tmax.text(), '/', self.tmaxTime.text(), 'Z'])
-        tmin = ''.join(['TN', self.tmin.text(), '/', self.tminTime.text(), 'Z'])
+        temperatures = [t.text() for t in self.temperatures]
 
         if self.cnl.isChecked():
             messages = ['TAF', amd, icao, timez, period, 'CNL']
         else:
-            messages = ['TAF', amd, cor, icao, timez, period, self.text, tmax, tmin]
+            messages = ['TAF', amd, cor, icao, timez, period, self.text] + temperatures
 
         self.text = ' '.join(filter(None, messages))
         return self.text
@@ -542,10 +658,8 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
         self.cavok.setChecked(False)
 
-        self.tmax.clear()
-        self.tmaxTime.clear()
-        self.tmin.clear()
-        self.tminTime.clear()
+        for t in self.temperatures:
+            t.clear()
 
 
 class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
@@ -629,6 +743,21 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
             self.period.clear()
             self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time more than {} hours').format(maxTime))
             return
+
+    def validateChangeGroupPeriod(self, group):
+        line = group.period
+        isTempo = group.identifier.startswith('TEMPO')
+
+        def isPeriodOverlay(period, periods):
+            for p in periods:
+                if isOverlap(period, p):
+                    return True
+
+        groups = self.tempos if isTempo else self.becmgs
+        periods = [g.durations for g in groups if g.durations and group != g]
+        if isPeriodOverlay(group.durations, periods):
+            line.clear()
+            self.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time is overlap'))
 
     def checkComplete(self):
         self.complete = False

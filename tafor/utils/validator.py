@@ -31,8 +31,8 @@ class Pattern(object):
     vis = r'(9999|[5-9]000|[01234][0-9]00|0[0-7]50)'
     cloud = r'(FEW|SCT|BKN|OVC)(00[1-9]|0[1-4][0-9]|050)'
     vv = r'VV(00[1-9]|010)'
-    temp = r'M?([0-5][0-9])'
-    hours = r'(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-4])'
+    temperature = r'M?([0-5][0-9])'
+    dayHour = r'(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-4])'
     period = r'(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])/(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-4])'
     trendPeriod = r'([01][0-9]|2[0-3])([0-5][0-9])|2400'
     time = r'([01][0-9]|2[0-3])([0-5][0-9])'
@@ -53,8 +53,7 @@ class TafGrammar(object):
     timez = re.compile(r'\b(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])Z\b')
     period = re.compile(r'\b((?:\d{4}/\d{4})|(?:\d{6})|(?:[01][0-9]|2[0-3])(?:[01][0-9]|2[0-4]))\b')
     cnl = re.compile(r'\b(CNL)\b')
-    tmax = re.compile(r'\b(TXM?(\d{2})/(\d{2})Z)\b')
-    tmin = re.compile(r'\b(TNM?(\d{2})/(\d{2})Z)\b')
+    temperature = re.compile(r'\b(T(?:X|N)M?(\d{2})/(\d{2}|\d{4})Z)\b')
 
     wind = re.compile(r'\b(?:00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)(?:G(0[1-9]|[1-4][0-9]|P49))?)MPS\b')
     vis = re.compile(r'\b(9999|[5-9]000|[01234][0-9]00|0[0-7]50)\b')
@@ -348,7 +347,7 @@ class TafLexer(object):
 
     defaultRules = [
         'prob', 'sign', 'amend', 'icao', 'timez', 'period', 'cnl',
-        'wind', 'vis', 'cavok', 'weather', 'cloud', 'tmax', 'tmin'
+        'wind', 'vis', 'cavok', 'weather', 'cloud', 'temperature'
     ]
 
     def __init__(self, part, grammar=None, **kwargs):
@@ -380,7 +379,7 @@ class TafLexer(object):
             if not m:
                 continue
 
-            if key in ('weather', 'cloud'):
+            if key in ('weather', 'cloud', 'temperature'):
                 items = [m.group() for m in pattern.finditer(part)]
                 self.tokens[key] = {
                     'text': ' '.join(items),

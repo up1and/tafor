@@ -7,67 +7,13 @@
     <x>0</x>
     <y>0</y>
     <width>978</width>
-    <height>216</height>
+    <height>206</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string notr="true">PRIMARY</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="6" column="10">
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
-     <item>
-      <widget class="QLineEdit" name="tmin">
-       <property name="maximumSize">
-        <size>
-         <width>30</width>
-         <height>16777215</height>
-        </size>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLineEdit" name="tminTime">
-       <property name="maximumSize">
-        <size>
-         <width>40</width>
-         <height>16777215</height>
-        </size>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item row="5" column="10">
-    <widget class="QLabel" name="tempMinLabel">
-     <property name="text">
-      <string>Min Temperature</string>
-     </property>
-     <property name="buddy">
-      <cstring>tmin</cstring>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="4">
-    <widget class="QLabel" name="visLabel">
-     <property name="text">
-      <string>Visibility</string>
-     </property>
-     <property name="buddy">
-      <cstring>vis</cstring>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="5">
-    <widget class="QLabel" name="weatherWithIntensityLabel">
-     <property name="text">
-      <string>Weather</string>
-     </property>
-     <property name="buddy">
-      <cstring>weatherWithIntensity</cstring>
-     </property>
-    </widget>
-   </item>
    <item row="3" column="1">
     <widget class="QLineEdit" name="period"/>
    </item>
@@ -84,16 +30,6 @@
    <item row="3" column="8">
     <widget class="QLineEdit" name="cloud2"/>
    </item>
-   <item row="2" column="7">
-    <widget class="QLabel" name="cloud1Label">
-     <property name="text">
-      <string>Cloud</string>
-     </property>
-     <property name="buddy">
-      <cstring>cloud1</cstring>
-     </property>
-    </widget>
-   </item>
    <item row="2" column="6">
     <widget class="QLabel" name="weatherLabel">
      <property name="text">
@@ -101,6 +37,16 @@
      </property>
      <property name="buddy">
       <cstring>weather</cstring>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="4">
+    <widget class="QLabel" name="visLabel">
+     <property name="text">
+      <string>Visibility</string>
+     </property>
+     <property name="buddy">
+      <cstring>vis</cstring>
      </property>
     </widget>
    </item>
@@ -158,35 +104,54 @@
      </property>
     </widget>
    </item>
+   <item row="2" column="7">
+    <widget class="QLabel" name="cloud1Label">
+     <property name="text">
+      <string>Cloud</string>
+     </property>
+     <property name="buddy">
+      <cstring>cloud1</cstring>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="5">
+    <widget class="QLabel" name="weatherWithIntensityLabel">
+     <property name="text">
+      <string>Weather</string>
+     </property>
+     <property name="buddy">
+      <cstring>weatherWithIntensity</cstring>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="2">
+    <widget class="QLabel" name="windLabel">
+     <property name="text">
+      <string>Wind</string>
+     </property>
+     <property name="buddy">
+      <cstring>wind</cstring>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="0">
+    <widget class="QCheckBox" name="becmg1Checkbox">
+     <property name="text">
+      <string notr="true">BECMG1</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLineEdit" name="date"/>
+   </item>
    <item row="3" column="4">
     <widget class="QLineEdit" name="vis"/>
    </item>
-   <item row="2" column="3">
-    <widget class="QLabel" name="gustLabel">
-     <property name="text">
-      <string>Gust</string>
-     </property>
-     <property name="buddy">
-      <cstring>gust</cstring>
-     </property>
-    </widget>
+   <item row="3" column="2">
+    <widget class="QLineEdit" name="wind"/>
    </item>
-   <item row="7" column="1">
-    <widget class="QCheckBox" name="tempo3Checkbox">
-     <property name="text">
-      <string notr="true">TEMPO3</string>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="7">
-    <widget class="QLineEdit" name="cloud1"/>
-   </item>
-   <item row="4" column="7">
-    <widget class="QCheckBox" name="nsc">
-     <property name="text">
-      <string notr="true">NSC</string>
-     </property>
-    </widget>
+   <item row="3" column="10">
+    <widget class="QLineEdit" name="cb"/>
    </item>
    <item row="7" column="0">
     <widget class="QCheckBox" name="becmg3Checkbox">
@@ -194,29 +159,6 @@
       <string notr="true">BECMG3</string>
      </property>
     </widget>
-   </item>
-   <item row="4" column="4">
-    <widget class="QCheckBox" name="cavok">
-     <property name="text">
-      <string notr="true">CAVOK</string>
-     </property>
-     <property name="checkable">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item row="6" column="0">
-    <widget class="QCheckBox" name="becmg2Checkbox">
-     <property name="text">
-      <string notr="true">BECMG2</string>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="6">
-    <widget class="QComboBox" name="weather"/>
-   </item>
-   <item row="3" column="2">
-    <widget class="QLineEdit" name="wind"/>
    </item>
    <item row="3" column="5">
     <widget class="QComboBox" name="weatherWithIntensity"/>
@@ -234,34 +176,58 @@
      </property>
     </spacer>
    </item>
-   <item row="2" column="2">
-    <widget class="QLabel" name="windLabel">
-     <property name="text">
-      <string>Wind</string>
-     </property>
-     <property name="buddy">
-      <cstring>wind</cstring>
-     </property>
-    </widget>
-   </item>
    <item row="3" column="9">
     <widget class="QLineEdit" name="cloud3"/>
    </item>
-   <item row="3" column="0">
-    <widget class="QLineEdit" name="date"/>
+   <item row="3" column="7">
+    <widget class="QLineEdit" name="cloud1"/>
    </item>
    <item row="3" column="3">
     <widget class="QLineEdit" name="gust"/>
    </item>
-   <item row="5" column="0">
-    <widget class="QCheckBox" name="becmg1Checkbox">
+   <item row="6" column="0">
+    <widget class="QCheckBox" name="becmg2Checkbox">
      <property name="text">
-      <string notr="true">BECMG1</string>
+      <string notr="true">BECMG2</string>
      </property>
     </widget>
    </item>
-   <item row="3" column="10">
-    <widget class="QLineEdit" name="cb"/>
+   <item row="7" column="1">
+    <widget class="QCheckBox" name="tempo3Checkbox">
+     <property name="text">
+      <string notr="true">TEMPO3</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="4">
+    <widget class="QCheckBox" name="cavok">
+     <property name="text">
+      <string notr="true">CAVOK</string>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="3">
+    <widget class="QLabel" name="gustLabel">
+     <property name="text">
+      <string>Gust</string>
+     </property>
+     <property name="buddy">
+      <cstring>gust</cstring>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="7">
+    <widget class="QCheckBox" name="nsc">
+     <property name="text">
+      <string notr="true">NSC</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="6">
+    <widget class="QComboBox" name="weather"/>
    </item>
    <item row="0" column="0" colspan="7">
     <widget class="QGroupBox" name="sortGroup">
@@ -319,85 +285,23 @@
      </layout>
     </widget>
    </item>
-   <item row="6" column="9">
-    <layout class="QHBoxLayout" name="horizontalLayout">
+   <item row="5" column="8" rowspan="2" colspan="3">
+    <layout class="QHBoxLayout" name="temperatureLayout">
      <item>
-      <widget class="QLineEdit" name="tmax">
-       <property name="maximumSize">
+      <spacer name="horizontalSpacer_2">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeType">
+        <enum>QSizePolicy::MinimumExpanding</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
         <size>
-         <width>30</width>
-         <height>16777215</height>
+         <width>0</width>
+         <height>20</height>
         </size>
        </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLineEdit" name="tmaxTime">
-       <property name="maximumSize">
-        <size>
-         <width>40</width>
-         <height>16777215</height>
-        </size>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item row="5" column="9">
-    <widget class="QLabel" name="tempMaxLabel">
-     <property name="text">
-      <string>Max Temperature</string>
-     </property>
-     <property name="buddy">
-      <cstring>tmax</cstring>
-     </property>
-    </widget>
-   </item>
-   <item row="6" column="8">
-    <layout class="QHBoxLayout" name="horizontalLayout_5">
-     <item>
-      <widget class="QLineEdit" name="temp">
-       <property name="maximumSize">
-        <size>
-         <width>30</width>
-         <height>16777215</height>
-        </size>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLineEdit" name="tempTime">
-       <property name="maximumSize">
-        <size>
-         <width>40</width>
-         <height>16777215</height>
-        </size>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item row="5" column="8">
-    <layout class="QHBoxLayout" name="horizontalLayout_6">
-     <item>
-      <widget class="QLabel" name="tempLabel">
-       <property name="text">
-        <string>Max Temperature</string>
-       </property>
-       <property name="buddy">
-        <cstring>tmax</cstring>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QToolButton" name="tempSwitchButton">
-       <property name="text">
-        <string notr="true">...</string>
-       </property>
-       <property name="autoRaise">
-        <bool>true</bool>
-       </property>
-      </widget>
+      </spacer>
      </item>
     </layout>
    </item>
@@ -424,16 +328,6 @@
   <tabstop>cloud3</tabstop>
   <tabstop>cb</tabstop>
   <tabstop>nsc</tabstop>
-  <tabstop>tmax</tabstop>
-  <tabstop>tmaxTime</tabstop>
-  <tabstop>tmin</tabstop>
-  <tabstop>tminTime</tabstop>
-  <tabstop>becmg1Checkbox</tabstop>
-  <tabstop>becmg2Checkbox</tabstop>
-  <tabstop>becmg3Checkbox</tabstop>
-  <tabstop>tempo1Checkbox</tabstop>
-  <tabstop>tempo2Checkbox</tabstop>
-  <tabstop>tempo3Checkbox</tabstop>
  </tabstops>
  <resources/>
  <connections/>

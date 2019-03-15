@@ -136,9 +136,6 @@ class BaseTafEditor(BaseEditor):
 
     def beforeNext(self):
         if not self.primary.cnl.isChecked():
-            self.validateTemperature()
-            self.validateTemperatureHour(self.primary.tmaxTime)
-            self.validateTemperatureHour(self.primary.tminTime)
             self.primary.validate()
 
         if self.primary.becmg1Checkbox.isChecked():
