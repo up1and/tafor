@@ -245,9 +245,9 @@ class Sigmet(Base):
         return _area
 
     def expired(self):
-        from tafor.utils.convert import parseDateTime
+        from tafor.utils.convert import parseTime
         ending = self.valids[1]
-        return parseDateTime(ending, self.sent)
+        return parseTime(ending, self.sent)
 
     def isCnl(self):
         return 'CNL' in self.rpt

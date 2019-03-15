@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit
 
 from tafor import conf
 from tafor.utils import Pattern
-from tafor.utils.convert import parseTime, parseDateTime, ceilTime, roundTime, calcPosition
+from tafor.utils.convert import parseTime, ceilTime, roundTime, calcPosition
 from tafor.utils.service import currentSigmet
 from tafor.models import db, Sigmet
 from tafor.components.widgets.forecast import SegmentMixin
@@ -85,8 +85,8 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
 
     def validateValidTime(self):
         if self.beginningTime.hasAcceptableInput() and self.endingTime.hasAcceptableInput():
-            start = parseDateTime(self.beginningTime.text())
-            end = parseDateTime(self.endingTime.text())
+            start = parseTime(self.beginningTime.text())
+            end = parseTime(self.endingTime.text())
             time = datetime.datetime.utcnow()
 
             if start - time > datetime.timedelta(hours=24):
@@ -107,7 +107,7 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
     def validateObsTime(self):
         # 未启用
         if self.beginningTime.hasAcceptableInput() and self.obsTime.hasAcceptableInput():
-            start = parseDateTime(self.beginningTime.text())
+            start = parseTime(self.beginningTime.text())
             obs = parseTime(self.obsTime.text())
             if obs > start:
                 self.obsTime.clear()
@@ -626,7 +626,7 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         if len(text) != 6:
             return
 
-        time = parseDateTime(text)
+        time = parseTime(text)
         time = time - datetime.timedelta(minutes=time.minute)
         fcstTime = time.strftime('%H%M')
 

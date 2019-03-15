@@ -4,11 +4,9 @@
 .. module:: tafor.utils.convert
 
 
-.. autofunction:: parseTimeInterval
-
 .. autofunction:: parseTime
 
-.. autofunction:: parseDateTime
+.. autofunction:: parsePeriod
 
 .. autofunction:: parseTimez
 

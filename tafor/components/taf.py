@@ -5,12 +5,12 @@ from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox, QVBoxLayout, QLayout
 
 from tafor import conf
-from tafor.utils.convert import parseDateTime, isOverlap
+from tafor.utils.convert import parseTime, isOverlap
 from tafor.states import context
 from tafor.models import db, Taf
 from tafor.components.setting import isConfigured
 from tafor.components.widgets.editor import BaseEditor
-from tafor.components.widgets import TafPrimarySegment, TafBecmgSegment, TafTempoSegment
+from tafor.components.widgets import TafPrimarySegment, TafFmSegment, TafBecmgSegment, TafTempoSegment
 
 
 class BaseTafEditor(BaseEditor):
@@ -25,9 +25,13 @@ class BaseTafEditor(BaseEditor):
         layout = QVBoxLayout(window)
         layout.setSizeConstraint(QLayout.SetFixedSize)
         self.primary = TafPrimarySegment(parent=self)
-        self.becmgs = self.becmg1, self.becmg2, self.becmg3 = TafBecmgSegment('BECMG1', self), TafBecmgSegment('BECMG2', self), TafBecmgSegment('BECMG3', self)
-        self.tempos = self.tempo1, self.tempo2, self.tempo3= TafTempoSegment('TEMPO1', self), TafTempoSegment('TEMPO2', self), TafTempoSegment('TEMPO3', self)
+        self.fm = TafFmSegment('FM', self)
+        self.becmg1, self.becmg2, self.becmg3 = TafBecmgSegment('BECMG1', self), TafBecmgSegment('BECMG2', self), TafBecmgSegment('BECMG3', self)
+        self.tempo1, self.tempo2, self.tempo3 = TafTempoSegment('TEMPO1', self), TafTempoSegment('TEMPO2', self), TafTempoSegment('TEMPO3', self)
+        self.becmgs = [self.fm, self.becmg1, self.becmg2, self.becmg3]
+        self.tempos = [self.tempo1, self.tempo2, self.tempo3]
         layout.addWidget(self.primary)
+        layout.addWidget(self.fm)
         layout.addWidget(self.becmg1)
         layout.addWidget(self.becmg2)
         layout.addWidget(self.becmg3)
@@ -39,6 +43,7 @@ class BaseTafEditor(BaseEditor):
 
         self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px;}')
 
+        self.fm.hide()
         self.becmg1.hide()
         self.becmg2.hide()
         self.becmg3.hide()
@@ -47,6 +52,7 @@ class BaseTafEditor(BaseEditor):
         self.tempo3.hide()
 
     def bindSignal(self):
+        self.primary.fmCheckbox.toggled.connect(self.addGroup)
         self.primary.becmg1Checkbox.toggled.connect(self.addGroup)
         self.primary.becmg2Checkbox.toggled.connect(self.addGroup)
         self.primary.becmg3Checkbox.toggled.connect(self.addGroup)
@@ -54,6 +60,7 @@ class BaseTafEditor(BaseEditor):
         self.primary.tempo2Checkbox.toggled.connect(self.addGroup)
         self.primary.tempo3Checkbox.toggled.connect(self.addGroup)
 
+        self.primary.fmCheckbox.toggled.connect(self.fm.checkComplete)
         self.primary.becmg1Checkbox.toggled.connect(self.becmg1.checkComplete)
         self.primary.becmg2Checkbox.toggled.connect(self.becmg2.checkComplete)
         self.primary.becmg3Checkbox.toggled.connect(self.becmg3.checkComplete)
@@ -63,15 +70,8 @@ class BaseTafEditor(BaseEditor):
 
         self.primary.period.textChanged.connect(self.clear)
 
-        self.becmg1.period.editingFinished.connect(lambda :self.validateChangeGroupPeriod(self.becmg1))
-        self.becmg2.period.editingFinished.connect(lambda :self.validateChangeGroupPeriod(self.becmg2))
-        self.becmg3.period.editingFinished.connect(lambda :self.validateChangeGroupPeriod(self.becmg3))
-
-        self.tempo1.period.editingFinished.connect(lambda :self.validateChangeGroupPeriod(self.tempo1))
-        self.tempo2.period.editingFinished.connect(lambda :self.validateChangeGroupPeriod(self.tempo2))
-        self.tempo3.period.editingFinished.connect(lambda :self.validateChangeGroupPeriod(self.tempo3))
-
         self.primary.completeSignal.connect(self.enbaleNextButton)
+        self.fm.completeSignal.connect(self.enbaleNextButton)
         self.becmg1.completeSignal.connect(self.enbaleNextButton)
         self.becmg2.completeSignal.connect(self.enbaleNextButton)
         self.becmg3.completeSignal.connect(self.enbaleNextButton)
@@ -111,25 +111,20 @@ class BaseTafEditor(BaseEditor):
         # TEMPO
         manipulate('tempo1', 'tempo2', 'tempo3')
 
-    def validateChangeGroupPeriod(self, group):
-        line = group.period
-        isTempo = group.identifier.startswith('TEMPO')
-
-        def isPeriodOverlay(period, periods):
-            for p in periods:
-                if isOverlap(period, p):
-                    return True
-
-        groups = self.tempos if isTempo else self.becmgs
-        periods = [g.durations for g in groups if g.durations and group != g]
-        if isPeriodOverlay(group.durations, periods):
-            line.clear()
-            self.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time is overlap'))
+        if self.primary.fmCheckbox.isChecked():
+            self.fm.setVisible(True)
+        else:
+            self.fm.setVisible(False)
 
     def assembleMessage(self):
+
+        def sortedGroup(groups):
+            groups = [e for e in groups if e.isVisible() and e.durations is not None]
+            return sorted(groups, key=lambda x: x.durations[0])
+
         primaryMessage = self.primary.message()
-        becmgsMessage = [e.message() for e in self.becmgs if e.isVisible()]
-        temposMessage = [e.message() for e in self.tempos if e.isVisible()]
+        becmgsMessage = [e.message() for e in sortedGroup(self.becmgs)]
+        temposMessage = [e.message() for e in sortedGroup(self.tempos)]
         messages = [primaryMessage] + becmgsMessage + temposMessage
         self.rpt = '\n'.join(filter(None, messages)) + '='
         self.sign = self.primary.sign()
@@ -138,28 +133,25 @@ class BaseTafEditor(BaseEditor):
         if not self.primary.cnl.isChecked():
             self.primary.validate()
 
+        if self.primary.fmCheckbox.isChecked():
+            self.fm.validate()
+
         if self.primary.becmg1Checkbox.isChecked():
-            self.validateChangeGroupInterval(self.becmg1)
             self.becmg1.validate()
 
         if self.primary.becmg2Checkbox.isChecked():
-            self.validateChangeGroupInterval(self.becmg2)
             self.becmg2.validate()
 
         if self.primary.becmg3Checkbox.isChecked():
-            self.validateChangeGroupInterval(self.becmg3)
             self.becmg3.validate()
 
         if self.primary.tempo1Checkbox.isChecked():
-            self.validateChangeGroupInterval(self.tempo1)
             self.tempo1.validate()
 
         if self.primary.tempo2Checkbox.isChecked():
-            self.validateChangeGroupInterval(self.tempo2)
             self.tempo2.validate()
 
         if self.primary.tempo3Checkbox.isChecked():
-            self.validateChangeGroupInterval(self.tempo3)
             self.tempo3.validate()
 
         if self.enbale:
@@ -173,6 +165,9 @@ class BaseTafEditor(BaseEditor):
     def enbaleNextButton(self):
         # 允许下一步
         completes = [self.primary.complete]
+
+        if self.primary.fmCheckbox.isChecked():
+            completes.append(self.fm.complete)
 
         if self.primary.becmg1Checkbox.isChecked():
             completes.append(self.becmg1.complete)
@@ -198,6 +193,7 @@ class BaseTafEditor(BaseEditor):
 
     def clear(self):
         self.primary.clear()
+        self.fm.clear()
         self.becmg1.clear()
         self.becmg2.clear()
         self.becmg3.clear()
@@ -246,7 +242,7 @@ class TaskTafEditor(BaseTafEditor):
 
     def updateState(self):
         date = self.primary.date.text()
-        self.time = parseDateTime(date)
+        self.time = parseTime(date)
         self.setWindowTitle(self.title + ' - {}'.format(self.time.strftime('%Y-%m-%d %H:%M')))
         self.setNormalPeriod(isTask=True)
         self.durations = self.periodDuration()

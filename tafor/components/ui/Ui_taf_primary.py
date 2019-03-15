@@ -152,6 +152,9 @@ class Ui_Editor(object):
         spacerItem1 = QtWidgets.QSpacerItem(0, 20, QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum)
         self.temperatureLayout.addItem(spacerItem1)
         self.gridLayout.addLayout(self.temperatureLayout, 5, 8, 2, 3)
+        self.fmCheckbox = QtWidgets.QCheckBox(Editor)
+        self.fmCheckbox.setObjectName("fmCheckbox")
+        self.gridLayout.addWidget(self.fmCheckbox, 5, 2, 1, 1)
         self.cbLabel.setBuddy(self.cb)
         self.weatherLabel.setBuddy(self.weather)
         self.visLabel.setBuddy(self.vis)
@@ -204,6 +207,7 @@ class Ui_Editor(object):
         self.amd.setText(_translate("Editor", "Amend"))
         self.cnl.setText(_translate("Editor", "Cancel"))
         self.prev.setText(_translate("Editor", "Previous"))
+        self.fmCheckbox.setText(_translate("Editor", "FM"))
 
 
 if __name__ == "__main__":

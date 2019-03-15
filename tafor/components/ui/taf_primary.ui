@@ -305,6 +305,13 @@
      </item>
     </layout>
    </item>
+   <item row="5" column="2">
+    <widget class="QCheckBox" name="fmCheckbox">
+     <property name="text">
+      <string>FM</string>
+     </property>
+    </widget>
+   </item>
   </layout>
  </widget>
  <tabstops>

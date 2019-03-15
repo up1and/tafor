@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QComboBox, QRadioButton,
 
 from tafor import conf
 from tafor.utils import Pattern, CurrentTaf, CheckTaf, boolean
-from tafor.utils.convert import parseDayHour, parsePeriod, parseDateTime, isOverlap
+from tafor.utils.convert import parseDayHour, parsePeriod, parseTime, isOverlap
 from tafor.states import context
 from tafor.models import db, Taf
 from tafor.components.ui import Ui_taf_primary, Ui_taf_group, Ui_trend, main_rc
@@ -66,9 +66,6 @@ class BaseSegment(QWidget, SegmentMixin):
         if hasattr(self, 'cavok'):
             self.cavok.toggled.connect(self.setCavok)
             self.nsc.toggled.connect(self.setNsc)
-
-        if self.identifier not in ['PRIMARY']:
-            self.period.textChanged.connect(lambda: self.coloredText(self.period))
 
         self.gust.editingFinished.connect(self.validateGust)
         self.cloud1.textEdited.connect(self.setVv)
@@ -424,6 +421,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             self.temp = TemperatureGroup(canSwitch=True, parent=self)
             self.temperatureLayout.addWidget(self.temp)
             self.temperatures.append(self.temp)
+            self.becmg3Checkbox.setStyleSheet('QCheckBox {margin-top: 4px;}')
 
         self.bindSignal()
         self.initMessageSpec()
@@ -663,6 +661,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
     def clear(self):
         super(TafPrimarySegment, self).clear()
 
+        self.fmCheckbox.setChecked(False)
         self.becmg1Checkbox.setChecked(False)
         self.becmg2Checkbox.setChecked(False)
         self.becmg3Checkbox.setChecked(False)
@@ -690,6 +689,8 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.period.textEdited.connect(self.fillPeriod)
         self.period.textEdited.connect(self.updateDurations)
         self.period.editingFinished.connect(self.validatePeriod)
+        self.period.editingFinished.connect(self.validateGroupsPeriod)
+        self.period.textChanged.connect(lambda: self.coloredText(self.period))
 
     def setValidator(self):
         super(TafGroupSegment, self).setValidator()
@@ -697,7 +698,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.period.setValidator(period)
 
     def setPeriod(self):
-        if not self.parent.primary.period.text():
+        if not self.parent.primary.period.text() or self.period.hasAcceptableInput():
             return
 
         time = self.parent.primary.durations[0]
@@ -717,15 +718,14 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         if self.period.hasAcceptableInput() and self.parent.primary.period.text():
             period = self.period.text()
             basetime = self.parent.primary.durations[0]
-            durations = parsePeriod(period, basetime)
-            if durations[0] < basetime:
-                durations = list(durations)
-                durations[0] += datetime.timedelta(days=1)
-                durations[1] += datetime.timedelta(days=1)
-
-            self.durations = durations
+            self.durations = parsePeriod(period, basetime)
         else:
             self.durations = None
+
+    def validate(self):
+        super(TafGroupSegment, self).validate()
+        self.validatePeriod()
+        self.validateGroupsPeriod()
 
     def validatePeriod(self):
         if self.durations is None:
@@ -757,20 +757,19 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
             self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time more than {} hours').format(maxTime))
             return
 
-    def validateChangeGroupPeriod(self, group):
-        line = group.period
-        isTempo = group.identifier.startswith('TEMPO')
+    def validateGroupsPeriod(self):
+        isTempo = self.identifier.startswith('TEMPO')
 
         def isPeriodOverlay(period, periods):
             for p in periods:
                 if isOverlap(period, p):
                     return True
 
-        groups = self.tempos if isTempo else self.becmgs
-        periods = [g.durations for g in groups if g.durations and group != g]
-        if isPeriodOverlay(group.durations, periods):
-            line.clear()
-            self.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time is overlap'))
+        groups = self.parent.tempos if isTempo else self.parent.becmgs
+        periods = [g.durations for g in groups if g.durations and self != g]
+        if isPeriodOverlay(self.durations, periods):
+            self.period.clear()
+            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time is overlap'))
 
     def checkComplete(self):
         self.complete = False
@@ -802,6 +801,91 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
     def clear(self):
         super(TafGroupSegment, self).clear()
         self.period.clear()
+
+
+class TafFmSegment(TafGroupSegment):
+
+    def __init__(self, name='FM', parent=None):
+        super(TafFmSegment, self).__init__(name, parent)
+
+    def bindSignal(self):
+        super(TafFmSegment, self).bindSignal()
+        self.period.textEdited.disconnect(self.fillPeriod)
+
+    def setValidator(self):
+        super(TafFmSegment, self).setValidator()
+        period = QRegExpValidator(QRegExp(self.rules.fmPeriod))
+        self.period.setValidator(period)
+
+    def updateDurations(self):
+        if self.period.hasAcceptableInput() and self.parent.primary.period.text():
+            period = self.period.text()
+            basetime = self.parent.primary.durations[0]
+            time = parseTime(period, basetime)
+            self.durations = (time, time)
+        else:
+            self.durations = None
+
+    def validatePeriod(self):
+        if self.durations is None:
+            return
+
+        primaryDurations = self.parent.primary.durations
+        start, end = self.durations
+        if start < primaryDurations[0] or primaryDurations[1] < start:
+            self.period.clear()
+            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Time of change group is not corret'))
+            return
+
+    def validateGroupsPeriod(self):
+
+        def inPeriod(time, periods):
+            for p in periods:
+                if p[0] <= time <= p[1]:
+                    return True
+
+        groups = self.parent.becmgs
+        periods = [g.durations for g in groups if g.durations and self != g]
+        if inPeriod(self.durations[0], periods):
+            self.period.clear()
+            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time is overlap'))
+
+    def checkComplete(self):
+        self.complete = False
+        hasWeather = self.weather.currentText() or self.weatherWithIntensity.currentText()
+        mustRequired = [
+            self.period.hasAcceptableInput(),
+            self.wind.hasAcceptableInput(),
+            hasWeather
+        ]
+        oneRequired = [
+            self.nsc.isChecked(),
+            self.cloud1.hasAcceptableInput(),
+            self.cloud2.hasAcceptableInput(),
+            self.cloud3.hasAcceptableInput(),
+            self.cb.hasAcceptableInput()
+        ]
+
+        if all(mustRequired):
+            if self.cavok.isChecked():
+                self.complete = True
+            elif self.vis.hasAcceptableInput() and any(oneRequired):
+                self.complete = True
+
+        self.completeSignal.emit(self.complete)
+
+    def message(self):
+        super(TafFmSegment, self).message()
+        period = 'FM{}'.format(self.period.text())
+        messages = [period, self.text]
+        self.text = ' '.join(messages)
+        return self.text
+
+    def clear(self):
+        super(TafFmSegment, self).clear()
+
+        self.cavok.setChecked(False)
+        self.nsc.setChecked(False)
 
 
 class TafBecmgSegment(TafGroupSegment):

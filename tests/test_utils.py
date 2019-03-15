@@ -4,7 +4,7 @@ import pytest
 
 from tafor.utils import checkVersion
 from tafor.utils.pagination import Pagination
-from tafor.utils.convert import parseTimeInterval, parseTime, parseDateTime, parseTimez, ceilTime
+from tafor.utils.convert import parsePeriod, parseTime, parseTimez, ceilTime
 
 
 def test_check_version():
@@ -25,7 +25,7 @@ def test_basic_pagination():
 
 def test_parse_time_interval():
     time = datetime.datetime(2018, 5, 1)
-    assert parseTimeInterval('0312', time) == (datetime.datetime(2018, 5, 1, 3), datetime.datetime(2018, 5, 1, 12))
+    assert parsePeriod('0312', time) == (datetime.datetime(2018, 5, 1, 3), datetime.datetime(2018, 5, 1, 12))
 
 
 if __name__ == "__main__":

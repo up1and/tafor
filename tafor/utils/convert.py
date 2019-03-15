@@ -42,9 +42,13 @@ def parseStandardPeriod(period, basetime=None):
     if end <= start:
         end += datetime.timedelta(days=1)
 
+    if start < basetime:
+        start += datetime.timedelta(days=1)
+        end += datetime.timedelta(days=1)
+
     return start, end
 
-def parseInterval(interval, basetime=None):
+def parseOldPeriod(interval, basetime=None):
     """解析字符为时间间隔
     :param interval: 时间间隔，如 0312
     :param basetime: 基准时间，默认为当前时间，自定义时需传入 Datetime 对象
@@ -70,12 +74,12 @@ def parsePeriod(period, basetime=None):
         return parseStandardPeriod(period, basetime)
 
     if len(period) == 6:
-        return parseInterval(period[2:], basetime)
+        return parseOldPeriod(period[2:], basetime)
 
     if len(period) == 4:
-        return parseInterval(period, basetime)
+        return parseOldPeriod(period, basetime)
 
-def parseTime(timeString, basetime=None):
+def parseHourMinute(timeString, basetime=None):
     """解析小时分钟字符为 Datetime 对象, 如果小于当前时间视为第二天
 
     :param timeString: 小时分钟字符，如 1930
@@ -90,7 +94,7 @@ def parseTime(timeString, basetime=None):
     current = time if time > basetime else time + datetime.timedelta(days=1)
     return current
 
-def parseDateTime(datetimeString, basetime=None):
+def parseDayHourMinute(datetimeString, basetime=None):
     """解析包含日期的小时分钟字符为 Datetime 对象, 如果小于当前时间视为下一个月
 
     :param datetimeString: 包含日期的小时分钟字符，如 151930
@@ -98,7 +102,6 @@ def parseDateTime(datetimeString, basetime=None):
     :return: 返回 Datetime 对象
     """
     basetime = basetime if basetime else datetime.datetime.utcnow()
-
     day = int(datetimeString[0:2])
     hour = int(datetimeString[2:4])
     minute = int(datetimeString[4:])
@@ -112,6 +115,13 @@ def parseDateTime(datetimeString, basetime=None):
             current = current + relativedelta.relativedelta(months=1)
 
     return current
+
+def parseTime(time, basetime=None):
+    if len(time) == 6:
+        return parseDayHourMinute(time, basetime)
+
+    if len(time) == 4:
+        return parseHourMinute(time, basetime)
 
 def parseTimez(timez):
     """解析报文的日期组，推算报文的发送时间，当月没有的日期视为上一个月
