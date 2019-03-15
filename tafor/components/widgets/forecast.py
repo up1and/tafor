@@ -339,7 +339,7 @@ class TemperatureGroup(QWidget, SegmentMixin):
         self.switchButton.setIcon(QIcon(':/{}.png'.format(icon)))
 
     def validateTemperatureTime(self):
-        if not self.parent.period.text():
+        if not self.parent.period.text() or not self.tempTime.hasAcceptableInput():
             return
 
         durations = self.parent.durations
@@ -358,6 +358,9 @@ class TemperatureGroup(QWidget, SegmentMixin):
             self.parent.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'The time of temperature is not corret'))
 
     def validateTemperature(self):
+        if not self.temp.hasAcceptableInput():
+            return
+
         temp = self.temp.text()
         temperature = -int(temp[1:]) if 'M' in temp else int(temp)
 
@@ -382,6 +385,7 @@ class TemperatureGroup(QWidget, SegmentMixin):
     def switchMode(self):
         self.mode = 'min' if self.mode == 'max' else 'max'
         self.setLabel()
+        self.validateTemperature()
 
     def hasAcceptableInput(self):
         return self.temp.hasAcceptableInput() and self.tempTime.hasAcceptableInput()
@@ -576,6 +580,12 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         times = [t.time for t in self.temperatures if t.time is not None and t is not oneself]
         return times
 
+    def sortedTemperatures(self):
+        temperatures = [t for t in self.temperatures if t.hasAcceptableInput()]
+        priority = lambda x: 0 if x == 'max' else 1
+        temperatures = sorted(temperatures, key=lambda e: (priority(e.mode), e.time))
+        return temperatures
+
     def checkComplete(self):
         self.complete = False
         tempRequired = [t.hasAcceptableInput() for t in self.temperatures]
@@ -583,7 +593,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             self.date.hasAcceptableInput(),
             self.period.text(),
             self.wind.hasAcceptableInput(),
-        ] + tempRequired
+        ] + tempRequired[:2]
         oneRequired = [
             self.nsc.isChecked(),
             self.cloud1.hasAcceptableInput(),
@@ -622,7 +632,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         icao = conf.value('Message/ICAO')
         timez = self.date.text() + 'Z'
         period = self.period.text()
-        temperatures = [t.text() for t in self.temperatures]
+        temperatures = [t.text() for t in self.sortedTemperatures()]
 
         if self.cnl.isChecked():
             messages = ['TAF', amd, icao, timez, period, 'CNL']
