@@ -3,7 +3,7 @@ import copy
 
 from collections import OrderedDict
 
-from tafor.utils.convert import parseTimez, parsePeriod
+from tafor.utils.convert import parseTimez, parsePeriod, parseTime
 
 
 weather = [
@@ -34,6 +34,7 @@ class Pattern(object):
     temperature = r'M?([0-5][0-9])'
     dayHour = r'(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-4])'
     period = r'(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])/(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-4])'
+    fmPeriod = r'(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])'
     trendPeriod = r'([01][0-9]|2[0-3])([0-5][0-9])|2400'
     time = r'([01][0-9]|2[0-3])([0-5][0-9])'
 
@@ -47,7 +48,7 @@ class Pattern(object):
 
 
 class TafGrammar(object):
-    sign = re.compile(r'(TAF|BECMG|FM|TEMPO)\b')
+    sign = re.compile(r'\b(TAF|BECMG|(?:FM(?:\d{4}|\d{6}))|TEMPO)\b')
     amend = re.compile(r'\b(AMD|COR)\b')
     icao = re.compile(r'\b((A|B|E|K|P|L|R|Y|U|V|Z)[A-Z]{3})\b')
     timez = re.compile(r'\b(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])Z\b')
@@ -56,7 +57,7 @@ class TafGrammar(object):
     temperature = re.compile(r'\b(T(?:X|N)M?(\d{2})/(\d{2}|\d{4})Z)\b')
 
     wind = re.compile(r'\b(?:00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)(?:G(0[1-9]|[1-4][0-9]|P49))?)MPS\b')
-    vis = re.compile(r'\b(9999|[5-9]000|[01234][0-9]00|0[0-7]50)\b')
+    vis = re.compile(r'\b(?<!/)(9999|[5-9]000|[01234][0-9]00|0[0-7]50)(?!/)\b')
     weather = re.compile(r'([-+]?({})\b)|(\b({})\b)'.format('|'.join(weatherWithIntensity), '|'.join(weather)))
     cloud = re.compile(r'\bSKC|NSC|(FEW|SCT|BKN|OVC|VV)(\d{3})(CB|TCU)?\b')
     cavok = re.compile(r'\bCAVOK\b')
@@ -371,7 +372,7 @@ class TafLexer(object):
             rules = self.defaultRules
 
         for key in rules:
-            if 'TAF' in self.part and key == 'interval' or 'TAF' not in self.part and key == 'icao':
+            if self.part.startswith('FM') and key == 'period' or 'TAF' not in self.part and key == 'icao':
                 continue
 
             pattern = getattr(self.grammar, key)
@@ -497,12 +498,13 @@ class TafParser(object):
     def split(self):
         """拆分主报文和变化组"""
         message = self.message.replace('=', '')
-        splitPattern = re.compile(r'(BECMG|FM|TEMPO|PROB[34]0\sTEMPO)')
+        splitPattern = re.compile(r'(BECMG|(?:FM(?:\d{4}|\d{6}))|TEMPO|PROB[34]0\sTEMPO)')
         elements = splitPattern.split(message)
         self.primary = self.parse(elements[0])
 
         if len(elements) > 1:
             becmgIndex = [i for i, item in enumerate(elements) if item == 'BECMG']
+            fmIndex = [i for i, item in enumerate(elements) if item.startswith('FM')]
             tempoIndex = [i for i, item in enumerate(elements) if 'TEMPO' in item]
 
             for index in becmgIndex:
@@ -510,6 +512,13 @@ class TafParser(object):
                 becmg = self.parse(e)
                 becmg.period = parsePeriod(becmg.tokens['period']['text'], self.primary.period[0])
                 self.becmgs.append(becmg)
+
+            for index in fmIndex:
+                e = elements[index] + elements[index+1]
+                fm = self.parse(e)
+                fmTime = parseTime(fm.tokens['sign']['text'][2:], self.primary.period[0])
+                fm.period = (fmTime, fmTime)
+                self.becmgs.append(fm)
 
             for index in tempoIndex:
                 e = elements[index] + elements[index+1]
@@ -557,7 +566,7 @@ class TafParser(object):
             groups = []
             cache = []
             for e in items:
-                if e.sign == 'BECMG':
+                if e.sign == 'BECMG' or e.sign.startswith('FM'):
                     groups.append(e)
                     cache = []
                 if e.sign == 'TEMPO':
