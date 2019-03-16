@@ -68,6 +68,7 @@ class BaseSegment(QWidget, SegmentMixin):
             self.nsc.toggled.connect(self.setNsc)
 
         self.gust.editingFinished.connect(self.validateGust)
+        self.weather.currentTextChanged.connect(self.setWeatherWithIntensity)
         self.cloud1.textEdited.connect(self.setVv)
         self.cloud1.editingFinished.connect(lambda: self.validateCloud(self.cloud1))
         self.cloud2.editingFinished.connect(lambda: self.validateCloud(self.cloud2))
@@ -148,6 +149,13 @@ class BaseSegment(QWidget, SegmentMixin):
             self.cb.setEnabled(True)
             self.cloud1Label.setText(QCoreApplication.translate('Editor', 'Cloud'))
 
+    def setWeatherWithIntensity(self, text):
+        if text == 'NSW':
+            self.weatherWithIntensity.setCurrentIndex(-1)
+            self.weatherWithIntensity.setEnabled(False)
+        else:
+            self.weatherWithIntensity.setEnabled(True)
+
     def setValidator(self):
         wind = QRegExpValidator(QRegExp(self.rules.wind, Qt.CaseInsensitive))
         self.wind.setValidator(wind)
@@ -167,6 +175,8 @@ class BaseSegment(QWidget, SegmentMixin):
 
         weather = conf.value('Message/Weather')
         weathers = [''] + json.loads(weather) if weather else ['']
+        if self.identifier == 'PRIMARY':
+            weathers = [w for w in weathers if w != 'NSW']
         self.weather.addItems(weathers)
 
         weatherWithIntensity = conf.value('Message/WeatherWithIntensity')
