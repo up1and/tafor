@@ -334,7 +334,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         warning = state[tt]['warning']
 
         if clock and not warning and not sent:
-            current = tt + period[2:]
+            current = tt + period[2:4] + period[7:]
             text = QCoreApplication.translate('MainWindow', 'Time to issue {}').format(current)
             self.ringSound.play()
             self.remindBox.setText(text)
