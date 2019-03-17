@@ -154,13 +154,21 @@
     <widget class="QLineEdit" name="cloud3"/>
    </item>
    <item row="3" column="5">
-    <widget class="QComboBox" name="weather"/>
+    <widget class="QComboBox" name="weather">
+     <property name="editable">
+      <bool>true</bool>
+     </property>
+    </widget>
    </item>
    <item row="3" column="9">
     <widget class="QLineEdit" name="cb"/>
    </item>
    <item row="3" column="4">
-    <widget class="QComboBox" name="weatherWithIntensity"/>
+    <widget class="QComboBox" name="weatherWithIntensity">
+     <property name="editable">
+      <bool>true</bool>
+     </property>
+    </widget>
    </item>
    <item row="4" column="3">
     <widget class="QCheckBox" name="cavok">

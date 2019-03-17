@@ -68,7 +68,7 @@ class BaseSegment(QWidget, SegmentMixin):
             self.nsc.toggled.connect(self.setNsc)
 
         self.gust.editingFinished.connect(self.validateGust)
-        self.weather.currentTextChanged.connect(self.setWeatherWithIntensity)
+        self.weather.lineEdit().textChanged.connect(self.setWeatherWithIntensity)
         self.cloud1.textEdited.connect(self.setVv)
         self.cloud1.editingFinished.connect(lambda: self.validateCloud(self.cloud1))
         self.cloud2.editingFinished.connect(lambda: self.validateCloud(self.cloud2))
@@ -76,6 +76,8 @@ class BaseSegment(QWidget, SegmentMixin):
 
         self.wind.textEdited.connect(lambda: self.upperText(self.wind))
         self.gust.textEdited.connect(lambda: self.upperText(self.gust))
+        self.weather.lineEdit().textChanged.connect(lambda: self.upperText(self.weather.lineEdit()))
+        self.weatherWithIntensity.lineEdit().textChanged.connect(lambda: self.upperText(self.weatherWithIntensity.lineEdit()))
         self.cloud1.textEdited.connect(lambda: self.upperText(self.cloud1))
         self.cloud2.textEdited.connect(lambda: self.upperText(self.cloud2))
         self.cloud3.textEdited.connect(lambda: self.upperText(self.cloud3))
@@ -83,6 +85,8 @@ class BaseSegment(QWidget, SegmentMixin):
 
         self.wind.textEdited.connect(lambda: self.coloredText(self.wind))
         self.gust.textEdited.connect(lambda: self.coloredText(self.gust))
+        self.weather.lineEdit().textChanged.connect(lambda: self.coloredText(self.weather.lineEdit()))
+        self.weatherWithIntensity.lineEdit().textChanged.connect(lambda: self.coloredText(self.weatherWithIntensity.lineEdit()))
         self.vis.textEdited.connect(lambda: self.coloredText(self.vis))
         self.cloud1.textEdited.connect(lambda: self.coloredText(self.cloud1))
         self.cloud2.textEdited.connect(lambda: self.coloredText(self.cloud2))
@@ -150,7 +154,7 @@ class BaseSegment(QWidget, SegmentMixin):
             self.cloud1Label.setText(QCoreApplication.translate('Editor', 'Cloud'))
 
     def setWeatherWithIntensity(self, text):
-        if text == 'NSW':
+        if text.upper() == 'NSW':
             self.weatherWithIntensity.setCurrentIndex(-1)
             self.weatherWithIntensity.setEnabled(False)
         else:
@@ -178,6 +182,8 @@ class BaseSegment(QWidget, SegmentMixin):
         if self.identifier == 'PRIMARY':
             weathers = [w for w in weathers if w != 'NSW']
         self.weather.addItems(weathers)
+        weather = QRegExpValidator(QRegExp(r'{}'.format('|'.join(weathers)), Qt.CaseInsensitive))
+        self.weather.setValidator(weather)
 
         weatherWithIntensity = conf.value('Message/WeatherWithIntensity')
         intensityWeathers = ['']
@@ -190,6 +196,8 @@ class BaseSegment(QWidget, SegmentMixin):
             for w in weathers:
                 intensityWeathers.append('+{}'.format(w))
         self.weatherWithIntensity.addItems(intensityWeathers)
+        intensityWeather = QRegExpValidator(QRegExp(r'[-+]?{}'.format('|'.join(weathers)), Qt.CaseInsensitive))
+        self.weatherWithIntensity.setValidator(intensityWeather)
 
     def validateGust(self):
         if not self.gust.hasAcceptableInput():
@@ -202,7 +210,7 @@ class BaseSegment(QWidget, SegmentMixin):
         if gust == 'P49':
             return
 
-        if windSpeed == 0 or int(gust) - int(windSpeed) < 5 or wind == '00000':
+        if int(windSpeed) == 0 or int(gust) - int(windSpeed) < 5:
             self.gust.clear()
 
     def validateCloud(self, line):
@@ -235,8 +243,8 @@ class BaseSegment(QWidget, SegmentMixin):
             winds = None
 
         vis = self.vis.text() if self.vis.hasAcceptableInput() else None
-        weather = self.weather.currentText()
-        weatherWithIntensity = self.weatherWithIntensity.currentText()
+        weather = self.weather.currentText() if self.weather.lineEdit().hasAcceptableInput() else None
+        weatherWithIntensity = self.weatherWithIntensity.currentText() if self.weatherWithIntensity.lineEdit().hasAcceptableInput() else None
         cloud1 = self.cloud1.text() if self.cloud1.hasAcceptableInput() else None
         cloud2 = self.cloud2.text() if self.cloud2.hasAcceptableInput() else None
         cloud3 = self.cloud3.text() if self.cloud3.hasAcceptableInput() else None
@@ -788,8 +796,8 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
             self.cavok.isChecked(),
             self.wind.hasAcceptableInput(),
             self.vis.hasAcceptableInput(),
-            self.weather.currentText(),
-            self.weatherWithIntensity.currentText(),
+            self.weather.lineEdit().hasAcceptableInput(),
+            self.weatherWithIntensity.lineEdit().hasAcceptableInput(),
             self.cloud1.hasAcceptableInput(),
             self.cloud2.hasAcceptableInput(),
             self.cloud3.hasAcceptableInput(),
@@ -862,7 +870,7 @@ class TafFmSegment(TafGroupSegment):
 
     def checkComplete(self):
         self.complete = False
-        hasWeather = self.weather.currentText() or self.weatherWithIntensity.currentText()
+        hasWeather = self.weather.lineEdit().hasAcceptableInput() or self.weatherWithIntensity.lineEdit().hasAcceptableInput()
         mustRequired = [
             self.period.hasAcceptableInput(),
             self.wind.hasAcceptableInput(),
@@ -942,7 +950,6 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
     def bindSignal(self):
         super(TrendSegment, self).bindSignal()
-
         self.nosig.toggled.connect(self.setNosig)
         self.at.toggled.connect(self.setAt)
         self.fm.toggled.connect(self.setFm)
@@ -950,6 +957,8 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
         self.becmg.clicked.connect(self.updateAtStatus)
         self.tempo.clicked.connect(self.updateAtStatus)
+
+        self.period.textChanged.connect(lambda: self.coloredText(self.period))
 
     def setValidator(self):
         super(TrendSegment, self).setValidator()
@@ -1036,8 +1045,8 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
             self.cavok.isChecked(),
             self.wind.hasAcceptableInput(),
             self.vis.hasAcceptableInput(),
-            self.weather.currentText(),
-            self.weatherWithIntensity.currentText(),
+            self.weather.lineEdit().hasAcceptableInput(),
+            self.weatherWithIntensity.lineEdit().hasAcceptableInput(),
             self.cloud1.hasAcceptableInput(),
             self.cloud2.hasAcceptableInput(),
             self.cloud3.hasAcceptableInput(),

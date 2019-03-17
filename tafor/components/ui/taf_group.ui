@@ -143,10 +143,18 @@
     <widget class="QLineEdit" name="vis"/>
    </item>
    <item row="1" column="5">
-    <widget class="QComboBox" name="weatherWithIntensity"/>
+    <widget class="QComboBox" name="weatherWithIntensity">
+     <property name="editable">
+      <bool>true</bool>
+     </property>
+    </widget>
    </item>
    <item row="1" column="6">
-    <widget class="QComboBox" name="weather"/>
+    <widget class="QComboBox" name="weather">
+     <property name="editable">
+      <bool>true</bool>
+     </property>
+    </widget>
    </item>
    <item row="1" column="7">
     <widget class="QLineEdit" name="cloud1"/>

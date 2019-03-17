@@ -161,7 +161,11 @@
     </widget>
    </item>
    <item row="3" column="5">
-    <widget class="QComboBox" name="weatherWithIntensity"/>
+    <widget class="QComboBox" name="weatherWithIntensity">
+     <property name="editable">
+      <bool>true</bool>
+     </property>
+    </widget>
    </item>
    <item row="1" column="0" colspan="11">
     <spacer name="horizontalSpacer">
@@ -227,7 +231,11 @@
     </widget>
    </item>
    <item row="3" column="6">
-    <widget class="QComboBox" name="weather"/>
+    <widget class="QComboBox" name="weather">
+     <property name="editable">
+      <bool>true</bool>
+     </property>
+    </widget>
    </item>
    <item row="0" column="0" colspan="7">
     <widget class="QGroupBox" name="sortGroup">

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'C:\Users\Upland\Work\tafor\tafor\components\ui\taf_group.ui'
+# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\taf_group.ui'
 #
-# Created by: PyQt5 UI code generator 5.9.2
+# Created by: PyQt5 UI code generator 5.6
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -64,9 +64,11 @@ class Ui_Editor(object):
         self.vis.setObjectName("vis")
         self.gridLayout.addWidget(self.vis, 1, 4, 1, 1)
         self.weatherWithIntensity = QtWidgets.QComboBox(Editor)
+        self.weatherWithIntensity.setEditable(True)
         self.weatherWithIntensity.setObjectName("weatherWithIntensity")
         self.gridLayout.addWidget(self.weatherWithIntensity, 1, 5, 1, 1)
         self.weather = QtWidgets.QComboBox(Editor)
+        self.weather.setEditable(True)
         self.weather.setObjectName("weather")
         self.gridLayout.addWidget(self.weather, 1, 6, 1, 1)
         self.cloud1 = QtWidgets.QLineEdit(Editor)
