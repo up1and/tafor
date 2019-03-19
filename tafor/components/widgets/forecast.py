@@ -365,6 +365,11 @@ class TemperatureGroup(QWidget, SegmentMixin):
 
         valid = durations[0] <= tempTime <= durations[1] and tempTime not in self.parent.findTemperatureTime(self)
 
+        refTimes = self.parent.findTemperatureTime(self, sameType=True)
+        for t in refTimes:
+            if t.day == tempTime.day:
+                valid = False
+
         if valid:
             self.time = tempTime
         else:
@@ -401,6 +406,7 @@ class TemperatureGroup(QWidget, SegmentMixin):
         self.mode = 'min' if self.mode == 'max' else 'max'
         self.setLabel()
         self.validateTemperature()
+        self.validateTemperatureTime()
 
     def hasAcceptableInput(self):
         return self.temp.hasAcceptableInput() and self.tempTime.hasAcceptableInput()
@@ -592,8 +598,13 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         else:
             return None
 
-    def findTemperatureTime(self, oneself):
-        times = [t.time for t in self.temperatures if t.time is not None and t is not oneself]
+    def findTemperatureTime(self, oneself, sameType=False):
+        times = []
+        for t in self.temperatures:
+            condition = oneself.mode == t.mode if sameType else True
+            if t.time is not None and t is not oneself and condition:
+                times.append(t.time)
+
         return times
 
     def sortedTemperatures(self):
