@@ -16,20 +16,45 @@ class Canvas(QWidget):
 
     def __init__(self, parent=None):
         super(Canvas, self).__init__(parent)
-        self.points = []
+        self.coords = {
+            'default': {'points': [], 'done': False},
+            'forecast': {'points': [], 'done': False}
+        }
+        self.areaType = 'default'
         self.rectangular = []
-        self.done = False
         self.mode = 'polygon'
         self.maxPoint = 7
         self.color = Qt.white
         self.shadowColor = QColor(0, 0, 0, 127)
-        self.areaColor = QColor(240, 156, 0, 178)
+        self.areaColors = {
+            'default': QColor(240, 156, 0, 178),
+            'forecast': QColor(154, 205, 50, 100)
+        }
         self.fir = context.fir
         self.setSizePolicy(0, 0)
 
     @property
+    def points(self):
+        return self.coords[self.areaType]['points']
+
+    @points.setter
+    def points(self, value):
+        self.coords[self.areaType]['points'] = value
+
+    @property
+    def done(self):
+        return self.coords[self.areaType]['done']
+
+    @done.setter
+    def done(self, value):
+        self.coords[self.areaType]['done'] = value
+
+    @property
     def boundaryColor(self):
         return Qt.red if self.fir.image() else Qt.white
+
+    def hasDefaultArea(self):
+        return self.coords['default']['done']
 
     def sizeHint(self):
         *_, w, h = self.fir.rect()
@@ -54,11 +79,11 @@ class Canvas(QWidget):
         if len(self.points) == 1:
             self.drawOnePoint(painter)
 
-        if self.done:
-            self.drawArea(painter)
-        else:
+        if not self.done:
             self.drawOutline(painter)
             self.drawRectangular(painter)
+
+        self.drawArea(painter)
 
     def mousePressEvent(self, event):
         if not self.fir.drawable:
@@ -171,12 +196,14 @@ class Canvas(QWidget):
                 prev = point
 
     def drawArea(self, painter):
-        points = listToPoint(self.points)
-        pol = QPolygon(points)
-        brush = QBrush(self.areaColor)
-        painter.setBrush(brush)
-        painter.setPen(self.color)
-        painter.drawPolygon(pol)
+        for key, coords in self.coords.items():
+            if coords['done']:
+                points = listToPoint(coords['points'])
+                pol = QPolygon(points)
+                brush = QBrush(self.areaColors[key])
+                painter.setBrush(brush)
+                painter.setPen(self.color)
+                painter.drawPolygon(pol)
 
     def drawBoundaries(self, painter):
         points = listToPoint(self.fir.boundaries())
@@ -238,9 +265,13 @@ class Canvas(QWidget):
         painter.drawRect(rect)
 
     def clear(self):
-        self.points = []
+        print('clear')
+        self.coords = {
+            'default': {'points': [], 'done': False},
+            'forecast': {'points': [], 'done': False}
+        }
+        self.areaType = 'default'
         self.rectangular = []
-        self.done = False
         self.pointsChanged.emit()
         self.stateChanged.emit()
         self.update()
@@ -266,8 +297,7 @@ class AreaBoard(QWidget):
         self.setLayout(self.layout)
         self.setMaximumWidth(575)
 
-        self.area = []
-        self.message = ''
+        self.message = {}
         self.pointspacing = ''
 
         self.canvas.pointsChanged.connect(self.updateArea)
@@ -282,16 +312,21 @@ class AreaBoard(QWidget):
             self.pointspacing = '\n'
 
     def updateArea(self):
-        self.message = ''
+        for key, coords in self.canvas.coords.items():
+            self.message[key] = self.generateText(coords)
 
-        if self.canvas.mode == 'rectangular' and self.canvas.done:
+        self.setBorad(self.message)
+
+    def generateText(self, coords):
+        message = ''
+        if self.canvas.mode == 'rectangular' and coords['done']:
 
             boundaries = context.fir._state['boundaries']
-            points = context.fir.pixelToDecimal(self.canvas.points)
-            self.area = encodeSigmetArea(boundaries, points, mode='rectangular')
+            points = context.fir.pixelToDecimal(coords['points'])
+            area = encodeSigmetArea(boundaries, points, mode='rectangular')
 
             lines = []
-            for identifier, *points in self.area:
+            for identifier, *points in area:
                 points = context.fir.decimalToDegree(points)
                 latlng = simplifyLine(points)
 
@@ -299,16 +334,16 @@ class AreaBoard(QWidget):
                     line = '{} OF {}'.format(identifier, latlng)
                     lines.append(line)
 
-            self.message = ' AND '.join(lines)
+            message = ' AND '.join(lines)
 
         if self.canvas.mode == 'line':
             if self.canvas.done:
                 boundaries = context.fir._state['boundaries']
-                points = context.fir.pixelToDecimal(self.canvas.points)
-                self.area = encodeSigmetArea(boundaries, points, mode='line')
+                points = context.fir.pixelToDecimal(coords['points'])
+                area = encodeSigmetArea(boundaries, points, mode='line')
 
                 lines = []
-                for identifier, *points in self.area:
+                for identifier, *points in area:
                     points = context.fir.decimalToDegree(points)
                     coordinates = []
                     for lng, lat in points:
@@ -317,32 +352,47 @@ class AreaBoard(QWidget):
                     line = '{} OF LINE {}'.format(identifier, ' - '.join(coordinates))
                     lines.append(line)
 
-                self.message = ' AND '.join(lines)
+                message = ' AND '.join(lines)
             else:
-                points = context.fir.pixelToDegree(self.canvas.points)
+                points = context.fir.pixelToDegree(coords['points'])
                 coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
-                self.message = self.pointspacing.join(coordinates)
+                message = self.pointspacing.join(coordinates)
 
 
         if self.canvas.mode == 'polygon':
-            points = context.fir.pixelToDegree(self.canvas.points)
-            if self.canvas.done:
+            points = context.fir.pixelToDegree(coords['points'])
+            if coords['done']:
                 coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
-                self.message = 'WI ' + ' - '.join(coordinates)
+                message = 'WI ' + ' - '.join(coordinates)
             else:
                 coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
-                self.message = self.pointspacing.join(coordinates)
+                message = self.pointspacing.join(coordinates)
 
-        self.board.setText(self.message)
+        return message
+
+    def setBorad(self, messages):
+        messages = [text for _, text in self.message.items() if text]
+        messages.reverse()
+        self.board.setText('\n\n'.join(messages))
 
     def setMode(self, mode):
         self.canvas.mode = mode
 
-    def text(self):
-        return self.message
+    def setAreaType(self, areaType):
+        self.canvas.areaType = areaType
+
+    def texts(self):
+        messages = []
+        if self.canvas.areaType == 'default' and self.canvas.done:
+            messages.append(self.message['default'])
+
+        if self.canvas.areaType == 'forecast' and self.canvas.done:
+            messages.append(self.message['default'])
+            messages.append(self.message['forecast'])
+
+        return messages
 
     def clear(self):
-        self.area = []
-        self.message = ''
+        self.message = {}
         self.board.setText('')
         self.canvas.clear()

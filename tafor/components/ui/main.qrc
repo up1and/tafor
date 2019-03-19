@@ -14,5 +14,6 @@
         <file alias="rectangular.png">../../icons/rectangular.png</file>
         <file alias="cold.png">../../icons/cold.png</file>
         <file alias="warm.png">../../icons/warm.png</file>
+        <file alias="f.png">../../icons/f.png</file>
     </qresource>
 </RCC>

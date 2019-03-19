@@ -238,6 +238,7 @@ class BaseSegment(QWidget):
 
 
 class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
+    areaModeChanged = pyqtSignal()
 
     def __init__(self, parent=None):
         super(SigmetArea, self).__init__()
@@ -247,6 +248,7 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
         self.canvasWidget = AreaBoard()
         self.areaLayout.addWidget(self.canvasWidget)
         self.areaGroup.setLayout(self.areaLayout)
+        self.fcstButton.setIcon(QIcon(':/f.png'))
 
         self.bindSignal()
         self.setValidator()
@@ -258,6 +260,7 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
         self.canvas.clicked.connect(self.setArea)
         self.entire.clicked.connect(self.setArea)
 
+        self.fcstButton.clicked.connect(self.setAreaMode)
         self.modeButton.clicked.connect(self.switchCanvasMode)
 
         self.north.textEdited.connect(lambda: self.upperText(self.north))
@@ -270,6 +273,7 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
         self.east.textEdited.connect(lambda: self.coloredText(self.east))
         self.west.textEdited.connect(lambda: self.coloredText(self.west))
 
+        self.canvasWidget.canvas.stateChanged.connect(self.setAreaMode)
         self.canvasWidget.canvas.stateChanged.connect(self.checkComplete)
 
         self.defaultSignal()
@@ -290,17 +294,33 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
         if self.manual.isChecked():
             self.latitudeAndLongitudeWidget.setVisible(True)
             self.canvasWidget.setVisible(False)
+            self.fcstButton.setVisible(False)
             self.modeButton.setVisible(False)
 
         if self.canvas.isChecked():
             self.latitudeAndLongitudeWidget.setVisible(False)
             self.canvasWidget.setVisible(True)
+            self.fcstButton.setVisible(True)
             self.modeButton.setVisible(True)
 
         if self.entire.isChecked():
             self.latitudeAndLongitudeWidget.setVisible(False)
             self.canvasWidget.setVisible(False)
+            self.fcstButton.setVisible(False)
             self.modeButton.setVisible(False)
+
+    def setAreaMode(self):
+        enbale = self.canvasWidget.canvas.hasDefaultArea()
+        self.fcstButton.setEnabled(enbale)
+
+        if self.fcstButton.isChecked():
+            self.canvasWidget.setAreaType('forecast')
+            self.modeButton.setEnabled(False)
+        else:
+            self.canvasWidget.setAreaType('default')
+            self.modeButton.setEnabled(True)
+
+        self.areaModeChanged.emit()
 
     def setCanvasMode(self):
         canvasMode = [
@@ -329,8 +349,8 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
 
             text = ' AND '.join(filter(None, areas))
 
-        if self.canvas.isChecked() and self.canvasWidget.canvas.done:
-            text = self.canvasWidget.text()
+        if self.canvas.isChecked():
+            text = self.canvasWidget.texts()
 
         if self.entire.isChecked():
             suffix = conf.value('Message/FIR').split()[-1]
@@ -345,6 +365,8 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
 
     def clear(self):
         self.canvasWidget.clear()
+        self.modeButton.setEnabled(True)
+        self.fcstButton.setChecked(False)
 
 
 class SigmetGeneralHead(BaseSigmetHead):
@@ -426,6 +448,9 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
 
         self.speed.setValidator(QIntValidator(1, 99, self.speed))
 
+        time = QRegExpValidator(QRegExp(self.rules.time))
+        self.forecastTime.setValidator(time)
+
     def setFightLevel(self, text):
         if text in ['TOP', 'ABV']:
             self.base.setEnabled(False)
@@ -468,6 +493,9 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
                 line.clear()
                 self.head.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'The top flight level needs to be greater than the base flight level'))
 
+    def isFcstAreaMode(self):
+        return hasattr(self, 'area') and self.area.fcstButton.isChecked()
+
     def checkComplete(self):
         mustRequired = []
 
@@ -477,22 +505,30 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         if self.top.isEnabled():
             mustRequired.append(self.top.hasAcceptableInput())
 
-        if self.speed.isEnabled():
-            mustRequired.append(self.speed.hasAcceptableInput())
-
         if hasattr(self, 'area'):
             mustRequired.append(self.area.text())
+
+        if self.isFcstAreaMode():
+            mustRequired.append(self.forecastTime.hasAcceptableInput())
+        elif self.speed.isEnabled():
+            mustRequired.append(self.speed.hasAcceptableInput())
 
         self.complete = all(mustRequired)
         self.completeSignal.emit(self.complete)
 
     def message(self):
+        areas = self.area.text()
         prediction = self.head.prediction()
-        area = self.area.text()
         fightLevel = self.fightLevel()
-        moveState = self.moveState()
         intensityChange = self.intensityChange.currentText()
-        text = ' '.join([prediction, area, fightLevel, moveState, intensityChange])
+        if self.isFcstAreaMode():
+            area, forecastArea = areas
+            fcstTime = self.fcstTime()
+            text = ' '.join([prediction, area, fightLevel, intensityChange, fcstTime, forecastArea])
+        else:
+            area = areas[0]
+            moveState = self.moveState()
+            text = ' '.join([prediction, area, fightLevel, moveState, intensityChange])
         return text
 
     def moveState(self):
@@ -525,6 +561,10 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         if level == 'SFC':
             text = 'SFC/FL{}'.format(base) if base else ''
 
+        return text
+
+    def fcstTime(self):
+        text = 'FCST AT {}Z'.format(self.forecastTime.text())
         return text
 
     def clear(self):
@@ -829,6 +869,18 @@ class SigmetGeneralSegment(BaseSegment):
 
         self.head.description.currentTextChanged.connect(self.head.setPhenomena)
         self.head.phenomena.currentTextChanged.connect(self.content.setLevel)
+
+        self.content.area.areaModeChanged.connect(self.setAreaMode)
+
+    def setAreaMode(self):
+        fcstAreaMode = self.content.isFcstAreaMode()
+        if fcstAreaMode:
+            self.head.forecast.setCurrentIndex(self.head.forecast.findText('OBS'))
+            self.content.forecastTime.setEnabled(True)
+            self.content.forecastTimeLabel.setEnabled(True)
+        else:
+            self.content.forecastTime.setEnabled(False)
+            self.content.forecastTimeLabel.setEnabled(False)
 
     def clear(self):
         self.head.clear()

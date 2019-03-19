@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Editor(object):
     def setupUi(self, Editor):
         Editor.setObjectName("Editor")
-        Editor.resize(680, 88)
+        Editor.resize(819, 70)
         Editor.setWindowTitle("Sigmet")
         self.layout = QtWidgets.QVBoxLayout(Editor)
         self.layout.setContentsMargins(-1, 0, -1, 0)
@@ -111,6 +111,14 @@ class Ui_Editor(object):
         self.intensityChangeLabel = QtWidgets.QLabel(self.descriptionGroup)
         self.intensityChangeLabel.setObjectName("intensityChangeLabel")
         self.descriptionLayout.addWidget(self.intensityChangeLabel, 0, 7, 1, 1)
+        self.forecastTime = QtWidgets.QLineEdit(self.descriptionGroup)
+        self.forecastTime.setEnabled(False)
+        self.forecastTime.setObjectName("forecastTime")
+        self.descriptionLayout.addWidget(self.forecastTime, 1, 8, 1, 1)
+        self.forecastTimeLabel = QtWidgets.QLabel(self.descriptionGroup)
+        self.forecastTimeLabel.setEnabled(False)
+        self.forecastTimeLabel.setObjectName("forecastTimeLabel")
+        self.descriptionLayout.addWidget(self.forecastTimeLabel, 0, 8, 1, 1)
         self.layout.addWidget(self.descriptionGroup)
         self.topLabel.setBuddy(self.top)
         self.movementLabel.setBuddy(self.movement)
@@ -136,6 +144,7 @@ class Ui_Editor(object):
         self.baseLabel.setText(_translate("Editor", "FL Base"))
         self.speedLabel.setText(_translate("Editor", "Speed"))
         self.intensityChangeLabel.setText(_translate("Editor", "Intensity Change"))
+        self.forecastTimeLabel.setText(_translate("Editor", "Forecast Time"))
 
 
 if __name__ == "__main__":

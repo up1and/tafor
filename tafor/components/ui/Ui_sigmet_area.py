@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Editor(object):
     def setupUi(self, Editor):
         Editor.setObjectName("Editor")
-        Editor.resize(738, 202)
+        Editor.resize(526, 180)
         Editor.setWindowTitle("Sigmet")
         self.layout = QtWidgets.QVBoxLayout(Editor)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -38,6 +38,13 @@ class Ui_Editor(object):
         self.changeAreaLayout.addWidget(self.entire)
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.changeAreaLayout.addItem(spacerItem)
+        self.fcstButton = QtWidgets.QToolButton(self.changeAreaWidget)
+        self.fcstButton.setText("")
+        self.fcstButton.setIconSize(QtCore.QSize(16, 16))
+        self.fcstButton.setCheckable(True)
+        self.fcstButton.setAutoRaise(True)
+        self.fcstButton.setObjectName("fcstButton")
+        self.changeAreaLayout.addWidget(self.fcstButton)
         self.modeButton = QtWidgets.QToolButton(self.changeAreaWidget)
         self.modeButton.setText("")
         self.modeButton.setIconSize(QtCore.QSize(16, 16))
