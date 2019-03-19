@@ -209,6 +209,7 @@ class BaseTafEditor(BaseEditor):
 
     def closeEvent(self, event):
         self.clear()
+        self.primary.clearType()
 
     def showEvent(self, event):
         # 检查必要配置是否完成

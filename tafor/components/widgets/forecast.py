@@ -687,6 +687,13 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
     def showEvent(self, event):
         self.setDate()
 
+    def clearType(self):
+        self.normal.setChecked(True)
+        self.aaa.clear()
+        self.ccc.clear()
+        self.aaaCnl.clear()
+        self.prev.setChecked(False)
+
     def clear(self):
         super(TafPrimarySegment, self).clear()
 
