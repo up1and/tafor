@@ -52,13 +52,13 @@ class BaseTafEditor(BaseEditor):
         self.tempo3.hide()
 
     def bindSignal(self):
-        self.primary.fmCheckbox.toggled.connect(self.addGroup)
-        self.primary.becmg1Checkbox.toggled.connect(self.addGroup)
-        self.primary.becmg2Checkbox.toggled.connect(self.addGroup)
-        self.primary.becmg3Checkbox.toggled.connect(self.addGroup)
-        self.primary.tempo1Checkbox.toggled.connect(self.addGroup)
-        self.primary.tempo2Checkbox.toggled.connect(self.addGroup)
-        self.primary.tempo3Checkbox.toggled.connect(self.addGroup)
+        self.primary.fmCheckbox.toggled.connect(lambda: self.addGroup(self.primary.fmCheckbox))
+        self.primary.becmg1Checkbox.toggled.connect(lambda: self.addGroup(self.primary.becmg1Checkbox))
+        self.primary.becmg2Checkbox.toggled.connect(lambda: self.addGroup(self.primary.becmg2Checkbox))
+        self.primary.becmg3Checkbox.toggled.connect(lambda: self.addGroup(self.primary.becmg3Checkbox))
+        self.primary.tempo1Checkbox.toggled.connect(lambda: self.addGroup(self.primary.tempo1Checkbox))
+        self.primary.tempo2Checkbox.toggled.connect(lambda: self.addGroup(self.primary.tempo2Checkbox))
+        self.primary.tempo3Checkbox.toggled.connect(lambda: self.addGroup(self.primary.tempo3Checkbox))
 
         self.primary.fmCheckbox.toggled.connect(self.fm.checkComplete)
         self.primary.becmg1Checkbox.toggled.connect(self.becmg1.checkComplete)
@@ -82,39 +82,45 @@ class BaseTafEditor(BaseEditor):
         # 下一步
         self.nextButton.clicked.connect(self.beforeNext)
 
-    def addGroup(self):
+    def addGroup(self, clickedbox):
+        fmCheckboxs = [self.primary.fmCheckbox]
+        becmgCheckboxs = [self.primary.becmg1Checkbox, self.primary.becmg2Checkbox, self.primary.becmg3Checkbox]
+        tempoCheckboxs = [self.primary.tempo1Checkbox, self.primary.tempo2Checkbox, self.primary.tempo3Checkbox]
+        fmGroups = [self.fm]
+        becmgGroups = [self.becmg1, self.becmg2, self.becmg3]
+        tempoGroups = [self.tempo1, self.tempo2, self.tempo3]
 
-        def manipulate(group1, group2, group3):
-            if getattr(self.primary, group1 + 'Checkbox').isChecked():
-                getattr(self, group1).setVisible(True)
+        checks = [c for c in fmCheckboxs + becmgCheckboxs + tempoCheckboxs if c.isChecked()]
+        if len(checks) > 5:
+            clickedbox.setChecked(False)
+            self.showNotificationMessage(QCoreApplication.translate('Editor', 'Change groups cannot be more than 5'))
+            return
+
+        def manipulate(checkboxs, groups):
+            if clickedbox not in checkboxs:
+                return
+
+            index = checkboxs.index(clickedbox)
+            checked = clickedbox.isChecked()
+
+            if checked:
+                if index != 0 and not checkboxs[index-1].isChecked():
+                    clickedbox.setChecked(False)
             else:
-                getattr(self, group1).setVisible(False)
-                getattr(self, group2).setVisible(False)
-                getattr(self, group3).setVisible(False)
-                getattr(self.primary, group2 + 'Checkbox').setChecked(False)
-                getattr(self.primary, group3 + 'Checkbox').setChecked(False)
+                for i, checkbox in enumerate(checkboxs):
+                    if i > index:
+                        checkbox.setChecked(False)
 
-            if getattr(self.primary, group2 + 'Checkbox').isChecked():
-                getattr(self, group2).setVisible(True)
-            else:
-                getattr(self, group2).setVisible(False)
-                getattr(self, group3).setVisible(False)
-                getattr(self.primary, group3 + 'Checkbox').setChecked(False)
+            for i, group in enumerate(groups):
+                isVisible = checkboxs[i].isChecked()
+                group.setVisible(isVisible)
 
-            if getattr(self.primary, group3 + 'Checkbox').isChecked():
-                getattr(self, group3).setVisible(True)
-            else:
-                getattr(self, group3).setVisible(False)
-
+        # FM
+        manipulate(fmCheckboxs, fmGroups)
         # BECMG
-        manipulate('becmg1', 'becmg2', 'becmg3')
+        manipulate(becmgCheckboxs, becmgGroups)
         # TEMPO
-        manipulate('tempo1', 'tempo2', 'tempo3')
-
-        if self.primary.fmCheckbox.isChecked():
-            self.fm.setVisible(True)
-        else:
-            self.fm.setVisible(False)
+        manipulate(tempoCheckboxs, tempoGroups)
 
     def assembleMessage(self):
 
