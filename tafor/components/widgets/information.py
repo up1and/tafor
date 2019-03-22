@@ -39,18 +39,26 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
 
     def __init__(self, parent=None):
         super(BaseSigmetHead, self).__init__()
-        self.duration = 4
+        self.span = 4
+        self.durations = None
         self.complete = True
         self.rules = Pattern()
         self.parent = parent
 
         self.setupUi(self)
-        self.updateState()
+        self.initState()
         self.setValidator()
         self.bindSignal()
 
+    def initState(self):
+        self.setPeriodTime()
+        self.setSquence()
+        self.updateDurations()
+
     def bindSignal(self):
         self.forecast.currentTextChanged.connect(self.setPrediction)
+        self.beginningTime.textChanged.connect(self.updateDurations)
+        self.endingTime.textChanged.connect(self.updateDurations)
         self.beginningTime.editingFinished.connect(self.validateValidTime)
         self.endingTime.editingFinished.connect(self.validateValidTime)
 
@@ -66,61 +74,72 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
         if text == 'OBS':
             self.obsTime.setEnabled(True)
             self.obsTimeLabel.setEnabled(True)
+            self.obsTime.setText(self.beginningTime.text()[2:])
         else:
             self.obsTime.setEnabled(False)
             self.obsTimeLabel.setEnabled(False)
+            self.obsTime.clear()
 
-    def updateState(self):
-        self.setValidTime()
-        self.setSquence()
+    def updateDurations(self):
+        if self.beginningTime.hasAcceptableInput() and self.endingTime.hasAcceptableInput():
+            beginText = self.beginningTime.text()
+            endText = self.endingTime.text()
+            start = parseTime(beginText)
+            end = parseTime(endText)
+            self.durations = (start, end)
+        else:
+            self.durations = None
 
-    def durationTime(self):
+    def validPeriodTime(self):
         self.time = datetime.datetime.utcnow()
         if self.parent.type.tt == 'WC':
             start = roundTime(self.time)
         else:
             start = ceilTime(self.time, amount=10)
-        end = start + datetime.timedelta(hours=self.duration)
+        end = start + datetime.timedelta(hours=self.span)
         return start, end
 
     def validateValidTime(self):
-        if self.beginningTime.hasAcceptableInput() and self.endingTime.hasAcceptableInput():
-            start = parseTime(self.beginningTime.text())
-            end = parseTime(self.endingTime.text())
-            time = datetime.datetime.utcnow()
+        if self.durations is None:
+            return
 
-            if start - time > datetime.timedelta(hours=24):
-                self.beginningTime.clear()
-                self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Start time cannot be less than the current time'))
-                return
+        start, end = self.durations
+        time = datetime.datetime.utcnow()
 
-            if end <= start:
-                self.endingTime.clear()
-                self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Ending time must be greater than the beginning time'))
-                return
+        if start - time > datetime.timedelta(hours=24):
+            self.beginningTime.clear()
+            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Start time cannot be less than the current time'))
+            return
 
-            if end - start > datetime.timedelta(hours=self.duration):
-                self.endingTime.clear()
-                self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Valid period more than {} hours').format(self.duration))
-                return
+        if end <= start:
+            self.endingTime.clear()
+            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Ending time must be greater than the beginning time'))
+            return
+
+        if end - start > datetime.timedelta(hours=self.span):
+            self.endingTime.clear()
+            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Valid period more than {} hours').format(self.span))
+            return
 
     def validateObsTime(self):
         # 未启用
-        if self.beginningTime.hasAcceptableInput() and self.obsTime.hasAcceptableInput():
-            start = parseTime(self.beginningTime.text())
-            obs = parseTime(self.obsTime.text())
-            if obs > start:
-                self.obsTime.clear()
-                self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Observation time should before the beginning time'))
+        if self.durations is None:
+            return
+
+        start, _ = self.durations
+        obs = parseTime(self.obsTime.text())
+        if obs > start:
+            self.obsTime.clear()
+            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Observation time should before the beginning time'))
 
     def validate(self):
         self.validateValidTime()
 
-    def setDuration(self, duration):
-        self.duration = duration
+    def setSpan(self, span):
+        self.span = span
 
-    def setValidTime(self):
-        beginningTime, endingTime = self.durationTime()
+    def setPeriodTime(self):
+        beginningTime, endingTime = self.validPeriodTime()
         self.beginningTime.setText(beginningTime.strftime('%d%H%M'))
         self.endingTime.setText(endingTime.strftime('%d%H%M'))
 
@@ -180,6 +199,9 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
         text = ' '.join(items) if all(items) else ''
         return text
 
+    def clear(self):
+        self.durations = None
+
 
 class BaseSigmetContent(QWidget, SegmentMixin):
     completeSignal = pyqtSignal(bool)
@@ -227,7 +249,7 @@ class BaseSegment(QWidget):
             'WC': 6,
             'WV': 6
         }
-        self.head.setDuration(durations[tt])
+        self.head.setSpan(durations[tt])
         self.type.setType(tt)
 
         self.changeSignal.emit()
@@ -483,6 +505,13 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         else:
             self.level.setCurrentIndex(-1)
 
+    def setForecastTime(self):
+        if self.head.durations is None or not self.head.endingTime.text():
+            return
+
+        text = self.head.endingTime.text()[2:]
+        self.forecastTime.setText(text)
+
     def validateBaseTop(self, line):
         if not (self.base.isEnabled() and self.top.isEnabled()):
             return
@@ -580,7 +609,7 @@ class SigmetTyphoonHead(BaseSigmetHead):
         self.hideDescription()
         self.setPhenomena()
         self.setFcstOrObs()
-        self.duration = 6
+        self.span = 6
         self.nameLabel.setText(QCoreApplication.translate('Editor', 'Typhoon Name'))
 
     def setPhenomena(self, text='TC'):
@@ -866,7 +895,7 @@ class SigmetGeneralSegment(BaseSegment):
         self.bindSignal()
 
     def bindSignal(self):
-        self.changeSignal.connect(self.head.updateState)
+        self.changeSignal.connect(self.head.initState)
 
         self.head.description.currentTextChanged.connect(self.head.setPhenomena)
         self.head.phenomena.currentTextChanged.connect(self.content.setLevel)
@@ -879,9 +908,11 @@ class SigmetGeneralSegment(BaseSegment):
             self.head.forecast.setCurrentIndex(self.head.forecast.findText('OBS'))
             self.content.forecastTime.setEnabled(True)
             self.content.forecastTimeLabel.setEnabled(True)
+            self.content.setForecastTime()
         else:
             self.content.forecastTime.setEnabled(False)
             self.content.forecastTimeLabel.setEnabled(False)
+            self.content.forecastTime.clear()
 
     def clear(self):
         self.head.clear()
@@ -904,7 +935,7 @@ class SigmetTyphoonSegment(BaseSegment):
         self.bindSignal()
 
     def bindSignal(self):
-        self.changeSignal.connect(self.head.updateState)
+        self.changeSignal.connect(self.head.initState)
 
         self.head.endingTime.textChanged.connect(lambda: self.content.setForecastTime(self.head.endingTime.text()))
         self.head.beginningTime.textEdited.connect(self.content.setForecastPosition)
@@ -926,8 +957,8 @@ class SigmetCancelSegment(BaseSegment):
         self.bindSignal()
 
     def bindSignal(self):
-        self.changeSignal.connect(self.head.updateState)
-        self.changeSignal.connect(self.updateState)
+        self.changeSignal.connect(self.head.initState)
+        self.changeSignal.connect(self.initState)
 
         self.content.endingTime.textChanged.connect(self.setEndingTime)
         self.content.sequence.currentTextChanged.connect(self.setValids)
@@ -936,7 +967,7 @@ class SigmetCancelSegment(BaseSegment):
         ending = self.content.endingTime.text()
         self.head.endingTime.setText(ending)
 
-    def updateState(self):
+    def initState(self):
         self.prevs = {}
         sigmets = currentSigmet(tt=self.type.tt)
 
@@ -972,7 +1003,7 @@ class SigmetCustomSegment(BaseSegment):
         self.bindSignal()
 
     def bindSignal(self):
-        self.changeSignal.connect(self.head.updateState)
+        self.changeSignal.connect(self.head.initState)
         self.changeSignal.connect(self.updateText)
         self.changeSignal.connect(self.setText)
 

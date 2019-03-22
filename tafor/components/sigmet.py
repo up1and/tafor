@@ -57,7 +57,7 @@ class SigmetEditor(BaseEditor):
         self.sigmetCustom.head.completeSignal.connect(self.enbaleNextButton)
         self.sigmetCustom.content.completeSignal.connect(self.enbaleNextButton)
 
-        self.sender.sendSignal.connect(self.updateState)
+        self.sender.sendSignal.connect(self.initState)
 
     def changeSegment(self, a):
         if self.type.template.isChecked():
@@ -129,10 +129,10 @@ class SigmetEditor(BaseEditor):
         self.enbale = all(completes)
         self.nextButton.setEnabled(self.enbale)
 
-    def updateState(self):
-        self.currentSegment.head.updateState()
+    def initState(self):
+        self.currentSegment.head.initState()
         if self.currentSegment == self.sigmetCancel:
-            self.currentSegment.updateState()
+            self.currentSegment.initState()
 
     def clear(self):
         self.sigmetGeneral.clear()
@@ -146,6 +146,6 @@ class SigmetEditor(BaseEditor):
     def showEvent(self, event):
         # 检查必要配置是否完成
         if isConfigured('SIGMET'):
-            self.updateState()
+            self.initState()
         else:
             QTimer.singleShot(0, self.showConfigError)
