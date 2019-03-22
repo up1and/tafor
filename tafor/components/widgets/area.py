@@ -265,12 +265,10 @@ class Canvas(QWidget):
         painter.drawRect(rect)
 
     def clear(self):
-        print('clear')
         self.coords = {
             'default': {'points': [], 'done': False},
             'forecast': {'points': [], 'done': False}
         }
-        self.areaType = 'default'
         self.rectangular = []
         self.pointsChanged.emit()
         self.stateChanged.emit()
@@ -298,7 +296,7 @@ class AreaBoard(QWidget):
         self.setMaximumWidth(575)
 
         self.message = {}
-        self.pointspacing = ''
+        self.wideMode = False
 
         self.canvas.pointsChanged.connect(self.updateArea)
         self.canvas.stateChanged.connect(self.updateArea)
@@ -306,10 +304,18 @@ class AreaBoard(QWidget):
     def showEvent(self, event):
         if self.canvas.sizeHint().width() > 440:
             self.layout.addWidget(self.board, 1, 0)
-            self.pointspacing = ' - '
+            self.wideMode = True
         else:
             self.layout.addWidget(self.board, 0, 1)
-            self.pointspacing = '\n'
+            self.wideMode = False
+
+    @property
+    def pointspacing(self):
+        return ' - ' if self.wideMode else '\n'
+
+    @property
+    def wordspacing(self):
+        return '  ' if self.wideMode else '<br>'
 
     def updateArea(self):
         for key, coords in self.canvas.coords.items():
@@ -371,9 +377,19 @@ class AreaBoard(QWidget):
         return message
 
     def setBorad(self, messages):
-        messages = [text for _, text in self.message.items() if text]
-        messages.reverse()
-        self.board.setText('\n\n'.join(messages))
+        messages = []
+        orders = ['default', 'forecast']
+        labels = {
+            'default': QCoreApplication.translate('Editor', 'DEFAULT'),
+            'forecast': QCoreApplication.translate('Editor', 'FORECAST')
+        }
+        for key in orders:
+            if self.message[key]:
+                label = '<span style="color: grey">{}</span>'.format(labels[key])
+                text = label + self.wordspacing + self.message[key]
+                messages.append(text)
+
+        self.board.setText('<br><br>'.join(messages))
 
     def setMode(self, mode):
         self.canvas.mode = mode

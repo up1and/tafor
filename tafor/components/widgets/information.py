@@ -367,6 +367,7 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
         self.canvasWidget.clear()
         self.modeButton.setEnabled(True)
         self.fcstButton.setChecked(False)
+        self.canvasWidget.setAreaType('default')
 
 
 class SigmetGeneralHead(BaseSigmetHead):
@@ -886,7 +887,10 @@ class SigmetGeneralSegment(BaseSegment):
         self.head.clear()
         self.content.clear()
         self.head.description.setCurrentIndex(1)
+        self.head.forecast.setCurrentIndex(0)
         self.content.level.setCurrentIndex(1)
+        self.content.forecastTime.setEnabled(False)
+        self.content.forecastTimeLabel.setEnabled(False)
 
 
 class SigmetTyphoonSegment(BaseSegment):
