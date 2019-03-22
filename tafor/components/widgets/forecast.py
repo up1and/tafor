@@ -446,6 +446,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             self.temperatureLayout.addWidget(self.temp)
             self.temperatures.append(self.temp)
             self.becmg3Checkbox.setStyleSheet('QCheckBox {margin-top: 4px;}')
+            self.tempo3Checkbox.setStyleSheet('QCheckBox {margin-top: 4px;}')
 
         self.bindSignal()
         self.initMessageSpec()
@@ -741,6 +742,9 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.period.setText('{:02d}'.format(time.day))
 
     def fillPeriod(self):
+        self.autoFillPeriod()
+
+    def autoFillSlash(self):
         text = self.period.text()
         if len(text) > len(self.periodText):
             if len(text) == 4:
@@ -750,7 +754,42 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
         self.periodText = text
 
-    def maxDuration(self):
+    def autoFillPeriod(self):
+        if self.parent.primary.durations is None or not self.parent.primary.period.text():
+            return
+
+        text = self.period.text()
+        if len(text) > len(self.periodText):
+            if len(text) == 4:
+                durations = self.parent.primary.durations
+                start = parseDayHour(text, durations[0])
+                if start < durations[0]:
+                    start += datetime.timedelta(days=1)
+
+                if self.identifier.startswith('TEMPO'):
+                    delta = datetime.timedelta(hours=self.span())
+                    end = start + delta
+                    if durations[1] <= start:
+                        return
+
+                    if durations[1] <= end:
+                        text = '{:02d}{:02d}/{}'.format(start.day, start.hour, self.parent.primary.period.text()[5:])
+                    else:
+                        text = '{:02d}{:02d}/{:02d}{:02d}'.format(start.day, start.hour, end.day, end.hour)
+
+                if self.identifier.startswith('BECMG'):
+                    delta = datetime.timedelta(hours=1)
+                    end = start + delta
+                    if durations[1] <= end or durations[1] <= start:
+                        return
+
+                    text = '{:02d}{:02d}/{:02d}{:02d}'.format(start.day, start.hour, end.day, end.hour)
+
+            self.period.setText(text)
+
+        self.periodText = text
+
+    def span(self):
         if self.identifier.startswith('TEMPO'):
             spec = self.parent.primary.taf.spec.tt
             if spec == 'FT':
@@ -781,22 +820,22 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
         start, end = self.durations
 
-        if end - start > datetime.timedelta(hours=self.maxDuration()):
+        if end - start > datetime.timedelta(hours=self.span()):
             self.period.clear()
-            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time more than {} hours').format(self.maxDuration()))
+            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time more than {} hours').format(self.span()))
             return
 
         if self.parent.primary.durations is None:
             return
 
-        primaryDurations = self.parent.primary.durations
+        durations = self.parent.primary.durations
         
-        if start < primaryDurations[0] or primaryDurations[1] < start:
+        if start < durations[0] or durations[1] < start:
             self.period.clear()
             self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Start time of change group is not corret'))
             return
 
-        if end < primaryDurations[0] or primaryDurations[1] < end or (self.identifier.startswith('BECMG') and end == primaryDurations[1]):
+        if end < durations[0] or durations[1] < end or (self.identifier.startswith('BECMG') and end == durations[1]):
             self.period.clear()
             self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'End time of change group is not corret'))
             return
@@ -870,9 +909,9 @@ class TafFmSegment(TafGroupSegment):
         if self.durations is None or self.parent.primary.durations is None:
             return
 
-        primaryDurations = self.parent.primary.durations
+        durations = self.parent.primary.durations
         start, end = self.durations
-        if start < primaryDurations[0] or primaryDurations[1] <= start:
+        if start < durations[0] or durations[1] <= start:
             self.period.clear()
             self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Time of change group is not corret'))
             return
