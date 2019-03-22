@@ -196,7 +196,7 @@ class BaseSegment(QWidget, SegmentMixin):
             for w in weathers:
                 intensityWeathers.append('+{}'.format(w))
         self.weatherWithIntensity.addItems(intensityWeathers)
-        intensityWeather = QRegExpValidator(QRegExp(r'[-+]?{}'.format('|'.join(weathers)), Qt.CaseInsensitive))
+        intensityWeather = QRegExpValidator(QRegExp(r'[-+]?({})'.format('|'.join(weathers)), Qt.CaseInsensitive))
         self.weatherWithIntensity.setValidator(intensityWeather)
 
     def validateGust(self):
@@ -723,7 +723,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
     def bindSignal(self):
         super(TafGroupSegment, self).bindSignal()
         self.period.textEdited.connect(self.fillPeriod)
-        self.period.textEdited.connect(self.updateDurations)
+        self.period.textChanged.connect(self.updateDurations)
         self.period.editingFinished.connect(self.validatePeriod)
         self.period.editingFinished.connect(self.validateGroupsPeriod)
         self.period.textChanged.connect(lambda: self.coloredText(self.period))
@@ -750,6 +750,18 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
         self.periodText = text
 
+    def maxDuration(self):
+        if self.identifier.startswith('TEMPO'):
+            spec = self.parent.primary.taf.spec.tt
+            if spec == 'FT':
+                duration = 6
+            else:
+                duration = 4
+        else:
+            duration = 2
+
+        return duration
+
     def updateDurations(self):
         if self.period.hasAcceptableInput() and self.parent.primary.period.text():
             period = self.period.text()
@@ -767,42 +779,37 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         if self.durations is None:
             return
 
-        isTempo = self.identifier.startswith('TEMPO')
+        start, end = self.durations
 
-        if isTempo and self.taf.spec.tt == 'FC':
-            maxTime = 4
-        elif isTempo and self.taf.spec.tt == 'FT':
-            maxTime = 6
-        else:
-            maxTime = 2
+        if end - start > datetime.timedelta(hours=self.maxDuration()):
+            self.period.clear()
+            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time more than {} hours').format(self.maxDuration()))
+            return
+
+        if self.parent.primary.durations is None:
+            return
 
         primaryDurations = self.parent.primary.durations
-        start, end = self.durations
+        
         if start < primaryDurations[0] or primaryDurations[1] < start:
             self.period.clear()
             self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Start time of change group is not corret'))
             return
 
-        if end < primaryDurations[0] or primaryDurations[1] < end:
+        if end < primaryDurations[0] or primaryDurations[1] < end or (self.identifier.startswith('BECMG') and end == primaryDurations[1]):
             self.period.clear()
             self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'End time of change group is not corret'))
             return
 
-        if end - start > datetime.timedelta(hours=maxTime):
-            self.period.clear()
-            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time more than {} hours').format(maxTime))
-            return
-
     def validateGroupsPeriod(self):
-        isTempo = self.identifier.startswith('TEMPO')
 
         def isPeriodOverlay(period, periods):
             for p in periods:
                 if isOverlap(period, p):
                     return True
 
-        groups = self.parent.tempos if isTempo else self.parent.becmgs
-        periods = [g.durations for g in groups if g.durations and self != g]
+        groups = self.parent.tempos if self.identifier.startswith('TEMPO') else self.parent.becmgs
+        periods = [g.durations for g in groups if g.isVisible() and g.durations and self != g]
         if isPeriodOverlay(self.durations, periods):
             self.period.clear()
             self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time is overlap'))
@@ -814,8 +821,8 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
             self.cavok.isChecked(),
             self.wind.hasAcceptableInput(),
             self.vis.hasAcceptableInput(),
-            self.weather.lineEdit().hasAcceptableInput(),
-            self.weatherWithIntensity.lineEdit().hasAcceptableInput(),
+            self.weather.lineEdit().hasAcceptableInput() and self.weather.currentText(),
+            self.weatherWithIntensity.lineEdit().hasAcceptableInput() and self.weatherWithIntensity.currentText(),
             self.cloud1.hasAcceptableInput(),
             self.cloud2.hasAcceptableInput(),
             self.cloud3.hasAcceptableInput(),
@@ -830,13 +837,10 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
     def showEvent(self, event):
         self.setPeriod()
 
-    def hideEvent(self, event):
-        self.durations = None
-        self.periodText = ''
-
     def clear(self):
         super(TafGroupSegment, self).clear()
         self.period.clear()
+        self.periodText = ''
 
 
 class TafFmSegment(TafGroupSegment):
@@ -863,12 +867,12 @@ class TafFmSegment(TafGroupSegment):
             self.durations = None
 
     def validatePeriod(self):
-        if self.durations is None:
+        if self.durations is None or self.parent.primary.durations is None:
             return
 
         primaryDurations = self.parent.primary.durations
         start, end = self.durations
-        if start < primaryDurations[0] or primaryDurations[1] < start:
+        if start < primaryDurations[0] or primaryDurations[1] <= start:
             self.period.clear()
             self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Time of change group is not corret'))
             return
@@ -880,15 +884,19 @@ class TafFmSegment(TafGroupSegment):
                 if p[0] <= time <= p[1]:
                     return True
 
+        if self.durations is None:
+            return
+
         groups = self.parent.becmgs
-        periods = [g.durations for g in groups if g.durations and self != g]
+        periods = [g.durations for g in groups if g.isVisible() and g.durations and self != g]
         if inPeriod(self.durations[0], periods):
             self.period.clear()
             self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time is overlap'))
 
     def checkComplete(self):
         self.complete = False
-        hasWeather = self.weather.lineEdit().hasAcceptableInput() or self.weatherWithIntensity.lineEdit().hasAcceptableInput()
+        hasWeather = self.weather.lineEdit().hasAcceptableInput() and self.weather.currentText() \
+            or self.weatherWithIntensity.lineEdit().hasAcceptableInput() and self.weatherWithIntensity.currentText()
         mustRequired = [
             self.period.hasAcceptableInput(),
             self.wind.hasAcceptableInput(),
@@ -1063,8 +1071,8 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
             self.cavok.isChecked(),
             self.wind.hasAcceptableInput(),
             self.vis.hasAcceptableInput(),
-            self.weather.lineEdit().hasAcceptableInput(),
-            self.weatherWithIntensity.lineEdit().hasAcceptableInput(),
+            self.weather.lineEdit().hasAcceptableInput() and self.weather.currentText() ,
+            self.weatherWithIntensity.lineEdit().hasAcceptableInput() and self.weatherWithIntensity.currentText(),
             self.cloud1.hasAcceptableInput(),
             self.cloud2.hasAcceptableInput(),
             self.cloud3.hasAcceptableInput(),
