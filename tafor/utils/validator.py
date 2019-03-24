@@ -79,9 +79,6 @@ class SigmetGrammar(object):
     _point = r'((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))'
     _pointSpacer = r'\s?-\s?'
 
-    _point = r'((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))'
-    _pointSpacer = r'\s?-\s?'
-
     @property
     def point(self):
         return re.compile(self._point)
@@ -972,12 +969,19 @@ class SigmetParser(object):
         p.renderer(style='html')
 
     """
-    def __init__(self, message, parse=None, **kwargs):
+    grammarClass = SigmetGrammar
+
+    def __init__(self, message, parse=None, grammar=None, **kwargs):
         self.message = message.strip()
 
-        if not parse:
-            self.parse = SigmetLexer
+        if not grammar:
+            grammar = self.grammarClass()
 
+        if not parse:
+            parse = SigmetLexer
+
+        self.grammar = grammar
+        self.parse = parse
         self.firCode = kwargs.get('firCode')
         self.airportCode = kwargs.get('airportCode')
 
@@ -991,6 +995,61 @@ class SigmetParser(object):
         self.heads = [e.strip() for e in ''.join(heads).split('\n')]
         elements = elements.strip().split('\n')
         self.elements = [self.parse(e, firCode=self.firCode, airportCode=self.airportCode) for e in elements]
+
+    def area(self, mode='object'):
+        patterns = {
+            'polygon': self.grammar.polygon,
+            'line': self.grammar.lines,
+            'rectangular': self.grammar.rectangulars,
+            'entire': re.compile('ENTIRE')
+        }
+        areas = {
+            'default': {'area': [], 'type': 'unknow'},
+            'forecast': {'area': [], 'type': 'unknow'}
+        }
+        orders = ['default', 'forecast']
+
+        for key, pattern in patterns.items():
+            m = pattern.search(self.message)
+            if not m:
+                continue
+
+            for i, match in enumerate(pattern.finditer(self.message)):
+                text = match.group()
+                order = orders[i]
+                item = self._parseArea(key, text) if mode == 'object' else text
+                areas[order]['type'] = key
+                areas[order]['area'] = item
+
+        return areas
+
+    def _parseArea(self, key, text):
+        if key == 'polygon':
+            point = self.grammar.point
+            points = point.findall(text)
+
+            return points
+
+        if key == 'line':
+            point = self.grammar.point
+            line = self.grammar.line
+            locations = []
+            for l in line.finditer(text):
+                identifier = l.group(1)
+                part = l.group()
+                points = point.findall(part)
+                points.insert(0, identifier)
+                locations.append(points)
+
+            return locations
+
+        if key == 'rectangular':
+            line = self.grammar.rectangular
+            lines = line.findall(text)
+
+            return lines
+
+        return []
 
     def isValid(self):
         """报文是否通过验证"""

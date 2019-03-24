@@ -193,67 +193,9 @@ class Sigmet(Base):
         return text
 
     def area(self):
-        from tafor.utils.validator import SigmetGrammar
-        rules = SigmetGrammar()
-        patterns = {
-            'POLYGON': rules.polygon,
-            'LINE': rules.lines,
-            'RECTANGULAR': rules.rectangulars,
-            'ENTIRE': re.compile('ENTIRE')
-        }
-        _area = {
-            'type': 'unknow',
-            'area': []
-        }
-
-        for key, pattern in patterns.items():
-            m = pattern.search(self.rpt)
-            if not m:
-                continue
-
-            if key == 'POLYGON':
-                text = m.group()
-                point = rules.point
-                points = point.findall(text)
-                _area = {
-                    'type': 'polygon',
-                    'area': points
-                }
-
-            if key == 'LINE':
-                text = m.group()
-                point = rules.point
-                line = rules.line
-                locations = []
-                for l in line.finditer(text):
-                    identifier = l.group(1)
-                    part = l.group()
-                    points = point.findall(part)
-                    points.insert(0, identifier)
-                    locations.append(points)
-
-                _area = {
-                    'type': 'line',
-                    'area': locations
-                }
-
-            if key == 'RECTANGULAR':
-                text = m.group()
-                line = rules.rectangular
-                lines = line.findall(text)
-
-                _area = {
-                    'type': 'rectangular',
-                    'area': lines
-                }
-
-            if key == 'ENTIRE':
-                _area = {
-                    'type': 'entire',
-                    'area': []
-                }
-
-        return _area
+        from tafor.utils.validator import SigmetParser
+        sigmet = SigmetParser(self.rpt)
+        return sigmet.area()
 
     def expired(self):
         from tafor.utils.convert import parseTime

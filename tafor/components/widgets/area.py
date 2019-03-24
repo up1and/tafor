@@ -232,7 +232,6 @@ class Canvas(QWidget):
         painter.drawText(rect, Qt.AlignCenter, QCoreApplication.translate('Editor', 'No Satellite Image'))
 
     def drawSigmets(self, painter):
-        pen = QPen(QColor(204, 204, 204), 1, Qt.DashLine)
         brushes = {
             'ts': QBrush(QColor(240, 156, 0, 100)),
             'turb': QBrush(QColor(37, 238, 44, 100)),
@@ -244,15 +243,25 @@ class Canvas(QWidget):
 
         sigmets = self.fir.sigmetsInfo()
         for i, sig in enumerate(sigmets):
-            center = Polygon(sig['area']).centroid
-            met = self.fir.sigmets()[i]
-            points = listToPoint(sig['area'])
-            pol = QPolygon(points)
-            brush = brushes.get(sig['type'], 'other')
-            painter.setBrush(brush)
-            painter.setPen(pen)
-            painter.drawPolygon(pol)
-            painter.drawText(center.x - 5, center.y + 5, met.sequence)
+            for key, area in sig['area'].items():
+                points = listToPoint(area)
+                pol = QPolygon(points)
+
+                if key == 'default':
+                    center = Polygon(area).centroid
+                    met = self.fir.sigmets()[i]
+                    pen = QPen(QColor(204, 204, 204), 1, Qt.DashLine)
+                    brush = brushes.get(sig['type'], 'other')
+                    painter.setPen(pen)
+                    painter.drawText(center.x - 5, center.y + 5, met.sequence)
+
+                if key == 'forecast':
+                    pen = QPen(QColor(204, 204, 204, 150), 1, Qt.DashLine)
+                    brush = QBrush(QColor(154, 205, 50, 70))
+                    painter.setPen(pen)
+
+                painter.setBrush(brush)
+                painter.drawPolygon(pol)
 
     def drawRectangular(self, painter):
         pen = QPen(QColor(0, 120, 215))
