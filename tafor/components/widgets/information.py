@@ -332,7 +332,7 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
             self.modeButton.setVisible(False)
 
     def setAreaMode(self):
-        enbale = self.canvasWidget.canvas.hasDefaultArea()
+        enbale = self.canvasWidget.canEnbaleFcstMode()
         self.fcstButton.setEnabled(enbale)
 
         if self.fcstButton.isChecked():
@@ -357,7 +357,6 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
         canvasMode = next(self.canvasMode)
         self.canvasWidget.setMode(canvasMode['mode'])
         self.modeButton.setIcon(QIcon(canvasMode['icon']))
-        self.canvasWidget.canvas.clear()
 
     def text(self):
         text = ''

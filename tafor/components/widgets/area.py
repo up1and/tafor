@@ -31,6 +31,7 @@ class Canvas(QWidget):
             'forecast': QColor(154, 205, 50, 100)
         }
         self.fir = context.fir
+        self.parent = parent
         self.setSizePolicy(0, 0)
 
     @property
@@ -52,9 +53,6 @@ class Canvas(QWidget):
     @property
     def boundaryColor(self):
         return Qt.red if self.fir.image() else Qt.white
-
-    def hasDefaultArea(self):
-        return self.coords['default']['done']
 
     def sizeHint(self):
         *_, w, h = self.fir.rect()
@@ -141,7 +139,7 @@ class Canvas(QWidget):
                 self.rectangular = [event.pos(), event.pos()]
 
         if event.button() == Qt.RightButton:
-            self.clear()
+            self.clearRectangular()
 
     def mouseMoveEvent(self, event):
         if self.mode != 'rectangular' or self.done or len(self.rectangular) != 2:
@@ -264,6 +262,31 @@ class Canvas(QWidget):
         rect = QRect(*self.rectangular)
         painter.drawRect(rect)
 
+    def setAreaType(self, areaType):
+        forecastToDefault = areaType != 'forecast' and self.areaType == 'forecast'
+        defaultToForecast = areaType != 'default' and self.areaType == 'default'
+        self.areaType = areaType
+
+        if forecastToDefault:
+            self.coords['forecast'] = {'points': [], 'done': False}
+            self.pointsChanged.emit()
+            self.stateChanged.emit()
+            self.update()
+
+        if defaultToForecast:
+            self.rectangular = []
+
+    def setMode(self, mode):
+        self.mode = mode
+        self.clear()
+
+    def clearRectangular(self):
+        self.coords[self.areaType] = {'points': [], 'done': False}
+        self.rectangular = []
+        self.pointsChanged.emit()
+        self.stateChanged.emit()
+        self.update()
+
     def clear(self):
         self.coords = {
             'default': {'points': [], 'done': False},
@@ -287,7 +310,7 @@ class AreaBoard(QWidget):
         self.board.setAlignment(Qt.AlignTop)
         self.board.setWordWrap(True)
         self.board.setMinimumHeight(26)
-        self.canvas = Canvas()
+        self.canvas = Canvas(self)
         self.layout = QGridLayout()
         self.layout.addWidget(self.canvas, 0, 0)
         self.layout.setSpacing(20)
@@ -297,6 +320,7 @@ class AreaBoard(QWidget):
 
         self.message = {}
         self.wideMode = False
+        self.defaultCanEncode = False
 
         self.canvas.pointsChanged.connect(self.updateArea)
         self.canvas.stateChanged.connect(self.updateArea)
@@ -319,7 +343,11 @@ class AreaBoard(QWidget):
 
     def updateArea(self):
         for key, coords in self.canvas.coords.items():
-            self.message[key] = self.generateText(coords)
+            text = self.generateText(coords)
+            self.message[key] = text
+
+            if key == 'default':
+                self.defaultCanEncode = True if text else False
 
         self.setBorad(self.message)
 
@@ -343,7 +371,7 @@ class AreaBoard(QWidget):
             message = ' AND '.join(lines)
 
         if self.canvas.mode == 'line':
-            if self.canvas.done:
+            if coords['done']:
                 boundaries = context.fir._state['boundaries']
                 points = context.fir.pixelToDecimal(coords['points'])
                 area = encodeSigmetArea(boundaries, points, mode='line')
@@ -392,10 +420,13 @@ class AreaBoard(QWidget):
         self.board.setText('<br><br>'.join(messages))
 
     def setMode(self, mode):
-        self.canvas.mode = mode
+        self.canvas.setMode(mode)
 
     def setAreaType(self, areaType):
-        self.canvas.areaType = areaType
+        self.canvas.setAreaType(areaType)
+
+    def canEnbaleFcstMode(self):
+        return self.canvas.coords['default']['done'] and self.defaultCanEncode
 
     def texts(self):
         messages = []
@@ -410,5 +441,6 @@ class AreaBoard(QWidget):
 
     def clear(self):
         self.message = {}
+        self.canEncode = False
         self.board.setText('')
         self.canvas.clear()
