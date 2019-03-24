@@ -66,7 +66,6 @@ class TafGrammar(object):
 
 
 class SigmetGrammar(object):
-    area = re.compile(r'(AREA\([1-9]{1}\))')
     latitude = re.compile(r'(N|S)(90(0{2})?|[0-8]\d([0-5]\d)?)')
     longitude = re.compile(r'(E|W)(180(0{2})?|((1[0-7]\d)|(0\d{2}))([0-5]\d)?)')
     fightLevel = re.compile(r'(FL[1-9]\d{2}/[1-9]\d{2})|(FL[1-9]\d{2})|(\d{4,5}FT)|(\d{4,5}M)|(SFC/FL[1-9]\d{2})')
@@ -75,8 +74,54 @@ class SigmetGrammar(object):
     typhoonRange = re.compile(r'(\d{1,3}KM)')
     sequence = re.compile(r'([A-Z]?\d{1,2})')
     valid = re.compile(r'(\d{6})/(\d{6})')
-    longlat = re.compile(r'(E|W)(\d{5}|\d{3})-(N|S)(\d{4}|\d{2})')
     width = re.compile(r'(\d{1,3})NM')
+
+    _point = r'((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))'
+    _pointSpacer = r'\s?-\s?'
+
+    _point = r'((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))'
+    _pointSpacer = r'\s?-\s?'
+
+    @property
+    def point(self):
+        return re.compile(self._point)
+
+    @property
+    def line(self):
+        pattern = re.compile(
+            r'([A-Z]{1,2})'
+            r'\sOF\sLINE\s'
+            r'(%s(?:%s)?)+' % (self._point, self._pointSpacer)
+        )
+        return pattern
+
+    @property
+    def lines(self):
+        pattern = re.compile(
+            r'({}(?:\sAND\s)?)+'.format(_purePattern(self.line))
+        )
+        return pattern
+
+    @property
+    def polygon(self):
+        pattern = re.compile(
+            r'(WI\s(?:{}(?:{})?)+)'.format(self._point, self._pointSpacer)
+        )
+        return pattern
+
+    @property
+    def rectangular(self):
+        pattern = re.compile(
+            r'(N|S|W|E)\sOF\s((?:N|S)(?:\d{4}|\d{2})|(?:E|W)(?:\d{5}|\d{3}))'
+        )
+        return pattern
+
+    @property
+    def rectangulars(self):
+        pattern = re.compile(
+            r'({}(?:\sAND\s)?)+'.format(_purePattern(self.rectangular))
+        )
+        return pattern
 
 
 class TafValidator(object):
@@ -786,7 +831,7 @@ class SigmetLexer(object):
         'FIR', 'FIR/UIR', 'CTA'
     ]
 
-    defaultRules = ['area', 'latitude', 'longitude', 'fightLevel', 'speed', 'obsTime', 'typhoonRange', 'sequence', 'valid', 'longlat', 'width']
+    defaultRules = ['latitude', 'longitude', 'fightLevel', 'speed', 'obsTime', 'typhoonRange', 'sequence', 'valid', 'width']
 
     def __init__(self, part, firCode=None, airportCode=None, grammar=None, keywords=None, **kwargs):
         super(SigmetLexer, self).__init__()

@@ -193,29 +193,42 @@ class Sigmet(Base):
         return text
 
     def area(self):
-        if self.tt == 'WS':
-            if 'WI' in self.rpt:
-                pattern = re.compile(r'((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))')
-                points = pattern.findall(self.rpt)
+        from tafor.utils.validator import SigmetGrammar
+        rules = SigmetGrammar()
+        patterns = {
+            'POLYGON': rules.polygon,
+            'LINE': rules.lines,
+            'RECTANGULAR': rules.rectangulars,
+            'ENTIRE': re.compile('ENTIRE')
+        }
+        _area = {
+            'type': 'unknow',
+            'area': []
+        }
+
+        for key, pattern in patterns.items():
+            m = pattern.search(self.rpt)
+            if not m:
+                continue
+
+            if key == 'POLYGON':
+                text = m.group()
+                point = rules.point
+                points = point.findall(text)
                 _area = {
                     'type': 'polygon',
-                    'area': [p for p in points]
+                    'area': points
                 }
-            elif 'LINE' in self.rpt:
-                _point = r'((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))'
-                _spacer = r'\s?-\s?'
-                line = re.compile(
-                    r'([A-Z]{1,2})'
-                    r'\sOF\sLINE\s'
-                    r'(%s(?:%s)?)+' % (_point, _spacer)
-                )
-                point = re.compile(_point)
 
+            if key == 'LINE':
+                text = m.group()
+                point = rules.point
+                line = rules.line
                 locations = []
-                for l in line.finditer(self.rpt):
+                for l in line.finditer(text):
                     identifier = l.group(1)
-                    text = l.group()
-                    points = point.findall(text)
+                    part = l.group()
+                    points = point.findall(part)
                     points.insert(0, identifier)
                     locations.append(points)
 
@@ -223,24 +236,22 @@ class Sigmet(Base):
                     'type': 'line',
                     'area': locations
                 }
-            elif 'ENTIRE' in self.rpt:
+
+            if key == 'RECTANGULAR':
+                text = m.group()
+                line = rules.rectangular
+                lines = line.findall(text)
+
+                _area = {
+                    'type': 'rectangular',
+                    'area': lines
+                }
+
+            if key == 'ENTIRE':
                 _area = {
                     'type': 'entire',
                     'area': []
                 }
-            else:
-                pattern = re.compile(r'(N|S|W|E)\sOF\s((?:N|S)(?:\d{4}|\d{2})|(?:E|W)(?:\d{5}|\d{3}))')
-                lines = pattern.findall(self.rpt)
-                if lines:
-                    _area = {
-                        'type': 'rectangular',
-                        'area': [p for p in lines]
-                    }
-                else:
-                    _area = {
-                        'type': 'unknow',
-                        'area': []
-                    }
 
         return _area
 
