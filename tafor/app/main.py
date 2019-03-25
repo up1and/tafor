@@ -379,7 +379,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.updateGui()
 
     def updateSigmet(self):
-        sigmets = currentSigmet(tt='WS')
+        sigmets = currentSigmet()
         context.fir.setState({
             'sigmets': sigmets
         })

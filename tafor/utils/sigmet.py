@@ -231,6 +231,11 @@ def decodeSigmetArea(boundaries, area, mode='rectangular'):
         polygon = polygon.intersection(boundary)
         return list(polygon.exterior.coords)
 
+    if mode == 'circle':
+        center, radius = area
+        polygon = Point(*center).buffer(radius)
+        return list(polygon.exterior.coords)
+
     polygons = []
     for identifier, points in area:
         expands = expandLine(points)

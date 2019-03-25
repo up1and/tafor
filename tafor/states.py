@@ -134,7 +134,7 @@ class FirState(object):
             except Exception as e:
                 logger.error(e)
 
-        elif area['type'] == 'line':
+        if area['type'] == 'line':
             decimals = []
             for identifier, *points in area['area']:
                 points = [(degreeToDecimal(lng), degreeToDecimal(lat)) for lat, lng in points]
@@ -146,7 +146,7 @@ class FirState(object):
             except Exception as e:
                 logger.error(e)
 
-        elif area['type'] == 'rectangular':
+        if area['type'] == 'rectangular':
             maxx, maxy = self.rect()[2:]
             decimals = []
             for identifier, deg in area['area']:
@@ -172,7 +172,19 @@ class FirState(object):
             except Exception as e:
                 logger.error(e)
 
-        elif area['type'] == 'entire':
+        if area['type'] == 'circle':
+            point, radius = area['area']
+            width = self.distanceToDecimal(*radius)
+            center = [degreeToDecimal(point[1]), degreeToDecimal(point[0])]
+            circles = [center, width]
+
+            try:
+                polygon = decodeSigmetArea(self._state['boundaries'], circles, mode='circle')
+                polygon = self.degreeToPixel(polygon)
+            except Exception as e:
+                logger.error(e)
+
+        if area['type'] == 'entire':
             polygon = self.boundaries()
 
         return polygon
@@ -220,6 +232,18 @@ class FirState(object):
             ))
 
         return points
+
+    def distanceToDecimal(self, length, unit='KM'):
+        from tafor.utils.convert import calcDiagonal, latlongToDistance
+        length = int(length)
+        point1, point2 = self._state['coordinates']
+        distance = latlongToDistance(point1, point2)
+        diagonal = calcDiagonal(point1[1]-point2[1], point1[0]-point2[0])
+
+        if unit == 'NM':
+            length = length * 1.852
+
+        return length * diagonal / distance
 
 
 class WebApiState(object):

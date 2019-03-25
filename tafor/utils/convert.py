@@ -247,6 +247,26 @@ def calcPosition(latitude, longitude, speed, time, degree):
 
     return decimalToDegree(newLatitude), decimalToDegree(newLongitude, fmt='longitude')
 
+def calcDiagonal(width, height):
+    return math.sqrt(width ** 2 + height ** 2)
+
+def latlongToDistance(point1, point2):
+    """Use haversine formula to calculate the great-circle distance between two points
+    """
+    def deg2rad(deg):
+        return deg * math.pi / 180
+
+    long1, lat1 = point1
+    long2, lat2 = point2
+
+    radius = 6378
+    dlat = deg2rad(lat2-lat1)
+    dlong = deg2rad(long2-long1)
+
+    a = math.sin(dlat/2) * math.sin(dlat/2) + math.cos(deg2rad(lat1)) * math.cos(deg2rad(lat2)) * math.sin(dlong/2) * math.sin(dlong/2)
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    return radius * c
+
 def listToPoint(points):
     """列表格式的坐标点转换为 QPoint
 

@@ -244,6 +244,9 @@ class Canvas(QWidget):
         sigmets = self.fir.sigmetsInfo()
         for i, sig in enumerate(sigmets):
             for key, area in sig['area'].items():
+                if not area:
+                    continue
+
                 points = listToPoint(area)
                 pol = QPolygon(points)
 
@@ -251,7 +254,7 @@ class Canvas(QWidget):
                     center = Polygon(area).centroid
                     met = self.fir.sigmets()[i]
                     pen = QPen(QColor(204, 204, 204), 1, Qt.DashLine)
-                    brush = brushes.get(sig['type'], 'other')
+                    brush = brushes.get(sig['type'], brushes['other'])
                     painter.setPen(pen)
                     painter.drawText(center.x - 5, center.y + 5, met.parser().sequence())
 
@@ -344,7 +347,7 @@ class AreaBoard(QWidget):
 
     @property
     def pointspacing(self):
-        return ' - ' if self.wideMode else '\n'
+        return ' - ' if self.wideMode else '<br>'
 
     @property
     def wordspacing(self):

@@ -78,10 +78,15 @@ class SigmetGrammar(object):
 
     _point = r'((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))'
     _pointSpacer = r'\s?-\s?'
+    _radius = r'\bWI\s(\d{3})(KM|NM)\sOF\s(?:CENTRE)\b'
 
     @property
     def point(self):
         return re.compile(self._point)
+
+    @property
+    def radius(self):
+        return re.compile(self._radius)
 
     @property
     def line(self):
@@ -117,6 +122,14 @@ class SigmetGrammar(object):
     def rectangulars(self):
         pattern = re.compile(
             r'({}(?:\sAND\s)?)+'.format(_purePattern(self.rectangular))
+        )
+        return pattern
+
+    @property
+    def circle(self):
+        pattern = re.compile(
+            r'PSN\s'
+            r'%s(.+)?%s' % (self._point, self._radius)
         )
         return pattern
 
@@ -1030,6 +1043,7 @@ class SigmetParser(object):
             'polygon': self.grammar.polygon,
             'line': self.grammar.lines,
             'rectangular': self.grammar.rectangulars,
+            'circle': self.grammar.circle,
             'entire': re.compile('ENTIRE')
         }
         areas = {
@@ -1077,6 +1091,13 @@ class SigmetParser(object):
             lines = line.findall(text)
 
             return lines
+
+        if key == 'circle':
+            point = self.grammar.point
+            radius = self.grammar.radius
+            center = point.search(text)
+            width = radius.search(text)
+            return center.groups(), width.groups()
 
         return []
 
