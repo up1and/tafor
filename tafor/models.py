@@ -45,10 +45,13 @@ class Taf(Base):
 
     @property
     def report(self):
-        from tafor.utils import TafParser
-        rpt = TafParser(self.rpt)
-        parts = [self.sign, rpt.renderer()]
+        parser = self.parser()
+        parts = [self.sign, parser.renderer()]
         return '\n'.join(filter(None, parts))
+
+    def parser(self):
+        from tafor.utils import TafParser
+        return TafParser(self.rpt)
 
     def rawText(self):
         if not self.raw:
@@ -152,21 +155,9 @@ class Sigmet(Base):
         parts = [self.sign, self.rpt]
         return '\n'.join(filter(None, parts))
 
-    @property
-    def sequence(self):
-        pattern = re.compile(r'SIGMET ([A-Z]?\d{1,2}) VALID')
-        return pattern.search(self.rpt).group(1)
-
-    @property
-    def cancelSequence(self):
-        pattern = re.compile(r'CNL SIGMET ([A-Z]?\d{1,2})')
-        return pattern.search(self.rpt).group(1)
-
-    @property
-    def valids(self):
-        from tafor.utils.validator import SigmetGrammar
-        pattern = SigmetGrammar.valid
-        return pattern.search(self.rpt).groups()
+    def parser(self):
+        from tafor.utils import SigmetParser
+        return SigmetParser(self.report)
 
     def rawText(self):
         if not self.raw:
@@ -174,32 +165,10 @@ class Sigmet(Base):
         messages = json.loads(self.raw)
         return '\r\n\r\n\r\n\r\n'.join(messages)
 
-    def type(self):
-        text = 'other'
-        if self.tt == 'WS':
-            if 'TS' in self.rpt:
-                text = 'ts'
-            elif 'TURB' in self.rpt:
-                text = 'turb'
-            elif 'ICE' in self.rpt:
-                text = 'ice'
-
-        if self.tt == 'WV':
-            text = 'ash'
-
-        if self.tt == 'WC':
-            text = 'typhoon'
-
-        return text
-
-    def area(self):
-        from tafor.utils.validator import SigmetParser
-        sigmet = SigmetParser(self.rpt)
-        return sigmet.area()
-
     def expired(self):
         from tafor.utils.convert import parseTime
-        ending = self.valids[1]
+        parser = self.parser()
+        _, ending = parser.valids()
         return parseTime(ending, self.sent)
 
     def isCnl(self):

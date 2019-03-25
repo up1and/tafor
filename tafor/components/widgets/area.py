@@ -253,7 +253,7 @@ class Canvas(QWidget):
                     pen = QPen(QColor(204, 204, 204), 1, Qt.DashLine)
                     brush = brushes.get(sig['type'], 'other')
                     painter.setPen(pen)
-                    painter.drawText(center.x - 5, center.y + 5, met.sequence)
+                    painter.drawText(center.x - 5, center.y + 5, met.parser().sequence())
 
                 if key == 'forecast':
                     pen = QPen(QColor(204, 204, 204, 150), 1, Qt.DashLine)

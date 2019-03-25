@@ -312,6 +312,6 @@ class SigmetSender(BaseSender):
         super(SigmetSender, self).save()
         if not self.item.isCnl():
             delta = self.item.expired() - datetime.datetime.utcnow() - datetime.timedelta(minutes=15)
-            text = 'SIGMET {}'.format(self.item.sequence)
+            text = 'SIGMET {}'.format(self.item.parser().sequence())
             QTimer.singleShot(delta.total_seconds() * 1000, lambda: self.parent.remindSigmet(text))
     

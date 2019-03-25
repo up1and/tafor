@@ -549,18 +549,22 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         areas = self.area.text()
         prediction = self.head.prediction()
         fightLevel = self.fightLevel()
+        moveState = self.moveState()
         intensityChange = self.intensityChange.currentText()
         if self.isFcstAreaMode():
             area, forecastArea = areas
             fcstTime = self.fcstTime()
-            text = ' '.join([prediction, area, fightLevel, intensityChange, fcstTime, forecastArea])
+            items = [prediction, area, fightLevel, moveState, intensityChange, fcstTime, forecastArea]
         else:
             area = areas[0]
-            moveState = self.moveState()
-            text = ' '.join([prediction, area, fightLevel, moveState, intensityChange])
-        return text
+            items = [prediction, area, fightLevel, moveState, intensityChange]
+
+        return ' '.join(filter(None, items))
 
     def moveState(self):
+        if not self.speed.hasAcceptableInput():
+            return
+
         movement = self.movement.currentText()
 
         if movement == 'STNR':
@@ -971,7 +975,8 @@ class SigmetCancelSegment(BaseSegment):
         sigmets = currentSigmet(tt=self.type.tt)
 
         for sig in sigmets:
-            self.prevs[sig.sequence] = sig.valids
+            parser = sig.parser()
+            self.prevs[parser.sequence()] = parser.valids()
 
         sequences = [s for s in self.prevs]
         self.content.sequence.clear()

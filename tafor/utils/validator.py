@@ -996,6 +996,35 @@ class SigmetParser(object):
         elements = elements.strip().split('\n')
         self.elements = [self.parse(e, firCode=self.firCode, airportCode=self.airportCode) for e in elements]
 
+    def type(self):
+        text = 'other'
+        patterns = {
+            'ts': re.compile(r'\b(TS|TSGR)\b'),
+            'turb': re.compile(r'\b(TURB)\b'),
+            'ice': re.compile(r'\b(ICE)\b'),
+            'ash': re.compile(r'\b(WV\w{2}\d{2})|(VA)\b'),
+            'typhoon': re.compile(r'\b(WC\w{2}\d{2})|(TC)\b'),
+        }
+
+        for key, pattern in patterns.items():
+            m = pattern.search(self.message)
+            if m:
+                text = key
+
+        return text
+
+    def sequence(self):
+        pattern = re.compile(r'SIGMET ([A-Z]?\d{1,2}) VALID')
+        return pattern.search(self.message).group(1)
+
+    def cancelSequence(self):
+        pattern = re.compile(r'CNL SIGMET ([A-Z]?\d{1,2})')
+        return pattern.search(self.message).group(1)
+
+    def valids(self):
+        pattern = self.grammar.valid
+        return pattern.search(self.message).groups()
+
     def area(self, mode='object'):
         patterns = {
             'polygon': self.grammar.polygon,

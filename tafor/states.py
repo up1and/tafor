@@ -106,12 +106,13 @@ class FirState(object):
         infos = []
         for sig in self._state['sigmets']:
             area = {}
-            for key, item in sig.area().items():
+            parser = sig.parser()
+            for key, item in parser.area().items():
                 polygon = self.decodeSigmetArea(item)
                 area[key] = polygon
 
             infos.append({
-                'type': sig.type(),
+                'type': parser.type(),
                 'area': area
             })
 
