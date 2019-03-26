@@ -112,6 +112,15 @@ class SigmetGrammar(object):
         return pattern
 
     @property
+    def corridor(self):
+        pattern = re.compile(
+            r'APRX\s(\d{2,3})(KM|NM)'
+            r'\sWID\sLINE\sBTN\s'
+            r'(%s(?:%s)?)+' % (self._point, self._pointSpacer)
+        )
+        return pattern
+
+    @property
     def rectangular(self):
         pattern = re.compile(
             r'(N|S|W|E)\sOF\s((?:N|S)(?:\d{4}|\d{2})|(?:E|W)(?:\d{5}|\d{3}))'
@@ -1042,6 +1051,7 @@ class SigmetParser(object):
         patterns = {
             'polygon': self.grammar.polygon,
             'line': self.grammar.lines,
+            'corridor': self.grammar.corridor,
             'rectangular': self.grammar.rectangulars,
             'circle': self.grammar.circle,
             'entire': re.compile('ENTIRE')
@@ -1085,6 +1095,14 @@ class SigmetParser(object):
                 locations.append(points)
 
             return locations
+
+        if key == 'corridor':
+            pattern = self.grammar.corridor
+            point = self.grammar.point
+            m = pattern.search(text)
+            width = (m.group(1), m.group(2))
+            points = point.findall(text)
+            return points, width
 
         if key == 'rectangular':
             line = self.grammar.rectangular

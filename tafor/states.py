@@ -184,6 +184,18 @@ class FirState(object):
             except Exception as e:
                 logger.error(e)
 
+        if area['type'] == 'corridor':
+            points, width = area['area']
+            points = [(degreeToDecimal(lng), degreeToDecimal(lat)) for lat, lng in points]
+            width = self.distanceToDecimal(*width)
+            corridor = [points, width]
+
+            try:
+                polygon = decodeSigmetArea(self._state['boundaries'], corridor, mode='corridor')
+                polygon = self.degreeToPixel(polygon)
+            except Exception as e:
+                logger.error(e)
+
         if area['type'] == 'entire':
             polygon = self.boundaries()
 

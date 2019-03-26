@@ -153,12 +153,12 @@ class SimplifyPolygon(object):
             fowardTangent = expandLine([simples[foward], lines[-1]], ratio=100)
             tangents = [LineString(prevTangent), LineString(fowardTangent)]
 
-            part = LineString(lines).buffer(bufferSize, resolution=1, cap_style=3, join_style=3)
+            part = LineString(lines).buffer(bufferSize, resolution=1, cap_style=2, join_style=2)
 
             for t in tangents:
                 shapes = split(part, t)
                 part = max(shapes, key=lambda p: p.area)
-                part = part.buffer(0.5, resolution=1, cap_style=3, join_style=3)
+                part = part.buffer(0.5, resolution=1, cap_style=2, join_style=2)
 
             parts.append(part)
 
@@ -234,6 +234,11 @@ def decodeSigmetArea(boundaries, area, mode='rectangular'):
     if mode == 'circle':
         center, radius = area
         polygon = Point(*center).buffer(radius)
+        return list(polygon.exterior.coords)
+
+    if mode == 'corridor':
+        points, width = area
+        polygon = LineString(points).buffer(width, cap_style=2, join_style=2)
         return list(polygon.exterior.coords)
 
     polygons = []
