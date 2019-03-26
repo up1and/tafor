@@ -69,6 +69,8 @@ class BaseSegment(QWidget, SegmentMixin):
 
         self.gust.editingFinished.connect(self.validateGust)
         self.weather.lineEdit().textChanged.connect(self.setWeatherWithIntensity)
+        self.weather.lineEdit().editingFinished.connect(lambda: self.validateWeather(self.weather))
+        self.weatherWithIntensity.lineEdit().editingFinished.connect(lambda: self.validateWeather(self.weatherWithIntensity))
         self.cloud1.textEdited.connect(self.setVv)
         self.cloud1.editingFinished.connect(lambda: self.validateCloud(self.cloud1))
         self.cloud2.editingFinished.connect(lambda: self.validateCloud(self.cloud2))
@@ -199,6 +201,16 @@ class BaseSegment(QWidget, SegmentMixin):
         intensityWeather = QRegExpValidator(QRegExp(r'[-+]?({})'.format('|'.join(weathers)), Qt.CaseInsensitive))
         self.weatherWithIntensity.setValidator(intensityWeather)
 
+    def validateWeather(self, line):
+        if self.weather.lineEdit().hasAcceptableInput() and self.weather.currentText() and \
+            self.weatherWithIntensity.lineEdit().hasAcceptableInput() and self.weatherWithIntensity.currentText():
+            weather = self.weather.currentText()
+            weatherWithIntensity = self.weatherWithIntensity.currentText()
+
+            if 'TS' in weather and ('TS' in weatherWithIntensity or 'RA' in weatherWithIntensity):
+                line.setCurrentIndex(-1)
+                self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Weather phenomena conflict'))
+
     def validateGust(self):
         if not self.gust.hasAcceptableInput():
             return
@@ -229,6 +241,7 @@ class BaseSegment(QWidget, SegmentMixin):
 
     def validate(self):
         self.validateGust()
+        self.validateWeather(self.weather)
         self.validateCloud(self.cloud3)
         self.validateCloud(self.cloud2)
         self.validateCloud(self.cloud1)

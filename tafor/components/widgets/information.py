@@ -53,6 +53,7 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
     def initState(self):
         self.setPeriodTime()
         self.setSquence()
+        self.setPrediction(self.forecast.currentText())
         self.updateDurations()
 
     def bindSignal(self):
