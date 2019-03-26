@@ -263,9 +263,10 @@ class BaseSegment(QWidget):
 class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
     areaModeChanged = pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self, tt='WS', parent=None):
         super(SigmetArea, self).__init__()
         self.setupUi(self)
+        self.tt = tt
         self.parent = parent
         self.rules = Pattern()
         self.canvasWidget = AreaBoard()
@@ -273,10 +274,22 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
         self.areaGroup.setLayout(self.areaLayout)
         self.fcstButton.setIcon(QIcon(':/f.png'))
 
+        self.initState()
         self.bindSignal()
         self.setValidator()
         self.setArea()
         self.setCanvasMode()
+
+    def initState(self):
+        if self.tt == 'WC':
+            self.icons = [{'icon': ':/circle.png', 'mode': 'circle'}]
+            self.entire.hide()
+        else:
+            self.icons = [
+                {'icon': ':/polygon.png', 'mode': 'polygon'},
+                {'icon': ':/line.png', 'mode': 'line'},
+                {'icon': ':/rectangular.png', 'mode': 'rectangular'}
+            ]
 
     def bindSignal(self):
         self.manual.clicked.connect(self.setArea)
@@ -346,12 +359,7 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
         self.areaModeChanged.emit()
 
     def setCanvasMode(self):
-        canvasMode = [
-            {'icon': ':/polygon.png', 'mode': 'polygon'},
-            {'icon': ':/line.png', 'mode': 'line'},
-            {'icon': ':/rectangular.png', 'mode': 'rectangular'}
-        ]
-        self.canvasMode = cycle(canvasMode)
+        self.canvasMode = cycle(self.icons)
         self.switchCanvasMode()
 
     def switchCanvasMode(self):
@@ -446,8 +454,8 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
     def __init__(self, head):
         super(SigmetGeneralContent, self).__init__(head)
         self.setupUi(self)
-        self.area = SigmetArea(self)
-        self.layout.addWidget(self.area)
+        self.area = SigmetArea(parent=self)
+        self.verticalLayout.addWidget(self.area)
 
         self.bindSignal()
         self.setValidator()
@@ -650,6 +658,8 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
     def __init__(self, head):
         super(SigmetTyphoonContent, self).__init__(head)
         self.setupUi(self)
+        self.area = SigmetArea(tt='WC', parent=self)
+        self.verticalLayout.addWidget(self.area)
         self.bindSignal()
         self.setValidator()
 

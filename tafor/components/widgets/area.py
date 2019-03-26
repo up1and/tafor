@@ -1,12 +1,14 @@
+import copy
+
 from PyQt5.QtCore import QSize, Qt, QRect, QCoreApplication, QPoint, pyqtSignal
 from PyQt5.QtGui import QPainter, QPainterPath, QPolygon, QPen, QColor, QBrush, QFont
 from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel
 
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, Point
 
 from tafor import conf
 from tafor.states import context
-from tafor.utils.convert import listToPoint, pointToList
+from tafor.utils.convert import listToPoint, pointToList, calcDiagonal
 from tafor.utils.sigmet import encodeSigmetArea, simplifyLine, clipPolygon, simplifyPolygon
 
 
@@ -22,6 +24,7 @@ class Canvas(QWidget):
         }
         self.areaType = 'default'
         self.rectangular = []
+        self.radius = 0
         self.mode = 'polygon'
         self.maxPoint = 7
         self.color = Qt.white
@@ -53,6 +56,20 @@ class Canvas(QWidget):
     @property
     def boundaryColor(self):
         return Qt.red if self.fir.image() else Qt.white
+
+    @property
+    def shapes(self):
+        coordinates = copy.deepcopy(self.coords)
+
+        if self.mode == 'circle':
+            for key, coords in coordinates.items():
+                if coords['done']:
+                    center, edge = self.points
+                    radius = calcDiagonal(center[0]-edge[0], center[1]-edge[1])
+                    polygon = Point(*center).buffer(radius)
+                    coordinates[key]['points'] = list(polygon.exterior.coords)
+
+        return coordinates
 
     def sizeHint(self):
         *_, w, h = self.fir.rect()
@@ -92,6 +109,9 @@ class Canvas(QWidget):
 
         if self.mode == 'rectangular':
             self.rectangularMousePressEvent(event)
+
+        if self.mode == 'circle':
+            self.circleMousePressEvent(event)
 
         self.update()
 
@@ -141,31 +161,72 @@ class Canvas(QWidget):
         if event.button() == Qt.RightButton:
             self.clearRectangular()
 
-    def mouseMoveEvent(self, event):
-        if self.mode != 'rectangular' or self.done or len(self.rectangular) != 2:
-            return
+    def circleMousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            pos = [event.x(), event.y()]
 
-        self.rectangular[1] = event.pos()
-        self.update()
+            if self.points:
+                if not self.done:
+                    center = self.points[0]
+                    radius = calcDiagonal(center[0]-pos[0], center[1]-pos[1])
+                    self.points.append([center[0]+radius, center[1]])
+                    self.done = True
+                    self.stateChanged.emit()
+                    self.pointsChanged.emit()
+            else:
+                self.points.append(pos)
+                self.pointsChanged.emit()
+
+        if event.button() == Qt.RightButton and self.points:
+            if self.done:
+                self.done = False
+                self.points.pop()
+                self.stateChanged.emit()
+                self.pointsChanged.emit()
+            else:
+                self.points = []
+                self.pointsChanged.emit()
+
+    def mouseMoveEvent(self, event):
+        if self.mode == 'rectangular':
+            if self.done or len(self.rectangular) != 2:
+                return
+
+            self.rectangular[1] = event.pos()
+            self.update()
 
     def mouseReleaseEvent(self, event):
-        if self.mode != 'rectangular':
-            return
+        if self.mode == 'rectangular':
+            rect = QRect(*self.rectangular)
+            points = [rect.topLeft(), rect.topRight(), rect.bottomRight(), rect.bottomLeft()]
+            points = pointToList(points)
+            self.points = clipPolygon(self.fir.boundaries(), points)
 
-        rect = QRect(*self.rectangular)
-        points = [rect.topLeft(), rect.topRight(), rect.bottomRight(), rect.bottomLeft()]
-        points = pointToList(points)
-        self.points = clipPolygon(self.fir.boundaries(), points)
+            if self.points:
+                self.done = True
+            else:
+                self.done = False
 
-        if self.points:
-            self.done = True
-        else:
-            self.done = False
+            self.pointsChanged.emit()
+            self.stateChanged.emit()
 
-        self.pointsChanged.emit()
-        self.stateChanged.emit()
+            self.update()
 
-        self.update()
+    def wheelEvent(self, event):
+        if self.mode == 'circle':
+            if not self.done:
+                return
+
+            move = event.angleDelta().y()
+            deviation = 5
+            if move < 0:
+                self.points[1][0] += deviation
+
+            if move > 0 and self.points[0][0] < self.points[1][0] - deviation:
+                self.points[1][0] -= deviation
+
+            self.pointsChanged.emit()
+            self.update()
 
     def drawOnePoint(self, painter):
         pen = QPen(self.color, 2)
@@ -194,7 +255,7 @@ class Canvas(QWidget):
                 prev = point
 
     def drawArea(self, painter):
-        for key, coords in self.coords.items():
+        for key, coords in self.shapes.items():
             if coords['done']:
                 points = listToPoint(coords['points'])
                 pol = QPolygon(points)
@@ -410,6 +471,18 @@ class AreaBoard(QWidget):
             if coords['done']:
                 coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
                 message = 'WI ' + ' - '.join(coordinates)
+            else:
+                coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
+                message = self.pointspacing.join(coordinates)
+
+        if self.canvas.mode == 'circle':
+            points = context.fir.pixelToDegree(coords['points'])
+            if coords['done']:
+                center, edge = coords['points']
+                radius = calcDiagonal(center[0]-edge[0], center[1]-edge[1])
+                radius = (context.fir.pixelToDistance(radius) // 10) * 10
+                items = ['PSN {} {}'.format(*points[0]), 'WI {}KM OF CENTRE'.format(radius)]
+                message = self.pointspacing.join(items)
             else:
                 coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
                 message = self.pointspacing.join(coordinates)

@@ -13,7 +13,7 @@
   <property name="windowTitle">
    <string notr="true">Sigmet</string>
   </property>
-  <layout class="QVBoxLayout" name="layout">
+  <layout class="QVBoxLayout" name="verticalLayout">
    <property name="topMargin">
     <number>0</number>
    </property>

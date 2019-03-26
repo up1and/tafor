@@ -253,8 +253,7 @@ def calcDiagonal(width, height):
 def latlongToDistance(point1, point2):
     """Use haversine formula to calculate the great-circle distance between two points
     """
-    def deg2rad(deg):
-        return deg * math.pi / 180
+    deg2rad = lambda deg: deg * math.pi / 180
 
     long1, lat1 = point1
     long2, lat2 = point2

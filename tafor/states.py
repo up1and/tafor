@@ -89,6 +89,24 @@ class FirState(object):
     def size(self):
         return [self.scale * i for i in self._state['size']]
 
+    def dimension(self, mode='kilometer'):
+        from tafor.utils.convert import calcDiagonal, latlongToDistance
+
+        if mode == 'kilometer':
+            distance = latlongToDistance(*self._state['coordinates'])
+
+        if mode == 'nauticalmile':
+            distance = latlongToDistance(*self._state['coordinates']) / 1.852
+
+        if mode == 'decimal':
+            point1, point2 = self._state['coordinates']
+            distance = calcDiagonal(point1[1]-point2[1], point1[0]-point2[0])
+
+        if mode == 'pixel':
+            distance = calcDiagonal(*self._state['size'])
+
+        return distance
+
     def sigmets(self):
         return self._state['sigmets']
 
@@ -246,16 +264,19 @@ class FirState(object):
         return points
 
     def distanceToDecimal(self, length, unit='KM'):
-        from tafor.utils.convert import calcDiagonal, latlongToDistance
-        length = int(length)
-        point1, point2 = self._state['coordinates']
-        distance = latlongToDistance(point1, point2)
-        diagonal = calcDiagonal(point1[1]-point2[1], point1[0]-point2[0])
+        mode = 'nauticalmile' if unit == 'NM' else 'kilometer'
+        ratio = self.dimension('decimal') / self.dimension(mode)
+        return int(length) * ratio
 
-        if unit == 'NM':
-            length = length * 1.852
+    def distanceToPixel(self, length, unit='KM'):
+        mode = 'nauticalmile' if unit == 'NM' else 'kilometer'
+        ratio = self.dimension('pixel') / self.dimension(mode)
+        return int(length) * ratio * self.scale
 
-        return length * diagonal / distance
+    def pixelToDistance(self, pixel):
+        ratio = self.dimension('kilometer') / self.dimension('pixel')
+        distance = int(pixel) * ratio / self.scale
+        return int(distance)
 
 
 class WebApiState(object):
