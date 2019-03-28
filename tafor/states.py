@@ -118,7 +118,7 @@ class FirState(object):
             return None
 
     def boundaries(self):
-        return self.degreeToPixel(self._state['boundaries'])
+        return self.decimalToPixel(self._state['boundaries'])
 
     def sigmetsInfo(self):
         infos = []
@@ -148,7 +148,7 @@ class FirState(object):
 
             try:
                 polygon = decodeSigmetArea(self._state['boundaries'], decimals, mode='polygon')
-                polygon = self.degreeToPixel(polygon)
+                polygon = self.decimalToPixel(polygon)
             except Exception as e:
                 logger.error(e)
 
@@ -160,7 +160,7 @@ class FirState(object):
 
             try:
                 polygon = decodeSigmetArea(self._state['boundaries'], decimals, mode='line')
-                polygon = self.degreeToPixel(polygon)
+                polygon = self.decimalToPixel(polygon)
             except Exception as e:
                 logger.error(e)
 
@@ -186,7 +186,7 @@ class FirState(object):
 
             try:
                 polygon = decodeSigmetArea(self._state['boundaries'], decimals, mode='rectangular')
-                polygon = self.degreeToPixel(polygon)
+                polygon = self.decimalToPixel(polygon)
             except Exception as e:
                 logger.error(e)
 
@@ -198,7 +198,7 @@ class FirState(object):
 
             try:
                 polygon = decodeSigmetArea(self._state['boundaries'], circles, mode='circle')
-                polygon = self.degreeToPixel(polygon)
+                polygon = self.decimalToPixel(polygon)
             except Exception as e:
                 logger.error(e)
 
@@ -210,7 +210,7 @@ class FirState(object):
 
             try:
                 polygon = decodeSigmetArea(self._state['boundaries'], corridor, mode='corridor')
-                polygon = self.degreeToPixel(polygon)
+                polygon = self.decimalToPixel(polygon)
             except Exception as e:
                 logger.error(e)
 
@@ -219,7 +219,7 @@ class FirState(object):
 
         return polygon
 
-    def degreeToPixel(self, degreePoints):
+    def decimalToPixel(self, degreePoints):
         points = []
         for lng, lat in degreePoints:
             x = (lng - self.initLong) / self.dlong - self.offsetX

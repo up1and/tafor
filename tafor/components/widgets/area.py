@@ -8,7 +8,7 @@ from shapely.geometry import Polygon, Point
 
 from tafor import conf
 from tafor.states import context
-from tafor.utils.convert import listToPoint, pointToList, calcDiagonal
+from tafor.utils.convert import listToPoint, pointToList, degreeToDecimal, calcDiagonal
 from tafor.utils.sigmet import encodeSigmetArea, simplifyLine, clipPolygon, simplifyPolygon
 
 
@@ -65,11 +65,31 @@ class Canvas(QWidget):
             for key, coords in coordinates.items():
                 if coords['done']:
                     center, edge = self.points
-                    radius = calcDiagonal(center[0]-edge[0], center[1]-edge[1])
+                    radius = edge[0] - center[0]
                     polygon = Point(*center).buffer(radius)
                     coordinates[key]['points'] = list(polygon.exterior.coords)
 
         return coordinates
+
+    def setCircleCenter(self, point):
+        if self.points:
+            self.points[0] = point
+        else:
+            self.points.append(point)
+
+        self.update()
+
+    def setCircleRadius(self, radius):
+        if self.points:
+            if len(self.points) == 2:
+                self.points.pop()
+
+            center = self.points[0]
+            edge = [center[0] + radius, center[1] + radius]
+            self.points.append(edge)
+            self.done = True
+
+        self.update()
 
     def sizeHint(self):
         *_, w, h = self.fir.rect()
@@ -222,7 +242,7 @@ class Canvas(QWidget):
             if move < 0:
                 self.points[1][0] += deviation
 
-            if move > 0 and self.points[0][0] < self.points[1][0] - deviation:
+            if move > 0 and self.points[0][0] < self.points[1][0] - 10:
                 self.points[1][0] -= deviation
 
             self.pointsChanged.emit()
@@ -424,6 +444,33 @@ class AreaBoard(QWidget):
 
         self.setBorad(self.message)
 
+    def circleCenter(self):
+        if self.canvas.mode == 'circle' and self.canvas.points:
+            points = context.fir.pixelToDegree(self.canvas.points)
+            center = points[0]
+            return center
+
+    def circleRadius(self, points=None):
+        points = points if points else self.canvas.points
+        if self.canvas.mode == 'circle' and len(points) == 2:
+            center, edge = points
+            radius = edge[0] - center[0]
+            radius = round(context.fir.pixelToDistance(radius) / 10) * 10
+            return radius
+
+    def setCircleCenter(self, point):
+        if self.canvas.mode == 'circle':
+            decimal = [degreeToDecimal(point[0]), degreeToDecimal(point[1])]
+            pixel = context.fir.decimalToPixel([decimal])[0]
+            self.canvas.setCircleCenter(pixel)
+            self.updateArea()
+
+    def setCircleRadius(self, radius):
+        if self.canvas.mode == 'circle':
+            pixel = context.fir.distanceToPixel(radius)
+            self.canvas.setCircleRadius(pixel)
+            self.updateArea()
+
     def generateText(self, coords):
         message = ''
         if self.canvas.mode == 'rectangular' and coords['done']:
@@ -478,9 +525,7 @@ class AreaBoard(QWidget):
         if self.canvas.mode == 'circle':
             points = context.fir.pixelToDegree(coords['points'])
             if coords['done']:
-                center, edge = coords['points']
-                radius = calcDiagonal(center[0]-edge[0], center[1]-edge[1])
-                radius = (context.fir.pixelToDistance(radius) // 10) * 10
+                radius = self.circleRadius(coords['points'])
                 items = ['PSN {} {}'.format(*points[0]), 'WI {}KM OF CENTRE'.format(radius)]
                 message = self.pointspacing.join(items)
             else:
@@ -490,19 +535,19 @@ class AreaBoard(QWidget):
         return message
 
     def setBorad(self, messages):
-        messages = []
+        texts = []
         orders = ['default', 'forecast']
         labels = {
             'default': QCoreApplication.translate('Editor', 'DEFAULT'),
             'forecast': QCoreApplication.translate('Editor', 'FORECAST')
         }
         for key in orders:
-            if self.message[key]:
+            if messages[key]:
                 label = '<span style="color: grey">{}</span>'.format(labels[key])
-                text = label + self.wordspacing + self.message[key]
-                messages.append(text)
+                text = label + self.wordspacing + messages[key]
+                texts.append(text)
 
-        self.board.setText('<br><br>'.join(messages))
+        self.board.setText('<br><br>'.join(texts))
 
     def setMode(self, mode):
         self.canvas.setMode(mode)

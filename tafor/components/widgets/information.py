@@ -367,6 +367,10 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
         self.canvasWidget.setMode(canvasMode['mode'])
         self.modeButton.setIcon(QIcon(canvasMode['icon']))
 
+        if canvasMode['mode'] == 'circle':
+            self.fcstButton.setChecked(False)
+            self.fcstButton.hide()
+
     def text(self):
         text = ''
 
@@ -389,7 +393,7 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
         return text
 
     def showEvent(self, event):
-        if conf.value('Monitor/FirApiURL'):
+        if conf.value('Monitor/FirApiURL') or self.tt == 'WC':
             self.manual.hide()
             self.latitudeAndLongitudeWidget.hide()
 
@@ -666,6 +670,12 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
     def bindSignal(self):
         self.movement.currentTextChanged.connect(self.setSpeed)
 
+        self.currentLatitude.editingFinished.connect(self.setCircleOnCanvas)
+        self.currentLongitude.editingFinished.connect(self.setCircleOnCanvas)
+        self.range.editingFinished.connect(self.setCircleOnCanvas)
+        self.area.canvasWidget.canvas.pointsChanged.connect(self.setCircleOnContent)
+        self.area.canvasWidget.canvas.stateChanged.connect(self.setCircleOnContent)
+
         self.currentLatitude.textEdited.connect(lambda: self.upperText(self.currentLatitude))
         self.currentLongitude.textEdited.connect(lambda: self.upperText(self.currentLongitude))
         self.forecastLatitude.textEdited.connect(lambda: self.upperText(self.forecastLatitude))
@@ -697,6 +707,32 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
 
         self.speed.setValidator(QIntValidator(1, 99, self.speed))
         self.range.setValidator(QIntValidator(1, 999, self.range))
+
+    def setCircleOnCanvas(self):
+        if self.currentLatitude.hasAcceptableInput() and self.currentLongitude.hasAcceptableInput():
+            lon = self.currentLongitude.text()
+            lat = self.currentLatitude.text()
+            self.area.canvasWidget.setCircleCenter([lon, lat])
+
+        if self.range.hasAcceptableInput():
+            radius = self.range.text()
+            self.area.canvasWidget.setCircleRadius(radius)
+
+    def setCircleOnContent(self):
+        point = self.area.canvasWidget.circleCenter()
+        if point:
+            lon, lat = point
+            self.currentLongitude.setText(lon)
+            self.currentLatitude.setText(lat)
+        else:
+            self.currentLongitude.clear()
+            self.currentLatitude.clear()
+
+        radius = self.area.canvasWidget.circleRadius()
+        if radius:
+            self.range.setText(str(radius))
+        else:
+            self.range.clear()
 
     def setSpeed(self, text):
         if text == 'STNR':
@@ -802,6 +838,10 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
 
         self.complete = all(mustRequired)
         self.completeSignal.emit(self.complete)
+
+    def clear(self):
+        super(SigmetTyphoonContent, self).clear()
+        self.area.clear()
 
 
 class SigmetSimpleHead(BaseSigmetHead):
