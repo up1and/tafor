@@ -288,7 +288,8 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
             self.icons = [
                 {'icon': ':/polygon.png', 'mode': 'polygon'},
                 {'icon': ':/line.png', 'mode': 'line'},
-                {'icon': ':/rectangular.png', 'mode': 'rectangular'}
+                {'icon': ':/rectangular.png', 'mode': 'rectangular'},
+                {'icon': ':/corridor.png', 'mode': 'corridor'}
             ]
 
     def bindSignal(self):

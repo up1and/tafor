@@ -3,7 +3,7 @@ import math
 from itertools import chain
 
 from shapely.ops import split
-from shapely.geometry import Polygon, LineString, Point
+from shapely.geometry import Polygon, LineString, MultiLineString, Point
 
 
 def centroid(points):
@@ -82,6 +82,17 @@ def connectLine(lines):
             lines = []
 
     return lines
+
+def clipLine(polygon, points):
+    subj = Polygon(polygon)
+    clip = LineString(points)
+    if subj.intersects(clip):
+        intersection = subj.intersection(clip)
+        if isinstance(intersection, MultiLineString):
+            intersection = intersection[0]
+        points = list(intersection.coords)
+
+    return points
 
 def clipPolygon(subj, clip):
     """计算两个多边形之间的交集，并根据允许的最大点平滑多边形
