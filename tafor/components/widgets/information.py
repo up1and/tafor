@@ -7,6 +7,7 @@ from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit
 
 from tafor import conf
+from tafor.states import context
 from tafor.utils import Pattern
 from tafor.utils.convert import parseTime, ceilTime, roundTime, calcPosition
 from tafor.utils.service import currentSigmet
@@ -720,16 +721,17 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
             self.area.canvasWidget.setCircleRadius(radius)
 
     def setCircleOnContent(self):
-        point = self.area.canvasWidget.circleCenter()
-        if point:
-            lon, lat = point
+        canvas = self.area.canvasWidget.canvas
+        points = context.fir.pixelToDegree(canvas.points)
+        if points:
+            lon, lat = points[0]
             self.currentLongitude.setText(lon)
             self.currentLatitude.setText(lat)
         else:
             self.currentLongitude.clear()
             self.currentLatitude.clear()
 
-        radius = self.area.canvasWidget.circleRadius()
+        radius = round(context.fir.pixelToDistance(canvas.radius) / 10) * 10
         if radius:
             self.range.setText(str(radius))
         else:

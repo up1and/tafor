@@ -19,11 +19,10 @@ class Canvas(QWidget):
     def __init__(self, parent=None):
         super(Canvas, self).__init__(parent)
         self.coords = {
-            'default': {'points': [], 'radius': 0, 'done': False},
-            'forecast': {'points': [], 'radius': 0, 'done': False}
+            'default': {'points': [], 'radius': 0, 'diagonal': [], 'done': False},
+            'forecast': {'points': [], 'radius': 0, 'diagonal': [], 'done': False}
         }
         self.areaType = 'default'
-        self.rectangular = []
         self.mode = 'polygon'
         self.maxPoint = 7
         self.color = Qt.white
@@ -61,6 +60,14 @@ class Canvas(QWidget):
         self.coords[self.areaType]['radius'] = value
 
     @property
+    def diagonal(self):
+        return self.coords[self.areaType]['diagonal']
+
+    @diagonal.setter
+    def diagonal(self, value):
+        self.coords[self.areaType]['diagonal'] = value
+
+    @property
     def boundaryColor(self):
         return Qt.red if self.fir.image() else Qt.white
 
@@ -71,9 +78,8 @@ class Canvas(QWidget):
         if self.mode == 'circle':
             for key, coords in coordinates.items():
                 if coords['done']:
-                    center, edge = self.points
-                    radius = edge[0] - center[0]
-                    polygon = Point(*center).buffer(radius)
+                    center = coords['points'][0]
+                    polygon = Point(*center).buffer(coords['radius'])
                     coordinates[key]['points'] = list(polygon.exterior.coords)
 
         if self.mode == 'corridor':
@@ -93,15 +99,8 @@ class Canvas(QWidget):
         self.update()
 
     def setCircleRadius(self, radius):
-        if self.points:
-            if len(self.points) == 2:
-                self.points.pop()
-
-            center = self.points[0]
-            edge = [center[0] + radius, center[1] + radius]
-            self.points.append(edge)
-            self.done = True
-
+        self.radius = radius
+        self.done = True
         self.update()
 
     def sizeHint(self):
@@ -191,11 +190,15 @@ class Canvas(QWidget):
 
     def rectangularMousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            if not self.rectangular:
-                self.rectangular = [event.pos(), event.pos()]
+            pos = (event.x(), event.y())
+            if not self.diagonal:
+                self.diagonal = [pos, pos]
 
         if event.button() == Qt.RightButton:
-            self.clearRectangular()
+            self.diagonal = []
+            self.done = False
+            self.pointsChanged.emit()
+            self.stateChanged.emit()
 
     def circleMousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -204,21 +207,18 @@ class Canvas(QWidget):
             if self.points:
                 if not self.done:
                     center = self.points[0]
-                    radius = calcDiagonal(center[0]-pos[0], center[1]-pos[1])
-                    self.points.append([center[0]+radius, center[1]])
+                    self.radius = calcDiagonal(center[0]-pos[0], center[1]-pos[1])
                     self.done = True
                     self.stateChanged.emit()
-                    self.pointsChanged.emit()
             else:
                 self.points.append(pos)
                 self.pointsChanged.emit()
 
-        if event.button() == Qt.RightButton and self.points:
+        if event.button() == Qt.RightButton:
             if self.done:
                 self.done = False
-                self.points.pop()
+                self.radius = 0
                 self.stateChanged.emit()
-                self.pointsChanged.emit()
             else:
                 self.points = []
                 self.pointsChanged.emit()
@@ -242,15 +242,16 @@ class Canvas(QWidget):
 
     def mouseMoveEvent(self, event):
         if self.mode == 'rectangular':
-            if self.done or len(self.rectangular) != 2:
+            if self.done or len(self.diagonal) != 2:
                 return
 
-            self.rectangular[1] = event.pos()
+            self.diagonal[1] = (event.x(), event.y())
             self.update()
 
     def mouseReleaseEvent(self, event):
         if self.mode == 'rectangular':
-            rect = QRect(*self.rectangular)
+            diagonal = listToPoint(self.diagonal)
+            rect = QRect(*diagonal)
             points = [rect.topLeft(), rect.topRight(), rect.bottomRight(), rect.bottomLeft()]
             points = pointToList(points)
             self.points = clipPolygon(self.fir.boundaries(), points)
@@ -273,10 +274,10 @@ class Canvas(QWidget):
             move = event.angleDelta().y()
             deviation = 5
             if move > 0:
-                self.points[1][0] += deviation
+                self.radius += deviation
 
-            if move < 0 and self.points[0][0] < self.points[1][0] - 10:
-                self.points[1][0] -= deviation
+            if move < 0 and self.radius - deviation > 5:
+                self.radius -= deviation
 
             self.pointsChanged.emit()
             self.update()
@@ -286,8 +287,7 @@ class Canvas(QWidget):
                 return
 
             if not self.done:
-                points = clipLine(self.fir.boundaries(), self.points)
-                self.points = points
+                self.points = clipLine(self.fir.boundaries(), self.points)
 
             move = event.angleDelta().y()
             deviation = 2
@@ -412,40 +412,29 @@ class Canvas(QWidget):
         brush = QBrush(QColor(0, 120, 215, 40))
         painter.setPen(pen)
         painter.setBrush(brush)
-        rect = QRect(*self.rectangular)
+        points = listToPoint(self.diagonal)
+        rect = QRect(*points)
         painter.drawRect(rect)
 
     def setAreaType(self, areaType):
         forecastToDefault = areaType != 'forecast' and self.areaType == 'forecast'
-        defaultToForecast = areaType != 'default' and self.areaType == 'default'
         self.areaType = areaType
 
         if forecastToDefault:
-            self.coords['forecast'] = {'points': [], 'radius': 0, 'done': False}
+            self.coords['forecast'] = {'points': [], 'radius': 0, 'diagonal': [], 'done': False}
             self.pointsChanged.emit()
             self.stateChanged.emit()
             self.update()
-
-        if defaultToForecast:
-            self.rectangular = []
 
     def setMode(self, mode):
         self.mode = mode
         self.clear()
 
-    def clearRectangular(self):
-        self.coords[self.areaType] = {'points': [], 'radius': 0, 'done': False}
-        self.rectangular = []
-        self.pointsChanged.emit()
-        self.stateChanged.emit()
-        self.update()
-
     def clear(self):
         self.coords = {
-            'default': {'points': [], 'radius': 0, 'done': False},
-            'forecast': {'points': [], 'radius': 0, 'done': False}
+            'default': {'points': [], 'radius': 0, 'diagonal': [], 'done': False},
+            'forecast': {'points': [], 'radius': 0, 'diagonal': [], 'done': False}
         }
-        self.rectangular = []
         self.pointsChanged.emit()
         self.stateChanged.emit()
         self.update()
@@ -503,20 +492,6 @@ class AreaBoard(QWidget):
                 self.defaultCanEncode = True if text else False
 
         self.setBorad(self.message)
-
-    def circleCenter(self):
-        if self.canvas.mode == 'circle' and self.canvas.points:
-            points = context.fir.pixelToDegree(self.canvas.points)
-            center = points[0]
-            return center
-
-    def circleRadius(self, points=None):
-        points = points if points else self.canvas.points
-        if self.canvas.mode == 'circle' and len(points) == 2:
-            center, edge = points
-            radius = edge[0] - center[0]
-            radius = round(context.fir.pixelToDistance(radius) / 10) * 10
-            return radius
 
     def setCircleCenter(self, point):
         if self.canvas.mode == 'circle':
@@ -585,8 +560,9 @@ class AreaBoard(QWidget):
         if self.canvas.mode == 'circle':
             points = context.fir.pixelToDegree(coords['points'])
             if coords['done']:
-                radius = self.circleRadius(coords['points'])
-                items = ['PSN {} {}'.format(*points[0]), 'WI {}KM OF CENTRE'.format(radius)]
+                radius = round(context.fir.pixelToDistance(coords['radius']) / 10) * 10
+                center = points[0]
+                items = ['PSN {} {}'.format(center[1], center[0]), 'WI {}KM OF CENTRE'.format(radius)]
                 message = self.pointspacing.join(items)
             else:
                 coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
