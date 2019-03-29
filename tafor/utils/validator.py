@@ -292,23 +292,21 @@ class TafValidator(object):
         weatherPattern = re.compile(r'(SQ|PO|FC|TS|FZFG|BLSN|BLSA|BLDU|DRSN|DRSA|DRDU)')
         weakPrecipitationPattern = re.compile(r'-(DZ|RA|SN|SG|PL|SHRA|SHSN|SHGR|SHGS)')
 
-        refWeathers = refWeather.split()
-        weathers = weather.split()
-
         def condition(weather):
             # 符合转折条件，不包括弱降水
-            return weatherWithIntensityPattern.match(weather) and not weakPrecipitationPattern.match(weather) \
-                or weatherPattern.match(weather)
+            return weatherWithIntensityPattern.search(weather) and not weakPrecipitationPattern.search(weather) \
+                or weatherPattern.search(weather)
 
-        for w in weathers:
-            # NSW 无法转折的天气
-            if w == 'NSW' and set(refWeathers) & set(['BR', 'HZ', 'FU', 'DU', '-RA', '-SN']) \
-                or 'NSW' in refWeathers and w in ['BR', 'HZ', 'FU', 'DU', '-RA', '-SN']:
-                continue
+        if condition(weather) or condition(refWeather):
 
-            if w not in refWeathers:
-                if condition(w) or condition(refWeather):
-                    return True
+            if condition(weather) and condition(refWeather):
+                refWeathers = refWeather.split()
+                weathers = weather.split()
+                common = set(weathers) & set(refWeathers)
+                if condition(' '.join(common)):
+                    return False
+
+            return True
 
         return False
 
@@ -678,9 +676,12 @@ class TafParser(object):
                     else:
                         legal = verify(self.reference[key]['text'], e.tokens[key]['text'])
 
-                    if key == 'weather' and 'vis' in e.tokens and not e.tokens['vis']['error'] or e.tokens[key]['error']:
-                        # 引起能见度变化的天气现象
-                        # 天气现象已判断为有误
+                    if key == 'weather' and e.tokens[key]['text'] != self.reference[key]['text'] \
+                        and e.tokens[key]['text'] != 'NSW' \
+                        and 'vis' in e.tokens and not e.tokens['vis']['error'] \
+                        or e.tokens[key]['error']:
+                        # 天气现象发生改变，并引起能见度变化，同时天气现象不为 NSW
+                        # 单项已判断为有误
                         pass
                     else:
                         e.tokens[key]['error'] = not legal
@@ -808,7 +809,7 @@ class TafParser(object):
 
     def hasMessageChanged(self):
         """校验后的报文和原始报文相比是否有变化"""
-        origin = self.message.replace('\n', ' ')
+        origin = ' '.join(self.message.split())
         output = self.renderer().replace('\n', ' ')
         return origin != output
 

@@ -78,6 +78,7 @@ def test_weather(validator):
     assert validator.weather('TS', '-TSRA')
     assert validator.weather('-TSRA', 'TSRA')
     assert validator.weather('TSRA BR', '-TSRA')
+    assert validator.weather('RA BR', 'NSW')
     assert not validator.weather('TSRA', 'TSRA')
     assert not validator.weather('NSW', 'BR')
     assert not validator.weather('-RA BR', 'BR')
