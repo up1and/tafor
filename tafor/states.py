@@ -90,20 +90,19 @@ class FirState(object):
         return [self.scale * i for i in self._state['size']]
 
     def dimension(self, mode='kilometer'):
-        from tafor.utils.convert import calcDiagonal, latlongToDistance
+        from tafor.utils.convert import distanceBetweenPoints, distanceBetweenLatLongPoints
 
         if mode == 'kilometer':
-            distance = latlongToDistance(*self._state['coordinates'])
+            distance = distanceBetweenLatLongPoints(*self._state['coordinates'])
 
         if mode == 'nauticalmile':
-            distance = latlongToDistance(*self._state['coordinates']) / 1.852
+            distance = distanceBetweenLatLongPoints(*self._state['coordinates']) / 1.852
 
         if mode == 'decimal':
-            point1, point2 = self._state['coordinates']
-            distance = calcDiagonal(point1[1]-point2[1], point1[0]-point2[0])
+            distance = distanceBetweenPoints(*self._state['coordinates'])
 
         if mode == 'pixel':
-            distance = calcDiagonal(*self._state['size'])
+            distance = distanceBetweenPoints([0, 0], self._state['size'])
 
         return distance
 

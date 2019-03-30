@@ -247,10 +247,12 @@ def calcPosition(latitude, longitude, speed, time, degree):
 
     return decimalToDegree(newLatitude), decimalToDegree(newLongitude, fmt='longitude')
 
-def calcDiagonal(width, height):
-    return math.sqrt(width ** 2 + height ** 2)
+def distanceBetweenPoints(point1, point2):
+    x = point1[0] - point2[0]
+    y = point1[1] - point2[1]
+    return math.sqrt(x ** 2 + y ** 2)
 
-def latlongToDistance(point1, point2):
+def distanceBetweenLatLongPoints(point1, point2):
     """Use haversine formula to calculate the great-circle distance between two points
     """
     deg2rad = lambda deg: deg * math.pi / 180

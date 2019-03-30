@@ -8,7 +8,7 @@ from shapely.geometry import Polygon, LineString, Point
 
 from tafor import conf
 from tafor.states import context
-from tafor.utils.convert import listToPoint, pointToList, degreeToDecimal, calcDiagonal
+from tafor.utils.convert import listToPoint, pointToList, degreeToDecimal, distanceBetweenPoints
 from tafor.utils.sigmet import encodeSigmetArea, simplifyLine, clipLine, clipPolygon, simplifyPolygon
 
 
@@ -207,7 +207,7 @@ class Canvas(QWidget):
             if self.points:
                 if not self.done:
                     center = self.points[0]
-                    self.radius = calcDiagonal(center[0]-pos[0], center[1]-pos[1])
+                    self.radius = distanceBetweenPoints(center, pos)
                     self.done = True
                     self.stateChanged.emit()
             else:

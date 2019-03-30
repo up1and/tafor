@@ -131,7 +131,7 @@ class SigmetEditor(BaseEditor):
 
     def initState(self):
         self.currentSegment.head.initState()
-        if self.currentSegment == self.sigmetCancel:
+        if hasattr(self.currentSegment, 'initState'):
             self.currentSegment.initState()
 
     def clear(self):

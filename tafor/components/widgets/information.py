@@ -35,6 +35,7 @@ class SigmetTypeSegment(QWidget, Ui_sigmet_type.Ui_Editor):
         messages = [self.tt + area, icao, time]
         return ' '.join(filter(None, messages))
 
+
 class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
     completeSignal = pyqtSignal(bool)
 
@@ -68,7 +69,7 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
 
         self.beginningTime.textEdited.connect(lambda: self.coloredText(self.beginningTime))
         self.endingTime.textEdited.connect(lambda: self.coloredText(self.endingTime))
-        self.obsTime.textEdited.connect(lambda: self.coloredText(self.obsTime))
+        self.obsTime.textChanged.connect(lambda: self.coloredText(self.obsTime))
 
         self.defaultSignal()
 
@@ -658,6 +659,10 @@ class SigmetTyphoonHead(BaseSigmetHead):
         self.complete = all(mustRequired)
         self.completeSignal.emit(self.complete)
 
+    def clear(self):
+        super(SigmetTyphoonHead, self).clear()
+        self.name.clear()
+
 
 class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
 
@@ -677,6 +682,11 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         self.range.editingFinished.connect(self.setCircleOnCanvas)
         self.area.canvasWidget.canvas.pointsChanged.connect(self.setCircleOnContent)
         self.area.canvasWidget.canvas.stateChanged.connect(self.setCircleOnContent)
+
+        self.currentLatitude.textChanged.connect(self.setForecastPosition)
+        self.currentLongitude.textChanged.connect(self.setForecastPosition)
+        self.speed.textEdited.connect(self.setForecastPosition)
+        self.movement.currentTextChanged.connect(self.setForecastPosition)
 
         self.currentLatitude.textEdited.connect(lambda: self.upperText(self.currentLatitude))
         self.currentLongitude.textEdited.connect(lambda: self.upperText(self.currentLongitude))
@@ -711,6 +721,9 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         self.range.setValidator(QIntValidator(1, 999, self.range))
 
     def setCircleOnCanvas(self):
+        if not context.fir.drawable:
+            return
+
         if self.currentLatitude.hasAcceptableInput() and self.currentLongitude.hasAcceptableInput():
             lon = self.currentLongitude.text()
             lat = self.currentLatitude.text()
@@ -721,6 +734,9 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
             self.area.canvasWidget.setCircleRadius(radius)
 
     def setCircleOnContent(self):
+        if not context.fir.drawable:
+            return
+
         canvas = self.area.canvasWidget.canvas
         points = context.fir.pixelToDegree(canvas.points)
         if points:
@@ -745,10 +761,11 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
             self.speed.setEnabled(True)
             self.speedLabel.setEnabled(True)
 
-    def setForecastTime(self, text):
-        if len(text) != 6:
+    def setForecastTime(self):
+        if self.head.durations is None or not self.head.endingTime.text():
             return
 
+        text = self.head.endingTime.text()
         time = parseTime(text)
         time = time - datetime.timedelta(minutes=time.minute)
         fcstTime = time.strftime('%H%M')
@@ -845,6 +862,7 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
     def clear(self):
         super(SigmetTyphoonContent, self).clear()
         self.area.clear()
+        # self.setForecastTime()
 
 
 class SigmetSimpleHead(BaseSigmetHead):
@@ -972,8 +990,7 @@ class SigmetGeneralSegment(BaseSegment):
             self.content.forecastTime.clear()
 
     def clear(self):
-        self.head.clear()
-        self.content.clear()
+        super(SigmetGeneralSegment, self).clear()
         self.head.description.setCurrentIndex(1)
         self.head.forecast.setCurrentIndex(0)
         self.content.level.setCurrentIndex(1)
@@ -993,14 +1010,16 @@ class SigmetTyphoonSegment(BaseSegment):
 
     def bindSignal(self):
         self.changeSignal.connect(self.head.initState)
-
-        self.head.endingTime.textChanged.connect(lambda: self.content.setForecastTime(self.head.endingTime.text()))
+        self.changeSignal.connect(self.initState)
+        self.head.endingTime.textChanged.connect(self.content.setForecastTime)
         self.head.beginningTime.textEdited.connect(self.content.setForecastPosition)
         self.head.obsTime.textEdited.connect(self.content.setForecastPosition)
-        self.content.currentLatitude.textEdited.connect(self.content.setForecastPosition)
-        self.content.currentLongitude.textEdited.connect(self.content.setForecastPosition)
-        self.content.speed.textEdited.connect(self.content.setForecastPosition)
-        self.content.movement.currentTextChanged.connect(self.content.setForecastPosition)
+
+    def initState(self):
+        if self.content.forecastTime.text():
+            return
+
+        self.content.setForecastTime()
 
 
 class SigmetCancelSegment(BaseSegment):
@@ -1045,10 +1064,6 @@ class SigmetCancelSegment(BaseSegment):
             self.content.beginningTime.setText(valids[0])
             self.content.endingTime.setText(valids[1])
 
-    def clear(self):
-        self.head.clear()
-        self.content.clear()
-
 
 class SigmetCustomSegment(BaseSegment):
 
@@ -1089,7 +1104,3 @@ class SigmetCustomSegment(BaseSegment):
             self.content.text.setText(text)
         else:
             self.content.text.clear()
-
-    def clear(self):
-        self.head.clear()
-        self.content.clear()
