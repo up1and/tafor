@@ -3,4 +3,4 @@ from tafor.utils.validator import _purePattern, Pattern, TafValidator, TafGramma
 from tafor.utils.aftn import AFTNMessage, AFTNDecoder
 from tafor.utils.modem import serialComm
 from tafor.utils.pagination import paginate
-from tafor.utils.common import boolean, checkVersion
+from tafor.utils.common import boolean, checkVersion, gitRevisionHash

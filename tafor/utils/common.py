@@ -37,3 +37,14 @@ def checkVersion(releaseVersion, currentVersion):
             hasNewVersion = True
 
     return hasNewVersion
+
+def gitRevisionHash():
+    import subprocess
+
+    try:
+        ghash = subprocess.check_output(['git', 'describe', '--always'])
+        ghash = ghash.decode('utf-8').rstrip()
+    except Exception:
+        ghash = ''
+
+    return ghash

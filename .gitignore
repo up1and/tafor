@@ -41,6 +41,7 @@ nosetests.xml
 *.sqlite3
 docs/_build
 tests/fixtures/backup.json
+_environ.py
 _eric6project/
 .eric6project/
 .pytest_cache/

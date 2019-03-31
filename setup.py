@@ -5,11 +5,19 @@ from setuptools import setup, Command
 from setuptools.command.test import test as TestCommand
 
 from tafor import __version__
+from tafor.utils import gitRevisionHash
 
 
 def fread(filepath):
     with open(filepath, encoding='utf-8', mode='r') as f:
         return f.read()
+
+def createEnviron(filedir):
+    ghash = gitRevisionHash()
+    text = 'ghash = "{}"'.format(ghash)
+    filepath = os.path.join(filedir, '_environ.py')
+    with open(filepath, encoding='utf-8', mode='w') as f:
+        f.write(text)
 
 
 class PyTest(TestCommand):
@@ -61,6 +69,7 @@ class PyInstallerCommand(Command):
         import subprocess
         source = os.path.abspath(os.path.dirname(__file__))
         cwddir = os.path.join(source, 'tafor')
+        createEnviron(cwddir)
         proc = subprocess.Popen(r'pyinstaller __main__.py -w -F -i icons\icon.ico', cwd=cwddir, 
                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
         while True:

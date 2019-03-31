@@ -1,3 +1,4 @@
+import sys
 import copy
 import datetime
 
@@ -367,6 +368,17 @@ class TafState(QObject):
                     self.clockSignal.emit(tt)
 
 
+class EnvironState(object):
+
+    def ghash(self):
+        if hasattr(sys, '_MEIPASS'):
+            from tafor._environ import ghash
+            return ghash
+        else:
+            from tafor.utils import gitRevisionHash
+            return gitRevisionHash()
+
+
 class Context(object):
     message = MessageState()
     webApi = WebApiState(message)
@@ -374,6 +386,7 @@ class Context(object):
     taf = TafState()
     fir = FirState()
     serial = SerialState()
+    environ = EnvironState()
 
 
 context = Context()
