@@ -24,6 +24,7 @@ _options = [
     # 验证选项
     ('Validator/VisHas5000', 'visHas5000', 'bool'),
     ('Validator/CloudHeightHas450', 'cloudHeightHas450', 'bool'),
+    ('Validator/WeakPrecipitationVerification', 'weakPrecipitationVerification', 'bool'),
     # 报文字符
     ('Message/ICAO', 'icao', 'text'),
     ('Message/Area', 'area', 'text'),

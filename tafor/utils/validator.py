@@ -158,12 +158,16 @@ class TafValidator(object):
 
         self.visThresholds = [150, 350, 600, 800, 1500, 3000]
         self.cloudHeightThresholds = [1, 2, 5, 10]
+        self.weakPrecipitationVerification = False
 
         if kwargs.get('visHas5000', True):
             self.visThresholds.append(5000)
 
         if kwargs.get('cloudHeightHas450', True):
             self.cloudHeightThresholds.append(15)
+
+        if kwargs.get('weakPrecipitationVerification', False):
+            self.weakPrecipitationVerification = True
 
     def wind(self, refWind, wind):
         """风组的转折验证
@@ -272,7 +276,7 @@ class TafValidator(object):
 
         1. 当预报下列一种或几种天气现象开始、终止或强度变化时：
             * 冻降水
-            * 中或大的降水（包括阵性降水）包括雷暴
+            * 中或大降水（需要时可以包含阵性或非阵性的小雨或小雪）
             * 尘暴
             * 沙暴
 
@@ -280,7 +284,7 @@ class TafValidator(object):
             * 冻雾
             * 低吹尘、低吹沙或低吹雪
             * 高吹尘、高吹沙或高吹雪
-            * 雷暴（伴或不伴有降水）
+            * 雷暴
             * 飑
             * 漏斗云（陆龙卷或水龙卷）
 
@@ -293,9 +297,13 @@ class TafValidator(object):
         weakPrecipitationPattern = re.compile(r'-(DZ|RA|SN|SG|PL|SHRA|SHSN|SHGR|SHGS)')
 
         def condition(weather):
-            # 符合转折条件，不包括弱降水
-            return weatherWithIntensityPattern.search(weather) and not weakPrecipitationPattern.search(weather) \
-                or weatherPattern.search(weather)
+            # 根据弱降水是否参与验证判断符合转折条件
+            if self.weakPrecipitationVerification:
+                precipitation = weatherWithIntensityPattern.search(weather)
+            else:
+                precipitation = weatherWithIntensityPattern.search(weather) and not weakPrecipitationPattern.search(weather)
+
+            return precipitation or weatherPattern.search(weather)
 
         if condition(weather) or condition(refWeather):
 

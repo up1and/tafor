@@ -83,8 +83,10 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.message = message
         visHas5000 = boolean(conf.value('Validator/VisHas5000'))
         cloudHeightHas450 = boolean(conf.value('Validator/CloudHeightHas450'))
+        weakPrecipitationVerification = boolean(conf.value('Validator/WeakPrecipitationVerification'))
         try:
-            self.parser = TafParser(self.message['rpt'], visHas5000=visHas5000, cloudHeightHas450=cloudHeightHas450)
+            self.parser = TafParser(self.message['rpt'],
+                visHas5000=visHas5000, cloudHeightHas450=cloudHeightHas450, weakPrecipitationVerification=weakPrecipitationVerification)
             self.parser.validate()
 
             if self.parser.hasMessageChanged():

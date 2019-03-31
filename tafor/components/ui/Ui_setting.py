@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'C:\Users\Upland\Work\tafor\tafor\components\ui\setting.ui'
+# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\setting.ui'
 #
-# Created by: PyQt5 UI code generator 5.9.2
+# Created by: PyQt5 UI code generator 5.6
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -21,6 +21,7 @@ class Ui_Settings(object):
         self.leftLayout.setMaximumSize(QtCore.QSize(120, 16777215))
         self.leftLayout.setObjectName("leftLayout")
         self.leftbox = QtWidgets.QVBoxLayout(self.leftLayout)
+        self.leftbox.setContentsMargins(0, 0, 0, 0)
         self.leftbox.setObjectName("leftbox")
         self.menu = QtWidgets.QListWidget(self.leftLayout)
         self.menu.setObjectName("menu")
@@ -43,6 +44,7 @@ class Ui_Settings(object):
         self.generalPage.setObjectName("generalPage")
         self.verticalLayout_6 = QtWidgets.QVBoxLayout(self.generalPage)
         self.verticalLayout_6.setSizeConstraint(QtWidgets.QLayout.SetDefaultConstraint)
+        self.verticalLayout_6.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_6.setObjectName("verticalLayout_6")
         self.generalGroup = QtWidgets.QGroupBox(self.generalPage)
         self.generalGroup.setObjectName("generalGroup")
@@ -105,6 +107,9 @@ class Ui_Settings(object):
         self.cloudHeightHas450 = QtWidgets.QCheckBox(self.validatorGroup)
         self.cloudHeightHas450.setObjectName("cloudHeightHas450")
         self.gridLayout_4.addWidget(self.cloudHeightHas450, 1, 0, 1, 1)
+        self.weakPrecipitationVerification = QtWidgets.QCheckBox(self.validatorGroup)
+        self.weakPrecipitationVerification.setObjectName("weakPrecipitationVerification")
+        self.gridLayout_4.addWidget(self.weakPrecipitationVerification, 2, 0, 1, 1)
         self.verticalLayout_6.addWidget(self.validatorGroup)
         self.backupGroup = QtWidgets.QGroupBox(self.generalPage)
         self.backupGroup.setObjectName("backupGroup")
@@ -134,6 +139,7 @@ class Ui_Settings(object):
         self.messagePage = QtWidgets.QWidget()
         self.messagePage.setObjectName("messagePage")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.messagePage)
+        self.verticalLayout_2.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.prefixGroup = QtWidgets.QGroupBox(self.messagePage)
         self.prefixGroup.setObjectName("prefixGroup")
@@ -218,6 +224,7 @@ class Ui_Settings(object):
         self.communicationPage = QtWidgets.QWidget()
         self.communicationPage.setObjectName("communicationPage")
         self.verticalLayout_4 = QtWidgets.QVBoxLayout(self.communicationPage)
+        self.verticalLayout_4.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_4.setObjectName("verticalLayout_4")
         self.topLayout = QtWidgets.QHBoxLayout()
         self.topLayout.setObjectName("topLayout")
@@ -336,6 +343,7 @@ class Ui_Settings(object):
         self.tafTab = QtWidgets.QWidget()
         self.tafTab.setObjectName("tafTab")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.tafTab)
+        self.verticalLayout_3.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.tafAddress = QtWidgets.QTextEdit(self.tafTab)
         self.tafAddress.setObjectName("tafAddress")
@@ -344,6 +352,7 @@ class Ui_Settings(object):
         self.sigmetTab = QtWidgets.QWidget()
         self.sigmetTab.setObjectName("sigmetTab")
         self.verticalLayout_7 = QtWidgets.QVBoxLayout(self.sigmetTab)
+        self.verticalLayout_7.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_7.setObjectName("verticalLayout_7")
         self.sigmetAddress = QtWidgets.QTextEdit(self.sigmetTab)
         self.sigmetAddress.setObjectName("sigmetAddress")
@@ -352,6 +361,7 @@ class Ui_Settings(object):
         self.trendTab = QtWidgets.QWidget()
         self.trendTab.setObjectName("trendTab")
         self.verticalLayout_9 = QtWidgets.QVBoxLayout(self.trendTab)
+        self.verticalLayout_9.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_9.setObjectName("verticalLayout_9")
         self.trendAddress = QtWidgets.QTextEdit(self.trendTab)
         self.trendAddress.setObjectName("trendAddress")
@@ -363,6 +373,7 @@ class Ui_Settings(object):
         self.monitorPage = QtWidgets.QWidget()
         self.monitorPage.setObjectName("monitorPage")
         self.verticalLayout_5 = QtWidgets.QVBoxLayout(self.monitorPage)
+        self.verticalLayout_5.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_5.setObjectName("verticalLayout_5")
         self.dataSourceGroup = QtWidgets.QGroupBox(self.monitorPage)
         self.dataSourceGroup.setObjectName("dataSourceGroup")
@@ -470,6 +481,7 @@ class Ui_Settings(object):
         self.contractPage = QtWidgets.QWidget()
         self.contractPage.setObjectName("contractPage")
         self.verticalLayout_11 = QtWidgets.QVBoxLayout(self.contractPage)
+        self.verticalLayout_11.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_11.setObjectName("verticalLayout_11")
         self.contractGroup = QtWidgets.QGroupBox(self.contractPage)
         self.contractGroup.setObjectName("contractGroup")
@@ -604,6 +616,7 @@ class Ui_Settings(object):
         self.validatorGroup.setTitle(_translate("Settings", "Validator"))
         self.visHas5000.setText(_translate("Settings", "Visibility has 5000 meters"))
         self.cloudHeightHas450.setText(_translate("Settings", "Cloud height has 450 meters"))
+        self.weakPrecipitationVerification.setText(_translate("Settings", "Weak precipitation participates in verification"))
         self.backupGroup.setTitle(_translate("Settings", "Backup"))
         self.importPath.setPlaceholderText(_translate("Settings", "PATH"))
         self.exportButton.setText(_translate("Settings", "Export"))
