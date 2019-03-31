@@ -21,6 +21,7 @@ _options = [
     ('General/CloseToMinimize', 'closeToMinimize', 'bool'),
     ('General/Debug', 'debugMode', 'bool'),
     ('General/AlwaysShowEditor', 'alwaysShowEditor', 'bool'),
+    ('General/AutoComletionGroupTime', 'autoComletionGroupTime', 'bool'),
     # 验证选项
     ('Validator/VisHas5000', 'visHas5000', 'bool'),
     ('Validator/CloudHeightHas450', 'cloudHeightHas450', 'bool'),

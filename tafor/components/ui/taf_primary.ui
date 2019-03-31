@@ -316,7 +316,7 @@
    <item row="5" column="2">
     <widget class="QCheckBox" name="fmCheckbox">
      <property name="text">
-      <string>FM</string>
+      <string notr="true">FM</string>
      </property>
     </widget>
    </item>

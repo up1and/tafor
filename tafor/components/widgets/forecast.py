@@ -755,7 +755,11 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.period.setText('{:02d}'.format(time.day))
 
     def fillPeriod(self):
-        self.autoFillPeriod()
+        autoComletionGroupTime = boolean(conf.value('General/AutoComletionGroupTime'))
+        if autoComletionGroupTime:
+            self.autoFillPeriod()
+        else:
+            self.autoFillSlash()
 
     def autoFillSlash(self):
         text = self.period.text()
