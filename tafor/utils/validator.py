@@ -91,7 +91,7 @@ class SigmetGrammar(object):
     @property
     def line(self):
         pattern = re.compile(
-            r'([A-Z]{1,2})'
+            r'(N|NE|E|SE|S|SW|W|NW)'
             r'\sOF\sLINE\s'
             r'(%s(?:%s)?)+' % (self._point, self._pointSpacer)
         )
@@ -123,7 +123,7 @@ class SigmetGrammar(object):
     @property
     def rectangular(self):
         pattern = re.compile(
-            r'(N|S|W|E)\sOF\s((?:N|S)(?:\d{4}|\d{2})|(?:E|W)(?:\d{5}|\d{3}))'
+            r'(?:(N|S)\sOF\s((?:N|S)(?:\d{4}|\d{2}))|(W|E)\sOF\s((?:W|E)(?:\d{5}|\d{3})))'
         )
         return pattern
 
@@ -1108,6 +1108,7 @@ class SigmetParser(object):
         if key == 'rectangular':
             line = self.grammar.rectangular
             lines = line.findall(text)
+            lines = [tuple(filter(None, l)) for l in lines]
 
             return lines
 

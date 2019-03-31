@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit
 
 from tafor import conf
 from tafor.states import context
-from tafor.utils import Pattern
+from tafor.utils import _purePattern, Pattern, SigmetGrammar
 from tafor.utils.convert import parseTime, ceilTime, roundTime, calcPosition
 from tafor.utils.service import currentSigmet
 from tafor.models import db, Sigmet
@@ -302,15 +302,8 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
         self.fcstButton.clicked.connect(self.setAreaMode)
         self.modeButton.clicked.connect(self.switchCanvasMode)
 
-        self.north.textEdited.connect(lambda: self.upperText(self.north))
-        self.south.textEdited.connect(lambda: self.upperText(self.south))
-        self.east.textEdited.connect(lambda: self.upperText(self.east))
-        self.west.textEdited.connect(lambda: self.upperText(self.west))
-
-        self.north.textEdited.connect(lambda: self.coloredText(self.north))
-        self.south.textEdited.connect(lambda: self.coloredText(self.south))
-        self.east.textEdited.connect(lambda: self.coloredText(self.east))
-        self.west.textEdited.connect(lambda: self.coloredText(self.west))
+        self.textArea.textEdited.connect(lambda: self.upperText(self.textArea))
+        self.textArea.textEdited.connect(lambda: self.coloredText(self.textArea))
 
         self.canvasWidget.canvas.stateChanged.connect(self.setAreaMode)
         self.canvasWidget.canvas.stateChanged.connect(self.checkComplete)
@@ -321,29 +314,28 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
         self.parent.checkComplete()
 
     def setValidator(self):
-        latitude = QRegExpValidator(QRegExp(self.rules.latitude, Qt.CaseInsensitive))
-        self.north.setValidator(latitude)
-        self.south.setValidator(latitude)
-
-        longitude = QRegExpValidator(QRegExp(self.rules.longitude, Qt.CaseInsensitive))
-        self.east.setValidator(longitude)
-        self.west.setValidator(longitude)
+        grammar = SigmetGrammar()
+        patterns = [grammar.lines, grammar.rectangulars, grammar.polygon, grammar.corridor]
+        pattern = r'{}'.format('|'.join([_purePattern(p) for p in patterns]))
+        area = QRegExpValidator(QRegExp(pattern, Qt.CaseInsensitive))
+        self.textArea.setValidator(area)
 
     def setArea(self):
         if self.manual.isChecked():
-            self.latitudeAndLongitudeWidget.setVisible(True)
+            self.textAreaWidget.setVisible(True)
             self.canvasWidget.setVisible(False)
             self.fcstButton.setVisible(False)
             self.modeButton.setVisible(False)
+            self.setTextAreaPlaceholder()
 
         if self.canvas.isChecked():
-            self.latitudeAndLongitudeWidget.setVisible(False)
+            self.textAreaWidget.setVisible(False)
             self.canvasWidget.setVisible(True)
             self.fcstButton.setVisible(True)
             self.modeButton.setVisible(True)
 
         if self.entire.isChecked():
-            self.latitudeAndLongitudeWidget.setVisible(False)
+            self.textAreaWidget.setVisible(False)
             self.canvasWidget.setVisible(False)
             self.fcstButton.setVisible(False)
             self.modeButton.setVisible(False)
@@ -360,6 +352,16 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
             self.modeButton.setEnabled(True)
 
         self.areaModeChanged.emit()
+
+    def setTextAreaPlaceholder(self):
+        import random
+        areas = [
+            'WI N1950 E10917 - N1918 E11000 - N1814 E10903 - N1915 E10809 - N1950 E10917',
+            'APRX 25KM WID LINE BTN N1941 E10842 - N1817 E10847 - N1743 E11002',
+            'N OF N1830 AND W OF E10917',
+            'NW OF LINE N2030 E11017 - N1751 E10813'
+        ]
+        self.textArea.setPlaceholderText(random.choice(areas))
 
     def setCanvasMode(self):
         self.canvasMode = cycle(self.icons)
@@ -378,13 +380,10 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
         text = ''
 
         if self.manual.isChecked():
-            north = 'N OF {}'.format(self.north.text()) if self.north.hasAcceptableInput() else ''
-            south = 'S OF {}'.format(self.south.text()) if self.south.hasAcceptableInput() else ''
-            east = 'E OF {}'.format(self.east.text()) if self.east.hasAcceptableInput() else ''
-            west = 'W OF {}'.format(self.west.text()) if self.west.hasAcceptableInput() else ''
-            areas = [north, south, east, west]
-
-            text = ' AND '.join(filter(None, areas))
+            if self.textArea.hasAcceptableInput() and not self.textArea.text().endswith('AND '):
+                text = self.textArea.text()
+            else:
+                text = ''
 
         if self.canvas.isChecked():
             text = self.canvasWidget.texts()
@@ -398,7 +397,7 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
     def showEvent(self, event):
         if conf.value('Monitor/FirApiURL') or self.tt == 'WC':
             self.manual.hide()
-            self.latitudeAndLongitudeWidget.hide()
+            self.textAreaWidget.hide()
 
     def clear(self):
         self.canvasWidget.clear()
@@ -572,7 +571,7 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
             fcstTime = self.fcstTime()
             items = [prediction, area, fightLevel, moveState, intensityChange, fcstTime, forecastArea]
         else:
-            area = areas[0]
+            area = areas[0] if isinstance(areas, list) else areas
             items = [prediction, area, fightLevel, moveState, intensityChange]
 
         return ' '.join(filter(None, items))
@@ -862,7 +861,6 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
     def clear(self):
         super(SigmetTyphoonContent, self).clear()
         self.area.clear()
-        # self.setForecastTime()
 
 
 class SigmetSimpleHead(BaseSigmetHead):
