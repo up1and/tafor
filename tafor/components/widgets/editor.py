@@ -35,7 +35,7 @@ class BaseEditor(QDialog):
 
     def showConfigError(self):
         title = QCoreApplication.translate('Editor', 'Config Error')
-        text = QCoreApplication.translate('Editor', 'Please complete the basic configuration first, otherwise you cannot send messages correctly.')
+        text = QCoreApplication.translate('Editor', 'Please complete the basic configuration first, otherwise you cannot send messages correctly')
         QMessageBox.warning(self, title, text)
 
     def addBottomBox(self, layout):

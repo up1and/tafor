@@ -126,6 +126,10 @@ class Ui_MainWindow(object):
         self.previousPageAction.setObjectName("previousPageAction")
         self.nextPageAction = QtWidgets.QAction(MainWindow)
         self.nextPageAction.setObjectName("nextPageAction")
+        self.removeLicenseAction = QtWidgets.QAction(MainWindow)
+        self.removeLicenseAction.setObjectName("removeLicenseAction")
+        self.enterLicenseAction = QtWidgets.QAction(MainWindow)
+        self.enterLicenseAction.setObjectName("enterLicenseAction")
         self.issueMenu.addAction(self.tafAction)
         self.issueMenu.addAction(self.trendAction)
         self.issueMenu.addAction(self.sigmetAction)
@@ -140,6 +144,9 @@ class Ui_MainWindow(object):
         self.helpMenu.addAction(self.openDocsAction)
         self.helpMenu.addAction(self.reportIssueAction)
         self.helpMenu.addAction(self.checkUpgradeAction)
+        self.helpMenu.addSeparator()
+        self.helpMenu.addAction(self.enterLicenseAction)
+        self.helpMenu.addAction(self.removeLicenseAction)
         self.helpMenu.addSeparator()
         self.helpMenu.addAction(self.aboutAction)
         self.menuBar.addAction(self.issueMenu.menuAction())
@@ -173,6 +180,8 @@ class Ui_MainWindow(object):
         self.checkUpgradeAction.setText(_translate("MainWindow", "Check for Updates"))
         self.previousPageAction.setText(_translate("MainWindow", "Previous Page"))
         self.nextPageAction.setText(_translate("MainWindow", "Next Page"))
+        self.removeLicenseAction.setText(_translate("MainWindow", "Remove License"))
+        self.enterLicenseAction.setText(_translate("MainWindow", "Enter License"))
 
 
 if __name__ == "__main__":

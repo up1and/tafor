@@ -2,11 +2,12 @@ import datetime
 
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import QCoreApplication, QTimer
-from PyQt5.QtWidgets import QWidget, QMessageBox, QLabel, QHBoxLayout
+from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QLabel, QHBoxLayout
 
+from tafor import conf
 from tafor.utils import CurrentTaf, CheckTaf
 from tafor.states import context
-from tafor.components.ui import main_rc, Ui_main_recent
+from tafor.components.ui import main_rc, Ui_main_recent, Ui_main_license
 
 
 class RemindMessageBox(QMessageBox):
@@ -106,3 +107,29 @@ class Clock(QWidget):
     def updateGui(self):
         utc = datetime.datetime.utcnow()
         self.label.setText(utc.strftime('%Y-%m-%d %H:%M:%S'))
+
+
+class LicenseEditor(QDialog, Ui_main_license.Ui_Editor):
+
+    def __init__(self, parent):
+        super(LicenseEditor, self).__init__(parent)
+        self.setupUi(self)
+        self.parent = parent
+        self.buttonBox.accepted.connect(self.save)
+
+    def save(self):
+        license = self.textarea.toPlainText().strip()
+        conf.setValue('License', license)
+        if context.environ.license():
+            self.parent.setAboutMenu()
+        else:
+            conf.setValue('License', '')
+            text = QCoreApplication.translate('Editor', 'That license key doesn\'t appear to be valid')
+            QMessageBox.critical(self, 'Tafor', text)
+
+    def enter(self):
+        if not conf.value('Message/ICAO'):
+            text = QCoreApplication.translate('Editor', 'Please fill in the airport information or flight information region in the settings first')
+            QMessageBox.information(self, 'Tafor', text)
+        else:
+            self.show()

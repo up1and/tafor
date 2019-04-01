@@ -369,6 +369,15 @@ class TafState(QObject):
 
 
 class EnvironState(object):
+    key = """-----BEGIN PUBLIC KEY-----
+    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2AZZfefXdgpvnWcV9xMf
+    qlBqTS/8XZXq9BwFRpe0thoS3fER8s5fGKDWiOzO2I2PEwvahXyPny4hxHll7vF+
+    lgd3dl0Z5BRslDGzSUe3/S2vqu4jAiyFmF3z8HZ9Jcr7BXi8yYUOr/LUfOP2gWK3
+    GnORnWhBTb/llaGjN72yoJKJpKEbJYlrBJdsOyBrAeXbg1QNktOuqPf5toP/72qU
+    2a/RRvpK9koSHMvhqd6ex5h+MHvcQZ759Fi1wxj5ChkB6BGgsHGR+7f49c92Gd4o
+    2TKLicLL6vcidL4QkXdhRaZTJyd8pYI6Su+FUK7mcaBDpEaUl9xWupJnjsfKx1bf
+    WQIDAQAB
+    -----END PUBLIC KEY-----"""
 
     def ghash(self):
         if hasattr(sys, '_MEIPASS'):
@@ -377,6 +386,41 @@ class EnvironState(object):
         else:
             from tafor.utils import gitRevisionHash
             return gitRevisionHash()
+
+    def license(self):
+        from tafor import conf
+        from tafor.utils import verifyToken
+        payload = verifyToken(conf.value('License'), self.key)
+
+        if payload is None:
+            return {}
+
+        data = {}
+        for k, info in self.register().items():
+            if k in payload and info == payload[k]:
+                data[k] = info
+
+        return data
+
+    def register(self):
+        from tafor import conf
+        infos = {}
+        if conf.value('Message/ICAO'):
+            infos['airport'] = conf.value('Message/ICAO')
+        if conf.value('Message/FIR'):
+            infos['fir'] = conf.value('Message/FIR')[:4]
+
+        return infos
+
+    def canEnable(self, reportType):
+        if reportType == 'Trend':
+            return True
+
+        if reportType == 'TAF':
+            return 'airport' in self.license()
+
+        if reportType == 'SIGMET':
+            return 'fir' in self.license()
 
 
 class Context(object):

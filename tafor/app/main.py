@@ -23,7 +23,7 @@ from tafor.components.setting import SettingDialog
 from tafor.components.task import TaskBrowser
 
 from tafor.components.widgets.table import TafTable, MetarTable, SigmetTable
-from tafor.components.widgets.widget import Clock, TafBoard, RecentMessage, RemindMessageBox
+from tafor.components.widgets.widget import Clock, TafBoard, RecentMessage, RemindMessageBox, LicenseEditor
 from tafor.components.widgets.status import WebAPIStatus, CallServiceStatus
 from tafor.components.widgets.sound import Sound
 
@@ -71,6 +71,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.tafEditor = TafEditor(self, self.tafSender)
         self.trendEditor = TrendEditor(self, self.trendSender)
         self.sigmetEditor = SigmetEditor(self, self.sigmetSender)
+        self.licenseEditor = LicenseEditor(self)
 
         if boolean(conf.value('General/Serious')):
             self.taskBrowser = TaskBrowser(self)
@@ -80,6 +81,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.setRecent()
         self.setTable()
         self.setContractMenu() # 设置切换联系人菜单
+        self.setAboutMenu()
         self.setSysTray()
         self.setStatus()
         self.setThread()
@@ -101,8 +103,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.openDocsAction.triggered.connect(self.openDocs)
         self.reportIssueAction.triggered.connect(self.reportIssue)
         self.checkUpgradeAction.triggered.connect(self.checkUpgradeThread.start)
-
-        # 连接关于信息的槽
+        self.enterLicenseAction.triggered.connect(self.licenseEditor.enter)
+        self.removeLicenseAction.triggered.connect(self.removeLicense)
         self.aboutAction.triggered.connect(self.about)
 
         # 连接切换联系人的槽
@@ -138,6 +140,15 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.contractsMenu.addAction(target)
 
         self.updateContractMenu()
+
+    def setAboutMenu(self):
+        registered = context.environ.license()
+        if registered:
+            self.enterLicenseAction.setVisible(False)
+            self.removeLicenseAction.setVisible(True)
+        else:
+            self.enterLicenseAction.setVisible(True)
+            self.removeLicenseAction.setVisible(False)
 
     def setSysTray(self):
         # 设置系统托盘
@@ -234,6 +245,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.tafEditor.setAttribute(Qt.WA_DeleteOnClose)
             self.trendEditor.setAttribute(Qt.WA_DeleteOnClose)
             self.sigmetEditor.setAttribute(Qt.WA_DeleteOnClose)
+            self.licenseEditor.setAttribute(Qt.WA_DeleteOnClose)
             self.settingDialog.setAttribute(Qt.WA_DeleteOnClose)
 
             self.tafSender.close()
@@ -242,6 +254,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.tafEditor.close()
             self.trendEditor.close()
             self.sigmetEditor.close()
+            self.licenseEditor.close()
             self.settingDialog.close()
             self.remindBox = None
 
@@ -436,15 +449,17 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def about(self):
         title = QCoreApplication.translate('MainWindow', 'About')
+        register = QCoreApplication.translate('MainWindow', 'Registered') if context.environ.license() else QCoreApplication.translate('MainWindow', 'Unregistered')
         html = """
         <div style="text-align:center">
         <img src=":/logo.png">
         <h2 style="margin:5px 0">Tafor</h2>
         <p style="margin:0;color:#444;font-size:13px">A Terminal Aerodrome Forecast Encoding Software</p>
         <p style="margin:5px 0"><a href="https://github.com/up1and/tafor" style="text-decoration:none;color:#0078d7">{} {} {}</a></p>
+        <p style="margin:5px 0;color:#444">{}</p>
         <p style="margin-top:25px;color:#444">Copyright © 2019 <a href="mailto:piratecb@gmail.com" style="text-decoration:none;color:#444">up1and</a></p>
         </div>
-        """.format(QCoreApplication.translate('MainWindow', 'Version'), __version__, context.environ.ghash())
+        """.format(QCoreApplication.translate('MainWindow', 'Version'), __version__, context.environ.ghash(), register)
 
         aboutBox = QMessageBox(self)
         aboutBox.setText(html)
@@ -489,6 +504,14 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         ret = QMessageBox.question(self, title, text)
         if ret == QMessageBox.Yes:
             QDesktopServices.openUrl(QUrl(download))
+
+    def removeLicense(self):
+        title = QCoreApplication.translate('MainWindow', 'Remove license key? ')
+        text = QCoreApplication.translate('MainWindow', 'Remove license key? This will revert tafor to an unregistered state.')
+        ret = QMessageBox.question(self, title, text)
+        if ret == QMessageBox.Yes:
+            conf.setValue('License', '')
+            self.setAboutMenu()
 
 
 def main():

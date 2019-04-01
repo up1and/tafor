@@ -174,6 +174,9 @@
     <addaction name="reportIssueAction"/>
     <addaction name="checkUpgradeAction"/>
     <addaction name="separator"/>
+    <addaction name="enterLicenseAction"/>
+    <addaction name="removeLicenseAction"/>
+    <addaction name="separator"/>
     <addaction name="aboutAction"/>
    </widget>
    <addaction name="issueMenu"/>
@@ -265,6 +268,16 @@
   <action name="nextPageAction">
    <property name="text">
     <string>Next Page</string>
+   </property>
+  </action>
+  <action name="removeLicenseAction">
+   <property name="text">
+    <string>Remove License</string>
+   </property>
+  </action>
+  <action name="enterLicenseAction">
+   <property name="text">
+    <string>Enter License</string>
    </property>
   </action>
  </widget>

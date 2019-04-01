@@ -48,3 +48,11 @@ def gitRevisionHash():
         ghash = ''
 
     return ghash
+
+def verifyToken(token, key):
+    from jose import jwt
+    try:
+        data = jwt.decode(token, key, algorithms='RS256')
+    except Exception:
+        return None
+    return data

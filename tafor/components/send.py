@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QMessageBox, QTextEdit
 from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
 
 from tafor import conf, logger
+from tafor.states import context
 from tafor.models import db, Taf, Task, Trend, Sigmet
 from tafor.utils import boolean, TafParser, SigmetParser, AFTNMessage, AFTNDecoder
 from tafor.utils.thread import SerialThread
@@ -120,9 +121,12 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         if error:
             self.error = error
             self.rawGroup.setTitle(QCoreApplication.translate('Sender', 'Send Failed'))
-            self.resendButton.setEnabled(True)
-            self.resendButton.setText(QCoreApplication.translate('Sender', 'Resend'))
-            self.resendButton.show()
+            if context.environ.canEnable(self.reportType):
+                self.resendButton.setEnabled(True)
+                self.resendButton.setText(QCoreApplication.translate('Sender', 'Resend'))
+                self.resendButton.show()
+            else:
+                error = QCoreApplication.translate('Sender', 'Limited functionality, please check the license information')
 
             title = QCoreApplication.translate('Sender', 'Error')
             QMessageBox.critical(self, title, error)
@@ -158,10 +162,14 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             self.state = self.aftn
             self.rawText = self.aftn.toString()
 
-        self.thread = SerialThread(self.rawText, self)
-        self.thread.doneSignal.connect(self.showRawGroup)
-        self.thread.doneSignal.connect(self.save)
-        self.thread.start()
+        if context.environ.canEnable(self.reportType):
+            self.thread = SerialThread(self.rawText, self)
+            self.thread.doneSignal.connect(self.showRawGroup)
+            self.thread.doneSignal.connect(self.save)
+            self.thread.start()
+        else:
+            self.showRawGroup(True)
+            self.save()
 
     def save(self):
         if self.item:

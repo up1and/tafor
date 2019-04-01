@@ -10,3 +10,4 @@ sip==4.19.3
 SQLAlchemy==1.1.13
 urllib3>=1.23
 Shapely==1.6.4
+python-jose==3.0.1
