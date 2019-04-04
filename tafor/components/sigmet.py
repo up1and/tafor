@@ -15,6 +15,7 @@ class SigmetEditor(BaseEditor):
 
         self.setWindowTitle(QCoreApplication.translate('Editor', 'Encoding Significant Meteorological Information'))
         self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px;}')
+        self.setMaximumWidth(635)
 
         self.currentSegment = self.sigmetGeneral
 
@@ -59,7 +60,7 @@ class SigmetEditor(BaseEditor):
 
         self.sender.sendSignal.connect(self.initState)
 
-    def changeSegment(self, a):
+    def changeSegment(self):
         if self.type.template.isChecked():
             if self.type.significantWeather.isChecked():
                 self.sigmetGeneral.show()

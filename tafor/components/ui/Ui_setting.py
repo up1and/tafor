@@ -11,8 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Settings(object):
     def setupUi(self, Settings):
         Settings.setObjectName("Settings")
-        Settings.resize(651, 462)
-        Settings.setAcceptDrops(True)
+        Settings.resize(620, 462)
         self.verticalLayout = QtWidgets.QVBoxLayout(Settings)
         self.verticalLayout.setObjectName("verticalLayout")
         self.mainLayout = QtWidgets.QHBoxLayout()
@@ -111,6 +110,7 @@ class Ui_Settings(object):
         self.visHas5000.setObjectName("visHas5000")
         self.gridLayout_4.addWidget(self.visHas5000, 0, 0, 1, 1)
         self.weakPrecipitationVerification = QtWidgets.QCheckBox(self.validatorGroup)
+        self.weakPrecipitationVerification.setMaximumSize(QtCore.QSize(274, 16777215))
         self.weakPrecipitationVerification.setObjectName("weakPrecipitationVerification")
         self.gridLayout_4.addWidget(self.weakPrecipitationVerification, 0, 1, 1, 1)
         self.verticalLayout_6.addWidget(self.validatorGroup)
@@ -620,7 +620,7 @@ class Ui_Settings(object):
         self.validatorGroup.setTitle(_translate("Settings", "Validator"))
         self.cloudHeightHas450.setText(_translate("Settings", "Cloud height has 450 meters"))
         self.visHas5000.setText(_translate("Settings", "Visibility has 5000 meters"))
-        self.weakPrecipitationVerification.setText(_translate("Settings", "Weak precipitation participates in verification"))
+        self.weakPrecipitationVerification.setText(_translate("Settings", "Weak precipitation participates verification"))
         self.backupGroup.setTitle(_translate("Settings", "Backup"))
         self.importPath.setPlaceholderText(_translate("Settings", "PATH"))
         self.exportButton.setText(_translate("Settings", "Export"))

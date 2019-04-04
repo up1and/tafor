@@ -107,12 +107,12 @@
         <translation>上一份</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="583"/>
+        <location filename="../components/widgets/forecast.py" line="590"/>
         <source>Tips</source>
         <translation>提示</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="584"/>
+        <location filename="../components/widgets/forecast.py" line="591"/>
         <source>Do you want to change the message valid period to previous?</source>
         <translation>报文有效时段要变更为上一份吗？</translation>
     </message>
@@ -274,12 +274,12 @@
         <translation>设置错误</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="846"/>
+        <location filename="../components/widgets/forecast.py" line="857"/>
         <source>Change group time more than {} hours</source>
         <translation>变化组时间超过 {} 小时</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="955"/>
+        <location filename="../components/widgets/forecast.py" line="966"/>
         <source>Change group time is overlap</source>
         <translation>变化组时间有重叠</translation>
     </message>
@@ -299,17 +299,17 @@
         <translation>全区域</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="391"/>
+        <location filename="../components/widgets/forecast.py" line="374"/>
         <source>The time of temperature is not corret</source>
         <translation>温度组时间不正确</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="856"/>
+        <location filename="../components/widgets/forecast.py" line="867"/>
         <source>Start time of change group is not corret</source>
         <translation>变化组起始时间不正确</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="861"/>
+        <location filename="../components/widgets/forecast.py" line="872"/>
         <source>End time of change group is not corret</source>
         <translation>变化组结束时间不正确</translation>
     </message>
@@ -374,7 +374,7 @@
         <translation>热带气旋名称</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="405"/>
+        <location filename="../components/widgets/forecast.py" line="412"/>
         <source>The maximum temperature needs to be greater than the minimum temperature</source>
         <translation>最高温度需要大于最小温度</translation>
     </message>
@@ -409,12 +409,12 @@
         <translation>天气现象冲突</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="414"/>
+        <location filename="../components/widgets/forecast.py" line="421"/>
         <source>The minimum temperature needs to be less than the maximum temperature</source>
         <translation>最小温度需要小于最大温度</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="938"/>
+        <location filename="../components/widgets/forecast.py" line="949"/>
         <source>Time of change group is not corret</source>
         <translation>变化组时间不正确</translation>
     </message>
@@ -1194,7 +1194,7 @@
     </message>
     <message>
         <location filename="../components/ui/Ui_setting.py" line="623"/>
-        <source>Weak precipitation participates in verification</source>
+        <source>Weak precipitation participates verification</source>
         <translation>弱降水参与验证</translation>
     </message>
 </context>
