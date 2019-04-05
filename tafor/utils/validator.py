@@ -427,6 +427,7 @@ class TafLexer(object):
         self.grammar = grammar
         self.part = part.strip()
         self.tokens = OrderedDict()
+        self.period = None
 
         self.parse(part)
 
@@ -552,7 +553,7 @@ class TafParser(object):
         if not validator:
             self.validator = TafValidator(**kwargs)
 
-        self.split()
+        self._split()
 
     def __eq__(self, other):
         """判断两份报文是否相等"""
@@ -560,14 +561,12 @@ class TafParser(object):
             return self.renderer() == other.renderer()
         return False
 
-    def split(self):
+    def _split(self):
         """拆分主报文和变化组"""
         message = self.message.replace('=', '')
         splitPattern = re.compile(r'(BECMG|(?:FM(?:\d{4}|\d{6}))|TEMPO|PROB[34]0\sTEMPO)')
         elements = splitPattern.split(message)
         self.primary = self.parse(elements[0])
-        basetime = parseTimez(self.primary.tokens['timez']['text'])
-        self.primary.period = parsePeriod(self.primary.tokens['period']['text'], basetime)
 
         if len(elements) > 1:
             becmgIndex = [i for i, item in enumerate(elements) if item == 'BECMG']
@@ -577,25 +576,37 @@ class TafParser(object):
             for index in becmgIndex:
                 e = elements[index] + elements[index+1]
                 becmg = self.parse(e)
-                becmg.period = parsePeriod(becmg.tokens['period']['text'], self.primary.period[0])
                 self.becmgs.append(becmg)
 
             for index in fmIndex:
                 e = elements[index] + elements[index+1]
                 fm = self.parse(e)
-                fmTime = parseTime(fm.tokens['sign']['text'][2:], self.primary.period[0])
-                fm.period = (fmTime, fmTime)
                 self.becmgs.append(fm)
 
             for index in tempoIndex:
                 e = elements[index] + elements[index+1]
                 tempo = self.parse(e)
-                tempo.period = parsePeriod(tempo.tokens['period']['text'], self.primary.period[0])
                 self.tempos.append(tempo)
 
         self.elements = [self.primary] + self.becmgs + self.tempos
 
-    def regroup(self):
+    def _parsePeriod(self):
+        """解析主报文和变化组的时间顺序"""
+        if len(self.primary.tokens['period']['text']) not in [6, 9]:
+            raise 
+
+        time = parseTimez(self.primary.tokens['timez']['text'])
+        self.primary.period = parsePeriod(self.primary.tokens['period']['text'], time)
+        basetime = self.primary.period[0]
+
+        for e in self.elements[1:]:
+            if e.tokens['sign']['text'].startswith('FM'):
+                time = parseTime(e.tokens['sign']['text'][2:], basetime)
+                e.period = (time, time)
+            else:
+                e.period = parsePeriod(e.tokens['period']['text'], basetime)
+
+    def _regroup(self):
         """根据报文的时序重新分组 TEMPO BECMG"""
         self.becmgs.sort(key=lambda x: x.period[1])
         self.tempos.sort(key=lambda x: x.period[0])
@@ -644,7 +655,7 @@ class TafParser(object):
 
         self.groups = reduce(group(self.becmgs, self.tempos))
 
-    def refs(self):
+    def _refs(self):
         """生成参照组"""
         self.reference = copy.deepcopy(self.primary.tokens)
         if 'weather' not in self.reference:
@@ -665,11 +676,28 @@ class TafParser(object):
 
     def validate(self):
         """验证报文转折逻辑"""
-        self.regroup()
-        self.refs()
+        try:
+            self._parsePeriod()
+            self._regroup()
+            self._refs()
+            self._validateElements()
+        except Exception:
+            self.tips.append('报文无法被正确解析')
+
+            for e in self.elements:
+                for key in e.tokens:
+                    e.tokens[key]['error'] = True
+
+        if self.hasMessageChanged():
+            self.tips.append('经过校验后的报文和原始报文有些不同')
+
+        self.tips = list(set(self.tips))
+
+    def _validateElements(self):
+        """验证单项和多项转折"""
 
         # 验证主报文多个要素匹配
-        self.validateMutiElements(self.reference, self.primary.tokens)
+        self._validateMutiElements(self.reference, self.primary.tokens)
 
         for e in self.groups:
             for key in e.tokens:
@@ -700,11 +728,9 @@ class TafParser(object):
                             self.reference[key]['text'] = e.tokens[key]['text']
 
             # 验证参照组与转折组之间多个要素匹配
-            self.validateMutiElements(self.reference, e.tokens)
+            self._validateMutiElements(self.reference, e.tokens)
 
-        self.tips = list(set(self.tips))
-
-    def validateMutiElements(self, ref, tokens):
+    def _validateMutiElements(self, ref, tokens):
         """验证多个元素之间的匹配规则
 
         1. 能见度和天气现象
@@ -1013,9 +1039,9 @@ class SigmetParser(object):
         self.firCode = kwargs.get('firCode')
         self.airportCode = kwargs.get('airportCode')
 
-        self.split()
+        self._split()
 
-    def split(self):
+    def _split(self):
         """拆分报头和报文内容"""
         message = self.message.replace('=', '')
         splitPattern = re.compile(r'([A-Z]{4}-)')

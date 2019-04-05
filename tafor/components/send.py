@@ -85,27 +85,23 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         visHas5000 = boolean(conf.value('Validator/VisHas5000'))
         cloudHeightHas450 = boolean(conf.value('Validator/CloudHeightHas450'))
         weakPrecipitationVerification = boolean(conf.value('Validator/WeakPrecipitationVerification'))
-        try:
-            self.parser = TafParser(self.message['rpt'],
-                visHas5000=visHas5000, cloudHeightHas450=cloudHeightHas450, weakPrecipitationVerification=weakPrecipitationVerification)
-            self.parser.validate()
 
-            if self.parser.hasMessageChanged():
-                text = QCoreApplication.translate('Sender', 'The message is different from the original after validation')
-                self.parser.tips.insert(0, text)
-                self.message['rpt'] = self.parser.renderer()
+        self.parser = TafParser(self.message['rpt'],
+            visHas5000=visHas5000, cloudHeightHas450=cloudHeightHas450, weakPrecipitationVerification=weakPrecipitationVerification)
+        self.parser.validate()
 
-            if self.message['sign'] is None:
-                html = '<p>{}</p>'.format(self.parser.renderer(style='html'))
-            else:
-                html = '<p>{}<br/>{}</p>'.format(self.message['sign'], self.parser.renderer(style='html'))
-            if self.parser.tips:
-                html += '<p style="color: grey"># {}</p>'.format('<br/># '.join(self.parser.tips))
-            self.rpt.setHtml(html)
+        if self.parser.hasMessageChanged():
+            self.message['rpt'] = self.parser.renderer()
 
-        except Exception as e:
-            logger.exception(e)
+        html = self.parser.renderer(style='html')
+        if self.message['sign'] is None:
+            html = '<p>{}</p>'.format(html)
+        else:
+            html = '<p>{}<br/>{}</p>'.format(self.message['sign'], html)
+        if self.parser.tips:
+            html += '<p style="color: grey"># {}</p>'.format('<br/># '.join(self.parser.tips))
 
+        self.rpt.setHtml(html)
         self.resizeRpt()
 
     def showRawGroup(self, error):

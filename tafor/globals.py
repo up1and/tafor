@@ -4,8 +4,6 @@ import logging
 
 from logging.handlers import RotatingFileHandler
 
-from PyQt5.QtCore import QSettings
-
 
 def createLogger(debug=False, name=None):
     logLevel = logging.DEBUG if debug else logging.INFO
@@ -33,6 +31,7 @@ def createLogger(debug=False, name=None):
 class AppGlobals(object):
 
     def __init__(self):
+        from PyQt5.QtCore import QSettings
         boolean = lambda value: value if isinstance(value, bool) else value == 'true'
         self._conf = QSettings('Up1and', 'Tafor')
         self._debug = boolean(self._conf.value('General/Debug'))
