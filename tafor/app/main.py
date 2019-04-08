@@ -449,7 +449,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def about(self):
         title = QCoreApplication.translate('MainWindow', 'About')
-        register = QCoreApplication.translate('MainWindow', 'Registered') if context.environ.license() else QCoreApplication.translate('MainWindow', 'Unregistered')
+        register = QCoreApplication.translate('MainWindow', '{} days remaining').format(
+            context.environ.exp) if context.environ.license() else QCoreApplication.translate('MainWindow', 'Unregistered')
         html = """
         <div style="text-align:center">
         <img src=":/logo.png">

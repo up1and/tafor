@@ -57,12 +57,12 @@
         <translation>日期</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="360"/>
+        <location filename="../components/widgets/forecast.py" line="368"/>
         <source>Max Temperature</source>
         <translation>最高温</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="363"/>
+        <location filename="../components/widgets/forecast.py" line="371"/>
         <source>Min Temperature</source>
         <translation>最低温</translation>
     </message>
@@ -107,12 +107,12 @@
         <translation>上一份</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="590"/>
+        <location filename="../components/widgets/forecast.py" line="598"/>
         <source>Tips</source>
         <translation>提示</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="591"/>
+        <location filename="../components/widgets/forecast.py" line="599"/>
         <source>Do you want to change the message valid period to previous?</source>
         <translation>报文有效时段要变更为上一份吗？</translation>
     </message>
@@ -274,12 +274,12 @@
         <translation>设置错误</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="854"/>
+        <location filename="../components/widgets/forecast.py" line="862"/>
         <source>Change group time more than {} hours</source>
         <translation>变化组时间超过 {} 小时</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="963"/>
+        <location filename="../components/widgets/forecast.py" line="971"/>
         <source>Change group time is overlap</source>
         <translation>变化组时间有重叠</translation>
     </message>
@@ -299,17 +299,17 @@
         <translation>全区域</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="374"/>
+        <location filename="../components/widgets/forecast.py" line="382"/>
         <source>The time of temperature is not corret</source>
         <translation>温度组时间不正确</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="864"/>
+        <location filename="../components/widgets/forecast.py" line="872"/>
         <source>Start time of change group is not corret</source>
         <translation>变化组起始时间不正确</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="869"/>
+        <location filename="../components/widgets/forecast.py" line="877"/>
         <source>End time of change group is not corret</source>
         <translation>变化组结束时间不正确</translation>
     </message>
@@ -329,7 +329,7 @@
         <translation>天气现象</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="156"/>
+        <location filename="../components/widgets/forecast.py" line="157"/>
         <source>Cloud</source>
         <translation>云</translation>
     </message>
@@ -344,7 +344,7 @@
         <translation></translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="151"/>
+        <location filename="../components/widgets/forecast.py" line="152"/>
         <source>Vertical Visibility</source>
         <translation>垂直能见度</translation>
     </message>
@@ -374,7 +374,7 @@
         <translation>热带气旋名称</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="409"/>
+        <location filename="../components/widgets/forecast.py" line="417"/>
         <source>The maximum temperature needs to be greater than the minimum temperature</source>
         <translation>最高温度需要大于最小温度</translation>
     </message>
@@ -404,17 +404,17 @@
         <translation></translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="212"/>
+        <location filename="../components/widgets/forecast.py" line="220"/>
         <source>Weather phenomena conflict</source>
         <translation>天气现象冲突</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="418"/>
+        <location filename="../components/widgets/forecast.py" line="426"/>
         <source>The minimum temperature needs to be less than the maximum temperature</source>
         <translation>最小温度需要小于最大温度</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="946"/>
+        <location filename="../components/widgets/forecast.py" line="954"/>
         <source>Time of change group is not corret</source>
         <translation>变化组时间不正确</translation>
     </message>
@@ -552,7 +552,7 @@
         <translation>离线</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="504"/>
+        <location filename="../app/main.py" line="505"/>
         <source>New version found {}, do you want to download now?</source>
         <translation>发现新版本 {}，想现在下载么？</translation>
     </message>
@@ -582,12 +582,12 @@
         <translation>下一页</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="499"/>
+        <location filename="../app/main.py" line="500"/>
         <source>The current version is already the latest version.</source>
         <translation>当前版本已经是最新版本</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="493"/>
+        <location filename="../app/main.py" line="494"/>
         <source>Unable to get the latest version information.</source>
         <translation>无法获取最新版本信息</translation>
     </message>
@@ -642,7 +642,7 @@
         <translation>无法获取情报区信息数据，请检查设置或者网络状态。</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="463"/>
+        <location filename="../app/main.py" line="464"/>
         <source>Version</source>
         <translation>版本</translation>
     </message>
@@ -657,24 +657,24 @@
         <translation>输入证书</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="510"/>
+        <location filename="../app/main.py" line="511"/>
         <source>Remove license key? </source>
         <translation>删除注册信息？</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="511"/>
+        <location filename="../app/main.py" line="512"/>
         <source>Remove license key? This will revert tafor to an unregistered state.</source>
         <translation>删除注册信息？这会恢复到未注册状态。</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="453"/>
+        <location filename="../app/main.py" line="454"/>
         <source>Unregistered</source>
         <translation>未注册</translation>
     </message>
     <message>
         <location filename="../app/main.py" line="453"/>
-        <source>Registered</source>
-        <translation>已注册</translation>
+        <source>{} days remaining</source>
+        <translation>剩余 {} 天</translation>
     </message>
 </context>
 <context>

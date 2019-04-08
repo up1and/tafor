@@ -378,6 +378,7 @@ class EnvironState(object):
     2TKLicLL6vcidL4QkXdhRaZTJyd8pYI6Su+FUK7mcaBDpEaUl9xWupJnjsfKx1bf
     WQIDAQAB
     -----END PUBLIC KEY-----"""
+    exp = 0
 
     def ghash(self):
         if hasattr(sys, '_MEIPASS'):
@@ -394,6 +395,11 @@ class EnvironState(object):
 
         if payload is None:
             return {}
+
+        if 'exp' in payload:
+            exp = datetime.datetime.fromtimestamp(payload['exp'])
+            now = datetime.datetime.utcnow()
+            self.exp = (exp - now).days
 
         data = {}
         for k, info in self.register().items():
