@@ -611,49 +611,29 @@ class TafParser(object):
         self.becmgs.sort(key=lambda x: x.period[1])
         self.tempos.sort(key=lambda x: x.period[0])
 
+        def nextBecmg(groups, tempo):
+            index = groups.index(tempo)
+            items = []
+            for group in groups[index:]:
+                if group.sign != 'TEMPO':
+                    items.append(group)
+
+            return items
+
         def group(becmgs, tempos):
-            groups = []
-            for becmg in becmgs:
-                last = groups[-1] if groups else None
-                if last and last.sign == 'TEMPO' and last.period[0] > becmg.period[1]:
-                    index = groups.index(last)
-                    groups.insert(index, becmg)
-                else:
-                    groups.append(becmg)
+            groups = becmgs + tempos
+            groups.sort(key=lambda x: x.period[0] if x.sign == 'TEMPO' else x.period[1])
 
-                for tempo in tempos:
-                    if tempo.period[0] < becmg.period[1] < tempo.period[1]:
+            for tempo in tempos:
+                items = nextBecmg(groups, tempo)
+                for becmg in items:
+                    if becmg.period[1] < tempo.period[1]:
                         index = groups.index(becmg)
-                        groups.insert(index, tempo)
-                        groups.append(tempo)
-
-                    if tempo.period[1] <= becmg.period[1] and tempo not in groups:
-                        index = groups.index(becmg)
-                        groups.insert(index, tempo)
-
-                    if tempo.period[0] >= becmg.period[1]:
-                        groups.append(tempo)
-
-            if not becmgs:
-                groups = tempos
+                        groups.insert(index + 1, tempo)
 
             return groups
 
-        def reduce(items):
-            """去除分组中重复的元素"""
-            groups = []
-            cache = []
-            for e in items:
-                if e.sign == 'BECMG' or e.sign.startswith('FM'):
-                    groups.append(e)
-                    cache = []
-                if e.sign == 'TEMPO':
-                    if e not in cache:
-                        groups.append(e)
-                        cache.append(e)
-            return groups
-
-        self.groups = reduce(group(self.becmgs, self.tempos))
+        self.groups = group(self.becmgs, self.tempos)
 
     def _refs(self):
         """生成参照组"""
