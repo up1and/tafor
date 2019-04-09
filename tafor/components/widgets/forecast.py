@@ -397,6 +397,14 @@ class TemperatureGroup(QWidget, SegmentMixin):
 
         if valid:
             self.time = time
+            if time.hour == 0:
+                if time == durations[1]:
+                    time -= datetime.timedelta(hours=1)
+                    timeText = '{}24'.format(str(time.day).zfill(2))
+                else:
+                    timeText = '{}{}'.format(str(time.day).zfill(2), str(time.hour).zfill(2))
+
+                self.tempTime.setText(timeText)
         else:
             self.time = None
             self.tempTime.clear()
@@ -824,7 +832,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
     def span(self):
         if self.identifier.startswith('TEMPO'):
-            spec = self.parent.primary.taf.spec.tt
+            spec = self.parent.primary.tt
             if spec == 'FT':
                 duration = 6
             else:

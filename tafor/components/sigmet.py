@@ -15,7 +15,6 @@ class SigmetEditor(BaseEditor):
 
         self.setWindowTitle(QCoreApplication.translate('Editor', 'Encoding Significant Meteorological Information'))
         self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px;}')
-        self.setMaximumWidth(635)
 
         self.currentSegment = self.sigmetGeneral
 
