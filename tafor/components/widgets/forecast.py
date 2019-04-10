@@ -67,6 +67,7 @@ class BaseSegment(QWidget, SegmentMixin):
             self.cavok.toggled.connect(self.setCavok)
             self.nsc.toggled.connect(self.setNsc)
 
+        self.wind.textChanged.connect(self.setGust)
         self.gust.editingFinished.connect(self.validateGust)
         self.weather.lineEdit().textChanged.connect(self.setWeatherWithIntensity)
         self.weather.lineEdit().editingFinished.connect(lambda: self.validateWeather(self.weather))
@@ -155,6 +156,13 @@ class BaseSegment(QWidget, SegmentMixin):
             self.cb.setEnabled(True)
             self.cloud1Label.setText(QCoreApplication.translate('Editor', 'Cloud'))
 
+    def setGust(self):
+        if self.wind.hasAcceptableInput() and int(self.wind.text()[-2:]) == 0:
+            self.gust.setEnabled(False)
+            self.gust.clear()
+        else:
+            self.gust.setEnabled(True)
+
     def setWeatherWithIntensity(self, text):
         if text.upper() == 'NSW':
             self.weatherWithIntensity.setCurrentIndex(-1)
@@ -212,11 +220,11 @@ class BaseSegment(QWidget, SegmentMixin):
                 self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Weather phenomena conflict'))
 
     def validateGust(self):
-        if not self.gust.hasAcceptableInput():
+        if not self.gust.hasAcceptableInput() or not self.wind.hasAcceptableInput():
+            self.gust.clear()
             return
 
-        wind = self.wind.text()
-        windSpeed = self.wind.text()[-2:] if self.wind.hasAcceptableInput() else 0
+        windSpeed = self.wind.text()[-2:]
         gust = self.gust.text()
 
         if gust == 'P49':
