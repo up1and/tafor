@@ -92,7 +92,7 @@
         <translation>下一步</translation>
     </message>
     <message>
-        <location filename="../components/taf.py" line="226"/>
+        <location filename="../components/taf.py" line="223"/>
         <source>Encoding Terminal Aerodrome Forecast</source>
         <translation>编发预报</translation>
     </message>
@@ -274,12 +274,12 @@
         <translation>设置错误</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="857"/>
+        <location filename="../components/widgets/forecast.py" line="854"/>
         <source>Change group time more than {} hours</source>
         <translation>变化组时间超过 {} 小时</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="966"/>
+        <location filename="../components/widgets/forecast.py" line="963"/>
         <source>Change group time is overlap</source>
         <translation>变化组时间有重叠</translation>
     </message>
@@ -304,12 +304,12 @@
         <translation>温度组时间不正确</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="867"/>
+        <location filename="../components/widgets/forecast.py" line="864"/>
         <source>Start time of change group is not corret</source>
         <translation>变化组起始时间不正确</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="872"/>
+        <location filename="../components/widgets/forecast.py" line="869"/>
         <source>End time of change group is not corret</source>
         <translation>变化组结束时间不正确</translation>
     </message>
@@ -319,7 +319,7 @@
         <translation>高度层</translation>
     </message>
     <message>
-        <location filename="../components/taf.py" line="238"/>
+        <location filename="../components/taf.py" line="235"/>
         <source>Encoding Terminal Aerodrome Forecast - Delay Send</source>
         <translation>编发预报 - 延迟发送</translation>
     </message>
@@ -374,7 +374,7 @@
         <translation>热带气旋名称</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="412"/>
+        <location filename="../components/widgets/forecast.py" line="409"/>
         <source>The maximum temperature needs to be greater than the minimum temperature</source>
         <translation>最高温度需要大于最小温度</translation>
     </message>
@@ -389,7 +389,7 @@
         <translation>时段</translation>
     </message>
     <message>
-        <location filename="../components/taf.py" line="96"/>
+        <location filename="../components/taf.py" line="97"/>
         <source>Change groups cannot be more than 5</source>
         <translation>变化组不能超过 5 组</translation>
     </message>
@@ -409,12 +409,12 @@
         <translation>天气现象冲突</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="421"/>
+        <location filename="../components/widgets/forecast.py" line="418"/>
         <source>The minimum temperature needs to be less than the maximum temperature</source>
         <translation>最小温度需要小于最大温度</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="949"/>
+        <location filename="../components/widgets/forecast.py" line="946"/>
         <source>Time of change group is not corret</source>
         <translation>变化组时间不正确</translation>
     </message>
@@ -695,17 +695,17 @@
         <translation>已向串口发送数据</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="247"/>
+        <location filename="../components/send.py" line="243"/>
         <source>Send</source>
         <translation>发送</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="123"/>
+        <location filename="../components/send.py" line="119"/>
         <source>Send Failed</source>
         <translation>发送失败</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="244"/>
+        <location filename="../components/send.py" line="240"/>
         <source>Resend</source>
         <translation>重新发送</translation>
     </message>
@@ -715,34 +715,29 @@
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="131"/>
+        <location filename="../components/send.py" line="127"/>
         <source>Error</source>
         <translation>错误</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="136"/>
+        <location filename="../components/send.py" line="132"/>
         <source>Validator Warning</source>
         <translation>校验提醒</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="137"/>
+        <location filename="../components/send.py" line="133"/>
         <source>The message did not pass the validator, do you still want to send?</source>
         <translation>报文没有通过校验，你还要发送么？</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="152"/>
+        <location filename="../components/send.py" line="148"/>
         <source>Sending</source>
         <translation>发送中</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="264"/>
+        <location filename="../components/send.py" line="260"/>
         <source>Delay Send Message</source>
         <translation>延迟发送报文</translation>
-    </message>
-    <message>
-        <location filename="../components/send.py" line="94"/>
-        <source>The message is different from the original after validation</source>
-        <translation>经过校验后的报文和原始报文有些不同</translation>
     </message>
     <message>
         <location filename="../components/send.py" line="42"/>
@@ -755,47 +750,47 @@
         <translation>查看报文</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="200"/>
+        <location filename="../components/send.py" line="196"/>
         <source>Raw Data</source>
         <translation>原始数据</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="143"/>
+        <location filename="../components/send.py" line="139"/>
         <source>Resend Reminder</source>
         <translation>重新发送提醒</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="144"/>
+        <location filename="../components/send.py" line="140"/>
         <source>Some part of the AFTN message may be updated, do you still want to resend?</source>
         <translation>部分 AFTN 报文内容可能会重新生成，你还要重新发送么？</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="195"/>
+        <location filename="../components/send.py" line="191"/>
         <source>Priority Indicator</source>
         <translation>发报等级</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="196"/>
+        <location filename="../components/send.py" line="192"/>
         <source>Send Address</source>
         <translation>发送地址</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="197"/>
+        <location filename="../components/send.py" line="193"/>
         <source>Originator Address</source>
         <translation>本地地址</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="198"/>
+        <location filename="../components/send.py" line="194"/>
         <source>Message Content</source>
         <translation>报文内容</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="199"/>
+        <location filename="../components/send.py" line="195"/>
         <source>Sent Time</source>
         <translation>发布时间</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="129"/>
+        <location filename="../components/send.py" line="125"/>
         <source>Limited functionality, please check the license information</source>
         <translation>功能受限，请检查许可证信息</translation>
     </message>

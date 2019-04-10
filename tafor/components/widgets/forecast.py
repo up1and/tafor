@@ -97,7 +97,7 @@ class BaseSegment(QWidget, SegmentMixin):
 
         self.defaultSignal()
 
-    def setPeriod(self):
+    def setPeriodPlaceholder(self):
         raise NotImplementedError
 
     def setClouds(self, enbale):
@@ -373,25 +373,22 @@ class TemperatureGroup(QWidget, SegmentMixin):
         durations = self.parent.durations
         text = QCoreApplication.translate('Editor', 'The time of temperature is not corret')
         try:
-            tempTime = parseDayHour(self.tempTime.text(), self.parent.time)
+            time = parseDayHour(self.tempTime.text(), durations[0], future=True)
         except Exception:
             self.time = None
             self.tempTime.clear()
             self.parent.parent.showNotificationMessage(text)
             return
 
-        if tempTime < durations[0]:
-            tempTime += datetime.timedelta(days=1)
-
-        valid = durations[0] <= tempTime <= durations[1] and tempTime not in self.parent.findTemperatureTime(self)
+        valid = durations[0] <= time <= durations[1] and time not in self.parent.findTemperatureTime(self)
 
         refTimes = self.parent.findTemperatureTime(self, sameType=True)
         for t in refTimes:
-            if t.day == tempTime.day:
+            if t.day == time.day:
                 valid = False
 
         if valid:
-            self.time = tempTime
+            self.time = time
         else:
             self.time = None
             self.tempTime.clear()
@@ -531,59 +528,62 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             self.tempo3Checkbox.setChecked(False)
 
     def setMessageType(self):
-        if self.date.text():
-            prev = 1 if self.prev.isChecked() else 0
-            self.taf = CurrentTaf(context.taf.spec, time=self.time, prev=prev)
-            if self.normal.isChecked():
-                self.setNormalPeriod()
+        if not self.date.hasAcceptableInput():
+            return
 
+        prev = 1 if self.prev.isChecked() else 0
+        taf = CurrentTaf(context.taf.spec, time=datetime.datetime.utcnow(), prev=prev)
+        if self.normal.isChecked():
+            self.setNormalPeriod(taf)
+
+            self.ccc.clear()
+            self.ccc.setEnabled(False)
+            self.aaa.clear()
+            self.aaa.setEnabled(False)
+            self.aaaCnl.clear()
+            self.aaaCnl.setEnabled(False)
+        else:
+            self.setAmendPeriod(taf)
+
+            if self.cor.isChecked():
+                self.ccc.setEnabled(True)
+                order = self.amendNumber('COR')
+                self.ccc.setText(order)
+            else:
                 self.ccc.clear()
                 self.ccc.setEnabled(False)
+
+            if self.amd.isChecked():
+                self.aaa.setEnabled(True)
+                order = self.amendNumber('AMD')
+                self.aaa.setText(order)
+            else:
                 self.aaa.clear()
                 self.aaa.setEnabled(False)
+
+            if self.cnl.isChecked():
+                self.aaaCnl.setEnabled(True)
+                order = self.amendNumber('AMD')
+                self.aaaCnl.setText(order)
+            else:
                 self.aaaCnl.clear()
                 self.aaaCnl.setEnabled(False)
-            else:
-                self.setAmendPeriod()
 
-                if self.cor.isChecked():
-                    self.ccc.setEnabled(True)
-                    order = self.amendNumber('COR')
-                    self.ccc.setText(order)
-                else:
-                    self.ccc.clear()
-                    self.ccc.setEnabled(False)
-
-                if self.amd.isChecked():
-                    self.aaa.setEnabled(True)
-                    order = self.amendNumber('AMD')
-                    self.aaa.setText(order)
-                else:
-                    self.aaa.clear()
-                    self.aaa.setEnabled(False)
-
-                if self.cnl.isChecked():
-                    self.aaaCnl.setEnabled(True)
-                    order = self.amendNumber('AMD')
-                    self.aaaCnl.setText(order)
-                else:
-                    self.aaaCnl.clear()
-                    self.aaaCnl.setEnabled(False)
-
-            self.durations = self.taf.durations()
-
-    def setNormalPeriod(self, isTask=False):
-        check = CheckTaf(self.taf)
-        period = self.taf.period() if isTask else self.taf.period(strict=False)
+    def setNormalPeriod(self, taf, strict=False):
+        check = CheckTaf(taf)
+        period = taf.period(strict=strict)
 
         if period and check.local(period) or not self.date.hasAcceptableInput():
             self.period.clear()
+            self.durations = None
         else:
             self.period.setText(period)
+            self.durations = taf.durations()
 
-    def setAmendPeriod(self):
-        self.amdPeriod = self.taf.period(strict=False)
+    def setAmendPeriod(self, taf):
+        self.amdPeriod = taf.period(strict=False)
         self.period.setText(self.amdPeriod)
+        self.durations = taf.durations()
 
     def setPreviousPeriod(self, checked):
         if checked:
@@ -702,8 +702,8 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         return ' '.join(filter(None, messages))
 
     def setDate(self):
-        self.time = datetime.datetime.utcnow()
-        self.date.setText(self.time.strftime('%d%H%M'))
+        time = datetime.datetime.utcnow()
+        self.date.setText(time.strftime('%d%H%M'))
 
     def showEvent(self, event):
         self.setDate()
@@ -754,12 +754,12 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         period = QRegExpValidator(QRegExp(self.rules.period))
         self.period.setValidator(period)
 
-    def setPeriod(self):
-        if not self.parent.primary.period.text() or self.period.hasAcceptableInput():
+    def setPeriodPlaceholder(self):
+        if self.parent.primary.durations is None:
             return
 
         time = self.parent.primary.durations[0]
-        self.period.setText('{:02d}'.format(time.day))
+        self.period.setPlaceholderText('{:02d}'.format(time.day))
 
     def fillPeriod(self):
         autoComletionGroupTime = boolean(conf.value('General/AutoComletionGroupTime'))
@@ -787,19 +787,16 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
             if len(text) == 4:
                 durations = self.parent.primary.durations
                 try:
-                    start = parseDayHour(text, durations[0])
+                    start = parseDayHour(text, durations[0], future=True)
                 except Exception:
                     return
 
-                if start < durations[0]:
-                    start += datetime.timedelta(days=1)
+                if durations[1] <= start:
+                    return
 
                 if self.identifier.startswith('TEMPO'):
                     delta = datetime.timedelta(hours=self.span())
                     end = start + delta
-                    if durations[1] <= start:
-                        return
-
                     if durations[1] <= end:
                         text = '{:02d}{:02d}/{}'.format(start.day, start.hour, self.parent.primary.period.text()[5:])
                     else:
@@ -808,7 +805,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
                 if self.identifier.startswith('BECMG'):
                     delta = datetime.timedelta(hours=1)
                     end = start + delta
-                    if durations[1] <= end or durations[1] <= start:
+                    if durations[1] <= end:
                         return
 
                     text = '{:02d}{:02d}/{:02d}{:02d}'.format(start.day, start.hour, end.day, end.hour)
@@ -902,7 +899,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.completeSignal.emit(self.complete)
 
     def showEvent(self, event):
-        self.setPeriod()
+        self.setPeriodPlaceholder()
 
     def clear(self):
         super(TafGroupSegment, self).clear()
@@ -1060,9 +1057,9 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         period = QRegExpValidator(QRegExp(self.rules.trendPeriod))
         self.period.setValidator(period)
 
-    def setPeriod(self):
+    def setPeriodPlaceholder(self):
         time = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
-        self.period.setText('{:02d}'.format(time.hour))
+        self.period.setPlaceholderText('{:02d}'.format(time.hour))
 
     def setNosig(self, checked):
         status = not checked
@@ -1099,7 +1096,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
             self.fm.setChecked(False)
             self.tl.setChecked(False)
             self.period.setEnabled(True)
-            self.setPeriod()
+            self.setPeriodPlaceholder()
         else:
             self.period.setEnabled(False)
             self.period.clear()
@@ -1109,7 +1106,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
             self.at.setChecked(False)
             self.tl.setChecked(False)
             self.period.setEnabled(True)
-            self.setPeriod()
+            self.setPeriodPlaceholder()
         else:
             self.period.setEnabled(False)
             self.period.clear()
@@ -1119,7 +1116,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
             self.fm.setChecked(False)
             self.at.setChecked(False)
             self.period.setEnabled(True)
-            self.setPeriod()
+            self.setPeriodPlaceholder()
         else:
             self.period.setEnabled(False)
             self.period.clear()

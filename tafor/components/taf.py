@@ -5,6 +5,7 @@ from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox, QVBoxLayout, QLayout
 
 from tafor import conf
+from tafor.utils import CurrentTaf
 from tafor.utils.convert import parseTime, isOverlap
 from tafor.states import context
 from tafor.models import db, Taf
@@ -164,10 +165,6 @@ class BaseTafEditor(BaseEditor):
             self.assembleMessage()
             self.previewMessage()
 
-    def setDate(self):
-        self.time = datetime.datetime.utcnow()
-        self.primary.date.setText(self.time.strftime('%d%H%M'))
-
     def enbaleNextButton(self):
         # 允许下一步
         completes = [self.primary.complete]
@@ -240,6 +237,7 @@ class TaskTafEditor(BaseTafEditor):
         self.setWindowIcon(QIcon(':/time.png'))
 
         self.primary.sortGroup.hide()
+        self.primary.timer = None
         self.primary.date.editingFinished.connect(self.updateState)
         self.sender.sendSignal.connect(self.afterSend)
 
@@ -251,8 +249,8 @@ class TaskTafEditor(BaseTafEditor):
         date = self.primary.date.text()
         self.time = parseTime(date)
         self.setWindowTitle(self.title + ' - {}'.format(self.time.strftime('%Y-%m-%d %H:%M')))
-        self.setNormalPeriod(isTask=True)
-        self.durations = self.periodDuration()
+        taf = CurrentTaf(context.taf.spec, time=self.time)
+        self.primary.setNormalPeriod(taf, strict=True)
 
     def afterSend(self):
         self.parent.taskBrowser.show()

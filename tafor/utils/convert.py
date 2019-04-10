@@ -17,13 +17,16 @@ def isOverlap(basetime, reftime):
     total = (end - start).total_seconds()
     return total >= 0
 
-def parseDayHour(dayHour, basetime):
+def parseDayHour(dayHour, basetime, future=False):
     day = int(dayHour[:2])
     hour = int(dayHour[2:])
     if hour == 24:
         time = datetime.datetime(basetime.year, basetime.month, day) + datetime.timedelta(days=1)
     else:
         time = datetime.datetime(basetime.year, basetime.month, day, hour)
+
+    if future and time < basetime:
+        time += relativedelta.relativedelta(months=1)
     return time
 
 def parseStandardPeriod(period, basetime=None):

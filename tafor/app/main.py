@@ -80,7 +80,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.setRecent()
         self.setTable()
-        self.setContractMenu() # 设置切换联系人菜单
+        self.setContractMenu()
         self.setAboutMenu()
         self.setSysTray()
         self.setStatus()
@@ -310,10 +310,10 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         def afterSending(message, error=None):
             if error:
-                self.showNotifyMessage(QCoreApplication.translate('MainWindow', 'Send Failed'),
+                self.showNotificationMessage(QCoreApplication.translate('MainWindow', 'Send Failed'),
                     QCoreApplication.translate('MainWindow', error))
             else:
-                self.showNotifyMessage(QCoreApplication.translate('MainWindow', 'Send Completed'),
+                self.showNotificationMessage(QCoreApplication.translate('MainWindow', 'Send Completed'),
                     QCoreApplication.translate('MainWindow', message))
                 self.updateGui()
                 self.taskBrowser.updateGui()
@@ -425,8 +425,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
                     widget.deleteLater()
 
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-
-        taf = db.query(Taf).filter(Taf.sent > recent).order_by(Taf.sent.desc()).first()
+        spec = context.taf.spec[:2].upper()
+        taf = db.query(Taf).filter(Taf.sent > recent, Taf.tt == spec).order_by(Taf.sent.desc()).first()
         sigmets = currentSigmet(order='asc', hasCnl=True)
         trend = db.query(Trend).order_by(Trend.sent.desc()).first()
         if trend and trend.isNosig():
