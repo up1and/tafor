@@ -306,6 +306,12 @@ class SigmetSender(BaseSender):
         self.message = message
         firCode = conf.value('Message/FIR')
         airportCode = conf.value('Message/ICAO')
+
+        if 'sign' in self.message and self.message['sign'][0:2] == 'WA':
+            self.reportType = 'AIRMET'
+        else:
+            self.reportType = 'SIGMET'
+
         try:
             self.parser = SigmetParser(self.message['rpt'], firCode=firCode, airportCode=airportCode)
             html = '<p>{}<br/>{}</p>'.format(self.message['sign'], self.parser.renderer(style='html'))
@@ -318,6 +324,7 @@ class SigmetSender(BaseSender):
         super(SigmetSender, self).save()
         if not self.item.isCnl():
             delta = self.item.expired() - datetime.datetime.utcnow() - datetime.timedelta(minutes=15)
-            text = 'SIGMET {}'.format(self.item.parser().sequence())
+            parser = self.item.parser()
+            text = '{} {}'.format(parser.sign(), parser.sequence())
             QTimer.singleShot(delta.total_seconds() * 1000, lambda: self.parent.remindSigmet(text))
     

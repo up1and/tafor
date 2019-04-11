@@ -46,6 +46,7 @@ _options = [
     ('Communication/MaxSendAddress', 'maxSendAddress', 'text'),
     ('Communication/OriginatorAddress', 'originatorAddress', 'text'),
     ('Communication/TAFAddress', 'tafAddress', 'plaintext'),
+    ('Communication/AIRMETAddress', 'airmetAddress', 'plaintext'),
     ('Communication/SIGMETAddress', 'sigmetAddress', 'plaintext'),
     ('Communication/TrendAddress', 'trendAddress', 'plaintext'),
     # 数据源
@@ -77,7 +78,7 @@ def isConfigured(reportType='TAF'):
             'Communication/MaxSendAddress', 'Communication/OriginatorAddress']
     taf = ['Message/ICAO', 'Message/Area', 'Communication/TAFAddress']
     trend = ['Message/TrendSign', 'Communication/TrendAddress']
-    sigmet = ['Message/ICAO', 'Message/FIR', 'Message/Area', 'Communication/SIGMETAddress']
+    sigmet = ['Message/ICAO', 'Message/FIR', 'Message/Area', 'Communication/SIGMETAddress', 'Communication/AIRMETAddress']
 
     options = serial + aftn
     if reportType == 'TAF':

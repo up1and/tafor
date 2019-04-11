@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>654</width>
+    <width>759</width>
     <height>54</height>
    </rect>
   </property>
@@ -41,6 +41,13 @@
        <widget class="QRadioButton" name="volcanicAsh">
         <property name="text">
          <string>Volcanic Ash</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="airmansWeather">
+        <property name="text">
+         <string>Airman's Weather</string>
         </property>
        </widget>
       </item>

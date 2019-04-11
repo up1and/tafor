@@ -172,7 +172,8 @@ class Sigmet(Base):
         return parseTime(ending, self.sent)
 
     def isCnl(self):
-        return 'CNL' in self.rpt
+        items = self.rpt.split()
+        return 'CNL' in items
 
     def isExpired(self):
         return datetime.datetime.utcnow() > self.expired()

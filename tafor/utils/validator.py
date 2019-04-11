@@ -44,6 +44,7 @@ class Pattern(object):
     latitude = r'(N|S)(90(0{2})?|[0-8]\d([0-5]\d)?)'
     longitude = r'(E|W)(180(0{2})?|((1[0-7]\d)|(0\d{2}))([0-5]\d)?)'
     fightLevel = r'([1-9]\d{2})'
+    airmansFightLevel = r'((?:0\d{2})|(?:1[0-4]\d)|150)'
     sequence = r'([A-Z]?\d{1,2})'
 
 
@@ -75,6 +76,11 @@ class SigmetGrammar(object):
     sequence = re.compile(r'([A-Z]?\d{1,2})')
     valid = re.compile(r'(\d{6})/(\d{6})')
     width = re.compile(r'(\d{1,3})NM')
+
+    airmansFightLevel = re.compile(r'(FL\d{3}/\d{3})|(FL\d{3})|(\d{4,5}FT)|(\d{4,5}M)|(SFC/FL\d{3})')
+    wind = re.compile(r'(0[1-9]0|[12][0-9]0|3[0-6]0)/(1[5-9]|[2-4][0-9]|P49)(MPS|KT)')
+    vis = re.compile(r'(9999|5000|[01234][0-9]00|0[0-7]50)(M|FT)')
+    cloud = re.compile(r'((?:\d{3,4}|SFC)/(?:ABV)?\d{3,5}(?:M|FT))')
 
     _point = r'((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))'
     _pointSpacer = r'\s?-\s?'
@@ -862,21 +868,31 @@ class SigmetLexer(object):
         'FIR', 'FIR/UIR', 'CTA'
     ]
 
+    airmetKeywords = ['ISOL', 'OCNL', 'BKN', 'OVC', 'WIND', 'VIS', 'AIRMET',
+        'BR', 'DS', 'DU', 'DZ', 'FC', 'FG', 'FU', 'GR', 'GS', 'HZ', 'PL', 'PO', 'RA', 'SA', 'SG', 'SN', 'SQ', 'SS', 'VA'
+    ]
+
     defaultRules = ['latitude', 'longitude', 'fightLevel', 'speed', 'obsTime', 'typhoonRange', 'sequence', 'valid', 'width']
 
-    def __init__(self, part, firCode=None, airportCode=None, grammar=None, keywords=None, **kwargs):
+    airmetRules = ['airmansFightLevel', 'wind', 'vis', 'cloud']
+
+    def __init__(self, part, firCode=None, airportCode=None, grammar=None, keywords=None, rules=None, isAirmet=False,**kwargs):
         super(SigmetLexer, self).__init__()
         if not grammar:
             grammar = self.grammarClass()
 
         if not keywords:
-            keywords = self.defaultKeywords
+            keywords = self.defaultKeywords + self.airmetKeywords if isAirmet else self.defaultKeywords
+
+        if not rules:
+            rules = self.defaultRules + self.airmetRules if isAirmet else self.defaultRules
 
         if airportCode:
             keywords.append(airportCode)
 
         self.grammar = grammar
         self.keywords = keywords
+        self.rules = rules
         self.firCode = firCode
         self.part = part.strip()
         self.tokens = []
@@ -909,8 +925,7 @@ class SigmetLexer(object):
 
         :return: 是否正确匹配
         """
-        rules = self.defaultRules
-        for key in rules:
+        for key in self.rules:
             pattern = getattr(self.grammar, key)
             m = pattern.match(text)
             if m:
@@ -1007,6 +1022,7 @@ class SigmetParser(object):
 
     def __init__(self, message, parse=None, grammar=None, **kwargs):
         self.message = message.strip()
+        self.isAirmet = True if self.sign() == 'AIRMET' else False
 
         if not grammar:
             grammar = self.grammarClass()
@@ -1028,7 +1044,15 @@ class SigmetParser(object):
         *heads, elements = splitPattern.split(message)
         self.heads = [e.strip() for e in ''.join(heads).split('\n')]
         elements = elements.strip().split('\n')
-        self.elements = [self.parse(e, firCode=self.firCode, airportCode=self.airportCode) for e in elements]
+        self.elements = [self.parse(e, firCode=self.firCode, airportCode=self.airportCode, isAirmet=self.isAirmet) for e in elements]
+
+    def sign(self):
+        pattern = re.compile(r'(SIGMET|AIRMET) ([A-Z]?\d{1,2}) VALID')
+        m = pattern.search(self.message)
+        if m:
+            return m.group(1)
+        else:
+            return ''
 
     def type(self):
         text = 'other'
@@ -1048,12 +1072,16 @@ class SigmetParser(object):
         return text
 
     def sequence(self):
-        pattern = re.compile(r'SIGMET ([A-Z]?\d{1,2}) VALID')
-        return pattern.search(self.message).group(1)
+        pattern = re.compile(r'(SIGMET|AIRMET) ([A-Z]?\d{1,2}) VALID')
+        m = pattern.search(self.message)
+        if m:
+            return m.group(2)
 
     def cancelSequence(self):
-        pattern = re.compile(r'CNL SIGMET ([A-Z]?\d{1,2})')
-        return pattern.search(self.message).group(1)
+        pattern = re.compile(r'CNL (SIGMET|AIRMET) ([A-Z]?\d{1,2})')
+        m = pattern.search(self.message)
+        if m:
+            return m.group(2)
 
     def valids(self):
         pattern = self.grammar.valid

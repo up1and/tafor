@@ -346,7 +346,7 @@
             <item row="2" column="0">
              <widget class="QLabel" name="firLabel">
               <property name="text">
-               <string>SIGMET Area</string>
+               <string>FIR Area</string>
               </property>
              </widget>
             </item>
@@ -727,6 +727,20 @@
                <layout class="QVBoxLayout" name="verticalLayout_7">
                 <item>
                  <widget class="QTextEdit" name="sigmetAddress">
+                  <property name="placeholderText">
+                   <string>Please separate multiple addresses by space</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+              <widget class="QWidget" name="airmetTab">
+               <attribute name="title">
+                <string notr="true">AIRMET</string>
+               </attribute>
+               <layout class="QVBoxLayout" name="verticalLayout_8">
+                <item>
+                 <widget class="QTextEdit" name="airmetAddress">
                   <property name="placeholderText">
                    <string>Please separate multiple addresses by space</string>
                   </property>

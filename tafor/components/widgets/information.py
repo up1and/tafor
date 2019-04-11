@@ -35,6 +35,9 @@ class SigmetTypeSegment(QWidget, Ui_sigmet_type.Ui_Editor):
         messages = [self.tt + area, icao, time]
         return ' '.join(filter(None, messages))
 
+    def sign(self):
+        return 'AIRMET' if self.tt == 'WA' else 'SIGMET'
+
 
 class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
     completeSignal = pyqtSignal(bool)
@@ -160,7 +163,12 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
     def setSquence(self):
         time = datetime.datetime.utcnow()
         begin = datetime.datetime(time.year, time.month, time.day)
-        count = db.query(Sigmet).filter(Sigmet.sent > begin).count() + 1
+        query = db.query(Sigmet).filter(Sigmet.sent > begin)
+        if self.parent.type.tt == 'WA':
+            query = query.filter(Sigmet.tt == 'WA')
+        else:
+            query = query.filter(Sigmet.tt != 'WA')
+        count = query.count() + 1
         self.sequence.setText(str(count))
 
     def setPhenomenaDescription(self):
@@ -181,12 +189,13 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
 
     def head(self):
         area = conf.value('Message/FIR').split()[0]
+        sign = self.parent.type.sign()
         sequence = self.sequence.text()
         beginningTime = self.beginningTime.text()
         endingTime = self.endingTime.text()
         icao = conf.value('Message/ICAO')
 
-        text = '{} SIGMET {} VALID {}/{} {}-'.format(area, sequence, beginningTime, endingTime, icao)
+        text = '{} {} {} VALID {}/{} {}-'.format(area, sign, sequence, beginningTime, endingTime, icao)
         return text
 
     def prediction(self):
@@ -209,11 +218,11 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
 class BaseSigmetContent(QWidget, SegmentMixin):
     completeSignal = pyqtSignal(bool)
 
-    def __init__(self, head):
+    def __init__(self, parent):
         super(BaseSigmetContent, self).__init__()
         self.complete = False
         self.rules = Pattern()
-        self.head = head
+        self.parent = parent
 
 
 class BaseSegment(QWidget):
@@ -250,12 +259,16 @@ class BaseSegment(QWidget):
         durations = {
             'WS': 4,
             'WC': 6,
-            'WV': 6
+            'WV': 6,
+            'WA': 4,
         }
         self.head.setSpan(durations[tt])
         self.type.setType(tt)
 
         self.changeSignal.emit()
+
+    def showNotificationMessage(text):
+        self.parent.showNotificationMessage(text)
 
     def clear(self):
         self.head.clear()
@@ -271,7 +284,7 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
         self.tt = tt
         self.parent = parent
         self.rules = Pattern()
-        self.canvasWidget = AreaBoard()
+        self.canvasWidget = AreaBoard(self)
         self.areaLayout.addWidget(self.canvasWidget)
         self.areaGroup.setLayout(self.areaLayout)
         self.fcstButton.setIcon(QIcon(':/f.png'))
@@ -457,15 +470,16 @@ class SigmetGeneralHead(BaseSigmetHead):
 
 class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
 
-    def __init__(self, head):
-        super(SigmetGeneralContent, self).__init__(head)
+    def __init__(self, parent):
+        super(SigmetGeneralContent, self).__init__(parent)
         self.setupUi(self)
-        self.area = SigmetArea(parent=self)
+        self.area = SigmetArea(tt=self.parent.type.tt, parent=self)
         self.verticalLayout.addWidget(self.area)
 
         self.bindSignal()
         self.setValidator()
         self.setLevel('TS')
+        self.hideForecast()
 
     def bindSignal(self):
         self.level.currentTextChanged.connect(self.setFightLevel)
@@ -514,17 +528,20 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
             self.speedLabel.setEnabled(True)
 
     def setLevel(self, text):
-        if 'TS' in text:
+        if text in ['CB', 'TCU', 'TS', 'TSGR']:
             self.level.setCurrentIndex(self.level.findText('TOP'))
         else:
             self.level.setCurrentIndex(-1)
 
     def setForecastTime(self):
-        if self.head.durations is None or not self.head.endingTime.text():
+        if self.parent.head.durations is None or not self.parent.head.endingTime.text():
             return
 
-        text = self.head.endingTime.text()[2:]
+        text = self.parent.head.endingTime.text()[2:]
         self.forecastTime.setText(text)
+
+    def hideForecast(self):
+        pass
 
     def validateBaseTop(self, line):
         if not (self.base.isEnabled() and self.top.isEnabled()):
@@ -535,7 +552,7 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
         if base and top:
             if int(top) <= int(base):
                 line.clear()
-                self.head.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'The top flight level needs to be greater than the base flight level'))
+                self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'The top flight level needs to be greater than the base flight level'))
 
     def isFcstAreaMode(self):
         return hasattr(self, 'area') and self.area.fcstButton.isChecked()
@@ -562,7 +579,7 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
 
     def message(self):
         areas = self.area.text()
-        prediction = self.head.prediction()
+        prediction = self.parent.head.prediction()
         fightLevel = self.fightLevel()
         moveState = self.moveState()
         intensityChange = self.intensityChange.currentText()
@@ -665,8 +682,8 @@ class SigmetTyphoonHead(BaseSigmetHead):
 
 class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
 
-    def __init__(self, head):
-        super(SigmetTyphoonContent, self).__init__(head)
+    def __init__(self, parent):
+        super(SigmetTyphoonContent, self).__init__(parent)
         self.setupUi(self)
         self.area = SigmetArea(tt='WC', parent=self)
         self.verticalLayout.addWidget(self.area)
@@ -761,10 +778,10 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
             self.speedLabel.setEnabled(True)
 
     def setForecastTime(self):
-        if self.head.durations is None or not self.head.endingTime.text():
+        if self.parent.head.durations is None or not self.parent.head.endingTime.text():
             return
 
-        text = self.head.endingTime.text()
+        text = self.parent.head.endingTime.text()
         time = parseTime(text)
         time = time - datetime.timedelta(minutes=time.minute)
         fcstTime = time.strftime('%H%M')
@@ -780,8 +797,8 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         ]
 
         anyRequired = [
-            self.head.obsTime.hasAcceptableInput(),
-            self.head.beginningTime.hasAcceptableInput(),
+            self.parent.head.obsTime.hasAcceptableInput(),
+            self.parent.head.beginningTime.hasAcceptableInput(),
         ]
 
         if not (all(mustRequired) and any(anyRequired)):
@@ -810,8 +827,8 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
             'NW': 315,
             'NNW': 337.5
         }
-        obsTime = self.head.obsTime.text() if self.head.obsTime.hasAcceptableInput() else ''
-        beginningTime = self.head.beginningTime.text()[2:] if self.head.beginningTime.hasAcceptableInput() else ''
+        obsTime = self.parent.head.obsTime.text() if self.parent.head.obsTime.hasAcceptableInput() else ''
+        beginningTime = self.parent.head.beginningTime.text()[2:] if self.parent.head.beginningTime.hasAcceptableInput() else ''
         fcstTime = self.forecastTime.text()
 
         time = self.moveTime(obsTime or beginningTime, fcstTime).seconds
@@ -831,7 +848,7 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         area = 'PSN {latitude} {Longitude} CB {prediction} WI {range}KM OF CENTRE TOP FL{height}'.format(
                 latitude=self.currentLatitude.text(),
                 Longitude=self.currentLongitude.text(),
-                prediction=self.head.prediction(),
+                prediction=self.parent.head.prediction(),
                 height=self.height.text(),
                 range=int(self.range.text())
             )
@@ -898,8 +915,8 @@ class SigmetSimpleHead(BaseSigmetHead):
 
 class SigmetCancelContent(BaseSigmetContent, Ui_sigmet_cancel.Ui_Editor):
 
-    def __init__(self, head):
-        super(SigmetCancelContent, self).__init__(head)
+    def __init__(self, parent):
+        super(SigmetCancelContent, self).__init__(parent)
         self.setupUi(self)
         self.setValidator()
         self.bindSignal()
@@ -918,7 +935,8 @@ class SigmetCancelContent(BaseSigmetContent, Ui_sigmet_cancel.Ui_Editor):
         self.sequence.setValidator(QIntValidator(1, 99, self.sequence))
 
     def message(self):
-        text = 'CNL SIGMET {} {}/{}'.format(int(self.sequence.currentText()), self.beginningTime.text(), self.endingTime.text())
+        sign = self.parent.type.sign()
+        text = 'CNL {} {} {}/{}'.format(sign, int(self.sequence.currentText()), self.beginningTime.text(), self.endingTime.text())
         return text
 
     def checkComplete(self):
@@ -934,8 +952,8 @@ class SigmetCancelContent(BaseSigmetContent, Ui_sigmet_cancel.Ui_Editor):
 
 class SigmetCustomContent(BaseSigmetContent, Ui_sigmet_custom.Ui_Editor):
 
-    def __init__(self, head):
-        super(SigmetCustomContent, self).__init__(head)
+    def __init__(self, parent):
+        super(SigmetCustomContent, self).__init__(parent)
         self.setupUi(self)
         self.bindSignal()
         self.setUpper()
@@ -957,12 +975,46 @@ class SigmetCustomContent(BaseSigmetContent, Ui_sigmet_custom.Ui_Editor):
         self.completeSignal.emit(self.complete)
 
 
+class AirmetGeneralHead(SigmetGeneralHead):
+
+    def setPhenomenaDescription(self):
+        descriptions = ['ISOL', 'OCNL', 'FRQ', 'MOD']
+        self.description.addItems(descriptions)
+
+    def setPhenomena(self, text='ISOL'):
+        self.phenomena.clear()
+
+        if text == 'MOD':
+            phenomenas = ['TURB', 'ICE', 'MTW']
+        elif text == 'FRQ':
+            phenomenas = ['CB', 'TCU']
+        else:
+            phenomenas = ['CB', 'TCU', 'TS', 'TSGR']
+
+        self.phenomena.addItems(phenomenas)
+
+
+class AirmetGeneralContent(SigmetGeneralContent):
+
+    def hideForecast(self):
+        self.forecastTime.hide()
+        self.forecastTimeLabel.hide()
+        self.area.fcstButton.hide()
+
+    def setValidator(self):
+        fightLevel = QRegExpValidator(QRegExp(self.rules.airmansFightLevel))
+        self.base.setValidator(fightLevel)
+        self.top.setValidator(fightLevel)
+
+        self.speed.setValidator(QIntValidator(1, 99, self.speed))
+
+
 class SigmetGeneralSegment(BaseSegment):
 
     def __init__(self, typeSegment, parent=None):
         super(SigmetGeneralSegment, self).__init__(typeSegment, parent)
-        self.head = SigmetGeneralHead(parent)
-        self.content = SigmetGeneralContent(self.head)
+        self.head = SigmetGeneralHead(self)
+        self.content = SigmetGeneralContent(self)
 
         self.initUI()
         self.bindSignal()
@@ -1000,8 +1052,8 @@ class SigmetTyphoonSegment(BaseSegment):
 
     def __init__(self, typeSegment, parent=None):
         super(SigmetTyphoonSegment, self).__init__(typeSegment, parent)
-        self.head = SigmetTyphoonHead(parent)
-        self.content = SigmetTyphoonContent(self.head)
+        self.head = SigmetTyphoonHead(self)
+        self.content = SigmetTyphoonContent(self)
 
         self.initUI()
         self.bindSignal()
@@ -1020,12 +1072,29 @@ class SigmetTyphoonSegment(BaseSegment):
         self.content.setForecastTime()
 
 
+class AirmetGeneralSegment(BaseSegment):
+
+    def __init__(self, typeSegment, parent=None):
+        super(AirmetGeneralSegment, self).__init__(typeSegment, parent)
+        self.head = AirmetGeneralHead(self)
+        self.content = AirmetGeneralContent(self)
+
+        self.initUI()
+        self.bindSignal()
+
+    def bindSignal(self):
+        self.changeSignal.connect(self.head.initState)
+
+        self.head.description.currentTextChanged.connect(self.head.setPhenomena)
+        self.head.phenomena.currentTextChanged.connect(self.content.setLevel)
+
+
 class SigmetCancelSegment(BaseSegment):
 
     def __init__(self, typeSegment, parent=None):
         super(SigmetCancelSegment, self).__init__(typeSegment, parent)
-        self.head = SigmetSimpleHead(parent)
-        self.content = SigmetCancelContent(self.head)
+        self.head = SigmetSimpleHead(self)
+        self.content = SigmetCancelContent(self)
 
         self.initUI()
         self.bindSignal()
@@ -1067,8 +1136,8 @@ class SigmetCustomSegment(BaseSegment):
 
     def __init__(self, typeSegment, parent=None):
         super(SigmetCustomSegment, self).__init__(typeSegment, parent)
-        self.head = SigmetSimpleHead(parent)
-        self.content = SigmetCustomContent(self.head)
+        self.head = SigmetSimpleHead(self)
+        self.content = SigmetCustomContent(self)
 
         self.initUI()
         self.bindSignal()
@@ -1087,6 +1156,7 @@ class SigmetCustomSegment(BaseSegment):
             'WS': 'EMBD TS FCST N OF N2000 TOP FL360 MOV N 25KMH NC',
             'WC': 'TC YAGI PSN N2706 W07306 CB OBS AT 1600Z WI 300KM OF CENTRE TOP FL420 NC\nFCST 2200Z TC CENTRE N2740 W07345',
             'WV': 'VA ERUPTION MT ASHVAL PSN S1500 E07348 VA CLD\nOBS AT 1100Z APRX 50KM WID LINE BTN S1500 E07348 - S1530 E07642 FL310/450 MOV ESE 65KMH\nFCST 1700Z VA CLD APRX 50KM WID LINE BTN S1506 E07500 - S1518 E08112 - S1712 E08330',
+            'WA': 'MOD MTW OBS AT 1205Z N4200 E11000 FL080 STNR NC'
         }
         tip = tips[self.type.tt]
         self.content.text.setPlaceholderText(tip)

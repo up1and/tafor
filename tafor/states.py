@@ -425,7 +425,7 @@ class EnvironState(object):
         if reportType == 'TAF':
             return 'airport' in self.license()
 
-        if reportType == 'SIGMET':
+        if reportType in ['SIGMET', 'AIRMET']:
             return 'fir' in self.license()
 
 

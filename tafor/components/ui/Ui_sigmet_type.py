@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Editor(object):
     def setupUi(self, Editor):
         Editor.setObjectName("Editor")
-        Editor.resize(654, 54)
+        Editor.resize(759, 54)
         Editor.setWindowTitle("Sigmet")
         self.horizontalLayout = QtWidgets.QHBoxLayout(Editor)
         self.horizontalLayout.setObjectName("horizontalLayout")
@@ -30,6 +30,9 @@ class Ui_Editor(object):
         self.volcanicAsh = QtWidgets.QRadioButton(self.groupBox)
         self.volcanicAsh.setObjectName("volcanicAsh")
         self.horizontalLayout_3.addWidget(self.volcanicAsh)
+        self.airmansWeather = QtWidgets.QRadioButton(self.groupBox)
+        self.airmansWeather.setObjectName("airmansWeather")
+        self.horizontalLayout_3.addWidget(self.airmansWeather)
         self.horizontalLayout.addWidget(self.groupBox)
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
@@ -58,6 +61,7 @@ class Ui_Editor(object):
         self.significantWeather.setText(_translate("Editor", "Significant Weather"))
         self.tropicalCyclone.setText(_translate("Editor", "Tropical Cyclone"))
         self.volcanicAsh.setText(_translate("Editor", "Volcanic Ash"))
+        self.airmansWeather.setText(_translate("Editor", "Airman\'s Weather"))
         self.template.setText(_translate("Editor", "Template"))
         self.custom.setText(_translate("Editor", "Custom"))
         self.cancel.setText(_translate("Editor", "Cancel"))

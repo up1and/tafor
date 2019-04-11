@@ -394,10 +394,11 @@ class Canvas(QWidget):
                 if key == 'default':
                     center = Polygon(area).centroid
                     met = self.fir.sigmets()[i]
+                    parser = met.parser()
                     pen = QPen(QColor(204, 204, 204), 1, Qt.DashLine)
                     brush = brushes.get(sig['type'], brushes['other'])
                     painter.setPen(pen)
-                    painter.drawText(center.x - 5, center.y + 5, met.parser().sequence())
+                    painter.drawText(center.x - 5, center.y + 5, parser.sequence())
 
                 if key == 'forecast':
                     pen = QPen(QColor(204, 204, 204, 150), 0, Qt.DashLine)
@@ -445,9 +446,9 @@ class Canvas(QWidget):
 
 class AreaBoard(QWidget):
 
-    def __init__(self):
-        super(AreaBoard, self).__init__()
-
+    def __init__(self, parent=None):
+        super(AreaBoard, self).__init__(parent)
+        self.parent = parent
         self.board = QLabel('')
         self.board.setAlignment(Qt.AlignTop)
         self.board.setWordWrap(True)
