@@ -3,7 +3,8 @@ from PyQt5.QtWidgets import QVBoxLayout, QLayout
 
 from tafor.components.setting import isConfigured
 from tafor.components.widgets.editor import BaseEditor
-from tafor.components.widgets import SigmetTypeSegment, SigmetGeneralSegment, SigmetTyphoonSegment, AirmetGeneralSegment, SigmetCancelSegment, SigmetCustomSegment
+from tafor.components.widgets import (SigmetTypeSegment, SigmetGeneralSegment, SigmetTyphoonSegment, SigmetAshSegment,
+    AirmetGeneralSegment, SigmetCancelSegment, SigmetCustomSegment)
 
 
 class SigmetEditor(BaseEditor):
@@ -24,12 +25,14 @@ class SigmetEditor(BaseEditor):
         self.type = SigmetTypeSegment()
         self.sigmetGeneral = SigmetGeneralSegment(self.type, self)
         self.sigmetTyphoon = SigmetTyphoonSegment(self.type, self)
+        self.sigmetAsh = SigmetAshSegment(self.type, self)
         self.sigmetCancel = SigmetCancelSegment(self.type, self)
         self.sigmetCustom = SigmetCustomSegment(self.type, self)
         self.airmetGeneral = AirmetGeneralSegment(self.type, self)
         layout.addWidget(self.type)
         layout.addWidget(self.sigmetGeneral)
         layout.addWidget(self.sigmetTyphoon)
+        layout.addWidget(self.sigmetAsh)
         layout.addWidget(self.sigmetCancel)
         layout.addWidget(self.sigmetCustom)
         layout.addWidget(self.airmetGeneral)
@@ -37,6 +40,7 @@ class SigmetEditor(BaseEditor):
         self.setLayout(layout)
 
         self.sigmetTyphoon.hide()
+        self.sigmetAsh.hide()
         self.sigmetCancel.hide()
         self.sigmetCustom.hide()
         self.airmetGeneral.hide()
@@ -56,6 +60,8 @@ class SigmetEditor(BaseEditor):
         self.sigmetGeneral.content.completeSignal.connect(self.enbaleNextButton)
         self.sigmetTyphoon.head.completeSignal.connect(self.enbaleNextButton)
         self.sigmetTyphoon.content.completeSignal.connect(self.enbaleNextButton)
+        self.sigmetAsh.head.completeSignal.connect(self.enbaleNextButton)
+        self.sigmetAsh.content.completeSignal.connect(self.enbaleNextButton)
         self.sigmetCancel.head.completeSignal.connect(self.enbaleNextButton)
         self.sigmetCancel.content.completeSignal.connect(self.enbaleNextButton)
         self.sigmetCustom.head.completeSignal.connect(self.enbaleNextButton)
@@ -70,6 +76,7 @@ class SigmetEditor(BaseEditor):
             if self.type.significantWeather.isChecked():
                 self.sigmetGeneral.show()
                 self.sigmetTyphoon.hide()
+                self.sigmetAsh.hide()
                 self.sigmetCancel.hide()
                 self.sigmetCustom.hide()
                 self.airmetGeneral.hide()
@@ -78,23 +85,25 @@ class SigmetEditor(BaseEditor):
             elif self.type.tropicalCyclone.isChecked():
                 self.sigmetGeneral.hide()
                 self.sigmetTyphoon.show()
+                self.sigmetAsh.hide()
                 self.sigmetCancel.hide()
                 self.sigmetCustom.hide()
                 self.airmetGeneral.hide()
                 self.currentSegment = self.sigmetTyphoon
 
             elif self.type.volcanicAsh.isChecked():
-                self.type.custom.setChecked(True)
                 self.sigmetGeneral.hide()
                 self.sigmetTyphoon.hide()
+                self.sigmetAsh.show()
                 self.sigmetCancel.hide()
-                self.sigmetCustom.show()
+                self.sigmetCustom.hide()
                 self.airmetGeneral.hide()
-                self.currentSegment = self.sigmetCustom
+                self.currentSegment = self.sigmetAsh
 
             elif self.type.airmansWeather.isChecked():
                 self.sigmetGeneral.hide()
                 self.sigmetTyphoon.hide()
+                self.sigmetAsh.hide()
                 self.sigmetCancel.hide()
                 self.sigmetCustom.hide()
                 self.airmetGeneral.show()
@@ -103,6 +112,7 @@ class SigmetEditor(BaseEditor):
         elif self.type.cancel.isChecked():
             self.sigmetGeneral.hide()
             self.sigmetTyphoon.hide()
+            self.sigmetAsh.hide()
             self.sigmetCancel.show()
             self.sigmetCustom.hide()
             self.airmetGeneral.hide()
@@ -111,13 +121,12 @@ class SigmetEditor(BaseEditor):
         else:
             self.sigmetGeneral.hide()
             self.sigmetTyphoon.hide()
+            self.sigmetAsh.hide()
             self.sigmetCancel.hide()
             self.sigmetCustom.show()
             self.airmetGeneral.hide()
             self.currentSegment = self.sigmetCustom
             self.currentSegment.clear()
-
-        self.type.template.setEnabled(True)
 
         if self.type.significantWeather.isChecked():
             self.currentSegment.setType('WS')
@@ -127,7 +136,6 @@ class SigmetEditor(BaseEditor):
 
         if self.type.volcanicAsh.isChecked():
             self.currentSegment.setType('WV')
-            self.type.template.setEnabled(False)
 
         if self.type.airmansWeather.isChecked():
             self.currentSegment.setType('WA')
@@ -159,6 +167,7 @@ class SigmetEditor(BaseEditor):
     def clear(self):
         self.sigmetGeneral.clear()
         self.sigmetTyphoon.clear()
+        self.sigmetAsh.clear()
         self.sigmetCustom.clear()
         self.sigmetCancel.clear()
         self.airmetGeneral.clear()

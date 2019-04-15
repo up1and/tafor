@@ -123,33 +123,33 @@
 </translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_typhoon.py" line="164"/>
+        <location filename="../components/ui/Ui_sigmet_ash.py" line="162"/>
         <source>Description</source>
         <translation>描述
 </translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_typhoon.py" line="170"/>
+        <location filename="../components/ui/Ui_sigmet_ash.py" line="168"/>
         <source>Movement</source>
         <translation>移动方向</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_typhoon.py" line="169"/>
+        <location filename="../components/ui/Ui_sigmet_ash.py" line="165"/>
         <source>Speed</source>
         <translation>速度</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_typhoon.py" line="171"/>
+        <location filename="../components/ui/Ui_sigmet_ash.py" line="164"/>
         <source>Intensity Change</source>
         <translation>强度变化</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_general.py" line="144"/>
+        <location filename="../components/ui/Ui_sigmet_ash.py" line="166"/>
         <source>FL Base</source>
         <translation>底高</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_general.py" line="141"/>
+        <location filename="../components/ui/Ui_sigmet_ash.py" line="169"/>
         <source>FL Top</source>
         <translation>顶高</translation>
     </message>
@@ -159,12 +159,12 @@
         <translation>区域</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_typhoon.py" line="165"/>
+        <location filename="../components/ui/Ui_sigmet_ash.py" line="172"/>
         <source>Latitude</source>
         <translation>纬度</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_typhoon.py" line="166"/>
+        <location filename="../components/ui/Ui_sigmet_ash.py" line="171"/>
         <source>Longitude</source>
         <translation>经度</translation>
     </message>
@@ -224,7 +224,7 @@
         <translation>高度</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_typhoon.py" line="173"/>
+        <location filename="../components/ui/Ui_sigmet_ash.py" line="163"/>
         <source>Forecast Time</source>
         <translation>预测时间</translation>
     </message>
@@ -314,7 +314,7 @@
         <translation>变化组结束时间不正确</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_general.py" line="143"/>
+        <location filename="../components/ui/Ui_sigmet_ash.py" line="167"/>
         <source>Fight Level</source>
         <translation>高度层</translation>
     </message>
@@ -334,7 +334,7 @@
         <translation>云</translation>
     </message>
     <message>
-        <location filename="../components/sigmet.py" line="16"/>
+        <location filename="../components/sigmet.py" line="17"/>
         <source>Encoding Significant Meteorological Information</source>
         <translation>编发重要气象情报</translation>
     </message>
@@ -349,27 +349,27 @@
         <translation>垂直能见度</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="115"/>
+        <location filename="../components/widgets/information.py" line="118"/>
         <source>Start time cannot be less than the current time</source>
         <translation>起始时间不能小于当前时间</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="120"/>
+        <location filename="../components/widgets/information.py" line="123"/>
         <source>Ending time must be greater than the beginning time</source>
         <translation>有效结束时间需要大于有效开始时间</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="125"/>
+        <location filename="../components/widgets/information.py" line="128"/>
         <source>Valid period more than {} hours</source>
         <translation>有效期大于 {} 小时</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="137"/>
+        <location filename="../components/widgets/information.py" line="140"/>
         <source>Observation time should before the beginning time</source>
         <translation>观测时间需要早于有效开始时间</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="646"/>
+        <location filename="../components/widgets/information.py" line="657"/>
         <source>Typhoon Name</source>
         <translation>热带气旋名称</translation>
     </message>
@@ -379,7 +379,7 @@
         <translation>最高温度需要大于最小温度</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="549"/>
+        <location filename="../components/widgets/information.py" line="560"/>
         <source>The top flight level needs to be greater than the base flight level</source>
         <translation>顶高需要大于底高</translation>
     </message>
@@ -394,12 +394,12 @@
         <translation>变化组不能超过 5 组</translation>
     </message>
     <message>
-        <location filename="../components/widgets/area.py" line="590"/>
+        <location filename="../components/widgets/area.py" line="592"/>
         <source>DEFAULT</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../components/widgets/area.py" line="591"/>
+        <location filename="../components/widgets/area.py" line="593"/>
         <source>FORECAST</source>
         <translation></translation>
     </message>
@@ -447,6 +447,16 @@
         <location filename="../components/ui/Ui_sigmet_type.py" line="64"/>
         <source>Airman&apos;s Weather</source>
         <translation>低空天气</translation>
+    </message>
+    <message>
+        <location filename="../components/ui/Ui_sigmet_ash.py" line="170"/>
+        <source>Postion</source>
+        <translation>位置</translation>
+    </message>
+    <message>
+        <location filename="../components/widgets/information.py" line="903"/>
+        <source>Volcano Name</source>
+        <translation>火山名称</translation>
     </message>
 </context>
 <context>

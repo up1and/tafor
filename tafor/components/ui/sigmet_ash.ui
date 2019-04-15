@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Editor</class>
+ <widget class="QWidget" name="Editor">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>819</width>
+    <height>146</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string notr="true">Sigmet</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <item>
+    <widget class="QGroupBox" name="descriptionGroup">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="title">
+      <string>Description</string>
+     </property>
+     <layout class="QGridLayout" name="descriptionLayout">
+      <item row="1" column="2">
+       <widget class="QComboBox" name="level">
+        <item>
+         <property name="text">
+          <string notr="true"/>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string notr="true">SFC</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="1" column="8">
+       <widget class="QLineEdit" name="forecastTime">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="4">
+       <widget class="QLineEdit" name="top"/>
+      </item>
+      <item row="1" column="5">
+       <widget class="QComboBox" name="movement">
+        <item>
+         <property name="text">
+          <string notr="true">N</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string notr="true">NNE</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string notr="true">NE</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string notr="true">ENE</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string notr="true">E</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string notr="true">ESE</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string notr="true">SE</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string notr="true">SSE</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string notr="true">S</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string notr="true">SSW</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string notr="true">SW</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string notr="true">WSW</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string notr="true">W</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string notr="true">WNW</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string notr="true">NW</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string notr="true">NNW</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string notr="true">STNR</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="1" column="7">
+       <widget class="QComboBox" name="intensityChange">
+        <item>
+         <property name="text">
+          <string notr="true">NC</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string notr="true">INTSF</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string notr="true">WKN</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="0" column="8">
+       <widget class="QLabel" name="forecastTimeLabel">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="text">
+         <string>Forecast Time</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="6">
+       <widget class="QLineEdit" name="speed"/>
+      </item>
+      <item row="0" column="7">
+       <widget class="QLabel" name="intensityChangeLabel">
+        <property name="text">
+         <string>Intensity Change</string>
+        </property>
+        <property name="buddy">
+         <cstring>intensityChange</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="6">
+       <widget class="QLabel" name="speedLabel">
+        <property name="text">
+         <string>Speed</string>
+        </property>
+        <property name="buddy">
+         <cstring>speed</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="3">
+       <widget class="QLabel" name="baseLabel">
+        <property name="text">
+         <string>FL Base</string>
+        </property>
+        <property name="buddy">
+         <cstring>base</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QLabel" name="levelLabel">
+        <property name="text">
+         <string>Fight Level</string>
+        </property>
+        <property name="buddy">
+         <cstring>level</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="5">
+       <widget class="QLabel" name="movementLabel">
+        <property name="text">
+         <string>Movement</string>
+        </property>
+        <property name="buddy">
+         <cstring>movement</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="4">
+       <widget class="QLabel" name="topLabel">
+        <property name="text">
+         <string>FL Top</string>
+        </property>
+        <property name="buddy">
+         <cstring>top</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="3">
+       <widget class="QLineEdit" name="base"/>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="postionGroup">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="title">
+      <string>Postion</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_3">
+      <item row="1" column="1">
+       <widget class="QLineEdit" name="currentLongitude"/>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLabel" name="currentLongitudeLabel">
+        <property name="text">
+         <string>Longitude</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLineEdit" name="currentLatitude"/>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="currentLatitudeLabel">
+        <property name="text">
+         <string>Latitude</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <tabstops>
+  <tabstop>level</tabstop>
+  <tabstop>base</tabstop>
+  <tabstop>top</tabstop>
+  <tabstop>movement</tabstop>
+  <tabstop>speed</tabstop>
+  <tabstop>intensityChange</tabstop>
+  <tabstop>forecastTime</tabstop>
+  <tabstop>currentLatitude</tabstop>
+  <tabstop>currentLongitude</tabstop>
+ </tabstops>
+ <resources/>
+ <connections/>
+</ui>
