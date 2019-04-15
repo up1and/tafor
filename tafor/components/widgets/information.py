@@ -473,13 +473,15 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
     def __init__(self, parent):
         super(SigmetGeneralContent, self).__init__(parent)
         self.setupUi(self)
-        self.area = SigmetArea(tt=self.parent.type.tt, parent=self)
+        self.area = SigmetArea(tt='WS', parent=self)
         self.verticalLayout.addWidget(self.area)
 
         self.bindSignal()
         self.setValidator()
         self.setLevel('TS')
-        self.hideForecast()
+
+        if hasattr(self, 'setAirmetMode'):
+            self.setAirmetMode()
 
     def bindSignal(self):
         self.level.currentTextChanged.connect(self.setFightLevel)
@@ -539,9 +541,6 @@ class SigmetGeneralContent(BaseSigmetContent, Ui_sigmet_general.Ui_Editor):
 
         text = self.parent.head.endingTime.text()[2:]
         self.forecastTime.setText(text)
-
-    def hideForecast(self):
-        pass
 
     def validateBaseTop(self, line):
         if not (self.base.isEnabled() and self.top.isEnabled()):
@@ -996,10 +995,11 @@ class AirmetGeneralHead(SigmetGeneralHead):
 
 class AirmetGeneralContent(SigmetGeneralContent):
 
-    def hideForecast(self):
+    def setAirmetMode(self):
         self.forecastTime.hide()
         self.forecastTimeLabel.hide()
         self.area.fcstButton.hide()
+        self.area.tt = 'WA'
 
     def setValidator(self):
         fightLevel = QRegExpValidator(QRegExp(self.rules.airmansFightLevel))

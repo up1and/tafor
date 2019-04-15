@@ -382,7 +382,8 @@ class Canvas(QWidget):
             'other': QBrush(QColor(250, 250, 50, 100))
         }
 
-        sigmets = self.fir.sigmetsInfo()
+        isAirmet = True if self.parent.parent.tt == 'WA' else False
+        sigmets = self.fir.sigmetsInfo(isAirmet=isAirmet)
         for i, sig in enumerate(sigmets):
             for key, area in sig['area'].items():
                 if not area:

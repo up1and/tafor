@@ -120,9 +120,14 @@ class FirState(object):
     def boundaries(self):
         return self.decimalToPixel(self._state['boundaries'])
 
-    def sigmetsInfo(self):
+    def sigmetsInfo(self, isAirmet=False):
         infos = []
-        for sig in self._state['sigmets']:
+        if isAirmet:
+            sigmets = [s for s in self._state['sigmets'] if s.tt == 'WA']
+        else:
+            sigmets = [s for s in self._state['sigmets'] if s.tt != 'WA']
+
+        for sig in sigmets:
             area = {}
             parser = sig.parser()
             for key, item in parser.area().items():
