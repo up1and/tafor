@@ -39,6 +39,8 @@ nosetests.xml
 *.spec
 *.autosave
 *.sqlite3
+*.py,cover
+htmlcov/
 docs/_build
 tests/fixtures/backup.json
 _environ.py

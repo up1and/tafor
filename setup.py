@@ -24,7 +24,7 @@ class PyTest(TestCommand):
 
     def finalize_options(self):
         TestCommand.finalize_options(self)
-        self.test_args = ['--cov=tafor']
+        self.test_args = ['--cov=tafor', '--cov-report=term', '--cov-report=html']
 
     def run_tests(self):
         import pytest
