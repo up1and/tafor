@@ -162,8 +162,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.importButton.clicked.connect(self.importConf)
         self.exportButton.clicked.connect(self.exportConf)
 
-        self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.save)
-        self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.parent.updateGui)
         self.buttonBox.accepted.connect(self.save)
         self.buttonBox.accepted.connect(self.parent.updateGui)
 

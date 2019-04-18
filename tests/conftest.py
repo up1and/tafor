@@ -2,16 +2,10 @@ import os
 
 import pytest
 
-from tafor.app import MainWindow
 from tafor.components.setting import loadConf, saveConf
 
 root = os.path.dirname(__file__)
 
-
-@pytest.fixture(scope='session')
-def app():
-    main = MainWindow()
-    return main
 
 @pytest.fixture(scope='session', autouse=True)
 def initialize():

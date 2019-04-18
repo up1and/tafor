@@ -113,6 +113,14 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.tray.messageClicked.connect(self.showNormal)
 
+        self.tafSender.sendSignal.connect(self.updateGui)
+        self.tafSender.sendSignal.connect(self.updateGui)
+        self.trendSender.sendSignal.connect(self.updateGui)
+        self.sigmetSender.sendSignal.connect(self.updateGui)
+
+        if boolean(conf.value('General/Serious')):
+            self.taskTafSender.sendSignal.connect(self.taskBrowser.show)
+
     def setRecent(self):
         self.clock = Clock(self, self.tipsLayout)
         self.tipsLayout.addSpacerItem(QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
@@ -402,6 +410,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.updateRecent()
         self.updateContractMenu()
         self.updateSigmet()
+        self.settingDialog.loadSerialNumber()
 
         logger.debug('Update GUI')
 

@@ -153,7 +153,6 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             if self.state is None:
                 fullMessage = '\n'.join([self.message['sign'], self.message['rpt']])
                 self.aftn = AFTNMessage(fullMessage, self.reportType)
-                self.parent.settingDialog.loadSerialNumber()
 
             self.state = self.aftn
             self.rawText = self.aftn.toString()

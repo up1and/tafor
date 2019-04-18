@@ -239,7 +239,6 @@ class TaskTafEditor(BaseTafEditor):
         self.primary.sortGroup.hide()
         self.primary.timer = None
         self.primary.date.editingFinished.connect(self.updateState)
-        self.sender.sendSignal.connect(self.afterSend)
 
     def previewMessage(self):
         message = {'sign': self.sign, 'rpt':self.rpt, 'planning': self.time}
@@ -251,8 +250,3 @@ class TaskTafEditor(BaseTafEditor):
         self.setWindowTitle(self.title + ' - {}'.format(self.time.strftime('%Y-%m-%d %H:%M')))
         taf = CurrentTaf(context.taf.spec, time=self.time)
         self.primary.setNormalPeriod(taf, strict=True)
-
-    def afterSend(self):
-        self.parent.taskBrowser.show()
-        self.parent.taskBrowser.updateGui()
-

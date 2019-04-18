@@ -1,6 +1,6 @@
 import datetime
 
-from PyQt5.QtGui import QIcon, QRegExpValidator
+from PyQt5.QtGui import QIcon, QRegExpValidator, QColor
 from PyQt5.QtCore import QCoreApplication, Qt, QRegExp
 from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QHeaderView
 
@@ -24,7 +24,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.searchText = ''
         self.date = None
         self.parent = parent
-        self.color = Qt.red
+        self.color = QColor(200, 20, 40)
 
         layout.addWidget(self)
         self.bindSignal()
@@ -218,6 +218,7 @@ class MetarTable(BaseDataTable):
             if item.tt == 'SP':
                 self.table.item(row, 0).setForeground(self.color)
                 self.table.item(row, 1).setForeground(self.color)
+                self.table.item(row, 2).setForeground(self.color)
 
         self.table.resizeRowsToContents()
 

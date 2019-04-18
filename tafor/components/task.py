@@ -40,6 +40,9 @@ class TaskBrowser(QDialog, Ui_task.Ui_Tasks):
 
         self.table.resizeRowsToContents()
 
+    def showEvent(self, event):
+        self.updateGui()
+
     def remove(self):
         row = self.table.currentRow()
         rpt = self.table.item(row, 1).text()
