@@ -13,7 +13,7 @@ class BaseEditor(QDialog):
         self.parent = parent
         self.sender = sender
 
-        self.actionController()
+        self.defaultAction()
 
     def initUI(self):
         raise NotImplementedError
@@ -21,16 +21,21 @@ class BaseEditor(QDialog):
     def bindSignal(self):
         raise NotImplementedError
 
-    def actionController(self):
-        alwaysShow = boolean(conf.value('General/AlwaysShowEditor'))
-
-        if not alwaysShow:
-            self.previewSignal.connect(self.hide)
-
-        self.previewSignal.connect(self.sender.receive)
-        self.previewSignal.connect(self.sender.show)
+    def defaultAction(self):
+        self.previewSignal.connect(self.showSender)
         self.sender.backSignal.connect(self.show)
         self.sender.closeSignal.connect(self.close)
+
+    def showSender(self, messages):
+        alwaysShow = boolean(conf.value('General/AlwaysShowEditor'))
+        if not alwaysShow:
+            self.hide()
+
+        if self.sender.isVisible():
+            self.sender.clear()
+
+        self.sender.receive(messages)
+        self.sender.show()
 
     def showConfigError(self):
         title = QCoreApplication.translate('Editor', 'Config Error')
