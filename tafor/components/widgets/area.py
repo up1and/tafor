@@ -292,7 +292,9 @@ class Canvas(QWidget):
             move = event.angleDelta().y()
             deviation = 2
             if move > 0:
-                self.radius += deviation
+                points = self.shapes[self.areaType]['points']
+                if self.points == points or len(self.points) * 2 + 1 == len(points):
+                    self.radius += deviation
 
             if move < 0:
                 self.radius -= deviation
