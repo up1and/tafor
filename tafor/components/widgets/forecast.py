@@ -61,6 +61,7 @@ class BaseSegment(QWidget, SegmentMixin):
         self.complete = False
         self.identifier = name
         self.durations = None
+        self.periodText = ''
 
     def bindSignal(self):
         if hasattr(self, 'cavok'):
@@ -208,6 +209,16 @@ class BaseSegment(QWidget, SegmentMixin):
         self.weatherWithIntensity.addItems(intensityWeathers)
         intensityWeather = QRegExpValidator(QRegExp(r'[-+]?({})'.format('|'.join(weathers)), Qt.CaseInsensitive))
         self.weatherWithIntensity.setValidator(intensityWeather)
+
+    def autoFillSlash(self):
+        text = self.period.text()
+        if len(text) > len(self.periodText):
+            if len(text) == 4:
+                text += '/'
+
+            self.period.setText(text)
+
+        self.periodText = text
 
     def validateWeather(self, line):
         if self.weather.lineEdit().hasAcceptableInput() and self.weather.currentText() and \
@@ -755,7 +766,6 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.name.setText(name)
         self.setValidator()
         self.bindSignal()
-        self.periodText = ''
 
     def bindSignal(self):
         super(TafGroupSegment, self).bindSignal()
@@ -772,6 +782,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
     def setPeriodPlaceholder(self):
         if self.parent.primary.durations is None:
+            self.period.setPlaceholderText('')
             return
 
         time = self.parent.primary.durations[0]
@@ -783,16 +794,6 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
             self.autoFillPeriod()
         else:
             self.autoFillSlash()
-
-    def autoFillSlash(self):
-        text = self.period.text()
-        if len(text) > len(self.periodText):
-            if len(text) == 4:
-                text += '/'
-
-            self.period.setText(text)
-
-        self.periodText = text
 
     def autoFillPeriod(self):
         if self.parent.primary.durations is None or not self.parent.primary.period.text():
@@ -1057,20 +1058,32 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
     def bindSignal(self):
         super(TrendSegment, self).bindSignal()
         self.nosig.toggled.connect(self.setNosig)
-        self.at.toggled.connect(self.setAt)
-        self.fm.toggled.connect(self.setFm)
-        self.tl.toggled.connect(self.setTl)
+        self.at.clicked.connect(self.setAt)
+        self.fm.clicked.connect(self.setFmTl)
+        self.tl.clicked.connect(self.setFmTl)
 
         self.becmg.clicked.connect(self.updateAtStatus)
         self.tempo.clicked.connect(self.updateAtStatus)
 
+        self.period.textEdited.connect(self.autoFillPeriodSlash)
+        self.period.editingFinished.connect(self.validatePeriod)
+
         self.period.textChanged.connect(lambda: self.coloredText(self.period))
+
+    def autoFillPeriodSlash(self):
+        if self.fm.isChecked() and self.tl.isChecked():   
+            self.autoFillSlash()
 
     def setValidator(self):
         super(TrendSegment, self).setValidator()
+        self.setPeriodValidator()
 
-        # 还未验证输入个数
-        period = QRegExpValidator(QRegExp(self.rules.trendPeriod))
+    def setPeriodValidator(self):
+        if self.fm.isChecked() and self.tl.isChecked():
+            period = QRegExpValidator(QRegExp(self.rules.trendFmTlPeriod))
+        else:
+            period = QRegExpValidator(QRegExp(self.rules.trendPeriod))
+
         self.period.setValidator(period)
 
     def setPeriodPlaceholder(self):
@@ -1115,27 +1128,51 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
             self.setPeriodPlaceholder()
         else:
             self.period.setEnabled(False)
-            self.period.clear()
+            self.period.setPlaceholderText('')
 
-    def setFm(self, checked):
-        if checked:
-            self.at.setChecked(False)
-            self.tl.setChecked(False)
-            self.period.setEnabled(True)
-            self.setPeriodPlaceholder()
-        else:
-            self.period.setEnabled(False)
-            self.period.clear()
+        self.period.clear()
+        self.setPeriodValidator()
 
-    def setTl(self, checked):
-        if checked:
-            self.fm.setChecked(False)
+    def setFmTl(self):
+        checked = [self.fm.isChecked(), self.tl.isChecked()]
+        if any(checked):
             self.at.setChecked(False)
             self.period.setEnabled(True)
             self.setPeriodPlaceholder()
         else:
             self.period.setEnabled(False)
-            self.period.clear()
+            self.period.setPlaceholderText('')
+
+        self.period.clear()
+        self.setPeriodValidator()
+
+    def formatPeriod(self):
+        if (self.at.isChecked() or self.fm.isChecked() and not self.tl.isChecked()) and self.period.text() == '2400':
+            self.period.setText('0000')
+
+        if self.tl.isChecked() and not self.fm.isChecked() and self.period.text() == '0000':
+            self.period.setText('2400')
+
+    def validatePeriod(self):
+        self.formatPeriod()
+        period = self.period.text()
+        utc = datetime.datetime.utcnow()
+        delta = datetime.timedelta(hours=2, minutes=30)
+        periods = [parseTime(text) for text in period.split('/')]
+        errorInfo = QCoreApplication.translate('Editor', 'Trend valid time is not corret')
+
+        if len(periods) == 2:
+            if periods[1] <= periods[0]:
+                periods[1] = datetime.timedelta(days=1)
+
+            if periods[1] - periods[0] > datetime.timedelta(hours=2):
+                self.period.clear()
+                self.parent.showNotificationMessage(errorInfo)
+
+        for time in periods:
+            if (time - delta) > utc:
+                self.period.clear()
+                self.parent.showNotificationMessage(errorInfo)
 
     def updateAtStatus(self):
         if self.tempo.isChecked():
@@ -1186,22 +1223,26 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
             messages = []
 
             if self.becmg.isChecked():
-                trend_type = 'BECMG'
+                trendType = 'BECMG'
             if self.tempo.isChecked():
-                trend_type = 'TEMPO'
+                trendType = 'TEMPO'
 
-            messages.append(trend_type)
+            messages.append(trendType)
 
-            if any((self.at.isChecked(), self.fm.isChecked(), self.tl.isChecked())):
-                if self.at.isChecked():
-                    trendPrefix = 'AT'
-                if self.fm.isChecked():
-                    trendPrefix = 'FM'
-                if self.tl.isChecked():
-                    trendPrefix = 'TL'
+            if self.at.isChecked() or self.fm.isChecked() or self.tl.isChecked():
+                if self.fm.isChecked() and self.tl.isChecked():
+                    periodText = 'FM{} TL{}'.format(*self.period.text().split('/'))
+                else:
+                    if self.at.isChecked():
+                        trendPrefix = 'AT'
+                    if self.fm.isChecked():
+                        trendPrefix = 'FM'
+                    if self.tl.isChecked():
+                        trendPrefix = 'TL'
 
-                period = trendPrefix + self.period.text()
-                messages.append(period)
+                    periodText = trendPrefix + self.period.text()
+
+                messages.append(periodText)
 
             messages.append(self.text)
             self.text = ' '.join(messages)

@@ -4,7 +4,6 @@ from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLayout
 
 from tafor import conf
-from tafor.utils.convert import parseTime
 from tafor.components.setting import isConfigured
 from tafor.components.widgets.editor import BaseEditor
 from tafor.components.widgets import TrendSegment
@@ -32,7 +31,6 @@ class TrendEditor(BaseEditor):
         self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px;}')
 
     def bindSignal(self):
-        self.trend.period.editingFinished.connect(self.validatePeriod)
         self.trend.completeSignal.connect(self.enbaleNextButton)
 
         # 下一步
@@ -46,27 +44,11 @@ class TrendEditor(BaseEditor):
         self.trend.validate()
 
         if self.trend.period.isEnabled():
-            self.validatePeriod()
+            self.trend.validatePeriod()
 
         if self.enbale:
             self.assembleMessage()
             self.previewMessage()
-
-    def validatePeriod(self):
-        period = self.trend.period.text()
-        utc = datetime.datetime.utcnow()
-        time = parseTime(period)
-        delta = datetime.timedelta(hours=2, minutes=30)
-
-        if (self.trend.at.isChecked() or self.trend.fm.isChecked()) and period == '2400':
-            self.trend.period.setText('0000')
-
-        if self.trend.tl.isChecked() and period == '0000':
-            self.trend.period.setText('2400')
-
-        if time - delta > utc:
-            self.trend.period.clear()
-            self.showNotificationMessage(QCoreApplication.translate('Editor', 'Trend valid time is not corret'))
 
     def assembleMessage(self):
         message = self.trend.message()
