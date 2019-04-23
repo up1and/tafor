@@ -379,7 +379,3 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         path = str(QFileDialog.getExistingDirectory(self, title))
         filename = os.path.join(path, 'default.json').replace('\\', '/') if path else path
         receiver.setText(filename)
-
-    def showEvent(self, event):
-        self.parent.showNormal()
-

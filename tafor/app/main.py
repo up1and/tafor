@@ -97,7 +97,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.sigmetAction.triggered.connect(self.sigmetEditor.show)
 
         # 连接设置对话框的槽
-        self.settingAction.triggered.connect(self.settingDialog.exec_)
+        self.settingAction.triggered.connect(self.openSetting)
         self.settingAction.setIcon(QIcon(':/setting.png'))
 
         self.openDocsAction.triggered.connect(self.openDocs)
@@ -456,6 +456,11 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         icon = QSystemTrayIcon.MessageIcon(icons.index(level))
         self.tray.showMessage(title, content, icon)
 
+    def openSetting(self):
+        if not self.isVisible():
+            self.showNormal()
+        self.settingDialog.exec_()
+
     def about(self):
         title = QCoreApplication.translate('MainWindow', 'About')
         register = QCoreApplication.translate('MainWindow', '{} days remaining').format(
@@ -476,7 +481,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         aboutBox.setWindowTitle(title)
         layout = aboutBox.layout()
         layout.removeItem(layout.itemAt(0))
-        self.showNormal()
+        if not self.isVisible():
+            self.showNormal()
         aboutBox.exec()
 
     def openDocs(self):
