@@ -127,6 +127,12 @@
        </attribute>
        <layout class="QVBoxLayout" name="sigmetLayout"/>
       </widget>
+      <widget class="QWidget" name="airmetTab">
+       <attribute name="title">
+        <string notr="true">AIRMET</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="airmetLayout"/>
+      </widget>
      </widget>
     </item>
    </layout>

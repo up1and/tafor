@@ -22,7 +22,7 @@ from tafor.components.send import TaskTafSender, TafSender, TrendSender, SigmetS
 from tafor.components.setting import SettingDialog
 from tafor.components.task import TaskBrowser
 
-from tafor.components.widgets.table import TafTable, MetarTable, SigmetTable
+from tafor.components.widgets.table import TafTable, MetarTable, SigmetTable, AirmetTable
 from tafor.components.widgets.widget import Clock, TafBoard, RecentMessage, RemindMessageBox, LicenseEditor
 from tafor.components.widgets.status import WebAPIStatus, CallServiceStatus
 from tafor.components.widgets.sound import Sound
@@ -131,6 +131,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.tafTable = TafTable(self, self.tafLayout)
         self.metarTable = MetarTable(self, self.metarLayout)
         self.sigmetTable = SigmetTable(self, self.sigmetLayout)
+        self.airmetTable = AirmetTable(self, self.airmetLayout)
 
     def setContractMenu(self):
         self.contractsActionGroup = QActionGroup(self)
@@ -450,6 +451,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.tafTable.updateGui()
         self.metarTable.updateGui()
         self.sigmetTable.updateGui()
+        self.airmetTable.updateGui()
 
     def showNotificationMessage(self, title, content, level='information'):
         icons = ['noicon', 'information', 'warning', 'critical']

@@ -22,6 +22,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.page = 1
         self.pagination = None
         self.searchText = ''
+        self.reportType = ''
         self.date = None
         self.parent = parent
         self.color = QColor(200, 20, 40)
@@ -59,6 +60,12 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
             dateField = self.model.created
 
         query = db.query(self.model).order_by(dateField.desc())
+
+        if self.reportType == 'SIGMET':
+            query = query.filter(self.model.tt != 'WA')
+
+        if self.reportType == 'AIRMET':
+            query = query.filter(self.model.tt == 'WA')
 
         if self.date:
             delta = datetime.timedelta(days=1)
@@ -119,7 +126,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         raise NotImplementedError
 
     def updatePages(self):
-        text = '{}/{}'.format(self.page, self.pagination.pages)
+        text = '{}/{}'.format(self.page, self.pagination.pages or 1)
         self.pagesLabel.setText(text)
 
     def updateInfoButton(self):
@@ -173,12 +180,10 @@ class TafTable(BaseDataTable):
 
             if item.confirmed:
                 checkedItem = QTableWidgetItem()
-                checkedItem.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
                 checkedItem.setIcon(QIcon(':/checkmark.png'))
                 self.table.setItem(row, 3, checkedItem)
             else:
                 checkedItem = QTableWidgetItem()
-                checkedItem.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
                 checkedItem.setIcon(QIcon(':/cross.png'))
                 self.table.setItem(row, 3, checkedItem)
 
@@ -230,6 +235,7 @@ class SigmetTable(BaseDataTable):
 
     def __init__(self, parent, layout):
         super(SigmetTable, self).__init__(parent, layout)
+        self.reportType = 'SIGMET'
         self.model = Sigmet
         self.reviewer = self.parent.sigmetSender
         self.hideColumns()
@@ -254,3 +260,10 @@ class SigmetTable(BaseDataTable):
                 self.table.setItem(row, 2, QTableWidgetItem(sent))
 
         self.table.resizeRowsToContents()
+
+
+class AirmetTable(SigmetTable):
+
+    def __init__(self, parent, layout):
+        super(AirmetTable, self).__init__(parent, layout)
+        self.reportType = 'AIRMET'
