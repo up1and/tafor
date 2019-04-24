@@ -151,7 +151,8 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             self.rawText = self.aftn.toString() if self.aftn else self.item.rawText()
         else:
             if self.state is None:
-                fullMessage = '\n'.join([self.message['sign'], self.message['rpt']])
+                spacer = ' ' if self.reportType == 'Trend' else '\n'
+                fullMessage = spacer.join([self.message['sign'], self.message['rpt']])
                 self.aftn = AFTNMessage(fullMessage, self.reportType)
 
             self.state = self.aftn
