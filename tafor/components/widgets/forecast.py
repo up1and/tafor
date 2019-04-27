@@ -921,6 +921,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
     def clear(self):
         super(TafGroupSegment, self).clear()
         self.period.clear()
+        self.period.setPlaceholderText('')
         self.periodText = ''
 
 
@@ -1262,4 +1263,5 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
         self.period.setEnabled(False)
         self.period.clear()
+        self.period.setPlaceholderText('')
 
