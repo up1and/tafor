@@ -1284,31 +1284,44 @@ class SigmetCancelSegment(BaseSegment):
 
         self.content.endingTime.textChanged.connect(self.setEndingTime)
         self.content.sequence.currentTextChanged.connect(self.setValids)
+        self.content.sequence.currentIndexChanged.connect(self.setValids)
 
     def setEndingTime(self):
         ending = self.content.endingTime.text()
         self.head.endingTime.setText(ending)
 
     def initState(self):
-        self.prevs = {}
-        sigmets = currentSigmet(tt=self.type.tt)
+        self.prevs = []
+        sigmets = currentSigmet(tt=self.type.tt, order='asc')
 
-        for sig in sigmets:
+        for i, sig in enumerate(sigmets):
             parser = sig.parser()
-            self.prevs[parser.sequence()] = parser.valids()
+            sequence = parser.sequence(), parser.valids()
+            self.prevs.append(sequence)
 
-        sequences = [s for s in self.prevs]
+        sequences = [s[0] for s in self.prevs]
         self.content.sequence.clear()
         self.content.sequence.addItems(sequences)
 
     def setValids(self, sequence):
-        self.content.beginningTime.clear()
-        self.content.endingTime.clear()
-
-        valids = self.prevs.get(sequence)
+        valids = self.findValids(sequence)
         if valids:
             self.content.beginningTime.setText(valids[0])
             self.content.endingTime.setText(valids[1])
+        else:
+            self.content.beginningTime.clear()
+            self.content.endingTime.clear()
+
+    def findValids(self, sequence):
+        if isinstance(sequence, int):
+            try:
+                return self.prevs[sequence][1]
+            except:
+                pass
+        else:
+            for seq, valids in self.prevs:
+                if seq == sequence:
+                    return valids
 
 
 class SigmetCustomSegment(BaseSegment):

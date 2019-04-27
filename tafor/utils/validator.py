@@ -1073,16 +1073,16 @@ class SigmetParser(object):
         return text
 
     def sequence(self):
-        pattern = re.compile(r'(SIGMET|AIRMET) ([A-Z]?\d{1,2}) VALID')
+        pattern = re.compile(r'(SIGMET|AIRMET)\s([A-Z]?\d{1,2})\sVALID')
         m = pattern.search(self.message)
         if m:
             return m.group(2)
 
     def cancelSequence(self):
-        pattern = re.compile(r'CNL (SIGMET|AIRMET) ([A-Z]?\d{1,2})')
+        pattern = re.compile(r'CNL\s(SIGMET|AIRMET)\s([A-Z]?\d{1,2})\s(\d{6}/\d{6})')
         m = pattern.search(self.message)
         if m:
-            return m.group(2)
+            return m.group(2), m.group(3)
 
     def valids(self):
         pattern = self.grammar.valid

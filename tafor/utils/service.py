@@ -26,12 +26,14 @@ def currentSigmet(tt=None, order='desc', hasCnl=False):
     currents = []
     cancelSequences = [s.parser().cancelSequence() for s in cancels]
     for sig in sigmets:
-        if sig.parser().sequence() not in cancelSequences:
+        parser = sig.parser()
+        sequence = parser.sequence(), '/'.join(parser.valids())
+        if sequence not in cancelSequences:
             currents.append(sig)
 
     if hasCnl:
         cnls = copy.copy(cancels)
-        sequences = [s.parser().sequence() for s in sigmets]
+        sequences = [(s.parser().sequence(), '/'.join(s.parser().valids())) for s in sigmets]
         for cnl in cancels:
             if cnl.parser().cancelSequence() in sequences:
                 cnls.remove(cnl)
