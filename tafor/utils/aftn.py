@@ -1,3 +1,4 @@
+import re
 import json
 import datetime
 
@@ -62,7 +63,7 @@ class AFTNMessage(object):
         time = self.time.strftime('%d%H%M')
 
         origin = ' '.join([time, originatorAddress])
-        ending = '\n\n\n' + 'NNNN'
+        ending = self.lineBreak * 3 + 'NNNN'
 
         self.messages = []
         for addr in groups:
@@ -132,23 +133,33 @@ class AFTNDecoder(object):
         else:
             self.messages = raw
 
+        text = '\n'.join(self.messages)
+        self.lines = [line.strip() for line in text.split('\n')]
+
     @property
     def priority(self):
-        texts = self.messages[0].split('\n')
-        texts = texts[1].split()
-        return texts[0]
+        pattern = re.compile(r'^(GG|FF)\s')
+        for line in self.lines:
+            m = pattern.match(line)
+            if m:
+                return m.group(1)
 
     @property
     def originator(self):
-        texts = self.messages[0].split('\n')
-        texts = texts[2].split()
-        return texts[1]
+        pattern = re.compile(r'^\d{6}\s(\w{8})')
+        for line in self.lines:
+            m = pattern.match(line)
+            if m:
+                return m.group(1)
 
     @property
     def address(self):
         addressees = []
-        for message in self.messages:
-            texts = message.split('\n')
-            texts = texts[1].split()[1:]
-            addressees += texts
+        pattern = re.compile(r'^(?:GG|FF\s)?((?:\w{8}\s?)+)')
+        for line in self.lines:
+            m = pattern.match(line)
+            if m:
+                text = m.group(1)
+                addressees += text.split()
+
         return ' '.join(addressees)
