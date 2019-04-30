@@ -36,15 +36,19 @@ def parseStandardPeriod(period, basetime=None):
     basetime = basetime if basetime else datetime.datetime.utcnow()
     startTime, endTime = period.split('/')
 
+    # 没有 31 日的月份解析 3012/3112，含 31 日时间组
+    if max([int(startTime[:2]), int(endTime[:2])]) > calendar.monthrange(basetime.year, basetime.month)[1]:
+        basetime -= relativedelta.relativedelta(months=1)
+
     start = parseDayHour(startTime, basetime)
     end = parseDayHour(endTime, basetime)
-
-    if end <= start:
-        end += datetime.timedelta(days=1)
 
     if start < basetime:
         start += datetime.timedelta(days=1)
         end += datetime.timedelta(days=1)
+
+    if end <= start:
+        end += relativedelta.relativedelta(months=1)
 
     return start, end
 
@@ -135,7 +139,7 @@ def parseTimez(timez):
     minute = int(timez[4:6])
 
     if day > calendar.monthrange(basetime.year, basetime.month)[1]:
-        basetime = basetime - relativedelta.relativedelta(months=1)
+        basetime -= relativedelta.relativedelta(months=1)
 
     current = datetime.datetime(basetime.year, basetime.month, day, hour, minute)
     return current

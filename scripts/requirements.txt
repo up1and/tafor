@@ -3,3 +3,4 @@ Flask
 gunicorn
 requests
 beautifulsoup4
+python-dateutil

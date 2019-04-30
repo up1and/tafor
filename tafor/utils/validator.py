@@ -462,11 +462,6 @@ class TafLexer(object):
                     'error': None
                 }
 
-        if self.tokens['sign']['text'] == 'TAF':
-            time = parseTimez(self.tokens['timez']['text'])
-            period = self.tokens['period']['text']
-            self.period = parsePeriod(period, time)
-
     def isValid(self):
         """检查报文是否有错误
 
@@ -571,6 +566,8 @@ class TafParser(object):
         splitPattern = re.compile(r'(BECMG|(?:FM(?:\d{4}|\d{6}))|TEMPO|PROB[34]0\sTEMPO)')
         elements = splitPattern.split(message)
         self.primary = self.parse(elements[0])
+        basetime = parseTimez(self.primary.tokens['timez']['text'])
+        self.primary.period = parsePeriod(self.primary.tokens['period']['text'], basetime)
 
         if len(elements) > 1:
             becmgIndex = [i for i, item in enumerate(elements) if item == 'BECMG']
@@ -841,7 +838,7 @@ class TafParser(object):
 class SigmetLexer(object):
     """SIGMET 报文要素的解析器
 
-    :param part: 单行保温内容
+    :param part: 单行报文内容
     :param grammar: 解析 SIGMET 报文的语法类
     :param keywords: SIGMET 报文允许的关键字
     :param isFirst: 是否是正文的第一组

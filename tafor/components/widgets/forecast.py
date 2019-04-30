@@ -371,7 +371,14 @@ class TemperatureGroup(QWidget, SegmentMixin):
             return
 
         durations = self.parent.durations
-        tempTime = parseDayHour(self.tempTime.text(), self.parent.time)
+        text = QCoreApplication.translate('Editor', 'The time of temperature is not corret')
+        try:
+            tempTime = parseDayHour(self.tempTime.text(), self.parent.time)
+        except Exception:
+            self.time = None
+            self.tempTime.clear()
+            self.parent.parent.showNotificationMessage(text)
+            return
 
         if tempTime < durations[0]:
             tempTime += datetime.timedelta(days=1)
@@ -388,7 +395,7 @@ class TemperatureGroup(QWidget, SegmentMixin):
         else:
             self.time = None
             self.tempTime.clear()
-            self.parent.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'The time of temperature is not corret'))
+            self.parent.parent.showNotificationMessage(text)
 
     def validateTemperature(self):
         if not self.temp.hasAcceptableInput():
@@ -779,7 +786,11 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         if len(text) > len(self.periodText):
             if len(text) == 4:
                 durations = self.parent.primary.durations
-                start = parseDayHour(text, durations[0])
+                try:
+                    start = parseDayHour(text, durations[0])
+                except Exception:
+                    return
+
                 if start < durations[0]:
                     start += datetime.timedelta(days=1)
 

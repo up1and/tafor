@@ -1,11 +1,13 @@
 import os
 import re
 import json
+import calendar
 import datetime
 import requests
 
 from pytz import timezone
 from bs4 import BeautifulSoup
+from dateutil import relativedelta
 
 from flask import Flask, jsonify, render_template, url_for
 
@@ -14,13 +16,13 @@ root = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__, static_url_path='/static')
 
 
-def parse_day_hour(utc, day, hour):
+def parse_day_hour(day, hour, basetime):
     day = int(day)
     hour = int(hour)
     if hour == 24:
-        time = datetime.datetime(utc.year, utc.month, day) + datetime.timedelta(days=1)
+        time = datetime.datetime(basetime.year, basetime.month, day) + datetime.timedelta(days=1)
     else:
-        time = datetime.datetime(utc.year, utc.month, day, hour)
+        time = datetime.datetime(basetime.year, basetime.month, day, hour)
     return time
 
 def generate_day_hour(time, end=False):
@@ -33,9 +35,12 @@ def generate_day_hour(time, end=False):
     return text
 
 def parse_period(day, period):
-    utc = datetime.datetime.utcnow()
-    start = parse_day_hour(utc, day, period[:2])
-    end = parse_day_hour(utc, day, period[2:])
+    basetime = datetime.datetime.utcnow()
+    if int(day) > calendar.monthrange(basetime.year, basetime.month)[1]:
+        basetime -= relativedelta.relativedelta(months=1)
+
+    start = parse_day_hour(day, period[:2], basetime)
+    end = parse_day_hour(day, period[2:], basetime)
     if end <= start:
         end += datetime.timedelta(days=1)
 
@@ -43,12 +48,19 @@ def parse_period(day, period):
 
 def parse_intl_period(period):
     start, end = period.split('/')
-    utc = datetime.datetime.utcnow()
-    start = parse_day_hour(utc, start[:2], start[2:])
-    end = parse_day_hour(utc, end[:2], end[2:])
+    basetime = datetime.datetime.utcnow()
+    if max([int(start[:2]), int(end[:2])]) > calendar.monthrange(basetime.year, basetime.month)[1]:
+        basetime -= relativedelta.relativedelta(months=1)
+
+    start = parse_day_hour(start[:2], start[2:], basetime)
+    end = parse_day_hour(end[:2], end[2:], basetime)
+
+    if end <= start:
+        end += relativedelta.relativedelta(months=1)
+
     return start, end
 
-def parse_basetime(basetime, hour):
+def parse_basetime(hour, basetime):
     if hour == '24':
         time = datetime.datetime(basetime.year, basetime.month, basetime.day) + datetime.timedelta(days=1)
     else:
@@ -59,9 +71,9 @@ def parse_basetime(basetime, hour):
 
     return time
 
-def parse_interval(basetime, interval):
-    start = parse_basetime(basetime, interval[:2])
-    end = parse_basetime(basetime, interval[2:])
+def parse_interval(interval, basetime):
+    start = parse_basetime(interval[:2], basetime)
+    end = parse_basetime(interval[2:], basetime)
     if end <= start:
         end += datetime.timedelta(days=1)
 
@@ -85,7 +97,7 @@ def conversion(message):
         m = temp_pattern.match(item)
         if m:
             hour = m.group(1)
-            time = parse_basetime(basetime, hour)
+            time = parse_basetime(hour, basetime)
             day_hour = generate_day_hour(time)
 
             if '{}0009'.format(day) in message:
@@ -105,7 +117,7 @@ def conversion(message):
         m = interval_pattern.match(item)
         if m:
             interval = m.group()
-            start, end = parse_interval(basetime, interval)
+            start, end = parse_interval(interval, basetime)
             items[i] = '{}/{}'.format(generate_day_hour(start), generate_day_hour(end, end=True))
 
     return ' '.join(items) + '='
