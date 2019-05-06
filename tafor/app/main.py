@@ -2,7 +2,7 @@ import os
 import datetime
 
 from PyQt5.QtGui import QIcon, QDesktopServices
-from PyQt5.QtCore import QCoreApplication, QTranslator, QLocale, QEvent, QTimer, Qt, QUrl
+from PyQt5.QtCore import QCoreApplication, QTranslator, QLocale, QEvent, QTimer, Qt, QUrl, QSysInfo
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy, QActionGroup, QAction,
         QSystemTrayIcon, QMenu, QMessageBox, QStyleFactory)
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
@@ -33,6 +33,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
         self.setupUi(self)
+        self.sysInfo = QSysInfo.prettyProductName()
 
         # 时钟计时器
         self.clockTimer = QTimer()
@@ -111,7 +112,11 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.contractsActionGroup.triggered.connect(self.changeContract)
         self.contractsActionGroup.triggered.connect(self.settingDialog.load)
 
+        self.tray.activated.connect(self.showNormal)
         self.tray.messageClicked.connect(self.showNormal)
+        if self.sysInfo.startswith('macOS'):
+            self.trayMenu.aboutToShow.connect(lambda: self.setTrayIcon('light'))
+            self.trayMenu.aboutToHide.connect(lambda: self.setTrayIcon('dark'))
 
         self.tafSender.sendSignal.connect(self.updateGui)
         self.tafSender.sendSignal.connect(self.updateGui)
@@ -120,6 +125,18 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         if boolean(conf.value('General/Serious')):
             self.taskTafSender.sendSignal.connect(self.taskBrowser.show)
+
+    def setTrayIcon(self, style='normal'):
+        files = {
+            'dark': ':/logo-dark.png',
+            'light': ':/logo-light.png',
+            'normal': ':/logo.png'
+        }
+        file = files.get(style, ':/logo.png')
+        icon = QIcon(file)
+        if style == 'dark':
+            icon.setIsMask(True)
+        self.tray.setIcon(icon)
 
     def setRecent(self):
         self.clock = Clock(self, self.tipsLayout)
@@ -160,16 +177,17 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.removeLicenseAction.setVisible(False)
 
     def setSysTray(self):
-        # 设置系统托盘
         self.tray = QSystemTrayIcon(self)
-        self.tray.setIcon(QIcon(':/logo.png'))
+        if self.sysInfo.startswith('Windows 10') or self.sysInfo.startswith('Ubuntu'):
+            style = 'light'
+        elif self.sysInfo.startswith('macOS'):
+            style = 'dark'
+        else:
+            style = 'normal'
+        self.setTrayIcon(style)
         self.tray.show()
 
-        # 连接系统托盘的槽
-        self.tray.activated.connect(self.restoreWindow)
-
         self.trayMenu = QMenu(self)
-
         self.trayMenu.addAction(self.contractsMenu.menuAction())
         self.trayMenu.addAction(self.settingAction)
         self.trayMenu.addAction(self.aboutAction)
@@ -184,8 +202,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def setStatus(self):
         self.webApiStatus = WebAPIStatus(self, self.statusBar)
         self.callServiceStatus = CallServiceStatus(self, self.statusBar, last=True)
-
-        # self.statusBar.setStyleSheet('QStatusBar::item{border: 0px}')
 
     def setThread(self):
         self.workThread = WorkThread(self)
@@ -277,10 +293,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
             self.tray.hide()
             event.accept()
-
-    def restoreWindow(self, reason):
-        if reason == QSystemTrayIcon.Trigger:
-            self.showNormal()
 
     def singer(self):
         warnSwitch = self.warnTafAction.isChecked()
@@ -561,6 +573,7 @@ def main():
     try:
         window = MainWindow()
         window.show()
+        logger.debug('System Info {}'.format(window.sysInfo))
         sys.exit(app.exec_())
     except Exception as e:
         logger.error(e, exc_info=True)

@@ -1,6 +1,8 @@
 <!DOCTYPE RCC><RCC version="1.0">
     <qresource>
         <file alias="logo.png">../../icons/logo.png</file>
+        <file alias="logo-light.png">../../icons/logo-light.png</file>
+        <file alias="logo-dark.png">../../icons/logo-dark.png</file>
         <file alias="setting.png">../../icons/setting.png</file>
         <file alias="checkmark.png">../../icons/checkmark.png</file>
         <file alias="cross.png">../../icons/cross.png</file>
