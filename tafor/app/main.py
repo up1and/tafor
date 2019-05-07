@@ -573,7 +573,8 @@ def main():
     try:
         window = MainWindow()
         window.show()
-        logger.debug('System Info {}'.format(window.sysInfo))
+        versions = context.environ.environment()
+        logger.info('Version {version}-{revision}, Python {python} x{bitness}, Qt {qt} on {system} {release}'.format(**versions))
         sys.exit(app.exec_())
     except Exception as e:
         logger.error(e, exc_info=True)

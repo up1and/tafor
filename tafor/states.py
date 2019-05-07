@@ -385,6 +385,27 @@ class EnvironState(object):
     -----END PUBLIC KEY-----"""
     exp = 0
 
+    def environment(self):
+        import platform
+
+        from PyQt5.QtCore import QT_VERSION_STR
+        from tafor import __version__
+
+        if not sys.platform == 'darwin':  # To avoid a crash with our Mac app
+            system = platform.system()
+        else:
+            system = 'Darwin'
+
+        return {
+            'version': __version__,
+            'python': platform.python_version(),
+            'bitness': 64 if sys.maxsize > 2**32 else 32,
+            'qt': QT_VERSION_STR,
+            'system': system,
+            'release': platform.release(),
+            'revision': self.ghash()
+        }
+
     def ghash(self):
         if hasattr(sys, '_MEIPASS'):
             from tafor._environ import ghash
