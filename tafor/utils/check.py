@@ -282,6 +282,7 @@ class Listen(object):
         """储存并更新本地 TAF 报文状态"""
         taf = CurrentTaf(self.spec)
         check = CheckTaf(taf, message=self.message)
+        clock = taf.hasExpired(offset=5)
 
         # 储存确认报文
         if self.message:
@@ -302,13 +303,19 @@ class Listen(object):
             else:
                 expired = True
 
+        # 最后一份报文不存在或是取消报时不再告警
+        latest = check.latest()
+        if latest and latest.isCnl() or not latest:
+            expired = False
+            clock = False
+
         # 更新状态
         context.taf.setState({
             taf.spec.tt: {
                 'period': taf.period(strict=False),
                 'sent': True if check.local() else False,
                 'warning': expired,
-                'clock': taf.hasExpired(offset=5),
+                'clock': clock,
             }
         })
 

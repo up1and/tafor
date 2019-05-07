@@ -59,6 +59,10 @@ class Taf(Base):
         messages = json.loads(self.raw)
         return '\r\n\r\n\r\n\r\n'.join(messages)
 
+    def isCnl(self):
+        items = self.rpt.split()
+        return 'CNL' in items
+
 class Metar(Base):
     __tablename__ = 'metars'
 

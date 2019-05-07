@@ -823,7 +823,8 @@ class TafParser(object):
 
     def isAmended(self):
         """报文是否是修订报或者更正报"""
-        return 'COR' in self.message or 'AMD' in self.message
+        items = self.message.split()
+        return 'COR' in items or 'AMD' in items
 
     def hasMessageChanged(self):
         """校验后的报文和原始报文相比是否有变化"""
