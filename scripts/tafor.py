@@ -16,6 +16,15 @@ root = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__, static_url_path='/static')
 
 
+def parse_hour_minute(hour, minute, basetime):
+    hour = 0 if hour == '24' else int(hour)
+    minute = int(minute)
+
+    time = basetime.replace(hour=hour, minute=minute)
+    if time <= basetime:
+        time = time + datetime.timedelta(days=1)
+    return time
+
 def parse_day_hour(day, hour, basetime):
     day = int(day)
     hour = int(hour)
@@ -81,18 +90,21 @@ def parse_interval(interval, basetime):
 
 def conversion(message):
     message = message.replace('=', '')
-    items = message.split()
+    splitPattern = re.compile(r'(BECMG|FM\d{4}|TEMPO|PROB[34]0\sTEMPO|T(?:X|N)M?\d{2}/\d{2}Z)')
+    items = [e.strip() for e in splitPattern.split(message) if e.strip()]
     period_pattern = re.compile(r'(0[1-9]|[12][0-9]|3[0-1])(0009|0312|0615|0918|1221|1524|1803|2106|0024|0606|1212|1818)')
     interval_pattern = re.compile(r'\b([01][0-9]|2[0-3])([01][0-9]|2[0-4])\b')
     temp_pattern = re.compile(r'T(?:X|N)M?\d{2}/(\d{2})Z')
+    fm_pattern = re.compile(r'FM(\d{2})(\d{2})')
 
     for i, item in enumerate(items):
-        m = period_pattern.match(item)
+        m = period_pattern.search(item)
         if m:
             day, period = m.groups()
             start, end = parse_period(day, period)
             basetime = start
-            items[i] = '{}/{}'.format(generate_day_hour(start), generate_day_hour(end, end=True))
+            text = '{}/{}'.format(generate_day_hour(start), generate_day_hour(end, end=True))
+            items[i] = items[i].replace(m.group(), text)
 
         m = temp_pattern.match(item)
         if m:
@@ -118,7 +130,15 @@ def conversion(message):
         if m:
             interval = m.group()
             start, end = parse_interval(interval, basetime)
-            items[i] = '{}/{}'.format(generate_day_hour(start), generate_day_hour(end, end=True))
+            text = '{}/{}'.format(generate_day_hour(start), generate_day_hour(end, end=True))
+            items[i] = items[i].replace(interval, text)
+
+        m = fm_pattern.match(item)
+        if m:
+            hour, minute = m.groups()
+            time = parse_hour_minute(hour, minute, basetime)
+            text = time.strftime('%d%H%M')
+            items[i] = 'FM{}'.format(text)
 
     return ' '.join(items) + '='
 
