@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>tafcov</title>
+        <meta charset='utf-8'>
+        <style>
+            body {
+                font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+            }
+
+            h2 {
+                clear: both;
+                margin: 1.6em 0 .6em;
+                color: #0d1a26;
+                font-weight: 500;
+                font-size: 24px;
+                line-height: 32px;
+            }
+
+            h2 span {
+                display: inline-block;
+                padding-right: 12px;
+                color: rgba(0,0,0,0.45);
+                font-size: 14px;
+                line-height: 1.8;
+            }
+
+            .cov table {
+                min-width: 719px;
+                margin: 8px 0 16px;
+                font-size: 14px;
+                line-height: 1.5;
+                border-width: 0;
+                width: 100%;
+                empty-cells: show;
+                border: 1px solid #ebedf0;
+                border-collapse: collapse;
+                border-spacing: 0;
+            }
+
+            .cov table th, .cov table td {
+                padding: 14px 16px;
+                border-color: #e8e8e8;
+                border-width: 1px 0;
+            }
+
+            .cov>table th, .cov>table td {
+                padding: 16px 24px;
+                text-align: left;
+                border: 1px solid #ebedf0;
+            }
+
+            .cov>table th {
+                color: #5c6b77;
+                font-weight: 500;
+                white-space: nowrap;
+                background: rgba(0,0,0,0.02);
+            }
+
+            .cov .rpt, .cov .html {
+                width: 40%
+            }
+        </style>
+    </head>
+    <body>
+        <div class='cov'>
+            <h2>Fail <span>{{ failed|length }}</span></h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Raw</th>
+                        <th>Render</th>
+                        <th>Tips</th>
+                        <th>Sent</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for message in failed %}
+                    <tr>
+                        <td>{{ message.id }}</td>
+                        <td class="rpt">{{ message.rpt }}</td>
+                        <td class="html">{{ message.html }}</td>
+                        <td class="tips">{% for tip in message.tips %}{{ tip }}<br>{% endfor %}</td>
+                        <td>{{ message.sent|datetimeformat }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <h2>Pass <span>{{ passed|length }}</span></h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Render</th>
+                        <th>Sent</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for message in passed %}
+                    <tr>
+                        <td>{{ message.id }}</td>
+                        <td>{{ message.html }}</td>
+                        <td>{{ message.sent|datetimeformat }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </body>
+</html>
