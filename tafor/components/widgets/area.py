@@ -393,15 +393,15 @@ class Canvas(QWidget):
 
                 points = listToPoint(area)
                 pol = QPolygon(points)
+                center = Polygon(area).centroid
+                met = self.fir.sigmets()[i]
+                parser = met.parser()
+                sequence = parser.sequence()
 
                 if key == 'default':
-                    center = Polygon(area).centroid
-                    met = self.fir.sigmets()[i]
-                    parser = met.parser()
                     pen = QPen(QColor(204, 204, 204), 1, Qt.DashLine)
                     brush = brushes.get(sig['type'], brushes['other'])
                     painter.setPen(pen)
-                    painter.drawText(center.x - 5, center.y + 5, parser.sequence())
 
                 if key == 'forecast':
                     pen = QPen(QColor(204, 204, 204, 150), 0, Qt.DashLine)
@@ -410,6 +410,15 @@ class Canvas(QWidget):
 
                 painter.setBrush(brush)
                 painter.drawPolygon(pol)
+                if sequence:
+                    path = QPainterPath()
+                    font = QFont()
+                    font.setBold(True)
+                    path.addText(center.x - 5, center.y + 5, font, sequence)
+                    pen = QPen(QColor(0, 0, 0, 120), 2)
+                    brush = QBrush(QColor(204, 204, 204))
+                    painter.strokePath(path, pen)
+                    painter.fillPath(path, brush)
 
     def drawRectangular(self, painter):
         pen = QPen(QColor(0, 120, 215))
