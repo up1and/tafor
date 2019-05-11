@@ -134,6 +134,18 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.buttonBox.button(QDialogButtonBox.Apply).setText(QCoreApplication.translate('Settings', 'Apply'))
         self.buttonBox.button(QDialogButtonBox.Cancel).setText(QCoreApplication.translate('Settings', 'Cancel'))
 
+        if not boolean(conf.value('General/Sigmet')):
+            self.fir.hide()
+            self.firLabel.hide()
+            self.firApiURL.hide()
+            self.firApiLabel.hide()
+            self.firCanvasSize.hide()
+            self.firCanvasSizeLabel.hide()
+            self.remindSigmet.hide()
+            self.remindSigmetVolume.hide()
+            self.addressTab.removeTab(3)
+            self.addressTab.removeTab(3)
+
         self.bindSignal()
         self.setValidator()
         self.setValidityPeriod()

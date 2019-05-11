@@ -79,6 +79,11 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.taskTafSender = TaskTafSender(self)
             self.taskTafEditor = TaskTafEditor(self, self.taskTafSender)
 
+        if not boolean(conf.value('General/Sigmet')):
+            self.sigmetAction.setVisible(False)
+            self.mainTab.removeTab(3)
+            self.mainTab.removeTab(3)
+
         self.setRecent()
         self.setTable()
         self.setContractMenu()
@@ -449,7 +454,10 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
         spec = context.taf.spec[:2].upper()
         taf = db.query(Taf).filter(Taf.sent > recent, Taf.tt == spec).order_by(Taf.sent.desc()).first()
-        sigmets = currentSigmet(order='asc', hasCnl=True)
+        if boolean(conf.value('General/Sigmet')):
+            sigmets = currentSigmet(order='asc', hasCnl=True)
+        else:
+            sigmets = []
         trend = db.query(Trend).order_by(Trend.sent.desc()).first()
         if trend and trend.isNosig():
             trend = None

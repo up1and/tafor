@@ -702,7 +702,7 @@
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_10">
             <item>
-             <widget class="QTabWidget" name="tabWidget">
+             <widget class="QTabWidget" name="addressTab">
               <property name="currentIndex">
                <number>0</number>
               </property>
@@ -713,6 +713,20 @@
                <layout class="QVBoxLayout" name="verticalLayout_3">
                 <item>
                  <widget class="QTextEdit" name="tafAddress">
+                  <property name="placeholderText">
+                   <string>Please separate multiple addresses by space</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+              <widget class="QWidget" name="trendTab">
+               <attribute name="title">
+                <string notr="true">TREND</string>
+               </attribute>
+               <layout class="QVBoxLayout" name="verticalLayout_9">
+                <item>
+                 <widget class="QTextEdit" name="trendAddress">
                   <property name="placeholderText">
                    <string>Please separate multiple addresses by space</string>
                   </property>
@@ -741,20 +755,6 @@
                <layout class="QVBoxLayout" name="verticalLayout_8">
                 <item>
                  <widget class="QTextEdit" name="airmetAddress">
-                  <property name="placeholderText">
-                   <string>Please separate multiple addresses by space</string>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-              <widget class="QWidget" name="trendTab">
-               <attribute name="title">
-                <string notr="true">TREND</string>
-               </attribute>
-               <layout class="QVBoxLayout" name="verticalLayout_9">
-                <item>
-                 <widget class="QTextEdit" name="trendAddress">
                   <property name="placeholderText">
                    <string>Please separate multiple addresses by space</string>
                   </property>
@@ -1162,7 +1162,7 @@
   <tabstop>channel</tabstop>
   <tabstop>channelSequenceNumber</tabstop>
   <tabstop>originatorAddress</tabstop>
-  <tabstop>tabWidget</tabstop>
+  <tabstop>addressTab</tabstop>
   <tabstop>tafAddress</tabstop>
   <tabstop>sigmetAddress</tabstop>
   <tabstop>trendAddress</tabstop>
