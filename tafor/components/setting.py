@@ -12,7 +12,7 @@ from tafor.models import db, User
 from tafor.components.ui import Ui_setting, main_rc
 
 
-_options = [
+baseOptions = [
     # 通用设置
     ('General/WindowsStyle', 'windowsStyle', 'combox'),
     ('General/InterfaceScaling', 'interfaceScaling', 'comboxindex'),
@@ -29,7 +29,6 @@ _options = [
     # 报文字符
     ('Message/ICAO', 'icao', 'text'),
     ('Message/Area', 'area', 'text'),
-    ('Message/FIR', 'fir', 'text'),
     ('Message/TrendSign', 'trendSign', 'text'),
     ('Message/Weather', 'weatherList', 'list'),
     ('Message/WeatherWithIntensity', 'weatherWithIntensityList', 'list'),
@@ -46,13 +45,9 @@ _options = [
     ('Communication/MaxSendAddress', 'maxSendAddress', 'text'),
     ('Communication/OriginatorAddress', 'originatorAddress', 'text'),
     ('Communication/TAFAddress', 'tafAddress', 'plaintext'),
-    ('Communication/AIRMETAddress', 'airmetAddress', 'plaintext'),
-    ('Communication/SIGMETAddress', 'sigmetAddress', 'plaintext'),
     ('Communication/TrendAddress', 'trendAddress', 'plaintext'),
     # 数据源
     ('Monitor/WebApiURL', 'webApiURL', 'text'),
-    ('Monitor/FirApiURL', 'firApiURL', 'text'),
-    ('General/FirCanvasSize', 'firCanvasSize', 'slider'),
     # TAF 报文迟发告警
     ('Monitor/WarnTAFTime', 'warnTafTime', 'text'),
     ('Monitor/WarnTAFVolume', 'warnTafVolume', 'slider'),
@@ -61,12 +56,24 @@ _options = [
     ('Monitor/RemindTAFVolume', 'remindTafVolume', 'slider'),
     ('Monitor/RemindTrend', 'remindTrend', 'bool'),
     ('Monitor/RemindTrendVolume', 'remindTrendVolume', 'slider'),
-    ('Monitor/RemindSIGMET', 'remindSigmet', 'bool'),
-    ('Monitor/RemindSIGMETVolume', 'remindSigmetVolume', 'slider'),
     # 电话服务
     ('Monitor/CallServiceURL', 'callServiceURL', 'text'),
     ('Monitor/CallServiceToken', 'callServiceToken', 'text'),
     ('Monitor/SelectedMobile', 'selectedContract', 'mobile'),
+]
+
+sigmetOptions = [
+    # 报文字符
+    ('Message/FIR', 'fir', 'text'),
+    # AFTN 配置
+    ('Communication/AIRMETAddress', 'airmetAddress', 'plaintext'),
+    ('Communication/SIGMETAddress', 'sigmetAddress', 'plaintext'),
+    # 数据源
+    ('Monitor/FirApiURL', 'firApiURL', 'text'),
+    ('General/FirCanvasSize', 'firCanvasSize', 'slider'),
+    # 报文发送提醒
+    ('Monitor/RemindSIGMET', 'remindSigmet', 'bool'),
+    ('Monitor/RemindSIGMETVolume', 'remindSigmetVolume', 'slider'),
 ]
 
 
@@ -100,8 +107,7 @@ def loadConf(filename):
     for path, val in data.items():
         conf.setValue(path, val)
 
-def saveConf(filename, options=None):
-    options = _options if options is None else options
+def saveConf(filename, options):
     paths = [option[0] for option in options]
     data = {path: conf.value(path) for path in paths}
     with open(filename, 'w') as file:
@@ -134,7 +140,10 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.buttonBox.button(QDialogButtonBox.Apply).setText(QCoreApplication.translate('Settings', 'Apply'))
         self.buttonBox.button(QDialogButtonBox.Cancel).setText(QCoreApplication.translate('Settings', 'Cancel'))
 
-        if not boolean(conf.value('General/Sigmet')):
+        if boolean(conf.value('General/Sigmet')):
+            self.options = baseOptions + sigmetOptions
+        else:
+            self.options = baseOptions
             self.fir.hide()
             self.firLabel.hide()
             self.firApiURL.hide()
@@ -143,8 +152,12 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             self.firCanvasSizeLabel.hide()
             self.remindSigmet.hide()
             self.remindSigmetVolume.hide()
-            self.addressTab.removeTab(3)
-            self.addressTab.removeTab(3)
+            self.addressTab.removeTab(2)
+            self.addressTab.removeTab(2)
+
+        self.icao.setPlaceholderText('YUSO')
+        self.fir.setPlaceholderText('YUDD SHANLON FIR')
+        self.originatorAddress.setPlaceholderText('YUSOYMYX')
 
         self.bindSignal()
         self.setValidator()
@@ -276,7 +289,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         if conf.value('General/FirCanvasSize') != self.firCanvasSize.value():
             self.parent.sigmetEditor.close()
 
-        for path, option, category in _options:
+        for path, option, category in self.options:
             self.setValue(path, option, category)
 
         self.updateSoundVolume()
@@ -285,7 +298,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         """载入设置"""
         self.runOnStart.setChecked(self.autoRun.contains('Tafor'))
 
-        for path, option, category in _options:
+        for path, option, category in self.options:
             self.loadValue(path, option, category)
 
     def loadValue(self, path, option, category='text'):
@@ -361,7 +374,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
     def exportConf(self):
         filename = self.exportPath.text()
         try:
-            saveConf(filename)
+            saveConf(filename, self.options)
 
         except Exception as e:
             logger.error(e)
