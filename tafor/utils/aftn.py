@@ -1,6 +1,7 @@
 import re
 import json
 import datetime
+import textwrap
 
 from tafor import conf
 
@@ -63,51 +64,33 @@ class AFTNMessage(object):
         time = self.time.strftime('%d%H%M')
 
         origin = ' '.join([time, originatorAddress])
-        ending = self.lineBreak * 3 + 'NNNN'
+        ending = 'NNNN'
 
         self.messages = []
         for addr in groups:
             heading = ' '.join(['ZCZC', channel + str(number).zfill(4)])
             address = ' '.join([level] + addr)
-            items = [heading, address, origin] + self.texts + [ending]
-            items = self.formatLinefeed(items)
-            self.messages.append(self.lineBreak.join(items))
+            lines = [heading, address, origin] + self.texts + [''] * 3 + [ending]
+            lines = self.linewrap(lines)
+            self.messages.append(self.lineBreak.join(lines))
             number += 1
 
         conf.setValue('Communication/ChannelSequenceNumber', str(number))
 
         return self.messages
 
-    def formatLinefeed(self, messages):
+    def linewrap(self, lines):
         """对超过最大字符限制的行进行换行处理
 
         :return: 报文行列表
         """
-        def findSubscript(parts):
-            subscripts = []
-            num = 0
-            for i, part in enumerate(parts):
-                num += len(part) + 1
-                if num > self.maxLineChar:
-                    subscripts.append(i)
-                    num = len(part) + 1
-
-            subscripts.append(len(parts))
-
-            return subscripts
-
         items = []
-        for message in messages:
-            if len(message) > self.maxLineChar:
-                parts = message.split()
-                subscripts = findSubscript(parts)
-                sup = 0
-                for sub in subscripts:
-                    part = ' '.join(parts[sup:sub])
-                    sup = sub
-                    items.append(part)
+        for line in lines:
+            if line:
+                wraps = textwrap.wrap(line, width=self.maxLineChar)
+                items += wraps
             else:
-                items.append(message)
+                items.append('')
 
         return items
 
