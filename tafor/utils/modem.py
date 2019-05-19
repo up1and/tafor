@@ -33,11 +33,13 @@ def serialComm(message, port, baudrate=9600, bytesize='8', parity='NONE', stopbi
     else:
         timeout = 1
 
+    if not isinstance(message, bytes):
+        message = message.encode()
+
     with serial.Serial(port, baudrate, bytesize=bytesize,
                         parity=parity, stopbits=stopbits) as ser:
         ser.reset_output_buffer()
         lenth = len(message)
-        message = bytes(message, 'ascii')
         sentLenth = ser.write(message)
         ser.flush()
         time.sleep(timeout)

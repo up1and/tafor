@@ -5,6 +5,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 from tafor import conf, logger, __version__
 from tafor.states import context
 from tafor.utils import serialComm
+from tafor.utils.baudot import encode, ITA2_STANDARD
 
 
 _headers = {
@@ -141,10 +142,15 @@ class SerialThread(QThread):
         bytesize = conf.value('Communication/SerialBytesize')
         parity = conf.value('Communication/SerialParity')
         stopbits = conf.value('Communication/SerialStopbits')
+        codec = conf.value('Communication/Codec')
 
         try:
             context.serial.lock()
-            serialComm(self.message, port, baudrate=baudrate, bytesize=bytesize, parity=parity, stopbits=stopbits)
+            if codec == 'ITA2':
+                message = encode(self.message, ITA2_STANDARD)
+            else:
+                message = self.message.encode()
+            serialComm(message, port, baudrate=baudrate, bytesize=bytesize, parity=parity, stopbits=stopbits)
             error = ''
         except Exception as e:
             error = str(e)
