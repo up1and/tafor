@@ -171,3 +171,17 @@ class CheckUpgradeThread(QThread):
         url = 'https://api.github.com/repos/up1and/tafor/releases/latest'
         data = repoRelease(url)
         self.doneSignal.emit(data)
+
+
+class RpcThread(QThread):
+
+    def __init__(self, app, port=15400):
+        super(RpcThread, self).__init__()
+        self.app = app
+        self.port = port
+
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+        self.app.run(port=self.port, threaded=True)

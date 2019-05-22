@@ -578,6 +578,13 @@ def main():
     localServer = QLocalServer()
     localServer.listen(serverName)
 
+    if boolean(conf.value('General/Rpc')):
+        from tafor.rpc import server
+        from tafor.utils.thread import RpcThread
+        webapp = RpcThread(server)
+        webapp.start()
+        app.aboutToQuit.connect(webapp.terminate)
+
     try:
         window = MainWindow()
         window.show()
