@@ -3,7 +3,7 @@ import json
 from flask import Flask, Blueprint, Response, request, jsonify, make_response
 from werkzeug.exceptions import HTTPException
 
-from tafor.utils import TafParser, SigmetParser
+from tafor.utils import TafParser, SigmetParser, MetarParser
 
 server = Flask(__name__)
 api = Blueprint('api', __name__)
@@ -39,7 +39,22 @@ def parse_taf(message, kwargs):
     return data
 
 def parse_metar(message, kwargs):
-    pass
+    parser = MetarParser(message, **kwargs)
+    parser.validate()
+
+    tokens = []
+    for e in parser.elements[1:]:
+        for k, token in e.tokens.items():
+            pairs = (token['text'], not token['error'])
+            tokens.append(pairs)
+
+    data = {
+        'html': parser.renderer(style='html'),
+        'tokens': tokens,
+        'tips': parser.tips,
+        'pass': not (parser.tips or not parser.isValid())
+    }
+    return data
 
 def parse_sigmet(message, kwargs):
     parser = SigmetParser(message, **kwargs)
@@ -72,6 +87,14 @@ def validate():
             'weakPrecipitationVerification': request.args.get('weakPrecipitationVerification'),
         }
         data = parse_taf(message, kwargs)
+
+    elif message.startswith('METAR') or message.startswith('SPECI'):
+        kwargs = {
+            'visHas5000': request.args.get('visHas5000'),
+            'cloudHeightHas450': request.args.get('cloudHeightHas450'),
+            'weakPrecipitationVerification': request.args.get('weakPrecipitationVerification'),
+        }
+        data = parse_metar(message, kwargs)
     elif 'SIGMET' in message or 'AIRMET' in message:
         kwargs = {
             'firCode': request.args.get('firCode'),

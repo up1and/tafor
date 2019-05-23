@@ -1,5 +1,6 @@
 import re
 import copy
+import datetime
 
 from collections import OrderedDict
 
@@ -60,12 +61,21 @@ class TafGrammar(object):
 
     wind = re.compile(r'\b(?:00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)(?:G(0[1-9]|[1-4][0-9]|P49))?)MPS\b')
     vis = re.compile(r'\b(?<!/)(9999|[5-9]000|[01234][0-9]00|0[0-7]50)(?!/)\b')
-    weather = re.compile(r'([-+]?({})\b)|(\b({})\b)'.format('|'.join(weatherWithIntensity), '|'.join(weather)))
+    weather = re.compile(r'([-+]?\b({})\b)|(\b({})\b)'.format('|'.join(weatherWithIntensity), '|'.join(weather)))
     cloud = re.compile(r'\bSKC|NSC|(FEW|SCT|BKN|OVC|VV)(\d{3})(CB|TCU)?\b')
     cavok = re.compile(r'\bCAVOK\b')
 
     prob = re.compile(r'\b(PROB[34]0)\b')
 
+
+class MetarGrammar(TafGrammar):
+    sign = re.compile(r'\b(METAR|SPECI|BECMG|TEMPO)\b')
+    windrange = re.compile(r'\b(\d{3}V\d{3})\b')
+    tempdew = re.compile(r'\b(M?\d{2}/(?:MD)?\d{2})\b')
+    pressure = re.compile(r'\b(Q\d{4})\b')
+    reweather = re.compile(r'\b(RE\S+)\b')
+    nosig = re.compile(r'\bNOSIG\b')
+    fmtl = re.compile(r'\b((?:AT|FM|TL)\d{4})\b')
 
 class SigmetGrammar(object):
     latitude = re.compile(r'(N|S)(90(0{2})?|[0-8]\d([0-5]\d)?)')
@@ -450,7 +460,7 @@ class TafLexer(object):
             rules = self.defaultRules
 
         for key in rules:
-            if self.part.startswith('FM') and key == 'period' or 'TAF' not in self.part and key == 'icao':
+            if self.part.startswith('FM') and key == 'period' or not self.part.startswith(('TAF', 'METAR', 'SPECI')) and key == 'icao':
                 continue
 
             pattern = getattr(self.grammar, key)
@@ -458,7 +468,7 @@ class TafLexer(object):
             if not m:
                 continue
 
-            if key in ('weather', 'cloud', 'temperature'):
+            if key in ('weather', 'cloud', 'temperature', 'fmtl'):
                 items = [m.group() for m in pattern.finditer(part)]
                 self.tokens[key] = {
                     'text': ' '.join(items),
@@ -542,9 +552,15 @@ class TafParser(object):
         
     """
 
+    validatorClass = TafValidator
+    
+    lexerClass = TafLexer
+
     defaultRules = [
         'wind', 'vis', 'weather', 'cloud'
     ]
+
+    splitPattern = re.compile(r'(BECMG|(?:FM(?:\d{4}|\d{6}))|TEMPO|PROB[34]0\sTEMPO)')
 
     def __init__(self, message, parse=None, validator=None, **kwargs):
         self.message = message
@@ -555,10 +571,10 @@ class TafParser(object):
         self.reference = None
 
         if not parse:
-            self.parse = TafLexer
+            self.parse = self.lexerClass
 
         if not validator:
-            self.validator = TafValidator(**kwargs)
+            self.validator = self.validatorClass(**kwargs)
 
         self._split()
 
@@ -571,8 +587,7 @@ class TafParser(object):
     def _split(self):
         """拆分主报文和变化组"""
         message = self.message.replace('=', '')
-        splitPattern = re.compile(r'(BECMG|(?:FM(?:\d{4}|\d{6}))|TEMPO|PROB[34]0\sTEMPO)')
-        elements = splitPattern.split(message)
+        elements = self.splitPattern.split(message)
         self.primary = self.parse(elements[0])
 
         if len(elements) > 1:
@@ -830,6 +845,8 @@ class TafParser(object):
         """校验后的报文和原始报文相比是否有变化"""
         origin = ' '.join(self.message.split())
         output = self.renderer().replace('\n', ' ')
+        print(origin)
+        print(output)
         return origin != output
 
     def renderer(self, style='plain'):
@@ -842,6 +859,67 @@ class TafParser(object):
         :return: 根据不同风格重新渲染的报文
         """
         outputs = [e.renderer(style) for e in self.elements]
+
+        if style == 'html':
+            return '<br/>'.join(outputs) + '='
+
+        return '\n'.join(outputs) + '='
+
+
+class MetarLexer(TafLexer):
+
+    grammarClass = MetarGrammar
+
+    defaultRules = [
+        'sign', 'amend', 'icao', 'timez', 'fmtl',
+        'wind', 'windrange', 'vis', 'cavok', 'weather', 'cloud',
+        'tempdew', 'pressure', 'reweather', 'nosig'
+    ]
+
+    def __repr__(self):
+        return '<MetarLexer {}>'.format(self.part)
+
+
+class MetarParser(TafParser):
+
+    lexerClass = MetarLexer
+
+    splitPattern = re.compile(r'(BECMG|TEMPO)')
+
+    def _parsePeriod(self):
+        """解析主报文和变化组的时间顺序"""
+        time = parseTimez(self.primary.tokens['timez']['text'])
+        self.primary.period = (time, time + datetime.timedelta(hours=2))
+        basetime = self.primary.period[0]
+
+        for e in self.elements[1:]:
+            if 'fmtl' in e.tokens:
+                periods = e.tokens['fmtl']['text'].split()
+                if len(periods) == 2:
+                    start = parseTime(periods[0][2:], basetime)
+                    end = parseTime(periods[1][2:], basetime)
+                    if start < end:
+                        end += datetime.timedelta(days=1)
+                    e.period = (start, end)
+                else:
+                    text = periods[0]
+                    if text.startswith('FM'):
+                        e.period = (parseTime(text[2:], basetime), self.primary.period[1])
+                    elif text.startswith('TL'):
+                        e.period = (basetime, parseTime(text[2:], basetime))
+            else:
+                e.period = self.primary.period
+
+    def renderer(self, style='plain'):
+        """将解析后的报文重新渲染
+
+        :param style:
+            * plain 纯字符串风格
+            * terminal 终端高亮风格
+            * html HTML 高亮风格
+        :return: 根据不同风格重新渲染的报文
+        """
+        outputs = [self.primary.part] + [e.renderer(style) for e in self.elements[1:]]
 
         if style == 'html':
             return '<br/>'.join(outputs) + '='
