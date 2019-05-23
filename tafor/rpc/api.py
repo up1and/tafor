@@ -80,26 +80,17 @@ def parse_sigmet(message, kwargs):
 @api.route('/validate', methods=['POST'])
 def validate():
     message = request.args.get('message')
-    if message.startswith('TAF'):
-        kwargs = {
-            'visHas5000': request.args.get('visHas5000'),
-            'cloudHeightHas450': request.args.get('cloudHeightHas450'),
-            'weakPrecipitationVerification': request.args.get('weakPrecipitationVerification'),
-        }
-        data = parse_taf(message, kwargs)
+    kwargs = {
+        'visHas5000': request.args.get('visHas5000') is not None,
+        'cloudHeightHas450': request.args.get('cloudHeightHas450') is not None,
+        'weakPrecipitationVerification': request.args.get('weakPrecipitationVerification') is not None,
+    }
 
+    if message.startswith('TAF'):
+        data = parse_taf(message, kwargs)
     elif message.startswith('METAR') or message.startswith('SPECI'):
-        kwargs = {
-            'visHas5000': request.args.get('visHas5000'),
-            'cloudHeightHas450': request.args.get('cloudHeightHas450'),
-            'weakPrecipitationVerification': request.args.get('weakPrecipitationVerification'),
-        }
         data = parse_metar(message, kwargs)
     elif 'SIGMET' in message or 'AIRMET' in message:
-        kwargs = {
-            'firCode': request.args.get('firCode'),
-            'airportCode': request.args.get('airportCode'),
-        }
         data = parse_sigmet(message, kwargs)
     else:
         abort(400, message='The message could not be parsed')

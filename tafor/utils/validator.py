@@ -1079,17 +1079,13 @@ class SigmetParser(object):
 
     :param message: SIGMET 报文
     :param parse: 解析报文的类，默认 :class:`SigmetLexer`
-    :param kwargs: 额外参数
-                * `firCode` 气象情报编码前缀
-                * `airportCode` 发布机场编码
 
     使用方法::
 
         p = SigmetParser('ZJSA SIGMET 1 VALID 300855/301255 ZJHK-
                         ZJSA SANYA FIR VA ERUPTION MT ASHVAL LOC E S1500 E07348 VA CLD OBS AT 1100Z FL310/450
                         APRX 220KM BY 35KM S1500 E07348 - S1530 E07642 MOV ESE 65KMH
-                        FCST 1700Z VA CLD APRX S1506 E07500 - S1518 E08112 - S1712 E08330 - S1824 E07836=',
-                        firCode='ZJSA SANYA FIR')
+                        FCST 1700Z VA CLD APRX S1506 E07500 - S1518 E08112 - S1712 E08330 - S1824 E07836=')
 
         # 报文字符是否通过验证
         p.isValid()
@@ -1100,6 +1096,8 @@ class SigmetParser(object):
     """
     grammarClass = SigmetGrammar
 
+    lexerClass = SigmetLexer
+
     def __init__(self, message, parse=None, grammar=None, **kwargs):
         self.message = message.strip()
         self.isAirmet = True if self.sign() == 'AIRMET' else False
@@ -1108,12 +1106,12 @@ class SigmetParser(object):
             grammar = self.grammarClass()
 
         if not parse:
-            parse = SigmetLexer
+            parse = self.lexerClass
 
         self.grammar = grammar
         self.parse = parse
-        self.firCode = kwargs.get('firCode')
-        self.airportCode = kwargs.get('airportCode')
+        self.firCode = self.fir()
+        self.airportCode = self.airport()
 
         self._split()
 
@@ -1125,6 +1123,22 @@ class SigmetParser(object):
         self.heads = [e.strip() for e in ''.join(heads).split('\n')]
         elements = elements.strip().split('\n')
         self.elements = [self.parse(e, firCode=self.firCode, airportCode=self.airportCode, isAirmet=self.isAirmet) for e in elements]
+
+    def airport(self):
+        pattern = re.compile(r'([A-Z]{4})-')
+        m = pattern.search(self.message)
+        if m:
+            return m.group(1)
+        else:
+            return ''
+
+    def fir(self):
+        pattern = re.compile(r'\b([A-Z]{4}\s.+\s(?:FIR|FIR/UIR|CTA))\b')
+        m = pattern.search(self.message)
+        if m:
+            return m.group(1)
+        else:
+            return ''
 
     def sign(self):
         pattern = re.compile(r'(SIGMET|AIRMET) ([A-Z]?\d{1,2}) VALID')

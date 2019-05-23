@@ -304,8 +304,6 @@ class SigmetSender(BaseSender):
 
     def parse(self, message):
         self.message = message
-        firCode = conf.value('Message/FIR')
-        airportCode = conf.value('Message/ICAO')
 
         if 'sign' in self.message and self.message['sign'][0:2] == 'WA':
             self.reportType = 'AIRMET'
@@ -313,7 +311,7 @@ class SigmetSender(BaseSender):
             self.reportType = 'SIGMET'
 
         try:
-            self.parser = SigmetParser(self.message['rpt'], firCode=firCode, airportCode=airportCode)
+            self.parser = SigmetParser(self.message['rpt'])
             html = '<p>{}<br/>{}</p>'.format(self.message['sign'], self.parser.renderer(style='html'))
             self.rpt.setHtml(html)
 
