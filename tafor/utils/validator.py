@@ -62,7 +62,7 @@ class TafGrammar(object):
     wind = re.compile(r'\b(?:00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)(?:G(0[1-9]|[1-4][0-9]|P49))?)MPS\b')
     vis = re.compile(r'\b(?<!/)(9999|[5-9]000|[01234][0-9]00|0[0-7]50)(?!/)\b')
     weather = re.compile(r'([-+]?\b({})\b)|(\b({})\b)'.format('|'.join(weatherWithIntensity), '|'.join(weather)))
-    cloud = re.compile(r'\bSKC|NSC|(FEW|SCT|BKN|OVC|VV)(\d{3})(CB|TCU)?\b')
+    cloud = re.compile(r'\b(?:SKC|NSC|(FEW|SCT|BKN|OVC)(\d{3})(CB|TCU)?)\b|\b(?:(VV)(///|\d{3}\b))')
     cavok = re.compile(r'\bCAVOK\b')
 
     prob = re.compile(r'\b(PROB[34]0)\b')
@@ -70,10 +70,14 @@ class TafGrammar(object):
 
 class MetarGrammar(TafGrammar):
     sign = re.compile(r'\b(METAR|SPECI|BECMG|TEMPO)\b')
+    amend = re.compile(r'\b(COR)\b')
+    auto = re.compile(r'\b(AUTO|NIL)\b')
+    rvr = re.compile(r'\b(R\d{2}[A-Z]?/[A-Z]?\d{4}[A-Z]?\d{0,4}[A-Z]?)\b')
     windrange = re.compile(r'\b(\d{3}V\d{3})\b')
-    tempdew = re.compile(r'\b(M?\d{2}/(?:MD)?\d{2})\b')
+    tempdew = re.compile(r'\b(M?\d{2}/(?:M)?\d{2})\b')
     pressure = re.compile(r'\b(Q\d{4})\b')
-    reweather = re.compile(r'\b(RE\S+)\b')
+    reweather = re.compile(r'\b(RE\w+)\b')
+    windshear = re.compile(r'\b(WS\s(?:(?:ALL\sRWY)|(?:RWY\d{2})))\b')
     nosig = re.compile(r'\bNOSIG\b')
     fmtl = re.compile(r'\b((?:AT|FM|TL)\d{4})\b')
 
@@ -871,9 +875,9 @@ class MetarLexer(TafLexer):
     grammarClass = MetarGrammar
 
     defaultRules = [
-        'sign', 'amend', 'icao', 'timez', 'fmtl',
-        'wind', 'windrange', 'vis', 'cavok', 'weather', 'cloud',
-        'tempdew', 'pressure', 'reweather', 'nosig'
+        'sign', 'amend', 'icao', 'timez', 'fmtl', 'auto',
+        'wind', 'windrange', 'vis', 'cavok', 'rvr', 'weather', 'cloud',
+        'tempdew', 'pressure', 'reweather', 'windshear', 'nosig'
     ]
 
     def __repr__(self):
