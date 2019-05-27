@@ -30,6 +30,8 @@ class FirState(object):
     } # 这里的参数会被远程参数覆盖
 
     drawable = False
+    showSigmet = True
+    trimShapes = True
 
     @property
     def scale(self):
@@ -152,7 +154,7 @@ class FirState(object):
             decimals = [(degreeToDecimal(lng), degreeToDecimal(lat)) for lat, lng in area['area']]
 
             try:
-                polygon = decodeSigmetArea(self._state['boundaries'], decimals, mode='polygon')
+                polygon = decodeSigmetArea(self._state['boundaries'], decimals, mode='polygon', trim=self.trimShapes)
                 polygon = self.decimalToPixel(polygon)
             except Exception as e:
                 logger.error(e)
@@ -214,7 +216,7 @@ class FirState(object):
             corridor = [points, width]
 
             try:
-                polygon = decodeSigmetArea(self._state['boundaries'], corridor, mode='corridor')
+                polygon = decodeSigmetArea(self._state['boundaries'], corridor, mode='corridor', trim=self.trimShapes)
                 polygon = self.decimalToPixel(polygon)
             except Exception as e:
                 logger.error(e)

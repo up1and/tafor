@@ -121,7 +121,9 @@ class Canvas(QWidget):
 
         self.drawCloudImage(painter)
         self.drawBoundaries(painter)
-        self.drawSigmets(painter)
+
+        if self.fir.showSigmet:
+            self.drawSigmets(painter)
 
         if len(self.points) == 1:
             self.drawOnePoint(painter)

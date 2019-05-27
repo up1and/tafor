@@ -4,7 +4,7 @@ from itertools import cycle
 
 from PyQt5.QtGui import QIcon, QRegExpValidator, QIntValidator, QTextCharFormat, QFont
 from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QMenu, QAction
 
 from tafor import conf
 from tafor.states import context
@@ -288,12 +288,14 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
         self.areaLayout.addWidget(self.canvasWidget)
         self.areaGroup.setLayout(self.areaLayout)
         self.fcstButton.setIcon(QIcon(':/f.png'))
+        self.layersButton.setIcon(QIcon(':/layers.png'))
 
         self.initState()
-        self.bindSignal()
         self.setValidator()
         self.setArea()
         self.setCanvasMode()
+        self.setLayersMenu()
+        self.bindSignal()
 
     def initState(self):
         if self.tt == 'WC':
@@ -314,6 +316,8 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
 
         self.fcstButton.clicked.connect(self.setAreaMode)
         self.modeButton.clicked.connect(self.switchCanvasMode)
+        self.trimShapesAction.toggled.connect(lambda: self.setLayersAction(self.trimShapesAction))
+        self.showSigmetAction.toggled.connect(lambda: self.setLayersAction(self.showSigmetAction))
 
         self.textArea.textEdited.connect(lambda: self.upperText(self.textArea))
         self.textArea.textEdited.connect(lambda: self.coloredText(self.textArea))
@@ -366,6 +370,37 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
 
         self.areaModeChanged.emit()
 
+    def setLayersMenu(self):
+        self.layersMenu = QMenu(self)
+        self.trimShapesAction = QAction(self)
+        self.trimShapesAction.setText(QCoreApplication.translate('Editor', 'Trim Shapes'))
+        self.trimShapesAction.setCheckable(True)
+        self.showSigmetAction = QAction(self)
+        self.showSigmetAction.setText(QCoreApplication.translate('Editor', 'Latest SIGMET/AIRMET'))
+        self.showSigmetAction.setCheckable(True)
+        self.showSigmetAction.setChecked(True)
+        self.layersMenu.addAction(self.trimShapesAction)
+        self.layersMenu.addAction(self.showSigmetAction)
+        self.layersButton.setMenu(self.layersMenu)
+        self.layersButton.setStyleSheet('QToolButton::menu-indicator {image: none;}')
+
+    def loadLayersActionState(self):
+        trimShapes = context.fir.trimShapes
+        self.trimShapesAction.setChecked(trimShapes)
+
+        showSigmet = context.fir.showSigmet
+        self.showSigmetAction.setChecked(showSigmet)
+
+    def setLayersAction(self, action):
+        checked = action.isChecked()
+        if action == self.trimShapesAction:
+            context.fir.trimShapes = checked
+
+        if action == self.showSigmetAction:
+            context.fir.showSigmet = checked
+
+        self.update()
+
     def setTextAreaPlaceholder(self):
         import random
         areas = [
@@ -408,6 +443,7 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
         return text
 
     def showEvent(self, event):
+        self.loadLayersActionState()
         if conf.value('Monitor/FirApiURL') or self.tt == 'WC':
             self.manual.hide()
             self.textAreaWidget.hide()

@@ -234,12 +234,13 @@ def simplifyPolygon(points, maxPoint=7, extend=False):
     """
     return SimplifyPolygon(maxPoint=maxPoint, extend=extend)(points)
 
-def decodeSigmetArea(boundaries, area, mode='rectangular'):
+def decodeSigmetArea(boundaries, area, mode='rectangular', trim=True):
     boundary = Polygon(boundaries)
 
     if mode == 'polygon':
         polygon = Polygon(area)
-        polygon = polygon.intersection(boundary)
+        if trim:
+            polygon = polygon.intersection(boundary)
         return list(polygon.exterior.coords)
 
     if mode == 'circle':
@@ -250,6 +251,8 @@ def decodeSigmetArea(boundaries, area, mode='rectangular'):
     if mode == 'corridor':
         points, width = area
         polygon = LineString(points).buffer(width, cap_style=2, join_style=2)
+        if trim:
+            polygon = polygon.intersection(boundary)
         return list(polygon.exterior.coords)
 
     polygons = []

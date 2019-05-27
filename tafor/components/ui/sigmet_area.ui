@@ -88,7 +88,23 @@
           </spacer>
          </item>
          <item>
+          <widget class="QToolButton" name="layersButton">
+           <property name="text">
+            <string notr="true"/>
+           </property>
+           <property name="popupMode">
+            <enum>QToolButton::InstantPopup</enum>
+           </property>
+           <property name="autoRaise">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QToolButton" name="fcstButton">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
            <property name="text">
             <string notr="true"/>
            </property>
