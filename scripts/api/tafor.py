@@ -5,11 +5,19 @@ import calendar
 import datetime
 import requests
 
+from io import BytesIO
+from ftplib import FTP
+from urllib.parse import urlparse
+
 from pytz import timezone
 from bs4 import BeautifulSoup
 from dateutil import relativedelta
+from flask import Flask, request, jsonify, abort, render_template, url_for, send_file
 
-from flask import Flask, jsonify, render_template, url_for
+ECHO_FTP_HOST = os.environ.get('TAFOR_API_ECHO_FTP') or '127.0.0.1'
+ECHO_FTP_USER = os.environ.get('TAFOR_API_ENV') or 'root'
+ECHO_FTP_PASSWD = os.environ.get('ECHO_FTP_PASSWD') or '123456'
+ECHO_FTP_PATH = os.environ.get('ECHO_FTP_PATH') or 'mergeMax'
 
 root = os.path.abspath(os.path.dirname(__file__))
 
@@ -186,14 +194,55 @@ def load_fir(mwo, remote=False):
         boundaries = json.load(data)
 
     file = 'remote.json' if remote else 'local.json'
-    info_path = os.path.join(root, 'config', file)
-    with open(info_path) as data:
-        infos = json.load(data)
+    layer_path = os.path.join(root, 'config', file)
+    with open(layer_path) as data:
+        layers = json.load(data)
 
-    info = infos.get(mwo, None)
+    info = {}
+    info['layers'] = layers.get(mwo, [])
     info['boundaries'] = boundaries.get(mwo, [])
     return info
 
+def build_url(path, url_root=None):
+    parser = urlparse(path)
+    if parser.scheme:
+        url = parser.geturl()
+    else:
+        url = '{}/{}'.format(url_root.rstrip('/'), parser.geturl().lstrip('/'))
+
+    return url
+
+def himawari8():
+    url = 'http://192.2.204.51/GetFileName.ashx?type=3&satellite=2&file=IEA'
+    rv = {
+        'image': None,
+        'updated': None
+    }
+    response = requests.get(url, timeout=5)
+    navie = datetime.datetime.strptime(response.text.strip(), '%Y-%m-%d %H:%M:%S')
+    fmt = '%Y%m%d%H%M'
+    rv['image'] = 'http://192.2.204.51/HIM_IMAGE/I/IEA{}.jpg'.format(navie.strftime(fmt))
+    local = timezone('Asia/Shanghai').localize(navie)
+    rv['updated'] = local.astimezone(timezone('UTC'))
+    return rv
+
+def radar_mosaic():
+    rv = {
+        'image': None,
+        'updated': None
+    }
+    with FTP(ECHO_FTP_HOST) as ftp:
+        ftp.login(user=ECHO_FTP_USER, passwd=ECHO_FTP_PASSWD)
+        ftp.cwd(ECHO_FTP_PATH)
+        files = ftp.nlst('-t')
+        latest = files[-1]
+
+    rv['image'] = url_for('mosaic_image', filename=latest, _external=True)
+    navie = datetime.datetime.strptime(latest[1:15], '%Y%m%d%H%M%S')
+    local = timezone('Asia/Shanghai').localize(navie)
+    rv['updated'] = local.astimezone(timezone('UTC'))
+    return rv
+        
 
 @app.route('/')
 def index():
@@ -254,10 +303,10 @@ def remote_latest(airport):
 @app.route('/fir/<mwo>.json')
 def fir(mwo):
     mwo = mwo.upper()
-    url = 'http://192.2.204.51/GetFileName.ashx?type=1&satellite=1&file=IEC'
-    image = None
-    updated = None
-
+    funcs = {
+        'Himawari 8': himawari8,
+        'Radar Mosaic': radar_mosaic
+    }
     try:
         info = load_fir(mwo)
 
@@ -265,41 +314,54 @@ def fir(mwo):
         app.logger.exception(e)
         return jsonify({'error': '{} not found'.format(mwo)}), 404
 
-    try:
-        response = requests.get(url, timeout=2)
-        filename = response.text.split('$$')[-1]
-        image = 'http://192.2.204.51/FY2_IMAGE/IEC{}.jpg'.format(filename)
-        fmt = '%Y%m%d%H%M'
-        navie = datetime.datetime.strptime(filename, fmt)
-        local = timezone('Asia/Shanghai').localize(navie)
-        updated = local.astimezone(timezone('UTC'))
+    for layer in info['layers']:
+        image = None
+        updated = None
 
-    except requests.exceptions.ConnectionError:
-        app.logger.warn('GET {} 408 Request Timeout'.format(url))
+        try:
+            func = funcs.get(layer['name'])
+            images = func()
+            image = images['image']
+            updated = images['updated']
+        except requests.exceptions.ConnectionError:
+            app.logger.warn('GET {} 408 Request Timeout'.format(layer['image']))
 
-    except Exception as e:
-        app.logger.exception(e)
+        except Exception as e:
+            app.logger.exception(e)
 
-    info['image'] = image
-    info['updated'] = updated
+        layer['image'] = image
+        layer['updated'] = updated
 
     return jsonify(info)
 
 @app.route('/remote/fir/<mwo>.json')
 def remote_fir(mwo):
     mwo = mwo.upper()
-    image = url_for('static', filename='{}.jpg'.format(mwo.lower()), _external=True)
-
     try:
         info = load_fir(mwo, remote=True)
-        info['image'] = image
-        info['updated'] = datetime.datetime.utcnow()
+        for layer in info['layers']:
+            layer['image'] = build_url(layer['image'], request.url_root)
+            layer['updated'] = datetime.datetime.utcnow()
 
     except Exception as e:
         app.logger.exception(e)
         return jsonify({'error': '{} not found'.format(mwo)}), 404
 
     return jsonify(info)
+
+@app.route('/echo/mosaic/<filename>')
+def mosaic_image(filename):
+    image = BytesIO()
+    try:
+        with FTP(ECHO_FTP_HOST) as ftp:
+            ftp.login(user=ECHO_FTP_USER, passwd=ECHO_FTP_PASSWD)
+            ftp.cwd(ECHO_FTP_PATH)
+            ftp.retrbinary('RETR {}'.format(filename), image.write)
+    except Exception as e:
+        abort(404)
+
+    image.seek(0)
+    return send_file(image, mimetype='image/png')
 
 
 if __name__ == '__main__':
