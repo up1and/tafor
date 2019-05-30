@@ -5,7 +5,6 @@ import datetime
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from tafor import conf
-from tafor.utils.convert import Layer
 
 
 class MessageState(object):
@@ -29,9 +28,10 @@ class FirState(object):
     showSigmet = True
     trimShapes = True
     layerIndex = 0
-    layers = [Layer({})]
+    layers = []
 
     def setState(self, values):
+        from tafor.utils.convert import Layer
         self._state.update(values)
         width = int(conf.value('General/FirCanvasSize')) or 300
 
@@ -42,7 +42,11 @@ class FirState(object):
 
     @property
     def layer(self):
-        return self.layers[self.layerIndex]
+        from tafor.utils.convert import Layer
+        try:
+            return self.layers[self.layerIndex]
+        except Exception:
+            return Layer({})
 
     def layersName(self):
         names = []

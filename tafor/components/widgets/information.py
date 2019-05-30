@@ -342,6 +342,7 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
         if self.manual.isChecked():
             self.textAreaWidget.setVisible(True)
             self.canvasWidget.setVisible(False)
+            self.layersButton.setVisible(False)
             self.fcstButton.setVisible(False)
             self.modeButton.setVisible(False)
             self.setTextAreaPlaceholder()
@@ -349,12 +350,14 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
         if self.canvas.isChecked():
             self.textAreaWidget.setVisible(False)
             self.canvasWidget.setVisible(True)
+            self.layersButton.setVisible(True)
             self.fcstButton.setVisible(True)
             self.modeButton.setVisible(True)
 
         if self.entire.isChecked():
             self.textAreaWidget.setVisible(False)
             self.canvasWidget.setVisible(False)
+            self.layersButton.setVisible(False)
             self.fcstButton.setVisible(False)
             self.modeButton.setVisible(False)
 
@@ -408,9 +411,10 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
         showSigmet = context.fir.showSigmet
         self.showSigmetAction.setChecked(showSigmet)
 
-        layerIndex = context.fir.layerIndex
-        action = self.layersActionGroup.actions()[layerIndex]
-        action.setChecked(True)
+        if self.layersActionGroup.actions():
+            layerIndex = context.fir.layerIndex
+            action = self.layersActionGroup.actions()[layerIndex]
+            action.setChecked(True)
 
     def changeLayerStatus(self, action):
         checked = action.isChecked()
