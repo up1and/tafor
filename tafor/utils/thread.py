@@ -34,12 +34,13 @@ def firInfo(url):
         r = requests.get(url, headers=_headers, timeout=30)
         if r.status_code == 200:
             data = r.json()
-            imageUrl = data['image']
-            try:
-                req = requests.get(imageUrl)
-                data['image'] = req.content
-            except Exception as e:
-                data['image'] = None
+            for layer in data['layers']:
+                imageUrl = layer['image']
+                try:
+                    req = requests.get(imageUrl)
+                    layer['image'] = req.content
+                except Exception as e:
+                    layer['image'] = None
             return data
         else:
             logger.warn('GET {} 404 Not Found'.format(url))

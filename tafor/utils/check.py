@@ -4,7 +4,6 @@ from sqlalchemy import or_
 
 from tafor import conf, logger
 from tafor.models import db, Taf, Metar
-from tafor.states import context
 from tafor.utils.validator import TafParser
 
 
@@ -271,6 +270,8 @@ class Listen(object):
         self.callback = callback
 
     def __call__(self, tt, spec=None):
+        from tafor.states import context
+
         self.tt = tt
         self.spec = spec or context.taf.spec
         state = context.message.state()
@@ -280,6 +281,8 @@ class Listen(object):
 
     def taf(self):
         """储存并更新本地 TAF 报文状态"""
+        from tafor.states import context
+
         taf = CurrentTaf(self.spec)
         check = CheckTaf(taf, message=self.message)
         clock = taf.hasExpired(offset=5)

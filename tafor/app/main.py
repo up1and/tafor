@@ -353,7 +353,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.showNotificationMessage(connectionError,
                 QCoreApplication.translate('MainWindow', 'Unable to connect remote message data source, please check the settings or network status.'), 'warning')
 
-        if conf.value('Monitor/FirApiURL') and context.fir.image() is None and not self.firInfoThread.isRunning():
+        if conf.value('Monitor/FirApiURL') and context.fir.layer.image is None and not self.firInfoThread.isRunning():
             self.showNotificationMessage(connectionError,
                 QCoreApplication.translate('MainWindow', 'Unable to connect FIR information data source, please check the settings or network status.'), 'warning')
 

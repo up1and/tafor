@@ -69,7 +69,7 @@ class Canvas(QWidget):
 
     @property
     def boundaryColor(self):
-        return Qt.red if self.fir.image() else Qt.white
+        return Qt.red if self.fir.layer.image else Qt.white
 
     @property
     def shapes(self):
@@ -104,7 +104,7 @@ class Canvas(QWidget):
         self.update()
 
     def sizeHint(self):
-        *_, w, h = self.fir.rect()
+        *_, w, h = self.fir.layer.rect()
         if w == 0 or h == 0:
             width = conf.value('General/FirCanvasSize') or 300
             width = int(width)
@@ -115,7 +115,7 @@ class Canvas(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 
-        if not self.fir.drawable:
+        if not self.fir.layer.drawable:
             self.drawEmpty(painter)
             return
 
@@ -135,7 +135,7 @@ class Canvas(QWidget):
         self.drawArea(painter)
 
     def mousePressEvent(self, event):
-        if not self.fir.drawable:
+        if not self.fir.layer.drawable:
             return
 
         if self.mode in ['polygon', 'line']:
@@ -355,9 +355,9 @@ class Canvas(QWidget):
         painter.drawPolygon(pol)
 
     def drawCloudImage(self, painter):
-        image = self.fir.pixmap()
+        image = self.fir.layer.pixmap()
         painter.drawPixmap(0, 0, image)
-        updatedTime = self.fir.updatedTime()
+        updatedTime = self.fir.layer.updatedTime()
         if updatedTime:
             rect = QRect(10, 0, image.size().width(), image.size().height() - 10)
             text = updatedTime.strftime('%H:%M')
@@ -511,13 +511,13 @@ class AreaBoard(QWidget):
     def setCircleCenter(self, point):
         if self.canvas.mode == 'circle':
             decimal = [degreeToDecimal(point[0]), degreeToDecimal(point[1])]
-            pixel = context.fir.decimalToPixel([decimal])[0]
+            pixel = context.fir.layer.decimalToPixel([decimal])[0]
             self.canvas.setCircleCenter(pixel)
             self.updateArea()
 
     def setCircleRadius(self, radius):
         if self.canvas.mode == 'circle':
-            pixel = context.fir.distanceToPixel(radius)
+            pixel = context.fir.layer.distanceToPixel(radius)
             self.canvas.setCircleRadius(pixel)
             self.updateArea()
 
@@ -526,12 +526,12 @@ class AreaBoard(QWidget):
         if self.canvas.mode == 'rectangular' and coords['done']:
 
             boundaries = context.fir._state['boundaries']
-            points = context.fir.pixelToDecimal(coords['points'])
+            points = context.fir.layer.pixelToDecimal(coords['points'])
             area = encodeSigmetArea(boundaries, points, mode='rectangular')
 
             lines = []
             for identifier, *points in area:
-                points = context.fir.decimalToDegree(points)
+                points = context.fir.layer.decimalToDegree(points)
                 latlng = simplifyLine(points)
 
                 if latlng:
@@ -543,12 +543,12 @@ class AreaBoard(QWidget):
         if self.canvas.mode == 'line':
             if coords['done']:
                 boundaries = context.fir._state['boundaries']
-                points = context.fir.pixelToDecimal(coords['points'])
+                points = context.fir.layer.pixelToDecimal(coords['points'])
                 area = encodeSigmetArea(boundaries, points, mode='line')
 
                 lines = []
                 for identifier, *points in area:
-                    points = context.fir.decimalToDegree(points)
+                    points = context.fir.layer.decimalToDegree(points)
                     coordinates = []
                     for lng, lat in points:
                         coordinates.append('{} {}'.format(lat, lng))
@@ -558,13 +558,13 @@ class AreaBoard(QWidget):
 
                 message = ' AND '.join(lines)
             else:
-                points = context.fir.pixelToDegree(coords['points'])
+                points = context.fir.layer.pixelToDegree(coords['points'])
                 coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
                 message = self.pointspacing.join(coordinates)
 
 
         if self.canvas.mode == 'polygon':
-            points = context.fir.pixelToDegree(coords['points'])
+            points = context.fir.layer.pixelToDegree(coords['points'])
             if coords['done']:
                 coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
                 message = 'WI ' + ' - '.join(coordinates)
@@ -573,9 +573,9 @@ class AreaBoard(QWidget):
                 message = self.pointspacing.join(coordinates)
 
         if self.canvas.mode == 'circle':
-            points = context.fir.pixelToDegree(coords['points'])
+            points = context.fir.layer.pixelToDegree(coords['points'])
             if coords['done']:
-                radius = round(context.fir.pixelToDistance(coords['radius']) / 10) * 10
+                radius = round(context.fir.layer.pixelToDistance(coords['radius']) / 10) * 10
                 center = points[0]
                 items = ['PSN {} {}'.format(center[1], center[0]), 'WI {}KM OF CENTRE'.format(radius)]
                 message = self.pointspacing.join(items)
@@ -584,9 +584,9 @@ class AreaBoard(QWidget):
                 message = self.pointspacing.join(coordinates)
 
         if self.canvas.mode == 'corridor':
-            points = context.fir.pixelToDegree(coords['points'])
+            points = context.fir.layer.pixelToDegree(coords['points'])
             if coords['done']:
-                width = context.fir.pixelToDistance(coords['radius'])
+                width = context.fir.layer.pixelToDistance(coords['radius'])
                 width = round(width / 5) * 5 
                 coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
                 line = ' - '.join(coordinates)

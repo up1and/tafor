@@ -774,7 +774,7 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         self.range.setValidator(QIntValidator(1, 999, self.range))
 
     def setCircleOnCanvas(self):
-        if not context.fir.drawable:
+        if not context.fir.layer.drawable:
             return
 
         if self.currentLatitude.hasAcceptableInput() and self.currentLongitude.hasAcceptableInput():
@@ -787,11 +787,12 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
             self.area.canvasWidget.setCircleRadius(radius)
 
     def setCircleOnContent(self):
-        if not context.fir.drawable:
+        layer = context.fir.layer
+        if not layer.drawable:
             return
 
         canvas = self.area.canvasWidget.canvas
-        points = context.fir.pixelToDegree(canvas.points)
+        points = layer.pixelToDegree(canvas.points)
         if points:
             lon, lat = points[0]
             self.currentLongitude.setText(lon)
@@ -800,7 +801,7 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
             self.currentLongitude.clear()
             self.currentLatitude.clear()
 
-        radius = round(context.fir.pixelToDistance(canvas.radius) / 10) * 10
+        radius = round(layer.pixelToDistance(canvas.radius) / 10) * 10
         if radius:
             self.range.setText(str(radius))
         else:
