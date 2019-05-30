@@ -44,6 +44,13 @@ class FirState(object):
     def layer(self):
         return self.layers[self.layerIndex]
 
+    def layersName(self):
+        names = []
+        for layer in self.layers:
+            if layer.name:
+                names.append(layer.name)
+        return names
+
     def sigmets(self):
         return self._state['sigmets']
 

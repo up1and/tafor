@@ -48,7 +48,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.painterTimer = QTimer()
         self.painterTimer.timeout.connect(self.painter)
-        self.painterTimer.start(10 * 60 * 1000)
+        self.painterTimer.start(5 * 60 * 1000)
 
         self.setup()
         self.bindSignal()
@@ -127,6 +127,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.tafSender.sendSignal.connect(self.updateGui)
         self.trendSender.sendSignal.connect(self.updateGui)
         self.sigmetSender.sendSignal.connect(self.updateGui)
+
+        self.firInfoThread.finished.connect(self.sigmetEditor.update)
 
         if boolean(conf.value('General/Serious')):
             self.taskTafSender.sendSignal.connect(self.taskBrowser.show)

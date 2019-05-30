@@ -300,6 +300,7 @@ class Layer(object):
 
     def __init__(self, layers, width=300):
         self.image = layers.get('image', None)
+        self.name = layers.get('name', '')
         self._size = layers.get('size', [0, 0])
         self._coordinates = layers.get('coordinates', [])
         self._rect = layers.get('rect', [0, 0, 0, 0])

@@ -4,7 +4,7 @@ from itertools import cycle
 
 from PyQt5.QtGui import QIcon, QRegExpValidator, QIntValidator, QTextCharFormat, QFont
 from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QMenu, QAction
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QMenu, QActionGroup, QAction
 
 from tafor import conf
 from tafor.states import context
@@ -316,8 +316,9 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
 
         self.fcstButton.clicked.connect(self.setAreaMode)
         self.modeButton.clicked.connect(self.switchCanvasMode)
-        self.trimShapesAction.toggled.connect(lambda: self.setLayersAction(self.trimShapesAction))
-        self.showSigmetAction.toggled.connect(lambda: self.setLayersAction(self.showSigmetAction))
+        self.trimShapesAction.toggled.connect(lambda: self.changeLayerStatus(self.trimShapesAction))
+        self.showSigmetAction.toggled.connect(lambda: self.changeLayerStatus(self.showSigmetAction))
+        self.layersActionGroup.triggered.connect(self.changeLayerStatus)
 
         self.textArea.textEdited.connect(lambda: self.upperText(self.textArea))
         self.textArea.textEdited.connect(lambda: self.coloredText(self.textArea))
@@ -379,10 +380,26 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
         self.showSigmetAction.setText(QCoreApplication.translate('Editor', 'Latest SIGMET/AIRMET'))
         self.showSigmetAction.setCheckable(True)
         self.showSigmetAction.setChecked(True)
+        self.layersActionGroup = QActionGroup(self)
+        self.layersActionGroup.setExclusive(True)
         self.layersMenu.addAction(self.trimShapesAction)
         self.layersMenu.addAction(self.showSigmetAction)
+        self.layersMenu.addSeparator()
         self.layersButton.setMenu(self.layersMenu)
         self.layersButton.setStyleSheet('QToolButton::menu-indicator {image: none;}')
+
+    def setLayerSelectAction(self):
+        self.layers = context.fir.layersName()
+        if not self.layers or self.layersActionGroup.actions():
+            return
+
+        for i, name in enumerate(self.layers):
+            setattr(self, 'layersAction' + str(i), QAction(self))
+            action = getattr(self, 'layersAction' + str(i))
+            action.setText(name)
+            action.setCheckable(True)
+            self.layersActionGroup.addAction(action)
+            self.layersMenu.addAction(action)
 
     def loadLayersActionState(self):
         trimShapes = context.fir.trimShapes
@@ -391,13 +408,22 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
         showSigmet = context.fir.showSigmet
         self.showSigmetAction.setChecked(showSigmet)
 
-    def setLayersAction(self, action):
+        layerIndex = context.fir.layerIndex
+        action = self.layersActionGroup.actions()[layerIndex]
+        action.setChecked(True)
+
+    def changeLayerStatus(self, action):
         checked = action.isChecked()
         if action == self.trimShapesAction:
             context.fir.trimShapes = checked
 
         if action == self.showSigmetAction:
             context.fir.showSigmet = checked
+
+        if action in self.layersActionGroup.actions():
+            index = self.layersActionGroup.actions().index(action)
+            context.fir.layerIndex = index
+            self.clear()
 
         self.update()
 
@@ -443,6 +469,7 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
         return text
 
     def showEvent(self, event):
+        self.setLayerSelectAction()
         self.loadLayersActionState()
         if conf.value('Monitor/FirApiURL') or self.tt == 'WC':
             self.manual.hide()
