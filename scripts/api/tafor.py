@@ -9,13 +9,14 @@ from io import BytesIO
 from ftplib import FTP
 from urllib.parse import urlparse
 
+from PIL import Image
 from pytz import timezone
 from bs4 import BeautifulSoup
 from dateutil import relativedelta
 from flask import Flask, request, jsonify, abort, render_template, url_for, send_file
 
-ECHO_FTP_HOST = os.environ.get('TAFOR_API_ECHO_FTP') or '127.0.0.1'
-ECHO_FTP_USER = os.environ.get('TAFOR_API_ENV') or 'root'
+ECHO_FTP_HOST = os.environ.get('ECHO_FTP_HOST') or '127.0.0.1'
+ECHO_FTP_USER = os.environ.get('ECHO_FTP_USER') or 'root'
 ECHO_FTP_PASSWD = os.environ.get('ECHO_FTP_PASSWD') or '123456'
 ECHO_FTP_PATH = os.environ.get('ECHO_FTP_PATH') or 'mergeMax'
 
@@ -242,7 +243,31 @@ def radar_mosaic():
     local = timezone('Asia/Shanghai').localize(navie)
     rv['updated'] = local.astimezone(timezone('UTC'))
     return rv
-        
+
+def process_echo(source):
+    colors = [
+        (192, 192, 254, 255), # purple
+        (0, 172, 164, 255), # dark green
+        (30, 38, 208, 255), # dark blue
+        (122, 114, 238, 255), # blue
+        # (166, 252, 168, 255), # light green
+    ]
+    bgcolor = (35, 35, 35, 255)
+
+    origin = Image.open(source)
+    image = Image.new('RGBA', (3160, 3160), color=bgcolor)
+    image.paste(origin, (-644, -820))
+    image = image.resize((1024, 1024))
+    pixdata = image.load()
+    for y in range(image.size[1]):
+        for x in range(image.size[0]):
+            if pixdata[x, y] in colors:
+                pixdata[x, y] = (0, 0, 0, 255)
+
+    output = BytesIO()
+    image.save(output, 'PNG')
+    return output
+
 
 @app.route('/')
 def index():
@@ -351,15 +376,16 @@ def remote_fir(mwo):
 
 @app.route('/echo/mosaic/<filename>')
 def mosaic_image(filename):
-    image = BytesIO()
+    source = BytesIO()
     try:
         with FTP(ECHO_FTP_HOST) as ftp:
             ftp.login(user=ECHO_FTP_USER, passwd=ECHO_FTP_PASSWD)
             ftp.cwd(ECHO_FTP_PATH)
-            ftp.retrbinary('RETR {}'.format(filename), image.write)
+            ftp.retrbinary('RETR {}'.format(filename), source.write)
     except Exception as e:
         abort(404)
 
+    image = process_echo(source)
     image.seek(0)
     return send_file(image, mimetype='image/png')
 
