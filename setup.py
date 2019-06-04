@@ -19,6 +19,50 @@ def createEnviron(filedir):
     with open(filepath, encoding='utf-8', mode='w') as f:
         f.write(text)
 
+def createVersion(filedir):
+    templates = """VSVersionInfo(
+      ffi=FixedFileInfo(
+        filevers=({filevers}), 
+        prodvers=({prodvers}),
+        mask=0x3f, 
+        flags=0x0,
+        OS=0x4,
+        fileType=0x1,
+        subtype=0x0,
+        date=(0, 0)
+        ),
+      kids=[
+        StringFileInfo(
+          [
+          StringTable(
+            u'040904b0', 
+            [StringStruct(u'CompanyName', u'up1and'), 
+            StringStruct(u'ProductName', u'Tafor'), 
+            StringStruct(u'ProductVersion', u'{version}+{ghash}'),
+            StringStruct(u'OriginalFilename', u'tafor.exe'), 
+            StringStruct(u'FileVersion', u'{version}'), 
+            StringStruct(u'FileDescription', u'A Terminal Aerodrome Forecast Encoding Software'), 
+            StringStruct(u'LegalCopyright', u'Copyright (C) 2019, up1and'),])
+          ]), 
+        VarFileInfo([VarStruct(u'Translation', [2052, 1200])])
+      ]
+    )"""
+    ghash = gitRevisionHash()
+    versions = __version__.split('.')
+    infos = []
+    for i in range(4):
+        if i < len(versions) and versions[i].isdigit():
+            infos.append(versions[i])
+        else:
+            infos.append('0')
+
+    prodvers = filevers = ', '.join(infos)
+    text = templates.format(filevers=filevers, prodvers=prodvers, version=__version__, ghash=ghash)
+
+    filepath = os.path.join(filedir, '.version')
+    with open(filepath, encoding='utf-8', mode='w') as f:
+        f.write(text)
+
 
 class PyTest(TestCommand):
 
@@ -70,7 +114,8 @@ class PyInstallerCommand(Command):
         source = os.path.abspath(os.path.dirname(__file__))
         cwddir = os.path.join(source, 'tafor')
         createEnviron(cwddir)
-        proc = subprocess.Popen(r'pyinstaller __main__.py -w -F -i icons\icon.ico', cwd=cwddir, 
+        createVersion(cwddir)
+        proc = subprocess.Popen(r'pyinstaller __main__.py -w -F -i icons\icon.ico -n tafor --version-file .version', cwd=cwddir, 
                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
         while True:
             line = proc.stdout.readline()

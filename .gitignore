@@ -50,3 +50,4 @@ _eric6project/
 .cache/
 .vscode
 .python-version
+.version
