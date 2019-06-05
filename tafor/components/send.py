@@ -1,8 +1,8 @@
 import datetime
 
-from PyQt5.QtGui import QFontMetrics, QFont
+from PyQt5.QtGui import QFontMetrics, QFont, QPixmap
 from PyQt5.QtCore import QCoreApplication, QTimer, QSize, pyqtSignal
-from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QMessageBox, QTextEdit
+from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QMessageBox, QTextEdit, QLabel
 from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
 
 from tafor import conf, logger
@@ -10,7 +10,7 @@ from tafor.states import context
 from tafor.models import db, Taf, Task, Trend, Sigmet
 from tafor.utils import boolean, TafParser, SigmetParser, AFTNMessage, AFTNDecoder
 from tafor.utils.thread import SerialThread
-from tafor.components.ui import Ui_send
+from tafor.components.ui import Ui_send, main_rc
 
 
 class BaseSender(QDialog, Ui_send.Ui_Sender):
@@ -49,6 +49,16 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.rawGroup.hide()
         self.printButton.hide()
         self.resendButton.hide()
+
+        self.setLineIcon()
+
+    def setLineIcon(self):
+        self.lineLabel = QLabel(self)
+        pixmap = QPixmap(':/aftn.png')
+        self.lineLabel.setPixmap(pixmap)
+        self.lineLabel.setMask(pixmap.mask())
+        self.lineLabel.adjustSize()
+        self.lineLabel.move(688, 2)
 
     def setMode(self, mode):
         if mode == 'view':

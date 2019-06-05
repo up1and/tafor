@@ -20,5 +20,7 @@
         <file alias="layers.png">../../icons/layers.png</file>
         <file alias="cold.png">../../icons/cold.png</file>
         <file alias="warm.png">../../icons/warm.png</file>
+        <file alias="aftn.png">../../icons/aftn.png</file>
+        <file alias="ftp.png">../../icons/ftp.png</file>
     </qresource>
 </RCC>
