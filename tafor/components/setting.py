@@ -15,6 +15,7 @@ from tafor.components.ui import Ui_setting, main_rc
 baseOptions = [
     # 通用设置
     ('General/WindowsStyle', 'windowsStyle', 'combox'),
+    ('General/CommunicationLine', 'communicationLine', 'combox'),
     ('General/InterfaceScaling', 'interfaceScaling', 'comboxindex'),
     ('General/InternationalAirport', 'internationalAirport', 'bool'),
     ('General/ValidityPeriod', 'validityPeriod', 'comboxindex'),
@@ -38,7 +39,7 @@ baseOptions = [
     ('Communication/SerialParity', 'parity', 'combox'),
     ('Communication/SerialBytesize', 'bytesize', 'combox'),
     ('Communication/SerialStopbits', 'stopbits', 'combox'),
-    # AFTN 配置
+    # AFTN 设置
     ('Communication/Channel', 'channel', 'text'),
     ('Communication/ChannelSequenceNumber', 'channelSequenceNumber', 'text'),
     ('Communication/MaxLineChar', 'maxLineChar', 'text'),
@@ -46,6 +47,8 @@ baseOptions = [
     ('Communication/OriginatorAddress', 'originatorAddress', 'text'),
     ('Communication/TAFAddress', 'tafAddress', 'plaintext'),
     ('Communication/TrendAddress', 'trendAddress', 'plaintext'),
+    # FTP 设置
+    ('Communication/FTPHost', 'ftpHost', 'text'),
     # 数据源
     ('Monitor/WebApiURL', 'webApiURL', 'text'),
     # TAF 报文迟发告警
