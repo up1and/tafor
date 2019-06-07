@@ -17,16 +17,24 @@ class AFTNChannel(object):
     generator = AFTNMessageGenerator
     thread = SerialThread
     field = 'raw'
-    successText = QCoreApplication.translate('Sender', 'Data has been sent to the serial port')
-    resendText = QCoreApplication.translate('Sender', 'Some part of the AFTN message may be updated, do you still want to resend?')
+
+    def successText():
+        return QCoreApplication.translate('Sender', 'Data has been sent to the serial port')
+
+    def resendText():
+        return QCoreApplication.translate('Sender', 'Some part of the AFTN message may be updated, do you still want to resend?')
 
 
 class FtpChannel(object):
     generator = MQMessageGenerator
     thread = FtpThread
     field = 'file'
-    successText = QCoreApplication.translate('Sender', 'File has been uploaded to the host')
-    resendText = QCoreApplication.translate('Sender', 'The file will be resent, do you want to continue?')
+
+    def successText():
+        return QCoreApplication.translate('Sender', 'File has been uploaded to the host')
+
+    def resendText():
+        return QCoreApplication.translate('Sender', 'The file will be resent, do you want to continue?')
 
 
 class BaseSender(QDialog, Ui_send.Ui_Sender):
@@ -111,7 +119,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
 
         if mode == 'send':
             self.setWindowTitle(QCoreApplication.translate('Sender', 'Send Message'))
-            self.rawGroup.setTitle(self.channel.successText)
+            self.rawGroup.setTitle(self.channel.successText())
 
     def receive(self, message, mode='send'):
         self.mode = mode
@@ -187,7 +195,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
 
         if self.mode == 'view':
             title = QCoreApplication.translate('Sender', 'Resend Reminder')
-            ret = QMessageBox.question(self, title, self.channel.resendText)
+            ret = QMessageBox.question(self, title, self.channel.resendText())
             if ret != QMessageBox.Yes:
                 return None
 

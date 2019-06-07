@@ -281,11 +281,11 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.parent.dialer(test=True)
 
     def testFtpLogin(self):
-        url = conf.value('Communication/FTPHost')
+        url = self.ftpHost.text()
         try:
             ftpComm('', url, 'test')
         except Exception as e:
-            text = QCoreApplication.translate('Settings', 'Try Again')
+            text = QCoreApplication.translate('Settings', 'Retry')
             self.testLoginButton.setText(text)
             logger.error(e)
         else:
