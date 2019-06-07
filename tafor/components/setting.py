@@ -7,7 +7,7 @@ from PyQt5.QtCore import QCoreApplication, QSettings, QTimer, Qt
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QTableWidgetItem, QFileDialog
 
 from tafor import conf, logger
-from tafor.utils import boolean
+from tafor.utils import boolean, ftpComm
 from tafor.models import db, User
 from tafor.components.ui import Ui_setting, main_rc
 
@@ -180,7 +180,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.delPersonButton.clicked.connect(self.delPerson)
 
         self.resetNumberButton.clicked.connect(self.resetChannelNumber)
-
+        self.testLoginButton.clicked.connect(self.testFtpLogin)
         self.callUpButton.clicked.connect(self.testCallUp)
 
         self.internationalAirport.clicked.connect(self.setValidityPeriod)
@@ -279,6 +279,19 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
     def testCallUp(self):
         """手动测试电话拨号"""
         self.parent.dialer(test=True)
+
+    def testFtpLogin(self):
+        url = conf.value('Communication/FTPHost')
+        try:
+            ftpComm('', url, 'test')
+        except Exception as e:
+            text = QCoreApplication.translate('Settings', 'Try Again')
+            self.testLoginButton.setText(text)
+            logger.error(e)
+        else:
+            text = QCoreApplication.translate('Settings', 'Done')
+            self.testLoginButton.setText(text)
+
 
     def save(self):
         """保存设置"""
