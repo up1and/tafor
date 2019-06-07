@@ -374,7 +374,7 @@ class Canvas(QWidget):
         rect = QRect(QPoint(0, 0), self.sizeHint())
         painter.setPen(Qt.DashLine)
         painter.drawRect(rect)
-        painter.drawText(rect, Qt.AlignCenter, QCoreApplication.translate('Editor', 'No Satellite Image'))
+        painter.drawText(rect, Qt.AlignCenter, QCoreApplication.translate('Editor', 'No Image'))
 
     def drawSigmets(self, painter):
         brushes = {

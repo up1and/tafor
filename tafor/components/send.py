@@ -13,6 +13,22 @@ from tafor.utils.thread import SerialThread, FtpThread
 from tafor.components.ui import Ui_send, main_rc
 
 
+class AFTNChannel(object):
+    generator = AFTNMessageGenerator
+    thread = SerialThread
+    field = 'raw'
+    successText = QCoreApplication.translate('Sender', 'Data has been sent to the serial port')
+    resendText = QCoreApplication.translate('Sender', 'Some part of the AFTN message may be updated, do you still want to resend?')
+
+
+class FtpChannel(object):
+    generator = MQMessageGenerator
+    thread = FtpThread
+    field = 'file'
+    successText = QCoreApplication.translate('Sender', 'File has been uploaded to the host')
+    resendText = QCoreApplication.translate('Sender', 'The file will be resent, do you want to continue?')
+
+
 class BaseSender(QDialog, Ui_send.Ui_Sender):
 
     sendSignal = pyqtSignal()
@@ -51,22 +67,17 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.resendButton.hide()
 
         self.setLineIcon()
+        self.setChannel()
 
     def line(self):
         text = conf.value('General/CommunicationLine')
         return text.lower() if text else 'aftn'
 
-    def generatorClass(self):
+    def setChannel(self):
         if self.line() == 'ftp':
-            return MQMessageGenerator
+            self.channel = FtpChannel
         else:
-            return AFTNMessageGenerator
-
-    def senderClass(self):
-        if self.line() == 'ftp':
-            return FtpThread
-        else:
-            return SerialThread
+            self.channel = AFTNChannel
 
     def setLineIcon(self):
         pixmap = QPixmap(':/{}.png'.format(self.line()))
@@ -95,9 +106,12 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
                 self.rawGroup.show()
                 self.printButton.show()
 
+            if self.item.file:
+                self.rawGroup.show()
+
         if mode == 'send':
             self.setWindowTitle(QCoreApplication.translate('Sender', 'Send Message'))
-            self.rawGroup.setTitle(QCoreApplication.translate('Sender', 'Data has been sent to the serial port'))
+            self.rawGroup.setTitle(self.channel.successText)
 
     def receive(self, message, mode='send'):
         self.mode = mode
@@ -105,7 +119,11 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             self.item = message['item']
             self.parse(message)
             self.mode = 'view'
-            self.raw.setText(self.item.rawText())
+            if self.line() == 'ftp':
+                text = self.item.file
+            else:
+                text = self.item.rawText() or self.item.file
+            self.raw.setText(text)
 
         if mode == 'send':
             self.parse(message)
@@ -169,7 +187,13 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
 
         if self.mode == 'view':
             title = QCoreApplication.translate('Sender', 'Resend Reminder')
-            text = QCoreApplication.translate('Sender', 'Some part of the AFTN message may be updated, do you still want to resend?')
+            ret = QMessageBox.question(self, title, self.channel.resendText)
+            if ret != QMessageBox.Yes:
+                return None
+
+        if self.line() != 'aftn':
+            title = QCoreApplication.translate('Sender', 'Transmission Line Reminder')
+            text = QCoreApplication.translate('Sender', 'Not a common transmission line, do you want to continue?')
             ret = QMessageBox.question(self, title, text)
             if ret != QMessageBox.Yes:
                 return None
@@ -185,15 +209,15 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             if self.currentGenerator is None:
                 spacer = ' ' if self.reportType == 'Trend' else '\n'
                 fullMessage = spacer.join([self.message['sign'], self.message['rpt']])
-                generatorClass = self.generatorClass()
-                self.generator = generatorClass(fullMessage, reportType=self.reportType)
+                generator = self.channel.generator
+                self.generator = generator(fullMessage, reportType=self.reportType)
 
             self.currentGenerator = self.generator
             self.rawText = self.generator.toString()
 
         if context.environ.canEnable(self.reportType):
-            senderClass = self.senderClass()
-            self.thread = senderClass(self.rawText, self)
+            thread = self.channel.thread
+            self.thread = thread(self.rawText, self)
             self.thread.doneSignal.connect(self.showRawGroup)
             self.thread.doneSignal.connect(self.save)
             self.thread.start()
@@ -202,16 +226,14 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             self.save()
 
     def save(self):
-        fields = {'ftp': 'file', 'aftn': 'raw'}
-        field = fields.get(self.line(), 'raw')
         if self.item:
             if self.error and self.generator or not self.error:
-                setattr(self.item, field, self.generator.toJson())
+                setattr(self.item, self.channel.field, self.generator.toJson())
             self.item.sent = datetime.datetime.utcnow()
             logger.debug('Resend ' + self.item.rpt)
         else:
             self.item = self.model(tt=self.message['sign'][0:2], sign=self.message['sign'], rpt=self.message['rpt'])
-            setattr(self.item, field, self.generator.toJson())
+            setattr(self.item, self.channel.field, self.generator.toJson())
             logger.debug('Send ' + self.item.rpt)
 
         db.add(self.item)
@@ -263,6 +285,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
 
     def showEvent(self, event):
         self.setLineIcon()
+        self.setChannel()
 
     def closeEvent(self, event):
         if event.spontaneous():

@@ -292,6 +292,11 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         if conf.value('General/FirCanvasSize') != self.firCanvasSize.value():
             self.parent.sigmetEditor.close()
 
+        if conf.value('General/CommunicationLine') != self.communicationLine.currentText():
+            self.parent.tafSender.close()
+            self.parent.trendSender.close()
+            self.parent.sigmetSender.close()
+
         for path, option, category in self.options:
             self.setValue(path, option, category)
 
