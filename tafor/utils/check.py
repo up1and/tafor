@@ -207,7 +207,7 @@ class CheckTaf(object):
             if local and not remote.isAmended() and remote.primary.tokens['period']['text'] in local.rpt:
                 return
 
-            item = Taf(tt=self.tt, rpt=self.message, confirmed=self.taf.time)
+            item = Taf(tt=self.tt, rpt=self.message, source='api', confirmed=self.taf.time)
             db.add(item)
             db.commit()
             logger.info('Save {} {}'.format(self.tt, self.message))

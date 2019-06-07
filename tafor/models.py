@@ -3,7 +3,7 @@ import re
 import json
 import datetime
 
-from sqlalchemy import Column, Integer, String, DateTime, create_engine
+from sqlalchemy import Column, Integer, String, Text, DateTime, create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
@@ -22,18 +22,22 @@ class Taf(Base):
     __tablename__ = 'tafs'
 
     id = Column(Integer, primary_key=True)
-    tt = Column(String(2))
-    sign = Column(String(255), nullable=True)
-    rpt = Column(String(255))
-    raw = Column(String(255), nullable=True)
+    tt = Column(String(2), nullable=False)
+    sign = Column(String(36))
+    rpt = Column(Text, nullable=False)
+    raw = Column(Text)
+    file = Column(Text)
+    source = Column(String(16))
     sent = Column(DateTime, default=datetime.datetime.utcnow)
-    confirmed = Column(DateTime, nullable=True)
+    confirmed = Column(DateTime)
 
-    def __init__(self, tt, rpt, sign=None, raw=None, confirmed=None):
+    def __init__(self, tt, rpt, sign=None, raw=None, file=None, source='self', confirmed=None):
         self.tt = tt
         self.sign = sign
         self.rpt = rpt
         self.raw = raw
+        self.file = file
+        self.source = source
         self.confirmed = confirmed
 
     def __repr__(self):
@@ -67,8 +71,8 @@ class Metar(Base):
     __tablename__ = 'metars'
 
     id = Column(Integer, primary_key=True)
-    tt = Column(String(2))
-    rpt = Column(String(255))
+    tt = Column(String(2), nullable=False)
+    rpt = Column(Text, nullable=False)
     created = Column(DateTime, default=datetime.datetime.utcnow)
 
     def __init__(self, tt, rpt):
@@ -82,9 +86,9 @@ class Task(Base):
     __tablename__ = 'tasks'
 
     id = Column(Integer, primary_key=True)
-    tt = Column(String(2))
-    sign = Column(String(255))
-    rpt = Column(String(255))
+    tt = Column(String(2), nullable=False)
+    sign = Column(String(36))
+    rpt = Column(Text, nullable=False)
     created = Column(DateTime, default=datetime.datetime.utcnow)
     planning = Column(DateTime)
 
@@ -103,15 +107,17 @@ class Trend(Base):
     __tablename__ = 'trends'
 
     id = Column(Integer, primary_key=True)
-    sign = Column(String(16))
-    rpt = Column(String(255))
-    raw = Column(String(255))
+    sign = Column(String(36))
+    rpt = Column(Text, nullable=False)
+    raw = Column(Text)
+    source = Column(String(16))
     sent = Column(DateTime, default=datetime.datetime.utcnow)
 
-    def __init__(self, sign, rpt, raw=None):
+    def __init__(self, sign, rpt, raw=None, source='self'):
         self.sign = sign
         self.rpt = rpt
         self.raw = raw
+        self.source = source
 
     def __repr__(self):
         return '<Trend %r>' % (self.rpt)
@@ -137,18 +143,22 @@ class Sigmet(Base):
     __tablename__ = 'sigmets'
 
     id = Column(Integer, primary_key=True)
-    tt = Column(String(2))
-    sign = Column(String(255))
-    rpt = Column(String(255))
-    raw = Column(String(255))
+    tt = Column(String(2), nullable=False)
+    sign = Column(String(36))
+    rpt = Column(Text, nullable=False)
+    raw = Column(Text)
+    file = Column(Text)
+    source = Column(String(16))
     sent = Column(DateTime, default=datetime.datetime.utcnow)
     confirmed = Column(DateTime, nullable=True)
 
-    def __init__(self, tt, sign, rpt, raw=None, confirmed=None):
+    def __init__(self, tt, sign, rpt, raw=None, file=None, source='self', confirmed=None):
         self.tt = tt
         self.sign = sign
         self.rpt = rpt
         self.raw = raw
+        self.file = file
+        self.source = source
         self.confirmed = confirmed
 
     def __repr__(self):
@@ -181,6 +191,26 @@ class Sigmet(Base):
 
     def isExpired(self):
         return datetime.datetime.utcnow() > self.expired()
+
+class Other(Base):
+    __tablename__ = 'others'
+
+    id = Column(Integer, primary_key=True)
+    tt = Column(String(2))
+    sign = Column(String(36))
+    rpt = Column(Text, nullable=False)
+    raw = Column(Text)
+    file = Column(Text)
+    source = Column(String(16))
+    sent = Column(DateTime, default=datetime.datetime.utcnow)
+
+    def __init__(self, tt, rpt, sign=None, raw=None, file=None, source='self'):
+        self.tt = tt
+        self.sign = sign
+        self.rpt = rpt
+        self.raw = raw
+        self.file = file
+        self.source = source
 
 class User(Base):
     __tablename__ = 'users'
