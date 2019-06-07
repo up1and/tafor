@@ -195,7 +195,7 @@
             <item row="2" column="0">
              <widget class="QLabel" name="communicationLineLabel">
               <property name="text">
-               <string>Communication Line</string>
+               <string>Priority Communication Line</string>
               </property>
              </widget>
             </item>

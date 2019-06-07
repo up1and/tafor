@@ -53,6 +53,6 @@ def verifyToken(token, key):
     from jose import jwt
     try:
         data = jwt.decode(token, key, algorithms='RS256')
-    except Exception:
+    except Exception as e:
         return None
     return data

@@ -651,7 +651,7 @@ class Ui_Settings(object):
         self.autoComletionGroupTime.setText(_translate("Settings", "Change group auto completion time"))
         self.internationalAirport.setText(_translate("Settings", "International Airport"))
         self.alwaysShowEditor.setText(_translate("Settings", "Always show forecast editor"))
-        self.communicationLineLabel.setText(_translate("Settings", "Communication Line"))
+        self.communicationLineLabel.setText(_translate("Settings", "Priority Communication Line"))
         self.validatorGroup.setTitle(_translate("Settings", "Validator"))
         self.cloudHeightHas450.setText(_translate("Settings", "Cloud height has 450 meters"))
         self.visHas5000.setText(_translate("Settings", "Visibility has 5000 meters"))

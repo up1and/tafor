@@ -8,8 +8,8 @@ from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
 from tafor import conf, logger
 from tafor.states import context
 from tafor.models import db, Taf, Task, Trend, Sigmet
-from tafor.utils import boolean, TafParser, SigmetParser, AFTNMessage, AFTNDecoder
-from tafor.utils.thread import SerialThread
+from tafor.utils import boolean, TafParser, SigmetParser, AFTNMessageGenerator, MQMessageGenerator, AFTNDecoder
+from tafor.utils.thread import SerialThread, FtpThread
 from tafor.components.ui import Ui_send, main_rc
 
 
@@ -24,8 +24,8 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.setupUi(self)
 
         self.parent = parent
-        self.aftn = None
-        self.state = None
+        self.generator = None
+        self.currentGenerator = None
         self.item = None
         self.error = None
         self.rawText = None
@@ -52,13 +52,35 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
 
         self.setLineIcon()
 
+    def line(self):
+        text = conf.value('General/CommunicationLine')
+        return text.lower() if text else 'aftn'
+
+    def generatorClass(self):
+        if self.line() == 'ftp':
+            return MQMessageGenerator
+        else:
+            return AFTNMessageGenerator
+
+    def senderClass(self):
+        if self.line() == 'ftp':
+            return FtpThread
+        else:
+            return SerialThread
+
     def setLineIcon(self):
-        self.lineLabel = QLabel(self)
-        pixmap = QPixmap(':/aftn.png')
-        self.lineLabel.setPixmap(pixmap)
-        self.lineLabel.setMask(pixmap.mask())
-        self.lineLabel.adjustSize()
-        self.lineLabel.move(688, 2)
+        pixmap = QPixmap(':/{}.png'.format(self.line()))
+        if hasattr(self, 'lineSign'):
+            self.lineSign.setPixmap(pixmap)
+        else:
+            self.lineSign = QLabel(self)
+            self.lineSign.setPixmap(pixmap)
+            self.lineSign.setMask(pixmap.mask())
+            self.lineSign.adjustSize()
+            self.lineSign.move(688, 2)
+
+        visible = self.sendButton.isVisible() or self.resendButton.isVisible()
+        self.lineSign.setVisible(visible)
 
     def setMode(self, mode):
         if mode == 'view':
@@ -158,18 +180,20 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.resendButton.setText(QCoreApplication.translate('Sender', 'Sending'))
 
         if self.item and self.error:
-            self.rawText = self.aftn.toString() if self.aftn else self.item.rawText()
+            self.rawText = self.generator.toString() if self.generator else self.item.rawText()
         else:
-            if self.state is None:
+            if self.currentGenerator is None:
                 spacer = ' ' if self.reportType == 'Trend' else '\n'
                 fullMessage = spacer.join([self.message['sign'], self.message['rpt']])
-                self.aftn = AFTNMessage(fullMessage, self.reportType)
+                generatorClass = self.generatorClass()
+                self.generator = generatorClass(fullMessage, reportType=self.reportType)
 
-            self.state = self.aftn
-            self.rawText = self.aftn.toString()
+            self.currentGenerator = self.generator
+            self.rawText = self.generator.toString()
 
         if context.environ.canEnable(self.reportType):
-            self.thread = SerialThread(self.rawText, self)
+            senderClass = self.senderClass()
+            self.thread = senderClass(self.rawText, self)
             self.thread.doneSignal.connect(self.showRawGroup)
             self.thread.doneSignal.connect(self.save)
             self.thread.start()
@@ -178,13 +202,16 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             self.save()
 
     def save(self):
+        fields = {'ftp': 'file', 'aftn': 'raw'}
+        field = fields.get(self.line(), 'raw')
         if self.item:
-            if self.error and self.aftn or not self.error:
-                self.item.raw = self.aftn.toJson()
+            if self.error and self.generator or not self.error:
+                setattr(self.item, field, self.generator.toJson())
             self.item.sent = datetime.datetime.utcnow()
             logger.debug('Resend ' + self.item.rpt)
         else:
-            self.item = self.model(tt=self.message['sign'][0:2], sign=self.message['sign'], rpt=self.message['rpt'], raw=self.aftn.toJson())
+            self.item = self.model(tt=self.message['sign'][0:2], sign=self.message['sign'], rpt=self.message['rpt'])
+            setattr(self.item, field, self.generator.toJson())
             logger.debug('Send ' + self.item.rpt)
 
         db.add(self.item)
@@ -234,15 +261,18 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         textHeight = textSize.height() + height
         self.rpt.setMaximumSize(QSize(16777215, textHeight))
 
+    def showEvent(self, event):
+        self.setLineIcon()
+
     def closeEvent(self, event):
         if event.spontaneous():
             self.cancel()
 
     def clear(self):
-        self.state = None
         self.item = None
         self.error = None
         self.rawText = None
+        self.currentGenerator = None
         self.rpt.setText('')
         self.rawGroup.hide()
         self.printButton.hide()
@@ -287,6 +317,9 @@ class TrendSender(BaseSender):
         self.reportType = 'Trend'
         self.buttonBox.accepted.connect(self.send)
 
+    def line(self):
+        return 'aftn'
+
     def parse(self, message):
         self.message = message
         self.rpt.setText(self.message['rpt'])
@@ -296,7 +329,7 @@ class TrendSender(BaseSender):
             self.item.sent = datetime.datetime.utcnow()
             logger.debug('Resend ' + self.item.rpt)
         else:
-            self.item = Trend(sign=self.message['sign'], rpt=self.message['rpt'], raw=self.aftn.toJson())
+            self.item = Trend(sign=self.message['sign'], rpt=self.message['rpt'], raw=self.generator.toJson())
             logger.debug('Send ' + self.item.rpt)
 
         db.add(self.item)

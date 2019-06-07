@@ -6,7 +6,23 @@ import textwrap
 from tafor import conf
 
 
-class AFTNMessage(object):
+def linewrap(lines, maxLineChar):
+    """对超过最大字符限制的行进行换行处理
+
+    :return: 报文行列表
+    """
+    items = []
+    for line in lines:
+        if line:
+            wraps = textwrap.wrap(line, width=maxLineChar)
+            items += wraps
+        else:
+            items.append('')
+
+    return items
+
+
+class AFTNMessageGenerator(object):
     """航空固定电信网络（Aeronautical Fixed Telecommunication Network Message）报文的生成
 
     :param text: 报文内容
@@ -15,7 +31,7 @@ class AFTNMessage(object):
 
     使用方法::
 
-        m = AFTNMessage('TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR=')
+        m = AFTNMessageGenerator('TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR=')
         # 返回字符串格式 AFTN 报文
         m.toString()
         # 返回 JSON 格式 AFTN 报文
@@ -31,7 +47,6 @@ class AFTNMessage(object):
         self.maxSendAddress = int(maxSendAddress) if maxSendAddress else 21  # AFTN 线路最大发电地址数
         self.maxLineChar = int(maxLineChar) if maxLineChar else 69  # AFTN 线路每行最大字符数
         self.lineBreak = '\r\n'
-
         self.generate()
 
     def toString(self):
@@ -49,10 +64,7 @@ class AFTNMessage(object):
         return json.dumps(self.messages)
 
     def generate(self):
-        """生成 AFTN 电报格式的报文
-
-        :return: 报文列表
-        """
+        """生成 AFTN 电报格式的报文"""
         channel = conf.value('Communication/Channel')
         number = conf.value('Communication/ChannelSequenceNumber')
         number = int(number) if number else 0
@@ -71,28 +83,11 @@ class AFTNMessage(object):
             heading = ' '.join(['ZCZC', channel + str(number).zfill(4)])
             address = ' '.join([level] + addr)
             lines = [heading, address, origin] + self.texts + [''] * 3 + [ending]
-            lines = self.linewrap(lines)
+            lines = linewrap(lines, self.maxLineChar)
             self.messages.append(self.lineBreak.join(lines))
             number += 1
 
         conf.setValue('Communication/ChannelSequenceNumber', str(number))
-
-        return self.messages
-
-    def linewrap(self, lines):
-        """对超过最大字符限制的行进行换行处理
-
-        :return: 报文行列表
-        """
-        items = []
-        for line in lines:
-            if line:
-                wraps = textwrap.wrap(line, width=self.maxLineChar)
-                items += wraps
-            else:
-                items.append('')
-
-        return items
 
     def divideAddress(self, address):
         """根据最大发送地址拆分地址组，比如允许最大地址是 7，有 10 个地址就拆成 2 组
@@ -106,6 +101,31 @@ class AFTNMessage(object):
 
         items = address.split()
         return chunks(items, self.maxSendAddress)
+
+
+class MQMessageGenerator(object):
+
+    def __init__(self, text, **kwargs):
+        self.texts = text.split('\n')
+        maxLineChar = conf.value('Communication/MaxLineChar')
+        self.maxLineChar = int(maxLineChar) if maxLineChar else 69  # AFTN 线路每行最大字符数
+        self.lineBreak = '\r\n'
+        self.generate()
+
+    def toString(self):
+        return self.message
+
+    def toJson(self):
+        return self.message
+
+    def generate(self):
+        """生成文件类型的报文"""
+        number = 1
+        ending = 'NNNN'
+        heading = ' '.join(['ZCZC', str(number).zfill(3)])
+        lines = [heading] + self.texts + [''] * 3 + [ending]
+        lines = linewrap(lines, self.maxLineChar)
+        self.message = self.lineBreak.join(lines)
 
 
 class AFTNDecoder(object):

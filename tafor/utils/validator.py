@@ -849,8 +849,6 @@ class TafParser(object):
         """校验后的报文和原始报文相比是否有变化"""
         origin = ' '.join(self.message.split())
         output = self.renderer().replace('\n', ' ')
-        print(origin)
-        print(output)
         return origin != output
 
     def renderer(self, style='plain'):

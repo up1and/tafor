@@ -1,10 +1,12 @@
+import datetime
+
 import requests
 
 from PyQt5.QtCore import QThread, pyqtSignal
 
 from tafor import conf, logger, __version__
 from tafor.states import context
-from tafor.utils import serialComm
+from tafor.utils import serialComm, ftpComm
 from tafor.utils.baudot import encode, ITA2_STANDARD
 
 
@@ -158,6 +160,30 @@ class SerialThread(QThread):
             logger.error(e)
         finally:
             context.serial.release()
+            self.doneSignal.emit(error)
+
+
+class FtpThread(QThread):
+    doneSignal = pyqtSignal(str)
+
+    def __init__(self, message, parent=None):
+        super(FtpThread, self).__init__(parent)
+        self.message = message
+        self.parent = parent
+
+    def run(self):
+        url = conf.value('Communication/FTPHost')
+        time = datetime.datetime.utcnow()
+        filename = time.strftime('%Y%m%d%H%M%S%f')
+        filename = 'M1{}.TXT'.format(filename[:-3])
+
+        try:
+            ftpComm(self.message, url, filename)
+            error = ''
+        except Exception as e:
+            error = str(e)
+            logger.error(e)
+        finally:
             self.doneSignal.emit(error)
 
 

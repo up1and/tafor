@@ -3,7 +3,7 @@ import datetime
 
 from tafor import logger
 from tafor.models import db, Taf, Sigmet, Task
-from tafor.utils.aftn import AFTNMessage
+from tafor.utils.message import AFTNMessageGenerator
 from tafor.utils.thread import SerialThread
 
 
@@ -64,7 +64,7 @@ class DelaySend(object):
             return
 
         message = '\n'.join([self.task.sign, self.task.rpt])
-        self.aftn = AFTNMessage(message, time=self.task.planning)
+        self.aftn = AFTNMessageGenerator(message, time=self.task.planning)
 
         self.thread = SerialThread(self.aftn.toString())
         self.thread.doneSignal.connect(self.commit)
