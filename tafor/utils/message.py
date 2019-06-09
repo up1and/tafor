@@ -67,7 +67,7 @@ class AFTNMessageGenerator(object):
         """生成 AFTN 电报格式的报文"""
         channel = conf.value('Communication/Channel')
         number = conf.value('Communication/ChannelSequenceNumber')
-        number = int(number) if number else 0
+        number = int(number) if number else 1
         level = 'FF' if self.reportType in ['SIGMET', 'AIRMET'] else 'GG'
         sendAddress = conf.value('Communication/{}Address'.format(self.reportType)) or ''
         originatorAddress = conf.value('Communication/OriginatorAddress') or ''
@@ -103,7 +103,7 @@ class AFTNMessageGenerator(object):
         return chunks(items, self.maxSendAddress)
 
 
-class MQMessageGenerator(object):
+class FileMessageGenerator(object):
 
     def __init__(self, text, **kwargs):
         self.texts = text.split('\n')
@@ -120,13 +120,15 @@ class MQMessageGenerator(object):
 
     def generate(self):
         """生成文件类型的报文"""
-        number = 1
+        number = conf.value('Communication/FileSequenceNumber')
+        number = int(number) if number else 1
         ending = 'NNNN'
         heading = ' '.join(['ZCZC', str(number).zfill(3)])
         lines = [heading] + self.texts + [''] * 3 + [ending]
         lines = linewrap(lines, self.maxLineChar)
         self.message = self.lineBreak.join(lines)
 
+        conf.setValue('Communication/FileSequenceNumber', str(number + 1))
 
 class AFTNDecoder(object):
 

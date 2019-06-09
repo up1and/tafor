@@ -8,7 +8,7 @@ from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
 from tafor import conf, logger
 from tafor.states import context
 from tafor.models import db, Taf, Task, Trend, Sigmet
-from tafor.utils import boolean, TafParser, SigmetParser, AFTNMessageGenerator, MQMessageGenerator, AFTNDecoder
+from tafor.utils import boolean, TafParser, SigmetParser, AFTNMessageGenerator, FileMessageGenerator, AFTNDecoder
 from tafor.utils.thread import SerialThread, FtpThread
 from tafor.components.ui import Ui_send, main_rc
 
@@ -26,7 +26,7 @@ class AFTNChannel(object):
 
 
 class FtpChannel(object):
-    generator = MQMessageGenerator
+    generator = FileMessageGenerator
     thread = FtpThread
     field = 'file'
 

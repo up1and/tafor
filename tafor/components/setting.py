@@ -214,6 +214,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
     def resetChannelNumber(self):
         """重置流水号"""
         conf.setValue('Communication/ChannelSequenceNumber', '1')
+        conf.setValue('Communication/FileSequenceNumber', '1')
         self.channelSequenceNumber.setText('1')
         logger.info('Reset channel sequence number to one')
 
@@ -291,7 +292,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         else:
             text = QCoreApplication.translate('Settings', 'Done')
             self.testLoginButton.setText(text)
-
 
     def save(self):
         """保存设置"""
