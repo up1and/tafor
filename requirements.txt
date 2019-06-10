@@ -1,9 +1,9 @@
 click
+falcon
 pyserial
 python-dateutil
 python-jose
 requests
-Flask
 SQLAlchemy
 Shapely
 PyQt5==5.9

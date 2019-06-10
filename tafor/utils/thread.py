@@ -2,9 +2,12 @@ import datetime
 
 import requests
 
+from wsgiref import simple_server
+
 from PyQt5.QtCore import QThread, pyqtSignal
 
 from tafor import conf, logger, __version__
+from tafor.rpc import server
 from tafor.states import context
 from tafor.utils import serialComm, ftpComm
 from tafor.utils.baudot import encode, ITA2_STANDARD
@@ -202,13 +205,11 @@ class CheckUpgradeThread(QThread):
 
 class RpcThread(QThread):
 
-    def __init__(self, app, port=15400):
+    def __init__(self, port=15400):
         super(RpcThread, self).__init__()
-        self.app = app
+        self.app = server
         self.port = port
 
-    def __del__(self):
-        self.wait()
-
     def run(self):
-        self.app.run(port=self.port, threaded=True)
+        httpd = simple_server.make_server('127.0.0.1', self.port, self.app)
+        httpd.serve_forever()

@@ -12,7 +12,7 @@ from tafor.models import db, User, Taf, Trend
 from tafor.states import context
 from tafor.utils import boolean, checkVersion, Listen
 from tafor.utils.service import currentSigmet, DelaySend
-from tafor.utils.thread import WorkThread, FirInfoThread, CallThread, CheckUpgradeThread
+from tafor.utils.thread import WorkThread, FirInfoThread, CallThread, CheckUpgradeThread, RpcThread
 
 from tafor.components.ui import Ui_main, main_rc
 from tafor.components.taf import TafEditor, TaskTafEditor
@@ -83,6 +83,10 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.sigmetAction.setVisible(False)
             self.mainTab.removeTab(3)
             self.mainTab.removeTab(3)
+
+        if boolean(conf.value('General/Rpc')):
+            self.rptThread = RpcThread()
+            self.rptThread.start()
 
         self.setRecent()
         self.setTable()
@@ -579,13 +583,6 @@ def main():
 
     localServer = QLocalServer()
     localServer.listen(serverName)
-
-    if boolean(conf.value('General/Rpc')):
-        from tafor.rpc import server
-        from tafor.utils.thread import RpcThread
-        webapp = RpcThread(server)
-        webapp.start()
-        app.aboutToQuit.connect(webapp.terminate)
 
     try:
         window = MainWindow()

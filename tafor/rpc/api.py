@@ -1,23 +1,8 @@
 import json
 
-from flask import Flask, Blueprint, Response, request, jsonify, make_response
-from werkzeug.exceptions import HTTPException
+import falcon
 
 from tafor.utils import TafParser, SigmetParser, MetarParser
-
-server = Flask(__name__)
-api = Blueprint('api', __name__)
-
-
-def abort(code, **kwargs):
-    description = json.dumps(kwargs)
-    response = Response(status=code, mimetype='application/json',
-                        response=description)
-    raise HTTPException(description=description, response=response)
-
-@server.route('/')
-def index():
-    return 'Tafor RPC is running.'
 
 
 def parse_taf(message, kwargs):
@@ -77,25 +62,42 @@ def parse_sigmet(message, kwargs):
     }
     return data
 
-@api.route('/validate', methods=['POST'])
-def validate():
-    message = request.args.get('message')
-    kwargs = {
-        'visHas5000': request.args.get('visHas5000') is not None,
-        'cloudHeightHas450': request.args.get('cloudHeightHas450') is not None,
-        'weakPrecipitationVerification': request.args.get('weakPrecipitationVerification') is not None,
-    }
 
-    if message.startswith('TAF'):
-        data = parse_taf(message, kwargs)
-    elif message.startswith('METAR') or message.startswith('SPECI'):
-        data = parse_metar(message, kwargs)
-    elif 'SIGMET' in message or 'AIRMET' in message:
-        data = parse_sigmet(message, kwargs)
-    else:
-        abort(400, message='The message could not be parsed')
+class MainResource(object):
 
-    return jsonify(data)
+    def on_get(self, req, resp):
+        resp.body = ('\nTafor RPC is running.\n'
+                     '\n'
+                     '    ~ up1and\n\n')
 
 
-server.register_blueprint(api, url_prefix='/api')
+class ValidateResource(object):
+
+    def on_post(self, req, resp):
+        message = req.get_param('message') or ''
+        kwargs = {
+            'visHas5000': req.get_param('visHas5000') is not None,
+            'cloudHeightHas450': req.get_param('cloudHeightHas450') is not None,
+            'weakPrecipitationVerification': req.get_param('weakPrecipitationVerification') is not None,
+        }
+
+        if message.startswith('TAF'):
+            data = parse_taf(message, kwargs)
+        elif message.startswith('METAR') or message.startswith('SPECI'):
+            data = parse_metar(message, kwargs)
+        elif 'SIGMET' in message or 'AIRMET' in message:
+            data = parse_sigmet(message, kwargs)
+        else:
+            raise falcon.HTTPBadRequest('Invalid Message',
+                                        'The message could not be parsed')
+
+        resp.media = data
+
+
+server = falcon.API()
+
+main = MainResource()
+validate = ValidateResource()
+
+server.add_route('/', main)
+server.add_route('/api/validate', validate)
