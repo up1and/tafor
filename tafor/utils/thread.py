@@ -211,5 +211,5 @@ class RpcThread(QThread):
         self.port = port
 
     def run(self):
-        httpd = simple_server.make_server('127.0.0.1', self.port, self.app)
+        httpd = simple_server.make_server('', self.port, self.app)
         httpd.serve_forever()

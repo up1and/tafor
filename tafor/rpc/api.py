@@ -2,7 +2,12 @@ import json
 
 import falcon
 
+from tafor import conf
+from tafor.states import context
 from tafor.utils import TafParser, SigmetParser, MetarParser
+
+
+LOGIN_TOKEN = 'VGhlIFZveWFnZSBvZiB0aGUgTW9vbg=='
 
 
 def parse_taf(message, kwargs):
@@ -62,6 +67,20 @@ def parse_sigmet(message, kwargs):
     }
     return data
 
+def authorize(req, resp, resource, params):
+    challenges = ['Bearer Token']
+
+    if req.auth is None:
+        description = ('Please provide an auth token as part of the request.')
+        raise falcon.HTTPUnauthorized('Bearer Token Required', description, challenges)
+
+    authType, token = req.auth.split(None, 1)
+    if authType == 'Bearer' and token == LOGIN_TOKEN:
+        req.context.user = 'webapi'
+    else:
+        description = ('The provided auth token is not valid. Please request a new token and try again.')
+        raise falcon.HTTPUnauthorized('Authentication Required', description, challenges)
+
 
 class MainResource(object):
 
@@ -69,6 +88,21 @@ class MainResource(object):
         resp.body = ('\nTafor RPC is running.\n'
                      '\n'
                      '    ~ up1and\n\n')
+
+
+class StateResource(object):
+
+    @falcon.before(authorize)
+    def on_get(self, req, resp):
+        data = {
+            'sequence': {
+                'file': conf.value('Communication/FileSequenceNumber'),
+                'aftn': conf.value('Communication/ChannelSequenceNumber'),
+            },
+            'busy': context.serial.busy(),
+            'time': falcon.http_now()
+        }
+        resp.media = data
 
 
 class ValidateResource(object):
@@ -88,8 +122,7 @@ class ValidateResource(object):
         elif 'SIGMET' in message or 'AIRMET' in message:
             data = parse_sigmet(message, kwargs)
         else:
-            raise falcon.HTTPBadRequest('Invalid Message',
-                                        'The message could not be parsed')
+            raise falcon.HTTPBadRequest('Invalid Message', 'The message could not be parsed')
 
         resp.media = data
 
@@ -97,7 +130,9 @@ class ValidateResource(object):
 server = falcon.API()
 
 main = MainResource()
+state = StateResource()
 validate = ValidateResource()
 
 server.add_route('/', main)
+server.add_route('/api/state', state)
 server.add_route('/api/validate', validate)
