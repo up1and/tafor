@@ -255,8 +255,8 @@ def process_echo(source):
     bgcolor = (35, 35, 35, 255)
 
     origin = Image.open(source)
-    image = Image.new('RGBA', (3160, 3160), color=bgcolor)
-    image.paste(origin, (-644, -820))
+    image = Image.new('RGBA', (3060, 3060), color=bgcolor)
+    image.paste(origin, (-744, -820))
     image = image.resize((1024, 1024))
     pixdata = image.load()
     for y in range(image.size[1]):
