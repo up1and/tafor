@@ -26,7 +26,10 @@ class AFTNMessageGenerator(object):
     """航空固定电信网络（Aeronautical Fixed Telecommunication Network Message）报文的生成
 
     :param text: 报文内容
-    :param reportType: 报文类型，默认 TAF
+    :param channel: 信道
+    :param priority: 电报优先级，默认 GG
+    :param address: 收电地址
+    :param originator: 发点地址
     :param time: AFTN 报文生成时间
 
     使用方法::
@@ -38,9 +41,12 @@ class AFTNMessageGenerator(object):
         m.toJson()
 
     """
-    def __init__(self, text, reportType='TAF', time=None):
+    def __init__(self, text, channel='', priority='GG', address='', originator='', time=None):
         self.texts = text.split('\n')
-        self.reportType = reportType
+        self.channel = channel
+        self.priority = priority
+        self.address = address
+        self.originator = originator
         self.time = datetime.datetime.utcnow() if time is None else time
         maxSendAddress = conf.value('Communication/MaxSendAddress')
         maxLineChar = conf.value('Communication/MaxLineChar')
@@ -65,23 +71,19 @@ class AFTNMessageGenerator(object):
 
     def generate(self):
         """生成 AFTN 电报格式的报文"""
-        channel = conf.value('Communication/Channel')
         number = conf.value('Communication/ChannelSequenceNumber')
         number = int(number) if number else 1
-        level = 'FF' if self.reportType in ['SIGMET', 'AIRMET'] else 'GG'
-        sendAddress = conf.value('Communication/{}Address'.format(self.reportType)) or ''
-        originatorAddress = conf.value('Communication/OriginatorAddress') or ''
 
-        groups = self.divideAddress(sendAddress)
+        groups = self.divideAddress(self.address)
         time = self.time.strftime('%d%H%M')
 
-        origin = ' '.join([time, originatorAddress])
+        origin = ' '.join([time, self.originator])
         ending = 'NNNN'
 
         self.messages = []
         for addr in groups:
-            heading = ' '.join(['ZCZC', channel + str(number).zfill(4)])
-            address = ' '.join([level] + addr)
+            heading = ' '.join(['ZCZC', self.channel + str(number).zfill(4)])
+            address = ' '.join([self.priority] + addr)
             lines = [heading, address, origin] + self.texts + [''] * 3 + [ending]
             lines = linewrap(lines, self.maxLineChar)
             self.messages.append(self.lineBreak.join(lines))
@@ -129,6 +131,7 @@ class FileMessageGenerator(object):
         self.message = self.lineBreak.join(lines)
 
         conf.setValue('Communication/FileSequenceNumber', str(number + 1))
+
 
 class AFTNDecoder(object):
 

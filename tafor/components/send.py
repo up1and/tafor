@@ -217,8 +217,14 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             if self.currentGenerator is None:
                 spacer = ' ' if self.reportType == 'Trend' else '\n'
                 fullMessage = spacer.join([self.message['sign'], self.message['rpt']])
+                priority = 'FF' if self.reportType in ['SIGMET', 'AIRMET'] or \
+                    self.message['rpt'].startswith('TAF AMD') else 'GG'
+                address = conf.value('Communication/{}Address'.format(self.reportType)) or ''
+                originator = conf.value('Communication/OriginatorAddress') or ''
+                channel = conf.value('Communication/Channel') or ''
                 generator = self.channel.generator
-                self.generator = generator(fullMessage, reportType=self.reportType)
+                self.generator = generator(fullMessage, channel=channel, 
+                    priority=priority, address=address, originator=originator)
 
             self.currentGenerator = self.generator
             self.rawText = self.generator.toString()
