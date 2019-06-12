@@ -847,7 +847,12 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         if self.period.hasAcceptableInput() and self.parent.primary.period.text():
             period = self.period.text()
             basetime = self.parent.primary.durations[0]
-            self.durations = parsePeriod(period, basetime)
+            self.durations = start, end = parsePeriod(period, basetime)
+
+            if end.hour == 0 and not period.endswith('24'):
+                end -= datetime.timedelta(minutes=1)
+                text = '{:02d}{:02d}/{:02d}24'.format(start.day, start.hour, end.day)
+                self.period.setText(text)
         else:
             self.durations = None
 
