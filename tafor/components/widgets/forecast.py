@@ -668,7 +668,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             self.date.hasAcceptableInput(),
             self.period.text(),
             self.wind.hasAcceptableInput(),
-        ] + tempRequired[:2]
+        ] + tempRequired
         oneRequired = [
             self.nsc.isChecked(),
             self.cloud1.hasAcceptableInput(),
