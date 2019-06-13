@@ -355,6 +355,7 @@ class Ui_Settings(object):
         self.ftpHostLabel.setObjectName("ftpHostLabel")
         self.horizontalLayout.addWidget(self.ftpHostLabel)
         self.ftpHost = QtWidgets.QLineEdit(self.ftpGroup)
+        self.ftpHost.setPlaceholderText("ftp://user:passwd@hostname:port/path")
         self.ftpHost.setObjectName("ftpHost")
         self.horizontalLayout.addWidget(self.ftpHost)
         self.testLoginButton = QtWidgets.QPushButton(self.ftpGroup)

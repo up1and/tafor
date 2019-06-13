@@ -730,7 +730,11 @@
              </widget>
             </item>
             <item>
-             <widget class="QLineEdit" name="ftpHost"/>
+             <widget class="QLineEdit" name="ftpHost">
+              <property name="placeholderText">
+               <string notr="true">ftp://user:passwd@hostname:port/path</string>
+              </property>
+             </widget>
             </item>
             <item>
              <widget class="QPushButton" name="testLoginButton">

@@ -182,6 +182,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.resetNumberButton.clicked.connect(self.resetChannelNumber)
         self.testLoginButton.clicked.connect(self.testFtpLogin)
         self.callUpButton.clicked.connect(self.testCallUp)
+        self.ftpHost.textEdited.connect(self.resetFtpLoginButton)
 
         self.internationalAirport.clicked.connect(self.setValidityPeriod)
 
@@ -292,6 +293,12 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         else:
             text = QCoreApplication.translate('Settings', 'Done')
             self.testLoginButton.setText(text)
+            self.testLoginButton.setEnabled(False)
+
+    def resetFtpLoginButton(self):
+        text = QCoreApplication.translate('Settings', 'Login')
+        self.testLoginButton.setText(text)
+        self.testLoginButton.setEnabled(True)
 
     def save(self):
         """保存设置"""

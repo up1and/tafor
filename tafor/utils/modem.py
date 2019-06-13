@@ -53,7 +53,10 @@ def serialComm(message, port, baudrate=9600, bytesize='8', parity='NONE', stopbi
 
 def ftpComm(message, url, filename):
     parser = urlparse(url)
-    with FTP(host=parser.hostname, user=parser.username, passwd=parser.password) as ftp:
+    port = parser.port or 0
+    with FTP() as ftp:
+        ftp.connect(host=parser.hostname, port=port)
+        ftp.login(user=parser.username, passwd=parser.password)
         ftp.cwd(parser.path)
         if not message:
             return
