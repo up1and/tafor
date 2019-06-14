@@ -19,27 +19,14 @@
    intro
    install
    guide
+   interface
    faq
-
-
-API 相关
--------------
-
-如果你想查阅特定的函数，类或者是方法，请浏览这里。
-
-.. toctree::
-    :maxdepth: 2
-
-    api/validator
-    api/aftn
-    api/check
-    api/utils
 
 
 参考
 ----------
 - `TAF Decode <https://www.aviationweather.gov/static/help/taf-decode.php>`_
-- `SIGMET Introduction <https://en.wikipedia.org/wiki/SIGMET>`_
+- `AIRMET/SIGMET <https://www.aviationweather.gov/sigmet>`_
 
 
 感谢
