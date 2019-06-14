@@ -628,69 +628,6 @@
               <string>AFTN Parameters</string>
              </property>
              <layout class="QGridLayout" name="gridLayout_3">
-              <item row="0" column="0">
-               <widget class="QLabel" name="channelLabel">
-                <property name="text">
-                 <string>Channel</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="1">
-               <widget class="QLineEdit" name="channelSequenceNumber">
-                <property name="placeholderText">
-                 <string notr="true">1</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="0">
-               <widget class="QLabel" name="channelSequenceNumberLabel">
-                <property name="text">
-                 <string>Sequence Number</string>
-                </property>
-               </widget>
-              </item>
-              <item row="6" column="1" colspan="2">
-               <widget class="QLineEdit" name="maxLineChar">
-                <property name="placeholderText">
-                 <string notr="true">69</string>
-                </property>
-               </widget>
-              </item>
-              <item row="5" column="1" colspan="2">
-               <widget class="QLineEdit" name="maxSendAddress">
-                <property name="placeholderText">
-                 <string notr="true">21</string>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="1" colspan="2">
-               <widget class="QLineEdit" name="originatorAddress">
-                <property name="placeholderText">
-                 <string notr="true">ZJHKYMYX</string>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="0">
-               <widget class="QLabel" name="originatorAddressLabel">
-                <property name="text">
-                 <string>Originator</string>
-                </property>
-               </widget>
-              </item>
-              <item row="6" column="0">
-               <widget class="QLabel" name="maxLineCharLabel">
-                <property name="text">
-                 <string>Max Line Char</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="1" colspan="2">
-               <widget class="QLineEdit" name="channel">
-                <property name="placeholderText">
-                 <string notr="true">YMA</string>
-                </property>
-               </widget>
-              </item>
               <item row="1" column="2">
                <widget class="QPushButton" name="resetNumberButton">
                 <property name="maximumSize">
@@ -709,6 +646,76 @@
                 <property name="text">
                  <string>Max Address</string>
                 </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QLineEdit" name="channelSequenceNumber">
+                <property name="placeholderText">
+                 <string notr="true">1</string>
+                </property>
+               </widget>
+              </item>
+              <item row="5" column="1" colspan="2">
+               <widget class="QLineEdit" name="maxSendAddress">
+                <property name="placeholderText">
+                 <string notr="true">21</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="0">
+               <widget class="QLabel" name="channelLabel">
+                <property name="text">
+                 <string>Channel</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1" colspan="2">
+               <widget class="QLineEdit" name="channel">
+                <property name="placeholderText">
+                 <string notr="true">YMA</string>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="1" colspan="2">
+               <widget class="QLineEdit" name="originatorAddress">
+                <property name="placeholderText">
+                 <string notr="true">ZJHKYMYX</string>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="0">
+               <widget class="QLabel" name="originatorAddressLabel">
+                <property name="text">
+                 <string>Originator</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="channelSequenceNumberLabel">
+                <property name="text">
+                 <string>Sequence Number</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="0">
+               <widget class="QLabel" name="channelSequenceLengthLabel">
+                <property name="text">
+                 <string>Sequence Length</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="1" colspan="2">
+               <widget class="QComboBox" name="channelSequenceLength">
+                <item>
+                 <property name="text">
+                  <string notr="true">3</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string notr="true">4</string>
+                 </property>
+                </item>
                </widget>
               </item>
              </layout>

@@ -42,7 +42,7 @@ baseOptions = [
     # AFTN 设置
     ('Communication/Channel', 'channel', 'text'),
     ('Communication/ChannelSequenceNumber', 'channelSequenceNumber', 'text'),
-    ('Communication/MaxLineChar', 'maxLineChar', 'text'),
+    ('Communication/ChannelSequenceLength', 'channelSequenceLength', 'combox'),
     ('Communication/MaxSendAddress', 'maxSendAddress', 'text'),
     ('Communication/OriginatorAddress', 'originatorAddress', 'text'),
     ('Communication/TAFAddress', 'tafAddress', 'plaintext'),
@@ -84,7 +84,7 @@ def isConfigured(reportType='TAF'):
     """检查发布不同类型报文基础配置是否完成"""
     serial = ['Communication/SerialPort', 'Communication/SerialBaudrate', 'Communication/SerialParity',
             'Communication/SerialBytesize', 'Communication/SerialStopbits']
-    aftn = ['Communication/Channel', 'Communication/ChannelSequenceNumber', 'Communication/MaxLineChar',
+    aftn = ['Communication/Channel', 'Communication/ChannelSequenceNumber', 'Communication/ChannelSequenceLength',
             'Communication/MaxSendAddress', 'Communication/OriginatorAddress']
     taf = ['Message/ICAO', 'Message/Area', 'Communication/TAFAddress']
     trend = ['Message/TrendSign', 'Communication/TrendAddress']
@@ -199,7 +199,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.baudrate.setValidator(QIntValidator(self.baudrate))
         self.channelSequenceNumber.setValidator(QIntValidator(self.channelSequenceNumber))
         self.maxSendAddress.setValidator(QIntValidator(self.maxSendAddress))
-        self.maxLineChar.setValidator(QIntValidator(self.maxLineChar))
+        # self.maxLineChar.setValidator(QIntValidator(self.maxLineChar))
         self.warnTafTime.setValidator(QIntValidator(self.warnTafTime))
 
     def setValidityPeriod(self, checked=None):

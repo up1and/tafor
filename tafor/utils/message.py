@@ -30,6 +30,7 @@ class AFTNMessageGenerator(object):
     :param priority: 电报优先级，默认 GG
     :param address: 收电地址
     :param originator: 发点地址
+    :param maxLineChar: AFTN 线路每行最大字符数
     :param time: AFTN 报文生成时间
 
     使用方法::
@@ -41,17 +42,18 @@ class AFTNMessageGenerator(object):
         m.toJson()
 
     """
-    def __init__(self, text, channel='', priority='GG', address='', originator='', time=None):
+    def __init__(self, text, channel='', priority='GG', address='', originator='', maxLineChar=69, time=None):
         self.texts = text.split('\n')
         self.channel = channel
         self.priority = priority
         self.address = address
         self.originator = originator
+        self.maxLineChar = maxLineChar
         self.time = datetime.datetime.utcnow() if time is None else time
+        sequenceLength = conf.value('Communication/ChannelSequenceLength')
         maxSendAddress = conf.value('Communication/MaxSendAddress')
-        maxLineChar = conf.value('Communication/MaxLineChar')
+        self.sequenceLength = int(sequenceLength) if sequenceLength else 3
         self.maxSendAddress = int(maxSendAddress) if maxSendAddress else 21  # AFTN 线路最大发电地址数
-        self.maxLineChar = int(maxLineChar) if maxLineChar else 69  # AFTN 线路每行最大字符数
         self.lineBreak = '\r\n'
         self.generate()
 
@@ -73,6 +75,7 @@ class AFTNMessageGenerator(object):
         """生成 AFTN 电报格式的报文"""
         number = conf.value('Communication/ChannelSequenceNumber')
         number = int(number) if number else 1
+        number = number % (10 * self.sequenceLength)
 
         groups = self.divideAddress(self.address)
         time = self.time.strftime('%d%H%M')
@@ -82,7 +85,7 @@ class AFTNMessageGenerator(object):
 
         self.messages = []
         for addr in groups:
-            heading = ' '.join(['ZCZC', self.channel + str(number).zfill(4)])
+            heading = ' '.join(['ZCZC', self.channel + str(number).zfill(self.sequenceLength)])
             address = ' '.join([self.priority] + addr)
             lines = [heading, address, origin] + self.texts + [''] * 3 + [ending]
             lines = linewrap(lines, self.maxLineChar)
@@ -107,10 +110,10 @@ class AFTNMessageGenerator(object):
 
 class FileMessageGenerator(object):
 
-    def __init__(self, text, **kwargs):
+    def __init__(self, text, maxLineChar=69, **kwargs):
         self.texts = text.split('\n')
-        maxLineChar = conf.value('Communication/MaxLineChar')
-        self.maxLineChar = int(maxLineChar) if maxLineChar else 69  # AFTN 线路每行最大字符数
+        self.maxLineChar = maxLineChar
+        self.sequenceLength = 3
         self.lineBreak = '\r\n'
         self.generate()
 
@@ -124,8 +127,9 @@ class FileMessageGenerator(object):
         """生成文件类型的报文"""
         number = conf.value('Communication/FileSequenceNumber')
         number = int(number) if number else 1
+        number = number % (10 * self.sequenceLength)
         ending = 'NNNN'
-        heading = ' '.join(['ZCZC', str(number).zfill(3)])
+        heading = ' '.join(['ZCZC', str(number).zfill(self.sequenceLength)])
         lines = [heading] + self.texts + [''] * 3 + [ending]
         lines = linewrap(lines, self.maxLineChar)
         self.message = self.lineBreak.join(lines)
