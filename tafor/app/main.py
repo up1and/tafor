@@ -84,7 +84,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.mainTab.removeTab(3)
             self.mainTab.removeTab(3)
 
-        if boolean(conf.value('General/Rpc')):
+        if boolean(conf.value('General/RPC')):
             self.rptThread = RpcThread()
             self.rptThread.start()
 

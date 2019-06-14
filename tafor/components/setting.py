@@ -21,6 +21,7 @@ baseOptions = [
     ('General/ValidityPeriod', 'validityPeriod', 'comboxindex'),
     ('General/CloseToMinimize', 'closeToMinimize', 'bool'),
     ('General/Debug', 'debugMode', 'bool'),
+    ('General/RPC', 'rpcService', 'bool'),
     ('General/AlwaysShowEditor', 'alwaysShowEditor', 'bool'),
     ('General/AutoComletionGroupTime', 'autoComletionGroupTime', 'bool'),
     # 验证选项

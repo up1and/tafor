@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>620</width>
-    <height>479</height>
+    <height>462</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -76,6 +76,27 @@
             <string>General</string>
            </property>
            <layout class="QGridLayout" name="gridLayout_9">
+            <item row="7" column="0">
+             <widget class="QCheckBox" name="autoComletionGroupTime">
+              <property name="text">
+               <string>Change group auto completion time</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="interfaceScalingLabel">
+              <property name="text">
+               <string>Interface Scaling</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="communicationLineLabel">
+              <property name="text">
+               <string>Priority Communication Line</string>
+              </property>
+             </widget>
+            </item>
             <item row="0" column="1">
              <widget class="QComboBox" name="windowsStyle">
               <item>
@@ -94,13 +115,6 @@
              <widget class="QCheckBox" name="runOnStart">
               <property name="text">
                <string>Run on system startup</string>
-              </property>
-             </widget>
-            </item>
-            <item row="8" column="0">
-             <widget class="QCheckBox" name="debugMode">
-              <property name="text">
-               <string>Debug mode</string>
               </property>
              </widget>
             </item>
@@ -123,27 +137,6 @@
               </item>
              </widget>
             </item>
-            <item row="1" column="0">
-             <widget class="QLabel" name="interfaceScalingLabel">
-              <property name="text">
-               <string>Interface Scaling</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="0">
-             <widget class="QLabel" name="windowsStyleLabel">
-              <property name="text">
-               <string>Windows Style</string>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="0">
-             <widget class="QCheckBox" name="closeToMinimize">
-              <property name="text">
-               <string>Minimize to system tray when closed</string>
-              </property>
-             </widget>
-            </item>
             <item row="3" column="1">
              <widget class="QComboBox" name="validityPeriod">
               <item>
@@ -158,10 +151,10 @@
               </item>
              </widget>
             </item>
-            <item row="7" column="0">
-             <widget class="QCheckBox" name="autoComletionGroupTime">
+            <item row="0" column="0">
+             <widget class="QLabel" name="windowsStyleLabel">
               <property name="text">
-               <string>Change group auto completion time</string>
+               <string>Windows Style</string>
               </property>
              </widget>
             </item>
@@ -172,30 +165,17 @@
               </property>
              </widget>
             </item>
-            <item row="11" column="0">
-             <spacer name="verticalSpacer">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
+            <item row="5" column="0">
+             <widget class="QCheckBox" name="closeToMinimize">
+              <property name="text">
+               <string>Minimize to system tray when closed</string>
               </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>0</height>
-               </size>
-              </property>
-             </spacer>
+             </widget>
             </item>
             <item row="6" column="0">
              <widget class="QCheckBox" name="alwaysShowEditor">
               <property name="text">
                <string>Always show forecast editor</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="0">
-             <widget class="QLabel" name="communicationLineLabel">
-              <property name="text">
-               <string>Priority Communication Line</string>
               </property>
              </widget>
             </item>
@@ -213,17 +193,38 @@
               </item>
              </widget>
             </item>
+            <item row="6" column="1">
+             <widget class="QCheckBox" name="rpcService">
+              <property name="text">
+               <string>Enable RPC interface service</string>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="1">
+             <widget class="QCheckBox" name="debugMode">
+              <property name="text">
+               <string>Enable debug mode</string>
+              </property>
+             </widget>
+            </item>
+            <item row="10" column="0" colspan="2">
+             <spacer name="verticalSpacer">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>0</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
            </layout>
           </widget>
          </item>
          <item>
           <widget class="QGroupBox" name="validatorGroup">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
            <property name="title">
             <string>Validator</string>
            </property>
