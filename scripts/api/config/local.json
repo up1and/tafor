@@ -1,8 +1,32 @@
 {
     "ZJSA":[
         {
-            "name":"Himawari 8",
-            "image":"/cloud/himawari8",
+            "name":"Himawari 8 Infrared",
+            "image":null,
+            "size":[
+                1280,
+                960
+            ],
+            "coordinates":[
+                [
+                    100.39,
+                    25.695
+                ],
+                [
+                    119.575,
+                    11.325
+                ]
+            ],
+            "rect":[
+                400,
+                250,
+                565,
+                565
+            ]
+        },
+        {
+            "name":"Himawari 8 Visible",
+            "image":null,
             "size":[
                 1280,
                 960
@@ -26,7 +50,7 @@
         },
         {
             "name":"Radar Mosaic",
-            "image":"/echo/mosaic",
+            "image":null,
             "size":[
                 1024,
                 1024

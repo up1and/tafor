@@ -7,6 +7,7 @@ import requests
 
 from io import BytesIO
 from ftplib import FTP
+from functools import partial
 from urllib.parse import urlparse
 
 from PIL import Image
@@ -213,8 +214,8 @@ def build_url(path, url_root=None):
 
     return url
 
-def himawari8():
-    url = 'http://192.2.204.51/GetFileName.ashx?type=3&satellite=2&file=IEA'
+def himawari8(cat='I'):
+    url = 'http://192.2.204.51/GetFileName.ashx?type=3&satellite=2&file={}EA'.format(cat)
     rv = {
         'image': None,
         'updated': None
@@ -222,7 +223,7 @@ def himawari8():
     response = requests.get(url, timeout=5)
     navie = datetime.datetime.strptime(response.text.strip(), '%Y-%m-%d %H:%M:%S')
     fmt = '%Y%m%d%H%M'
-    rv['image'] = 'http://192.2.204.51/HIM_IMAGE/I/IEA{}.jpg'.format(navie.strftime(fmt))
+    rv['image'] = 'http://192.2.204.51/HIM_IMAGE/{}/{}EA{}.jpg'.format(cat, cat, navie.strftime(fmt))
     local = timezone('Asia/Shanghai').localize(navie)
     rv['updated'] = local.astimezone(timezone('UTC'))
     return rv
@@ -329,7 +330,8 @@ def remote_latest(airport):
 def fir(mwo):
     mwo = mwo.upper()
     funcs = {
-        'Himawari 8': himawari8,
+        'Himawari 8 Infrared': himawari8,
+        'Himawari 8 Visible': partial(himawari8, cat='V'),
         'Radar Mosaic': radar_mosaic
     }
     try:
@@ -398,5 +400,4 @@ if __name__ == '__main__':
     else:
         debug = True
 
-    app.run(debug=debug, port=6575)
-    
+    app.run(debug=debug, host='0.0.0.0', port=5000)
