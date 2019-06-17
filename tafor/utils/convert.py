@@ -7,6 +7,8 @@ from dateutil import relativedelta
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import QRect, Qt
 
+from tafor import logger
+
 
 def isOverlap(basetime, reftime):
     """判断时间是否有重叠
@@ -420,17 +422,17 @@ class Layer(object):
     def distanceToDecimal(self, length, unit='KM'):
         mode = 'nauticalmile' if unit == 'NM' else 'kilometer'
         ratio = self.dimension('decimal') / self.dimension(mode)
-        return int(length) * ratio
+        return float(length) * ratio
 
     def distanceToPixel(self, length, unit='KM'):
         mode = 'nauticalmile' if unit == 'NM' else 'kilometer'
         ratio = self.dimension('pixel') / self.dimension(mode)
-        return int(length) * ratio * self.scale
+        return float(length) * ratio * self.scale
 
     def pixelToDistance(self, pixel):
         ratio = self.dimension('kilometer') / self.dimension('pixel')
-        distance = int(pixel) * ratio / self.scale
-        return int(distance)
+        distance = pixel * ratio / self.scale
+        return distance
 
     def decodeSigmetArea(self, area, boundaries, trim):
         from tafor.utils.sigmet import decodeSigmetArea

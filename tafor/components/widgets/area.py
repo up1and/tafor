@@ -111,6 +111,20 @@ class Canvas(QWidget):
             return QSize(width, width)
         return QSize(w, h)
 
+    def resizeCoords(self, prevLayer):
+        for areaType, coords in self.coords.items():
+            for key, value in coords.items():
+                if key in ['points', 'diagonal']:
+                    value = prevLayer.pixelToDecimal(value)
+                    value = self.fir.layer.decimalToPixel(value)
+                if key in ['radius']:
+                    points = [(value, 0)]
+                    points = prevLayer.pixelToDecimal(points)
+                    points = self.fir.layer.decimalToPixel(points)
+                    value = points[0][0]
+
+                self.coords[areaType][key] = value
+
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)

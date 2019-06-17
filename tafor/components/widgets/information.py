@@ -426,8 +426,10 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
 
         if action in self.layersActionGroup.actions():
             index = self.layersActionGroup.actions().index(action)
-            context.fir.layerIndex = index
-            self.clear()
+            if context.fir.layerIndex != index:
+                prevLayer = context.fir.layer
+                context.fir.layerIndex = index
+                self.canvasWidget.canvas.resizeCoords(prevLayer)
 
         self.update()
 
@@ -1425,7 +1427,11 @@ class SigmetCustomSegment(BaseSegment):
         last = db.query(Sigmet).filter(Sigmet.tt == self.type.tt, ~Sigmet.rpt.contains('CNL')).order_by(Sigmet.sent.desc()).first()
         if last:
             fir = conf.value('Message/FIR')
-            _, text = last.rpt.split('\n')
+            try:
+               _, text = last.rpt.split('\n', 1)
+            except Exception:
+                text = last.rpt
+
             text = text.replace(fir, '')
             text = text.replace('=', '').strip()
 
