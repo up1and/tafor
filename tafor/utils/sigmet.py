@@ -33,6 +33,25 @@ def perpendicularFoot(p1, p2, p3):
     y = p1[1] + ratio * (p2[1] - p1[1])
     return (x, y)
 
+def perpendicularVector(line, center):
+    vector = [0, 0]
+    for p, q in zip(line, line[1:]):
+        point = perpendicularFoot(p, q, center)
+        radian = bearing(center, point)
+        scale = distance(p, q)
+        vec = (math.cos(radian) * scale, math.sin(radian) * scale)
+        vector[0] += vec[0]
+        vector[1] += vec[1]
+
+    return vector
+
+def subAngle(direction, angle):
+    if abs(direction - angle) > 1:
+        degree = min(direction, angle) + 2 - max(direction, angle)
+    else:
+        degree = abs(direction - angle)
+    return degree
+
 def extrapolatePoint(origin, point, ratio=10):
     result = (point[0] + ratio * (point[0] - origin[0]), point[1] + ratio * (point[1] - origin[1]))
     return result
@@ -256,27 +275,21 @@ def decodeSigmetArea(boundaries, area, mode='rectangular', trim=True):
         return list(polygon.exterior.coords)
 
     polygons = []
+    directions = {'SE': -0.25, 'NE': 0.25, 'N': 0.5, 'SW': -0.75, 'W': 1.0, 'NW': 0.75, 'E': 0.0, 'S': -0.5}
     for identifier, points in area:
         expands = expandLine(points)
         line = LineString(expands)
         parts = split(boundary, line)
-        lat = lambda p: p.centroid.y
-        lng = lambda p: p.centroid.x
+        direction = directions[identifier]
 
-        shapes = []
-        if 'N' in identifier:
-            shapes.append(max(parts, key=lat))
+        def tolerance(part):
+            center = [part.centroid.x, part.centroid.y]
+            vector = perpendicularVector(points, center)
+            angle = bearing(vector, [0, 0]) / math.pi
+            degree = subAngle(direction, angle)
+            return degree
 
-        if 'S' in identifier:
-            shapes.append(min(parts, key=lat))
-
-        if 'W' in identifier:
-            shapes.append(min(parts, key=lng))
-
-        if 'E' in identifier:
-            shapes.append(max(parts, key=lng))
-
-        polygon = max(shapes, key=lambda p: shapes.count(p))
+        polygon = min(parts, key=tolerance)
         polygons.append(polygon)
 
     for i, polygon in enumerate(polygons):
@@ -303,7 +316,7 @@ class EncodeSigmetArea(object):
         deviation = 10
         identifier = ''
         for k, v in directions.items():
-            value = abs(bearing - v)
+            value = subAngle(v, bearing)
             if value < deviation or (value == deviation and len(k) < len(identifier)):
                 deviation = value
                 identifier = k
@@ -354,15 +367,7 @@ class EncodeSigmetArea(object):
         center = centroid(exlude)
 
         for line in lines:
-            vector = [0, 0]
-            for p, q in zip(line, line[1:]):
-                point = perpendicularFoot(p, q, center)
-                radian = bearing(center, point)
-                scale = distance(p, q)
-                vec = (math.cos(radian) * scale, math.sin(radian) * scale)
-                vector[0] += vec[0]
-                vector[1] += vec[1]
-
+            vector = perpendicularVector(line, center)
             identifier = self.bearingToDirection(bearing(vector, [0, 0]))
             segment.append([identifier] + line)
 
