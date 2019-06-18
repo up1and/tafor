@@ -389,17 +389,19 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
             self.ringSound.stop()
 
-    def remindSigmet(self, text):
+    def remindSigmet(self, sig):
         remindSwitch = boolean(conf.value('Monitor/RemindSIGMET'))
-        if not remindSwitch:
+        sigmets = [sig.report.strip() for sig in currentSigmet()]
+        if not remindSwitch or sig.message not in sigmets:
             return None
 
-        text = QCoreApplication.translate('MainWindow', 'Time to update {}').format(text)
+        mark = '{} {}'.format(sig.sign(), sig.sequence())
+        text = QCoreApplication.translate('MainWindow', 'Time to update {}').format(mark)
         self.sigmetSound.play()
         self.remindBox.setText(text)
         ret = self.remindBox.exec_()
         if not ret:
-            QTimer.singleShot(1000 * 60 * 5, lambda: self.remindSigmet(text))
+            QTimer.singleShot(1000 * 60 * 5, lambda: self.remindSigmet(sig))
 
         self.sigmetSound.stop()
 

@@ -401,8 +401,7 @@ class SigmetSender(BaseSender):
     def save(self):
         super(SigmetSender, self).save()
         if not self.item.isCnl():
-            delta = self.item.expired() - datetime.datetime.utcnow() - datetime.timedelta(minutes=15)
-            parser = self.item.parser()
-            text = '{} {}'.format(parser.sign(), parser.sequence())
-            QTimer.singleShot(delta.total_seconds() * 1000, lambda: self.parent.remindSigmet(text))
+            delta = self.item.expired() - datetime.datetime.utcnow() - datetime.timedelta(minutes=20)
+            sig = self.item.parser()
+            QTimer.singleShot(delta.total_seconds() * 1000, lambda: self.parent.remindSigmet(sig))
     
