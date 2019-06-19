@@ -33,11 +33,11 @@ class FirState(object):
     def setState(self, values):
         from tafor.utils.convert import Layer
         self._state.update(values)
-        width = int(conf.value('General/FirCanvasSize')) or 300
+        width = conf.value('General/FirCanvasSize') or 300
 
         self.layers = []
         for data in self._state['layers']:
-            layer = Layer(data, width=width)
+            layer = Layer(data, width=int(width))
             self.layers.append(layer)
 
     @property
