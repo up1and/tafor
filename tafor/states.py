@@ -175,6 +175,25 @@ class TafState(QObject):
                     self.clockSignal.emit(tt)
 
 
+class MetarState(QObject):
+    messageChanged = pyqtSignal()
+
+    _state = {
+        'message': None,
+        'updated': datetime.datetime.utcnow(),
+    }
+
+    def state(self):
+        return self._state
+
+    def setState(self, values):
+        message = self._state['message']
+        self._state.update(values)
+        self._state['updated'] = datetime.datetime.utcnow()
+        if message != self._state['message']:
+            self.messageChanged.emit()
+
+
 class EnvironState(object):
     key = """-----BEGIN PUBLIC KEY-----
     MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2AZZfefXdgpvnWcV9xMf
@@ -260,6 +279,7 @@ class Context(object):
     webApi = WebApiState(message)
     callService = CallServiceState()
     taf = TafState()
+    metar = MetarState()
     fir = FirState()
     serial = SerialState()
     environ = EnvironState()

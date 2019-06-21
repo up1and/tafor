@@ -4,6 +4,7 @@ from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLayout
 
 from tafor import conf
+from tafor.states import context
 from tafor.components.setting import isConfigured
 from tafor.components.widgets.editor import BaseEditor
 from tafor.components.widgets import TrendSegment
@@ -29,12 +30,23 @@ class TrendEditor(BaseEditor):
         self.setLayout(layout)
 
         self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px;}')
+        self.trend.metar.setStyleSheet('QLabel {color: grey;}')
 
     def bindSignal(self):
+        context.metar.messageChanged.connect(self.setMetarBoard)
         self.trend.completeSignal.connect(self.enbaleNextButton)
 
         # 下一步
         self.nextButton.clicked.connect(self.beforeNext)
+
+    def setMetarBoard(self):
+        infos = context.metar.state()
+        message = infos['message']
+        time = infos['updated']
+        if message is None or datetime.datetime.utcnow() - time > datetime.timedelta(minutes=15):
+            self.trend.metar.clear()
+        else:
+            self.trend.metar.setText(message)
 
     def enbaleNextButton(self):
         self.enbale = self.trend.complete
@@ -66,6 +78,7 @@ class TrendEditor(BaseEditor):
         self.clear()
 
     def showEvent(self, event):
+        self.setMetarBoard()
         if not isConfigured('Trend'):
             QTimer.singleShot(0, self.showConfigError)
 

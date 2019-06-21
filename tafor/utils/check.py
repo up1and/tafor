@@ -192,7 +192,7 @@ class CheckTaf(object):
         last = db.query(Taf).filter_by(tt=self.tt).order_by(Taf.sent.desc()).first()
         return last
 
-    def save(self, callback=None):
+    def save(self):
         """储存远程报文数据
 
         :param callback: 储存完成后的回掉函数
@@ -211,11 +211,9 @@ class CheckTaf(object):
             db.add(item)
             db.commit()
             logger.info('Save {} {}'.format(self.tt, self.message))
+            return True
 
-            if callback:
-                callback()
-
-    def confirm(self, callback=None):
+    def confirm(self):
         """确认本地数据和远程数据是否一致
 
         :param callback: 确认完成后的回掉函数
@@ -226,9 +224,7 @@ class CheckTaf(object):
             last.confirmed = self.time
             db.commit()
             logger.info('Confirm {} {}'.format(self.tt, self.message))
-
-            if callback:
-                callback()
+            return True
 
 
 class CheckMetar(object):
@@ -250,6 +246,7 @@ class CheckMetar(object):
             db.add(item)
             db.commit()
             logger.info('Save {} {}'.format(self.tt, self.message))
+            return True
 
 
 class Listen(object):
@@ -266,8 +263,8 @@ class Listen(object):
         listen('FT')
 
     """
-    def __init__(self, callback=None):
-        self.callback = callback
+    def __init__(self, afterTafSaved=None):
+        self.afterTafSaved = afterTafSaved
 
     def __call__(self, tt, spec=None):
         from tafor.states import context
@@ -288,12 +285,16 @@ class Listen(object):
         clock = taf.hasExpired(offset=5)
 
         # 储存确认报文
+        status = False
         if self.message:
-            check.save(callback=self.callback)
+            status = check.save()
 
             latest = check.latest()
             if latest and not latest.confirmed:
-                check.confirm(callback=self.callback)
+                status = check.confirm()
+
+        if status and self.afterTafSaved:
+            self.afterTafSaved()
 
         # 查询报文是否过期
         expired = False
@@ -324,7 +325,12 @@ class Listen(object):
 
     def metar(self):
         """储存 METAR 报文"""
+        from tafor.states import context
         metar = CheckMetar(self.tt, message=self.message)
         if self.message:
-            metar.save()
+            status = metar.save()
+            if status:
+                context.metar.setState({
+                    'message': None
+                })
 

@@ -105,9 +105,23 @@ class StateResource(object):
         resp.media = data
 
 
-class ValidateResource(object):
+class MetarResource(object):
 
     def on_post(self, req, resp):
+        message = req.get_param('message')
+        if not message:
+            raise falcon.HTTPBadRequest('Message Required', 'Please provide a METAR or SPECI message.')
+
+        context.metar.setState({
+            'message': message
+        })
+
+        resp.status = falcon.HTTP_CREATED
+
+
+class ValidateResource(object):
+
+    def on_get(self, req, resp):
         message = req.get_param('message') or ''
         kwargs = {
             'visHas5000': req.get_param('visHas5000') is not None,
@@ -131,8 +145,10 @@ server = falcon.API()
 
 main = MainResource()
 state = StateResource()
+metar = MetarResource()
 validate = ValidateResource()
 
 server.add_route('/', main)
 server.add_route('/api/state', state)
+server.add_route('/api/metar', metar)
 server.add_route('/api/validate', validate)

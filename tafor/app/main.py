@@ -407,11 +407,11 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def updateMessage(self):
 
-        def afterSaving():
+        def afterTafSaved():
             self.notificationSound.play(loop=False)
             self.remindBox.close()
 
-        listen = Listen(callback=afterSaving)
+        listen = Listen(afterTafSaved=afterTafSaved)
 
         names = ['SA', 'SP']
         international = boolean(conf.value('General/InternationalAirport'))
