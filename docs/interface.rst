@@ -7,11 +7,17 @@
 ----------
 程序会定时对外请求的接口，报文接口请求间隔 1 分钟，情报区接口请求间隔 5 分钟，电话服务接口依据条件触发。
 
+各类请求地址可以在 设置 -> 数据源中更改，详情请参考 :ref:`guide`。
+
 报文接口
 ^^^^^^^^^^^^^^^^^^^^
-请求方式 `HTTP GET`
+.. code-block:: http
 
-返回数据如下：
+    GET <latest_airport_url> HTTP/1.1
+
+**latest_airport_url** 当前机场最新的报文数据接口
+
+需返回以下数据：
 
 .. code-block:: json
 
@@ -24,15 +30,20 @@
 
 情报区信息接口
 ^^^^^^^^^^^^^^^^^^^^^^^
-请求方式 `HTTP GET`
 
-返回数据如下：
+.. code-block:: http
+
+    GET <fir_information_url> HTTP/1.1
+
+**fir_information_url** 当前情报区的信息接口
+
+需返回以下数据：
 
 .. code-block:: json
 
     {
-    "boundaries": [], 
-    "layers": [
+      "boundaries": [], 
+      "layers": [
         {
         "coordinates": [
             [
@@ -76,47 +87,47 @@
 
 电话服务接口
 ^^^^^^^^^^^^^^^^^^^^^
-请求方式 `HTTP POST`
 
-认证方式 `HTTP BASIC AUTH`
+.. code-block:: http
 
-Python 示例如下：
+    POST <call_service_url> HTTP/1.1
+    Authorization: Basic <auth>
 
-.. code-block:: python
+**call_service_url** 请求电话拨号服务的地址
 
-    requests.post(url, auth=('api', token), data={'mobile': mobile})
+**auth** 用于认证用户身份的密钥，生成方式为 ``base64('api':token)``
 
-- **url** 请求电话拨号服务的地址
-- **token** 用于认证用户身份的密钥
+参数：
+
 - **mobile** 所要呼叫的手机号
 
-.. note:: 认证 Token 需要电话服务网站注册账号后生成。
+.. note:: 认证 token 需要电话服务网站注册账号后生成，可以在设置 -> 电话服务中更改相关设置。
 
 响应
 ----------
-程序内建了一个 RESTful API 服务，默认启动端口 15400， 可用于验证 TAF、SIGMET、趋势报文的准确性。
+程序内建了一个 RESTful API 服务，默认启动端口 15400， 可用于验证 TAF、SIGMET、趋势报文的准确性，以及告知程序正在编辑的观测报文。
 
 TAF 报文验证
 ^^^^^^^^^^^^^^^^^^^^
-地址 ``/api/validate``
 
-请求方式 `HTTP POST`
+.. code-block:: http
 
-参数
+    GET /api/validate HTTP/1.1
+
+参数：
 
 - **message** 报文内容
 - **visHas5000** 能见度有 5000 米
 - **cloudHeightHas450** 云高有 450 米
 - **weakPrecipitationVerification** 弱降水参与验证
 
-Python 示例如下：
+示例：
 
-.. code-block:: python
+.. code-block:: text
 
-    requests.post('http://127.0.0.1:15400/api/validate',
-        data={'visHas5000': 'true', 'message': 'TAF ZJHK 040701Z 0406/0506 06004MPS 6000 TSRA BKN010 FEW023CB BKN033 TX28/0505Z TN24/0418Z BECMG 0407/0408 -SHRA BECMG 0415/0416 BKN030 TEMPO 0410/0414 SHRA='})
+    visHas5000=true&message=TAF ZJHK 040701Z 0406/0506 06004MPS 6000 TSRA BKN010 FEW023CB BKN033 TX28/0505Z TN24/0418Z BECMG 0407/0408 -SHRA BECMG 0415/0416 BKN030 TEMPO 0410/0414 SHRA=
 
-返回数据如下
+返回数据：
 
 .. code-block:: json
 
@@ -205,22 +216,25 @@ Python 示例如下：
 
 趋势报文验证
 ^^^^^^^^^^^^^^^^^^^^
-地址 ``/api/validate``
 
-请求方式 `HTTP POST`
+.. code-block:: http
 
-参数
+    GET /api/validate HTTP/1.1
+
+参数：
 
 - **message** 报文内容
+- **visHas5000** 能见度有 5000 米
+- **cloudHeightHas450** 云高有 450 米
+- **weakPrecipitationVerification** 弱降水参与验证
 
-Python 示例如下：
+示例：
 
-.. code-block:: python
+.. code-block:: text
 
-    requests.post('http://127.0.0.1:15400/api/validate',
-        data={'message': 'METAR ZJHK 221100Z 29002MPS 160V330 9999 -TSRA FEW020CB SCT023 24/23 Q1008 RESHRA BECMG FM1111 TL1230 -SHRA='})
+    message=METAR ZJHK 221100Z 29002MPS 160V330 9999 -TSRA FEW020CB SCT023 24/23 Q1008 RESHRA BECMG FM1111 TL1230 -SHRA=
 
-返回数据如下
+返回数据：
 
 .. code-block:: json
 
@@ -244,6 +258,24 @@ Python 示例如下：
         ]
     }
 
-SIGMET & AIRMET报文验证
+SIGMET & AIRMET 报文验证
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 SIGMET/AIRMET 报文验证类似，不再做举例。
+
+
+显示观测报文
+^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: http
+
+    POST /api/metar HTTP/1.1
+
+参数：
+
+- **message** 报文内容
+
+示例：
+
+.. code-block:: text
+
+    message=METAR ZJHK 210600Z 26002MPS 200V300 9999 BKN030 36/27 Q1004 NOSIG=
