@@ -1,3 +1,4 @@
+import re
 import sys
 import copy
 import datetime
@@ -184,6 +185,9 @@ class MetarState(QObject):
     }
 
     def state(self):
+        time = self._state['updated']
+        if datetime.datetime.utcnow() - time > datetime.timedelta(minutes=15):
+            self._state['message'] = None
         return self._state
 
     def setState(self, values):
@@ -192,6 +196,16 @@ class MetarState(QObject):
         self._state['updated'] = datetime.datetime.utcnow()
         if message != self._state['message']:
             self.messageChanged.emit()
+
+    def message(self):
+        state = self.state()
+        metar = state['message']
+        if metar is None:
+            return ''
+
+        splitPattern = re.compile(r'(BECMG|TEMPO|NOSIG)')
+        elements = splitPattern.split(metar)
+        return elements[0].strip()
 
 
 class EnvironState(object):

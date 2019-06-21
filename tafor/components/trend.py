@@ -40,10 +40,8 @@ class TrendEditor(BaseEditor):
         self.nextButton.clicked.connect(self.beforeNext)
 
     def setMetarBoard(self):
-        infos = context.metar.state()
-        message = infos['message']
-        time = infos['updated']
-        if message is None or datetime.datetime.utcnow() - time > datetime.timedelta(minutes=15):
+        message = context.metar.message()
+        if message is None:
             self.trend.metar.clear()
         else:
             self.trend.metar.setText(message)

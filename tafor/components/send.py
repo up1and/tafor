@@ -8,7 +8,7 @@ from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
 from tafor import conf, logger
 from tafor.states import context
 from tafor.models import db, Taf, Task, Trend, Sigmet
-from tafor.utils import boolean, TafParser, SigmetParser, AFTNMessageGenerator, FileMessageGenerator, AFTNDecoder
+from tafor.utils import boolean, TafParser, MetarParser, SigmetParser, AFTNMessageGenerator, FileMessageGenerator, AFTNDecoder
 from tafor.utils.thread import SerialThread, FtpThread
 from tafor.components.ui import Ui_send, main_rc
 
@@ -186,7 +186,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             QMessageBox.critical(self, title, error)
 
     def send(self):
-        if hasattr(self, 'parser') and not self.parser.isValid():
+        if hasattr(self, 'parser') and not self.parser.isValid() and not (self.reportType == 'Trend' and self.parser.failed):
             title = QCoreApplication.translate('Sender', 'Validator Warning')
             text = QCoreApplication.translate('Sender', 'The message did not pass the validator, do you still want to send?')
             ret = QMessageBox.question(self, title, text)
@@ -359,7 +359,25 @@ class TrendSender(BaseSender):
 
     def parse(self, message):
         self.message = message
-        self.rpt.setText(self.message['rpt'])
+        html = self.message['rpt']
+        metar = context.metar.message()
+        if metar:
+            visHas5000 = boolean(conf.value('Validator/VisHas5000'))
+            cloudHeightHas450 = boolean(conf.value('Validator/CloudHeightHas450'))
+            weakPrecipitationVerification = boolean(conf.value('Validator/WeakPrecipitationVerification'))
+
+            self.parser = MetarParser(' '.join([metar, self.message['rpt']]),
+                visHas5000=visHas5000, cloudHeightHas450=cloudHeightHas450, weakPrecipitationVerification=weakPrecipitationVerification)
+            self.parser.validate()
+
+            if not self.parser.failed:
+                html = self.parser.renderer(style='html', full=False)
+                html = '<p><span style="color: grey">{}</span><br/>{}</p>'.format(metar, html)
+                if self.parser.tips:
+                    html += '<p style="color: grey"># {}</p>'.format('<br/># '.join(self.parser.tips))
+
+        self.rpt.setHtml(html)
+        self.resizeRpt()
 
     def save(self):
         if self.item:

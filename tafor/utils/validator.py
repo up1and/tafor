@@ -571,6 +571,7 @@ class TafParser(object):
         self.becmgs = []
         self.tempos = []
         self.tips = []
+        self.failed = False
 
         self.reference = None
 
@@ -688,6 +689,7 @@ class TafParser(object):
             self._refs()
             self._validateElements()
         except Exception:
+            self.failed = True
             self.tips.append('报文无法被正确解析')
 
             for e in self.elements:
@@ -912,7 +914,13 @@ class MetarParser(TafParser):
             else:
                 e.period = self.primary.period
 
-    def renderer(self, style='plain'):
+    def hasMessageChanged(self):
+        """校验后的报文和原始报文相比是否有变化"""
+        origin = ' '.join(self.message.split())
+        output = self.renderer(full=False).replace('\n', ' ')
+        return output not in origin
+
+    def renderer(self, style='plain', full=True):
         """将解析后的报文重新渲染
 
         :param style:
@@ -921,7 +929,12 @@ class MetarParser(TafParser):
             * html HTML 高亮风格
         :return: 根据不同风格重新渲染的报文
         """
-        outputs = [self.primary.part] + [e.renderer(style) for e in self.elements[1:]]
+        outputs = [e.renderer(style) for e in self.elements[1:]]
+        if full:
+            outputs.insert(0, self.primary.part)
+        else:
+            if 'NOSIG' in self.primary.part:
+                outputs = ['NOSIG']
 
         if style == 'html':
             return '<br/>'.join(outputs) + '='
