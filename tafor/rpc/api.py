@@ -7,7 +7,7 @@ from tafor.states import context
 from tafor.utils import TafParser, SigmetParser, MetarParser
 
 
-LOGIN_TOKEN = 'VGhlIFZveWFnZSBvZiB0aGUgTW9vbg=='
+AUTH_TOKEN = 'VGhlIFZveWFnZSBvZiB0aGUgTW9vbg=='
 
 
 def parse_taf(message, kwargs):
@@ -75,7 +75,7 @@ def authorize(req, resp, resource, params):
         raise falcon.HTTPUnauthorized('Bearer Token Required', description, challenges)
 
     authType, token = req.auth.split(None, 1)
-    if authType == 'Bearer' and token == LOGIN_TOKEN:
+    if authType == 'Bearer' and token == AUTH_TOKEN:
         req.context.user = 'webapi'
     else:
         description = ('The provided auth token is not valid. Please request a new token and try again.')
@@ -95,9 +95,20 @@ class StateResource(object):
     @falcon.before(authorize)
     def on_get(self, req, resp):
         data = {
-            'sequence': {
-                'file': conf.value('Communication/FileSequenceNumber'),
-                'aftn': conf.value('Communication/ChannelSequenceNumber'),
+            'aftn': {
+                'channel': conf.value('Communication/Channel'),
+                'number': conf.value('Communication/ChannelSequenceNumber'),
+                'length': conf.value('Communication/ChannelSequenceLength'),
+            },
+            'address': {
+                'taf': conf.value('Communication/TAFAddress'),
+                'trend': conf.value('Communication/TrendAddress'),
+                'sigmet': conf.value('Communication/SIGMETAddress'),
+                'airmet': conf.value('Communication/AIRMETAddress'),
+            },
+            'originator': conf.value('Communication/OriginatorAddress'),
+            'file': {
+                'number': conf.value('Communication/FileSequenceNumber'),
             },
             'busy': context.serial.busy(),
             'time': falcon.http_now()
