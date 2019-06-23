@@ -389,11 +389,16 @@ class TafValidator(object):
             for c in clouds:
                 m = pattern.match(c)
                 if m and m.group() not in ['NSC', 'SKC']:
-                    if cloudCover[m.group(1)] > 2:
-                        minHeight = min(minHeight, int(m.group(2)))
+                    if 'VV' in m.group():
+                        cov, height = m.group(4), int(m.group(5))
+                    else:
+                        cov, height = m.group(1), int(m.group(2))
 
-                    if int(m.group(2)) < 15:
-                        maxCover = max(maxCover, cloudCover[m.group(1)])
+                    if cloudCover[cov] > 2:
+                        minHeight = min(minHeight, height)
+
+                    if height < 15:
+                        maxCover = max(maxCover, cloudCover[cov])
 
             minHeight = minHeight if minHeight < 15 else 0
             return minHeight, maxCover
@@ -765,41 +770,40 @@ class TafParser(object):
             if key in self.defaultRules:
                 mixture[key]['text'] = tokens[key]['text']
 
+        def validateVisWeather(vis, weathers):
+            key = 'weather' if 'weather' in tokens else 'vis'
+
+            if 'NSW' in weathers:
+                if vis <= 5000:
+                    tokens[key]['error'] = True
+                    self.tips.append('能见度小于 5000 米时应有天气现象')
+
+            else:
+                if vis < 1000 and set(weathers) & set(['BR', '-DZ']):
+                    tokens[key]['error'] = True
+                    self.tips.append('能见度小于 1000 米，BR、-DZ 不能有')
+
+                if 1000 <= vis <= 5000 and set(weathers) & set(['FG', '+DZ']):
+                    tokens[key]['error'] = True
+                    self.tips.append('能见度大于 1000 米、小于 5000 米，FG、+DZ 不能有')
+
+                if vis > 5000 and set(weathers) & set(['FG', 'FU', 'BR', 'HZ', 'SA', 'DU']):
+                    tokens[key]['error'] = True
+                    self.tips.append('能见度大于 5000 米，FG、FU、BR、HZ、SA、DU 不能有')
+
         # 检查能见度和天气现象
         if 'vis' in tokens:
             vis = int(tokens['vis']['text'])
             weathers = mixture['weather']['text'].split()
 
-            if 'NSW' in weathers:
-                if vis <= 5000:
-                    tokens['vis']['error'] = True
-                    self.tips.append('能见度小于 5000 米时应有天气现象')
-
-            else:
-                if vis < 1000 and set(weathers) & set(['BR', '-DZ']):
-                    if 'weather' in tokens:
-                        tokens['weather']['error'] = True
-                    else:
-                        tokens['vis']['error'] = True
-
-                    self.tips.append('能见度小于 1000 米，BR、-DZ 不能有')
-
-                if 1000 <= vis <= 5000 and set(weathers) & set(['FG', '+DZ']):
-                    if 'weather' in tokens:
-                        tokens['weather']['error'] = True
-                    else:
-                        tokens['vis']['error'] = True
-
-                    self.tips.append('能见度大于 1000 米、小于 5000 米，FG、+DZ 不能有')
-
-                if vis > 5000 and set(weathers) & set(['FG', 'FU', 'BR', 'HZ', 'SA', 'DU']):
-                    if 'weather' in tokens:
-                        tokens['weather']['error'] = True
-                        self.tips.append('能见度大于 5000 米，FG、FU、BR、HZ、SA、DU 不能有')
+            validateVisWeather(vis, weathers)
 
         if 'weather' in tokens:
             weather = tokens['weather']['text']
             weathers = weather.split()
+            vis = int(mixture['vis']['text'])
+
+            validateVisWeather(vis, weathers)
 
             # 检查阵性降水和积雨云
             cloud = mixture['cloud']['text']
@@ -918,7 +922,7 @@ class MetarParser(TafParser):
         """校验后的报文和原始报文相比是否有变化"""
         origin = ' '.join(self.message.split())
         output = self.renderer(full=False).replace('\n', ' ')
-        return output not in origin
+        return not origin.endswith(output)
 
     def renderer(self, style='plain', full=True):
         """将解析后的报文重新渲染
@@ -934,7 +938,8 @@ class MetarParser(TafParser):
             outputs.insert(0, self.primary.part)
         else:
             if 'NOSIG' in self.primary.part:
-                outputs = ['NOSIG']
+                e = self.lexerClass('NOSIG')
+                outputs = [e.renderer(style)]
 
         if style == 'html':
             return '<br/>'.join(outputs) + '='
