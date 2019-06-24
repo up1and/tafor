@@ -1,4 +1,5 @@
 import os
+import sys
 import datetime
 
 from PyQt5.QtGui import QIcon, QDesktopServices
@@ -83,10 +84,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.sigmetAction.setVisible(False)
             self.mainTab.removeTab(3)
             self.mainTab.removeTab(3)
-
-        if boolean(conf.value('General/RPC')):
-            self.rptThread = RpcThread()
-            self.rptThread.start()
 
         self.setRecent()
         self.setTable()
@@ -561,7 +558,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
 
 def main():
-    import sys
     scale = conf.value('General/InterfaceScaling') or 0
     os.environ['QT_SCALE_FACTOR'] = str(int(scale) * 0.25 + 1)
 
@@ -586,11 +582,17 @@ def main():
     localServer = QLocalServer()
     localServer.listen(serverName)
 
+    if boolean(conf.value('General/RPC')):
+        rpc = RpcThread()
+        rpc.start()
+        app.aboutToQuit.connect(rpc.terminate)
+
+    versions = context.environ.environment()
+    logger.info('Version {version}+{revision}, Python {python} x{bitness}, Qt {qt} on {system} {release}'.format(**versions))
+
     try:
         window = MainWindow()
         window.show()
-        versions = context.environ.environment()
-        logger.info('Version {version}+{revision}, Python {python} x{bitness}, Qt {qt} on {system} {release}'.format(**versions))
         sys.exit(app.exec_())
     except Exception as e:
         logger.error(e, exc_info=True)

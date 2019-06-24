@@ -210,6 +210,9 @@ class RpcThread(QThread):
         self.app = server
         self.port = port
 
+    def __del__(self):
+        self.wait()
+
     def run(self):
         httpd = simple_server.make_server('', self.port, self.app)
         httpd.serve_forever()
