@@ -82,6 +82,46 @@ def authorize(req, resp, resource, params):
         raise falcon.HTTPUnauthorized('Authentication Required', description, challenges)
 
 
+class CORSComponent(object):
+
+    def process_response(self, req, resp, resource, req_succeeded):
+        resp.set_header('Access-Control-Allow-Origin', '*')
+
+        if req_succeeded and req.method == 'OPTIONS' and req.get_header('Access-Control-Request-Method'):
+
+            allow = resp.get_header('Allow')
+            resp.delete_header('Allow')
+
+            allow_headers = req.get_header(
+                'Access-Control-Request-Headers',
+                default='*'
+            )
+
+            resp.set_headers((
+                ('Access-Control-Allow-Methods', allow),
+                ('Access-Control-Allow-Headers', allow_headers),
+                ('Access-Control-Max-Age', '86400'),  # 24 hours
+            ))
+
+
+class JSONComponent(object):
+
+    def process_request(self, req, resp):
+        req.context.body = {}
+
+        if req.content_length in (None, 0):
+            return
+
+        body = req.bounded_stream.read()
+
+        try:
+            req.context.body = json.loads(body.decode('utf-8'))
+
+        except (ValueError, UnicodeDecodeError):
+            raise falcon.HTTPError(falcon.HTTP_753, 'Malformed JSON',
+                                   'Could not decode the request body. The JSON was incorrect or not encoded as UTF-8.')
+
+
 class MainResource(object):
 
     def on_get(self, req, resp):
@@ -119,7 +159,7 @@ class StateResource(object):
 class MetarResource(object):
 
     def on_post(self, req, resp):
-        message = req.get_param('message')
+        message = req.get_param('message') or req.context.body.get('message')
         if not message:
             raise falcon.HTTPBadRequest('Message Required', 'Please provide a METAR or SPECI message.')
 
@@ -133,11 +173,12 @@ class MetarResource(object):
 class ValidateResource(object):
 
     def on_get(self, req, resp):
-        message = req.get_param('message') or ''
+        message = req.get_param('message') or req.context.body.get('message') or ''
+        enbale = lambda x: x in ['on', 'true', True]
         kwargs = {
-            'visHas5000': req.get_param('visHas5000') is not None,
-            'cloudHeightHas450': req.get_param('cloudHeightHas450') is not None,
-            'weakPrecipitationVerification': req.get_param('weakPrecipitationVerification') is not None,
+            'visHas5000': enbale(req.get_param('visHas5000') or req.context.body.get('visHas5000')),
+            'cloudHeightHas450': enbale(req.get_param('cloudHeightHas450') or req.context.body.get('cloudHeightHas450')),
+            'weakPrecipitationVerification': enbale(req.get_param('weakPrecipitationVerification') or req.context.body.get('weakPrecipitationVerification')),
         }
 
         if message.startswith('TAF'):
@@ -152,7 +193,8 @@ class ValidateResource(object):
         resp.media = data
 
 
-server = falcon.API()
+middleware = [CORSComponent(), JSONComponent()]
+server = falcon.API(middleware=middleware)
 
 main = MainResource()
 state = StateResource()
