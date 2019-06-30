@@ -67,7 +67,7 @@ Tafor 的发行版同样放在 GitHub, 你可以在这里 `下载 <https://githu
     $ sudo apt install -y make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev xz-utils tk-dev
 
 
-安装 `pyenv` & `pyenv-virtualenv`::
+安装 `pyenv` & `pyenv-virtualenv` [#pip]_ ::
 
     $ git clone https://github.com/pyenv/pyenv.git ~/.pyenv
     $ git clone https://github.com/pyenv/pyenv-virtualenv.git ~/.pyenv/plugins/pyenv-virtualenv
@@ -201,3 +201,6 @@ Tafor 的发行版同样放在 GitHub, 你可以在这里 `下载 <https://githu
 `How To Serve Flask Applications with Gunicorn and Nginx on Ubuntu 14.04 <https://www.digitalocean.com/community/tutorials/how-to-serve-flask-applications-with-gunicorn-and-nginx-on-ubuntu-14-04>`_。
 
 部署的方式有多种，这只是其中一些例子，你也可以选择更好用的 `Docker <https://www.docker.com/>`_ 部署 Flask 应用。
+
+
+.. [#pip] pipenv 也是一个不错的选择。
