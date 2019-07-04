@@ -986,8 +986,7 @@ class TafFmSegment(TafGroupSegment):
             or self.weatherWithIntensity.lineEdit().hasAcceptableInput() and self.weatherWithIntensity.currentText()
         mustRequired = [
             self.period.hasAcceptableInput(),
-            self.wind.hasAcceptableInput(),
-            hasWeather
+            self.wind.hasAcceptableInput()
         ]
         oneRequired = [
             self.nsc.isChecked(),
@@ -1000,7 +999,7 @@ class TafFmSegment(TafGroupSegment):
         if all(mustRequired):
             if self.cavok.isChecked():
                 self.complete = True
-            elif self.vis.hasAcceptableInput() and any(oneRequired):
+            elif self.vis.hasAcceptableInput() and hasWeather and any(oneRequired):
                 self.complete = True
 
         self.completeSignal.emit(self.complete)
