@@ -732,7 +732,7 @@ class TafParser(object):
                     else:
                         e.tokens[key]['error'] = not legal
 
-                    if e.sign == 'BECMG':
+                    if e.sign == 'BECMG' or e.sign.startswith('FM'):
                         if key == 'cavok':
                             self.reference['vis']['text'] = '9999'
                             self.reference['weather']['text'] = 'NSW'
