@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1009</width>
+    <width>952</width>
     <height>70</height>
    </rect>
   </property>
@@ -84,7 +84,7 @@
       <item row="0" column="3">
        <widget class="QLabel" name="descriptionLabel">
         <property name="text">
-         <string>Phenomena Description</string>
+         <string>Description</string>
         </property>
         <property name="buddy">
          <cstring>description</cstring>
@@ -94,7 +94,7 @@
       <item row="0" column="0">
        <widget class="QLabel" name="beginningTimeLabel">
         <property name="text">
-         <string>Beginning Time</string>
+         <string>Beginning</string>
         </property>
         <property name="buddy">
          <cstring>beginningTime</cstring>
@@ -136,7 +136,7 @@
       <item row="0" column="1">
        <widget class="QLabel" name="endingTimeLabel">
         <property name="text">
-         <string>Ending Time</string>
+         <string>Ending</string>
         </property>
         <property name="buddy">
          <cstring>endingTime</cstring>

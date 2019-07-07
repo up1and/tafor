@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\sigmet_typhoon.ui'
 #
-# Created by: PyQt5 UI code generator 5.6
+# Created by: PyQt5 UI code generator 5.11.3
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Editor(object):
     def setupUi(self, Editor):
         Editor.setObjectName("Editor")
-        Editor.resize(886, 164)
+        Editor.resize(846, 164)
         Editor.setWindowTitle("Sigmet")
         self.verticalLayout = QtWidgets.QVBoxLayout(Editor)
         self.verticalLayout.setContentsMargins(-1, 0, -1, 0)
@@ -168,11 +168,11 @@ class Ui_Editor(object):
         self.heightLabel.setText(_translate("Editor", "Height"))
         self.speedLabel.setText(_translate("Editor", "Speed"))
         self.movementLabel.setText(_translate("Editor", "Movement"))
-        self.intensityChangeLabel.setText(_translate("Editor", "Intensity Change"))
+        self.intensityChangeLabel.setText(_translate("Editor", "Intensity"))
         self.forecastGroup.setTitle(_translate("Editor", "Forecast"))
         self.forecastTimeLabel.setText(_translate("Editor", "Forecast Time"))
-        self.forecastLongitudeLabel.setText(_translate("Editor", "Forecast Longitude"))
-        self.forecastLatitudeLabel.setText(_translate("Editor", "Forecast Latitude"))
+        self.forecastLongitudeLabel.setText(_translate("Editor", "Longitude"))
+        self.forecastLatitudeLabel.setText(_translate("Editor", "Latitude"))
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\sigmet_head.ui'
 #
-# Created by: PyQt5 UI code generator 5.6
+# Created by: PyQt5 UI code generator 5.11.3
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Editor(object):
     def setupUi(self, Editor):
         Editor.setObjectName("Editor")
-        Editor.resize(990, 88)
+        Editor.resize(952, 70)
         Editor.setWindowTitle("Sigmet")
         self.verticalLayout = QtWidgets.QVBoxLayout(Editor)
         self.verticalLayout.setContentsMargins(-1, 0, -1, 0)
@@ -101,11 +101,11 @@ class Ui_Editor(object):
         self.headGroup.setTitle(_translate("Editor", "Head"))
         self.obsTimeLabel.setText(_translate("Editor", "OBS Time"))
         self.forecastLabel.setText(_translate("Editor", "Forecast"))
-        self.descriptionLabel.setText(_translate("Editor", "Phenomena Description"))
-        self.beginningTimeLabel.setText(_translate("Editor", "Beginning Time"))
+        self.descriptionLabel.setText(_translate("Editor", "Description"))
+        self.beginningTimeLabel.setText(_translate("Editor", "Beginning"))
         self.sequenceLabel.setText(_translate("Editor", "Sequence"))
         self.phenomenaLabel.setText(_translate("Editor", "Phenomena"))
-        self.endingTimeLabel.setText(_translate("Editor", "Ending Time"))
+        self.endingTimeLabel.setText(_translate("Editor", "Ending"))
 
 
 if __name__ == "__main__":

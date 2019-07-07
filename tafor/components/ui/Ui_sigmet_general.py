@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\sigmet_general.ui'
 #
-# Created by: PyQt5 UI code generator 5.6
+# Created by: PyQt5 UI code generator 5.11.3
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -138,12 +138,12 @@ class Ui_Editor(object):
     def retranslateUi(self, Editor):
         _translate = QtCore.QCoreApplication.translate
         self.descriptionGroup.setTitle(_translate("Editor", "Description"))
-        self.topLabel.setText(_translate("Editor", "FL Top"))
+        self.topLabel.setText(_translate("Editor", "Top"))
         self.movementLabel.setText(_translate("Editor", "Movement"))
         self.levelLabel.setText(_translate("Editor", "Fight Level"))
-        self.baseLabel.setText(_translate("Editor", "FL Base"))
+        self.baseLabel.setText(_translate("Editor", "Base"))
         self.speedLabel.setText(_translate("Editor", "Speed"))
-        self.intensityChangeLabel.setText(_translate("Editor", "Intensity Change"))
+        self.intensityChangeLabel.setText(_translate("Editor", "Intensity"))
         self.forecastTimeLabel.setText(_translate("Editor", "Forecast Time"))
 
 

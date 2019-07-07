@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>886</width>
+    <width>846</width>
     <height>164</height>
    </rect>
   </property>
@@ -199,7 +199,7 @@
       <item row="0" column="6">
        <widget class="QLabel" name="intensityChangeLabel">
         <property name="text">
-         <string>Intensity Change</string>
+         <string>Intensity</string>
         </property>
         <property name="buddy">
          <cstring>intensityChange</cstring>
@@ -262,7 +262,7 @@
       <item row="0" column="2">
        <widget class="QLabel" name="forecastLongitudeLabel">
         <property name="text">
-         <string>Forecast Longitude</string>
+         <string>Longitude</string>
         </property>
         <property name="buddy">
          <cstring>forecastLongitude</cstring>
@@ -272,7 +272,7 @@
       <item row="0" column="1">
        <widget class="QLabel" name="forecastLatitudeLabel">
         <property name="text">
-         <string>Forecast Latitude</string>
+         <string>Latitude</string>
         </property>
         <property name="buddy">
          <cstring>forecastLatitude</cstring>

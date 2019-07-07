@@ -4,7 +4,7 @@ from itertools import cycle
 
 from PyQt5.QtGui import QIcon, QRegExpValidator, QIntValidator, QTextCharFormat, QFont
 from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QMenu, QActionGroup, QAction
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QMenu, QActionGroup, QAction, QRadioButton
 
 from tafor import conf
 from tafor.states import context
@@ -24,9 +24,19 @@ class SigmetTypeSegment(QWidget, Ui_sigmet_type.Ui_Editor):
         super(SigmetTypeSegment, self).__init__()
         self.setupUi(self)
         self.tt = 'WS'
+        self.typeButtonTexts = [btn.text() for btn in self.typeGroup.findChildren(QRadioButton)]
 
     def setType(self, tt):
         self.tt = tt
+        self.setTypeButtonText()
+
+    def setTypeButtonText(self):
+        for i, btn in enumerate(self.typeGroup.findChildren(QRadioButton)):
+            text = self.typeButtonTexts[i]
+            if not btn.isChecked() and len(text) > 8:
+                text = text[:8]
+
+            btn.setText(text)
 
     def message(self):
         area = conf.value('Message/Area') or ''
@@ -37,6 +47,11 @@ class SigmetTypeSegment(QWidget, Ui_sigmet_type.Ui_Editor):
 
     def sign(self):
         return 'AIRMET' if self.tt == 'WA' else 'SIGMET'
+
+    def showEvent(self, event):
+        width = 590 - self.sortGroup.width()
+        self.typeGroup.setMaximumWidth(width)
+        self.setTypeButtonText()
 
 
 class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):

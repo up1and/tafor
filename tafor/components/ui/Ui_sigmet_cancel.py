@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\sigmet_cancel.ui'
 #
-# Created by: PyQt5 UI code generator 5.6
+# Created by: PyQt5 UI code generator 5.11.3
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -57,9 +57,9 @@ class Ui_Editor(object):
     def retranslateUi(self, Editor):
         _translate = QtCore.QCoreApplication.translate
         self.cancelGroup.setTitle(_translate("Editor", "Cancel Information"))
-        self.beginningTimeLabel.setText(_translate("Editor", "Beginning Time"))
+        self.beginningTimeLabel.setText(_translate("Editor", "Beginning"))
         self.sequenceLabel.setText(_translate("Editor", "Sequence"))
-        self.endingTimeLabel.setText(_translate("Editor", "Ending Time"))
+        self.endingTimeLabel.setText(_translate("Editor", "Ending"))
 
 
 if __name__ == "__main__":

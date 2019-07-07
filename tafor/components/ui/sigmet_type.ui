@@ -15,11 +15,11 @@
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout">
    <item>
-    <widget class="QGroupBox" name="groupBox">
+    <widget class="QGroupBox" name="typeGroup">
      <property name="title">
       <string notr="true"/>
      </property>
-     <layout class="QHBoxLayout" name="horizontalLayout_3">
+     <layout class="QHBoxLayout" name="typeGroupLayout">
       <item>
        <widget class="QRadioButton" name="significantWeather">
         <property name="text">
@@ -61,7 +61,7 @@
      </property>
      <property name="sizeHint" stdset="0">
       <size>
-       <width>40</width>
+       <width>0</width>
        <height>20</height>
       </size>
      </property>

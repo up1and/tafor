@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\sigmet_type.ui'
 #
-# Created by: PyQt5 UI code generator 5.6
+# Created by: PyQt5 UI code generator 5.11.3
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -15,26 +15,26 @@ class Ui_Editor(object):
         Editor.setWindowTitle("Sigmet")
         self.horizontalLayout = QtWidgets.QHBoxLayout(Editor)
         self.horizontalLayout.setObjectName("horizontalLayout")
-        self.groupBox = QtWidgets.QGroupBox(Editor)
-        self.groupBox.setTitle("")
-        self.groupBox.setObjectName("groupBox")
-        self.horizontalLayout_3 = QtWidgets.QHBoxLayout(self.groupBox)
-        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
-        self.significantWeather = QtWidgets.QRadioButton(self.groupBox)
+        self.typeGroup = QtWidgets.QGroupBox(Editor)
+        self.typeGroup.setTitle("")
+        self.typeGroup.setObjectName("typeGroup")
+        self.typeGroupLayout = QtWidgets.QHBoxLayout(self.typeGroup)
+        self.typeGroupLayout.setObjectName("typeGroupLayout")
+        self.significantWeather = QtWidgets.QRadioButton(self.typeGroup)
         self.significantWeather.setChecked(True)
         self.significantWeather.setObjectName("significantWeather")
-        self.horizontalLayout_3.addWidget(self.significantWeather)
-        self.tropicalCyclone = QtWidgets.QRadioButton(self.groupBox)
+        self.typeGroupLayout.addWidget(self.significantWeather)
+        self.tropicalCyclone = QtWidgets.QRadioButton(self.typeGroup)
         self.tropicalCyclone.setObjectName("tropicalCyclone")
-        self.horizontalLayout_3.addWidget(self.tropicalCyclone)
-        self.volcanicAsh = QtWidgets.QRadioButton(self.groupBox)
+        self.typeGroupLayout.addWidget(self.tropicalCyclone)
+        self.volcanicAsh = QtWidgets.QRadioButton(self.typeGroup)
         self.volcanicAsh.setObjectName("volcanicAsh")
-        self.horizontalLayout_3.addWidget(self.volcanicAsh)
-        self.airmansWeather = QtWidgets.QRadioButton(self.groupBox)
+        self.typeGroupLayout.addWidget(self.volcanicAsh)
+        self.airmansWeather = QtWidgets.QRadioButton(self.typeGroup)
         self.airmansWeather.setObjectName("airmansWeather")
-        self.horizontalLayout_3.addWidget(self.airmansWeather)
-        self.horizontalLayout.addWidget(self.groupBox)
-        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.typeGroupLayout.addWidget(self.airmansWeather)
+        self.horizontalLayout.addWidget(self.typeGroup)
+        spacerItem = QtWidgets.QSpacerItem(0, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
         self.sortGroup = QtWidgets.QGroupBox(Editor)
         self.sortGroup.setTitle("")

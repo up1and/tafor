@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\sigmet_ash.ui'
 #
-# Created by: PyQt5 UI code generator 5.6
+# Created by: PyQt5 UI code generator 5.11.3
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -158,12 +158,12 @@ class Ui_Editor(object):
         _translate = QtCore.QCoreApplication.translate
         self.descriptionGroup.setTitle(_translate("Editor", "Description"))
         self.forecastTimeLabel.setText(_translate("Editor", "Forecast Time"))
-        self.intensityChangeLabel.setText(_translate("Editor", "Intensity Change"))
+        self.intensityChangeLabel.setText(_translate("Editor", "Intensity"))
         self.speedLabel.setText(_translate("Editor", "Speed"))
-        self.baseLabel.setText(_translate("Editor", "FL Base"))
+        self.baseLabel.setText(_translate("Editor", "Base"))
         self.levelLabel.setText(_translate("Editor", "Fight Level"))
         self.movementLabel.setText(_translate("Editor", "Movement"))
-        self.topLabel.setText(_translate("Editor", "FL Top"))
+        self.topLabel.setText(_translate("Editor", "Top"))
         self.postionGroup.setTitle(_translate("Editor", "Postion"))
         self.currentLongitudeLabel.setText(_translate("Editor", "Longitude"))
         self.currentLatitudeLabel.setText(_translate("Editor", "Latitude"))
