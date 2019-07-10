@@ -13,9 +13,9 @@
 ^^^^^^^^^^^^^^^^^^^^
 .. code-block:: http
 
-    GET <latest_airport_url> HTTP/1.1
+    GET <latest_message_url> HTTP/1.1
 
-**latest_airport_url** 当前机场最新的报文数据接口
+**latest_message_url** 当前机场最新的报文数据接口
 
 需返回以下数据：
 

@@ -123,17 +123,17 @@
 </translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_ash.py" line="159"/>
+        <location filename="../components/ui/Ui_sigmet_typhoon.py" line="164"/>
         <source>Description</source>
         <translation>描述</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_ash.py" line="165"/>
+        <location filename="../components/ui/Ui_sigmet_typhoon.py" line="170"/>
         <source>Movement</source>
         <translation>移动方向</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_ash.py" line="162"/>
+        <location filename="../components/ui/Ui_sigmet_typhoon.py" line="169"/>
         <source>Speed</source>
         <translation>速度</translation>
     </message>
@@ -143,12 +143,12 @@
         <translation>区域</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_ash.py" line="169"/>
+        <location filename="../components/ui/Ui_sigmet_typhoon.py" line="175"/>
         <source>Latitude</source>
         <translation>纬度</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_ash.py" line="168"/>
+        <location filename="../components/ui/Ui_sigmet_typhoon.py" line="174"/>
         <source>Longitude</source>
         <translation>经度</translation>
     </message>
@@ -203,7 +203,7 @@
         <translation>高度</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_ash.py" line="160"/>
+        <location filename="../components/ui/Ui_sigmet_typhoon.py" line="173"/>
         <source>Forecast Time</source>
         <translation>预测时间</translation>
     </message>
@@ -273,7 +273,7 @@
         <translation>变化组结束时间不正确</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_ash.py" line="164"/>
+        <location filename="../components/ui/Ui_sigmet_general.py" line="143"/>
         <source>Fight Level</source>
         <translation>高度层</translation>
     </message>
@@ -418,7 +418,7 @@
         <translation>最新气象情报</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_ash.py" line="167"/>
+        <location filename="../components/ui/sigmet_ash.ui" line="255"/>
         <source>Postion</source>
         <translation>位置</translation>
     </message>
@@ -428,17 +428,17 @@
         <translation></translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_ash.py" line="161"/>
+        <location filename="../components/ui/Ui_sigmet_typhoon.py" line="171"/>
         <source>Intensity</source>
         <translation>强度</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_ash.py" line="163"/>
+        <location filename="../components/ui/Ui_sigmet_general.py" line="144"/>
         <source>Base</source>
         <translation>底高</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_ash.py" line="166"/>
+        <location filename="../components/ui/Ui_sigmet_general.py" line="141"/>
         <source>Top</source>
         <translation>顶高</translation>
     </message>
@@ -561,7 +561,7 @@
         <translation>离线</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="547"/>
+        <location filename="../app/main.py" line="556"/>
         <source>New version found {}, do you want to download now?</source>
         <translation>发现新版本 {}，想现在下载么？</translation>
     </message>
@@ -591,17 +591,17 @@
         <translation>下一页</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="542"/>
+        <location filename="../app/main.py" line="551"/>
         <source>The current version is already the latest version.</source>
         <translation>当前版本已经是最新版本</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="536"/>
+        <location filename="../app/main.py" line="545"/>
         <source>Unable to get the latest version information.</source>
         <translation>无法获取最新版本信息</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="346"/>
+        <location filename="../app/main.py" line="355"/>
         <source>Send Completed</source>
         <translation>发送完成</translation>
     </message>
@@ -611,22 +611,22 @@
         <translation>已复制选取的报文</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="343"/>
+        <location filename="../app/main.py" line="352"/>
         <source>Send Failed</source>
         <translation>发送失败</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="355"/>
+        <location filename="../app/main.py" line="364"/>
         <source>Connection Error</source>
         <translation>连接错误</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="365"/>
+        <location filename="../app/main.py" line="374"/>
         <source>Unable to connect phone call service, please check the settings or network status.</source>
         <translation>无法连接电话服务，请检查设置或者网络状态。</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="381"/>
+        <location filename="../app/main.py" line="390"/>
         <source>Time to issue {}</source>
         <translation>发布 {}</translation>
     </message>
@@ -636,22 +636,22 @@
         <translation>编发</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="397"/>
+        <location filename="../app/main.py" line="406"/>
         <source>Time to update {}</source>
         <translation>更新 {}</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="357"/>
+        <location filename="../app/main.py" line="366"/>
         <source>Unable to connect remote message data source, please check the settings or network status.</source>
         <translation>无法连接远程数据源，请检查设置或者网络状态。</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="361"/>
+        <location filename="../app/main.py" line="370"/>
         <source>Unable to connect FIR information data source, please check the settings or network status.</source>
         <translation>无法获取情报区信息数据，请检查设置或者网络状态。</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="505"/>
+        <location filename="../app/main.py" line="514"/>
         <source>Version</source>
         <translation>版本</translation>
     </message>
@@ -666,24 +666,34 @@
         <translation>输入证书</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="553"/>
+        <location filename="../app/main.py" line="562"/>
         <source>Remove license key? </source>
         <translation>删除注册信息？</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="554"/>
+        <location filename="../app/main.py" line="563"/>
         <source>Remove license key? This will revert tafor to an unregistered state.</source>
         <translation>删除注册信息？这会恢复到未注册状态。</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="495"/>
+        <location filename="../app/main.py" line="504"/>
         <source>Unregistered</source>
         <translation>未注册</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="494"/>
+        <location filename="../app/main.py" line="503"/>
         <source>{} days remaining</source>
         <translation>剩余 {} 天</translation>
+    </message>
+    <message>
+        <location filename="../app/main.py" line="230"/>
+        <source>Message Received</source>
+        <translation>收到消息</translation>
+    </message>
+    <message>
+        <location filename="../app/main.py" line="230"/>
+        <source>Received a new METAR/SPECI message.</source>
+        <translation>收到一条新的观测报文</translation>
     </message>
 </context>
 <context>

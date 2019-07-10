@@ -17,7 +17,6 @@ class Sound(object):
 
     def play(self, volume=None, loop=True):
         volume = self.volume if volume is None else volume
-        self.effect.setLoopCount(0)
         self.effect.setVolume(int(volume)/100)
 
         if loop:
