@@ -4,7 +4,7 @@ import falcon
 
 from tafor import conf
 from tafor.states import context
-from tafor.utils import TafParser, SigmetParser, MetarParser
+from tafor.utils import boolean, TafParser, SigmetParser, MetarParser
 
 
 AUTH_TOKEN = 'VGhlIFZveWFnZSBvZiB0aGUgTW9vbg=='
@@ -174,11 +174,10 @@ class ValidateResource(object):
 
     def on_get(self, req, resp):
         message = req.get_param('message') or req.context.body.get('message') or ''
-        enbale = lambda x: x in ['on', 'true', True]
         kwargs = {
-            'visHas5000': enbale(req.get_param('visHas5000') or req.context.body.get('visHas5000')),
-            'cloudHeightHas450': enbale(req.get_param('cloudHeightHas450') or req.context.body.get('cloudHeightHas450')),
-            'weakPrecipitationVerification': enbale(req.get_param('weakPrecipitationVerification') or req.context.body.get('weakPrecipitationVerification')),
+            'visHas5000': boolean(conf.value('Validator/VisHas5000')),
+            'cloudHeightHas450': boolean(conf.value('Validator/CloudHeightHas450')),
+            'weakPrecipitationVerification': boolean(conf.value('Validator/WeakPrecipitationVerification')),
         }
 
         if message.startswith('TAF'):

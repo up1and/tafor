@@ -7,7 +7,7 @@
 ----------
 程序会定时对外请求的接口，报文接口请求间隔 1 分钟，情报区接口请求间隔 5 分钟，电话服务接口依据条件触发。
 
-各类请求地址可以在 设置 -> 数据源中更改，详情请参考 :ref:`guide`。
+各类请求地址可以在 设置 -> 数据源 中更改，详情请参考 :ref:`guide`。
 
 报文接口
 ^^^^^^^^^^^^^^^^^^^^
@@ -117,15 +117,12 @@ TAF 报文验证
 参数：
 
 - **message** 报文内容
-- **visHas5000** 能见度有 5000 米
-- **cloudHeightHas450** 云高有 450 米
-- **weakPrecipitationVerification** 弱降水参与验证
 
 示例：
 
 .. code-block:: text
 
-    visHas5000=true&message=TAF ZJHK 040701Z 0406/0506 06004MPS 6000 TSRA BKN010 FEW023CB BKN033 TX28/0505Z TN24/0418Z BECMG 0407/0408 -SHRA BECMG 0415/0416 BKN030 TEMPO 0410/0414 SHRA=
+    message=TAF ZJHK 040701Z 0406/0506 06004MPS 6000 TSRA BKN010 FEW023CB BKN033 TX28/0505Z TN24/0418Z BECMG 0407/0408 -SHRA BECMG 0415/0416 BKN030 TEMPO 0410/0414 SHRA=
 
 返回数据：
 
@@ -213,6 +210,7 @@ TAF 报文验证
         ]
     }
 
+.. note:: 校验的阈值如云高是否有 450 米或能见度是否有 5000 米可以在 设置 -> 校验 中更改，趋势校验也是如此，详情请参考 :ref:`guide`。
 
 趋势报文验证
 ^^^^^^^^^^^^^^^^^^^^
@@ -224,22 +222,19 @@ TAF 报文验证
 参数：
 
 - **message** 报文内容
-- **visHas5000** 能见度有 5000 米
-- **cloudHeightHas450** 云高有 450 米
-- **weakPrecipitationVerification** 弱降水参与验证
 
 示例：
 
 .. code-block:: text
 
-    message=METAR ZJHK 221100Z 29002MPS 160V330 9999 -TSRA FEW020CB SCT023 24/23 Q1008 RESHRA BECMG FM1111 TL1230 -SHRA=
+    message=METAR ZJHK 221100Z 29002MPS 160V330 9999 -TSRA FEW020CB SCT023 24/23 Q1008 RESHRA BECMG TL1230 -SHRA=
 
 返回数据：
 
 .. code-block:: json
 
     {
-        "html": "METAR ZJHK 221100Z 29002MPS 160V330 9999 -TSRA FEW020CB SCT023 24/23 Q1008 RESHRA<br/>BECMG FM1111 TL1230 -SHRA=",
+        "html": "METAR ZJHK 221100Z 29002MPS 160V330 9999 -TSRA FEW020CB SCT023 24/23 Q1008 RESHRA<br/>BECMG TL1230 -SHRA=",
         "tips": [],
         "pass": true,
         "tokens": [
@@ -248,7 +243,7 @@ TAF 报文验证
                 true
             ],
             [
-                "FM1111 TL1230",
+                "TL1230",
                 true
             ],
             [
