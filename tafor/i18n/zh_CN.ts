@@ -561,7 +561,7 @@
         <translation>离线</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="556"/>
+        <location filename="../app/main.py" line="570"/>
         <source>New version found {}, do you want to download now?</source>
         <translation>发现新版本 {}，想现在下载么？</translation>
     </message>
@@ -591,17 +591,17 @@
         <translation>下一页</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="551"/>
+        <location filename="../app/main.py" line="565"/>
         <source>The current version is already the latest version.</source>
         <translation>当前版本已经是最新版本</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="545"/>
+        <location filename="../app/main.py" line="559"/>
         <source>Unable to get the latest version information.</source>
         <translation>无法获取最新版本信息</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="355"/>
+        <location filename="../app/main.py" line="358"/>
         <source>Send Completed</source>
         <translation>发送完成</translation>
     </message>
@@ -611,22 +611,22 @@
         <translation>已复制选取的报文</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="352"/>
+        <location filename="../app/main.py" line="355"/>
         <source>Send Failed</source>
         <translation>发送失败</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="364"/>
+        <location filename="../app/main.py" line="367"/>
         <source>Connection Error</source>
         <translation>连接错误</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="374"/>
+        <location filename="../app/main.py" line="377"/>
         <source>Unable to connect phone call service, please check the settings or network status.</source>
         <translation>无法连接电话服务，请检查设置或者网络状态。</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="390"/>
+        <location filename="../app/main.py" line="393"/>
         <source>Time to issue {}</source>
         <translation>发布 {}</translation>
     </message>
@@ -636,22 +636,22 @@
         <translation>编发</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="406"/>
+        <location filename="../app/main.py" line="409"/>
         <source>Time to update {}</source>
         <translation>更新 {}</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="366"/>
+        <location filename="../app/main.py" line="369"/>
         <source>Unable to connect remote message data source, please check the settings or network status.</source>
         <translation>无法连接远程数据源，请检查设置或者网络状态。</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="370"/>
+        <location filename="../app/main.py" line="373"/>
         <source>Unable to connect FIR information data source, please check the settings or network status.</source>
         <translation>无法获取情报区信息数据，请检查设置或者网络状态。</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="514"/>
+        <location filename="../app/main.py" line="528"/>
         <source>Version</source>
         <translation>版本</translation>
     </message>
@@ -666,32 +666,32 @@
         <translation>输入证书</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="562"/>
+        <location filename="../app/main.py" line="576"/>
         <source>Remove license key? </source>
         <translation>删除注册信息？</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="563"/>
+        <location filename="../app/main.py" line="577"/>
         <source>Remove license key? This will revert tafor to an unregistered state.</source>
         <translation>删除注册信息？这会恢复到未注册状态。</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="504"/>
+        <location filename="../app/main.py" line="518"/>
         <source>Unregistered</source>
         <translation>未注册</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="503"/>
+        <location filename="../app/main.py" line="517"/>
         <source>{} days remaining</source>
         <translation>剩余 {} 天</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="230"/>
+        <location filename="../app/main.py" line="233"/>
         <source>Message Received</source>
         <translation>收到消息</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="230"/>
+        <location filename="../app/main.py" line="233"/>
         <source>Received a new METAR/SPECI message.</source>
         <translation>收到一条新的观测报文</translation>
     </message>
@@ -1112,17 +1112,17 @@
         <translation>电话服务</translation>
     </message>
     <message>
-        <location filename="../components/setting.py" line="143"/>
+        <location filename="../components/setting.py" line="154"/>
         <source>OK</source>
         <translation>确定</translation>
     </message>
     <message>
-        <location filename="../components/setting.py" line="144"/>
+        <location filename="../components/setting.py" line="155"/>
         <source>Apply</source>
         <translation>应用</translation>
     </message>
     <message>
-        <location filename="../components/setting.py" line="145"/>
+        <location filename="../components/setting.py" line="156"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
@@ -1142,22 +1142,22 @@
         <translation>情报区信息地址</translation>
     </message>
     <message>
-        <location filename="../components/setting.py" line="433"/>
+        <location filename="../components/setting.py" line="491"/>
         <source>Open Directory</source>
         <translation>打开目录</translation>
     </message>
     <message>
-        <location filename="../components/setting.py" line="413"/>
+        <location filename="../components/setting.py" line="471"/>
         <source>Configuration has been exported</source>
         <translation>配置已导出</translation>
     </message>
     <message>
-        <location filename="../components/setting.py" line="425"/>
+        <location filename="../components/setting.py" line="483"/>
         <source>Configuration has been imported</source>
         <translation>配置已导入</translation>
     </message>
     <message>
-        <location filename="../components/setting.py" line="428"/>
+        <location filename="../components/setting.py" line="486"/>
         <source>Open Configuration File</source>
         <translation>打开配置文件</translation>
     </message>
@@ -1242,12 +1242,12 @@
         <translation>登录</translation>
     </message>
     <message>
-        <location filename="../components/setting.py" line="295"/>
+        <location filename="../components/setting.py" line="308"/>
         <source>Done</source>
         <translation>完成</translation>
     </message>
     <message>
-        <location filename="../components/setting.py" line="291"/>
+        <location filename="../components/setting.py" line="304"/>
         <source>Retry</source>
         <translation>重试</translation>
     </message>
@@ -1265,6 +1265,16 @@
         <location filename="../components/ui/Ui_setting.py" line="689"/>
         <source>Sequence Length</source>
         <translation>流水号位</translation>
+    </message>
+    <message>
+        <location filename="../components/setting.py" line="361"/>
+        <source>Restart Required</source>
+        <translation>需要重启</translation>
+    </message>
+    <message>
+        <location filename="../components/setting.py" line="362"/>
+        <source>Programs needs to restart to change the configuration, do you wish to restart now?</source>
+        <translation>程序需要重新启动才能更新配置，你是否希望立即重启？</translation>
     </message>
 </context>
 <context>

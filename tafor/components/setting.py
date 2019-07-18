@@ -4,7 +4,7 @@ import datetime
 
 from PyQt5.QtGui import QIcon, QIntValidator
 from PyQt5.QtCore import QCoreApplication, QSettings, QTimer, Qt
-from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QTableWidgetItem, QFileDialog
+from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QTableWidgetItem, QFileDialog, QMessageBox
 
 from tafor import conf, logger
 from tafor.utils import boolean, ftpComm
@@ -81,6 +81,15 @@ sigmetOptions = [
 ]
 
 
+def setupOptions(options):
+    configs = {}
+    for path, option, category in options:
+        configs[path] = {
+            'object': option,
+            'type': category
+        }
+    return configs
+
 def isConfigured(reportType='TAF'):
     """检查发布不同类型报文基础配置是否完成"""
     serial = ['Communication/SerialPort', 'Communication/SerialBaudrate', 'Communication/SerialParity',
@@ -145,9 +154,9 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.buttonBox.button(QDialogButtonBox.Cancel).setText(QCoreApplication.translate('Settings', 'Cancel'))
 
         if boolean(conf.value('General/Sigmet')):
-            self.options = baseOptions + sigmetOptions
+            options = baseOptions + sigmetOptions
         else:
-            self.options = baseOptions
+            options = baseOptions
             self.fir.hide()
             self.firLabel.hide()
             self.firApiURL.hide()
@@ -158,6 +167,8 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             self.remindSigmetVolume.hide()
             self.addressTab.removeTab(2)
             self.addressTab.removeTab(2)
+
+        self.options = setupOptions(options)
 
         self.icao.setPlaceholderText('YUSO')
         self.fir.setPlaceholderText('YUDD SHANLON FIR')
@@ -193,7 +204,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.exportButton.clicked.connect(self.exportConf)
 
         self.buttonBox.accepted.connect(self.save)
-        self.buttonBox.accepted.connect(self.parent.updateGui)
+        self.buttonBox.accepted.connect(self.onConfigChanged)
 
     def setValidator(self):
         """设置验证器"""
@@ -301,6 +312,56 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.testLoginButton.setText(text)
         self.testLoginButton.setEnabled(True)
 
+    def onConfigChanged(self):
+        restartRequiredOptions = [
+            'General/WindowsStyle', 'General/InterfaceScaling', 'General/InternationalAirport',
+            'General/ValidityPeriod', 'General/Debug', 'General/RPC',
+            'Message/Weather', 'Message/WeatherWithIntensity',
+        ]
+
+        closeSenderOptions = [
+            'General/CommunicationLine', 'Communication/Channel', 'Communication/ChannelSequenceNumber', 
+            'Communication/ChannelSequenceLength', 'Communication/MaxSendAddress', 'Communication/OriginatorAddress',
+            'Message/ICAO', 'Message/Area', 'Communication/TAFAddress', 'Message/TrendSign', 'Communication/TrendAddress',
+            'Message/FIR', 'Message/Area', 'Communication/SIGMETAddress', 'Communication/AIRMETAddress',
+        ]
+
+        if self.hasValueChanged('General/FirCanvasSize'):
+            self.parent.sigmetEditor.close()
+
+        for key in closeSenderOptions:
+            if self.hasValueChanged(key):
+                self.parent.tafSender.close()
+                self.parent.trendSender.close()
+                self.parent.sigmetSender.close()
+                break
+
+        for key in restartRequiredOptions:
+            if self.hasValueChanged(key):
+                self.promptRestartRequired()
+                break
+
+        self.updateSoundVolume()
+        self.parent.updateGui()
+
+    def hasValueChanged(self, key):
+        prev = self.prevConf[key]
+        category = self.options[key]['type']
+        option = getattr(self, self.options[key]['object'])
+        value = self.loadValueFromWidget(option, category)
+
+        if category == 'bool':
+            prev = boolean(prev)
+
+        return prev != value
+
+    def promptRestartRequired(self):
+        title = QCoreApplication.translate('Settings', 'Restart Required')
+        text = QCoreApplication.translate('Settings', 'Programs needs to restart to change the configuration, do you wish to restart now?')
+        ret = QMessageBox.information(self, title, text, QMessageBox.Yes | QMessageBox.No)
+        if ret == QMessageBox.Yes:
+            self.parent.restart()
+
     def save(self):
         """保存设置"""
         import sys
@@ -310,25 +371,17 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         else:
             self.autoRun.remove('Tafor')
 
-        if conf.value('General/FirCanvasSize') != self.firCanvasSize.value():
-            self.parent.sigmetEditor.close()
-
-        if conf.value('General/CommunicationLine') != self.communicationLine.currentText():
-            self.parent.tafSender.close()
-            self.parent.trendSender.close()
-            self.parent.sigmetSender.close()
-
-        for path, option, category in self.options:
-            self.setValue(path, option, category)
-
-        self.updateSoundVolume()
+        self.prevConf = {}
+        for key, value in self.options.items():
+            self.prevConf[key] = conf.value(key)
+            self.setValue(key, value['object'], value['type'])
 
     def load(self):
         """载入设置"""
         self.runOnStart.setChecked(self.autoRun.contains('Tafor'))
 
-        for path, option, category in self.options:
-            self.loadValue(path, option, category)
+        for key, value in self.options.items():
+            self.loadValue(key, value['object'], value['type'])
 
     def loadValue(self, path, option, category='text'):
         val = conf.value(path)
@@ -368,9 +421,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
                 index = option.findText(person.name, Qt.MatchFixedString)
                 option.setCurrentIndex(index)
 
-    def setValue(self, path, option, category='text'):
-        option = getattr(self, option)
-
+    def loadValueFromWidget(self, option, category):
         if category == 'text':
             val = option.text()
 
@@ -398,6 +449,11 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             person = db.query(User).filter_by(name=name).first()
             val = person.mobile if person else ''
 
+        return val
+
+    def setValue(self, path, option, category='text'):
+        option = getattr(self, option)
+        val = self.loadValueFromWidget(option, category)
         conf.setValue(path, val)
 
     def exportConf(self):
@@ -421,6 +477,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
         else:
             self.load()
+            self.onConfigChanged()
             self.parent.statusBar.showMessage(QCoreApplication.translate('Settings', 'Configuration has been imported'), 5000)
 
     def openFile(self, receiver):

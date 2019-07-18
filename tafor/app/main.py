@@ -1,9 +1,10 @@
 import os
 import sys
+import json
 import datetime
 
 from PyQt5.QtGui import QIcon, QDesktopServices
-from PyQt5.QtCore import QCoreApplication, QTranslator, QLocale, QEvent, QTimer, Qt, QUrl, QSysInfo
+from PyQt5.QtCore import QCoreApplication, QTranslator, QLocale, QEvent, QTimer, Qt, QUrl, QSysInfo, QProcess
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy, QActionGroup, QAction,
         QSystemTrayIcon, QMenu, QMessageBox, QStyleFactory)
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
@@ -28,6 +29,8 @@ from tafor.components.widgets.widget import Clock, TafBoard, RecentMessage, Remi
 from tafor.components.widgets.status import WebAPIStatus, CallServiceStatus
 from tafor.components.widgets.sound import Sound
 
+
+# EXIT_CODE_REBOOT = -10000
 
 class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
@@ -497,6 +500,17 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.showNormal()
         self.settingDialog.exec_()
 
+    def restart(self):
+        self.close()
+        program = sys.executable
+        args = []
+        if not hasattr(sys, '_MEIPASS'):
+            args.append(os.path.join(root, '__main__.py'))
+
+        scripts = json.loads(os.environ.pop('TAFOR_ARGS'))
+        args.extend(scripts)
+        QProcess.startDetached(program, args)
+
     def about(self):
         title = QCoreApplication.translate('MainWindow', 'About')
         register = QCoreApplication.translate('MainWindow', '{} days remaining').format(
@@ -569,6 +583,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 def main():
     scale = conf.value('General/InterfaceScaling') or 0
     os.environ['QT_SCALE_FACTOR'] = str(int(scale) * 0.25 + 1)
+    os.environ['TAFOR_ARGS'] = json.dumps(sys.argv[1:])
 
     app = QApplication(sys.argv)
 
@@ -602,10 +617,12 @@ def main():
     try:
         window = MainWindow()
         window.show()
-        sys.exit(app.exec_())
+        code = app.exec_()
+        sys.exit(code)
     except Exception as e:
         logger.error(e, exc_info=True)
     finally:
+        socket.close()
         localServer.close()
 
 
