@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import datetime
 
@@ -205,13 +206,14 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
         self.buttonBox.accepted.connect(self.save)
         self.buttonBox.accepted.connect(self.onConfigChanged)
+        self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.save)
+        self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.onConfigChanged)
 
     def setValidator(self):
         """设置验证器"""
         self.baudrate.setValidator(QIntValidator(self.baudrate))
         self.channelSequenceNumber.setValidator(QIntValidator(self.channelSequenceNumber))
         self.maxSendAddress.setValidator(QIntValidator(self.maxSendAddress))
-        # self.maxLineChar.setValidator(QIntValidator(self.maxLineChar))
         self.warnTafTime.setValidator(QIntValidator(self.warnTafTime))
 
     def setValidityPeriod(self, checked=None):
@@ -364,8 +366,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
     def save(self):
         """保存设置"""
-        import sys
-
         if self.runOnStart.isChecked():
             self.autoRun.setValue('Tafor', sys.argv[0])
         else:
