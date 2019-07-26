@@ -125,9 +125,13 @@ class JSONComponent(object):
 class MainResource(object):
 
     def on_get(self, req, resp):
-        resp.body = ('\nTafor RPC is running.\n'
+        resp.body = ('\nAll in the Sea of Sky, my love\n'
+                     'The moonships sail and fly, my love\n'
+                     'Though many are their kind, my love\n'
+                     'Though all need but one wind\n'
+                     'To make their starry way, to make their starry way.\n'
                      '\n'
-                     '    ~ up1and\n\n')
+                     '    ~ The Voyage of the Moon\n')
 
 
 class StateResource(object):
@@ -156,18 +160,26 @@ class StateResource(object):
         resp.media = data
 
 
-class MetarResource(object):
+class NotificationResource(object):
 
     def on_post(self, req, resp):
         message = req.get_param('message') or req.context.body.get('message')
+
         if not message:
-            raise falcon.HTTPBadRequest('Message Required', 'Please provide a METAR or SPECI message.')
+            raise falcon.HTTPBadRequest('Message Required', 'Please provide a notification message.')
+
+        if not message.startswith(('METAR', 'SPECI')):
+            raise falcon.HTTPBadRequest('Invalid Message', 'Only METAR/SPECI message can be supported.')
 
         context.metar.setState({
             'message': message
         })
 
         resp.status = falcon.HTTP_CREATED
+        resp.media = {
+            'message': message,
+            'created': falcon.http_now()
+        }
 
 
 class ValidateResource(object):
@@ -180,6 +192,9 @@ class ValidateResource(object):
             'weakPrecipitationVerification': boolean(conf.value('Validator/WeakPrecipitationVerification')),
         }
 
+        if not message:
+            raise falcon.HTTPBadRequest('Message Required', 'Please provide the message that needs to be validated.')
+
         if message.startswith('TAF'):
             data = parse_taf(message, kwargs)
         elif message.startswith('METAR') or message.startswith('SPECI'):
@@ -187,7 +202,7 @@ class ValidateResource(object):
         elif 'SIGMET' in message or 'AIRMET' in message:
             data = parse_sigmet(message, kwargs)
         else:
-            raise falcon.HTTPBadRequest('Invalid Message', 'The message could not be parsed')
+            raise falcon.HTTPBadRequest('Invalid Message', 'The message could not be parsed.')
 
         resp.media = data
 
@@ -197,10 +212,10 @@ server = falcon.API(middleware=middleware)
 
 main = MainResource()
 state = StateResource()
-metar = MetarResource()
+notification = NotificationResource()
 validate = ValidateResource()
 
 server.add_route('/', main)
 server.add_route('/api/state', state)
-server.add_route('/api/metar', metar)
 server.add_route('/api/validate', validate)
+server.add_route('/api/notifications', notification)

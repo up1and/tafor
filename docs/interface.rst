@@ -263,7 +263,7 @@ SIGMET/AIRMET 报文验证类似，不再做举例。
 
 .. code-block:: http
 
-    POST /api/metar HTTP/1.1
+    POST /api/notifications HTTP/1.1
 
 参数：
 
@@ -274,3 +274,12 @@ SIGMET/AIRMET 报文验证类似，不再做举例。
 .. code-block:: text
 
     message=METAR ZJHK 210600Z 26002MPS 200V300 9999 BKN030 36/27 Q1004 NOSIG=
+
+返回数据：
+
+.. code-block:: json
+
+    {
+        "message": "METAR ZJHK 210600Z 26002MPS 200V300 9999 BKN030 36/27 Q1004 NOSIG=",
+        "created": "Fri, 21 Jun 2019 05:57:34 GMT"
+    }

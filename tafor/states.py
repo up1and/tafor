@@ -181,11 +181,11 @@ class MetarState(QObject):
 
     _state = {
         'message': None,
-        'updated': datetime.datetime.utcnow(),
+        'created': datetime.datetime.utcnow(),
     }
 
     def state(self):
-        time = self._state['updated']
+        time = self._state['created']
         if datetime.datetime.utcnow() - time > datetime.timedelta(minutes=15):
             self._state['message'] = None
         return self._state
@@ -193,7 +193,7 @@ class MetarState(QObject):
     def setState(self, values):
         message = self._state['message']
         self._state.update(values)
-        self._state['updated'] = datetime.datetime.utcnow()
+        self._state['created'] = datetime.datetime.utcnow()
         if message != self._state['message']:
             self.messageChanged.emit()
 
