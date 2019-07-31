@@ -83,8 +83,10 @@ class FirState(object):
 
         return infos
 
-    def decodeSigmetArea(self, area):
-        return self.layer.decodeSigmetArea(area, self._state['boundaries'], self.trimShapes)
+    def decodeSigmetArea(self, area, trim=None):
+        if trim is None:
+            trim = self.trimShapes
+        return self.layer.decodeSigmetArea(area, self._state['boundaries'], trim)
 
 
 class WebApiState(object):
@@ -123,22 +125,20 @@ class TafState(QObject):
     warningSignal = pyqtSignal()
     clockSignal = pyqtSignal(str)
 
-    def __init__(self):
-        super(TafState, self).__init__()
-        self._state = {
-            'FC': {
-                'period': '',
-                'sent': False,
-                'warning': False,
-                'clock': False,
-            },
-            'FT': {
-                'period': '',
-                'sent': False,
-                'warning': False,
-                'clock': False,
-            }
+    _state = {
+        'FC': {
+            'period': '',
+            'sent': False,
+            'warning': False,
+            'clock': False,
+        },
+        'FT': {
+            'period': '',
+            'sent': False,
+            'warning': False,
+            'clock': False,
         }
+    }
 
     def isWarning(self):
         warnings = [v['warning'] for k, v in self._state.items()]
@@ -176,18 +176,21 @@ class TafState(QObject):
                     self.clockSignal.emit(tt)
 
 
-class MetarState(QObject):
+class NotificationMessageState(QObject):
     messageChanged = pyqtSignal()
 
-    _state = {
-        'message': None,
-        'created': datetime.datetime.utcnow(),
-    }
+    def __init__(self):
+        super(NotificationMessageState, self).__init__()
+        self._state = {
+            'message': None,
+            'created': datetime.datetime.utcnow(),
+        }
+        self.expire = 15
 
     def state(self):
         time = self._state['created']
-        if datetime.datetime.utcnow() - time > datetime.timedelta(minutes=15):
-            self._state['message'] = None
+        if datetime.datetime.utcnow() - time > datetime.timedelta(minutes=self.expire):
+            self.clear()
         return self._state
 
     def setState(self, values):
@@ -199,13 +202,45 @@ class MetarState(QObject):
 
     def message(self):
         state = self.state()
-        metar = state['message']
-        if metar is None:
+        text = state['message']
+        if text is None:
             return ''
 
-        splitPattern = re.compile(r'(BECMG|TEMPO|NOSIG)')
-        elements = splitPattern.split(metar)
-        return elements[0].strip()
+        if text.startswith(('METAR', 'SPECI')):
+            splitPattern = re.compile(r'(BECMG|TEMPO|NOSIG)')
+            elements = splitPattern.split(text)
+            return elements[0].strip()
+        else:
+            return text
+
+    def type(self):
+        message = self.message()
+        if message.startswith('METAR'):
+            return 'METAR'
+
+        if message.startswith('SPECI'):
+            return 'SPECI'
+
+        if 'AIRMET' in message:
+            return 'AIRMET'
+
+        if 'SIGMET' in message:
+            return 'SIGMET'
+
+        return 'UNKNOW'
+
+    def parser(self):
+        from tafor.utils import SigmetParser
+        if self.type() in ['SIGMET', 'AIRMET']:
+            return SigmetParser(self.message())
+
+    def clear(self):
+        self._state['message'] = None
+
+
+class NotificationState(object):
+    metar = NotificationMessageState()
+    sigmet = NotificationMessageState()
 
 
 class EnvironState(object):
@@ -293,8 +328,8 @@ class Context(object):
     webApi = WebApiState(message)
     callService = CallServiceState()
     taf = TafState()
-    metar = MetarState()
     fir = FirState()
+    notification = NotificationState()
     serial = SerialState()
     environ = EnvironState()
 

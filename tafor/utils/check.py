@@ -330,7 +330,7 @@ class Listen(object):
         if self.message:
             status = metar.save()
             if status:
-                context.metar.setState({
+                context.notification.metar.setState({
                     'message': None
                 })
 

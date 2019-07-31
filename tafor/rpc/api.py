@@ -168,12 +168,18 @@ class NotificationResource(object):
         if not message:
             raise falcon.HTTPBadRequest('Message Required', 'Please provide a notification message.')
 
-        if not message.startswith(('METAR', 'SPECI')):
-            raise falcon.HTTPBadRequest('Invalid Message', 'Only METAR/SPECI message can be supported.')
+        if not (message.startswith(('METAR', 'SPECI')) or 'SIGMET' in message or 'AIRMET' in message):
+            raise falcon.HTTPBadRequest('Invalid Message', 'Only METAR/SPECI and SIGMET/AIRMET message can be supported.')
 
-        context.metar.setState({
-            'message': message
-        })
+        if message.startswith(('METAR', 'SPECI')):
+            context.notification.metar.setState({
+                'message': message
+            })
+
+        if 'SIGMET' in message or 'AIRMET' in message:
+            context.notification.sigmet.setState({
+                'message': message
+            })
 
         resp.status = falcon.HTTP_CREATED
         resp.media = {

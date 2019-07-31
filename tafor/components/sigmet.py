@@ -1,6 +1,7 @@
 from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QVBoxLayout, QLayout
 
+from tafor.states import context
 from tafor.components.setting import isConfigured
 from tafor.components.widgets.editor import BaseEditor
 from tafor.components.widgets import (SigmetTypeSegment, SigmetGeneralSegment, SigmetTyphoonSegment, SigmetAshSegment,
@@ -164,6 +165,9 @@ class SigmetEditor(BaseEditor):
         if hasattr(self.currentSegment, 'initState'):
             self.currentSegment.initState()
 
+    def loadSigmet(self):
+        self.sigmetCustom.setText()
+
     def clear(self):
         self.sigmetGeneral.clear()
         self.sigmetTyphoon.clear()
@@ -173,6 +177,8 @@ class SigmetEditor(BaseEditor):
         self.airmetGeneral.clear()
 
     def closeEvent(self, event):
+        context.notification.sigmet.clear()
+        self.sigmetCustom.setText()
         self.clear()
 
     def showEvent(self, event):

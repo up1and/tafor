@@ -30,7 +30,6 @@ from tafor.components.widgets.status import WebAPIStatus, CallServiceStatus
 from tafor.components.widgets.sound import Sound
 
 
-# EXIT_CODE_REBOOT = -10000
 
 class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
@@ -100,7 +99,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def bindSignal(self):
         context.taf.warningSignal.connect(self.dialer)
         context.taf.clockSignal.connect(self.remindTaf)
-        context.metar.messageChanged.connect(self.setMetar)
+        context.notification.metar.messageChanged.connect(self.loadMetar)
+        context.notification.sigmet.messageChanged.connect(self.loadSigmet)
 
         # 连接菜单信号
         self.tafAction.triggered.connect(self.tafEditor.show)
@@ -227,24 +227,29 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.checkUpgradeThread = CheckUpgradeThread(self)
         self.checkUpgradeThread.doneSignal.connect(self.checkUpgrade)
 
-    def setMetar(self):
-        self.metarSound.play(loop=False)
-        self.trendEditor.setMetarBoard()
+    def loadMetar(self):
+        self.incommingSound.play(loop=False)
+        self.trendEditor.loadMetar()
         self.showNotificationMessage(QCoreApplication.translate('MainWindow', 'Message Received'),
-                QCoreApplication.translate('MainWindow', 'Received a new METAR/SPECI message.'))
+                QCoreApplication.translate('MainWindow', 'Received a new {} message.').format(context.notification.metar.type()))
+
+    def loadSigmet(self):
+        self.incommingSound.play(loop=False)
+        self.sigmetEditor.loadSigmet()
+        self.showNotificationMessage(QCoreApplication.translate('MainWindow', 'Message Received'),
+                QCoreApplication.translate('MainWindow', 'Received a new {} message.').format(context.notification.sigmet.type()))
 
     def setSound(self):
         self.ringSound = Sound('ring.wav', conf.value('Monitor/RemindTAFVolume'))
         self.notificationSound = Sound('notification.wav', 100)
+        self.incommingSound = Sound('incomming.wav', 100)
         self.alarmSound = Sound('alarm.wav', conf.value('Monitor/WarnTAFVolume'))
         self.trendSound = Sound('trend.wav', conf.value('Monitor/RemindTrendVolume'))
-        self.metarSound = Sound('metar.wav', conf.value('Monitor/RemindTrendVolume'))
         self.sigmetSound = Sound('sigmet.wav', conf.value('Monitor/RemindSIGMETVolume'))
 
         self.settingDialog.warnTafVolume.valueChanged.connect(lambda vol: self.alarmSound.play(volume=vol, loop=False))
         self.settingDialog.remindTafVolume.valueChanged.connect(lambda vol: self.ringSound.play(volume=vol, loop=False))
         self.settingDialog.remindTrendVolume.valueChanged.connect(lambda vol: self.trendSound.play(volume=vol, loop=False))
-        self.settingDialog.remindTrendVolume.valueChanged.connect(lambda vol: self.metarSound.setVolume(vol))
         self.settingDialog.remindSigmetVolume.valueChanged.connect(lambda vol: self.sigmetSound.play(volume=vol, loop=False))
 
     def changeContract(self):

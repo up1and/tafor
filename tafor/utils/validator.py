@@ -1168,6 +1168,18 @@ class SigmetParser(object):
         else:
             return ''
 
+    def spec(self):
+        if 'AIRMET' in self.message:
+            return 'WA'
+
+        if self.type() == 'ash':
+            return 'WV'
+
+        if self.type() == 'typhoon':
+            return 'WC'
+
+        return 'WS'
+
     def type(self):
         text = 'other'
         patterns = {
@@ -1273,6 +1285,10 @@ class SigmetParser(object):
             return center.groups(), width.groups()
 
         return []
+
+    def content(self):
+        outputs = [e.renderer() for e in self.elements]
+        return '\n'.join(outputs) + '='
 
     def isValid(self):
         """报文是否通过验证"""

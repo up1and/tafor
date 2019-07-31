@@ -38,8 +38,8 @@ class TrendEditor(BaseEditor):
         # 下一步
         self.nextButton.clicked.connect(self.beforeNext)
 
-    def setMetarBoard(self):
-        message = context.metar.message()
+    def loadMetar(self):
+        message = context.notification.metar.message()
         if message is None:
             self.trend.metar.clear()
         else:
@@ -75,7 +75,7 @@ class TrendEditor(BaseEditor):
         self.clear()
 
     def showEvent(self, event):
-        self.setMetarBoard()
+        self.loadMetar()
         if not isConfigured('Trend'):
             QTimer.singleShot(0, self.showConfigError)
 

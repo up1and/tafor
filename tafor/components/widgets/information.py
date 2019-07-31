@@ -1439,13 +1439,22 @@ class SigmetCustomSegment(BaseSegment):
         self.content.text.setPlaceholderText(tip)
 
     def setText(self):
+        message = ''
+
         last = db.query(Sigmet).filter(Sigmet.tt == self.type.tt, ~Sigmet.rpt.contains('CNL')).order_by(Sigmet.sent.desc()).first()
         if last:
+            message = last.rpt
+
+        parser = context.notification.sigmet.parser()
+        if parser and self.type.tt == parser.spec():
+            message = parser.content()
+
+        if message:
             fir = conf.value('Message/FIR')
             try:
-               _, text = last.rpt.split('\n', 1)
+                _, text = message.split('\n', 1)
             except Exception:
-                text = last.rpt
+                text = message
 
             text = text.replace(fir, '')
             text = text.replace('=', '').strip()

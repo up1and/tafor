@@ -360,7 +360,7 @@ class TrendSender(BaseSender):
     def parse(self, message):
         self.message = message
         html = self.message['rpt']
-        metar = context.metar.message()
+        metar = context.notification.metar.message()
         if metar:
             visHas5000 = boolean(conf.value('Validator/VisHas5000'))
             cloudHeightHas450 = boolean(conf.value('Validator/CloudHeightHas450'))
