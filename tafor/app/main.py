@@ -154,7 +154,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.clock = Clock(self, self.tipsLayout)
         self.tipsLayout.addSpacerItem(QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
         self.tafBoard = TafBoard(self, self.tipsLayout)
-        self.recentLayout.setAlignment(Qt.AlignTop)
+        self.scrollLayout.setAlignment(Qt.AlignTop)
 
     def setTable(self):
         self.tafTable = TafTable(self, self.tafLayout)
@@ -242,7 +242,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def setSound(self):
         self.ringSound = Sound('ring.wav', conf.value('Monitor/RemindTAFVolume'))
         self.notificationSound = Sound('notification.wav', 100)
-        self.incommingSound = Sound('incomming.wav', 100)
+        self.incommingSound = Sound('notification-incomming.wav', 100)
         self.alarmSound = Sound('alarm.wav', conf.value('Monitor/WarnTAFVolume'))
         self.trendSound = Sound('trend.wav', conf.value('Monitor/RemindTrendVolume'))
         self.sigmetSound = Sound('sigmet.wav', conf.value('Monitor/RemindSIGMETVolume'))
@@ -467,9 +467,9 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def updateRecent(self):
         self.tafBoard.updateGui()
 
-        for i in range(self.recentLayout.count()):
+        for i in range(self.scrollLayout.count()):
             if i > 0:
-                widget = self.recentLayout.itemAt(i).widget()
+                widget = self.scrollLayout.itemAt(i).widget()
                 if widget:
                     widget.deleteLater()
 
@@ -487,7 +487,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         queryset = [taf, trend] + sigmets
         for query in queryset:
             if query:
-                RecentMessage(self, self.recentLayout, query)
+                RecentMessage(self, self.scrollLayout, query)
 
     def updateTable(self):
         self.tafTable.updateGui()
@@ -536,9 +536,19 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         aboutBox.setWindowTitle(title)
         layout = aboutBox.layout()
         layout.removeItem(layout.itemAt(0))
+        tokenButton = aboutBox.addButton(QCoreApplication.translate('MainWindow', 'Token'), QMessageBox.ResetRole)
+        aboutBox.addButton(QMessageBox.Ok)
         if not self.isVisible():
             self.showNormal()
         aboutBox.exec()
+
+        if aboutBox.clickedButton() == tokenButton:
+            token = context.environ.token()
+            self.clip.setText(token)
+            QMessageBox.information(self, QCoreApplication.translate('MainWindow', 'Authentication Token'),
+                QCoreApplication.translate('MainWindow',
+                    'The authentication token for the RPC service has been copied to the clipboard.\n\n{}\n'
+                    ).format(token))
 
     def openDocs(self):
         devDocs = os.path.join(root, '../docs/_build/html/index.html')

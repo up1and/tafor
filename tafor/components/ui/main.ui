@@ -39,9 +39,21 @@
        <attribute name="title">
         <string>RECENT</string>
        </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_3">
+       <layout class="QVBoxLayout" name="recentLayout">
         <property name="sizeConstraint">
          <enum>QLayout::SetDefaultConstraint</enum>
+        </property>
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
         </property>
         <item>
          <widget class="QScrollArea" name="recentArea">
@@ -65,19 +77,31 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>828</width>
-             <height>544</height>
+             <width>846</width>
+             <height>562</height>
             </rect>
            </property>
            <property name="styleSheet">
             <string notr="true">background:#fff</string>
            </property>
-           <layout class="QVBoxLayout" name="recentLayout">
+           <layout class="QVBoxLayout" name="scrollLayout">
             <property name="spacing">
              <number>0</number>
             </property>
             <property name="sizeConstraint">
              <enum>QLayout::SetDefaultConstraint</enum>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
             </property>
             <item>
              <widget class="QWidget" name="tips" native="true">
@@ -113,25 +137,77 @@
        <attribute name="title">
         <string>TAF</string>
        </attribute>
-       <layout class="QVBoxLayout" name="tafLayout"/>
+       <layout class="QVBoxLayout" name="tafLayout">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+       </layout>
       </widget>
       <widget class="QWidget" name="metarTab">
        <attribute name="title">
         <string>METAR</string>
        </attribute>
-       <layout class="QVBoxLayout" name="metarLayout"/>
+       <layout class="QVBoxLayout" name="metarLayout">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+       </layout>
       </widget>
       <widget class="QWidget" name="sigmetTab">
        <attribute name="title">
         <string notr="true">SIGMET</string>
        </attribute>
-       <layout class="QVBoxLayout" name="sigmetLayout"/>
+       <layout class="QVBoxLayout" name="sigmetLayout">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+       </layout>
       </widget>
       <widget class="QWidget" name="airmetTab">
        <attribute name="title">
         <string notr="true">AIRMET</string>
        </attribute>
-       <layout class="QVBoxLayout" name="airmetLayout"/>
+       <layout class="QVBoxLayout" name="airmetLayout">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+       </layout>
       </widget>
      </widget>
     </item>
@@ -284,6 +360,11 @@
   <action name="enterLicenseAction">
    <property name="text">
     <string>Enter License</string>
+   </property>
+  </action>
+  <action name="tokenAction">
+   <property name="text">
+    <string>Token</string>
    </property>
   </action>
  </widget>

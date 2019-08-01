@@ -456,87 +456,87 @@
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="169"/>
+        <location filename="../components/ui/Ui_main.py" line="171"/>
         <source>RECENT</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="170"/>
+        <location filename="../components/ui/Ui_main.py" line="172"/>
         <source>TAF</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="171"/>
+        <location filename="../components/ui/Ui_main.py" line="173"/>
         <source>METAR</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="173"/>
+        <location filename="../components/ui/Ui_main.py" line="175"/>
         <source>Options</source>
         <translation>选项</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="174"/>
+        <location filename="../components/ui/Ui_main.py" line="176"/>
         <source>Contacts</source>
         <translation>联系人</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="175"/>
+        <location filename="../components/ui/Ui_main.py" line="177"/>
         <source>Help</source>
         <translation>帮助</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="176"/>
+        <location filename="../components/ui/Ui_main.py" line="178"/>
         <source>Terminal Aerodrome Forecast</source>
         <translation>预报</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="177"/>
+        <location filename="../components/ui/Ui_main.py" line="179"/>
         <source>Trend Forecast</source>
         <translation>趋势</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="178"/>
+        <location filename="../components/ui/Ui_main.py" line="180"/>
         <source>Significant Meteorological Information</source>
         <translation>重要气象情报</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="179"/>
+        <location filename="../components/ui/Ui_main.py" line="181"/>
         <source>Settings</source>
         <translation>设置</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="180"/>
+        <location filename="../components/ui/Ui_main.py" line="182"/>
         <source>About</source>
         <translation>关于</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="181"/>
+        <location filename="../components/ui/Ui_main.py" line="183"/>
         <source>Exit</source>
         <translation>退出</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="182"/>
+        <location filename="../components/ui/Ui_main.py" line="184"/>
         <source>None</source>
         <translation>无</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="183"/>
+        <location filename="../components/ui/Ui_main.py" line="185"/>
         <source>Report Issue</source>
         <translation>报告问题</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="184"/>
+        <location filename="../components/ui/Ui_main.py" line="186"/>
         <source>Documents</source>
         <translation>文档</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="185"/>
+        <location filename="../components/ui/Ui_main.py" line="187"/>
         <source>Alarm Sound</source>
         <translation>声音</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="186"/>
+        <location filename="../components/ui/Ui_main.py" line="188"/>
         <source>Check for Updates</source>
         <translation>检查更新</translation>
     </message>
@@ -561,7 +561,7 @@
         <translation>离线</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="575"/>
+        <location filename="../app/main.py" line="585"/>
         <source>New version found {}, do you want to download now?</source>
         <translation>发现新版本 {}，想现在下载么？</translation>
     </message>
@@ -581,22 +581,22 @@
         <translation>闹钟</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="187"/>
+        <location filename="../components/ui/Ui_main.py" line="189"/>
         <source>Previous Page</source>
         <translation>上一页</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="188"/>
+        <location filename="../components/ui/Ui_main.py" line="190"/>
         <source>Next Page</source>
         <translation>下一页</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="570"/>
+        <location filename="../app/main.py" line="580"/>
         <source>The current version is already the latest version.</source>
         <translation>当前版本已经是最新版本</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="564"/>
+        <location filename="../app/main.py" line="574"/>
         <source>Unable to get the latest version information.</source>
         <translation>无法获取最新版本信息</translation>
     </message>
@@ -631,7 +631,7 @@
         <translation>发布 {}</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="172"/>
+        <location filename="../components/ui/Ui_main.py" line="174"/>
         <source>Issue</source>
         <translation>编发</translation>
     </message>
@@ -656,22 +656,22 @@
         <translation>版本</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="189"/>
+        <location filename="../components/ui/Ui_main.py" line="191"/>
         <source>Remove License</source>
         <translation>删除证书</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main.py" line="190"/>
+        <location filename="../components/ui/Ui_main.py" line="192"/>
         <source>Enter License</source>
         <translation>输入证书</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="581"/>
+        <location filename="../app/main.py" line="591"/>
         <source>Remove license key? </source>
         <translation>删除注册信息？</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="582"/>
+        <location filename="../app/main.py" line="592"/>
         <source>Remove license key? This will revert tafor to an unregistered state.</source>
         <translation>删除注册信息？这会恢复到未注册状态。</translation>
     </message>
@@ -694,6 +694,27 @@
         <location filename="../app/main.py" line="239"/>
         <source>Received a new {} message.</source>
         <translation>收到一条新的 {} 报文</translation>
+    </message>
+    <message>
+        <location filename="../components/ui/Ui_main.py" line="193"/>
+        <source>Token</source>
+        <translation>令牌</translation>
+    </message>
+    <message>
+        <location filename="../app/main.py" line="549"/>
+        <source>Authentication Token</source>
+        <translation>认证令牌</translation>
+    </message>
+    <message>
+        <location filename="../app/main.py" line="549"/>
+        <source>The authentication token for the RPC service has been copied to the clipboard.
+
+{}
+</source>
+        <translation>适用于 RPC 服务的认证令牌已经被复制到剪贴板。
+
+{}
+</translation>
     </message>
 </context>
 <context>

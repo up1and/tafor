@@ -253,6 +253,7 @@ class EnvironState(object):
     2TKLicLL6vcidL4QkXdhRaZTJyd8pYI6Su+FUK7mcaBDpEaUl9xWupJnjsfKx1bf
     WQIDAQAB
     -----END PUBLIC KEY-----"""
+    authToken = 'VGhlIFZveWFnZSBvZiB0aGUgTW9vbg=='
     exp = 0
 
     def environment(self):
@@ -283,6 +284,9 @@ class EnvironState(object):
         else:
             from tafor.utils import gitRevisionHash
             return gitRevisionHash()
+
+    def token(self):
+        return conf.value('AuthToken') or self.authToken
 
     def license(self):
         from tafor.utils import verifyToken

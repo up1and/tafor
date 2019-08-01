@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\main.ui'
 #
-# Created by: PyQt5 UI code generator 5.6
+# Created by: PyQt5 UI code generator 5.11.3
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -24,10 +24,10 @@ class Ui_MainWindow(object):
         self.mainTab.setObjectName("mainTab")
         self.recentTab = QtWidgets.QWidget()
         self.recentTab.setObjectName("recentTab")
-        self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.recentTab)
-        self.verticalLayout_3.setSizeConstraint(QtWidgets.QLayout.SetDefaultConstraint)
-        self.verticalLayout_3.setContentsMargins(0, 0, 0, 0)
-        self.verticalLayout_3.setObjectName("verticalLayout_3")
+        self.recentLayout = QtWidgets.QVBoxLayout(self.recentTab)
+        self.recentLayout.setSizeConstraint(QtWidgets.QLayout.SetDefaultConstraint)
+        self.recentLayout.setContentsMargins(0, 0, 0, 0)
+        self.recentLayout.setObjectName("recentLayout")
         self.recentArea = QtWidgets.QScrollArea(self.recentTab)
         self.recentArea.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.recentArea.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
@@ -36,14 +36,14 @@ class Ui_MainWindow(object):
         self.recentArea.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
         self.recentArea.setObjectName("recentArea")
         self.scrollContents = QtWidgets.QWidget()
-        self.scrollContents.setGeometry(QtCore.QRect(0, 0, 828, 544))
+        self.scrollContents.setGeometry(QtCore.QRect(0, 0, 846, 562))
         self.scrollContents.setStyleSheet("background:#fff")
         self.scrollContents.setObjectName("scrollContents")
-        self.recentLayout = QtWidgets.QVBoxLayout(self.scrollContents)
-        self.recentLayout.setSizeConstraint(QtWidgets.QLayout.SetDefaultConstraint)
-        self.recentLayout.setContentsMargins(0, 0, 0, 0)
-        self.recentLayout.setSpacing(0)
-        self.recentLayout.setObjectName("recentLayout")
+        self.scrollLayout = QtWidgets.QVBoxLayout(self.scrollContents)
+        self.scrollLayout.setSizeConstraint(QtWidgets.QLayout.SetDefaultConstraint)
+        self.scrollLayout.setContentsMargins(0, 0, 0, 0)
+        self.scrollLayout.setSpacing(0)
+        self.scrollLayout.setObjectName("scrollLayout")
         self.tips = QtWidgets.QWidget(self.scrollContents)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -54,9 +54,9 @@ class Ui_MainWindow(object):
         self.tipsLayout = QtWidgets.QHBoxLayout(self.tips)
         self.tipsLayout.setContentsMargins(10, 20, 10, 20)
         self.tipsLayout.setObjectName("tipsLayout")
-        self.recentLayout.addWidget(self.tips)
+        self.scrollLayout.addWidget(self.tips)
         self.recentArea.setWidget(self.scrollContents)
-        self.verticalLayout_3.addWidget(self.recentArea)
+        self.recentLayout.addWidget(self.recentArea)
         self.mainTab.addTab(self.recentTab, "")
         self.tafTab = QtWidgets.QWidget()
         self.tafTab.setObjectName("tafTab")
@@ -136,6 +136,8 @@ class Ui_MainWindow(object):
         self.removeLicenseAction.setObjectName("removeLicenseAction")
         self.enterLicenseAction = QtWidgets.QAction(MainWindow)
         self.enterLicenseAction.setObjectName("enterLicenseAction")
+        self.tokenAction = QtWidgets.QAction(MainWindow)
+        self.tokenAction.setObjectName("tokenAction")
         self.issueMenu.addAction(self.tafAction)
         self.issueMenu.addAction(self.trendAction)
         self.issueMenu.addAction(self.sigmetAction)
@@ -188,6 +190,7 @@ class Ui_MainWindow(object):
         self.nextPageAction.setText(_translate("MainWindow", "Next Page"))
         self.removeLicenseAction.setText(_translate("MainWindow", "Remove License"))
         self.enterLicenseAction.setText(_translate("MainWindow", "Enter License"))
+        self.tokenAction.setText(_translate("MainWindow", "Token"))
 
 
 if __name__ == "__main__":

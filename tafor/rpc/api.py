@@ -7,8 +7,6 @@ from tafor.states import context
 from tafor.utils import boolean, TafParser, SigmetParser, MetarParser
 
 
-AUTH_TOKEN = 'VGhlIFZveWFnZSBvZiB0aGUgTW9vbg=='
-
 
 def parse_taf(message, kwargs):
     parser = TafParser(message, **kwargs)
@@ -75,7 +73,7 @@ def authorize(req, resp, resource, params):
         raise falcon.HTTPUnauthorized('Bearer Token Required', description, challenges)
 
     authType, token = req.auth.split(None, 1)
-    if authType == 'Bearer' and token == AUTH_TOKEN:
+    if authType == 'Bearer' and token == context.environ.token():
         req.context.user = 'webapi'
     else:
         description = ('The provided auth token is not valid. Please request a new token and try again.')
@@ -162,6 +160,7 @@ class StateResource(object):
 
 class NotificationResource(object):
 
+    @falcon.before(authorize)
     def on_post(self, req, resp):
         message = req.get_param('message') or req.context.body.get('message')
 

@@ -181,7 +181,7 @@ def find_key(message):
 def marshal(messages, international_mode=False):
     resp_dict = {}
     for message in messages:
-        pattern = re.compile(r'(0[1-9]|[12][0-9]|3[0-1])(0009|0312|0615|0918|1221|1524|1803|2106|0024|0606|1212|1818)')
+        pattern = re.compile(r'\b(0[1-9]|[12][0-9]|3[0-1])(0009|0312|0615|0918|1221|1524|1803|2106|0024|0606|1212|1818)\b')
         if international_mode and pattern.search(message):
             message = conversion(message)
 

@@ -101,7 +101,7 @@
 
 - **mobile** 所要呼叫的手机号
 
-.. note:: 认证 token 需要电话服务网站注册账号后生成，可以在设置 -> 电话服务中更改相关设置。
+.. note:: 认证 token 需要电话服务网站注册账号后生成，可以在 设置 -> 电话服务 中更改相关设置。
 
 响应
 ----------
@@ -264,6 +264,7 @@ SIGMET/AIRMET 报文验证类似，不再做举例。
 .. code-block:: http
 
     POST /api/notifications HTTP/1.1
+    Authorization: Bearer VGhlIFZveWFnZSBvZiB0aGUgTW9vbg==
 
 参数：
 
@@ -283,3 +284,34 @@ SIGMET/AIRMET 报文验证类似，不再做举例。
         "message": "METAR ZJHK 210600Z 26002MPS 200V300 9999 BKN030 36/27 Q1004 NOSIG=",
         "created": "Fri, 21 Jun 2019 05:57:34 GMT"
     }
+
+
+显示 SIGMET/AIRMET 报文
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: http
+
+    POST /api/notifications HTTP/1.1
+    Authorization: Bearer VGhlIFZveWFnZSBvZiB0aGUgTW9vbg==
+
+参数：
+
+- **message** 报文内容
+
+示例：
+
+.. code-block:: text
+
+    message=ZJSA SIGMET 1 VALID 300755/301155 ZJHK- ZJSA SANYA FIR EMBD TS OBS AT 0115Z WI N1906 E11150 - N1731 E10815 - N1904 E10702 - N2030 E10802 - N2030 E11130 - N1930 E11130 - N1906 E11150 TOP FL300 MOV N 20KMH NC=
+
+返回数据：
+
+.. code-block:: json
+
+    {
+        "message": "ZJSA SIGMET 1 VALID 300755/301155 ZJHK- ZJSA SANYA FIR EMBD TS OBS AT 0115Z WI N1906 E11150 - N1731 E10815 - N1904 E10702 - N2030 E10802 - N2030 E11130 - N1930 E11130 - N1906 E11150 TOP FL300 MOV N 20KMH NC=",
+        "created": "Sun, 30 Jun 2019 07:49:37 GMT"
+    }
+
+
+.. note:: Bearer Token 默认值为 `VGhlIFZveWFnZSBvZiB0aGUgTW9vbg==`，可在 关于 -> 令牌 中查看，程序运行目录命令行下输入 ``tafor token --generate`` 可用于重新生成令牌，建议在初次设置后重新生成令牌。
