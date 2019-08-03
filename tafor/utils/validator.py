@@ -1037,8 +1037,11 @@ class SigmetLexer(object):
 
         :return: 是否是特殊名字
         """
+        hasNumber = lambda chars: any(char.isdigit() for char in chars)
         try:
-            if parts[index-1] in ['TC', 'MT'] or parts[index] == self.firCode:
+            if parts[index] == self.firCode \
+                or parts[index-1] == 'MT' \
+                or (parts[index-1] == 'TC' and not hasNumber(parts[index-2])):
                 return True
 
         except IndexError:
