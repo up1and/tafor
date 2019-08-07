@@ -31,7 +31,7 @@ Tafor 采取便携的安装方式，可以放置在任意目录下，结构如�
     |-- sounds
         |-- alarm.wav
         |-- notification.wav
-        |-- notification-incomming.wav
+        |-- notification-incoming.wav
         |-- ring.wav
         |-- sigmet.wav
         |-- trend.wav

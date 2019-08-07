@@ -228,13 +228,13 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.checkUpgradeThread.doneSignal.connect(self.checkUpgrade)
 
     def loadMetar(self):
-        self.incommingSound.play(loop=False)
+        self.incomingSound.play(loop=False)
         self.trendEditor.loadMetar()
         self.showNotificationMessage(QCoreApplication.translate('MainWindow', 'Message Received'),
                 QCoreApplication.translate('MainWindow', 'Received a new {} message.').format(context.notification.metar.type()))
 
     def loadSigmet(self):
-        self.incommingSound.play(loop=False)
+        self.incomingSound.play(loop=False)
         self.sigmetEditor.loadSigmet()
         self.showNotificationMessage(QCoreApplication.translate('MainWindow', 'Message Received'),
                 QCoreApplication.translate('MainWindow', 'Received a new {} message.').format(context.notification.sigmet.type()))
@@ -242,7 +242,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def setSound(self):
         self.ringSound = Sound('ring.wav', conf.value('Monitor/RemindTAFVolume'))
         self.notificationSound = Sound('notification.wav', 100)
-        self.incommingSound = Sound('notification-incomming.wav', 100)
+        self.incomingSound = Sound('notification-incoming.wav', 100)
         self.alarmSound = Sound('alarm.wav', conf.value('Monitor/WarnTAFVolume'))
         self.trendSound = Sound('trend.wav', conf.value('Monitor/RemindTrendVolume'))
         self.sigmetSound = Sound('sigmet.wav', conf.value('Monitor/RemindSIGMETVolume'))
