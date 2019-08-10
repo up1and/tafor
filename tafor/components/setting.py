@@ -114,16 +114,16 @@ def isConfigured(reportType='TAF'):
     values = [conf.value(path) for path in options]
     return all(values)
 
-def loadConf(filename):
+def loadConf(filename, options):
     with open(filename) as file:
         data = json.load(file)
 
     for path, val in data.items():
-        conf.setValue(path, val)
+        if path in options:
+            conf.setValue(path, val)
 
 def saveConf(filename, options):
-    paths = [option[0] for option in options]
-    data = {path: conf.value(path) for path in paths}
+    data = {path: conf.value(path) for path in options}
     with open(filename, 'w') as file:
         json.dump(data, file)
 
@@ -347,6 +347,9 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.parent.updateGui()
 
     def hasValueChanged(self, key):
+        if key not in self.options:
+            return False
+
         prev = self.prevConf[key]
         category = self.options[key]['type']
         option = getattr(self, self.options[key]['object'])
@@ -356,6 +359,11 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             prev = boolean(prev)
 
         return prev != value
+
+    def cachePrevConf(self):
+        self.prevConf = {}
+        for path in self.options:
+            self.prevConf[path] = conf.value(path)
 
     def promptRestartRequired(self):
         title = QCoreApplication.translate('Settings', 'Restart Required')
@@ -371,9 +379,8 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         else:
             self.autoRun.remove('Tafor')
 
-        self.prevConf = {}
+        self.cachePrevConf()
         for key, value in self.options.items():
-            self.prevConf[key] = conf.value(key)
             self.setValue(key, value['object'], value['type'])
 
     def load(self):
@@ -470,7 +477,8 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
     def importConf(self):
         filename = self.importPath.text()
         try:
-            loadConf(filename)
+            self.cachePrevConf()
+            loadConf(filename, self.options)
 
         except Exception as e:
             logger.error(e)
