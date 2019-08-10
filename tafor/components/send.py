@@ -107,6 +107,13 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             self.setWindowTitle(QCoreApplication.translate('Sender', 'View Message'))
             self.rawGroup.setTitle(QCoreApplication.translate('Sender', 'Raw Data'))
 
+            if self.line() == 'ftp':
+                text = self.item.file
+            else:
+                text = self.item.rawText() or self.item.file
+
+            self.raw.setText(text)
+
             if not self.item.confirmed and datetime.datetime.utcnow() - self.item.sent < datetime.timedelta(hours=2):
                 self.resendButton.show()
 
@@ -125,17 +132,8 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.mode = mode
         if mode == 'view':
             self.item = message['item']
-            self.parse(message)
-            self.mode = 'view'
-            if self.line() == 'ftp':
-                text = self.item.file
-            else:
-                text = self.item.rawText() or self.item.file
-            self.raw.setText(text)
-
-        if mode == 'send':
-            self.parse(message)
-
+        
+        self.parse(message)
         self.setMode(mode)
 
     def parse(self, message):
@@ -240,13 +238,14 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             self.save()
 
     def save(self):
-        if self.item:
+        if self.item and self.item.uuid == self.message['uuid']:
             if self.error and self.generator or not self.error:
                 setattr(self.item, self.channel.field, self.generator.toJson())
             self.item.sent = datetime.datetime.utcnow()
             logger.debug('Resend ' + self.item.rpt)
         else:
-            self.item = self.model(tt=self.message['sign'][0:2], sign=self.message['sign'], rpt=self.message['rpt'])
+            self.item = self.model(uuid=self.message['uuid'],
+                tt=self.message['sign'][0:2], sign=self.message['sign'], rpt=self.message['rpt'])
             setattr(self.item, self.channel.field, self.generator.toJson())
             logger.debug('Send ' + self.item.rpt)
 
@@ -283,7 +282,8 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         editor.print(printer)
 
     def cancel(self):
-        if (self.error or not self.sendButton.isHidden()) and self.mode == 'send':
+        if (self.error or not self.sendButton.isHidden()) and self.mode == 'send' \
+            and (self.sendButton.isEnabled() or self.resendButton.isEnabled()):
             self.backSignal.emit()
         else:
             self.closeSignal.emit()
@@ -380,11 +380,11 @@ class TrendSender(BaseSender):
         self.resizeRpt()
 
     def save(self):
-        if self.item:
+        if self.item and self.item.uuid == self.message['uuid']:
             self.item.sent = datetime.datetime.utcnow()
             logger.debug('Resend ' + self.item.rpt)
         else:
-            self.item = Trend(sign=self.message['sign'], rpt=self.message['rpt'], raw=self.generator.toJson())
+            self.item = Trend(uuid=self.message['uuid'], sign=self.message['sign'], rpt=self.message['rpt'], raw=self.generator.toJson())
             logger.debug('Send ' + self.item.rpt)
 
         db.add(self.item)

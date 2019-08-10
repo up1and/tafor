@@ -3,6 +3,8 @@ import re
 import json
 import datetime
 
+from uuid import uuid4
+
 from sqlalchemy import Column, Integer, String, Text, DateTime, create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.schema import ForeignKey
@@ -17,11 +19,13 @@ else:
 
 Base = declarative_base()
 
+randomid = lambda: str(uuid4())
 
 class Taf(Base):
     __tablename__ = 'tafs'
 
     id = Column(Integer, primary_key=True)
+    uuid = Column(String(36))
     tt = Column(String(2), nullable=False)
     sign = Column(String(36))
     rpt = Column(Text, nullable=False)
@@ -31,7 +35,11 @@ class Taf(Base):
     sent = Column(DateTime, default=datetime.datetime.utcnow)
     confirmed = Column(DateTime)
 
-    def __init__(self, tt, rpt, sign=None, raw=None, file=None, source='self', confirmed=None):
+    def __init__(self, tt, rpt, uuid=None, sign=None, raw=None, file=None, source='self', confirmed=None):
+        if uuid is None:
+            uuid = randomid()
+
+        self.uuid = uuid
         self.tt = tt
         self.sign = sign
         self.rpt = rpt
@@ -71,6 +79,7 @@ class Metar(Base):
     __tablename__ = 'metars'
 
     id = Column(Integer, primary_key=True)
+    uuid = Column(String(36), default=randomid)
     tt = Column(String(2), nullable=False)
     rpt = Column(Text, nullable=False)
     created = Column(DateTime, default=datetime.datetime.utcnow)
@@ -107,13 +116,18 @@ class Trend(Base):
     __tablename__ = 'trends'
 
     id = Column(Integer, primary_key=True)
+    uuid = Column(String(36))
     sign = Column(String(36))
     rpt = Column(Text, nullable=False)
     raw = Column(Text)
     source = Column(String(16))
     sent = Column(DateTime, default=datetime.datetime.utcnow)
 
-    def __init__(self, sign, rpt, raw=None, source='self'):
+    def __init__(self, sign, rpt, uuid=None, raw=None, source='self'):
+        if uuid is None:
+            uuid = randomid()
+
+        self.uuid = uuid
         self.sign = sign
         self.rpt = rpt
         self.raw = raw
@@ -143,6 +157,7 @@ class Sigmet(Base):
     __tablename__ = 'sigmets'
 
     id = Column(Integer, primary_key=True)
+    uuid = Column(String(36))
     tt = Column(String(2), nullable=False)
     sign = Column(String(36))
     rpt = Column(Text, nullable=False)
@@ -152,7 +167,11 @@ class Sigmet(Base):
     sent = Column(DateTime, default=datetime.datetime.utcnow)
     confirmed = Column(DateTime, nullable=True)
 
-    def __init__(self, tt, sign, rpt, raw=None, file=None, source='self', confirmed=None):
+    def __init__(self, tt, sign, rpt, uuid=None, raw=None, file=None, source='self', confirmed=None):
+        if uuid is None:
+            uuid = randomid()
+
+        self.uuid = uuid
         self.tt = tt
         self.sign = sign
         self.rpt = rpt
@@ -196,6 +215,7 @@ class Other(Base):
     __tablename__ = 'others'
 
     id = Column(Integer, primary_key=True)
+    uuid = Column(String(36))
     tt = Column(String(2))
     sign = Column(String(36))
     rpt = Column(Text, nullable=False)
@@ -204,7 +224,10 @@ class Other(Base):
     source = Column(String(16))
     sent = Column(DateTime, default=datetime.datetime.utcnow)
 
-    def __init__(self, tt, rpt, sign=None, raw=None, file=None, source='self'):
+    def __init__(self, tt, rpt, uuid=None, sign=None, raw=None, file=None, source='self'):
+        if uuid is None:
+            uuid = randomid()
+
         self.tt = tt
         self.sign = sign
         self.rpt = rpt

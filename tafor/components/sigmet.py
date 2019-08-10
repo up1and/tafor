@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QVBoxLayout, QLayout
 
@@ -152,7 +154,8 @@ class SigmetEditor(BaseEditor):
     def previewMessage(self):
         self.rpt = self.currentSegment.message()
         self.sign = self.type.message()
-        message = {'sign': self.sign, 'rpt': self.rpt}
+        uuid = str(uuid4())
+        message = {'sign': self.sign, 'rpt': self.rpt, 'uuid': uuid}
         self.previewSignal.emit(message)
 
     def enbaleNextButton(self):

@@ -36,7 +36,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.prevButton.clicked.connect(self.prev)
         self.nextButton.clicked.connect(self.next)
         self.table.itemSelectionChanged.connect(self.updateInfoButton)
-        self.infoButton.clicked.connect(self.resend)
+        self.infoButton.clicked.connect(self.view)
 
     def setStyle(self):
         header = self.table.horizontalHeader()
@@ -144,8 +144,9 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.parent.clip.setText(item.text())
         self.parent.statusBar.showMessage(QCoreApplication.translate('MainWindow', 'Selected message has been copied'), 5000)
 
-    def resend(self):
+    def view(self):
         message = {
+            'uuid': self.selected.uuid,
             'item': self.selected,
             'sign': self.selected.sign,
             'rpt': self.selected.rpt,

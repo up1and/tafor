@@ -1,5 +1,7 @@
 import datetime
 
+from uuid import uuid4
+
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox, QVBoxLayout, QLayout
@@ -224,7 +226,8 @@ class TafEditor(BaseTafEditor):
         self.primary.date.setEnabled(False)
 
     def previewMessage(self):
-        message = {'sign': self.sign, 'rpt': self.rpt}
+        uuid = str(uuid4())
+        message = {'sign': self.sign, 'rpt': self.rpt, 'uuid': uuid}
         self.previewSignal.emit(message)
 
 

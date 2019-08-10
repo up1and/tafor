@@ -1,5 +1,7 @@
 import datetime
 
+from uuid import uuid4
+
 from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLayout
 
@@ -65,7 +67,8 @@ class TrendEditor(BaseEditor):
         self.sign = conf.value('Message/TrendSign')
 
     def previewMessage(self):
-        message = {'sign': self.sign, 'rpt': self.rpt}
+        uuid = str(uuid4())
+        message = {'sign': self.sign, 'rpt': self.rpt, 'uuid': uuid}
         self.previewSignal.emit(message)
 
     def clear(self):
