@@ -1,3 +1,4 @@
+import re
 import datetime
 
 from itertools import cycle
@@ -174,6 +175,9 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
 
         sequence = QRegExpValidator(QRegExp(self.rules.sequence))
         self.sequence.setValidator(sequence)
+
+        name = QRegExpValidator(QRegExp(r'[A-Za-z0-9-]+'))
+        self.name.setValidator(name)
 
     def setSquence(self):
         time = datetime.datetime.utcnow()
@@ -1172,8 +1176,16 @@ class SigmetCustomContent(BaseSigmetContent, Ui_sigmet_custom.Ui_Editor):
         self.setUpper()
 
     def message(self):
-        text = self.text.toPlainText().upper()
-        return text
+        return self.text.toPlainText()
+
+    def filterText(self):
+        origin = self.text.toPlainText()
+        text = re.sub(r'[^A-Za-z0-9\s-]+', '', origin)
+        text = text.upper()
+        if origin != text:
+            cursor = self.text.textCursor()
+            self.text.setText(text)
+            self.text.setTextCursor(cursor)
 
     def setUpper(self):
         upper = QTextCharFormat()
@@ -1181,6 +1193,7 @@ class SigmetCustomContent(BaseSigmetContent, Ui_sigmet_custom.Ui_Editor):
         self.text.setCurrentCharFormat(upper)
 
     def bindSignal(self):
+        self.text.textChanged.connect(self.filterText)
         self.text.textChanged.connect(self.checkComplete)
 
     def checkComplete(self):
