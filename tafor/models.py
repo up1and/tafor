@@ -17,36 +17,23 @@ if os.environ.get('TAFOR_ENV') == 'TEST':
 else:
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(root, 'db.sqlite3')
 
-Base = declarative_base()
+uniqueid = lambda: str(uuid4())
 
-randomid = lambda: str(uuid4())
+Base = declarative_base()
 
 class Taf(Base):
     __tablename__ = 'tafs'
 
     id = Column(Integer, primary_key=True)
-    uuid = Column(String(36))
+    uuid = Column(String(36), default=uniqueid)
     tt = Column(String(2), nullable=False)
     sign = Column(String(36))
     rpt = Column(Text, nullable=False)
     raw = Column(Text)
     file = Column(Text)
-    source = Column(String(16))
+    source = Column(String(16), default='self')
     sent = Column(DateTime, default=datetime.datetime.utcnow)
     confirmed = Column(DateTime)
-
-    def __init__(self, tt, rpt, uuid=None, sign=None, raw=None, file=None, source='self', confirmed=None):
-        if uuid is None:
-            uuid = randomid()
-
-        self.uuid = uuid
-        self.tt = tt
-        self.sign = sign
-        self.rpt = rpt
-        self.raw = raw
-        self.file = file
-        self.source = source
-        self.confirmed = confirmed
 
     def __repr__(self):
         return '<TAF %r %r>' % (self.tt, self.rpt)
@@ -79,14 +66,10 @@ class Metar(Base):
     __tablename__ = 'metars'
 
     id = Column(Integer, primary_key=True)
-    uuid = Column(String(36), default=randomid)
+    uuid = Column(String(36), default=uniqueid)
     tt = Column(String(2), nullable=False)
     rpt = Column(Text, nullable=False)
     created = Column(DateTime, default=datetime.datetime.utcnow)
-
-    def __init__(self, tt, rpt):
-        self.tt = tt
-        self.rpt = rpt
 
     def __repr__(self):
         return '<METAR %r %r>' % (self.tt, self.rpt)
@@ -103,12 +86,6 @@ class Task(Base):
 
     taf_id = Column(Integer, ForeignKey('tafs.id'))
 
-    def __init__(self, tt, sign, rpt, planning):
-        self.tt = tt
-        self.sign = sign
-        self.rpt = rpt
-        self.planning = planning
-
     def __repr__(self):
         return '<Task %r %r %r>' % (self.tt, self.rpt, self.planning)
 
@@ -116,22 +93,12 @@ class Trend(Base):
     __tablename__ = 'trends'
 
     id = Column(Integer, primary_key=True)
-    uuid = Column(String(36))
+    uuid = Column(String(36), default=uniqueid)
     sign = Column(String(36))
     rpt = Column(Text, nullable=False)
     raw = Column(Text)
-    source = Column(String(16))
+    source = Column(String(16), default='self')
     sent = Column(DateTime, default=datetime.datetime.utcnow)
-
-    def __init__(self, sign, rpt, uuid=None, raw=None, source='self'):
-        if uuid is None:
-            uuid = randomid()
-
-        self.uuid = uuid
-        self.sign = sign
-        self.rpt = rpt
-        self.raw = raw
-        self.source = source
 
     def __repr__(self):
         return '<Trend %r>' % (self.rpt)
@@ -157,31 +124,18 @@ class Sigmet(Base):
     __tablename__ = 'sigmets'
 
     id = Column(Integer, primary_key=True)
-    uuid = Column(String(36))
+    uuid = Column(String(36), default=uniqueid)
     tt = Column(String(2), nullable=False)
     sign = Column(String(36))
     rpt = Column(Text, nullable=False)
     raw = Column(Text)
     file = Column(Text)
-    source = Column(String(16))
+    source = Column(String(16), default='self')
     sent = Column(DateTime, default=datetime.datetime.utcnow)
     confirmed = Column(DateTime, nullable=True)
 
-    def __init__(self, tt, sign, rpt, uuid=None, raw=None, file=None, source='self', confirmed=None):
-        if uuid is None:
-            uuid = randomid()
-
-        self.uuid = uuid
-        self.tt = tt
-        self.sign = sign
-        self.rpt = rpt
-        self.raw = raw
-        self.file = file
-        self.source = source
-        self.confirmed = confirmed
-
     def __repr__(self):
-        return '<Sigmet %r %r>' % (self.tt, self.rpt)
+        return '<SIGMET %r %r>' % (self.tt, self.rpt)
 
     @property
     def report(self):
@@ -215,25 +169,17 @@ class Other(Base):
     __tablename__ = 'others'
 
     id = Column(Integer, primary_key=True)
-    uuid = Column(String(36))
+    uuid = Column(String(36), default=uniqueid)
     tt = Column(String(2))
     sign = Column(String(36))
     rpt = Column(Text, nullable=False)
     raw = Column(Text)
     file = Column(Text)
-    source = Column(String(16))
+    source = Column(String(16), default='self')
     sent = Column(DateTime, default=datetime.datetime.utcnow)
 
-    def __init__(self, tt, rpt, uuid=None, sign=None, raw=None, file=None, source='self'):
-        if uuid is None:
-            uuid = randomid()
-
-        self.tt = tt
-        self.sign = sign
-        self.rpt = rpt
-        self.raw = raw
-        self.file = file
-        self.source = source
+    def __repr__(self):
+        return '<Other %r %r>' % (self.tt, self.rpt)
 
 class User(Base):
     __tablename__ = 'users'
@@ -241,10 +187,6 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(8))
     mobile = Column(String(20))
-
-    def __init__(self, name, mobile):
-        self.name = name
-        self.mobile = mobile
 
     def __repr__(self):
         return '<User %r %r>' % (self.name, self.mobile)
