@@ -25,6 +25,13 @@ root = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__, static_url_path='/static')
 
+fir_codes = {
+    'ZJHK': 'ZJSA',
+    'ZGGG': 'ZGZU',
+    'ZHHH': 'ZHWH',
+    'ZUUU': 'ZPKM',
+    'ZWWW': 'ZWUQ',
+}
 
 def parse_hour_minute(hour, minute, basetime):
     hour = 0 if hour == '24' else int(hour)
@@ -42,6 +49,13 @@ def parse_day_hour(day, hour, basetime):
         time = datetime.datetime(basetime.year, basetime.month, day) + datetime.timedelta(days=1)
     else:
         time = datetime.datetime(basetime.year, basetime.month, day, hour)
+    return time
+
+def parse_day_hour_minute(day, hour, minute, basetime):
+    day = int(day)
+    hour = int(hour)
+    minute = int(minute)
+    time = datetime.datetime(basetime.year, basetime.month, day, hour, minute)
     return time
 
 def generate_day_hour(time, end=False):
@@ -71,8 +85,12 @@ def parse_intl_period(period):
     if max([int(start[:2]), int(end[:2])]) > calendar.monthrange(basetime.year, basetime.month)[1]:
         basetime -= relativedelta.relativedelta(months=1)
 
-    start = parse_day_hour(start[:2], start[2:], basetime)
-    end = parse_day_hour(end[:2], end[2:], basetime)
+    if len(start) == 4:
+        start = parse_day_hour(start[:2], start[2:], basetime)
+        end = parse_day_hour(end[:2], end[2:], basetime)
+    else:
+        start = parse_day_hour_minute(start[:2], start[2:4], start[4:], basetime)
+        end = parse_day_hour_minute(end[:2], end[2:4], end[4:], basetime)
 
     if end <= start:
         end += relativedelta.relativedelta(months=1)
@@ -178,6 +196,22 @@ def find_key(message):
             else:
                 return 'FT'
 
+    pieces = message.split()
+    if 'AIRMET' in pieces:
+        return 'WA'
+
+    if 'SIGMET' in pieces:
+        if 'TC' in pieces:
+            return 'WC'
+        elif 'VA' in pieces:
+            return 'WV'
+        else:
+            return 'WS'
+
+def find_sigmet_period(message):
+    pattern = re.compile(r'(\d{6}/\d{6})')
+    return pattern.search(message).group()
+
 def marshal(messages, international_mode=False):
     resp_dict = {}
     for message in messages:
@@ -186,6 +220,18 @@ def marshal(messages, international_mode=False):
             message = conversion(message)
 
         resp_dict[find_key(message)] = message
+
+    return resp_dict
+
+def marshal_multiple(messages):
+    resp_dict = {}
+    for message in messages:
+        key = find_key(message)
+        if key and key in resp_dict:
+            resp_dict[key].append(message)
+
+        if key and key not in resp_dict:
+            resp_dict[key] = [message]
 
     return resp_dict
 
@@ -274,8 +320,10 @@ def process_echo(source):
 def index():
     return render_template('index.html')
 
-@app.route('/latest/<airport>.json')
-def latest(airport):
+@app.route('/messages/<airport>')
+def latest_messsage(airport):
+    airport = airport.upper()
+    fir = fir_codes.get(airport, None)
     cookies = {
         'LoginCookiesGuid': '5274c2de-632d-4611-ac89-8fc3e173',
         'LoginCookiesName': 'ZJHK'
@@ -288,45 +336,91 @@ def latest(airport):
         soup = BeautifulSoup(html, "html.parser")
         items = [tag.string.strip() for tag in soup.find_all('td') if tag.string is not None]
         messages = list(filter(lambda message: airport.upper() in message, items))
-
-        return jsonify(marshal(messages))
+        messages = marshal(messages)
 
     except Exception as e:
         app.logger.exception(e)
         return jsonify({'error': '{} not found'.format(airport)}), 404
 
-@app.route('/remote/latest/<airport>.json')
-def remote_latest(airport):
+    if fir:
+        try:
+            pass
+
+        except Exception as e:
+            app.logger.exception(e)
+
+    return jsonify(messages)
+
+@app.route('/remote/messages/<airport>')
+def remote_latest_message(airport):
+    airport = airport.upper()
+    fir = fir_codes.get(airport, None)
     url = 'http://www.amsc.net.cn/Page/BaoWenJianSuo/BaoWenJianSuoHandler.ashx'
     post_data = {
-        'cmd':'BaoWenJianSuo',
+        'cmd': 'BaoWenJianSuo',
         'IsCCCC': '1',
         'CCCC': airport,
-        'NewCount':1,
-        'StarDate':'',
-        'EndDate':'',
-        'IsSA':1,
-        'IsSP':1,
-        'IsFC':1,
-        'IsFT':1,
-        'IsOther':'',
-        'LianJie':'',
-        'YaoSu':'',
-        'YunSuanFu':'',
-        'ShuZhi':''
+        'NewCount': 1,
+        'StarDate': '',
+        'EndDate': '',
+        'IsSA': 1,
+        'IsSP': 1,
+        'IsFC': 1,
+        'IsFT': 1,
+        'IsOther': '',
+        'LianJie': '',
+        'YaoSu': '',
+        'YunSuanFu': '',
+        'ShuZhi': ''
+    }
+
+    sigmet_post_data = {
+        'cmd': 'BaoWenJianSuo',
+        'IsCCCC': '1',
+        'CCCC': fir,
+        'NewCount': 0,
+        'IsSA': 0,
+        'IsSP': 0,
+        'IsFC': 0,
+        'IsFT': 0,
+        'IsOther': "'WS''WV''WA''WC'",
+        'LianJie': '',
+        'YaoSu': '',
+        'YunSuanFu': '',
+        'ShuZhi': ''
     }
 
     try:
-        response = requests.post(url, params=post_data, timeout=30)
+        response = requests.post(url, params=post_data, timeout=20)
         messages = [msg['RPT'].strip().replace('\n', ' ') for msg in response.json()]
-
-        return jsonify(marshal(messages, international_mode=True))
+        messages = marshal(messages, international_mode=True)
 
     except Exception as e:
         app.logger.exception(e)
         return jsonify({'error': '{} not found'.format(airport)}), 404
 
-@app.route('/fir/<mwo>.json')
+    if fir:
+        try:
+            fmt = '%Y-%m-%d %H:%M:%S'
+            end = datetime.datetime.utcnow()
+            start = end - datetime.timedelta(hours=10)
+            sigmet_post_data['StarDate'] = start.strftime(fmt)
+            sigmet_post_data['EndDate'] = end.strftime(fmt)
+
+            endtime = lambda x: parse_intl_period(find_sigmet_period(x))[1]
+            response = requests.post(url, params=sigmet_post_data, timeout=20)
+            sigmets = [msg['RPT'].strip().replace('\n', ' ') for msg in response.json() if endtime(msg['RPT']) >= end]
+            sigmets.sort(key=endtime)
+            sigmets = marshal_multiple(sigmets)
+            messages.update(sigmets)
+
+        except Exception as e:
+            app.logger.exception(e)
+
+    return jsonify(messages)
+
+
+@app.route('/firs/<mwo>')
 def fir(mwo):
     mwo = mwo.upper()
     funcs = {
@@ -361,7 +455,7 @@ def fir(mwo):
 
     return jsonify(info)
 
-@app.route('/remote/fir/<mwo>.json')
+@app.route('/remote/firs/<mwo>')
 def remote_fir(mwo):
     mwo = mwo.upper()
     try:
@@ -376,7 +470,7 @@ def remote_fir(mwo):
 
     return jsonify(info)
 
-@app.route('/echo/mosaic/<filename>')
+@app.route('/echos/mosaic/<filename>')
 def mosaic_image(filename):
     source = BytesIO()
     try:

@@ -50,7 +50,7 @@
     "ZJSA":[
         {
             "name":"Himawari 8",
-            "image":"/static/cloud/zjsa.jpg",
+            "image":"/static/clouds/zjsa.jpg",
             "size":[
                 376,
                 376
@@ -74,7 +74,7 @@
         },
         {
             "name":"Radar Mosaic",
-            "image":"/static/echo/zjsa.png",
+            "image":"/static/echos/zjsa.png",
             "size":[
                 565,
                 565
