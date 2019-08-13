@@ -434,6 +434,9 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         else:
             names.append('FC')
 
+        if boolean(conf.value('General/Sigmet')):
+            names.extend(['WS', 'WC', 'WV', 'WA'])
+
         for i in names:
             listen(i)
 

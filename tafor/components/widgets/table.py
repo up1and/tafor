@@ -239,10 +239,6 @@ class SigmetTable(BaseDataTable):
         self.reportType = 'SIGMET'
         self.model = Sigmet
         self.reviewer = self.parent.sigmetSender
-        self.hideColumns()
-
-    def hideColumns(self):
-        self.table.setColumnHidden(3, True)
 
     def updateTable(self):
         queryset = self.queryset()
@@ -259,6 +255,15 @@ class SigmetTable(BaseDataTable):
             if item.sent:
                 sent = item.sent.strftime('%Y-%m-%d %H:%M:%S')
                 self.table.setItem(row, 2, QTableWidgetItem(sent))
+
+            if item.confirmed:
+                checkedItem = QTableWidgetItem()
+                checkedItem.setIcon(QIcon(':/checkmark.png'))
+                self.table.setItem(row, 3, checkedItem)
+            else:
+                checkedItem = QTableWidgetItem()
+                checkedItem.setIcon(QIcon(':/cross.png'))
+                self.table.setItem(row, 3, checkedItem)
 
         self.table.resizeRowsToContents()
 

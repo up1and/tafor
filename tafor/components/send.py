@@ -403,14 +403,19 @@ class SigmetSender(BaseSender):
     def parse(self, message):
         self.message = message
 
-        if 'sign' in self.message and self.message['sign'][0:2] == 'WA':
+        if self.message['sign'] and self.message['sign'][0:2] == 'WA' or 'AIRMET' in self.message['rpt'].split():
             self.reportType = 'AIRMET'
         else:
             self.reportType = 'SIGMET'
 
         try:
             self.parser = SigmetParser(self.message['rpt'])
-            html = '<p>{}<br/>{}</p>'.format(self.message['sign'], self.parser.renderer(style='html'))
+            html = self.parser.renderer(style='html')
+            if self.message['sign'] is None:
+                html = '<p>{}</p>'.format(html)
+            else:
+                html = '<p>{}<br/>{}</p>'.format(self.message['sign'], html)
+
             self.rpt.setHtml(html)
 
         except Exception as e:

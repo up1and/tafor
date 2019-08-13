@@ -44,7 +44,7 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         self.showConfirm(self.item)
 
     def showConfirm(self, item):
-        if item.tt not in ['FC', 'FT']:
+        if item.tt not in ['FC', 'FT', 'WS', 'WC', 'WV', 'WA']:
             self.check.hide()
             return
 

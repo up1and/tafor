@@ -3,8 +3,8 @@ import datetime
 from sqlalchemy import or_
 
 from tafor import conf, logger
-from tafor.models import db, Taf, Metar
-from tafor.utils.validator import TafParser
+from tafor.models import db, Taf, Metar, Sigmet
+from tafor.utils.validator import TafParser, SigmetParser
 
 
 class SpecFC(object):
@@ -249,6 +249,45 @@ class CheckMetar(object):
             return True
 
 
+class CheckSigmet(object):
+    """检查 SIGMET 报文并储存
+
+    :param tt: SIGMET 报文类型，WS, WC, WV, WA
+    :param message: SIGMET 报文内容
+    """
+    def __init__(self, tt, message):
+        self.tt = tt
+        self.message = message
+
+    def save(self):
+        """储存远程报文数据"""
+        from tafor.utils.service import currentSigmet
+        sigmets = currentSigmet(tt=self.tt, hasCnl=True)
+        time = datetime.datetime.utcnow()
+
+        saved = False
+
+        for message in self.message:
+            parser = SigmetParser(message)
+            message = parser.renderer()
+
+            if message not in [sig.rpt for sig in sigmets]:
+                item = Sigmet(tt=self.tt, rpt=message, source='api', confirmed=time)
+                db.add(item)
+                saved = True
+                logger.info('Save {} {}'.format(self.tt, message))
+
+            for sig in sigmets:
+                if not sig.confirmed and sig.rpt == message:
+                    sig.confirmed = time
+                    db.add(sig)
+                    saved = True
+                    logger.info('Confirm {} {}'.format(self.tt, message))
+
+        db.commit()
+        return saved
+
+
 class Listen(object):
     """监听远程报文数据
 
@@ -273,8 +312,15 @@ class Listen(object):
         self.spec = spec or context.taf.spec
         state = context.message.state()
         self.message = state.get(self.tt, None)
-        method = {'FC': 'taf', 'FT': 'taf', 'SA': 'metar', 'SP': 'metar'}
-        return getattr(self.__class__, method[self.tt])(self)
+
+        if self.tt in ['FC', 'FT']:
+            return self.taf()
+
+        if self.tt in ['SA', 'SP']:
+            return self.metar()
+
+        if self.tt in ['WS', 'WC', 'WV', 'WA']:
+            return self.sigmet()
 
     def taf(self):
         """储存并更新本地 TAF 报文状态"""
@@ -333,4 +379,12 @@ class Listen(object):
                 context.notification.metar.setState({
                     'message': None
                 })
+
+    def sigmet(self):
+        """储存 SIGMET 报文"""
+        sigmet = CheckSigmet(self.tt, message=self.message)
+        if self.message:
+            status = sigmet.save()
+            if status and self.afterTafSaved:
+                self.afterTafSaved()
 
