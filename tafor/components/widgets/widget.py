@@ -1,7 +1,7 @@
 import datetime
 
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import QCoreApplication, QTimer
+from PyQt5.QtCore import QCoreApplication, QTimer, Qt
 from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QLabel, QHBoxLayout
 
 from tafor import conf
@@ -49,9 +49,12 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
             return
 
         if item.confirmed:
-            self.check.setText('<img src=":/checkmark.png" width="24" height="24"/>')
+            iconSrc = ':/checkmark.png'
         else:
-            self.check.setText('<img src=":/cross.png" width="24" height="24"/>')
+            iconSrc = ':/cross.png'
+
+        icon = QPixmap(iconSrc)
+        self.check.setPixmap(icon.scaled(24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
 
 class TafBoard(QWidget):

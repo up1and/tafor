@@ -1,8 +1,8 @@
 import datetime
 
-from PyQt5.QtGui import QIcon, QRegExpValidator, QColor
-from PyQt5.QtCore import QCoreApplication, Qt, QRegExp
-from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QHeaderView
+from PyQt5.QtGui import QIcon, QRegExpValidator, QColor, QPixmap
+from PyQt5.QtCore import QCoreApplication, QRegExp, Qt
+from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QHeaderView, QLabel
 
 from sqlalchemy import and_
 
@@ -155,6 +155,18 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.reviewer.receive(message, mode='view')
         self.reviewer.show()
 
+    def checkmarkLabel(self, item):
+        if item.confirmed:
+            iconSrc = ':/checkmark.png'
+        else:
+            iconSrc = ':/cross.png'
+
+        label = QLabel()
+        icon = QPixmap(iconSrc)
+        label.setPixmap(icon.scaled(20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        label.setAlignment(Qt.AlignCenter)
+        return label
+
 
 class TafTable(BaseDataTable):
 
@@ -179,19 +191,16 @@ class TafTable(BaseDataTable):
                 sent = item.sent.strftime('%Y-%m-%d %H:%M:%S')
                 self.table.setItem(row, 2, QTableWidgetItem(sent))
 
-            if item.confirmed:
-                checkedItem = QTableWidgetItem()
-                checkedItem.setIcon(QIcon(':/checkmark.png'))
-                self.table.setItem(row, 3, checkedItem)
-            else:
-                checkedItem = QTableWidgetItem()
-                checkedItem.setIcon(QIcon(':/cross.png'))
-                self.table.setItem(row, 3, checkedItem)
+            label = self.checkmarkLabel(item)
+            self.table.setCellWidget(row, 3, label)
 
             if 'COR' in item.rpt or 'AMD' in item.rpt:
                 self.table.item(row, 0).setForeground(self.color)
                 self.table.item(row, 1).setForeground(self.color)
                 self.table.item(row, 2).setForeground(self.color)
+
+            self.table.item(row, 0).setTextAlignment(Qt.AlignCenter)
+            self.table.item(row, 2).setTextAlignment(Qt.AlignCenter)
 
         self.table.resizeRowsToContents()
 
@@ -226,6 +235,9 @@ class MetarTable(BaseDataTable):
                 self.table.item(row, 1).setForeground(self.color)
                 self.table.item(row, 2).setForeground(self.color)
 
+            self.table.item(row, 0).setTextAlignment(Qt.AlignCenter)
+            self.table.item(row, 2).setTextAlignment(Qt.AlignCenter)
+
         self.table.resizeRowsToContents()
 
     def updateInfoButton(self):
@@ -256,14 +268,11 @@ class SigmetTable(BaseDataTable):
                 sent = item.sent.strftime('%Y-%m-%d %H:%M:%S')
                 self.table.setItem(row, 2, QTableWidgetItem(sent))
 
-            if item.confirmed:
-                checkedItem = QTableWidgetItem()
-                checkedItem.setIcon(QIcon(':/checkmark.png'))
-                self.table.setItem(row, 3, checkedItem)
-            else:
-                checkedItem = QTableWidgetItem()
-                checkedItem.setIcon(QIcon(':/cross.png'))
-                self.table.setItem(row, 3, checkedItem)
+            label = self.checkmarkLabel(item)
+            self.table.setCellWidget(row, 3, label)
+
+            self.table.item(row, 0).setTextAlignment(Qt.AlignCenter)
+            self.table.item(row, 2).setTextAlignment(Qt.AlignCenter)
 
         self.table.resizeRowsToContents()
 

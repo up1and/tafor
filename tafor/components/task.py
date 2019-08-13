@@ -1,5 +1,5 @@
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtCore import QCoreApplication, Qt
 from PyQt5.QtWidgets import QDialog, QHeaderView, QTableWidgetItem
 
 from tafor.components.ui import main_rc, Ui_task
@@ -31,12 +31,17 @@ class TaskBrowser(QDialog, Ui_task.Ui_Tasks):
         items = db.query(Task).filter(Task.taf_id == None).order_by(Task.planning.desc()).all()
         self.table.setRowCount(len(items))
         self.table.resizeRowsToContents()
+        self.table.setColumnWidth(0, 50)
 
         for row, item in enumerate(items):
             self.table.setItem(row, 0, QTableWidgetItem(item.tt))
             self.table.setItem(row, 1, QTableWidgetItem(item.rpt))
             self.table.setItem(row, 2, QTableWidgetItem(item.planning.strftime("%m-%d %H:%M:%S")))
             self.table.setItem(row, 3, QTableWidgetItem(item.created.strftime("%m-%d %H:%M:%S")))
+
+            self.table.item(row, 0).setTextAlignment(Qt.AlignCenter)
+            self.table.item(row, 2).setTextAlignment(Qt.AlignCenter)
+            self.table.item(row, 3).setTextAlignment(Qt.AlignCenter)
 
         self.table.resizeRowsToContents()
 
