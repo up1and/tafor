@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\setting.ui'
 #
-# Created by: PyQt5 UI code generator 5.6
+# Created by: PyQt5 UI code generator 5.11.3
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -42,7 +42,6 @@ class Ui_Settings(object):
         self.generalPage = QtWidgets.QWidget()
         self.generalPage.setObjectName("generalPage")
         self.verticalLayout_6 = QtWidgets.QVBoxLayout(self.generalPage)
-        self.verticalLayout_6.setSizeConstraint(QtWidgets.QLayout.SetDefaultConstraint)
         self.verticalLayout_6.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_6.setObjectName("verticalLayout_6")
         self.generalGroup = QtWidgets.QGroupBox(self.generalPage)
@@ -74,17 +73,15 @@ class Ui_Settings(object):
         self.interfaceScaling.addItem("")
         self.interfaceScaling.addItem("")
         self.gridLayout_9.addWidget(self.interfaceScaling, 1, 1, 1, 1)
-        self.validityPeriod = QtWidgets.QComboBox(self.generalGroup)
-        self.validityPeriod.setObjectName("validityPeriod")
-        self.validityPeriod.addItem("")
-        self.validityPeriod.addItem("")
-        self.gridLayout_9.addWidget(self.validityPeriod, 3, 1, 1, 1)
+        self.tafSpecification = QtWidgets.QComboBox(self.generalGroup)
+        self.tafSpecification.setObjectName("tafSpecification")
+        self.tafSpecification.addItem("")
+        self.tafSpecification.addItem("")
+        self.tafSpecification.addItem("")
+        self.gridLayout_9.addWidget(self.tafSpecification, 3, 1, 1, 1)
         self.windowsStyleLabel = QtWidgets.QLabel(self.generalGroup)
         self.windowsStyleLabel.setObjectName("windowsStyleLabel")
         self.gridLayout_9.addWidget(self.windowsStyleLabel, 0, 0, 1, 1)
-        self.internationalAirport = QtWidgets.QCheckBox(self.generalGroup)
-        self.internationalAirport.setObjectName("internationalAirport")
-        self.gridLayout_9.addWidget(self.internationalAirport, 3, 0, 1, 1)
         self.closeToMinimize = QtWidgets.QCheckBox(self.generalGroup)
         self.closeToMinimize.setObjectName("closeToMinimize")
         self.gridLayout_9.addWidget(self.closeToMinimize, 5, 0, 1, 1)
@@ -106,6 +103,9 @@ class Ui_Settings(object):
         self.gridLayout_9.addWidget(self.debugMode, 5, 1, 1, 1)
         spacerItem = QtWidgets.QSpacerItem(20, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.gridLayout_9.addItem(spacerItem, 10, 0, 1, 2)
+        self.tafSpecificationLabel = QtWidgets.QLabel(self.generalGroup)
+        self.tafSpecificationLabel.setObjectName("tafSpecificationLabel")
+        self.gridLayout_9.addWidget(self.tafSpecificationLabel, 3, 0, 1, 1)
         self.verticalLayout_6.addWidget(self.generalGroup)
         self.validatorGroup = QtWidgets.QGroupBox(self.generalPage)
         self.validatorGroup.setObjectName("validatorGroup")
@@ -579,7 +579,7 @@ class Ui_Settings(object):
 
         self.retranslateUi(Settings)
         self.stackedWidget.setCurrentIndex(0)
-        self.addressTab.setCurrentIndex(0)
+        self.addressTab.setCurrentIndex(3)
         self.buttonBox.accepted.connect(Settings.accept)
         self.buttonBox.rejected.connect(Settings.reject)
         self.menu.currentRowChanged['int'].connect(self.stackedWidget.setCurrentIndex)
@@ -647,14 +647,15 @@ class Ui_Settings(object):
         self.interfaceScaling.setItemText(0, _translate("Settings", "Normal"))
         self.interfaceScaling.setItemText(1, _translate("Settings", "Large"))
         self.interfaceScaling.setItemText(2, _translate("Settings", "Largest"))
-        self.validityPeriod.setItemText(0, _translate("Settings", "24 hours"))
-        self.validityPeriod.setItemText(1, _translate("Settings", "30 hours"))
+        self.tafSpecification.setItemText(0, _translate("Settings", "9 hours"))
+        self.tafSpecification.setItemText(1, _translate("Settings", "24 hours"))
+        self.tafSpecification.setItemText(2, _translate("Settings", "30 hours"))
         self.windowsStyleLabel.setText(_translate("Settings", "Windows Style"))
-        self.internationalAirport.setText(_translate("Settings", "International Airport"))
         self.closeToMinimize.setText(_translate("Settings", "Minimize to system tray when closed"))
         self.alwaysShowEditor.setText(_translate("Settings", "Always show forecast editor"))
         self.rpcService.setText(_translate("Settings", "Enable RPC interface service"))
         self.debugMode.setText(_translate("Settings", "Enable debug mode"))
+        self.tafSpecificationLabel.setText(_translate("Settings", "TAF Specification"))
         self.validatorGroup.setTitle(_translate("Settings", "Validator"))
         self.cloudHeightHas450.setText(_translate("Settings", "Cloud height has 450 meters"))
         self.visHas5000.setText(_translate("Settings", "Visibility has 5000 meters"))

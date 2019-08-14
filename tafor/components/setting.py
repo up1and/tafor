@@ -18,8 +18,7 @@ baseOptions = [
     ('General/WindowsStyle', 'windowsStyle', 'combox'),
     ('General/CommunicationLine', 'communicationLine', 'combox'),
     ('General/InterfaceScaling', 'interfaceScaling', 'comboxindex'),
-    ('General/InternationalAirport', 'internationalAirport', 'bool'),
-    ('General/ValidityPeriod', 'validityPeriod', 'comboxindex'),
+    ('General/TAFSpec', 'tafSpecification', 'comboxindex'),
     ('General/CloseToMinimize', 'closeToMinimize', 'bool'),
     ('General/Debug', 'debugMode', 'bool'),
     ('General/RPC', 'rpcService', 'bool'),
@@ -177,7 +176,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
         self.bindSignal()
         self.setValidator()
-        self.setValidityPeriod()
         self.updateContract()
         self.load()
 
@@ -197,8 +195,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.callUpButton.clicked.connect(self.testCallUp)
         self.ftpHost.textEdited.connect(self.resetFtpLoginButton)
 
-        self.internationalAirport.clicked.connect(self.setValidityPeriod)
-
         self.importBrowseButton.clicked.connect(lambda: self.openFile(self.importPath))
         self.exportBrowseButton.clicked.connect(lambda: self.openDirectory(self.exportPath))
         self.importButton.clicked.connect(self.importConf)
@@ -215,10 +211,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.channelSequenceNumber.setValidator(QIntValidator(self.channelSequenceNumber))
         self.maxSendAddress.setValidator(QIntValidator(self.maxSendAddress))
         self.warnTafTime.setValidator(QIntValidator(self.warnTafTime))
-
-    def setValidityPeriod(self, checked=None):
-        checked = boolean(conf.value('General/InternationalAirport')) if checked is None else checked
-        self.validityPeriod.setEnabled(checked)
 
     def checkChannelNumber(self):
         """检查是否是世界时日界，如果是重置流水号"""
@@ -316,9 +308,8 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
     def onConfigChanged(self):
         restartRequiredOptions = [
-            'General/WindowsStyle', 'General/InterfaceScaling', 'General/InternationalAirport',
-            'General/ValidityPeriod', 'General/Debug', 'General/RPC',
-            'Message/Weather', 'Message/WeatherWithIntensity',
+            'General/WindowsStyle', 'General/InterfaceScaling', 'General/TAFSpec',
+            'General/Debug', 'General/RPC', 'Message/Weather', 'Message/WeatherWithIntensity',
         ]
 
         closeSenderOptions = [

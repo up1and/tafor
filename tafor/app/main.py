@@ -428,8 +428,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         listen = Listen(afterTafSaved=afterTafSaved)
 
         names = ['SA', 'SP']
-        international = boolean(conf.value('General/InternationalAirport'))
-        if international:
+        if conf.value('General/TAFSpec'):
             names.append('FT')
         else:
             names.append('FC')

@@ -25,6 +25,18 @@
         </size>
        </property>
        <layout class="QVBoxLayout" name="leftbox">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
         <item>
          <widget class="QListWidget" name="menu">
           <item>
@@ -67,8 +79,17 @@
        </property>
        <widget class="QWidget" name="generalPage">
         <layout class="QVBoxLayout" name="verticalLayout_6">
-         <property name="sizeConstraint">
-          <enum>QLayout::SetDefaultConstraint</enum>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
          </property>
          <item>
           <widget class="QGroupBox" name="generalGroup">
@@ -138,7 +159,12 @@
              </widget>
             </item>
             <item row="3" column="1">
-             <widget class="QComboBox" name="validityPeriod">
+             <widget class="QComboBox" name="tafSpecification">
+              <item>
+               <property name="text">
+                <string>9 hours</string>
+               </property>
+              </item>
               <item>
                <property name="text">
                 <string>24 hours</string>
@@ -155,13 +181,6 @@
              <widget class="QLabel" name="windowsStyleLabel">
               <property name="text">
                <string>Windows Style</string>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="0">
-             <widget class="QCheckBox" name="internationalAirport">
-              <property name="text">
-               <string>International Airport</string>
               </property>
              </widget>
             </item>
@@ -219,6 +238,13 @@
                </size>
               </property>
              </spacer>
+            </item>
+            <item row="3" column="0">
+             <widget class="QLabel" name="tafSpecificationLabel">
+              <property name="text">
+               <string>TAF Specification</string>
+              </property>
+             </widget>
             </item>
            </layout>
           </widget>
@@ -317,6 +343,18 @@
        </widget>
        <widget class="QWidget" name="messagePage">
         <layout class="QVBoxLayout" name="verticalLayout_2">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
          <item>
           <widget class="QGroupBox" name="prefixGroup">
            <property name="title">
@@ -486,6 +524,18 @@
        </widget>
        <widget class="QWidget" name="communicationPage">
         <layout class="QVBoxLayout" name="verticalLayout_4">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
          <item>
           <layout class="QHBoxLayout" name="topLayout">
            <item>
@@ -769,13 +819,25 @@
             <item>
              <widget class="QTabWidget" name="addressTab">
               <property name="currentIndex">
-               <number>0</number>
+               <number>3</number>
               </property>
               <widget class="QWidget" name="tafTab">
                <attribute name="title">
                 <string notr="true">TAF</string>
                </attribute>
                <layout class="QVBoxLayout" name="verticalLayout_3">
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
                 <item>
                  <widget class="QTextEdit" name="tafAddress">
                   <property name="placeholderText">
@@ -790,6 +852,18 @@
                 <string notr="true">TREND</string>
                </attribute>
                <layout class="QVBoxLayout" name="verticalLayout_9">
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
                 <item>
                  <widget class="QTextEdit" name="trendAddress">
                   <property name="placeholderText">
@@ -804,6 +878,18 @@
                 <string notr="true">SIGMET</string>
                </attribute>
                <layout class="QVBoxLayout" name="verticalLayout_7">
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
                 <item>
                  <widget class="QTextEdit" name="sigmetAddress">
                   <property name="placeholderText">
@@ -818,6 +904,18 @@
                 <string notr="true">AIRMET</string>
                </attribute>
                <layout class="QVBoxLayout" name="verticalLayout_8">
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
                 <item>
                  <widget class="QTextEdit" name="airmetAddress">
                   <property name="placeholderText">
@@ -836,6 +934,18 @@
        </widget>
        <widget class="QWidget" name="monitorPage">
         <layout class="QVBoxLayout" name="verticalLayout_5">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
          <item>
           <widget class="QGroupBox" name="dataSourceGroup">
            <property name="title">
@@ -1095,6 +1205,18 @@
        </widget>
        <widget class="QWidget" name="contractPage">
         <layout class="QVBoxLayout" name="verticalLayout_11">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
          <item>
           <widget class="QGroupBox" name="contractGroup">
            <property name="title">

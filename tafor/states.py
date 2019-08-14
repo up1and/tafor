@@ -149,17 +149,13 @@ class TafState(QObject):
 
     @property
     def spec(self):
-        from tafor.utils import boolean
+        index = conf.value('General/TAFSpec')
+        specification = 'fc'
+        if index == 1:
+            specification = 'ft24'
 
-        international = boolean(conf.value('General/InternationalAirport'))
-        index = conf.value('General/ValidityPeriod')
-        if international:
-            if index:
-                specification = 'ft30'
-            else:
-                specification = 'ft24'
-        else:
-            specification = 'fc'
+        if index == 2:
+            specification = 'ft30'
 
         return specification
 
