@@ -454,9 +454,10 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
 
     def setTextAreaPlaceholder(self):
         import random
+        unit = 'NM' if context.environ.unit() == 'imperial' else 'KM'
         areas = [
             'WI N1950 E10917 - N1918 E11000 - N1814 E10903 - N1915 E10809 - N1950 E10917',
-            'APRX 25KM WID LINE BTN N1941 E10842 - N1817 E10847 - N1743 E11002',
+            'APRX 25{} WID LINE BTN N1941 E10842 - N1817 E10847 - N1743 E11002'.format(unit),
             'N OF N1830 AND W OF E10917',
             'NW OF LINE N2030 E11017 - N1751 E10813'
         ]
@@ -583,13 +584,15 @@ class CommonSigmetContent(BaseSigmetContent):
             return
 
         movement = self.movement.currentText()
+        unit = 'KT' if context.environ.unit() == 'imperial' else 'KMH'
 
         if movement == 'STNR':
             text = 'STNR'
         else:
-            text = 'MOV {movement} {speed}KMH'.format(
+            text = 'MOV {movement} {speed}{unit}'.format(
                     movement=movement,
-                    speed=int(self.speed.text())
+                    speed=int(self.speed.text()),
+                    unit=unit
                 )
 
         return text
@@ -853,7 +856,8 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
             self.currentLongitude.clear()
             self.currentLatitude.clear()
 
-        radius = round(layer.pixelToDistance(canvas.radius) / 10) * 10
+        unit = 'NM' if context.environ.unit() == 'imperial' else 'KM'
+        radius = round(layer.pixelToDistance(canvas.radius, unit=unit) / 10) * 10
         if radius:
             self.range.setText(str(radius))
         else:
@@ -935,12 +939,14 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         return parseTime(end) - parseTime(start)
 
     def message(self):
-        area = 'PSN {latitude} {Longitude} CB {prediction} WI {range}KM OF CENTRE TOP FL{height}'.format(
+        unit = 'NM' if context.environ.unit() == 'imperial' else 'KM'
+        area = 'PSN {latitude} {Longitude} CB {prediction} WI {range}{unit} OF CENTRE TOP FL{height}'.format(
                 latitude=self.currentLatitude.text(),
                 Longitude=self.currentLongitude.text(),
                 prediction=self.parent.head.prediction(),
+                range=int(self.range.text()),
+                unit=unit,
                 height=self.height.text(),
-                range=int(self.range.text())
             )
         intensityChange = self.intensityChange.currentText()
         forecast = 'FCST {forecastTime}Z TC CENTRE {forecastLatitude} {forecastLongitude}'.format(
@@ -1442,10 +1448,12 @@ class SigmetCustomSegment(BaseSegment):
         self.setPlaceholder()
 
     def setPlaceholder(self):
+        speedUnit = 'KT' if context.environ.unit() == 'imperial' else 'KMH'
+        lengthUnit = 'NM' if context.environ.unit() == 'imperial' else 'KM'
         tips = {
-            'WS': 'EMBD TS FCST N OF N2000 TOP FL360 MOV N 25KMH NC',
-            'WC': 'TC YAGI PSN N2706 W07306 CB OBS AT 1600Z WI 300KM OF CENTRE TOP FL420 NC\nFCST 2200Z TC CENTRE N2740 W07345',
-            'WV': 'VA ERUPTION MT ASHVAL PSN S1500 E07348 VA CLD\nOBS AT 1100Z APRX 50KM WID LINE BTN S1500 E07348 - S1530 E07642 FL310/450 MOV ESE 65KMH\nFCST 1700Z APRX 50KM WID LINE BTN S1506 E07500 - S1518 E08112 - S1712 E08330',
+            'WS': 'EMBD TS FCST N OF N2000 TOP FL360 MOV N 25{} NC'.format(speedUnit),
+            'WC': 'TC YAGI PSN N2706 W07306 CB OBS AT 1600Z WI 300{} OF CENTRE TOP FL420 NC\nFCST 2200Z TC CENTRE N2740 W07345'.format(lengthUnit),
+            'WV': 'VA ERUPTION MT ASHVAL PSN S1500 E07348 VA CLD\nOBS AT 1100Z APRX 50{} WID LINE BTN S1500 E07348 - S1530 E07642 FL310/450 MOV ESE 65{}\nFCST 1700Z APRX 50{} WID LINE BTN S1506 E07500 - S1518 E08112 - S1712 E08330'.format(lengthUnit, speedUnit, lengthUnit),
             'WA': 'MOD MTW OBS AT 1205Z N4200 E11000 FL080 STNR NC'
         }
         tip = tips[self.type.tt]

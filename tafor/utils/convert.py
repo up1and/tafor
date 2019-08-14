@@ -429,9 +429,11 @@ class Layer(object):
         ratio = self.dimension('pixel') / self.dimension(mode)
         return float(length) * ratio * self.scale
 
-    def pixelToDistance(self, pixel):
+    def pixelToDistance(self, pixel, unit='KM'):
         ratio = self.dimension('kilometer') / self.dimension('pixel')
         distance = pixel * ratio / self.scale
+        if unit == 'NM':
+            distance = distance / 1.852
         return distance
 
     def decodeSigmetArea(self, area, boundaries, trim):

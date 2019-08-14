@@ -531,7 +531,8 @@ class AreaBoard(QWidget):
 
     def setCircleRadius(self, radius):
         if self.canvas.mode == 'circle':
-            pixel = context.fir.layer.distanceToPixel(radius)
+            unit = 'NM' if context.environ.unit() == 'imperial' else 'KM'
+            pixel = context.fir.layer.distanceToPixel(radius, unit=unit)
             self.canvas.setCircleRadius(pixel)
             self.updateArea()
 
@@ -589,9 +590,10 @@ class AreaBoard(QWidget):
         if self.canvas.mode == 'circle':
             points = context.fir.layer.pixelToDegree(coords['points'])
             if coords['done']:
-                radius = round(context.fir.layer.pixelToDistance(coords['radius']) / 10) * 10
+                unit = 'NM' if context.environ.unit() == 'imperial' else 'KM'
+                radius = round(context.fir.layer.pixelToDistance(coords['radius'], unit=unit) / 10) * 10
                 center = points[0]
-                items = ['PSN {} {}'.format(center[1], center[0]), 'WI {}KM OF CENTRE'.format(radius)]
+                items = ['PSN {} {}'.format(center[1], center[0]), 'WI {}{} OF CENTRE'.format(radius, unit)]
                 message = self.pointspacing.join(items)
             else:
                 coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
@@ -600,11 +602,12 @@ class AreaBoard(QWidget):
         if self.canvas.mode == 'corridor':
             points = context.fir.layer.pixelToDegree(coords['points'])
             if coords['done']:
-                width = context.fir.layer.pixelToDistance(coords['radius'])
+                unit = 'NM' if context.environ.unit() == 'imperial' else 'KM'
+                width = context.fir.layer.pixelToDistance(coords['radius'], unit=unit)
                 width = round(width / 5) * 5 
                 coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
                 line = ' - '.join(coordinates)
-                message = 'APRX {}KM WID LINE BTN {}'.format(width, line)
+                message = 'APRX {}{} WID LINE BTN {}'.format(width, unit, line)
             else:
                 coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
                 message = self.pointspacing.join(coordinates)

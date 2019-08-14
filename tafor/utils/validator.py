@@ -59,7 +59,7 @@ class TafGrammar(object):
     cnl = re.compile(r'\b(CNL)\b')
     temperature = re.compile(r'\b(T(?:X|N)M?(\d{2})/(\d{2}|\d{4})Z)\b')
 
-    wind = re.compile(r'\b(?:00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)(?:G(0[1-9]|[1-4][0-9]|P49))?)MPS\b')
+    wind = re.compile(r'\b(?:00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)(?:G(0[1-9]|[1-4][0-9]|P49))?)(?:MPS|KT)\b')
     vis = re.compile(r'\b(?<!/)(9999|[5-9]000|[01234][0-9]00|0[0-7]50)(?!/)\b')
     weather = re.compile(r'([-+]?\b({})\b)|(\b({})\b)'.format('|'.join(weatherWithIntensity), '|'.join(weather)))
     cloud = re.compile(r'\b(?:SKC|NSC|(FEW|SCT|BKN|OVC)(\d{3})(CB|TCU)?)\b|\b(?:(VV)(///|\d{3}\b))')
