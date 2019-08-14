@@ -101,6 +101,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         context.taf.clockSignal.connect(self.remindTaf)
         context.notification.metar.messageChanged.connect(self.loadMetar)
         context.notification.sigmet.messageChanged.connect(self.loadSigmet)
+        context.fir.refreshSignal.connect(self.painter)
 
         # 连接菜单信号
         self.tafAction.triggered.connect(self.tafEditor.show)
@@ -340,7 +341,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.workThread.start()
 
     def painter(self):
-        if conf.value('Monitor/FirApiURL'):
+        if conf.value('Monitor/FirApiURL') and not self.firInfoThread.isRunning():
             self.firInfoThread.start()
 
     def dialer(self, test=False):

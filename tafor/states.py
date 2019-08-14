@@ -18,7 +18,9 @@ class MessageState(object):
         self._state = values
 
 
-class FirState(object):
+class FirState(QObject):
+    refreshSignal = pyqtSignal()
+    layersNameChanged = pyqtSignal()
 
     _state = {
         'boundaries': [],
@@ -33,6 +35,7 @@ class FirState(object):
 
     def setState(self, values):
         from tafor.utils.convert import Layer
+        refs = copy.deepcopy(self._state)
         self._state.update(values)
         width = conf.value('General/FirCanvasSize') or 300
 
@@ -40,6 +43,11 @@ class FirState(object):
         for data in self._state['layers']:
             layer = Layer(data, width=int(width))
             self.layers.append(layer)
+
+        refLayerNames = [e['name'] for e in refs['layers']]
+        layerNames = [e['name'] for e in self._state['layers']]
+        if refLayerNames != layerNames:
+            self.layersNameChanged.emit()
 
     @property
     def layer(self):
@@ -87,6 +95,9 @@ class FirState(object):
         if trim is None:
             trim = self.trimShapes
         return self.layer.decodeSigmetArea(area, self._state['boundaries'], trim)
+
+    def refresh(self):
+        self.refreshSignal.emit()
 
 
 class WebApiState(object):

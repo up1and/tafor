@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from PyQt5.QtCore import QCoreApplication, QTimer
+from PyQt5.QtCore import QCoreApplication, QTimer, Qt
 from PyQt5.QtWidgets import QVBoxLayout, QLayout
 
 from tafor.states import context
@@ -178,6 +178,10 @@ class SigmetEditor(BaseEditor):
         self.sigmetCustom.clear()
         self.sigmetCancel.clear()
         self.airmetGeneral.clear()
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_F5:
+            context.fir.refresh()
 
     def closeEvent(self, event):
         context.notification.sigmet.clear()

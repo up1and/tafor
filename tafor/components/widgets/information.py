@@ -329,6 +329,9 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
             ]
 
     def bindSignal(self):
+        context.fir.layersNameChanged.connect(self.setLayerSelectAction)
+        context.fir.layersNameChanged.connect(self.loadLayersActionState)
+
         self.manual.clicked.connect(self.setArea)
         self.canvas.clicked.connect(self.setArea)
         self.entire.clicked.connect(self.setArea)
@@ -495,7 +498,6 @@ class SigmetArea(QWidget, SegmentMixin, Ui_sigmet_area.Ui_Editor):
         return text
 
     def showEvent(self, event):
-        self.setLayerSelectAction()
         self.loadLayersActionState()
         if conf.value('Monitor/FirApiURL') or self.tt == 'WC':
             self.manual.hide()
