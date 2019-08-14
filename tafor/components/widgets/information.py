@@ -3,9 +3,9 @@ import datetime
 
 from itertools import cycle
 
-from PyQt5.QtGui import QIcon, QRegExpValidator, QIntValidator, QTextCharFormat, QFont
+from PyQt5.QtGui import QIcon, QRegExpValidator, QIntValidator, QTextCharFormat, QFont, QPixmap
 from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QMenu, QActionGroup, QAction, QRadioButton
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QMenu, QActionGroup, QAction, QRadioButton, QLabel
 
 from tafor import conf
 from tafor.states import context
@@ -1436,6 +1436,7 @@ class SigmetCustomSegment(BaseSegment):
         self.content = SigmetCustomContent(self)
 
         self.initUI()
+        self.setApiSign()
         self.bindSignal()
 
     def bindSignal(self):
@@ -1446,6 +1447,14 @@ class SigmetCustomSegment(BaseSegment):
     def updateText(self):
         self.setText()
         self.setPlaceholder()
+
+    def setApiSign(self):
+        pixmap = QPixmap(':/api.png')
+        self.apiSign = QLabel(self)
+        self.apiSign.setPixmap(pixmap)
+        self.apiSign.setMask(pixmap.mask())
+        self.apiSign.adjustSize()
+        self.apiSign.move(561, 67)
 
     def setPlaceholder(self):
         speedUnit = 'KT' if context.environ.unit() == 'imperial' else 'KMH'
@@ -1461,6 +1470,7 @@ class SigmetCustomSegment(BaseSegment):
 
     def setText(self):
         message = ''
+        showSign = False
 
         last = db.query(Sigmet).filter(Sigmet.tt == self.type.tt, ~Sigmet.rpt.contains('CNL')).order_by(Sigmet.sent.desc()).first()
         if last:
@@ -1469,6 +1479,9 @@ class SigmetCustomSegment(BaseSegment):
         parser = context.notification.sigmet.parser()
         if parser and self.type.tt == parser.spec():
             message = parser.content()
+            showSign = True
+
+        self.apiSign.setVisible(showSign)
 
         if message:
             fir = conf.value('Message/FIR')

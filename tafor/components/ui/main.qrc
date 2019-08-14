@@ -22,5 +22,6 @@
         <file alias="warm.png">../../icons/warm.png</file>
         <file alias="aftn.png">../../icons/aftn.png</file>
         <file alias="ftp.png">../../icons/ftp.png</file>
+        <file alias="api.png">../../icons/api.png</file>
     </qresource>
 </RCC>
