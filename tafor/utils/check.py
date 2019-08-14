@@ -61,6 +61,9 @@ class CurrentTaf(object):
 
         self._initStartTime()
 
+    def __repr__(self):
+        return '<Current TAF {}{}>'.format(self.spec.tt, self.period())
+
     def period(self, strict=True, withDay=True):
         if strict:
             return self._strict(withDay)
@@ -127,7 +130,7 @@ class CurrentTaf(object):
         :return: 不包含日期的报文时段
         """
         for period, start in self.startTime.items():
-            if start <= self.time <= start + delay:
+            if start <= self.time < start + delay:
                 return period
 
     def _withDay(self, period):
