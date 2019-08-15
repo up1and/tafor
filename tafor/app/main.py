@@ -480,7 +480,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         spec = context.taf.spec[:2].upper()
         taf = db.query(Taf).filter(Taf.sent > recent, Taf.tt == spec).order_by(Taf.sent.desc()).first()
         if boolean(conf.value('General/Sigmet')):
-            sigmets = currentSigmet(order='asc', hasCnl=True)
+            sigmets = currentSigmet(order='asc', showUnmatched=True)
         else:
             sigmets = []
         trend = db.query(Trend).order_by(Trend.sent.desc()).first()

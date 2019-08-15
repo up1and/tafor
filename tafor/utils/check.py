@@ -168,7 +168,7 @@ class CheckTaf(object):
         :return: ORM 对象
         """
         period = self.taf.period(strict=False) if period is None else period
-        expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+        expired = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
         recent = db.query(Taf).filter(Taf.rpt.contains(period), ~Taf.rpt.contains('AMD'),
             ~Taf.rpt.contains('COR'), Taf.sent > expired).order_by(Taf.sent.desc()).first()
         return recent
@@ -178,7 +178,7 @@ class CheckTaf(object):
 
         :return: ORM 对象
         """
-        expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+        expired = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
         try:
             taf = TafParser(self.message)
             last = db.query(Taf).filter(or_(Taf.rpt == self.message, Taf.rpt == taf.renderer()), Taf.sent > expired).order_by(Taf.sent.desc()).first()
@@ -264,13 +264,14 @@ class CheckSigmet(object):
 
     def save(self):
         """储存远程报文数据"""
-        from tafor.utils.service import currentSigmet
-        sigmets = currentSigmet(tt=self.tt, hasCnl=True)
+        recent = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
+        sigmets = db.query(Sigmet).filter(Sigmet.sent > recent, Sigmet.tt == self.tt).all()
         time = datetime.datetime.utcnow()
 
         saved = False
 
         for message in self.message:
+            message = ' '.join(message.split())
             parser = SigmetParser(message)
             message = parser.renderer()
 

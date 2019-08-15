@@ -7,7 +7,7 @@ from tafor.utils.message import AFTNMessageGenerator
 from tafor.utils.thread import SerialThread
 
 
-def currentSigmet(tt=None, order='desc', hasCnl=False):
+def currentSigmet(tt=None, order='desc', showUnmatched=False):
     recent = datetime.datetime.utcnow() - datetime.timedelta(hours=8)
     queryset = db.query(Sigmet).filter(Sigmet.sent > recent).order_by(Sigmet.sent.desc())
 
@@ -31,7 +31,7 @@ def currentSigmet(tt=None, order='desc', hasCnl=False):
         if sequence not in cancelSequences:
             currents.append(sig)
 
-    if hasCnl:
+    if showUnmatched:
         cnls = copy.copy(cancels)
         sequences = [(s.parser().sequence(), '/'.join(s.parser().valids())) for s in sigmets]
         for cnl in cancels:
@@ -39,6 +39,7 @@ def currentSigmet(tt=None, order='desc', hasCnl=False):
                 cnls.remove(cnl)
 
         currents = currents + cnls
+        currents.sort(key=lambda x: x.sent, reverse=True)
 
     if order == 'asc':
         currents.reverse()

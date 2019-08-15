@@ -254,7 +254,7 @@ class SigmetTable(BaseDataTable):
 
     def updateTable(self):
         queryset = self.queryset()
-        self.pagination = paginate(queryset, self.page, perPage=6)
+        self.pagination = paginate(queryset, self.page, perPage=8)
         items = self.pagination.items
         self.table.setRowCount(len(items))
         self.table.setColumnWidth(0, 50)

@@ -231,6 +231,7 @@ def marshal(messages, international_mode=False):
 def marshal_multiple(messages):
     resp_dict = {}
     for message in messages:
+        message = ' '.join(message.split())
         key = find_key(message)
         if key and key in resp_dict:
             resp_dict[key].append(message)
@@ -423,10 +424,11 @@ def remote_latest_message(airport):
 
             endtime = lambda x: parse_intl_period(find_sigmet_period(x))[1]
             response = requests.post(url, params=sigmet_post_data, timeout=30)
-            sigmets = [msg['RPT'].strip().replace('\n', ' ') for msg in response.json() if endtime(msg['RPT']) >= end]
-            sigmets.sort(key=endtime)
-            sigmets = marshal_multiple(sigmets)
-            messages.update(sigmets)
+            if isinstance(response.json(), list):
+                sigmets = [msg['RPT'].strip().replace('\n', ' ') for msg in response.json() if endtime(msg['RPT']) >= end]
+                sigmets.sort(key=endtime)
+                sigmets = marshal_multiple(sigmets)
+                messages.update(sigmets)
 
         except Exception as e:
             app.logger.exception(e)
