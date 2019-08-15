@@ -26,11 +26,16 @@ root = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__, static_url_path='/static')
 
 fir_codes = {
-    'ZJHK': 'ZJSA',
-    'ZGGG': 'ZGZU',
+    'ZYTX': 'ZYSH',
+    'ZBAA': 'ZBPE',
+    'ZSHA': 'ZSSS',
     'ZHHH': 'ZHWH',
     'ZUUU': 'ZPKM',
+    'ZLXY': 'ZLHW',
     'ZWWW': 'ZWUQ',
+    'ZGGG': 'ZGZU',
+    'ZJHK': 'ZJSA',
+    'VHHH': 'VHHK',
 }
 
 def parse_hour_minute(hour, minute, basetime):
@@ -329,13 +334,14 @@ def latest_messsage(airport):
         'LoginCookiesName': 'ZJHK'
     }
     url = 'http://172.17.1.166/biz/QueryMetInfo/ReportByArea.aspx'
+    sigmet_url = 'http://172.17.1.166/biz/warn/list_sigmet.aspx'
 
     try:
         response = requests.get(url, cookies=cookies, timeout=30)
         html = response.content
-        soup = BeautifulSoup(html, "html.parser")
+        soup = BeautifulSoup(html, 'html.parser')
         items = [tag.string.strip() for tag in soup.find_all('td') if tag.string is not None]
-        messages = list(filter(lambda message: airport.upper() in message, items))
+        messages = [m for m in items if airport.upper() in m]
         messages = marshal(messages)
 
     except Exception as e:
@@ -344,7 +350,15 @@ def latest_messsage(airport):
 
     if fir:
         try:
-            pass
+            endtime = lambda x: parse_intl_period(find_sigmet_period(x))[1]
+            response = requests.get(sigmet_url, cookies=cookies, timeout=30)
+            html = response.content
+            soup = BeautifulSoup(html, 'html.parser')
+            items = [tag.string.strip() for tag in soup.find_all('span') if tag.string is not None]
+            sigmets = [m for m in items if fir.upper() in m]
+            sigmets.sort(key=endtime)
+            sigmets = marshal_multiple(sigmets)
+            messages.update(sigmets)
 
         except Exception as e:
             app.logger.exception(e)
@@ -391,7 +405,7 @@ def remote_latest_message(airport):
     }
 
     try:
-        response = requests.post(url, params=post_data, timeout=20)
+        response = requests.post(url, params=post_data, timeout=30)
         messages = [msg['RPT'].strip().replace('\n', ' ') for msg in response.json()]
         messages = marshal(messages, international_mode=True)
 
@@ -403,12 +417,12 @@ def remote_latest_message(airport):
         try:
             fmt = '%Y-%m-%d %H:%M:%S'
             end = datetime.datetime.utcnow()
-            start = end - datetime.timedelta(hours=10)
+            start = end - datetime.timedelta(hours=8)
             sigmet_post_data['StarDate'] = start.strftime(fmt)
             sigmet_post_data['EndDate'] = end.strftime(fmt)
 
             endtime = lambda x: parse_intl_period(find_sigmet_period(x))[1]
-            response = requests.post(url, params=sigmet_post_data, timeout=20)
+            response = requests.post(url, params=sigmet_post_data, timeout=30)
             sigmets = [msg['RPT'].strip().replace('\n', ' ') for msg in response.json() if endtime(msg['RPT']) >= end]
             sigmets.sort(key=endtime)
             sigmets = marshal_multiple(sigmets)

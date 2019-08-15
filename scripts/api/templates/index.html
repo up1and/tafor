@@ -3,17 +3,21 @@
 <h2 id="tafor-api-works">Tafor API works!</h2>
 <h3 id="message">Message</h3>
 <h4 id="message-request">Request</h4>
-<p><code>GET /latest/:airport.json</code></p>
+<p><code>GET /messages/:airport</code></p>
 <h4 id="message-response">Response</h4>
 <pre class="highlight"><code class="json hljs"><div class="hljs-line">{
 </div><div class="hljs-line">  <span class="pl-e">"FC"</span>: <span class="pl-k">"TAF ZJHK 220414Z 2206/2215 04004MPS 6000 BKN007 BKN020 TX22/2206Z TN19/2215Z="</span>,
 </div><div class="hljs-line">  <span class="pl-e">"FT"</span>: <span class="pl-k">"TAF ZJHK 220316Z 2206/2306 04004MPS 4000 BR BKN007 BKN020 TX25/2206Z TN19/2221Z BECMG 2301/2302 SCT020="</span>,
-</div><div class="hljs-line">  <span class="pl-e">"SA"</span>: <span class="pl-k">"METAR ZJHK 220500Z 02004MPS 340V060 8000 BKN007 OVC023 20/19 Q1015 NOSIG="</span>
+</div><div class="hljs-line">  <span class="pl-e">"SA"</span>: <span class="pl-k">"METAR ZJHK 220500Z 02004MPS 340V060 8000 BKN007 OVC023 20/19 Q1015 NOSIG="</span>,
+</div><div class="hljs-line">  <span class="pl-e">"WS"</span>: [
+</div><div class="hljs-line">    <span class="pl-k">"ZJSA SIGMET 2 VALID 220135/150535 ZJHK- ZJSA SANYA FIR EMBD TS FCST WI N2030 E11043 - N1830 E11025 - N1812 E10817 - N1951 E10749 - N1957 E10755 - N2030 E10802 - N2030 E11043 TOP FL450 MOV S 20KMH NC"</span>, 
+</div><div class="hljs-line">    <span class="pl-k">"ZJSA SIGMET 3 VALID 220530/220930 ZJHK- ZJSA SANYA FIR EMBD TS FCST WI N1913 E10801 - N1923 E11001 - N1815 E11012 - N1804 E10821 - N1913 E10801 TOP FL430 STNR WKN"</span>
+</div><div class="hljs-line">  ]
 </div><div class="hljs-line">}
 </div></code></pre>
 <h3 id="fir">FIR Information</h3>
 <h4 id="fir-request">Request</h4>
-<p><code>GET /fir/:mwo.json</code></p>
+<p><code>GET /firs/:mwo</code></p>
 <h4 id="fir-response">Response</h4>
 <pre class="highlight"><code class="json hljs"><div class="hljs-line">{
 </div><div class="hljs-line">  <span class="pl-e">"boundaries"</span>: [], 
@@ -29,8 +33,8 @@
 </div><div class="hljs-line">          <span class="pl-ent">10</span>
 </div><div class="hljs-line">        ]
 </div><div class="hljs-line">      ], 
-</div><div class="hljs-line">      <span class="pl-e">"image"</span>: <span class="hljs-k">"{{ request.url_root }}static/cloud.jpg"</span>, 
-</div><div class="hljs-line">      <span class="pl-e">"name"</span>: <span class="hljs-k">"Himawari 8"</span>, 
+</div><div class="hljs-line">      <span class="pl-e">"image"</span>: <span class="pl-k">"{{ request.url_root }}static/cloud.jpg"</span>, 
+</div><div class="hljs-line">      <span class="pl-e">"name"</span>: <span class="pl-k">"Himawari 8"</span>, 
 </div><div class="hljs-line">      <span class="pl-e">"rect"</span>: [
 </div><div class="hljs-line">        <span class="pl-ent">15</span>, 
 </div><div class="hljs-line">        <span class="pl-ent">50</span>, 
@@ -41,7 +45,7 @@
 </div><div class="hljs-line">        <span class="pl-ent">376</span>, 
 </div><div class="hljs-line">        <span class="pl-ent">376</span>
 </div><div class="hljs-line">      ], 
-</div><div class="hljs-line">      <span class="pl-e">"updated"</span>: <span class="hljs-k">"Mon, 30 Jul 2018 21:33:00 GMT"</span>
+</div><div class="hljs-line">      <span class="pl-e">"updated"</span>: <span class="pl-k">"Mon, 30 Jul 2018 21:33:00 GMT"</span>
 </div><div class="hljs-line">    }
 </div><div class="hljs-line">  ]
 </div><div class="hljs-line">}
