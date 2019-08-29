@@ -99,7 +99,7 @@ class SigmetGrammar(object):
 
     _point = r'((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))'
     _pointSpacer = r'\s?-\s?'
-    _radius = r'\bWI\s(\d{3})(KM|NM)\sOF\s(?:CENTRE)\b'
+    _radius = r'\bWI\s(\d{3})(KM|NM)\sOF\s(?:CENTRE|CENTER)\b'
 
     @property
     def point(self):
@@ -158,7 +158,7 @@ class SigmetGrammar(object):
     @property
     def circle(self):
         pattern = re.compile(
-            r'PSN\s'
+            r'(?:PSN\s)?'
             r'%s(.+)?%s' % (self._point, self._radius)
         )
         return pattern
