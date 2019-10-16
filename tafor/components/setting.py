@@ -358,7 +358,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
     def promptRestartRequired(self):
         title = QCoreApplication.translate('Settings', 'Restart Required')
-        text = QCoreApplication.translate('Settings', 'Programs needs to restart to change the configuration, do you wish to restart now?')
+        text = QCoreApplication.translate('Settings', 'Program need to restart to apply the configuration, do you wish to restart now?')
         ret = QMessageBox.information(self, title, text, QMessageBox.Yes | QMessageBox.No)
         if ret == QMessageBox.Yes:
             self.parent.restart()

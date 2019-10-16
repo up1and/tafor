@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE TS><TS version="2.0" language="zh_CN" sourcelanguage="en">
+<!DOCTYPE TS>
+<TS version="2.1" language="zh_CN" sourcelanguage="en">
 <context>
     <name>DataTable</name>
     <message>
@@ -322,7 +323,7 @@
         <translation>观测时间需要早于有效开始时间</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="750"/>
+        <location filename="../components/widgets/information.py" line="764"/>
         <source>Typhoon Name</source>
         <translation>热带气旋名称</translation>
     </message>
@@ -332,7 +333,7 @@
         <translation>最高温度需要大于最小温度</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="583"/>
+        <location filename="../components/widgets/information.py" line="597"/>
         <source>The top flight level needs to be greater than the base flight level</source>
         <translation>顶高需要大于底高</translation>
     </message>
@@ -402,17 +403,17 @@
         <translation>低空天气</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="1000"/>
+        <location filename="../components/widgets/information.py" line="1014"/>
         <source>Volcano Name</source>
         <translation>火山名称</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="403"/>
+        <location filename="../components/widgets/information.py" line="418"/>
         <source>Trim Shapes</source>
         <translation>裁剪图形</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="406"/>
+        <location filename="../components/widgets/information.py" line="421"/>
         <source>Latest SIGMET/AIRMET</source>
         <translation>最新气象情报</translation>
     </message>
@@ -600,7 +601,7 @@
         <translation>无法获取最新版本信息</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="363"/>
+        <location filename="../app/main.py" line="364"/>
         <source>Send Completed</source>
         <translation>发送完成</translation>
     </message>
@@ -610,22 +611,22 @@
         <translation>已复制选取的报文</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="360"/>
+        <location filename="../app/main.py" line="361"/>
         <source>Send Failed</source>
         <translation>发送失败</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="372"/>
+        <location filename="../app/main.py" line="373"/>
         <source>Connection Error</source>
         <translation>连接错误</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="382"/>
+        <location filename="../app/main.py" line="383"/>
         <source>Unable to connect phone call service, please check the settings or network status.</source>
         <translation>无法连接电话服务，请检查设置或者网络状态。</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="398"/>
+        <location filename="../app/main.py" line="399"/>
         <source>Time to issue {}</source>
         <translation>发布 {}</translation>
     </message>
@@ -635,17 +636,17 @@
         <translation>编发</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="414"/>
+        <location filename="../app/main.py" line="415"/>
         <source>Time to update {}</source>
         <translation>更新 {}</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="374"/>
+        <location filename="../app/main.py" line="375"/>
         <source>Unable to connect remote message data source, please check the settings or network status.</source>
         <translation>无法连接远程数据源，请检查设置或者网络状态。</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="378"/>
+        <location filename="../app/main.py" line="379"/>
         <source>Unable to connect FIR information data source, please check the settings or network status.</source>
         <translation>无法获取情报区信息数据，请检查设置或者网络状态。</translation>
     </message>
@@ -685,12 +686,12 @@
         <translation>剩余 {} 天</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="239"/>
+        <location filename="../app/main.py" line="240"/>
         <source>Message Received</source>
         <translation>收到消息</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="239"/>
+        <location filename="../app/main.py" line="240"/>
         <source>Received a new {} message.</source>
         <translation>收到一条新的 {} 报文</translation>
     </message>
@@ -1287,11 +1288,6 @@
         <translation>需要重启</translation>
     </message>
     <message>
-        <location filename="../components/setting.py" line="361"/>
-        <source>Programs needs to restart to change the configuration, do you wish to restart now?</source>
-        <translation>程序需要重新启动才能更新配置，你是否希望立即重启？</translation>
-    </message>
-    <message>
         <location filename="../components/ui/Ui_setting.py" line="650"/>
         <source>9 hours</source>
         <translation>9 时制</translation>
@@ -1300,6 +1296,11 @@
         <location filename="../components/ui/Ui_setting.py" line="658"/>
         <source>TAF Specification</source>
         <translation>预报报文规格</translation>
+    </message>
+    <message>
+        <location filename="../components/setting.py" line="361"/>
+        <source>Program need to restart to apply the configuration, do you wish to restart now?</source>
+        <translation>程序需要重新启动才能应用配置，你是否希望立即重启？</translation>
     </message>
 </context>
 <context>
