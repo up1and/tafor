@@ -187,7 +187,19 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
             query = query.filter(Sigmet.tt == 'WA')
         else:
             query = query.filter(Sigmet.tt != 'WA')
-        count = query.count() + 1
+
+        def isYesterday(text):
+            if text:
+                pattern = re.compile(r'\d{6}')
+                m = pattern.search(text)
+                if m:
+                    issueTime = m.group()
+                    return int(issueTime[:2]) != time.day or issueTime[2:] == '0000'
+
+            return False
+
+        sigmets = [sig for sig in query.all() if not isYesterday(sig.sign)]
+        count = len(sigmets) + 1
         self.sequence.setText(str(count))
 
     def setPhenomenaDescription(self):
