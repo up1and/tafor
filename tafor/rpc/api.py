@@ -163,6 +163,7 @@ class NotificationResource(object):
     @falcon.before(authorize)
     def on_post(self, req, resp):
         message = req.get_param('message') or req.context.body.get('message')
+        message= message.strip()
 
         if not message:
             raise falcon.HTTPBadRequest('Message Required', 'Please provide a notification message.')
@@ -191,6 +192,8 @@ class ValidateResource(object):
 
     def on_get(self, req, resp):
         message = req.get_param('message') or req.context.body.get('message') or ''
+        message= message.strip()
+
         kwargs = {
             'visHas5000': boolean(conf.value('Validator/VisHas5000')),
             'cloudHeightHas450': boolean(conf.value('Validator/CloudHeightHas450')),

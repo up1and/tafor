@@ -1488,7 +1488,8 @@ class SigmetCustomSegment(BaseSegment):
 
         last = db.query(Sigmet).filter(Sigmet.tt == self.type.tt, ~Sigmet.rpt.contains('CNL')).order_by(Sigmet.sent.desc()).first()
         if last:
-            message = last.rpt
+            parser = last.parser()
+            message = parser.content()
 
         parser = context.notification.sigmet.parser()
         if parser and self.type.tt == parser.spec():
@@ -1499,14 +1500,7 @@ class SigmetCustomSegment(BaseSegment):
 
         if message:
             fir = conf.value('Message/FIR')
-            try:
-                _, text = message.split('\n', 1)
-            except Exception:
-                text = message
-
-            text = text.replace(fir, '')
-            text = text.replace('=', '').strip()
-
+            text = message.replace(fir, '').replace('=', '').strip()
             self.content.text.setText(text)
         else:
             self.content.text.clear()

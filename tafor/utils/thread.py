@@ -205,7 +205,7 @@ class CheckUpgradeThread(QThread):
 
 class RpcThread(QThread):
 
-    def __init__(self, port=15400):
+    def __init__(self, port=9407):
         super(RpcThread, self).__init__()
         self.app = server
         self.port = port
