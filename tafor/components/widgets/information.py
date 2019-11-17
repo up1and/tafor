@@ -85,6 +85,7 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
         self.endingTime.editingFinished.connect(self.validateValidTime)
 
         self.name.textEdited.connect(lambda: self.upperText(self.name))
+        self.sequence.textEdited.connect(lambda: self.upperText(self.sequence))
 
         self.beginningTime.textEdited.connect(lambda: self.coloredText(self.beginningTime))
         self.endingTime.textEdited.connect(lambda: self.coloredText(self.endingTime))
@@ -173,7 +174,7 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
         time = QRegExpValidator(QRegExp(self.rules.time))
         self.obsTime.setValidator(time)
 
-        sequence = QRegExpValidator(QRegExp(self.rules.sequence))
+        sequence = QRegExpValidator(QRegExp(self.rules.sequence, Qt.CaseInsensitive))
         self.sequence.setValidator(sequence)
 
         name = QRegExpValidator(QRegExp(r'[A-Za-z0-9-]+'))
