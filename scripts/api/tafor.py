@@ -16,10 +16,15 @@ from bs4 import BeautifulSoup
 from dateutil import relativedelta
 from flask import Flask, request, jsonify, abort, render_template, url_for, send_file
 
+from auth import amsc
+
+
 ECHO_FTP_HOST = os.environ.get('ECHO_FTP_HOST') or '127.0.0.1'
 ECHO_FTP_USER = os.environ.get('ECHO_FTP_USER') or 'root'
 ECHO_FTP_PASSWD = os.environ.get('ECHO_FTP_PASSWD') or '123456'
 ECHO_FTP_PATH = os.environ.get('ECHO_FTP_PATH') or 'mergeMax'
+
+session = None
 
 root = os.path.abspath(os.path.dirname(__file__))
 
@@ -405,10 +410,19 @@ def remote_latest_message(airport):
         'ShuZhi': ''
     }
 
+    headers = {
+        'Cookie': amsc.session or amsc.update()
+    }
+
     try:
-        response = requests.post(url, params=post_data, timeout=30)
+        response = requests.post(url, headers=headers, params=post_data, timeout=30)
         messages = [msg['RPT'].strip().replace('\n', ' ') for msg in response.json()]
         messages = marshal(messages, international_mode=True)
+
+    except json.JSONDecodeError as e:
+        app.logger.exception(e)
+        amsc.update()
+        return jsonify({'error': 'unauthorized'}), 401
 
     except Exception as e:
         app.logger.exception(e)
@@ -423,8 +437,8 @@ def remote_latest_message(airport):
             sigmet_post_data['EndDate'] = end.strftime(fmt)
 
             endtime = lambda x: parse_intl_period(find_sigmet_period(x))[1]
-            response = requests.post(url, params=sigmet_post_data, timeout=30)
-            if isinstance(response.json(), list):
+            response = requests.post(url, headers=headers, params=sigmet_post_data, timeout=30)
+            if response.text and isinstance(response.json(), list):
                 sigmets = [msg['RPT'].strip().replace('\n', ' ') for msg in response.json() if endtime(msg['RPT']) >= end]
                 sigmets.sort(key=endtime)
                 sigmets = marshal_multiple(sigmets)

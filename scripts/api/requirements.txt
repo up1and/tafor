@@ -2,6 +2,7 @@ pytz
 Flask
 gunicorn
 requests
+cryptography
 beautifulsoup4
 python-dateutil
 Pillow
