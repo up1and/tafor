@@ -224,7 +224,7 @@ class CheckTaf(object):
         last = self.latest()
 
         if last is not None and last.rptInline == self.message:
-            last.confirmed = self.time
+            last.confirmed = self.taf.time
             db.commit()
             logger.info('Confirm {} {}'.format(self.tt, self.message))
             return True
