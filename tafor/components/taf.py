@@ -129,12 +129,12 @@ class BaseTafEditor(BaseEditor):
 
         def sortedGroup(groups):
             groups = [e for e in groups if e.isVisible() and e.durations is not None]
-            return sorted(groups, key=lambda x: x.durations[0])
+            orders = ['FM', 'BECMG', 'TEMPO']
+            priority = lambda x: orders.index(x) if x in orders else -1
+            return sorted(groups, key=lambda x: (x.durations[0], priority(x.identifier)))
 
-        primaryMessage = self.primary.message()
-        becmgsMessage = [e.message() for e in sortedGroup(self.becmgs)]
-        temposMessage = [e.message() for e in sortedGroup(self.tempos)]
-        messages = [primaryMessage] + becmgsMessage + temposMessage
+        groupsMessage = [e.message() for e in sortedGroup(self.becmgs + self.tempos)]
+        messages = [self.primary.message()] + groupsMessage
         self.rpt = '\n'.join(filter(None, messages)) + '='
         self.sign = self.primary.sign()
 
@@ -244,7 +244,7 @@ class TaskTafEditor(BaseTafEditor):
         self.primary.date.editingFinished.connect(self.updateState)
 
     def previewMessage(self):
-        message = {'sign': self.sign, 'rpt':self.rpt, 'planning': self.time}
+        message = {'sign': self.sign, 'rpt': self.rpt, 'planning': self.time}
         self.previewSignal.emit(message)
 
     def updateState(self):

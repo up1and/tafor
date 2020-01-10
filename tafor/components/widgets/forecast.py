@@ -59,7 +59,7 @@ class BaseSegment(QWidget, SegmentMixin):
         self.rules = Pattern()
         self.parent = parent
         self.complete = False
-        self.identifier = name
+        self.identifier = ''.join(c for c in name if c.isalpha())
         self.durations = None
         self.periodText = ''
 

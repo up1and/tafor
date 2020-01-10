@@ -454,6 +454,7 @@ class TafLexer(object):
         self.part = part.strip()
         self.tokens = OrderedDict()
         self.period = None
+        self.order = 0
 
         self.parse(part)
 
@@ -608,19 +609,22 @@ class TafParser(object):
             for index in becmgIndex:
                 e = elements[index] + elements[index+1]
                 becmg = self.parse(e)
+                becmg.order = index
                 self.becmgs.append(becmg)
 
             for index in fmIndex:
                 e = elements[index] + elements[index+1]
                 fm = self.parse(e)
+                fm.order = index
                 self.becmgs.append(fm)
 
             for index in tempoIndex:
                 e = elements[index] + elements[index+1]
                 tempo = self.parse(e)
+                tempo.order = index
                 self.tempos.append(tempo)
 
-        self.elements = [self.primary] + self.becmgs + self.tempos
+        self.elements = [self.primary] + sorted(self.becmgs + self.tempos, key=lambda x: x.order)
 
     def _parsePeriod(self):
         """解析主报文和变化组的时间顺序"""
