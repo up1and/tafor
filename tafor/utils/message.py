@@ -167,7 +167,7 @@ class AFTNDecoder(object):
     @property
     def address(self):
         addressees = []
-        pattern = re.compile(r'^(?:GG|FF\s)?((?:\w{8}\s?)+)')
+        pattern = re.compile(r'^(?:GG\s|FF\s)?((?:\w{8}\s?)+)')
         for line in self.lines:
             m = pattern.match(line)
             if m:
