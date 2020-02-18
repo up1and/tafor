@@ -20,7 +20,7 @@ def isOverlap(basetime, reftime):
     start = max(basetime[0], reftime[0])
     end = min(basetime[1], reftime[1])
     total = (end - start).total_seconds()
-    return total >= 0
+    return total > 0
 
 def parseDayHour(dayHour, basetime, future=False):
     day = int(dayHour[:2])
