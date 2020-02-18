@@ -972,7 +972,7 @@ class SigmetLexer(object):
         'FIR', 'FIR/UIR', 'CTA'
     ]
 
-    airmetKeywords = ['ISOL', 'OCNL', 'BKN', 'OVC', 'WIND', 'VIS', 'AIRMET',
+    airmetKeywords = ['ISOL', 'OCNL', 'MOD', 'BKN', 'OVC', 'WIND', 'VIS', 'AIRMET',
         'BR', 'DS', 'DU', 'DZ', 'FC', 'FG', 'FU', 'GR', 'GS', 'HZ', 'PL', 'PO', 'RA', 'SA', 'SG', 'SN', 'SQ', 'SS', 'VA'
     ]
 
