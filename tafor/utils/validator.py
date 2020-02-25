@@ -727,7 +727,6 @@ class TafParser(object):
                         legal = verify(self.reference[key]['text'], e.tokens[key]['text'])
 
                     if key == 'weather' and e.tokens[key]['text'] != self.reference[key]['text'] \
-                        and e.tokens[key]['text'] != 'NSW' \
                         and 'vis' in e.tokens and not e.tokens['vis']['error'] \
                         or e.tokens[key]['error']:
                         # 天气现象发生改变，并引起能见度变化，同时天气现象不为 NSW
