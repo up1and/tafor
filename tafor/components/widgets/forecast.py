@@ -493,13 +493,18 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             self.becmg3Checkbox.setStyleSheet('QCheckBox {margin-top: 4px;}')
             self.tempo3Checkbox.setStyleSheet('QCheckBox {margin-top: 4px;}')
 
+        self.prevButton.setIcon(QIcon(':/back.png'))
+        self.resetButton.setIcon(QIcon(':/reset.png'))
+
+        self.offset = 0
+
         self.bindSignal()
         self.initMessageSpec()
         self.setOrder()
 
     def setOrder(self):
         orders = [self.nsc] + self.temperatures + [self.becmg1Checkbox, self.becmg2Checkbox, self.becmg3Checkbox, 
-            self.tempo1Checkbox, self.tempo2Checkbox, self.tempo3Checkbox] + [self.prev]
+            self.tempo1Checkbox, self.tempo2Checkbox, self.tempo3Checkbox]
 
         for p, n in zip(orders, orders[1:]):
             self.setTabOrder(p, n)
@@ -524,7 +529,8 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.cor.clicked.connect(self.setMessageType)
         self.amd.clicked.connect(self.setMessageType)
         self.cnl.clicked.connect(self.setMessageType)
-        self.prev.clicked.connect(self.setPreviousPeriod)
+        self.prevButton.clicked.connect(lambda: self.setCurrentPeriod('prev'))
+        self.resetButton.clicked.connect(lambda: self.setCurrentPeriod('reset'))
 
         self.aaa.textEdited.connect(lambda: self.upperText(self.aaa))
         self.ccc.textEdited.connect(lambda: self.upperText(self.ccc))
@@ -559,10 +565,9 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         if not self.date.hasAcceptableInput():
             return
 
-        prev = 1 if self.prev.isChecked() else 0
-        taf = CurrentTaf(context.taf.spec, time=datetime.datetime.utcnow(), prev=prev)
+        self.taf = CurrentTaf(context.taf.spec, time=datetime.datetime.utcnow(), offset=self.offset)
         if self.normal.isChecked():
-            self.setNormalPeriod(taf)
+            self.setNormalPeriod(self.taf)
 
             self.ccc.clear()
             self.ccc.setEnabled(False)
@@ -571,7 +576,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             self.aaaCnl.clear()
             self.aaaCnl.setEnabled(False)
         else:
-            self.setAmendPeriod(taf)
+            self.setAmendPeriod(self.taf)
 
             if self.cor.isChecked():
                 self.ccc.setEnabled(True)
@@ -613,17 +618,25 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.period.setText(self.amdPeriod)
         self.durations = taf.durations()
 
-    def setPreviousPeriod(self, checked):
-        if checked:
+    def setCurrentPeriod(self, action):
+        if action == 'reset':
+            self.offset = 0
+            self.setMessageType()
+            self.resetButton.setEnabled(False)
+            self.prevButton.setEnabled(True)
+
+        if action == 'prev':
             title = QCoreApplication.translate('Editor', 'Tips')
             text = QCoreApplication.translate('Editor', 'Do you want to change the message valid period to previous?')
             ret = QMessageBox.question(self, title, text)
             if ret == QMessageBox.Yes:
+                self.offset -= 1
                 self.setMessageType()
-            else:
-                self.prev.setChecked(False)
-        else:
-            self.setMessageType()
+                self.resetButton.setEnabled(True)
+                self.prevButton.setEnabled(True)
+
+                if self.offset < -1:
+                    self.prevButton.setEnabled(False)
 
     def amendNumber(self, sort):
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
@@ -741,7 +754,9 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.aaa.clear()
         self.ccc.clear()
         self.aaaCnl.clear()
-        self.prev.setChecked(False)
+        self.resetButton.setEnabled(False)
+        self.prevButton.setEnabled(True)
+        self.offset = 0
 
     def clear(self):
         super(TafPrimarySegment, self).clear()

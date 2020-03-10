@@ -90,7 +90,7 @@
          <item>
           <widget class="QToolButton" name="layersButton">
            <property name="text">
-            <string notr="true"/>
+            <string notr="true">Layer</string>
            </property>
            <property name="popupMode">
             <enum>QToolButton::InstantPopup</enum>
@@ -106,7 +106,7 @@
             <bool>false</bool>
            </property>
            <property name="text">
-            <string notr="true"/>
+            <string notr="true">Fcst</string>
            </property>
            <property name="iconSize">
             <size>
@@ -125,7 +125,7 @@
          <item>
           <widget class="QToolButton" name="modeButton">
            <property name="text">
-            <string notr="true"/>
+            <string notr="true">Mode</string>
            </property>
            <property name="iconSize">
             <size>

@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\main_table.ui'
 #
-# Created by: PyQt5 UI code generator 5.6
+# Created by: PyQt5 UI code generator 5.11.3
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -37,15 +37,24 @@ class Ui_DataTable(object):
         self.pagination = QtWidgets.QWidget(DataTable)
         self.pagination.setObjectName("pagination")
         self.horizontalLayout = QtWidgets.QHBoxLayout(self.pagination)
-        self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout.setObjectName("horizontalLayout")
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
         self.infoButton = QtWidgets.QToolButton(self.pagination)
-        self.infoButton.setText("...")
+        self.infoButton.setText("Info")
         self.infoButton.setAutoRaise(True)
         self.infoButton.setObjectName("infoButton")
         self.horizontalLayout.addWidget(self.infoButton)
+        self.chartButton = QtWidgets.QToolButton(self.pagination)
+        self.chartButton.setText("Chart")
+        self.chartButton.setAutoRaise(True)
+        self.chartButton.setObjectName("chartButton")
+        self.horizontalLayout.addWidget(self.chartButton)
+        self.searchButton = QtWidgets.QToolButton(self.pagination)
+        self.searchButton.setText("Search")
+        self.searchButton.setAutoRaise(True)
+        self.searchButton.setObjectName("searchButton")
+        self.horizontalLayout.addWidget(self.searchButton)
         self.search = QtWidgets.QLineEdit(self.pagination)
         self.search.setMaximumSize(QtCore.QSize(100, 16777215))
         self.search.setStyleSheet("border: 0;")
@@ -54,7 +63,7 @@ class Ui_DataTable(object):
         self.search.setObjectName("search")
         self.horizontalLayout.addWidget(self.search)
         self.prevButton = QtWidgets.QToolButton(self.pagination)
-        self.prevButton.setText("...")
+        self.prevButton.setText("Prev")
         self.prevButton.setAutoRaise(True)
         self.prevButton.setArrowType(QtCore.Qt.NoArrow)
         self.prevButton.setObjectName("prevButton")
@@ -64,7 +73,7 @@ class Ui_DataTable(object):
         self.pagesLabel.setObjectName("pagesLabel")
         self.horizontalLayout.addWidget(self.pagesLabel)
         self.nextButton = QtWidgets.QToolButton(self.pagination)
-        self.nextButton.setText("...")
+        self.nextButton.setText("Next")
         self.nextButton.setAutoRaise(True)
         self.nextButton.setObjectName("nextButton")
         self.horizontalLayout.addWidget(self.nextButton)

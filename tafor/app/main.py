@@ -604,6 +604,7 @@ def main():
     os.environ['TAFOR_ARGS'] = json.dumps(sys.argv[1:])
 
     app = QApplication(sys.argv)
+    app.setAttribute(Qt.AA_DisableWindowContextHelpButton)
 
     translator = QTranslator()
     locale = QLocale.system().name()

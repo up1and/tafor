@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\sigmet_area.ui'
 #
-# Created by: PyQt5 UI code generator 5.6
+# Created by: PyQt5 UI code generator 5.11.3
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -30,7 +30,6 @@ class Ui_Editor(object):
         self.changeAreaWidget.setMinimumSize(QtCore.QSize(0, 22))
         self.changeAreaWidget.setObjectName("changeAreaWidget")
         self.changeAreaLayout = QtWidgets.QHBoxLayout(self.changeAreaWidget)
-        self.changeAreaLayout.setContentsMargins(0, 0, 0, 0)
         self.changeAreaLayout.setObjectName("changeAreaLayout")
         self.canvas = QtWidgets.QRadioButton(self.changeAreaWidget)
         self.canvas.setChecked(True)
@@ -45,21 +44,21 @@ class Ui_Editor(object):
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.changeAreaLayout.addItem(spacerItem)
         self.layersButton = QtWidgets.QToolButton(self.changeAreaWidget)
-        self.layersButton.setText("")
+        self.layersButton.setText("Layer")
         self.layersButton.setPopupMode(QtWidgets.QToolButton.InstantPopup)
         self.layersButton.setAutoRaise(True)
         self.layersButton.setObjectName("layersButton")
         self.changeAreaLayout.addWidget(self.layersButton)
         self.fcstButton = QtWidgets.QToolButton(self.changeAreaWidget)
         self.fcstButton.setEnabled(False)
-        self.fcstButton.setText("")
+        self.fcstButton.setText("Fcst")
         self.fcstButton.setIconSize(QtCore.QSize(16, 16))
         self.fcstButton.setCheckable(True)
         self.fcstButton.setAutoRaise(True)
         self.fcstButton.setObjectName("fcstButton")
         self.changeAreaLayout.addWidget(self.fcstButton)
         self.modeButton = QtWidgets.QToolButton(self.changeAreaWidget)
-        self.modeButton.setText("")
+        self.modeButton.setText("Mode")
         self.modeButton.setIconSize(QtCore.QSize(16, 16))
         self.modeButton.setAutoRaise(True)
         self.modeButton.setObjectName("modeButton")
@@ -68,7 +67,7 @@ class Ui_Editor(object):
         self.textAreaWidget = QtWidgets.QWidget(self.areaGroup)
         self.textAreaWidget.setObjectName("textAreaWidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.textAreaWidget)
-        self.verticalLayout.setContentsMargins(0, 5, 0, 5)
+        self.verticalLayout.setContentsMargins(-1, 5, -1, 5)
         self.verticalLayout.setObjectName("verticalLayout")
         self.textArea = QtWidgets.QLineEdit(self.textAreaWidget)
         self.textArea.setPlaceholderText("")

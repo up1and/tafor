@@ -42,7 +42,7 @@ class CurrentTaf(object):
 
     :param spec: TAF 报文规格，选项 fc, ft24, ft30
     :param time: 报文的生成时间
-    :param prev: 0 代表当前报文，1 代表上一份报文，以此类推
+    :param offset: 0 代表当前报文，-1 代表上一份报文，1 代表下一份报文，以此类推
 
     """
 
@@ -52,12 +52,12 @@ class CurrentTaf(object):
         'ft30': SpecFT30
     }
 
-    def __init__(self, spec, time=None, prev=0):
+    def __init__(self, spec, time=None, offset=0):
         self.spec = self.specifications[spec]
         self.time = datetime.datetime.utcnow() if time is None else time
 
-        if prev:
-            self.time -= self.spec.interval * prev
+        if offset:
+            self.time += self.spec.interval * offset
 
         self._initStartTime()
 

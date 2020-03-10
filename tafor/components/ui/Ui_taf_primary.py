@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\taf_primary.ui'
 #
-# Created by: PyQt5 UI code generator 5.6
+# Created by: PyQt5 UI code generator 5.11.3
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -145,19 +145,32 @@ class Ui_Editor(object):
         self.aaaCnl = QtWidgets.QLineEdit(self.sortGroup)
         self.aaaCnl.setObjectName("aaaCnl")
         self.horizontalLayout_3.addWidget(self.aaaCnl)
-        self.prev = QtWidgets.QCheckBox(self.sortGroup)
-        self.prev.setObjectName("prev")
-        self.horizontalLayout_3.addWidget(self.prev)
         self.gridLayout.addWidget(self.sortGroup, 0, 0, 1, 7)
-        self.temperatureLayout = QtWidgets.QHBoxLayout()
-        self.temperatureLayout.setObjectName("temperatureLayout")
-        spacerItem1 = QtWidgets.QSpacerItem(0, 20, QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum)
-        self.temperatureLayout.addItem(spacerItem1)
-        self.gridLayout.addLayout(self.temperatureLayout, 5, 8, 2, 3)
         self.fmCheckbox = QtWidgets.QCheckBox(Editor)
         self.fmCheckbox.setText("FM")
         self.fmCheckbox.setObjectName("fmCheckbox")
         self.gridLayout.addWidget(self.fmCheckbox, 5, 2, 1, 1)
+        self.specLayout = QtWidgets.QHBoxLayout()
+        self.specLayout.setObjectName("specLayout")
+        spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.specLayout.addItem(spacerItem1)
+        self.prevButton = QtWidgets.QToolButton(Editor)
+        self.prevButton.setText("Prev")
+        self.prevButton.setAutoRaise(True)
+        self.prevButton.setObjectName("prevButton")
+        self.specLayout.addWidget(self.prevButton)
+        self.resetButton = QtWidgets.QToolButton(Editor)
+        self.resetButton.setEnabled(False)
+        self.resetButton.setText("Reset")
+        self.resetButton.setAutoRaise(True)
+        self.resetButton.setObjectName("resetButton")
+        self.specLayout.addWidget(self.resetButton)
+        self.gridLayout.addLayout(self.specLayout, 0, 10, 1, 1)
+        self.temperatureLayout = QtWidgets.QHBoxLayout()
+        self.temperatureLayout.setObjectName("temperatureLayout")
+        spacerItem2 = QtWidgets.QSpacerItem(0, 20, QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum)
+        self.temperatureLayout.addItem(spacerItem2)
+        self.gridLayout.addLayout(self.temperatureLayout, 5, 8, 2, 3)
         self.cbLabel.setBuddy(self.cb)
         self.weatherLabel.setBuddy(self.weather)
         self.visLabel.setBuddy(self.vis)
@@ -209,7 +222,6 @@ class Ui_Editor(object):
         self.cor.setText(_translate("Editor", "Correct"))
         self.amd.setText(_translate("Editor", "Amend"))
         self.cnl.setText(_translate("Editor", "Cancel"))
-        self.prev.setText(_translate("Editor", "Previous"))
 
 
 if __name__ == "__main__":

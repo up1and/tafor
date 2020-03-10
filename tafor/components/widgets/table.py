@@ -45,8 +45,11 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
         self.prevButton.setIcon(QIcon(':/prev.png'))
         self.nextButton.setIcon(QIcon(':/next.png'))
+        self.searchButton.setIcon(QIcon(':/search.png'))
+        self.chartButton.setIcon(QIcon(':/chart.png'))
         self.infoButton.setIcon(QIcon(':/info.png'))
         self.infoButton.hide()
+        self.chartButton.hide()
 
     def setValidator(self):
         pattern = r'\d{4}\/\d{1,2}\/\d{1,2}'

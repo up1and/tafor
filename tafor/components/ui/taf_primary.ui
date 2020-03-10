@@ -283,15 +283,55 @@
       <item>
        <widget class="QLineEdit" name="aaaCnl"/>
       </item>
-      <item>
-       <widget class="QCheckBox" name="prev">
-        <property name="text">
-         <string>Previous</string>
-        </property>
-       </widget>
-      </item>
      </layout>
     </widget>
+   </item>
+   <item row="5" column="2">
+    <widget class="QCheckBox" name="fmCheckbox">
+     <property name="text">
+      <string notr="true">FM</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="10">
+    <layout class="QHBoxLayout" name="specLayout">
+     <item>
+      <spacer name="horizontalSpacer_3">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QToolButton" name="prevButton">
+       <property name="text">
+        <string notr="true">Prev</string>
+       </property>
+       <property name="autoRaise">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="resetButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="text">
+        <string notr="true">Reset</string>
+       </property>
+       <property name="autoRaise">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item row="5" column="8" rowspan="2" colspan="3">
     <layout class="QHBoxLayout" name="temperatureLayout">
@@ -312,13 +352,6 @@
       </spacer>
      </item>
     </layout>
-   </item>
-   <item row="5" column="2">
-    <widget class="QCheckBox" name="fmCheckbox">
-     <property name="text">
-      <string notr="true">FM</string>
-     </property>
-    </widget>
    </item>
   </layout>
  </widget>

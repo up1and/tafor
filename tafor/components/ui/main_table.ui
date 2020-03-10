@@ -87,7 +87,27 @@
       <item>
        <widget class="QToolButton" name="infoButton">
         <property name="text">
-         <string notr="true">...</string>
+         <string notr="true">Info</string>
+        </property>
+        <property name="autoRaise">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="chartButton">
+        <property name="text">
+         <string notr="true">Chart</string>
+        </property>
+        <property name="autoRaise">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="searchButton">
+        <property name="text">
+         <string notr="true">Search</string>
         </property>
         <property name="autoRaise">
          <bool>true</bool>
@@ -119,7 +139,7 @@
       <item>
        <widget class="QToolButton" name="prevButton">
         <property name="text">
-         <string notr="true">...</string>
+         <string notr="true">Prev</string>
         </property>
         <property name="autoRaise">
          <bool>true</bool>
@@ -139,7 +159,7 @@
       <item>
        <widget class="QToolButton" name="nextButton">
         <property name="text">
-         <string notr="true">...</string>
+         <string notr="true">Next</string>
         </property>
         <property name="autoRaise">
          <bool>true</bool>
