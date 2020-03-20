@@ -1,8 +1,8 @@
 import datetime
 
-from PyQt5.QtGui import QIcon, QRegExpValidator, QColor, QPixmap
-from PyQt5.QtCore import QCoreApplication, QRegExp, Qt
-from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QHeaderView, QLabel
+from PyQt5.QtGui import QIcon, QRegExpValidator, QColor, QPixmap, QCursor
+from PyQt5.QtCore import QCoreApplication, QRegExp, QDate, Qt
+from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QHeaderView, QLabel, QLineEdit, QCalendarWidget
 
 from sqlalchemy import and_
 
@@ -21,11 +21,40 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.setValidator()
         self.page = 1
         self.pagination = None
-        self.searchText = ''
         self.reportType = ''
         self.date = None
+        self.keywords = []
         self.parent = parent
         self.color = QColor(200, 20, 40)
+
+        self.calendar.lineEdit().hide()
+        style = """
+            QDateEdit {
+                border: 1px solid transparent;
+                padding: 2px; /* This (useless) line resolves a bug with the font color */
+            }
+
+            QDateEdit:hover {
+                background: #e5f3ff;
+                border: 1px solid #cce8ff;
+            }
+
+            QDateEdit::drop-down 
+            {
+                border: 0px; /* This seems to replace the whole arrow of the combo box */
+            }
+
+            /* Define a new custom arrow icon for the combo box */
+            QDateEdit::down-arrow {
+                image: url(:/search.png);
+                width: 16px;
+                height: 16px;
+            }
+
+        """
+        self.calendar.setStyleSheet(style)
+        self.calendar.calendarWidget().setSelectedDate(QDate.currentDate())
+        self.calendar.calendarWidget().setHorizontalHeaderFormat(QCalendarWidget.NoHorizontalHeader)
 
         layout.addWidget(self)
         self.bindSignal()
@@ -37,6 +66,17 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.nextButton.clicked.connect(self.next)
         self.table.itemSelectionChanged.connect(self.updateInfoButton)
         self.infoButton.clicked.connect(self.view)
+        self.calendarButton.clicked.connect(lambda : self.setCalendar(None))
+        self.calendar.dateChanged.connect(self.setCalendar)
+
+    def setCalendar(self, date):
+        if date:
+            self.date = date.toPyDate()
+        else:
+            self.date = None
+
+        self.page = 1
+        self.updateGui()
 
     def setStyle(self):
         header = self.table.horizontalHeader()
@@ -45,14 +85,14 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
         self.prevButton.setIcon(QIcon(':/prev.png'))
         self.nextButton.setIcon(QIcon(':/next.png'))
-        self.searchButton.setIcon(QIcon(':/search.png'))
         self.chartButton.setIcon(QIcon(':/chart.png'))
+        self.calendarButton.setIcon(QIcon(':/calendar.png'))
         self.infoButton.setIcon(QIcon(':/info.png'))
         self.infoButton.hide()
         self.chartButton.hide()
 
     def setValidator(self):
-        pattern = r'\d{4}\/\d{1,2}\/\d{1,2}'
+        pattern = r'[a-zA-Z0-9\s\/\-\+]+'
         date = QRegExpValidator(QRegExp(pattern))
         self.search.setValidator(date)
 
@@ -74,36 +114,17 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
             delta = datetime.timedelta(days=1)
             query = query.filter(and_(dateField >= self.date, dateField < self.date + delta))
 
+        if self.keywords:
+            words = [self.model.rpt.like('%'+word+'%') for word in self.keywords]
+            query = query.filter(and_(*words))
+
         return query
 
-    def fillDate(self):
-        text = self.search.text()
-        if len(text) > len(self.searchText):
-            if len(text) == 4:
-                text += '/'
-            elif len(text) == 7 and not text.endswith('/'):
-                text += '/'
-
-            self.search.setText(text)
-
-        self.searchText = text
-
     def autoSearch(self):
-        self.fillDate()
-        dates = [int(n) for n in self.search.text().split('/') if n]
-        if len(dates) == 3:
-            try:
-                self.date = datetime.date(*dates)
-                self.page = 1
-                self.updateGui()
-            except Exception as e:
-                pass
-        else:
-            self.date = None
-
-        if len(dates) == 0:
-            self.page = 1
-            self.updateGui()
+        self.search.setText(self.search.text().upper())
+        self.keywords = self.search.text().split()
+        self.page = 1
+        self.updateGui()
 
     def hideColumns(self):
         raise NotImplementedError
@@ -124,6 +145,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.updateTable()
         self.updatePages()
         self.updateInfoButton()
+        self.updateCalendarButton()
 
     def updateTable(self):
         raise NotImplementedError
@@ -142,6 +164,15 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         index = items[0].row()
         self.selected = self.pagination.items[index]
         self.infoButton.show()
+
+    def updateCalendarButton(self):
+        if self.date:
+            self.calendarButton.setChecked(True)
+            self.calendarButton.show()
+            self.calendar.hide()
+        else:
+            self.calendarButton.hide()
+            self.calendar.show()
 
     def copySelected(self, item):
         self.parent.clip.setText(item.text())

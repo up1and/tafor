@@ -105,11 +105,27 @@
        </widget>
       </item>
       <item>
-       <widget class="QToolButton" name="searchButton">
+       <widget class="QToolButton" name="calendarButton">
         <property name="text">
-         <string notr="true">Search</string>
+         <string notr="true">Calendar</string>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
         </property>
         <property name="autoRaise">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QDateEdit" name="calendar">
+        <property name="maximumSize">
+         <size>
+          <width>20</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="calendarPopup">
          <bool>true</bool>
         </property>
        </widget>
@@ -126,7 +142,7 @@
          <string notr="true">border: 0;</string>
         </property>
         <property name="inputMethodHints">
-         <set>Qt::ImhDate</set>
+         <set>Qt::ImhPreferUppercase</set>
         </property>
         <property name="placeholderText">
          <string>Search...</string>
