@@ -1,7 +1,7 @@
 import datetime
 
 from PyQt5.QtGui import QIcon, QRegExpValidator, QColor, QPixmap, QCursor
-from PyQt5.QtCore import QCoreApplication, QRegExp, QDate, Qt
+from PyQt5.QtCore import QCoreApplication, QRegExp, QDate, Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QHeaderView, QLabel, QLineEdit, QCalendarWidget
 
 from sqlalchemy import and_
@@ -13,6 +13,7 @@ from tafor.components.ui import Ui_main_table
 
 
 class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
+    chartButtonClicked = pyqtSignal()
 
     def __init__(self, parent, layout):
         super(BaseDataTable, self).__init__()
@@ -68,6 +69,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.infoButton.clicked.connect(self.view)
         self.calendarButton.clicked.connect(lambda : self.setCalendar(None))
         self.calendar.dateChanged.connect(self.setCalendar)
+        self.chartButton.clicked.connect(self.chartButtonClicked.emit)
 
     def setCalendar(self, date):
         if date:
@@ -244,6 +246,7 @@ class MetarTable(BaseDataTable):
     def __init__(self, parent, layout):
         super(MetarTable, self).__init__(parent, layout)
         self.model = Metar
+        self.chartButton.show()
         self.hideColumns()
 
     def hideColumns(self):

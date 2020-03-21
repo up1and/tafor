@@ -478,7 +478,7 @@ class TafLexer(object):
             if not m:
                 continue
 
-            if key in ('weather', 'cloud', 'temperature', 'fmtl'):
+            if key in ('weather', 'cloud', 'temperature', 'fmtl', 'rvr'):
                 items = [m.group() for m in pattern.finditer(part)]
                 self.tokens[key] = {
                     'text': ' '.join(items),
@@ -889,6 +889,88 @@ class MetarLexer(TafLexer):
 
     def __repr__(self):
         return '<MetarLexer {}>'.format(self.part)
+
+    def degToCompass(self, direction):
+        val = int((direction / 22.5) + 0.5)
+        directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
+        return directions[(val % 16)]
+
+    @property
+    def windDirection(self):
+        text = self.tokens['wind']['text']
+        m = self.grammar.wind.match(text)
+        direction = m.group(1)
+
+        if direction == 'VRB':
+            return direction
+
+        if direction is None:
+            return ''
+
+        compass = self.degToCompass(int(direction))
+        return compass
+
+    @property
+    def windSpeed(self):
+        text = self.tokens['wind']['text']
+        m = self.grammar.wind.match(text)
+        speed = m.group(2)
+
+        if speed is None:
+            speed = 0
+
+        if speed == 'P49':
+            speed = 50
+        
+        return int(speed)
+
+    @property
+    def gust(self):
+        text = self.tokens['wind']['text']
+        m = self.grammar.wind.match(text)
+        speed = m.group(3)
+
+        if speed == 'P49':
+            speed = 50
+
+        if speed:
+            speed = int(speed)
+        
+        return speed
+
+    @property
+    def vis(self):
+        if 'CAVOK' in self.part:
+            return 9999
+
+        return int(self.tokens['vis']['text'])
+
+    @property
+    def rvr(self):
+        if 'rvr' in self.tokens:
+            text = self.tokens['rvr']['text']
+            rvrs = []
+            for t in text.split():
+                _, rvr = t.split('/')
+                rvrs += re.findall(r'\d+', rvr)
+
+            return min(map(int, rvrs))
+
+    @property
+    def temperature(self):
+        temp, _ = self.tokens['tempdew']['text'].split('/')
+        temp = - int(temp[1:]) if 'M' in temp else int(temp)
+        return temp
+
+    @property
+    def dewpoint(self):
+        _, dew = self.tokens['tempdew']['text'].split('/')
+        dew = - int(dew[1:]) if 'M' in dew else int(dew)
+        return dew
+
+    @property
+    def pressure(self):
+        return int(self.tokens['pressure']['text'][1:])
 
 
 class MetarParser(TafParser):

@@ -22,6 +22,7 @@ from tafor.components.trend import TrendEditor
 from tafor.components.sigmet import SigmetEditor
 from tafor.components.send import TaskTafSender, TafSender, TrendSender, SigmetSender
 from tafor.components.setting import SettingDialog
+from tafor.components.chart import ChartViewer
 from tafor.components.task import TaskBrowser
 
 from tafor.components.widgets.table import TafTable, MetarTable, SigmetTable, AirmetTable
@@ -76,6 +77,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.trendEditor = TrendEditor(self, self.trendSender)
         self.sigmetEditor = SigmetEditor(self, self.sigmetSender)
         self.licenseEditor = LicenseEditor(self)
+
+        self.chartViewer = ChartViewer(self)
 
         if boolean(conf.value('General/Serious')):
             self.taskBrowser = TaskBrowser(self)
@@ -184,6 +187,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.tafSender.sendSignal.connect(self.updateGui)
         self.trendSender.sendSignal.connect(self.updateGui)
         self.sigmetSender.sendSignal.connect(self.updateGui)
+
+        self.metarTable.chartButtonClicked.connect(self.chartViewer.show)
 
         self.firInfoThread.finished.connect(self.sigmetEditor.update)
 
@@ -349,6 +354,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.sigmetEditor.setAttribute(Qt.WA_DeleteOnClose)
             self.licenseEditor.setAttribute(Qt.WA_DeleteOnClose)
             self.settingDialog.setAttribute(Qt.WA_DeleteOnClose)
+            self.chartViewer.setAttribute(Qt.WA_DeleteOnClose)
 
             self.tafSender.close()
             self.trendSender.close()
@@ -358,6 +364,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.sigmetEditor.close()
             self.licenseEditor.close()
             self.settingDialog.close()
+            self.chartViewer.close()
             self.remindBox = None
 
             if boolean(conf.value('General/Serious')):
@@ -655,7 +662,7 @@ def main():
     os.environ['TAFOR_ARGS'] = json.dumps(sys.argv[1:])
 
     app = QApplication(sys.argv)
-    app.setAttribute(Qt.AA_DisableWindowContextHelpButton)
+    # app.setAttribute(Qt.AA_DisableWindowContextHelpButton)
 
     translator = QTranslator()
     locale = QLocale.system().name()

@@ -74,6 +74,10 @@ class Metar(Base):
     def __repr__(self):
         return '<METAR %r %r>' % (self.tt, self.rpt)
 
+    def parser(self):
+        from tafor.utils import MetarParser
+        return MetarParser(self.rpt)
+
 class Task(Base):
     __tablename__ = 'tasks'
 
