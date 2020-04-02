@@ -957,6 +957,52 @@ class MetarLexer(TafLexer):
             return min(map(int, rvrs))
 
     @property
+    def weather(self):
+        if 'weather' in self.tokens:
+            return self.tokens['weather']['text']
+
+        return ''
+
+    @property
+    def phenomenons(self):
+        if 'weather' in self.tokens:
+            weathers = []
+            text = self.tokens['weather']['text']
+            for t in text.split():
+                if t.startswith(('+', '-')):
+                    t = t[1:]
+
+                weathers.append(t)
+
+            return weathers
+
+        return []
+
+    @property
+    def cloud(self):
+        if 'CAVOK' in self.part:
+            return 0, 1500
+
+        if 'cloud' in self.tokens:
+            text = self.tokens['cloud']['text']
+            cloud = text.split()[0]
+            if 'FEW' in cloud:
+                cover = 2
+
+            if 'SCT' in cloud:
+                cover = 4
+
+            if 'BKN' in cloud:
+                cover = 7
+
+            if 'OVC' in cloud:
+                cover = 8
+
+            height = int(cloud[3:6]) * 30
+
+            return cover, height
+
+    @property
     def temperature(self):
         temp, _ = self.tokens['tempdew']['text'].split('/')
         temp = - int(temp[1:]) if 'M' in temp else int(temp)
