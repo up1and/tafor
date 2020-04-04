@@ -166,14 +166,14 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         self.windChart = self.createChart('Wind / Gust (m/s)')
         self.visChart = self.createChart('Visibility / RVR (m)')
         self.weatherChart = self.createChart('Weather Phenomenon')
-        # self.cloudChart = self.createChart('Clouds (m)')
+        self.cloudChart = self.createChart('Clouds / Ceiling (m)')
         self.tempdewChart = self.createChart('Temperature / Dewpoint (°C)')
         self.pressureChart = self.createChart('Query Normal Height (hPa)')
 
         self.charts.append(self.windChart)
         self.charts.append(self.visChart)
         self.charts.append(self.weatherChart)
-        # self.charts.append(self.cloudChart)
+        self.charts.append(self.cloudChart)
         self.charts.append(self.tempdewChart)
         self.charts.append(self.pressureChart)
 
@@ -188,7 +188,7 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
             for axis in chart.axes():
                 chart.removeAxis(axis)
 
-    def drawPhenomenonSeries(self, phenomenons, weathers):
+    def drawPhenomenonSeries(self, weathers):
 
         def findWeather(name, weathers):
             for weather in weathers:
@@ -196,6 +196,7 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
                     return weather
 
         valueMaps = {}
+        phenomenons = set()
         for timestamp, weather in weathers:
             if weather:
                 enums = [16, 4, 13, 7, 10]
@@ -206,23 +207,20 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
                 }
                 valueMaps[timestamp] = values
 
+                for w in weather:
+                    if w.startswith(('+', '-')):
+                        w = w[1:]
+
+                    phenomenons.add(w)
+
         series = []
-        for name in set(phenomenons):
+        for name in phenomenons:
             serie = QScatterSeries()
             serie.setMarkerSize(8)
             serie.setName(name)
 
-            if 'RA' in name:
-                serie.setColor(Qt.green)
-                serie.setMarkerShape(QScatterSeries.MarkerShapeRectangle)
-
             if 'TS' in name:
                 serie.setColor(Qt.red)
-                serie.setMarkerShape(QScatterSeries.MarkerShapeRectangle)
-
-            if 'FG' == name:
-                serie.setColor(Qt.yellow)
-                serie.setMarkerShape(QScatterSeries.MarkerShapeRectangle)
 
             for timestamp, weather in weathers:
                 text = findWeather(name, weather)
@@ -244,17 +242,51 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
 
     def drawCloudSeries(self, clouds):
         series = []
+        orders = ['FEW', 'SCT', 'BKN', 'OVC', 'VV', 'TCU', 'CB']
 
-        serie = QSplineSeries()
-        serie.setName('Cloud')
+        def kind(text):
+            if 'VV' in text:
+                key = 'VV'
+            elif 'CB' in text:
+                key = 'CB'
+            elif 'TCU' in text:
+                key = 'TCU'
+            else:
+                key = text[:3]
 
+            return key
+
+        def height(text):
+            height = ''.join([t for t in text if t.isdigit()])
+            return int(height) * 30
+
+        covers = {}
         for timestamp, cloud in clouds:
-            cover, height = cloud
-            serie.append(timestamp, height)
-            bkns.append(timestamp, height + cover * 10)
+            for text in cloud:
+                key = kind(text)
 
+                if key not in covers:
+                    covers[key] = []
 
-        series.append(serie)
+        for key in covers:
+            for timestamp, cloud in clouds:
+                for text in cloud:
+                    if key == kind(text):
+                        covers[key].append((timestamp, height(text)))
+
+        for key in orders:
+            if key not in covers:
+                continue
+
+            serie = QScatterSeries()
+            serie.setName(key)
+            serie.setMarkerSize(8)
+
+            values = covers[key]
+            for value in values:
+                serie.append(*value)
+
+            series.append(serie)
 
         return series
 
@@ -292,9 +324,11 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         pressures = QSplineSeries()
         pressures.setName('Pressure')
 
+        ceilings = QSplineSeries()
+        ceilings.setName('Ceiling')
+
         clouds = []
         weathers = []
-        phenomenons = []
 
         for q in queries:
             metar = q.parser().primary
@@ -302,14 +336,13 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
 
             winds.append(timestamp, metar.windSpeed)
             visibilities.append(timestamp, metar.vis)
+            ceilings.append(timestamp, metar.ceiling)
             temperatures.append(timestamp, metar.temperature)
             dewpoints.append(timestamp, metar.dewpoint)
             pressures.append(timestamp, metar.pressure)
 
-            weathers.append((timestamp, metar.weather.split()))
-            phenomenons += metar.phenomenons
-
-            # clouds.append((timestamp, metar.cloud))
+            clouds.append((timestamp, metar.clouds))
+            weathers.append((timestamp, metar.weathers))
 
             if metar.rvr:
                 rvrs.append(timestamp, metar.rvr)
@@ -329,17 +362,21 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         self.addAxisY(self.visChart)
         self.addAxisX(self.visChart, xmin, xmax)
 
-        for serie in self.drawPhenomenonSeries(phenomenons, weathers):
+        for serie in self.drawPhenomenonSeries(weathers):
             self.weatherChart.addSeries(serie)
 
         self.addWeatherAxis(self.weatherChart)
         self.addAxisX(self.weatherChart, xmin, xmax)
-        
-        # for serie in self.drawCloudSeries(clouds):
-        #     self.cloudChart.addSeries(serie)
 
-        # self.addAxisY(self.cloudChart)
-        # self.addAxisX(self.cloudChart, xmin, xmax)
+        self.cloudChart.addSeries(ceilings)
+
+        for serie in self.drawCloudSeries(clouds):
+            self.cloudChart.addSeries(serie)
+
+        self.addAxisY(self.cloudChart)
+        self.addAxisX(self.cloudChart, xmin, xmax)
+        self.cloudChart.axisY().setMin(0)
+        self.cloudChart.axisY().setMax(1500)
 
         self.tempdewChart.addSeries(temperatures)
         self.tempdewChart.addSeries(dewpoints)

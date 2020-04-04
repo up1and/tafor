@@ -957,50 +957,41 @@ class MetarLexer(TafLexer):
             return min(map(int, rvrs))
 
     @property
-    def weather(self):
+    def weathers(self):
         if 'weather' in self.tokens:
-            return self.tokens['weather']['text']
-
-        return ''
-
-    @property
-    def phenomenons(self):
-        if 'weather' in self.tokens:
-            weathers = []
             text = self.tokens['weather']['text']
-            for t in text.split():
-                if t.startswith(('+', '-')):
-                    t = t[1:]
-
-                weathers.append(t)
-
-            return weathers
+            return text.split()
 
         return []
 
     @property
-    def cloud(self):
-        if 'CAVOK' in self.part:
-            return 0, 1500
+    def clouds(self):
+        if 'CAVOK' in self.part or 'NSC' in self.part:
+            return []
 
         if 'cloud' in self.tokens:
             text = self.tokens['cloud']['text']
-            cloud = text.split()[0]
-            if 'FEW' in cloud:
-                cover = 2
+            clouds = sorted(text.split(), key=lambda cloud: int(cloud[3:6]))
 
-            if 'SCT' in cloud:
-                cover = 4
+            return clouds
 
-            if 'BKN' in cloud:
-                cover = 7
+    @property
+    def ceiling(self):
+        if 'CAVOK' in self.part or 'NSC' in self.part:
+            return 1500
 
-            if 'OVC' in cloud:
-                cover = 8
+        if 'cloud' in self.tokens:
+            text = self.tokens['cloud']['text']
+            clouds = sorted(text.split(), key=lambda cloud: int(cloud[3:6]))
 
-            height = int(cloud[3:6]) * 30
+            ceiling = 1500
+            for cloud in clouds:
+                if cloud.startswith(('BKN', 'OVC', 'VV')):
+                    height = ''.join([c for c in cloud if c.isdigit()])
+                    ceiling = int(height) * 30
+                    break
 
-            return cover, height
+            return ceiling
 
     @property
     def temperature(self):
