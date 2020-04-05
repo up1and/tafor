@@ -1,8 +1,10 @@
+import os
+import random
 import datetime
 
-from PyQt5.QtGui import QPainter, QColor, QImage, QBrush
+from PyQt5.QtGui import QPainter, QColor, QImage, QBrush, QPixmap
 from PyQt5.QtCore import QCoreApplication, QDate, Qt
-from PyQt5.QtWidgets import QDialog
+from PyQt5.QtWidgets import QDialog, QFileDialog, QDialogButtonBox, QCalendarWidget
 from PyQt5.QtChart import (QChart, QChartView, QSplineSeries, QLineSeries, QScatterSeries, QAreaSeries,
     QDateTimeAxis, QLogValueAxis, QValueAxis, QCategoryAxis)
 
@@ -17,6 +19,9 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         super(ChartViewer, self).__init__(parent)
         self.setupUi(self)
 
+        self.saveButton = self.buttonBox.button(QDialogButtonBox.Save)
+        self.saveButton.setText(QCoreApplication.translate('Chart', 'Save Images'))
+
         self.bindSignal()
         self.initChart()
 
@@ -27,6 +32,24 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         self.hoursLaterButton.clicked.connect(lambda: self.updateDateRange(3))
         self.latestButton.clicked.connect(lambda: self.updateDateRange('latest'))
         self.calendar.dateChanged.connect(self.updateDateRange)
+
+        self.saveButton.clicked.connect(self.saveImages)
+
+    def saveImages(self):
+        title = QCoreApplication.translate('Chart', 'Save to Directory')
+        path = str(QFileDialog.getExistingDirectory(self, title))
+
+        for view in self.views:
+            title = view.chart().title()
+            title = title.split('(')[0]
+            title = title.replace('/', '&').strip()
+            fmt = '%Y-%m-%d %H-%M-%S'
+            time = self.dateRange[0].strftime(fmt)
+            filename = '{} {}.png'.format(title, time)
+            filepath = os.path.join(path, filename)
+
+            image = QPixmap(view.grab())
+            image.save(filepath, 'png')
 
     def setCalendar(self):
         self.calendar.dateChanged.disconnect(self.updateDateRange)
@@ -77,7 +100,7 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
     def createChart(self, title):
         chart = QChart()
         chart.setTitle(title)
-        chart.setMinimumSize(720, 250)
+        chart.setMinimumSize(750, 250)
         chart.setAnimationOptions(QChart.SeriesAnimations)
         chart.legend().setVisible(True)
         chart.legend().setAlignment(Qt.AlignBottom)
@@ -161,6 +184,7 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
             s.attachAxis(axisX)
 
     def initChart(self):
+        self.views = []
         self.charts = []
 
         self.windChart = self.createChart('Wind / Gust (m/s)')
@@ -180,6 +204,7 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         for chart in self.charts:
             view = QChartView(chart)
             view.setRenderHint(QPainter.Antialiasing)
+            self.views.append(view)
             self.chartLayout.addWidget(view)
 
     def clearChart(self):
@@ -199,7 +224,7 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         phenomenons = set()
         for timestamp, weather in weathers:
             if weather:
-                enums = [16, 4, 13, 7, 10]
+                enums = list(range(2, 20, 4))
                 values = {
                     'weak': enums,
                     'normal': [e + 20 for e in enums],
@@ -214,6 +239,7 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
                     phenomenons.add(w)
 
         series = []
+        phenomenons = sorted(list(phenomenons)) 
         for name in phenomenons:
             serie = QScatterSeries()
             serie.setMarkerSize(8)
@@ -234,7 +260,9 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
                     if text.startswith('+'):
                         enums = values['strong']
 
-                    serie.append(timestamp, enums.pop())
+                    value = random.choice(enums)
+                    enums.remove(value)
+                    serie.append(timestamp, value)
 
             series.append(serie)
 
@@ -375,8 +403,7 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
 
         self.addAxisY(self.cloudChart)
         self.addAxisX(self.cloudChart, xmin, xmax)
-        self.cloudChart.axisY().setMin(0)
-        self.cloudChart.axisY().setMax(1500)
+        self.cloudChart.axisY().setRange(0, 1500)
 
         self.tempdewChart.addSeries(temperatures)
         self.tempdewChart.addSeries(dewpoints)

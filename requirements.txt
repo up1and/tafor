@@ -7,3 +7,4 @@ requests
 SQLAlchemy
 Shapely
 PyQt5==5.9
+PyQtChart==5.9

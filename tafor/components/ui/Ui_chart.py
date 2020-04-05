@@ -11,8 +11,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Chart(object):
     def setupUi(self, Chart):
         Chart.setObjectName("Chart")
-        Chart.resize(800, 600)
-        Chart.setMinimumSize(QtCore.QSize(800, 600))
+        Chart.resize(800, 850)
+        Chart.setMinimumSize(QtCore.QSize(800, 850))
         self.verticalLayout = QtWidgets.QVBoxLayout(Chart)
         self.verticalLayout.setObjectName("verticalLayout")
         self.calendarLayout = QtWidgets.QHBoxLayout()
@@ -44,7 +44,7 @@ class Ui_Chart(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName("scrollArea")
         self.chartArea = QtWidgets.QWidget()
-        self.chartArea.setGeometry(QtCore.QRect(0, 0, 782, 551))
+        self.chartArea.setGeometry(QtCore.QRect(0, 0, 782, 772))
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -56,6 +56,11 @@ class Ui_Chart(object):
         self.chartLayout.setObjectName("chartLayout")
         self.scrollArea.setWidget(self.chartArea)
         self.verticalLayout.addWidget(self.scrollArea)
+        self.buttonBox = QtWidgets.QDialogButtonBox(Chart)
+        self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
+        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Save)
+        self.buttonBox.setObjectName("buttonBox")
+        self.verticalLayout.addWidget(self.buttonBox)
 
         self.retranslateUi(Chart)
         QtCore.QMetaObject.connectSlotsByName(Chart)

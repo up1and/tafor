@@ -101,7 +101,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         style = """
             QCalendarWidget QAbstractItemView:enabled /* date of actual month */{
-                color:#595959;
+                color: #595959;
                 selection-color: #fff;
                 outline: 0px;
                 alternate-background-color:#fff;/*  week and day frame */
