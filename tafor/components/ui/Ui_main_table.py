@@ -2,11 +2,13 @@
 
 # Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\main_table.ui'
 #
-# Created by: PyQt5 UI code generator 5.11.3
+# Created by: PyQt5 UI code generator 5.13.2
 #
 # WARNING! All changes made in this file will be lost!
 
+
 from PyQt5 import QtCore, QtGui, QtWidgets
+
 
 class Ui_DataTable(object):
     def setupUi(self, DataTable):
@@ -50,6 +52,11 @@ class Ui_DataTable(object):
         self.chartButton.setAutoRaise(True)
         self.chartButton.setObjectName("chartButton")
         self.horizontalLayout.addWidget(self.chartButton)
+        self.exportButton = QtWidgets.QToolButton(self.pagination)
+        self.exportButton.setText("Export")
+        self.exportButton.setAutoRaise(True)
+        self.exportButton.setObjectName("exportButton")
+        self.horizontalLayout.addWidget(self.exportButton)
         self.calendarButton = QtWidgets.QToolButton(self.pagination)
         self.calendarButton.setText("Calendar")
         self.calendarButton.setCheckable(True)
@@ -109,4 +116,3 @@ if __name__ == "__main__":
     ui.setupUi(DataTable)
     DataTable.show()
     sys.exit(app.exec_())
-

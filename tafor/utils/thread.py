@@ -1,3 +1,4 @@
+import csv
 import datetime
 
 import requests
@@ -132,6 +133,25 @@ class CallThread(QThread):
         token = conf.value('Monitor/CallServiceToken') or ''
         mobile = conf.value('Monitor/SelectedMobile')
         callUp(url, token, mobile)
+
+
+class ExportRecordThread(QThread):
+
+    def __init__(self, filename, data, headers=None, timefield='sent', parent=None):
+        super(ExportRecordThread, self).__init__(parent)
+        self.parent = parent
+        self.data = data
+        self.headers = headers
+        self.timefield = timefield
+        self.filename = filename
+
+    def run(self):
+        with open(self.filename, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            if self.headers:
+                writer.writerow(self.headers)
+            for row in self.data:
+                writer.writerow(row)
 
 
 class SerialThread(QThread):

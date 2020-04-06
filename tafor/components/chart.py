@@ -21,6 +21,7 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
 
         self.saveButton = self.buttonBox.button(QDialogButtonBox.Save)
         self.saveButton.setText(QCoreApplication.translate('Chart', 'Save Images'))
+        self.calendar.calendarWidget().setHorizontalHeaderFormat(QCalendarWidget.NoHorizontalHeader)
 
         self.bindSignal()
         self.initChart()

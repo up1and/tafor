@@ -2,14 +2,136 @@ import datetime
 
 from PyQt5.QtGui import QIcon, QRegExpValidator, QColor, QPixmap, QCursor
 from PyQt5.QtCore import QCoreApplication, QRegExp, QDate, Qt, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QHeaderView, QLabel, QLineEdit, QCalendarWidget
+from PyQt5.QtWidgets import (QDialog, QFileDialog, QWidget, QDialogButtonBox, QTableWidgetItem, QHeaderView, QLabel, QLineEdit, QCalendarWidget, 
+    QVBoxLayout, QFormLayout, QLabel, QDateEdit, QLayout)
 
 from sqlalchemy import and_
 
 from tafor.components.ui import main_rc
 from tafor.models import db, Taf, Metar, Sigmet
 from tafor.utils import paginate
+from tafor.utils.thread import ExportRecordThread
 from tafor.components.ui import Ui_main_table
+
+
+
+class ExportDialog(QDialog):
+
+    def __init__(self, parent=None):
+        super(ExportDialog, self).__init__(parent)
+        self.parent = parent
+
+        self.setupUi()
+        self.bindSignal()
+
+    def setupUi(self):
+        self.verticalLayout = QVBoxLayout(self)
+        self.verticalLayout.setSizeConstraint(QLayout.SetFixedSize)
+        self.formLayout = QFormLayout()
+        self.startDateLabel = QLabel(self)
+        self.formLayout.setWidget(0, QFormLayout.LabelRole, self.startDateLabel)
+        self.startDate = QDateEdit(self)
+        self.startDate.setCalendarPopup(True)
+        self.formLayout.setWidget(0, QFormLayout.FieldRole, self.startDate)
+        self.endDateLabel = QLabel(self)
+        self.formLayout.setWidget(1, QFormLayout.LabelRole, self.endDateLabel)
+        self.endDate = QDateEdit(self)
+        self.endDate.setCalendarPopup(True)
+        self.formLayout.setWidget(1, QFormLayout.FieldRole, self.endDate)
+        self.countLabel = QLabel(self)
+        self.countLabel.setMinimumSize(140, 0)
+        self.formLayout.setWidget(2, QFormLayout.FieldRole, self.countLabel)
+        self.verticalLayout.addLayout(self.formLayout)
+        self.buttonBox = QDialogButtonBox(self)
+        self.buttonBox.setOrientation(Qt.Horizontal)
+        self.buttonBox.setStandardButtons(QDialogButtonBox.Save)
+        self.verticalLayout.addWidget(self.buttonBox)
+
+        self.startDate.calendarWidget().setHorizontalHeaderFormat(QCalendarWidget.NoHorizontalHeader)
+        self.endDate.calendarWidget().setHorizontalHeaderFormat(QCalendarWidget.NoHorizontalHeader)
+
+        self.setWindowTitle(QCoreApplication.translate('DataTable', 'Export Records'))
+        self.startDateLabel.setText(QCoreApplication.translate('DataTable', 'Start Date'))
+        self.endDateLabel.setText(QCoreApplication.translate('DataTable', 'End Date'))
+
+        self.saveButton = self.buttonBox.button(QDialogButtonBox.Save)
+        self.saveButton.setText(QCoreApplication.translate('DataTable', 'Export'))
+
+        self.setWindowModality(Qt.WindowModal)
+
+    def bindSignal(self):
+        self.startDate.dateChanged.connect(self.updateExportStatus)
+        self.endDate.dateChanged.connect(self.updateExportStatus)
+        self.saveButton.clicked.connect(self.exportToCsv)
+
+    def showEvent(self, event):
+        today = QDate.currentDate()
+        start = QDate(today.year(), today.month(), 1)
+        self.startDate.setDate(start)
+        self.startDate.setMaximumDate(today)
+        self.endDate.setDate(today)
+        self.endDate.setMaximumDate(today)
+
+    def closeEvent(self, event):
+        self.countLabel.setText('')
+
+    def updateExportStatus(self):
+        query = self.queryset()
+        num = query.count()
+
+        if num == 0:
+            self.countLabel.clear()
+            self.saveButton.setEnabled(False)
+        else:
+            text = QCoreApplication.translate('DataTable', '{} records found')
+            text = text.format(query.count())
+            self.countLabel.setText(text)
+            self.saveButton.setEnabled(True)
+
+    def queryset(self):
+        model = self.parent.model
+        reportType = self.parent.reportType
+
+        if hasattr(model, 'sent'):
+            dateField = model.sent
+        else:
+            dateField = model.created
+
+        query = db.query(model)
+
+        if reportType == 'SIGMET':
+            query = query.filter(model.tt != 'WA')
+
+        if reportType == 'AIRMET':
+            query = query.filter(model.tt == 'WA')
+
+        start, end = self.startDate.date().toPyDate(), self.endDate.date().toPyDate()
+        query = query.filter(
+            dateField >= start, dateField < end + datetime.timedelta(hours=24)).order_by(dateField.desc())
+
+        return query
+
+    def exportToCsv(self):
+        fmt = '%Y-%m-%d'
+        start, end = self.startDate.date().toPyDate(), self.endDate.date().toPyDate()
+        defaultName = '{} {} {}.csv'.format(self.parent.reportType, start.strftime(fmt), end.strftime(fmt))
+        title = QCoreApplication.translate('DataTable', 'Save as CSV')
+        filename, _ = QFileDialog.getSaveFileName(self, title, defaultName, '(*.csv)')
+
+        if not filename:
+            return
+
+        if self.parent.reportType == 'METAR':
+            timefield = 'created'
+        else:
+            timefield = 'sent'
+
+        headers = ('type', 'content', 'time')
+        data = [(e.tt, e.rpt, getattr(e, timefield)) for e in self.queryset()]
+
+        self.thread = ExportRecordThread(filename, data, headers=headers)
+        self.thread.finished.connect(self.close)
+        self.thread.start()
 
 
 class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
@@ -57,6 +179,8 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.calendar.calendarWidget().setSelectedDate(QDate.currentDate())
         self.calendar.calendarWidget().setHorizontalHeaderFormat(QCalendarWidget.NoHorizontalHeader)
 
+        self.exportDialog = ExportDialog(self)
+
         layout.addWidget(self)
         self.bindSignal()
 
@@ -70,6 +194,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.calendarButton.clicked.connect(lambda : self.setCalendar(None))
         self.calendar.dateChanged.connect(self.setCalendar)
         self.chartButton.clicked.connect(self.chartButtonClicked.emit)
+        self.exportButton.clicked.connect(self.exportDialog.show)
 
     def setCalendar(self, date):
         if date:
@@ -89,6 +214,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.nextButton.setIcon(QIcon(':/next.png'))
         self.chartButton.setIcon(QIcon(':/chart.png'))
         self.calendarButton.setIcon(QIcon(':/calendar.png'))
+        self.exportButton.setIcon(QIcon(':/export.png'))
         self.infoButton.setIcon(QIcon(':/info.png'))
         self.infoButton.hide()
         self.chartButton.hide()
@@ -208,6 +334,7 @@ class TafTable(BaseDataTable):
 
     def __init__(self, parent, layout):
         super(TafTable, self).__init__(parent, layout)
+        self.reportType = 'TAF'
         self.model = Taf
         self.reviewer = self.parent.tafSender
 
@@ -245,6 +372,7 @@ class MetarTable(BaseDataTable):
 
     def __init__(self, parent, layout):
         super(MetarTable, self).__init__(parent, layout)
+        self.reportType = 'METAR'
         self.model = Metar
         self.chartButton.show()
         self.hideColumns()

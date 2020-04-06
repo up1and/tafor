@@ -8,6 +8,7 @@
         <file alias="cross.png">../../icons/cross.png</file>
         <file alias="time.png">../../icons/time.png</file>
         <file alias="info.png">../../icons/info.png</file>
+        <file alias="export.png">../../icons/export.png</file>
         <file alias="chart.png">../../icons/chart.png</file>
         <file alias="search.png">../../icons/search.png</file>
         <file alias="calendar.png">../../icons/calendar.png</file>

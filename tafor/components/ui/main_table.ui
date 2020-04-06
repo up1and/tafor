@@ -105,6 +105,16 @@
        </widget>
       </item>
       <item>
+       <widget class="QToolButton" name="exportButton">
+        <property name="text">
+         <string notr="true">Export</string>
+        </property>
+        <property name="autoRaise">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QToolButton" name="calendarButton">
         <property name="text">
          <string notr="true">Calendar</string>
