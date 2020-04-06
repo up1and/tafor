@@ -39,8 +39,9 @@ class ExportDialog(QDialog):
         self.endDate.setCalendarPopup(True)
         self.formLayout.setWidget(1, QFormLayout.FieldRole, self.endDate)
         self.countLabel = QLabel(self)
-        self.countLabel.setMinimumSize(140, 0)
-        self.formLayout.setWidget(2, QFormLayout.FieldRole, self.countLabel)
+        self.countLabel.setMinimumSize(180, 0)
+        self.countLabel.setStyleSheet('QLabel {color: grey; margin: 10px 0;}')
+        self.formLayout.setWidget(2, QFormLayout.SpanningRole, self.countLabel)
         self.verticalLayout.addLayout(self.formLayout)
         self.buttonBox = QDialogButtonBox(self)
         self.buttonBox.setOrientation(Qt.Horizontal)
@@ -58,6 +59,7 @@ class ExportDialog(QDialog):
         self.saveButton.setText(QCoreApplication.translate('DataTable', 'Export'))
 
         self.setWindowModality(Qt.WindowModal)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
     def bindSignal(self):
         self.startDate.dateChanged.connect(self.updateExportStatus)
@@ -80,7 +82,7 @@ class ExportDialog(QDialog):
         num = query.count()
 
         if num == 0:
-            self.countLabel.clear()
+            self.countLabel.setText('')
             self.saveButton.setEnabled(False)
         else:
             text = QCoreApplication.translate('DataTable', '{} records found')

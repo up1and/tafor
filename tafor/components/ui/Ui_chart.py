@@ -2,17 +2,19 @@
 
 # Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\chart.ui'
 #
-# Created by: PyQt5 UI code generator 5.11.3
+# Created by: PyQt5 UI code generator 5.13.2
 #
 # WARNING! All changes made in this file will be lost!
 
+
 from PyQt5 import QtCore, QtGui, QtWidgets
+
 
 class Ui_Chart(object):
     def setupUi(self, Chart):
         Chart.setObjectName("Chart")
-        Chart.resize(800, 850)
-        Chart.setMinimumSize(QtCore.QSize(800, 850))
+        Chart.resize(800, 600)
+        Chart.setMinimumSize(QtCore.QSize(800, 600))
         self.verticalLayout = QtWidgets.QVBoxLayout(Chart)
         self.verticalLayout.setObjectName("verticalLayout")
         self.calendarLayout = QtWidgets.QHBoxLayout()
@@ -44,7 +46,7 @@ class Ui_Chart(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName("scrollArea")
         self.chartArea = QtWidgets.QWidget()
-        self.chartArea.setGeometry(QtCore.QRect(0, 0, 782, 772))
+        self.chartArea.setGeometry(QtCore.QRect(0, 0, 782, 522))
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -67,11 +69,11 @@ class Ui_Chart(object):
 
     def retranslateUi(self, Chart):
         _translate = QtCore.QCoreApplication.translate
-        Chart.setWindowTitle(_translate("Chart", "Chart"))
+        Chart.setWindowTitle(_translate("Chart", "Observation Charts"))
         self.latestButton.setText(_translate("Chart", "Latest 24 Hours"))
         self.dayAgoButton.setText(_translate("Chart", "-1 Day"))
         self.hoursAgoButton.setText(_translate("Chart", "-3 Hours"))
-        self.hoursLaterButton.setText(_translate("Chart", "+ 3 Hours"))
+        self.hoursLaterButton.setText(_translate("Chart", "+3 Hours"))
         self.dayLaterButton.setText(_translate("Chart", "+1 Day"))
 
 
@@ -83,4 +85,3 @@ if __name__ == "__main__":
     ui.setupUi(Chart)
     Chart.show()
     sys.exit(app.exec_())
-

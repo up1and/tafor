@@ -2,31 +2,104 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="zh_CN" sourcelanguage="en">
 <context>
+    <name>Chart</name>
+    <message>
+        <location filename="../components/ui/Ui_chart.py" line="72"/>
+        <source>Observation Charts</source>
+        <translation>观测图表</translation>
+    </message>
+    <message>
+        <location filename="../components/ui/Ui_chart.py" line="73"/>
+        <source>Latest 24 Hours</source>
+        <translation>过去 24 小时</translation>
+    </message>
+    <message>
+        <location filename="../components/ui/Ui_chart.py" line="74"/>
+        <source>-1 Day</source>
+        <translation>-1 天</translation>
+    </message>
+    <message>
+        <location filename="../components/ui/Ui_chart.py" line="75"/>
+        <source>-3 Hours</source>
+        <translation>-3 小时</translation>
+    </message>
+    <message>
+        <location filename="../components/ui/Ui_chart.py" line="77"/>
+        <source>+1 Day</source>
+        <translation>+1 天</translation>
+    </message>
+    <message>
+        <location filename="../components/chart.py" line="40"/>
+        <source>Save to Directory</source>
+        <translation>保存到目录</translation>
+    </message>
+    <message>
+        <location filename="../components/ui/Ui_chart.py" line="76"/>
+        <source>+3 Hours</source>
+        <translation>-3 小时</translation>
+    </message>
+    <message>
+        <location filename="../components/chart.py" line="23"/>
+        <source>Save</source>
+        <translation>保存</translation>
+    </message>
+</context>
+<context>
     <name>DataTable</name>
     <message>
-        <location filename="../components/ui/Ui_main_table.py" line="79"/>
+        <location filename="../components/ui/Ui_main_table.py" line="101"/>
         <source>Type</source>
         <translation>类型</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main_table.py" line="81"/>
+        <location filename="../components/ui/Ui_main_table.py" line="103"/>
         <source>Message Content</source>
         <translation>报文内容</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main_table.py" line="83"/>
+        <location filename="../components/ui/Ui_main_table.py" line="105"/>
         <source>Sent Time</source>
         <translation>发布时间</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main_table.py" line="85"/>
+        <location filename="../components/ui/Ui_main_table.py" line="107"/>
         <source>Check</source>
         <translation>查询</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_main_table.py" line="86"/>
+        <location filename="../components/ui/Ui_main_table.py" line="108"/>
         <source>Search...</source>
         <translation>搜索...</translation>
+    </message>
+    <message>
+        <location filename="../components/widgets/table.py" line="53"/>
+        <source>Export Records</source>
+        <translation>导出记录</translation>
+    </message>
+    <message>
+        <location filename="../components/widgets/table.py" line="54"/>
+        <source>Start Date</source>
+        <translation>起始日期</translation>
+    </message>
+    <message>
+        <location filename="../components/widgets/table.py" line="55"/>
+        <source>End Date</source>
+        <translation>结束日期</translation>
+    </message>
+    <message>
+        <location filename="../components/widgets/table.py" line="58"/>
+        <source>Export</source>
+        <translation>导出</translation>
+    </message>
+    <message>
+        <location filename="../components/widgets/table.py" line="86"/>
+        <source>{} records found</source>
+        <translation>查询到 {} 条记录</translation>
+    </message>
+    <message>
+        <location filename="../components/widgets/table.py" line="118"/>
+        <source>Save as CSV</source>
+        <translation>保存为 CSV</translation>
     </message>
 </context>
 <context>
@@ -52,37 +125,37 @@
         <translation>积雨云</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_taf_primary.py" line="203"/>
+        <location filename="../components/ui/Ui_taf_primary.py" line="216"/>
         <source>Datetime</source>
         <translation>日期</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="381"/>
+        <location filename="../components/widgets/forecast.py" line="380"/>
         <source>Max Temperature</source>
         <translation>最高温</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="384"/>
+        <location filename="../components/widgets/forecast.py" line="383"/>
         <source>Min Temperature</source>
         <translation>最低温</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_taf_primary.py" line="211"/>
+        <location filename="../components/ui/Ui_taf_primary.py" line="224"/>
         <source>Cancel</source>
         <translation>取消报</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_taf_primary.py" line="209"/>
+        <location filename="../components/ui/Ui_taf_primary.py" line="222"/>
         <source>Correct</source>
         <translation>更正报</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_taf_primary.py" line="210"/>
+        <location filename="../components/ui/Ui_taf_primary.py" line="223"/>
         <source>Amend</source>
         <translation>修订报</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_taf_primary.py" line="208"/>
+        <location filename="../components/ui/Ui_taf_primary.py" line="221"/>
         <source>Normal</source>
         <translation>正常报</translation>
     </message>
@@ -102,17 +175,12 @@
         <translation>编发趋势</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_taf_primary.py" line="212"/>
-        <source>Previous</source>
-        <translation>上一份</translation>
-    </message>
-    <message>
-        <location filename="../components/widgets/forecast.py" line="619"/>
+        <location filename="../components/widgets/forecast.py" line="629"/>
         <source>Tips</source>
         <translation>提示</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="620"/>
+        <location filename="../components/widgets/forecast.py" line="630"/>
         <source>Do you want to change the message valid period to previous?</source>
         <translation>报文有效时段要变更为上一份吗？</translation>
     </message>
@@ -138,7 +206,7 @@
         <translation>速度</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_area.py" line="89"/>
+        <location filename="../components/ui/Ui_sigmet_area.py" line="88"/>
         <source>Area</source>
         <translation>区域</translation>
     </message>
@@ -223,7 +291,7 @@
         <translation>取消信息</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="1173"/>
+        <location filename="../components/widgets/forecast.py" line="1183"/>
         <source>Trend valid time is not corret</source>
         <translation>趋势有效时段不正确</translation>
     </message>
@@ -233,42 +301,42 @@
         <translation>设置错误</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="877"/>
+        <location filename="../components/widgets/forecast.py" line="888"/>
         <source>Change group time more than {} hours</source>
         <translation>变化组时间超过 {} 小时</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="987"/>
+        <location filename="../components/widgets/forecast.py" line="997"/>
         <source>Change group time is overlap</source>
         <translation>变化组时间有重叠</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_area.py" line="90"/>
+        <location filename="../components/ui/Ui_sigmet_area.py" line="89"/>
         <source>Canvas</source>
         <translation>画布</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_area.py" line="91"/>
+        <location filename="../components/ui/Ui_sigmet_area.py" line="90"/>
         <source>Manual</source>
         <translation>文本</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_area.py" line="92"/>
+        <location filename="../components/ui/Ui_sigmet_area.py" line="91"/>
         <source>Entire</source>
         <translation>全区域</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="395"/>
+        <location filename="../components/widgets/forecast.py" line="394"/>
         <source>The time of temperature is not corret</source>
         <translation>温度组时间不正确</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="887"/>
+        <location filename="../components/widgets/forecast.py" line="898"/>
         <source>Start time of change group is not corret</source>
         <translation>变化组起始时间不正确</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="892"/>
+        <location filename="../components/widgets/forecast.py" line="903"/>
         <source>End time of change group is not corret</source>
         <translation>变化组结束时间不正确</translation>
     </message>
@@ -288,7 +356,7 @@
         <translation>天气现象</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="159"/>
+        <location filename="../components/widgets/forecast.py" line="158"/>
         <source>Cloud</source>
         <translation>云</translation>
     </message>
@@ -298,7 +366,7 @@
         <translation>编发重要气象情报</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="154"/>
+        <location filename="../components/widgets/forecast.py" line="153"/>
         <source>Vertical Visibility</source>
         <translation>垂直能见度</translation>
     </message>
@@ -323,17 +391,17 @@
         <translation>观测时间需要早于有效开始时间</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="764"/>
+        <location filename="../components/widgets/information.py" line="755"/>
         <source>Typhoon Name</source>
         <translation>热带气旋名称</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="438"/>
+        <location filename="../components/widgets/forecast.py" line="437"/>
         <source>The maximum temperature needs to be greater than the minimum temperature</source>
         <translation>最高温度需要大于最小温度</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="597"/>
+        <location filename="../components/widgets/information.py" line="592"/>
         <source>The top flight level needs to be greater than the base flight level</source>
         <translation>顶高需要大于底高</translation>
     </message>
@@ -348,27 +416,27 @@
         <translation>变化组不能超过 5 组</translation>
     </message>
     <message>
-        <location filename="../components/widgets/area.py" line="622"/>
+        <location filename="../components/widgets/area.py" line="621"/>
         <source>DEFAULT</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../components/widgets/area.py" line="623"/>
+        <location filename="../components/widgets/area.py" line="622"/>
         <source>FORECAST</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="232"/>
+        <location filename="../components/widgets/forecast.py" line="231"/>
         <source>Weather phenomena conflict</source>
         <translation>天气现象冲突</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="447"/>
+        <location filename="../components/widgets/forecast.py" line="446"/>
         <source>The minimum temperature needs to be less than the maximum temperature</source>
         <translation>最小温度需要小于最大温度</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="970"/>
+        <location filename="../components/widgets/forecast.py" line="980"/>
         <source>Time of change group is not corret</source>
         <translation>变化组时间不正确</translation>
     </message>
@@ -388,12 +456,12 @@
         <translation>请先完成基础设置，否则你可能不能发送报文</translation>
     </message>
     <message>
-        <location filename="../components/widgets/widget.py" line="131"/>
+        <location filename="../components/widgets/widget.py" line="130"/>
         <source>That license key doesn&apos;t appear to be valid</source>
         <translation>该许可证密钥似乎无效</translation>
     </message>
     <message>
-        <location filename="../components/widgets/widget.py" line="136"/>
+        <location filename="../components/widgets/widget.py" line="135"/>
         <source>Please fill in the airport information or flight information region in the settings first</source>
         <translation>请先在设置中填写机场信息或飞行情报区信息</translation>
     </message>
@@ -403,17 +471,17 @@
         <translation>低空天气</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="1014"/>
+        <location filename="../components/widgets/information.py" line="1002"/>
         <source>Volcano Name</source>
         <translation>火山名称</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="418"/>
+        <location filename="../components/widgets/information.py" line="415"/>
         <source>Trim Shapes</source>
         <translation>裁剪图形</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="421"/>
+        <location filename="../components/widgets/information.py" line="418"/>
         <source>Latest SIGMET/AIRMET</source>
         <translation>最新气象情报</translation>
     </message>
@@ -561,7 +629,7 @@
         <translation>离线</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="588"/>
+        <location filename="../app/main.py" line="645"/>
         <source>New version found {}, do you want to download now?</source>
         <translation>发现新版本 {}，想现在下载么？</translation>
     </message>
@@ -591,42 +659,42 @@
         <translation>下一页</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="583"/>
+        <location filename="../app/main.py" line="640"/>
         <source>The current version is already the latest version.</source>
         <translation>当前版本已经是最新版本</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="577"/>
+        <location filename="../app/main.py" line="634"/>
         <source>Unable to get the latest version information.</source>
         <translation>无法获取最新版本信息</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="364"/>
+        <location filename="../app/main.py" line="421"/>
         <source>Send Completed</source>
         <translation>发送完成</translation>
     </message>
     <message>
-        <location filename="../components/widgets/table.py" line="147"/>
+        <location filename="../components/widgets/table.py" line="307"/>
         <source>Selected message has been copied</source>
         <translation>已复制选取的报文</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="361"/>
+        <location filename="../app/main.py" line="418"/>
         <source>Send Failed</source>
         <translation>发送失败</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="373"/>
+        <location filename="../app/main.py" line="430"/>
         <source>Connection Error</source>
         <translation>连接错误</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="383"/>
+        <location filename="../app/main.py" line="440"/>
         <source>Unable to connect phone call service, please check the settings or network status.</source>
         <translation>无法连接电话服务，请检查设置或者网络状态。</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="399"/>
+        <location filename="../app/main.py" line="456"/>
         <source>Time to issue {}</source>
         <translation>发布 {}</translation>
     </message>
@@ -636,22 +704,22 @@
         <translation>编发</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="415"/>
+        <location filename="../app/main.py" line="472"/>
         <source>Time to update {}</source>
         <translation>更新 {}</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="375"/>
+        <location filename="../app/main.py" line="432"/>
         <source>Unable to connect remote message data source, please check the settings or network status.</source>
         <translation>无法连接远程数据源，请检查设置或者网络状态。</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="379"/>
+        <location filename="../app/main.py" line="436"/>
         <source>Unable to connect FIR information data source, please check the settings or network status.</source>
         <translation>无法获取情报区信息数据，请检查设置或者网络状态。</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="536"/>
+        <location filename="../app/main.py" line="593"/>
         <source>Version</source>
         <translation>版本</translation>
     </message>
@@ -666,32 +734,32 @@
         <translation>输入证书</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="594"/>
+        <location filename="../app/main.py" line="651"/>
         <source>Remove license key? </source>
         <translation>删除注册信息？</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="595"/>
+        <location filename="../app/main.py" line="652"/>
         <source>Remove license key? This will revert tafor to an unregistered state.</source>
         <translation>删除注册信息？这会恢复到未注册状态。</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="526"/>
+        <location filename="../app/main.py" line="583"/>
         <source>Unregistered</source>
         <translation>未注册</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="525"/>
+        <location filename="../app/main.py" line="582"/>
         <source>{} days remaining</source>
         <translation>剩余 {} 天</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="240"/>
+        <location filename="../app/main.py" line="296"/>
         <source>Message Received</source>
         <translation>收到消息</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="240"/>
+        <location filename="../app/main.py" line="296"/>
         <source>Received a new {} message.</source>
         <translation>收到一条新的 {} 报文</translation>
     </message>
@@ -701,12 +769,12 @@
         <translation>令牌</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="552"/>
+        <location filename="../app/main.py" line="609"/>
         <source>Authentication Token</source>
         <translation>认证令牌</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="552"/>
+        <location filename="../app/main.py" line="609"/>
         <source>The authentication token for the RPC service has been copied to the clipboard.
 
 {}
@@ -735,7 +803,7 @@
         <translation>已向串口发送数据</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="323"/>
+        <location filename="../components/send.py" line="320"/>
         <source>Send</source>
         <translation>发送</translation>
     </message>
@@ -745,7 +813,7 @@
         <translation>发送失败</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="320"/>
+        <location filename="../components/send.py" line="317"/>
         <source>Resend</source>
         <translation>重新发送</translation>
     </message>
@@ -775,7 +843,7 @@
         <translation>发送中</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="340"/>
+        <location filename="../components/send.py" line="337"/>
         <source>Delay Send Message</source>
         <translation>延迟发送报文</translation>
     </message>
@@ -790,7 +858,7 @@
         <translation>查看报文</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="271"/>
+        <location filename="../components/send.py" line="268"/>
         <source>Raw Data</source>
         <translation>原始数据</translation>
     </message>
@@ -805,27 +873,27 @@
         <translation>部分 AFTN 报文内容可能会重新生成，你还要重新发送么？</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="266"/>
+        <location filename="../components/send.py" line="263"/>
         <source>Priority Indicator</source>
         <translation>发报等级</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="267"/>
+        <location filename="../components/send.py" line="264"/>
         <source>Send Address</source>
         <translation>发送地址</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="268"/>
+        <location filename="../components/send.py" line="265"/>
         <source>Originator Address</source>
         <translation>本地地址</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="269"/>
+        <location filename="../components/send.py" line="266"/>
         <source>Message Content</source>
         <translation>报文内容</translation>
     </message>
     <message>
-        <location filename="../components/send.py" line="270"/>
+        <location filename="../components/send.py" line="267"/>
         <source>Sent Time</source>
         <translation>发布时间</translation>
     </message>
@@ -1163,22 +1231,22 @@
         <translation>情报区信息地址</translation>
     </message>
     <message>
-        <location filename="../components/setting.py" line="489"/>
+        <location filename="../components/setting.py" line="488"/>
         <source>Open Directory</source>
         <translation>打开目录</translation>
     </message>
     <message>
-        <location filename="../components/setting.py" line="467"/>
+        <location filename="../components/setting.py" line="466"/>
         <source>Configuration has been exported</source>
         <translation>配置已导出</translation>
     </message>
     <message>
-        <location filename="../components/setting.py" line="481"/>
+        <location filename="../components/setting.py" line="480"/>
         <source>Configuration has been imported</source>
         <translation>配置已导入</translation>
     </message>
     <message>
-        <location filename="../components/setting.py" line="484"/>
+        <location filename="../components/setting.py" line="483"/>
         <source>Open Configuration File</source>
         <translation>打开配置文件</translation>
     </message>
