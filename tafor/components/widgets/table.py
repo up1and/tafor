@@ -7,11 +7,11 @@ from PyQt5.QtWidgets import (QDialog, QFileDialog, QWidget, QDialogButtonBox, QT
 
 from sqlalchemy import and_
 
-from tafor.components.ui import main_rc
+from tafor import conf
 from tafor.models import db, Taf, Metar, Sigmet
 from tafor.utils import paginate
 from tafor.utils.thread import ExportRecordThread
-from tafor.components.ui import Ui_main_table
+from tafor.components.ui import Ui_main_table, main_rc
 
 
 
@@ -152,16 +152,10 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.parent = parent
         self.color = QColor(200, 20, 40)
 
-        self.calendar.lineEdit().hide()
         style = """
             QDateEdit {
                 border: 1px solid transparent;
                 padding: 2px; /* This (useless) line resolves a bug with the font color */
-            }
-
-            QDateEdit:hover {
-                background: #e5f3ff;
-                border: 1px solid #cce8ff;
             }
 
             QDateEdit::drop-down 
@@ -177,7 +171,14 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
             }
 
         """
+
+        if self.parent.sysInfo.startswith('Windows 10') and conf.value('General/WindowsStyle') == 'System':
+            style += 'QDateEdit:hover { background: #e5f3ff; border: 1px solid #cce8ff;}'
+        else:
+            style += 'QDateEdit:hover { background: #f0f0f0; border: 1px solid #999; border-radius: 3px;}'
+
         self.calendar.setStyleSheet(style)
+
         self.calendar.calendarWidget().setSelectedDate(QDate.currentDate())
         self.calendar.calendarWidget().setHorizontalHeaderFormat(QCalendarWidget.NoHorizontalHeader)
 
@@ -194,7 +195,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.table.itemSelectionChanged.connect(self.updateInfoButton)
         self.infoButton.clicked.connect(self.view)
         self.calendarButton.clicked.connect(lambda : self.setCalendar(None))
-        self.calendar.dateChanged.connect(self.setCalendar)
+        self.calendar.calendarWidget().clicked.connect(self.setCalendar)
         self.chartButton.clicked.connect(self.chartButtonClicked.emit)
         self.exportButton.clicked.connect(self.exportDialog.show)
 
