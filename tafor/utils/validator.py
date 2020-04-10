@@ -895,11 +895,18 @@ class MetarLexer(TafLexer):
         directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
         return directions[(val % 16)]
 
-    @property
-    def windDirection(self):
+    def degToArrow(self, direction):
+        val = int((direction / 45) + 0.5)
+        directions = ['↓', '↙', '←', '↖', '↑', '↗', '→', '↘']
+        return directions[(val % 8)]
+
+    def windDirection(self, style='degree'):
         text = self.tokens['wind']['text']
         m = self.grammar.wind.match(text)
         direction = m.group(1)
+
+        if direction == 'VRB' and style == 'arrow':
+            return '⚬'
 
         if direction == 'VRB':
             return direction
@@ -907,10 +914,17 @@ class MetarLexer(TafLexer):
         if direction is None:
             return ''
 
-        compass = self.degToCompass(int(direction))
-        return compass
+        if style == 'arrow':
+            direction = self.degToArrow(int(direction))
 
-    @property
+        if style == 'compass':
+            direction = self.degToCompass(int(direction))
+
+        if style == 'degree':
+            direction = int(direction)
+
+        return direction
+
     def windSpeed(self):
         text = self.tokens['wind']['text']
         m = self.grammar.wind.match(text)
@@ -924,7 +938,6 @@ class MetarLexer(TafLexer):
         
         return int(speed)
 
-    @property
     def gust(self):
         text = self.tokens['wind']['text']
         m = self.grammar.wind.match(text)
@@ -938,14 +951,12 @@ class MetarLexer(TafLexer):
         
         return speed
 
-    @property
     def vis(self):
         if 'CAVOK' in self.part:
             return 9999
 
         return int(self.tokens['vis']['text'])
 
-    @property
     def rvr(self):
         if 'rvr' in self.tokens:
             text = self.tokens['rvr']['text']
@@ -956,7 +967,6 @@ class MetarLexer(TafLexer):
 
             return min(map(int, rvrs))
 
-    @property
     def weathers(self):
         if 'weather' in self.tokens:
             text = self.tokens['weather']['text']
@@ -964,7 +974,6 @@ class MetarLexer(TafLexer):
 
         return []
 
-    @property
     def clouds(self):
         if 'CAVOK' in self.part or 'NSC' in self.part:
             return []
@@ -975,7 +984,6 @@ class MetarLexer(TafLexer):
 
             return clouds
 
-    @property
     def ceiling(self):
         if 'CAVOK' in self.part or 'NSC' in self.part:
             return 1500
@@ -993,19 +1001,16 @@ class MetarLexer(TafLexer):
 
             return ceiling
 
-    @property
     def temperature(self):
         temp, _ = self.tokens['tempdew']['text'].split('/')
         temp = - int(temp[1:]) if 'M' in temp else int(temp)
         return temp
 
-    @property
     def dewpoint(self):
         _, dew = self.tokens['tempdew']['text'].split('/')
         dew = - int(dew[1:]) if 'M' in dew else int(dew)
         return dew
 
-    @property
     def pressure(self):
         return int(self.tokens['pressure']['text'][1:])
 
