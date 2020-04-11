@@ -595,20 +595,21 @@ class CommonSigmetContent(BaseSigmetContent):
         return hasattr(self, 'area') and self.area.fcstButton.isChecked()
 
     def moveState(self):
+        movement = self.movement.currentText()
+        if movement == 'STNR':
+            return movement
+
         if not self.speed.hasAcceptableInput():
             return
 
         movement = self.movement.currentText()
         unit = 'KT' if context.environ.unit() == 'imperial' else 'KMH'
 
-        if movement == 'STNR':
-            text = 'STNR'
-        else:
-            text = 'MOV {movement} {speed}{unit}'.format(
-                    movement=movement,
-                    speed=int(self.speed.text()),
-                    unit=unit
-                )
+        text = 'MOV {movement} {speed}{unit}'.format(
+                movement=movement,
+                speed=int(self.speed.text()),
+                unit=unit
+            )
 
         return text
 
@@ -717,8 +718,8 @@ class SigmetGeneralContent(CommonSigmetContent, Ui_sigmet_general.Ui_Editor):
 
         if self.isFcstAreaMode():
             mustRequired.append(self.forecastTime.hasAcceptableInput())
-        elif self.speed.isEnabled():
-            mustRequired.append(self.speed.hasAcceptableInput())
+        else:
+            mustRequired.append(self.moveState())
 
         self.complete = all(mustRequired)
         self.completeSignal.emit(self.complete)
