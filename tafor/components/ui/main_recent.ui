@@ -26,13 +26,26 @@
       <string notr="true">Report Type</string>
      </property>
      <layout class="QGridLayout" name="gridLayout">
-      <property name="sizeConstraint">
-       <enum>QLayout::SetDefaultConstraint</enum>
-      </property>
-      <item row="0" column="1" alignment="Qt::AlignRight">
-       <widget class="QLabel" name="check">
+      <item row="0" column="1">
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item row="3" column="0" colspan="4">
+       <widget class="QLabel" name="rpt">
         <property name="text">
-         <string notr="true">isChecked</string>
+         <string notr="true">Report Content</string>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
         </property>
        </widget>
       </item>
@@ -43,10 +56,19 @@
         </property>
        </widget>
       </item>
-      <item row="3" column="0" colspan="2">
-       <widget class="QLabel" name="rpt">
+      <item row="0" column="4">
+       <widget class="QToolButton" name="markButton">
         <property name="text">
-         <string notr="true">Report Content</string>
+         <string notr="true">Mark</string>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>20</width>
+          <height>20</height>
+         </size>
+        </property>
+        <property name="autoRaise">
+         <bool>true</bool>
         </property>
        </widget>
       </item>

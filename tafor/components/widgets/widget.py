@@ -1,6 +1,6 @@
 import datetime
 
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtCore import QCoreApplication, QTimer, Qt
 from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QLabel, QHBoxLayout
 
@@ -32,29 +32,55 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         super(RecentMessage, self).__init__(parent)
         self.setupUi(self)
         self.item = item
+        self.parent = parent
+        self.reviewer = None
         self.setText()
+        self.setButton()
         layout.addWidget(self)
+
+    def setButton(self):
+        if self.item.tt not in ['FC', 'FT', 'WS', 'WC', 'WV', 'WA']:
+            self.markButton.hide()
+            return
+
+        if self.item.tt in ['FC', 'FT']:
+            self.reviewer = self.parent.tafSender
+        else:
+            self.reviewer = self.parent.sigmetSender
+
+        if self.item.confirmed:
+            iconSrc = ':/checkmark.png'
+        else:
+            iconSrc = ':/cross.png'
+
+        self.markButton.setIcon(QIcon(iconSrc))
+
+        if self.parent.sysInfo.startswith('Windows 10') and conf.value('General/WindowsStyle') == 'System':
+            style = 'QToolButton:hover { background: #e5f3ff; border: 1px solid #cce8ff;}'
+        else:
+            style = 'QToolButton:hover { background: #f0f0f0; border: 1px solid #999; border-radius: 3px;}'
+
+        self.markButton.setStyleSheet(style)
+
+        self.markButton.clicked.connect(self.view)
 
     def setText(self):
         self.groupBox.setTitle(self.item.tt)
         self.sendTime.setText(self.item.sent.strftime('%Y-%m-%d %H:%M:%S'))
         self.rpt.setText(self.item.report)
         self.rpt.setStyleSheet('font: 14px "Segoe UI";')
-        self.rpt.setWordWrap(True)
-        self.showConfirm(self.item)
 
-    def showConfirm(self, item):
-        if item.tt not in ['FC', 'FT', 'WS', 'WC', 'WV', 'WA']:
-            self.check.hide()
-            return
+    def view(self):
+        message = {
+            'uuid': self.item.uuid,
+            'item': self.item,
+            'sign': self.item.sign,
+            'rpt': self.item.rpt,
+            'full': '\n'.join(filter(None, [self.item.sign, self.item.rpt]))
+        }
 
-        if item.confirmed:
-            iconSrc = ':/checkmark.png'
-        else:
-            iconSrc = ':/cross.png'
-
-        icon = QPixmap(iconSrc)
-        self.check.setPixmap(icon.scaled(24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        self.reviewer.receive(message, mode='view')
+        self.reviewer.show()
 
 
 class TafBoard(QWidget):

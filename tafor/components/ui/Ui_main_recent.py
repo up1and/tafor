@@ -2,11 +2,13 @@
 
 # Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\main_recent.ui'
 #
-# Created by: PyQt5 UI code generator 5.6
+# Created by: PyQt5 UI code generator 5.13.2
 #
 # WARNING! All changes made in this file will be lost!
 
+
 from PyQt5 import QtCore, QtGui, QtWidgets
+
 
 class Ui_Recent(object):
     def setupUi(self, Recent):
@@ -24,20 +26,24 @@ class Ui_Recent(object):
         self.groupBox.setTitle("Report Type")
         self.groupBox.setObjectName("groupBox")
         self.gridLayout = QtWidgets.QGridLayout(self.groupBox)
-        self.gridLayout.setSizeConstraint(QtWidgets.QLayout.SetDefaultConstraint)
         self.gridLayout.setObjectName("gridLayout")
-        self.check = QtWidgets.QLabel(self.groupBox)
-        self.check.setText("isChecked")
-        self.check.setObjectName("check")
-        self.gridLayout.addWidget(self.check, 0, 1, 1, 1, QtCore.Qt.AlignRight)
+        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.gridLayout.addItem(spacerItem, 0, 1, 1, 1)
+        self.rpt = QtWidgets.QLabel(self.groupBox)
+        self.rpt.setText("Report Content")
+        self.rpt.setWordWrap(True)
+        self.rpt.setObjectName("rpt")
+        self.gridLayout.addWidget(self.rpt, 3, 0, 1, 4)
         self.sendTime = QtWidgets.QLabel(self.groupBox)
         self.sendTime.setText("Sent Time")
         self.sendTime.setObjectName("sendTime")
         self.gridLayout.addWidget(self.sendTime, 0, 0, 1, 1)
-        self.rpt = QtWidgets.QLabel(self.groupBox)
-        self.rpt.setText("Report Content")
-        self.rpt.setObjectName("rpt")
-        self.gridLayout.addWidget(self.rpt, 3, 0, 1, 2)
+        self.markButton = QtWidgets.QToolButton(self.groupBox)
+        self.markButton.setText("Mark")
+        self.markButton.setIconSize(QtCore.QSize(20, 20))
+        self.markButton.setAutoRaise(True)
+        self.markButton.setObjectName("markButton")
+        self.gridLayout.addWidget(self.markButton, 0, 4, 1, 1)
         self.verticalLayout.addWidget(self.groupBox)
 
         self.retranslateUi(Recent)
@@ -55,4 +61,3 @@ if __name__ == "__main__":
     ui.setupUi(Recent)
     Recent.show()
     sys.exit(app.exec_())
-

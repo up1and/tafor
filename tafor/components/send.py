@@ -132,7 +132,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.mode = mode
         if mode == 'view':
             self.item = message['item']
-        
+
         self.parse(message)
         self.setMode(mode)
 
