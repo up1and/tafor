@@ -547,13 +547,13 @@ class CommonSigmetContent(BaseSigmetContent):
         self.forecastTime.setValidator(time)
 
     def setFightLevel(self, text):
-        if text in ['TOP', 'ABV', 'SFC']:
+        if text in ['TOP', 'TOP ABV', 'SFC', 'BLW']:
             self.base.setEnabled(False)
             self.top.setEnabled(True)
             self.baseLabel.setEnabled(False)
             self.topLabel.setEnabled(True)
             self.base.clear()
-        elif text in ['BLW']:
+        elif text in ['ABV']:
             self.base.setEnabled(True)
             self.top.setEnabled(False)
             self.baseLabel.setEnabled(True)
@@ -619,13 +619,17 @@ class CommonSigmetContent(BaseSigmetContent):
         top = self.top.text()
 
         if not level:
-            text = 'FL{}/{}'.format(base, top) if all([top, base]) else ''
+            if base and top:
+                text = 'FL{}/{}'.format(base, top) if all([top, base]) else ''
+            else:
+                text = base if base else top
+                text = 'FL{}'.format(text) if text else ''
 
-        if level in ['TOP', 'ABV']:
+        if level in ['TOP', 'TOP ABV', 'BLW']:
             text = '{} FL{}'.format(level, top) if top else ''
 
-        if level == 'BLW':
-            text = 'BLW FL{}'.format(base) if base else ''
+        if level == 'ABV':
+            text = 'ABV FL{}'.format(base) if base else ''
 
         if level == 'SFC':
             text = 'SFC/FL{}'.format(top) if top else ''
@@ -699,19 +703,28 @@ class SigmetGeneralContent(CommonSigmetContent, Ui_sigmet_general.Ui_Editor):
         self.setLevel('TS')
 
     def setLevel(self, text):
+        self.level.clear()
+
         if text in ['CB', 'TCU', 'TS', 'TSGR']:
+            levels = ['', 'TOP', 'ABV', 'SFC', 'TOP ABV']
+            self.level.addItems(levels)
             self.level.setCurrentIndex(self.level.findText('TOP'))
         else:
+            levels = ['', 'ABV', 'BLW', 'SFC']
+            self.level.addItems(levels)
             self.level.setCurrentIndex(-1)
 
     def checkComplete(self):
         mustRequired = []
 
-        if self.base.isEnabled():
-            mustRequired.append(self.base.hasAcceptableInput())
+        if self.base.isEnabled() and self.top.isEnabled():
+            mustRequired.append(self.base.hasAcceptableInput() or self.top.hasAcceptableInput())
+        else:
+            if self.base.isEnabled():
+                mustRequired.append(self.base.hasAcceptableInput())
 
-        if self.top.isEnabled():
-            mustRequired.append(self.top.hasAcceptableInput())
+            if self.top.isEnabled():
+                mustRequired.append(self.top.hasAcceptableInput())
 
         if hasattr(self, 'area'):
             mustRequired.append(self.area.text())

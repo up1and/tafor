@@ -2,11 +2,13 @@
 
 # Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\sigmet_general.ui'
 #
-# Created by: PyQt5 UI code generator 5.11.3
+# Created by: PyQt5 UI code generator 5.13.2
 #
 # WARNING! All changes made in this file will be lost!
 
+
 from PyQt5 import QtCore, QtGui, QtWidgets
+
 
 class Ui_Editor(object):
     def setupUi(self, Editor):
@@ -94,16 +96,6 @@ class Ui_Editor(object):
         self.descriptionLayout.addWidget(self.baseLabel, 0, 3, 1, 1)
         self.level = QtWidgets.QComboBox(self.descriptionGroup)
         self.level.setObjectName("level")
-        self.level.addItem("")
-        self.level.setItemText(0, "")
-        self.level.addItem("")
-        self.level.setItemText(1, "TOP")
-        self.level.addItem("")
-        self.level.setItemText(2, "ABV")
-        self.level.addItem("")
-        self.level.setItemText(3, "BLW")
-        self.level.addItem("")
-        self.level.setItemText(4, "SFC")
         self.descriptionLayout.addWidget(self.level, 1, 2, 1, 1)
         self.speedLabel = QtWidgets.QLabel(self.descriptionGroup)
         self.speedLabel.setObjectName("speedLabel")
@@ -155,4 +147,3 @@ if __name__ == "__main__":
     ui.setupUi(Editor)
     Editor.show()
     sys.exit(app.exec_())
-
