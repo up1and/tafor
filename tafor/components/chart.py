@@ -100,6 +100,16 @@ class MarkerGraphicsItem(QGraphicsRectItem):
         self.updateGeometry()
 
 
+class Chart(QChart):
+
+    def __init__(self):
+        super(Chart, self).__init__()
+        self.metars = []
+
+    def setMetars(self, metars):
+        self.metars = metars
+
+
 class ChartView(QChartView):
     """Custom chart view class providing points marker"""
     MarkerRadius = 16
@@ -240,7 +250,7 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         self.updateDateRange()
 
     def createChart(self, title):
-        chart = QChart()
+        chart = Chart()
         chart.setTitle(title)
         chart.setMinimumSize(750, 250)
         chart.setAnimationOptions(QChart.SeriesAnimations)
@@ -532,7 +542,7 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
 
 
         for chart in self.charts:
-            chart.metars = metars
+            chart.setMetars(metars)
 
         self.windChart.addSeries(winds)
         if gusts.count():

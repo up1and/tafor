@@ -906,7 +906,7 @@ class MetarLexer(TafLexer):
         direction = m.group(1)
 
         if direction == 'VRB' and style == 'arrow':
-            return '⚬'
+            return '⊙'
 
         if direction == 'VRB':
             return direction
