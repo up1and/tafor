@@ -61,44 +61,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.painter()
 
     def setup(self):
-        self.setWindowIcon(QIcon(':/logo.png'))
-
-        self.clip = QApplication.clipboard()
-        self.remindBox = RemindMessageBox(self)
-
-        # 初始化窗口
-        self.settingDialog = SettingDialog(self)
-
-        self.tafSender = TafSender(self)
-        self.trendSender = TrendSender(self)
-        self.sigmetSender = SigmetSender(self)
-
-        self.tafEditor = TafEditor(self, self.tafSender)
-        self.trendEditor = TrendEditor(self, self.trendSender)
-        self.sigmetEditor = SigmetEditor(self, self.sigmetSender)
-        self.licenseEditor = LicenseEditor(self)
-
-        self.chartViewer = ChartViewer(self)
-
-        if boolean(conf.value('General/Serious')):
-            self.taskBrowser = TaskBrowser(self)
-            self.taskTafSender = TaskTafSender(self)
-            self.taskTafEditor = TaskTafEditor(self, self.taskTafSender)
-
-        if not boolean(conf.value('General/Sigmet')):
-            self.sigmetAction.setVisible(False)
-            self.mainTab.removeTab(3)
-            self.mainTab.removeTab(3)
-
-        self.setRecent()
-        self.setTable()
-        self.setContractMenu()
-        self.setAboutMenu()
-        self.setSysTray()
-        self.setStatus()
-        self.setThread()
-        self.setSound()
-
+        # The style must be set before initialization, otherwise the hidden buttons will be displayed.
+        # It seems like a Qt bug.
         style = """
             QCalendarWidget QAbstractItemView:enabled /* date of actual month */{
                 color: #595959;
@@ -149,6 +113,43 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         """
         self.setStyleSheet(style)
+        self.setWindowIcon(QIcon(':/logo.png'))
+
+        self.clip = QApplication.clipboard()
+        self.remindBox = RemindMessageBox(self)
+
+        # 初始化窗口
+        self.settingDialog = SettingDialog(self)
+
+        self.tafSender = TafSender(self)
+        self.trendSender = TrendSender(self)
+        self.sigmetSender = SigmetSender(self)
+
+        self.tafEditor = TafEditor(self, self.tafSender)
+        self.trendEditor = TrendEditor(self, self.trendSender)
+        self.sigmetEditor = SigmetEditor(self, self.sigmetSender)
+        self.licenseEditor = LicenseEditor(self)
+
+        self.chartViewer = ChartViewer(self)
+
+        if boolean(conf.value('General/Serious')):
+            self.taskBrowser = TaskBrowser(self)
+            self.taskTafSender = TaskTafSender(self)
+            self.taskTafEditor = TaskTafEditor(self, self.taskTafSender)
+
+        if not boolean(conf.value('General/Sigmet')):
+            self.sigmetAction.setVisible(False)
+            self.mainTab.removeTab(3)
+            self.mainTab.removeTab(3)
+
+        self.setRecent()
+        self.setTable()
+        self.setContractMenu()
+        self.setAboutMenu()
+        self.setSysTray()
+        self.setStatus()
+        self.setThread()
+        self.setSound()
 
     def bindSignal(self):
         context.taf.warningSignal.connect(self.dialer)
