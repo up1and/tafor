@@ -1,7 +1,7 @@
 import datetime
 
 from PyQt5.QtGui import QFontMetrics, QFont, QPixmap
-from PyQt5.QtCore import QCoreApplication, QTimer, QSize, pyqtSignal
+from PyQt5.QtCore import QCoreApplication, QTimer, QSize, Qt, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QMessageBox, QTextEdit, QLabel
 from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
 
@@ -46,6 +46,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
     def __init__(self, parent=None):
         super(BaseSender, self).__init__(parent)
         self.setupUi(self)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
         self.parent = parent
         self.generator = None
@@ -293,9 +294,8 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         font = self.rpt.document().defaultFont()
         fontMetrics = QFontMetrics(font)
         textSize = fontMetrics.size(0, text)
-        height = 60 if boolean(conf.value('General/LargeFont')) else 30
-        textHeight = textSize.height() + height
-        self.rpt.setMaximumSize(QSize(16777215, textHeight))
+        textHeight = textSize.height() + 50
+        self.rpt.setMaximumHeight(textHeight)
 
     def showEvent(self, event):
         self.setLineIcon()
@@ -417,6 +417,7 @@ class SigmetSender(BaseSender):
                 html = '<p>{}<br/>{}</p>'.format(self.message['sign'], html)
 
             self.rpt.setHtml(html)
+            self.resizeRpt()
 
         except Exception as e:
             logger.error(e)

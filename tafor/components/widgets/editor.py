@@ -14,6 +14,7 @@ class BaseEditor(QDialog):
         self.sender = sender
 
         self.defaultAction()
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
     def initUI(self):
         raise NotImplementedError

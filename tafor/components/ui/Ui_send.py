@@ -2,11 +2,13 @@
 
 # Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\send.ui'
 #
-# Created by: PyQt5 UI code generator 5.6
+# Created by: PyQt5 UI code generator 5.13.2
 #
 # WARNING! All changes made in this file will be lost!
 
+
 from PyQt5 import QtCore, QtGui, QtWidgets
+
 
 class Ui_Sender(object):
     def setupUi(self, Sender):
@@ -27,6 +29,7 @@ class Ui_Sender(object):
 "p, li { white-space: pre-wrap; }\n"
 "</style></head><body style=\" font-family:\'SimSun\'; font-size:9pt; font-weight:400; font-style:normal;\">\n"
 "<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Rpt Content</p></body></html>")
+        self.rpt.setCursorWidth(0)
         self.rpt.setTextInteractionFlags(QtCore.Qt.TextSelectableByKeyboard|QtCore.Qt.TextSelectableByMouse)
         self.rpt.setObjectName("rpt")
         self.verticalLayout_2.addWidget(self.rpt)
@@ -44,6 +47,8 @@ class Ui_Sender(object):
 "p, li { white-space: pre-wrap; }\n"
 "</style></head><body style=\" font-family:\'SimSun\'; font-size:9pt; font-weight:400; font-style:normal;\">\n"
 "<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Raw Content</p></body></html>")
+        self.raw.setCursorWidth(0)
+        self.raw.setTextInteractionFlags(QtCore.Qt.TextSelectableByKeyboard|QtCore.Qt.TextSelectableByMouse)
         self.raw.setObjectName("raw")
         self.verticalLayout_3.addWidget(self.raw)
         self.verticalLayout.addWidget(self.rawGroup)
@@ -72,4 +77,3 @@ if __name__ == "__main__":
     ui.setupUi(Sender)
     Sender.show()
     sys.exit(app.exec_())
-

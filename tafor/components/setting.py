@@ -135,6 +135,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.parent = parent
         self.setupUi(self)
         self.setWindowIcon(QIcon(':/setting.png'))
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
         # 开机自动启动设置
         self.autoRun = QSettings('HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run', QSettings.NativeFormat)
