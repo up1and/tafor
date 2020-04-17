@@ -22,8 +22,8 @@ class SpecFT24(object):
     periods = ['0606', '1212', '1818', '0024']
     default = '0024'
     interval = datetime.timedelta(hours=6)
-    delay = datetime.timedelta(hours=2, minutes=50)
-    begin = datetime.timedelta(hours=5)
+    delay = datetime.timedelta(minutes=50)
+    begin = datetime.timedelta(hours=3)
     duration = datetime.timedelta(hours=24)
 
 
@@ -32,8 +32,8 @@ class SpecFT30(object):
     periods = ['0612', '1218', '1824', '0006']
     default = '0006'
     interval = datetime.timedelta(hours=6)
-    delay = datetime.timedelta(hours=2, minutes=50)
-    begin = datetime.timedelta(hours=5)
+    delay = datetime.timedelta(minutes=50)
+    begin = datetime.timedelta(hours=3)
     duration = datetime.timedelta(hours=30)
 
 
