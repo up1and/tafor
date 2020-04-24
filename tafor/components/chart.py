@@ -32,34 +32,38 @@ class MarkerGraphicsItem(QGraphicsRectItem):
         except IndexError:
             pass
 
-    def setSeriesText(self, series, point):
-        time = datetime.datetime.fromtimestamp(float(point.x()) / 1000)
-        value = int(point.y())
-
+    def setSeriesText(self, items):
         title = self.chart.title()
-        name = series.name()
 
-        if title == 'Weather Phenomenon':
-            if value < 20:
-                name = '-' + name
-            if value > 40:
-                name = '+' + name
+        labels = []
+        for _, series, point in items:
+            value = int(point.y())
+            name = series.name()
+            time = datetime.datetime.fromtimestamp(float(point.x()) / 1000)
 
-            text = name
-        else:
-            unit = title.split('(')[-1].replace(')', '')
-            text = '{}: {} {}'.format(name, value, unit)
+            if title == 'Weather Phenomenon':
+                if value < 20:
+                    name = '-' + name
+                if value > 40:
+                    name = '+' + name
 
-            metar = self.currentMetar(series, point)
-            if metar:
-                direction = metar.windDirection()
-                if name == 'Wind' and direction:
-                    if direction == 'VRB':
-                        text += ' from VRB'
-                    else:
-                        text += ' from {} ({}°)'.format(metar.windDirection('compass'), direction)
+                text = name
+            else:
+                unit = title.split('(')[-1].replace(')', '')
+                text = '{}: {} {}'.format(name, value, unit)
 
-        html = '{:%d %b %H:%M} UTC<br>{}'.format(time, text)
+                metar = self.currentMetar(series, point)
+                if metar:
+                    direction = metar.windDirection()
+                    if name == 'Wind' and direction:
+                        if direction == 'VRB':
+                            text += ' from VRB'
+                        else:
+                            text += ' from {} ({}°)'.format(metar.windDirection('compass'), direction)
+
+            labels.append(text)
+
+        html = '{:%d %b %H:%M} UTC<br>{}'.format(time, '<br>'.join(labels))
         self.text.setHtml(html)
 
     def setSeriesColor(self, color):
@@ -91,12 +95,13 @@ class MarkerGraphicsItem(QGraphicsRectItem):
         self.polygon.setPolygon(polygon)
         self.polygon.setPos(rect.topLeft().x() - rect.width() / 2, rect.topLeft().y() - rect.height() - quarter - 2)
 
-    def place(self, series, point):
+    def place(self, items):
         """Place marker for `series` at position of `point`."""
+        _, series, point = items[0]
         visible = series.at(0).x() <= point.x() <= series.at(series.count()-1).x() and self.isVisible()
         self.setVisible(visible and series.chart().plotArea().contains(self.pos()))
         self.setPos(series.chart().mapToPosition(point))
-        self.setSeriesText(series, point)
+        self.setSeriesText(items)
         self.setSeriesColor(series.pen().color())
         self.updateGeometry()
 
@@ -113,7 +118,7 @@ class Chart(QChart):
 
 class ChartView(QChartView):
     """Custom chart view class providing points marker"""
-    MarkerRadius = 16
+    markerRadius = 16
 
     def __init__(self, parent=None):
         super(ChartView, self).__init__(parent)
@@ -150,12 +155,14 @@ class ChartView(QChartView):
             points = self.nearestPoints(series, pos)
             if len(points):
                 items.append(points[0])
+
         items.sort(key=lambda item: item[0])
 
         if len(items):
             distance, series, point = items[0]
-            if distance < self.MarkerRadius:
-                self.marker.place(series, point)
+            if distance < self.markerRadius:
+                samePointItems = list(filter(lambda x: x[2] == point, items))
+                self.marker.place(samePointItems)
             else:
                 self.marker.setVisible(False)
 
