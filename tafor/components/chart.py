@@ -9,6 +9,7 @@ from PyQt5.QtChart import (QChart, QChartView, QSplineSeries, QLineSeries, QScat
     QDateTimeAxis, QLogValueAxis, QValueAxis, QCategoryAxis)
 
 from tafor import logger
+from tafor.styles import calendarStyle
 from tafor.models import db, Metar
 from tafor.utils import MetarParser
 from tafor.components.ui import Ui_chart, main_rc
@@ -169,6 +170,7 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         self.saveButton.setText(QCoreApplication.translate('Chart', 'Save'))
         self.calendar.calendarWidget().setHorizontalHeaderFormat(QCalendarWidget.NoHorizontalHeader)
         self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint)
+        self.setStyleSheet(calendarStyle)
 
         self.bindSignal()
         self.initChart()

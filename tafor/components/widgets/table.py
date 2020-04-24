@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (QDialog, QFileDialog, QWidget, QDialogButtonBox, QT
 from sqlalchemy import and_
 
 from tafor import conf
+from tafor.styles import calendarStyle, dateEditHiddenStyle, buttonHoverStyle
 from tafor.models import db, Taf, Metar, Sigmet
 from tafor.utils import paginate
 from tafor.utils.thread import ExportRecordThread
@@ -58,6 +59,7 @@ class ExportDialog(QDialog):
         self.saveButton = self.buttonBox.button(QDialogButtonBox.Save)
         self.saveButton.setText(QCoreApplication.translate('DataTable', 'Export'))
 
+        self.setStyleSheet(calendarStyle)
         self.setWindowModality(Qt.WindowModal)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
@@ -73,6 +75,8 @@ class ExportDialog(QDialog):
         self.startDate.setMaximumDate(today)
         self.endDate.setDate(today)
         self.endDate.setMaximumDate(today)
+
+        self.updateExportStatus()
 
     def closeEvent(self, event):
         self.countLabel.setText('')
@@ -152,33 +156,6 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.parent = parent
         self.color = QColor(200, 20, 40)
 
-        style = """
-            QDateEdit {
-                border: 1px solid transparent;
-                padding: 2px; /* This (useless) line resolves a bug with the font color */
-            }
-
-            QDateEdit::drop-down 
-            {
-                border: 0px; /* This seems to replace the whole arrow of the combo box */
-            }
-
-            /* Define a new custom arrow icon for the combo box */
-            QDateEdit::down-arrow {
-                image: url(:/search.png);
-                width: 16px;
-                height: 16px;
-            }
-
-        """
-
-        if self.parent.sysInfo.startswith('Windows 10') and conf.value('General/WindowsStyle') == 'System':
-            style += 'QDateEdit:hover { background: #e5f3ff; border: 1px solid #cce8ff;}'
-        else:
-            style += 'QDateEdit:hover { background: #f0f0f0; border: 1px solid #999; border-radius: 3px;}'
-
-        self.calendar.setStyleSheet(style)
-
         self.calendar.calendarWidget().setSelectedDate(QDate.currentDate())
         self.calendar.calendarWidget().setHorizontalHeaderFormat(QCalendarWidget.NoHorizontalHeader)
 
@@ -212,6 +189,8 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(1, QHeaderView.Stretch)
         self.table.setStyleSheet('QTableWidget {border: 0;} QTableWidget::item {padding: 5px 0;}')
+
+        self.calendar.setStyleSheet(calendarStyle + dateEditHiddenStyle + buttonHoverStyle)
 
         self.prevButton.setIcon(QIcon(':/prev.png'))
         self.nextButton.setIcon(QIcon(':/next.png'))
@@ -277,6 +256,8 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.updatePages()
         self.updateInfoButton()
         self.updateCalendarButton()
+
+        self.calendar.setMaximumDate(QDate.currentDate())
 
     def updateTable(self):
         raise NotImplementedError

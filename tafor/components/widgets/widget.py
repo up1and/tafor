@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QLabel, QHBoxLayout
 
 from tafor import conf
 from tafor.utils import CurrentTaf, CheckTaf
+from tafor.styles import buttonHoverStyle
 from tafor.states import context
 from tafor.components.ui import main_rc, Ui_main_recent, Ui_main_license
 
@@ -54,14 +55,7 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
             iconSrc = ':/cross.png'
 
         self.markButton.setIcon(QIcon(iconSrc))
-
-        if self.parent.sysInfo.startswith('Windows 10') and conf.value('General/WindowsStyle') == 'System':
-            style = 'QToolButton:hover { background: #e5f3ff; border: 1px solid #cce8ff;}'
-        else:
-            style = 'QToolButton:hover { background: #f0f0f0; border: 1px solid #999; border-radius: 3px;}'
-
-        self.markButton.setStyleSheet(style)
-
+        self.markButton.setStyleSheet(buttonHoverStyle)
         self.markButton.clicked.connect(self.view)
 
     def setText(self):
