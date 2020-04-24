@@ -136,6 +136,8 @@ class ChartView(QChartView):
     def mouseMoveEvent(self, event):
         """Draws marker and symbols/labels."""
         chart = self.chart()
+        if not chart.series():
+            return
         # Position in data
         value = chart.mapToValue(event.pos())
         # Position in plot
@@ -371,7 +373,10 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
 
         def findWeather(name, weathers):
             for weather in weathers:
-                if name in weather:
+                text = weather
+                if weather.startswith(('+', '-')):
+                    text = weather[1:]
+                if name == text:
                     return weather
 
         valueMaps = {}
@@ -393,7 +398,7 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
                     phenomenons.add(w)
 
         series = []
-        phenomenons = sorted(list(phenomenons)) 
+        phenomenons = sorted(list(phenomenons))
         for name in phenomenons:
             serie = QScatterSeries()
             serie.setMarkerSize(8)
@@ -534,7 +539,9 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
             pressures.append(timestamp, metar.pressure())
 
             clouds.append((timestamp, metar.clouds()))
-            weathers.append((timestamp, metar.weathers()))
+
+            if metar.weathers():
+                weathers.append((timestamp, metar.weathers()))
 
             if metar.rvr():
                 rvrs.append(timestamp, metar.rvr())
