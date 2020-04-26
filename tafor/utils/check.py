@@ -101,7 +101,7 @@ class CurrentTaf(object):
         for i, period in enumerate(self.spec.periods):
             self.startTime[period] = startOfTheDay + delta + self.spec.interval * i
 
-        if self.time < startOfTheDay + datetime.timedelta(hours=1):
+        if self.time < startOfTheDay + self.spec.interval - self.spec.begin:
             self.startTime[self.spec.default] -= datetime.timedelta(days=1)
 
     def _strict(self, withDay):
