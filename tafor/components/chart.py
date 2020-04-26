@@ -411,9 +411,6 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
             serie.setMarkerSize(8)
             serie.setName(name)
 
-            if 'TS' in name:
-                serie.setColor(Qt.red)
-
             if 'TS' in name or 'FG' == name or 'SH' in name:
                 serie.setMarkerSize(10)
 
