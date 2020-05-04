@@ -16,7 +16,7 @@ from tafor.components.ui import Ui_chart, main_rc
 
 
 class MarkerGraphicsItem(QGraphicsRectItem):
-    """Marker graphics item for series data."""
+    """Marker graphics item for series data"""
 
     def __init__(self, chart, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -96,7 +96,7 @@ class MarkerGraphicsItem(QGraphicsRectItem):
         self.polygon.setPos(rect.topLeft().x() - rect.width() / 2, rect.topLeft().y() - rect.height() - quarter - 2)
 
     def place(self, items):
-        """Place marker for `series` at position of `point`."""
+        """Place marker for series at position of first point"""
         _, series, point = items[0]
         visible = series.at(0).x() <= point.x() <= series.at(series.count()-1).x() and self.isVisible()
         self.setVisible(visible and series.chart().plotArea().contains(self.pos()))
@@ -245,7 +245,7 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         try:
             self.drawChart()
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
 
     def queryset(self):
         start, end = self.dateRange
