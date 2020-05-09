@@ -78,21 +78,6 @@ class Metar(Base):
         from tafor.utils import MetarParser
         return MetarParser(self.rpt)
 
-class Task(Base):
-    __tablename__ = 'tasks'
-
-    id = Column(Integer, primary_key=True)
-    tt = Column(String(2), nullable=False)
-    sign = Column(String(36))
-    rpt = Column(Text, nullable=False)
-    created = Column(DateTime, default=datetime.datetime.utcnow)
-    planning = Column(DateTime)
-
-    taf_id = Column(Integer, ForeignKey('tafs.id'))
-
-    def __repr__(self):
-        return '<Task %r %r %r>' % (self.tt, self.rpt, self.planning)
-
 class Trend(Base):
     __tablename__ = 'trends'
 

@@ -13,17 +13,16 @@ from tafor import root, conf, logger, __version__
 from tafor.models import db, User, Taf, Trend
 from tafor.states import context
 from tafor.utils import boolean, checkVersion, Listen
-from tafor.utils.service import currentSigmet, DelaySend
+from tafor.utils.service import currentSigmet
 from tafor.utils.thread import WorkThread, FirInfoThread, CallThread, CheckUpgradeThread, RpcThread
 
 from tafor.components.ui import Ui_main, main_rc
-from tafor.components.taf import TafEditor, TaskTafEditor
+from tafor.components.taf import TafEditor
 from tafor.components.trend import TrendEditor
 from tafor.components.sigmet import SigmetEditor
-from tafor.components.send import TaskTafSender, TafSender, TrendSender, SigmetSender
+from tafor.components.send import TafSender, TrendSender, SigmetSender
 from tafor.components.setting import SettingDialog
 from tafor.components.chart import ChartViewer
-from tafor.components.task import TaskBrowser
 
 from tafor.components.widgets.table import TafTable, MetarTable, SigmetTable, AirmetTable
 from tafor.components.widgets.widget import Clock, TafBoard, RecentMessage, RemindMessageBox, LicenseEditor
@@ -46,8 +45,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.workerTimer = QTimer()
         self.workerTimer.timeout.connect(self.worker)
-        if boolean(conf.value('General/Serious')):
-            self.workerTimer.timeout.connect(self.sender)
         self.workerTimer.start(60 * 1000)
 
         self.painterTimer = QTimer()
@@ -79,11 +76,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.licenseEditor = LicenseEditor(self)
 
         self.chartViewer = ChartViewer(self)
-
-        if boolean(conf.value('General/Serious')):
-            self.taskBrowser = TaskBrowser(self)
-            self.taskTafSender = TaskTafSender(self)
-            self.taskTafEditor = TaskTafEditor(self, self.taskTafSender)
 
         if not boolean(conf.value('General/Sigmet')):
             self.sigmetAction.setVisible(False)
@@ -140,9 +132,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.metarTable.chartButtonClicked.connect(self.chartViewer.show)
 
         self.firInfoThread.finished.connect(self.sigmetEditor.update)
-
-        if boolean(conf.value('General/Serious')):
-            self.taskTafSender.sendSignal.connect(self.taskBrowser.show)
 
     def setTrayIcon(self, style='normal'):
         files = {
@@ -282,14 +271,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         else:
             return super(MainWindow, self).event(event)
 
-    def keyPressEvent(self, event):
-        if boolean(conf.value('General/Serious')):
-            if event.modifiers() == (Qt.ShiftModifier | Qt.ControlModifier):
-                if event.key() == Qt.Key_P:
-                    self.taskTafEditor.show()
-                if event.key() == Qt.Key_T:
-                    self.taskBrowser.show()
-
     def closeEvent(self, event):
         if event.spontaneous():
             event.ignore()
@@ -315,14 +296,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.settingDialog.close()
             self.chartViewer.close()
             self.remindBox = None
-
-            if boolean(conf.value('General/Serious')):
-                self.taskTafSender.setAttribute(Qt.WA_DeleteOnClose)
-                self.taskTafEditor.setAttribute(Qt.WA_DeleteOnClose)
-                self.taskBrowser.setAttribute(Qt.WA_DeleteOnClose)
-                self.taskTafSender.close()
-                self.taskTafEditor.close()
-                self.taskBrowser.close()
 
             self.tray.hide()
             event.accept()
@@ -356,24 +329,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         if callSwitch and context.taf.isWarning() or test:
             self.callThread.start()
-
-    def sender(self):
-        if context.serial.busy():
-            logger.info('Serial port is busy')
-            return
-
-        def afterSending(message, error=None):
-            if error:
-                self.showNotificationMessage(QCoreApplication.translate('MainWindow', 'Send Failed'),
-                    QCoreApplication.translate('MainWindow', error))
-            else:
-                self.showNotificationMessage(QCoreApplication.translate('MainWindow', 'Send Completed'),
-                    QCoreApplication.translate('MainWindow', message))
-                self.updateGui()
-                self.taskBrowser.updateGui()
-
-        self.delaySend = DelaySend(callback=afterSending)
-        self.delaySend.start()
 
     def notifier(self):
         connectionError = QCoreApplication.translate('MainWindow', 'Connection Error')

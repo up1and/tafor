@@ -34,6 +34,7 @@ def cli(ctx, whysoserious):
     (c) 2019 up1and.
     """
     if ctx.invoked_subcommand is None:
+        # It's a easter egg, but I haven't decided what to leave.
         conf.setValue('General/Serious', whysoserious)
         main()
 

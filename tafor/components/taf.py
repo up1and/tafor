@@ -229,27 +229,3 @@ class TafEditor(BaseTafEditor):
         uuid = str(uuid4())
         message = {'sign': self.sign, 'rpt': self.rpt, 'uuid': uuid}
         self.previewSignal.emit(message)
-
-
-class TaskTafEditor(BaseTafEditor):
-
-    def __init__(self, parent=None, sender=None):
-        super(TaskTafEditor, self).__init__(parent, sender)
-        self.title = QCoreApplication.translate('Editor', 'Encoding Terminal Aerodrome Forecast - Delay Send')
-        self.setWindowTitle(self.title)
-        self.setWindowIcon(QIcon(':/time.png'))
-
-        self.primary.sortGroup.hide()
-        self.primary.timer = None
-        self.primary.date.editingFinished.connect(self.updateState)
-
-    def previewMessage(self):
-        message = {'sign': self.sign, 'rpt': self.rpt, 'planning': self.time}
-        self.previewSignal.emit(message)
-
-    def updateState(self):
-        date = self.primary.date.text()
-        self.time = parseTime(date)
-        self.setWindowTitle(self.title + ' - {}'.format(self.time.strftime('%Y-%m-%d %H:%M')))
-        taf = CurrentTaf(context.taf.spec, time=self.time)
-        self.primary.setNormalPeriod(taf, strict=True)

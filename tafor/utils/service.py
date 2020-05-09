@@ -2,7 +2,7 @@ import copy
 import datetime
 
 from tafor import logger
-from tafor.models import db, Taf, Sigmet, Task
+from tafor.models import db, Taf, Sigmet
 from tafor.utils.message import AFTNMessageGenerator
 from tafor.utils.thread import SerialThread
 
@@ -45,43 +45,3 @@ def currentSigmet(tt=None, order='desc', showUnmatched=False):
         currents.reverse()
 
     return currents
-
-
-class DelaySend(object):
-
-    def __init__(self, callback=None):
-        self.task = None
-        self.item = None
-        self.aftn = None
-        self.callback = callback
-
-        now = datetime.datetime.utcnow()
-        tasks = db.query(Task).filter(Task.taf_id==None, Task.planning<=now).all()
-        if tasks:
-            self.task = min(tasks, key=lambda x: x.planning)
-
-    def start(self):
-        if not self.task:
-            return
-
-        message = '\n'.join([self.task.sign, self.task.rpt])
-        self.aftn = AFTNMessageGenerator(message, time=self.task.planning)
-
-        self.thread = SerialThread(self.aftn.toString())
-        self.thread.doneSignal.connect(self.commit)
-        self.thread.start()
-
-    def commit(self, error):
-        if error:
-            self.callback(self.task.rpt, error)
-            return
-
-        self.item = Taf(tt=self.task.tt, sign=self.task.sign, rpt=self.task.rpt, raw=self.aftn.toJson())
-        db.add(self.item)
-        db.flush()
-        self.task.taf_id = self.item.id
-        db.merge(self.task)
-        db.commit()
-
-        self.callback(self.task.rpt)
-        logger.info('Task {} has been sent'.format(self.item.rpt))

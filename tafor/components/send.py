@@ -7,7 +7,7 @@ from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
 
 from tafor import conf, logger
 from tafor.states import context
-from tafor.models import db, Taf, Task, Trend, Sigmet
+from tafor.models import db, Taf, Trend, Sigmet
 from tafor.utils import boolean, TafParser, MetarParser, SigmetParser, AFTNMessageGenerator, FileMessageGenerator, AFTNDecoder
 from tafor.utils.thread import SerialThread, FtpThread
 from tafor.components.ui import Ui_send, main_rc
@@ -328,23 +328,6 @@ class TafSender(BaseSender):
         self.reportType = 'TAF'
         self.model = Taf
         self.buttonBox.accepted.connect(self.send)
-
-
-class TaskTafSender(BaseSender):
-
-    def __init__(self, parent=None):
-        super(TaskTafSender, self).__init__(parent)
-        self.setWindowTitle(QCoreApplication.translate('Sender', 'Delay Send Message'))
-        self.reportType = 'TAF'
-        self.buttonBox.accepted.connect(self.save)
-        self.buttonBox.accepted.connect(self.accept)
-
-    def save(self):
-        self.item = Task(tt=self.message['sign'][0:2], sign=self.message['sign'], rpt=self.message['rpt'], planning=self.message['planning'])
-        db.add(self.item)
-        db.commit()
-        logger.debug('Task {} will be sent on {}'.format(self.item.rpt, self.item.planning.strftime('%Y-%m-%d %H:%M:%S')))
-        self.sendSignal.emit()
 
 
 class TrendSender(BaseSender):
