@@ -461,6 +461,12 @@ class TemperatureGroup(QWidget, SegmentMixin):
         text = '{}{}/{}Z'.format(sign, self.temp.text(), self.tempTime.text())
         return text
 
+    def widgets(self):
+        if self.canSwitch:
+            return [self.switchButton, self.temp, self.tempTime]
+        
+        return [self.temp, self.tempTime]
+
     def clear(self):
         self.temp.clear()
         self.tempTime.clear()
@@ -503,8 +509,9 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.setOrder()
 
     def setOrder(self):
-        orders = [self.nsc] + self.temperatures + [self.becmg1Checkbox, self.becmg2Checkbox, self.becmg3Checkbox, 
-            self.tempo1Checkbox, self.tempo2Checkbox, self.tempo3Checkbox]
+        orders = [self.nsc]
+        for t in self.temperatures:
+            orders += t.widgets()
 
         for p, n in zip(orders, orders[1:]):
             self.setTabOrder(p, n)
