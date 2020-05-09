@@ -5,24 +5,13 @@ import calendar
 import datetime
 import requests
 
-from io import BytesIO
-from ftplib import FTP
-from functools import partial
 from urllib.parse import urlparse
 
-from PIL import Image
-from pytz import timezone
-from bs4 import BeautifulSoup
 from dateutil import relativedelta
 from flask import Flask, request, jsonify, abort, render_template, url_for, send_file
 
 from auth import amsc
 
-
-ECHO_FTP_HOST = os.environ.get('ECHO_FTP_HOST') or '127.0.0.1'
-ECHO_FTP_USER = os.environ.get('ECHO_FTP_USER') or 'root'
-ECHO_FTP_PASSWD = os.environ.get('ECHO_FTP_PASSWD') or '123456'
-ECHO_FTP_PATH = os.environ.get('ECHO_FTP_PATH') or 'mergeMax'
 
 session = None
 
@@ -246,14 +235,13 @@ def marshal_multiple(messages):
 
     return resp_dict
 
-def load_fir(mwo, remote=False):
+def load_fir(mwo):
     mwo = mwo.upper()
     boundary_path = os.path.join(root, 'config', 'boundary.json')
     with open(boundary_path) as data:
         boundaries = json.load(data)
 
-    file = 'remote.json' if remote else 'local.json'
-    layer_path = os.path.join(root, 'config', file)
+    layer_path = os.path.join(root, 'config', 'layer.json')
     with open(layer_path) as data:
         layers = json.load(data)
 
@@ -271,108 +259,15 @@ def build_url(path, url_root=None):
 
     return url
 
-def himawari8(cat='I'):
-    url = 'http://192.2.204.51/GetFileName.ashx?type=3&satellite=2&file={}EA'.format(cat)
-    rv = {
-        'image': None,
-        'updated': None
-    }
-    response = requests.get(url, timeout=5)
-    navie = datetime.datetime.strptime(response.text.strip(), '%Y-%m-%d %H:%M:%S')
-    fmt = '%Y%m%d%H%M'
-    rv['image'] = 'http://192.2.204.51/HIM_IMAGE/{}/{}EA{}.jpg'.format(cat, cat, navie.strftime(fmt))
-    local = timezone('Asia/Shanghai').localize(navie)
-    rv['updated'] = local.astimezone(timezone('UTC'))
-    return rv
-
-def radar_mosaic():
-    rv = {
-        'image': None,
-        'updated': None
-    }
-    with FTP(ECHO_FTP_HOST) as ftp:
-        ftp.login(user=ECHO_FTP_USER, passwd=ECHO_FTP_PASSWD)
-        ftp.cwd(ECHO_FTP_PATH)
-        files = ftp.nlst('-t')
-        latest = files[-1]
-
-    rv['image'] = url_for('mosaic_image', filename=latest, _external=True)
-    navie = datetime.datetime.strptime(latest[1:15], '%Y%m%d%H%M%S')
-    local = timezone('Asia/Shanghai').localize(navie)
-    rv['updated'] = local.astimezone(timezone('UTC'))
-    return rv
-
-def process_echo(source):
-    colors = [
-        (192, 192, 254, 255), # purple
-        (0, 172, 164, 255), # dark green
-        (30, 38, 208, 255), # dark blue
-        (122, 114, 238, 255), # blue
-        # (166, 252, 168, 255), # light green
-    ]
-    bgcolor = (35, 35, 35, 255)
-
-    origin = Image.open(source)
-    image = Image.new('RGBA', (3060, 3060), color=bgcolor)
-    image.paste(origin, (-744, -820))
-    image = image.resize((1024, 1024))
-    pixdata = image.load()
-    for y in range(image.size[1]):
-        for x in range(image.size[0]):
-            if pixdata[x, y] in colors:
-                pixdata[x, y] = (0, 0, 0, 255)
-
-    output = BytesIO()
-    image.save(output, 'PNG')
-    return output
-
-
 @app.route('/')
 def index():
     return render_template('index.html')
 
 @app.route('/messages/<airport>')
-def latest_messsage(airport):
-    airport = airport.upper()
-    fir = fir_codes.get(airport, None)
-    cookies = {
-        'LoginCookiesGuid': '5274c2de-632d-4611-ac89-8fc3e173',
-        'LoginCookiesName': 'ZJHK'
-    }
-    url = 'http://172.17.1.166/biz/QueryMetInfo/ReportByArea.aspx'
-    sigmet_url = 'http://172.17.1.166/biz/warn/list_sigmet.aspx'
+def latest_message(airport):
+    if len(airport) != 4:
+        return jsonify({'error': 'wrong airport code'}), 400
 
-    try:
-        response = requests.get(url, cookies=cookies, timeout=30)
-        html = response.content
-        soup = BeautifulSoup(html, 'html.parser')
-        items = [tag.string.strip() for tag in soup.find_all('td') if tag.string is not None]
-        messages = [m for m in items if airport.upper() in m]
-        messages = marshal(messages)
-
-    except Exception as e:
-        app.logger.exception(e)
-        return jsonify({'error': '{} not found'.format(airport)}), 404
-
-    if fir:
-        try:
-            endtime = lambda x: parse_intl_period(find_sigmet_period(x))[1]
-            response = requests.get(sigmet_url, cookies=cookies, timeout=30)
-            html = response.content
-            soup = BeautifulSoup(html, 'html.parser')
-            items = [tag.string.strip() for tag in soup.find_all('span') if tag.string is not None]
-            sigmets = [m for m in items if fir.upper() in m]
-            sigmets.sort(key=endtime)
-            sigmets = marshal_multiple(sigmets)
-            messages.update(sigmets)
-
-        except Exception as e:
-            app.logger.exception(e)
-
-    return jsonify(messages)
-
-@app.route('/remote/messages/<airport>')
-def remote_latest_message(airport):
     airport = airport.upper()
     fir = fir_codes.get(airport, None)
     url = 'http://www.amsc.net.cn/Page/BaoWenJianSuo/BaoWenJianSuoHandler.ashx'
@@ -449,47 +344,14 @@ def remote_latest_message(airport):
 
     return jsonify(messages)
 
-
 @app.route('/firs/<mwo>')
 def fir(mwo):
+    if len(mwo) != 4:
+        return jsonify({'error': 'wrong mwo code'}), 400
+
     mwo = mwo.upper()
-    funcs = {
-        'Himawari 8 Infrared': himawari8,
-        'Himawari 8 Visible': partial(himawari8, cat='V'),
-        'Radar Mosaic': radar_mosaic
-    }
     try:
         info = load_fir(mwo)
-
-    except Exception as e:
-        app.logger.exception(e)
-        return jsonify({'error': '{} not found'.format(mwo)}), 404
-
-    for layer in info['layers']:
-        image = None
-        updated = None
-
-        try:
-            func = funcs.get(layer['name'])
-            images = func()
-            image = images['image']
-            updated = images['updated']
-        except requests.exceptions.ConnectionError:
-            app.logger.warn('GET {} 408 Request Timeout'.format(layer['image']))
-
-        except Exception as e:
-            app.logger.exception(e)
-
-        layer['image'] = image
-        layer['updated'] = updated
-
-    return jsonify(info)
-
-@app.route('/remote/firs/<mwo>')
-def remote_fir(mwo):
-    mwo = mwo.upper()
-    try:
-        info = load_fir(mwo, remote=True)
         for layer in info['layers']:
             layer['image'] = build_url(layer['image'], request.url_root)
             layer['updated'] = datetime.datetime.utcnow()
@@ -499,21 +361,6 @@ def remote_fir(mwo):
         return jsonify({'error': '{} not found'.format(mwo)}), 404
 
     return jsonify(info)
-
-@app.route('/echos/mosaic/<filename>')
-def mosaic_image(filename):
-    source = BytesIO()
-    try:
-        with FTP(ECHO_FTP_HOST) as ftp:
-            ftp.login(user=ECHO_FTP_USER, passwd=ECHO_FTP_PASSWD)
-            ftp.cwd(ECHO_FTP_PATH)
-            ftp.retrbinary('RETR {}'.format(filename), source.write)
-    except Exception as e:
-        abort(404)
-
-    image = process_echo(source)
-    image.seek(0)
-    return send_file(image, mimetype='image/png')
 
 
 if __name__ == '__main__':
