@@ -482,9 +482,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
         self.setValidator()
         self.period.setEnabled(False)
-        self.ccc.setEnabled(False)
-        self.aaa.setEnabled(False)
-        self.aaaCnl.setEnabled(False)
+        self.sequence.setEnabled(False)
 
         self.tmax = TemperatureGroup(mode='max', parent=self)
         self.tmin = TemperatureGroup(mode='min', parent=self)
@@ -522,13 +520,6 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         date = QRegExpValidator(QRegExp(self.rules.date))
         self.date.setValidator(date)
 
-        aaa = QRegExpValidator(QRegExp(self.rules.aaa, Qt.CaseInsensitive))
-        self.aaa.setValidator(aaa)
-        self.aaaCnl.setValidator(aaa)
-
-        ccc = QRegExpValidator(QRegExp(self.rules.ccc, Qt.CaseInsensitive))
-        self.ccc.setValidator(ccc)
-
     def bindSignal(self):
         super(TafPrimarySegment, self).bindSignal()
 
@@ -539,14 +530,10 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.prevButton.clicked.connect(lambda: self.setCurrentPeriod('prev'))
         self.resetButton.clicked.connect(lambda: self.setCurrentPeriod('reset'))
 
-        self.aaa.textEdited.connect(lambda: self.upperText(self.aaa))
-        self.ccc.textEdited.connect(lambda: self.upperText(self.ccc))
-        self.aaaCnl.textEdited.connect(lambda: self.upperText(self.aaaCnl))
+        self.sequence.textEdited.connect(lambda: self.upperText(self.sequence))
 
         self.date.textEdited.connect(lambda: self.coloredText(self.date))
-        self.aaa.textEdited.connect(lambda: self.coloredText(self.aaa))
-        self.ccc.textEdited.connect(lambda: self.coloredText(self.ccc))
-        self.aaaCnl.textEdited.connect(lambda: self.coloredText(self.aaaCnl))
+        self.sequence.textEdited.connect(lambda: self.coloredText(self.sequence))
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.setDate)
@@ -575,39 +562,25 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.taf = CurrentTaf(context.taf.spec, time=datetime.datetime.utcnow(), offset=self.offset)
         if self.normal.isChecked():
             self.setNormalPeriod(self.taf)
+            self.sequence.clear()
+            self.sequence.setEnabled(False)
 
-            self.ccc.clear()
-            self.ccc.setEnabled(False)
-            self.aaa.clear()
-            self.aaa.setEnabled(False)
-            self.aaaCnl.clear()
-            self.aaaCnl.setEnabled(False)
         else:
             self.setAmendPeriod(self.taf)
+            aaa = QRegExpValidator(QRegExp(self.rules.aaa, Qt.CaseInsensitive))
+            ccc = QRegExpValidator(QRegExp(self.rules.ccc, Qt.CaseInsensitive))
 
             if self.cor.isChecked():
-                self.ccc.setEnabled(True)
                 order = self.amendNumber('COR')
-                self.ccc.setText(order)
-            else:
-                self.ccc.clear()
-                self.ccc.setEnabled(False)
+                self.sequence.setValidator(ccc)
 
-            if self.amd.isChecked():
-                self.aaa.setEnabled(True)
+            if self.amd.isChecked() or self.cnl.isChecked():
                 order = self.amendNumber('AMD')
-                self.aaa.setText(order)
-            else:
-                self.aaa.clear()
-                self.aaa.setEnabled(False)
+                self.sequence.setValidator(aaa)
 
-            if self.cnl.isChecked():
-                self.aaaCnl.setEnabled(True)
-                order = self.amendNumber('AMD')
-                self.aaaCnl.setText(order)
-            else:
-                self.aaaCnl.clear()
-                self.aaaCnl.setEnabled(False)
+            self.sequence.setEnabled(True)
+            if not self.sequence.hasAcceptableInput():
+                self.sequence.setText(order)
 
     def setNormalPeriod(self, taf, strict=False):
         check = CheckTaf(taf)
@@ -704,17 +677,17 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             elif self.vis.hasAcceptableInput() and any(oneRequired):
                 self.complete = True
 
-        if self.cor.isChecked() and not self.ccc.hasAcceptableInput():
+        if self.cor.isChecked() and not self.sequence.hasAcceptableInput():
             self.complete = False
 
-        if self.amd.isChecked() and not self.aaa.hasAcceptableInput():
+        if self.amd.isChecked() and not self.sequence.hasAcceptableInput():
             self.complete = False
 
         if self.cnl.isChecked():
             mustRequired = [
                 self.date.hasAcceptableInput(),
                 self.period.text(),
-                self.aaaCnl.hasAcceptableInput(),
+                self.sequence.hasAcceptableInput(),
             ]
             if all(mustRequired):
                 self.complete = True
@@ -743,10 +716,8 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         icao = conf.value('Message/ICAO')
         time = self.date.text()
         tt = context.taf.spec[:2].upper()
-        ccc = self.ccc.text() if self.cor.isChecked() else None
-        aaa = self.aaa.text() if self.amd.isChecked() else None
-        aaaCnl = self.aaaCnl.text() if self.cnl.isChecked() else None
-        messages = [tt + area, icao, time, ccc, aaa, aaaCnl]
+        sequence = self.sequence.text() if not self.normal.isChecked() else ''
+        messages = [tt + area, icao, time, sequence]
         return ' '.join(filter(None, messages))
 
     def setDate(self):
@@ -758,9 +729,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
     def clearType(self):
         self.normal.setChecked(True)
-        self.aaa.clear()
-        self.ccc.clear()
-        self.aaaCnl.clear()
+        self.sequence.clear()
         self.resetButton.setEnabled(False)
         self.prevButton.setEnabled(True)
         self.offset = 0
