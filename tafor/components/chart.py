@@ -196,7 +196,10 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
 
     def saveImages(self):
         title = QCoreApplication.translate('Chart', 'Save to Directory')
-        path = str(QFileDialog.getExistingDirectory(self, title))
+        directory = str(QFileDialog.getExistingDirectory(self, title))
+
+        if not directory:
+            return
 
         for view in self.views:
             title = view.chart().title()
@@ -205,7 +208,7 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
             fmt = '%Y-%m-%d %H-%M-%S'
             time = self.dateRange[0].strftime(fmt)
             filename = '{} {}.png'.format(title, time)
-            filepath = os.path.join(path, filename)
+            filepath = os.path.join(directory, filename)
 
             image = QPixmap(view.grab())
             image.save(filepath, 'png')
