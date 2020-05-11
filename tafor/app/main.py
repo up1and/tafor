@@ -504,7 +504,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         <p style="margin:0;color:#444;font-size:13px">A Terminal Aerodrome Forecast Encoding Software</p>
         <p style="margin:5px 0"><a href="https://github.com/up1and/tafor" style="text-decoration:none;color:#0078d7">{} {} {}</a></p>
         <p style="margin:5px 0;color:#444">{}</p>
-        <p style="margin-top:25px;color:#444">Copyright © 2019 <a href="mailto:piratecb@gmail.com" style="text-decoration:none;color:#444">up1and</a></p>
+        <p style="margin-top:25px;color:#444">Copyright © 2020 <a href="mailto:piratecb@gmail.com" style="text-decoration:none;color:#444">up1and</a></p>
         </div>
         """.format(QCoreApplication.translate('MainWindow', 'Version'), __version__, context.environ.ghash(), register)
 
