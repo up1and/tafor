@@ -3,7 +3,7 @@ import datetime
 
 from itertools import cycle
 
-from PyQt5.QtGui import QIcon, QRegExpValidator, QIntValidator, QTextCharFormat, QFont, QPixmap
+from PyQt5.QtGui import QIcon, QRegExpValidator, QIntValidator, QTextCharFormat, QTextCursor, QFont, QPixmap
 from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QMenu, QActionGroup, QAction, QRadioButton, QLabel
 
@@ -1219,7 +1219,9 @@ class SigmetCustomContent(BaseSigmetContent, Ui_sigmet_custom.Ui_Editor):
         text = text.upper()
         if origin != text:
             cursor = self.text.textCursor()
+            pos = cursor.position()
             self.text.setText(text)
+            cursor.setPosition(pos)
             self.text.setTextCursor(cursor)
 
     def setUpper(self):
@@ -1471,7 +1473,6 @@ class SigmetCustomSegment(BaseSegment):
     def bindSignal(self):
         self.changeSignal.connect(self.head.initState)
         self.changeSignal.connect(self.updateText)
-        self.changeSignal.connect(self.setText)
 
     def updateText(self):
         self.setText()
@@ -1517,5 +1518,6 @@ class SigmetCustomSegment(BaseSegment):
             fir = conf.value('Message/FIR')
             text = message.replace(fir, '').replace('=', '').strip()
             self.content.text.setText(text)
+            self.content.text.moveCursor(QTextCursor.End)
         else:
             self.content.text.clear()
