@@ -4,7 +4,7 @@ import json
 import datetime
 
 from PyQt5.QtGui import QIcon, QIntValidator
-from PyQt5.QtCore import QCoreApplication, QSettings, QTimer, Qt
+from PyQt5.QtCore import QCoreApplication, QStandardPaths, QSettings, QTimer, Qt
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QTableWidgetItem, QFileDialog, QMessageBox
 
 from tafor import conf, logger
@@ -482,11 +482,12 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
     def openFile(self, receiver):
         title = QCoreApplication.translate('Settings', 'Open Configuration File')
-        filename, _ = QFileDialog.getOpenFileName(self, title, '.', '(*.json)')
+        path = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)
+        filename, _ = QFileDialog.getOpenFileName(self, title, path, '(*.json)')
         receiver.setText(filename)
 
     def openDirectory(self, receiver):
-        title = QCoreApplication.translate('Settings', 'Open Directory')
-        path = str(QFileDialog.getExistingDirectory(self, title))
-        filename = os.path.join(path, 'default.json').replace('\\', '/') if path else path
+        title = QCoreApplication.translate('Settings', 'Save Configuration File')
+        path = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)
+        filename, _ = QFileDialog.getSaveFileName(self, title, os.path.join(path, 'tafor.json'), '(*.json)')
         receiver.setText(filename)

@@ -1,7 +1,8 @@
+import os
 import datetime
 
 from PyQt5.QtGui import QIcon, QRegExpValidator, QColor, QPixmap, QCursor
-from PyQt5.QtCore import QCoreApplication, QRegExp, QDate, Qt, pyqtSignal
+from PyQt5.QtCore import QCoreApplication, QStandardPaths, QRegExp, QDate, Qt, pyqtSignal
 from PyQt5.QtWidgets import (QDialog, QFileDialog, QWidget, QDialogButtonBox, QTableWidgetItem, QHeaderView, QLabel, QLineEdit, QCalendarWidget, 
     QVBoxLayout, QFormLayout, QLabel, QDateEdit, QLayout)
 
@@ -120,9 +121,10 @@ class ExportDialog(QDialog):
     def exportToCsv(self):
         fmt = '%Y-%m-%d'
         start, end = self.startDate.date().toPyDate(), self.endDate.date().toPyDate()
-        defaultName = '{} {} {}.csv'.format(self.parent.reportType, start.strftime(fmt), end.strftime(fmt))
+        name = '{} {} {}.csv'.format(self.parent.reportType, start.strftime(fmt), end.strftime(fmt))
         title = QCoreApplication.translate('DataTable', 'Save as CSV')
-        filename, _ = QFileDialog.getSaveFileName(self, title, defaultName, '(*.csv)')
+        path = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)
+        filename, _ = QFileDialog.getSaveFileName(self, title, os.path.join(path, name), '(*.csv)')
 
         if not filename:
             return

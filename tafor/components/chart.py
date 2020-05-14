@@ -3,7 +3,7 @@ import random
 import datetime
 
 from PyQt5.QtGui import QPainter, QColor, QImage, QBrush, QPixmap, QPolygonF
-from PyQt5.QtCore import QCoreApplication, QDate, QPointF, Qt
+from PyQt5.QtCore import QCoreApplication, QStandardPaths, QDate, QPointF, Qt
 from PyQt5.QtWidgets import QDialog, QFileDialog, QDialogButtonBox, QCalendarWidget, QGraphicsRectItem, QGraphicsPolygonItem, QGraphicsTextItem
 from PyQt5.QtChart import (QChart, QChartView, QSplineSeries, QLineSeries, QScatterSeries, QAreaSeries,
     QDateTimeAxis, QLogValueAxis, QValueAxis, QCategoryAxis)
@@ -196,7 +196,8 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
 
     def saveImages(self):
         title = QCoreApplication.translate('Chart', 'Save to Directory')
-        directory = str(QFileDialog.getExistingDirectory(self, title))
+        path = QStandardPaths.writableLocation(QStandardPaths.PicturesLocation)
+        directory = str(QFileDialog.getExistingDirectory(self, title, path))
 
         if not directory:
             return
