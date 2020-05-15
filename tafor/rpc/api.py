@@ -2,9 +2,11 @@ import json
 
 import falcon
 
+from uuid import uuid4
+
 from tafor import conf
 from tafor.states import context
-from tafor.utils import boolean, TafParser, SigmetParser, MetarParser
+from tafor.utils import boolean, TafParser, SigmetParser, MetarParser, AFTNMessageGenerator
 
 
 
@@ -163,7 +165,7 @@ class NotificationResource(object):
     @falcon.before(authorize)
     def on_post(self, req, resp):
         message = req.get_param('message') or req.context.body.get('message')
-        message= message.strip()
+        message = message.strip()
 
         if not message:
             raise falcon.HTTPBadRequest('Message Required', 'Please provide a notification message.')
@@ -192,7 +194,7 @@ class ValidateResource(object):
 
     def on_get(self, req, resp):
         message = req.get_param('message') or req.context.body.get('message') or ''
-        message= message.strip()
+        message = message.strip()
 
         kwargs = {
             'visHas5000': boolean(conf.value('Validator/VisHas5000')),
@@ -215,15 +217,58 @@ class ValidateResource(object):
         resp.media = data
 
 
+class OtherResource(object):
+
+    @falcon.before(authorize)
+    def on_post(self, req, resp):
+        priority = req.get_param('priority') or req.context.body.get('priority')
+        address = req.get_param('address') or req.context.body.get('address')
+        message = req.get_param('message') or req.context.body.get('message')
+
+        priority = priority.strip()
+        address = address.strip()
+        message = message.strip()
+
+        if not all([priority, address, message]):
+            raise falcon.HTTPBadRequest('Message Required', 'Please provide priority indicator, addresses and message text.')
+
+        uuid = str(uuid4())
+        context.other.setState({
+            'uuid': uuid,
+            'priority': priority,
+            'address': address,
+            'message': message,
+        })
+
+        channel = conf.value('Communication/Channel') or ''
+        originator = conf.value('Communication/OriginatorAddress') or ''
+        number = conf.value('Communication/ChannelSequenceNumber') or 1
+        sequenceLength = conf.value('Communication/ChannelSequenceLength') or 4
+        maxSendAddress = conf.value('Communication/MaxSendAddress') or 21
+
+        generator = AFTNMessageGenerator(message, channel=channel, number=number, priority=priority, address=address,
+                    originator=originator, sequenceLength=sequenceLength, maxSendAddress=maxSendAddress)
+
+        resp.status = falcon.HTTP_CREATED
+        resp.media = {
+            'uuid': uuid,
+            'message': generator.toString(),
+            'type': 'other',
+            'created': falcon.http_now()
+        }
+
+
 middleware = [CORSComponent(), JSONComponent()]
 server = falcon.API(middleware=middleware)
 
 main = MainResource()
 state = StateResource()
+other = OtherResource()
 notification = NotificationResource()
 validate = ValidateResource()
 
 server.add_route('/', main)
 server.add_route('/api/state', state)
 server.add_route('/api/validate', validate)
+server.add_route('/api/others', other)
 server.add_route('/api/notifications', notification)

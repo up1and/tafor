@@ -159,8 +159,6 @@ class Other(Base):
 
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36), default=uniqueid)
-    tt = Column(String(2))
-    sign = Column(String(36))
     rpt = Column(Text, nullable=False)
     raw = Column(Text)
     file = Column(Text)
@@ -168,7 +166,17 @@ class Other(Base):
     sent = Column(DateTime, default=datetime.datetime.utcnow)
 
     def __repr__(self):
-        return '<Other %r %r>' % (self.tt, self.rpt)
+        return '<Other %r>' % (self.raw)
+
+    @property
+    def report(self):
+        return self.rpt
+
+    def rawText(self):
+        if not self.raw:
+            return ''
+        messages = json.loads(self.raw)
+        return '\r\n\r\n\r\n\r\n'.join(messages)
 
 class User(Base):
     __tablename__ = 'users'

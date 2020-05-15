@@ -20,7 +20,7 @@ from tafor.components.ui import Ui_main, main_rc
 from tafor.components.taf import TafEditor
 from tafor.components.trend import TrendEditor
 from tafor.components.sigmet import SigmetEditor
-from tafor.components.send import TafSender, TrendSender, SigmetSender
+from tafor.components.send import TafSender, TrendSender, SigmetSender, CustomSender
 from tafor.components.setting import SettingDialog
 from tafor.components.chart import ChartViewer
 
@@ -69,6 +69,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.tafSender = TafSender(self)
         self.trendSender = TrendSender(self)
         self.sigmetSender = SigmetSender(self)
+        self.customSender = CustomSender(self)
 
         self.tafEditor = TafEditor(self, self.tafSender)
         self.trendEditor = TrendEditor(self, self.trendSender)
@@ -94,6 +95,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def bindSignal(self):
         context.taf.warningSignal.connect(self.dialer)
         context.taf.clockSignal.connect(self.remindTaf)
+        context.other.messageChanged.connect(self.loadCustomMessage)
         context.notification.metar.messageChanged.connect(self.loadMetar)
         context.notification.sigmet.messageChanged.connect(self.loadSigmet)
         context.fir.refreshSignal.connect(self.painter)
@@ -222,6 +224,16 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.checkUpgradeThread = CheckUpgradeThread(self)
         self.checkUpgradeThread.doneSignal.connect(self.checkUpgrade)
 
+    def loadCustomMessage(self):
+        if not self.isVisible():
+            self.showNormal()
+
+        self.incomingSound.play(loop=False)
+        self.customSender.load()
+        self.customSender.show()
+        self.showNotificationMessage(QCoreApplication.translate('MainWindow', 'Message Received'),
+                QCoreApplication.translate('MainWindow', 'Received a custom message.'))
+
     def loadMetar(self):
         self.incomingSound.play(loop=False)
         self.trendEditor.loadMetar()
@@ -289,6 +301,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.tafSender.close()
             self.trendSender.close()
             self.sigmetSender.close()
+            self.customSender.close()
             self.tafEditor.close()
             self.trendEditor.close()
             self.sigmetEditor.close()
@@ -415,7 +428,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.updateRecent()
         self.updateContractMenu()
         self.updateSigmet()
-        self.settingDialog.loadSerialNumber()
 
         logger.debug('Update GUI')
 
@@ -566,7 +578,6 @@ def main():
     os.environ['TAFOR_ARGS'] = json.dumps(sys.argv[1:])
 
     app = QApplication(sys.argv)
-    # app.setAttribute(Qt.AA_DisableWindowContextHelpButton)
 
     translator = QTranslator()
     locale = QLocale.system().name()

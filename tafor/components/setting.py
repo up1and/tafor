@@ -285,6 +285,9 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.parent.trendSound.setVolume(conf.value('Monitor/RemindTrendVolume'))
         self.parent.sigmetSound.setVolume(conf.value('Monitor/RemindSIGMETVolume'))
 
+    def showEvent(self, event):
+        self.loadSerialNumber()
+
     def testCallUp(self):
         """手动测试电话拨号"""
         self.parent.dialer(test=True)

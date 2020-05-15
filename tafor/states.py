@@ -183,6 +183,28 @@ class TafState(QObject):
                     self.clockSignal.emit(tt)
 
 
+class OtherState(QObject):
+    messageChanged = pyqtSignal()
+
+    def __init__(self):
+        super(OtherState, self).__init__()
+        self._state = {
+            'uuid': None,
+            'priority': None,
+            'address': None,
+            'message': None,
+            'created': datetime.datetime.utcnow()
+        }
+
+    def setState(self, values):
+        self._state.update(values)
+        self._state['created'] = datetime.datetime.utcnow()
+        self.messageChanged.emit()
+
+    def state(self):
+        return self._state
+
+
 class NotificationMessageState(QObject):
     messageChanged = pyqtSignal()
 
@@ -332,7 +354,7 @@ class EnvironState(object):
         if reportType == 'Trend':
             return True
 
-        if reportType == 'TAF':
+        if reportType in ['TAF', 'Custom']:
             return 'airport' in self.license()
 
         if reportType in ['SIGMET', 'AIRMET']:
@@ -345,6 +367,7 @@ class Context(object):
     callService = CallServiceState()
     taf = TafState()
     fir = FirState()
+    other = OtherState()
     notification = NotificationState()
     serial = SerialState()
     environ = EnvironState()

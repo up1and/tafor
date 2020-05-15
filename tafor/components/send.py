@@ -7,7 +7,7 @@ from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
 
 from tafor import conf, logger
 from tafor.states import context
-from tafor.models import db, Taf, Trend, Sigmet
+from tafor.models import db, Taf, Trend, Sigmet, Other
 from tafor.utils import boolean, TafParser, MetarParser, SigmetParser, AFTNMessageGenerator, FileMessageGenerator, AFTNDecoder
 from tafor.utils.thread import SerialThread, FtpThread
 from tafor.components.ui import Ui_send, main_rc
@@ -17,6 +17,7 @@ class AFTNChannel(object):
     generator = AFTNMessageGenerator
     thread = SerialThread
     field = 'raw'
+    sequenceConfigPath = 'Communication/ChannelSequenceNumber'
 
     def successText():
         return QCoreApplication.translate('Sender', 'Data has been sent to the serial port')
@@ -29,6 +30,7 @@ class FtpChannel(object):
     generator = FileMessageGenerator
     thread = FtpThread
     field = 'file'
+    sequenceConfigPath = 'Communication/FileSequenceNumber'
 
     def successText():
         return QCoreApplication.translate('Sender', 'File has been uploaded to the host')
@@ -69,6 +71,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.rejected.connect(self.cancel)
         self.closeSignal.connect(self.clear)
         self.backSignal.connect(self.clear)
+        self.buttonBox.accepted.connect(self.send)
         self.printButton.clicked.connect(self.print)
 
         self.rawGroup.hide()
@@ -161,7 +164,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.rpt.setHtml(html)
         self.resizeRpt()
 
-    def showRawGroup(self, error):
+    def showRawGroup(self, error=''):
         if self.rawText is None:
             return None
 
@@ -174,15 +177,41 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         if error:
             self.error = error
             self.rawGroup.setTitle(QCoreApplication.translate('Sender', 'Send Failed'))
+
             if context.environ.canEnable(self.reportType):
                 self.resendButton.setEnabled(True)
                 self.resendButton.setText(QCoreApplication.translate('Sender', 'Resend'))
                 self.resendButton.show()
-            else:
-                error = QCoreApplication.translate('Sender', 'Limited functionality, please check the license information')
 
             title = QCoreApplication.translate('Sender', 'Error')
             QMessageBox.critical(self, title, error)
+
+    def parameters(self):
+        spacer = ' ' if self.reportType == 'Trend' else '\n'
+        message = spacer.join([self.message['sign'], self.message['rpt']])
+        channel = conf.value('Communication/Channel') or ''
+        number = conf.value(self.channel.sequenceConfigPath) or 1
+        priority = 'FF' if self.reportType in ['SIGMET', 'AIRMET'] or \
+            self.message['rpt'].startswith('TAF AMD') else 'GG'
+        address = conf.value('Communication/{}Address'.format(self.reportType)) or ''
+        originator = conf.value('Communication/OriginatorAddress') or ''
+        sequenceLength = conf.value('Communication/ChannelSequenceLength') or 4
+        maxSendAddress = conf.value('Communication/MaxSendAddress') or 21
+
+        return message, channel, number, priority, address, originator, sequenceLength, maxSendAddress
+
+    def generateRawText(self):
+        if self.item and self.error:
+            self.rawText = self.generator.toString() if self.generator else self.item.rawText()
+        else:
+            if self.currentGenerator is None:
+                message, channel, number, priority, address, originator, sequenceLength, maxSendAddress = self.parameters()
+                generator = self.channel.generator
+                self.generator = generator(message, channel=channel, number=number, priority=priority, address=address,
+                    originator=originator, sequenceLength=sequenceLength, maxSendAddress=maxSendAddress)
+
+            self.currentGenerator = self.generator
+            self.rawText = self.generator.toString()
 
     def send(self):
         if hasattr(self, 'parser') and not self.parser.isValid() and not (self.reportType == 'Trend' and self.parser.failed):
@@ -210,32 +239,18 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.resendButton.setEnabled(False)
         self.resendButton.setText(QCoreApplication.translate('Sender', 'Sending'))
 
-        if self.item and self.error:
-            self.rawText = self.generator.toString() if self.generator else self.item.rawText()
-        else:
-            if self.currentGenerator is None:
-                spacer = ' ' if self.reportType == 'Trend' else '\n'
-                fullMessage = spacer.join([self.message['sign'], self.message['rpt']])
-                priority = 'FF' if self.reportType in ['SIGMET', 'AIRMET'] or \
-                    self.message['rpt'].startswith('TAF AMD') else 'GG'
-                address = conf.value('Communication/{}Address'.format(self.reportType)) or ''
-                originator = conf.value('Communication/OriginatorAddress') or ''
-                channel = conf.value('Communication/Channel') or ''
-                generator = self.channel.generator
-                self.generator = generator(fullMessage, channel=channel, 
-                    priority=priority, address=address, originator=originator)
-
-            self.currentGenerator = self.generator
-            self.rawText = self.generator.toString()
+        self.generateRawText()
 
         if context.environ.canEnable(self.reportType):
             thread = self.channel.thread
             self.thread = thread(self.rawText, self)
             self.thread.doneSignal.connect(self.showRawGroup)
             self.thread.doneSignal.connect(self.save)
+            self.thread.doneSignal.connect(self.updateSequenceNumber)
             self.thread.start()
         else:
-            self.showRawGroup(True)
+            error = QCoreApplication.translate('Sender', 'Limited functionality, please check the license information')
+            self.showRawGroup(error=error)
             self.save()
 
     def save(self):
@@ -253,6 +268,9 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         db.add(self.item)
         db.commit()
         self.sendSignal.emit()
+
+    def updateSequenceNumber(self):
+        conf.setValue(self.channel.sequenceConfigPath, str(self.generator.number))
 
     def print(self):
         printer = QPrinter()
@@ -327,7 +345,6 @@ class TafSender(BaseSender):
         super(TafSender, self).__init__(parent)
         self.reportType = 'TAF'
         self.model = Taf
-        self.buttonBox.accepted.connect(self.send)
 
 
 class TrendSender(BaseSender):
@@ -335,7 +352,6 @@ class TrendSender(BaseSender):
     def __init__(self, parent=None):
         super(TrendSender, self).__init__(parent)
         self.reportType = 'Trend'
-        self.buttonBox.accepted.connect(self.send)
 
     def line(self):
         return 'aftn'
@@ -381,7 +397,6 @@ class SigmetSender(BaseSender):
         super(SigmetSender, self).__init__(parent)
         self.model = Sigmet
         self.reportType = 'SIGMET'
-        self.buttonBox.accepted.connect(self.send)
 
     def parse(self, message):
         self.message = message
@@ -411,4 +426,50 @@ class SigmetSender(BaseSender):
             delta = self.item.expired() - datetime.datetime.utcnow() - datetime.timedelta(minutes=20)
             sig = self.item.parser()
             QTimer.singleShot(delta.total_seconds() * 1000, lambda: self.parent.remindSigmet(sig))
-    
+
+
+class CustomSender(BaseSender):
+
+    def __init__(self, parent=None):
+        super(CustomSender, self).__init__(parent)
+        self.rptGroup.hide()
+        self.reportType = 'Custom'
+        self.setModal(True)
+        self.setWindowTitle(QCoreApplication.translate('Sender', 'Send Custom Message'))
+
+    def line(self):
+        return 'aftn'
+
+    def load(self):
+        self.currentGenerator = None
+        self.message = context.other.state()
+        self.generateRawText()
+        self.showRawGroup()
+        self.lineSign.show()
+        self.sendButton.show()
+        self.printButton.hide()
+        self.rawGroup.setTitle(QCoreApplication.translate('Sender', 'Received Messages'))
+
+    def parameters(self):
+        message = self.message['message']
+        priority = self.message['priority']
+        address = self.message['address']
+        channel = conf.value('Communication/Channel') or ''
+        originator = conf.value('Communication/OriginatorAddress') or ''
+        number = conf.value(self.channel.sequenceConfigPath) or 1
+        sequenceLength = conf.value('Communication/ChannelSequenceLength') or 4
+        maxSendAddress = conf.value('Communication/MaxSendAddress') or 21
+
+        return message, channel, number, priority, address, originator, sequenceLength, maxSendAddress
+
+    def save(self):
+        if self.item and self.item.uuid == self.message['uuid']:
+            self.item.sent = datetime.datetime.utcnow()
+            logger.debug('Custom Resend ' + self.item.raw)
+        else:
+            self.item = Other(uuid=self.message['uuid'], rpt=self.message['message'] ,raw=self.generator.toJson())
+            logger.debug('Custom Send ' + self.item.raw)
+
+        db.add(self.item)
+        db.commit()
+        self.sendSignal.emit()

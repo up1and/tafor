@@ -139,6 +139,7 @@ class LicenseEditor(QDialog, Ui_main_license.Ui_Editor):
         self.setupUi(self)
         self.parent = parent
         self.buttonBox.accepted.connect(self.save)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
     def save(self):
         license = self.textarea.toPlainText().strip()
