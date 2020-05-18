@@ -546,12 +546,9 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             t.validateTemperature()
 
     def initMessageSpec(self):
-        international = boolean(conf.value('General/InternationalAirport'))
-        if international:
-            self.tt = 'FT'
+        if 'ft' in context.taf.spec:
             self.tempo3Checkbox.show()
         else:
-            self.tt = 'FC'
             self.tempo3Checkbox.hide()
             self.tempo3Checkbox.setChecked(False)
 
@@ -825,8 +822,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
     def span(self):
         if self.identifier.startswith('TEMPO'):
-            spec = self.parent.primary.tt
-            if spec == 'FT':
+            if 'ft' in context.taf.spec:
                 duration = 6
             else:
                 duration = 4
