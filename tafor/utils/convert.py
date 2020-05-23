@@ -22,16 +22,23 @@ def isOverlap(basetime, reftime):
     total = (end - start).total_seconds()
     return total > 0
 
-def parseDayHour(dayHour, basetime, future=False):
-    day = int(dayHour[:2])
-    hour = int(dayHour[2:])
+def parseDayHour(day, hour, basetime, delta=None):
+    day = int(day)
+    hour = int(hour)
     if hour == 24:
         time = datetime.datetime(basetime.year, basetime.month, day) + datetime.timedelta(days=1)
     else:
         time = datetime.datetime(basetime.year, basetime.month, day, hour)
 
-    if future and time < basetime:
-        time += relativedelta.relativedelta(months=1)
+    deltas = {
+        'month': relativedelta.relativedelta(months=1),
+        'day': datetime.timedelta(days=1)
+    }
+
+    timedelta = deltas.get(delta, None)
+    if timedelta and time < basetime:
+        time += timedelta
+
     return time
 
 def parseStandardPeriod(period, basetime=None):
@@ -44,16 +51,12 @@ def parseStandardPeriod(period, basetime=None):
     basetime = basetime if basetime else datetime.datetime.utcnow()
     startTime, endTime = period.split('/')
 
-    # 没有 31 日的月份解析 3012/3112，含 31 日时间组
+    # 基准时间月份没有 31 日时，用过去一月视为基准时间，仅适用于解析已发布的报文
     if max([int(startTime[:2]), int(endTime[:2])]) > calendar.monthrange(basetime.year, basetime.month)[1]:
         basetime -= relativedelta.relativedelta(months=1)
 
-    start = parseDayHour(startTime, basetime)
-    end = parseDayHour(endTime, basetime)
-
-    if start < basetime:
-        start += datetime.timedelta(days=1)
-        end += datetime.timedelta(days=1)
+    start = parseDayHour(startTime[:2], startTime[2:], basetime, delta='month')
+    end = parseDayHour(endTime[:2], endTime[2:], basetime, delta='month')
 
     if end <= start:
         end += relativedelta.relativedelta(months=1)
@@ -67,16 +70,11 @@ def parseOldPeriod(interval, basetime=None):
     :return: 返回元组，包含起始时间和结束时间的 Datetime 对象
     """
     basetime = basetime if basetime else datetime.datetime.utcnow()
-    startHour = int(interval[:2])
-    endHour = 0 if interval[2:] in ['24', ''] else int(interval[2:])
 
-    time = datetime.datetime(basetime.year, basetime.month, basetime.day)
-    delta = datetime.timedelta(hours=endHour) if startHour < endHour else datetime.timedelta(days=1, hours=endHour)
-    start = time + datetime.timedelta(hours=startHour)
-    end = time + delta
+    start = parseDayHour(basetime.day, interval[:2], basetime, delta='day')
+    end = parseDayHour(basetime.day, interval[2:], basetime, delta='day')
 
-    if start < basetime:
-        start += datetime.timedelta(days=1)
+    if end <= start:
         end += datetime.timedelta(days=1)
 
     return start, end
@@ -91,49 +89,58 @@ def parsePeriod(period, basetime=None):
     if len(period) == 4:
         return parseOldPeriod(period, basetime)
 
-def parseHourMinute(timeString, basetime=None):
+def parseHourMinute(hour, minute, basetime=None):
     """解析小时分钟字符为 Datetime 对象, 如果小于当前时间视为第二天
 
-    :param timeString: 小时分钟字符，如 1930
+    :param hour: 小时
+    :param minute: 分钟
     :param basetime: 基准时间，默认为当前时间，自定义时需传入 Datetime 对象
     :return: 返回 Datetime 对象
     """
     basetime = basetime if basetime else datetime.datetime.utcnow()
-    hour = 0 if timeString[0:2] == '24' else int(timeString[0:2])
-    minute = int(timeString[2:])
+    hour = int(hour)
+    minute = int(minute)
 
-    time = basetime.replace(hour=hour, minute=minute)
-    current = time if time > basetime else time + datetime.timedelta(days=1)
-    return current
+    if hour == 24:
+        time = datetime.datetime(basetime.year, basetime.month, basetime.day, 0, minute) + datetime.timedelta(days=1)
+    else:
+        time = datetime.datetime(basetime.year, basetime.month, basetime.day, hour, minute)
 
-def parseDayHourMinute(datetimeString, basetime=None):
+    if time < basetime:
+        time += datetime.timedelta(days=1)
+
+    return time
+
+def parseDayHourMinute(day, hour, minute, basetime=None):
     """解析包含日期的小时分钟字符为 Datetime 对象, 如果小于当前时间视为下一个月
 
-    :param datetimeString: 包含日期的小时分钟字符，如 151930
+    :param day: 日期
+    :param hour: 小时
+    :param minute: 分钟
     :param basetime: 基准时间，默认为当前时间，自定义时需传入 Datetime 对象
     :return: 返回 Datetime 对象
     """
     basetime = basetime if basetime else datetime.datetime.utcnow()
-    day = int(datetimeString[0:2])
-    hour = int(datetimeString[2:4])
-    minute = int(datetimeString[4:])
+    day = int(day)
+    hour = int(hour)
+    minute = int(minute)
 
     if day > calendar.monthrange(basetime.year, basetime.month)[1]:
         basetime = basetime + relativedelta.relativedelta(months=1)
-        current = datetime.datetime(basetime.year, basetime.month, day, hour, minute)
+        time = datetime.datetime(basetime.year, basetime.month, day, hour, minute)
     else:
-        current = datetime.datetime(basetime.year, basetime.month, day, hour, minute)
-        if current < basetime:
-            current = current + relativedelta.relativedelta(months=1)
+        time = datetime.datetime(basetime.year, basetime.month, day, hour, minute)
+        if time < basetime:
+            time = time + relativedelta.relativedelta(months=1)
 
-    return current
+    return time
 
 def parseTime(time, basetime=None):
     if len(time) == 6:
-        return parseDayHourMinute(time, basetime)
+        return parseDayHourMinute(time[:2], time[2:4], time[4:], basetime)
 
     if len(time) == 4:
-        return parseHourMinute(time, basetime)
+        return parseHourMinute(time[:2], time[2:], basetime)
 
 def parseTimez(timez):
     """解析报文的日期组，推算报文的发送时间，当月没有的日期视为上一个月

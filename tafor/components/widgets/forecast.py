@@ -393,7 +393,8 @@ class TemperatureGroup(QWidget, SegmentMixin):
         durations = self.parent.durations
         text = QCoreApplication.translate('Editor', 'The time of temperature is not corret')
         try:
-            time = parseDayHour(self.tempTime.text(), durations[0], future=True)
+            tempTime = self.tempTime.text()
+            time = parseDayHour(tempTime[:2], tempTime[2:], durations[0], delta='month')
         except Exception:
             self.time = None
             self.tempTime.clear()
@@ -793,7 +794,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
             if len(text) == 4:
                 durations = self.parent.primary.durations
                 try:
-                    start = parseDayHour(text, durations[0], future=True)
+                    start = parseDayHour(text[:2], text[2:], durations[0], delta='month')
                 except Exception:
                     return
 
