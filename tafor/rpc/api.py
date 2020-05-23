@@ -1,10 +1,11 @@
+import os
 import json
 
 import falcon
 
 from uuid import uuid4
 
-from tafor import conf
+from tafor import root, conf
 from tafor.states import context
 from tafor.utils import boolean, TafParser, SigmetParser, MetarParser, AFTNMessageGenerator
 
@@ -66,6 +67,14 @@ def parse_sigmet(message, kwargs):
         'pass': parser.isValid()
     }
     return data
+
+def webui():
+    directory = ''
+    paths = [os.path.join(root, '..', 'webui'), os.path.join(root, 'webui')]
+    for path in paths:
+        if os.path.exists(path):
+            directory = os.path.abspath(path)
+    return directory
 
 def authorize(req, resp, resource, params):
     challenges = ['Bearer Token']
@@ -225,6 +234,9 @@ class OtherResource(object):
         address = req.get_param('address') or req.context.body.get('address')
         message = req.get_param('message') or req.context.body.get('message')
 
+        if isinstance(address, list):
+            address = ' '.join(address)
+
         priority = priority.strip()
         address = address.strip()
         message = message.strip()
@@ -267,8 +279,14 @@ other = OtherResource()
 notification = NotificationResource()
 validate = ValidateResource()
 
-server.add_route('/', main)
 server.add_route('/api/state', state)
 server.add_route('/api/validate', validate)
 server.add_route('/api/others', other)
 server.add_route('/api/notifications', notification)
+
+static = webui()
+if static:
+    server.add_static_route('/', static, fallback_filename=os.path.join(static, 'index.html'))
+    server.add_static_route('/static', os.path.join(static, 'static'))
+else:
+    server.add_route('/', main)

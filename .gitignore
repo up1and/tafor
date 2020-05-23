@@ -42,6 +42,7 @@ nosetests.xml
 *.py,cover
 htmlcov/
 docs/_build
+webui/
 tests/fixtures/backup.json
 auth.json
 _environ.py
