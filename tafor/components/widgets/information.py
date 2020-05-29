@@ -1215,7 +1215,7 @@ class SigmetCustomContent(BaseSigmetContent, Ui_sigmet_custom.Ui_Editor):
 
     def filterText(self):
         origin = self.text.toPlainText()
-        text = re.sub(r'[A-Za-z0-9)(\/\.\s,-]+', '', origin)
+        text = re.sub(r'[^A-Za-z0-9)(\/\.\s,-]+', '', origin)
         text = text.upper()
         if origin != text:
             cursor = self.text.textCursor()
