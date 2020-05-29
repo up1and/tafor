@@ -69,8 +69,6 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.printButton.setText(QCoreApplication.translate('Sender', 'Print'))
 
         self.rejected.connect(self.cancel)
-        self.closeSignal.connect(self.clear)
-        self.backSignal.connect(self.clear)
         self.buttonBox.accepted.connect(self.send)
         self.printButton.clicked.connect(self.print)
 
@@ -301,13 +299,6 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         editor.setHtml(''.join(elements))
         editor.print(printer)
 
-    def cancel(self):
-        if (self.error or not self.sendButton.isHidden()) and self.mode == 'send' \
-            and (self.sendButton.isEnabled() or self.resendButton.isEnabled()):
-            self.backSignal.emit()
-        else:
-            self.closeSignal.emit()
-
     def resizeRpt(self):
         text = self.rpt.toPlainText()
         font = self.rpt.document().defaultFont()
@@ -316,6 +307,15 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         textHeight = textSize.height() + 50
         self.rpt.setMaximumHeight(textHeight)
 
+    def cancel(self):
+        if self.mode == 'send':
+            if (self.error or not self.sendButton.isHidden() or not self.resendButton.isHidden()):
+                self.backSignal.emit()
+            else:
+                self.closeSignal.emit()
+
+        self.clear()
+
     def showEvent(self, event):
         self.setLineIcon()
         self.setChannel()
@@ -323,6 +323,8 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
     def closeEvent(self, event):
         if event.spontaneous():
             self.cancel()
+
+        self.clear()
 
     def clear(self):
         self.item = None
