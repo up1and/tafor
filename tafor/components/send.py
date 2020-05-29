@@ -270,7 +270,8 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.sendSignal.emit()
 
     def updateSequenceNumber(self):
-        conf.setValue(self.channel.sequenceConfigPath, str(self.generator.number))
+        if not self.error:
+            conf.setValue(self.channel.sequenceConfigPath, str(self.generator.number))
 
     def print(self):
         printer = QPrinter()
