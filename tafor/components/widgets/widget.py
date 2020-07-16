@@ -1,6 +1,6 @@
 import datetime
 
-from PyQt5.QtGui import QPixmap, QIcon
+from PyQt5.QtGui import QPixmap, QIcon, QFontDatabase
 from PyQt5.QtCore import QCoreApplication, QTimer, Qt
 from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QLabel, QHBoxLayout
 
@@ -62,7 +62,8 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         self.groupBox.setTitle(self.item.tt)
         self.sendTime.setText(self.item.sent.strftime('%Y-%m-%d %H:%M:%S'))
         self.rpt.setText(self.item.report)
-        self.rpt.setStyleSheet('font: 14px "Segoe UI";')
+        font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
+        self.rpt.setStyleSheet('font: 13px "Microsoft YaHei", "{}";'.format(font.family()))
 
     def view(self):
         message = {

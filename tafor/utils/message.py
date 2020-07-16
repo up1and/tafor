@@ -3,8 +3,6 @@ import json
 import datetime
 import textwrap
 
-from tafor import conf
-
 
 def linewrap(lines, maxLineChar):
     """对超过最大字符限制的行进行换行处理

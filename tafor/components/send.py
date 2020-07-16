@@ -76,6 +76,9 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.printButton.hide()
         self.resendButton.hide()
 
+        # self.rpt.setStyleSheet('font-size: 13px;')
+        # self.raw.setStyleSheet('font-size: 13px; background-color: rgb(0, 0, 0); color: rgb(255, 255, 255);')
+
         self.setLineIcon()
         self.setChannel()
 
