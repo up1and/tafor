@@ -647,6 +647,7 @@ class AreaBoard(QWidget):
             messages.append(self.message['default'])
             messages.append(self.message['forecast'])
 
+        messages = list(filter(None, messages))
         return messages
 
     def clear(self):
