@@ -743,6 +743,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.tempo2Checkbox.setChecked(False)
 
         self.cavok.setChecked(False)
+        self.nsc.setChecked(False)
 
         for t in self.temperatures:
             t.clear()
