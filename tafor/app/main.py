@@ -61,7 +61,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.setWindowIcon(QIcon(':/logo.png'))
 
         self.clip = QApplication.clipboard()
-        self.remindBox = RemindMessageBox(self)
+        self.remindTafBox = RemindMessageBox(self)
+        self.remindSigmetBox = RemindMessageBox(self)
 
         # 初始化窗口
         self.settingDialog = SettingDialog(self)
@@ -308,7 +309,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.licenseEditor.close()
             self.settingDialog.close()
             self.chartViewer.close()
-            self.remindBox = None
+            self.remindTafBox = None
+            self.remindSigmetBox = None
 
             self.tray.hide()
             event.accept()
@@ -372,12 +374,13 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             current = tt + period[2:4] + period[7:]
             text = QCoreApplication.translate('MainWindow', 'Time to issue {}').format(current)
             self.ringSound.play()
-            self.remindBox.setText(text)
-            ret = self.remindBox.exec_()
+            self.remindTafBox.setText(text)
+            ret = self.remindTafBox.exec_()
             if not ret:
                 QTimer.singleShot(1000 * 60 * 5, lambda: self.remindTaf(tt))
 
-            self.ringSound.stop()
+            if not self.remindTafBox.isVisible():
+                self.ringSound.stop()
 
     def remindSigmet(self, sig):
         remindSwitch = boolean(conf.value('Monitor/RemindSIGMET'))
@@ -388,18 +391,19 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         mark = '{} {}'.format(sig.sign(), sig.sequence())
         text = QCoreApplication.translate('MainWindow', 'Time to update {}').format(mark)
         self.sigmetSound.play()
-        self.remindBox.setText(text)
-        ret = self.remindBox.exec_()
+        self.remindSigmetBox.setText(text)
+        ret = self.remindSigmetBox.exec_()
         if not ret:
             QTimer.singleShot(1000 * 60 * 5, lambda: self.remindSigmet(sig))
 
-        self.sigmetSound.stop()
+        if not self.remindSigmetBox.isVisible():
+            self.sigmetSound.stop()
 
     def updateMessage(self):
 
         def afterTafSaved():
             self.notificationSound.play(loop=False)
-            self.remindBox.close()
+            self.remindTafBox.close()
 
         listen = Listen(afterTafSaved=afterTafSaved)
 

@@ -389,6 +389,4 @@ class Listen(object):
         sigmet = CheckSigmet(self.tt, message=self.message)
         if self.message:
             status = sigmet.save()
-            if status and self.afterTafSaved:
-                self.afterTafSaved()
 
