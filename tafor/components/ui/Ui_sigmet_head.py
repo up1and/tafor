@@ -2,11 +2,13 @@
 
 # Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\sigmet_head.ui'
 #
-# Created by: PyQt5 UI code generator 5.11.3
+# Created by: PyQt5 UI code generator 5.13.2
 #
 # WARNING! All changes made in this file will be lost!
 
+
 from PyQt5 import QtCore, QtGui, QtWidgets
+
 
 class Ui_Editor(object):
     def setupUi(self, Editor):
@@ -29,7 +31,6 @@ class Ui_Editor(object):
         self.description.setObjectName("description")
         self.gridLayout_2.addWidget(self.description, 1, 3, 1, 1)
         self.obsTime = QtWidgets.QLineEdit(self.headGroup)
-        self.obsTime.setEnabled(False)
         self.obsTime.setObjectName("obsTime")
         self.gridLayout_2.addWidget(self.obsTime, 1, 7, 1, 1)
         self.beginningTime = QtWidgets.QLineEdit(self.headGroup)
@@ -39,7 +40,6 @@ class Ui_Editor(object):
         self.sequence.setObjectName("sequence")
         self.gridLayout_2.addWidget(self.sequence, 1, 2, 1, 1)
         self.obsTimeLabel = QtWidgets.QLabel(self.headGroup)
-        self.obsTimeLabel.setEnabled(False)
         self.obsTimeLabel.setObjectName("obsTimeLabel")
         self.gridLayout_2.addWidget(self.obsTimeLabel, 0, 7, 1, 1)
         self.forecastLabel = QtWidgets.QLabel(self.headGroup)
@@ -116,4 +116,3 @@ if __name__ == "__main__":
     ui.setupUi(Editor)
     Editor.show()
     sys.exit(app.exec_())
-

@@ -95,13 +95,10 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
 
     def setPrediction(self, text):
         if text == 'OBS':
-            self.obsTime.setEnabled(True)
-            self.obsTimeLabel.setEnabled(True)
             self.obsTime.setText(self.beginningTime.text()[2:])
         else:
-            self.obsTime.setEnabled(False)
-            self.obsTimeLabel.setEnabled(False)
-            self.obsTime.clear()
+            if self.beginningTime.text()[2:] == self.obsTime.text():
+                self.obsTime.clear()
 
     def updateDurations(self):
         if self.beginningTime.hasAcceptableInput() and self.endingTime.hasAcceptableInput():
@@ -232,9 +229,10 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
 
     def prediction(self):
         if self.forecast.currentText() == 'OBS':
-            text = 'OBS AT {}Z'.format(self.obsTime.text()) if self.obsTime.text() else ''
+            text = 'OBS AT {}Z'.format(self.obsTime.text()) if self.obsTime.hasAcceptableInput() else ''
         else:
-            text = self.forecast.currentText()
+            text = '{} AT {}Z'.format(self.forecast.currentText(), 
+                self.obsTime.text()) if self.obsTime.hasAcceptableInput() else self.forecast.currentText()
 
         return text
 
@@ -245,6 +243,7 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
 
     def clear(self):
         self.durations = None
+        self.obsTime.clear()
 
 
 class BaseSigmetContent(QWidget, SegmentMixin):
@@ -255,6 +254,33 @@ class BaseSigmetContent(QWidget, SegmentMixin):
         self.complete = False
         self.rules = Pattern()
         self.parent = parent
+
+    def setSpeed(self, text):
+        if text == 'STNR':
+            self.speed.setEnabled(False)
+            self.speedLabel.setEnabled(False)
+        else:
+            self.speed.setEnabled(True)
+            self.speedLabel.setEnabled(True)
+
+    def moveState(self):
+        movement = self.movement.currentText()
+        if movement == 'STNR':
+            return movement
+
+        if not self.speed.hasAcceptableInput():
+            return
+
+        movement = self.movement.currentText()
+        unit = 'KT' if context.environ.unit() == 'imperial' else 'KMH'
+
+        text = 'MOV {movement} {speed}{unit}'.format(
+                movement=movement,
+                speed=int(self.speed.text()),
+                unit=unit
+            )
+
+        return text
 
 
 class BaseSegment(QWidget):
@@ -565,14 +591,6 @@ class CommonSigmetContent(BaseSigmetContent):
             self.baseLabel.setEnabled(True)
             self.topLabel.setEnabled(True)
 
-    def setSpeed(self, text):
-        if text == 'STNR':
-            self.speed.setEnabled(False)
-            self.speedLabel.setEnabled(False)
-        else:
-            self.speed.setEnabled(True)
-            self.speedLabel.setEnabled(True)
-
     def setForecastTime(self):
         if self.parent.head.durations is None or not self.parent.head.endingTime.text():
             return
@@ -593,25 +611,6 @@ class CommonSigmetContent(BaseSigmetContent):
 
     def isFcstAreaMode(self):
         return hasattr(self, 'area') and self.area.fcstButton.isChecked()
-
-    def moveState(self):
-        movement = self.movement.currentText()
-        if movement == 'STNR':
-            return movement
-
-        if not self.speed.hasAcceptableInput():
-            return
-
-        movement = self.movement.currentText()
-        unit = 'KT' if context.environ.unit() == 'imperial' else 'KMH'
-
-        text = 'MOV {movement} {speed}{unit}'.format(
-                movement=movement,
-                speed=int(self.speed.text()),
-                unit=unit
-            )
-
-        return text
 
     def fightLevel(self):
         level = self.level.currentText()
@@ -683,7 +682,8 @@ class SigmetGeneralHead(BaseSigmetHead):
             self.endingTime.hasAcceptableInput(),
             self.sequence.hasAcceptableInput(),
         ]
-        if self.obsTime.isEnabled():
+
+        if self.forecast.currentText() == 'OBS':
             mustRequired.append(self.obsTime.hasAcceptableInput())
 
         self.complete = all(mustRequired)
@@ -772,7 +772,7 @@ class SigmetTyphoonHead(BaseSigmetHead):
         self.phenomena.addItems(['TC'])
 
     def setFcstOrObs(self):
-        forecasts = ['OBS']
+        forecasts = ['OBS', 'FCST']
         self.forecast.addItems(forecasts)
 
     def hideDescription(self):
@@ -789,9 +789,11 @@ class SigmetTyphoonHead(BaseSigmetHead):
             self.beginningTime.hasAcceptableInput(),
             self.endingTime.hasAcceptableInput(),
             self.sequence.hasAcceptableInput(),
-            self.name.text(),
-            self.obsTime.hasAcceptableInput()
+            self.name.text()
         ]
+
+        if self.forecast.currentText() == 'OBS':
+            mustRequired.append(self.obsTime.hasAcceptableInput())
 
         self.complete = all(mustRequired)
         self.completeSignal.emit(self.complete)
@@ -892,14 +894,6 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         else:
             self.range.clear()
 
-    def setSpeed(self, text):
-        if text == 'STNR':
-            self.speed.setEnabled(False)
-            self.speedLabel.setEnabled(False)
-        else:
-            self.speed.setEnabled(True)
-            self.speedLabel.setEnabled(True)
-
     def setForecastTime(self):
         if self.parent.head.durations is None or not self.parent.head.endingTime.text():
             return
@@ -930,6 +924,8 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         movement = self.movement.currentText()
 
         if movement == 'STNR':
+            self.forecastLatitude.clear()
+            self.forecastLongitude.clear()
             return
 
         direction = {
@@ -967,9 +963,24 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
     def moveTime(self, start, end):
         return parseTime(end) - parseTime(start)
 
+    def forecastPosition(self):
+        required = self.forecastTime.hasAcceptableInput() and self.forecastLatitude.hasAcceptableInput() \
+            and self.forecastLongitude.hasAcceptableInput()
+
+        if not required:
+            return
+
+        text = 'FCST AT {forecastTime}Z TC CENTRE {forecastLatitude} {forecastLongitude}'.format(
+                forecastTime=self.forecastTime.text(),
+                forecastLatitude=self.forecastLatitude.text(),
+                forecastLongitude=self.forecastLongitude.text()
+            )
+
+        return text
+
     def message(self):
         unit = 'NM' if context.environ.unit() == 'imperial' else 'KM'
-        area = 'PSN {latitude} {Longitude} CB {prediction} WI {range}{unit} OF CENTRE TOP FL{height}'.format(
+        area = 'PSN {latitude} {Longitude} CB {prediction} WI {range}{unit} OF TC CENTRE TOP FL{height}'.format(
                 latitude=self.currentLatitude.text(),
                 Longitude=self.currentLongitude.text(),
                 prediction=self.parent.head.prediction(),
@@ -977,13 +988,16 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
                 unit=unit,
                 height=self.height.text(),
             )
+        moveState = self.moveState()
         intensityChange = self.intensityChange.currentText()
-        forecast = 'FCST {forecastTime}Z TC CENTRE {forecastLatitude} {forecastLongitude}'.format(
-                forecastTime=self.forecastTime.text(),
-                forecastLatitude=self.forecastLatitude.text(),
-                forecastLongitude=self.forecastLongitude.text()
-            )
-        text = ' '.join([area, intensityChange, forecast])
+        forecastPosition = self.forecastPosition()
+
+        if forecastPosition:
+            messages = [area, intensityChange, forecastPosition]
+        else:
+            messages = [area, moveState, intensityChange]
+
+        text = ' '.join(messages)
         return text
 
     def checkComplete(self):
@@ -991,13 +1005,15 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
             self.currentLatitude.hasAcceptableInput(),
             self.currentLongitude.hasAcceptableInput(),
             self.height.hasAcceptableInput(),
-            self.range.hasAcceptableInput(),
-            self.forecastTime.hasAcceptableInput(),
-            self.forecastLatitude.hasAcceptableInput(),
-            self.forecastLongitude.hasAcceptableInput(),
+            self.range.hasAcceptableInput()
         ]
 
-        self.complete = all(mustRequired)
+        anyRequired = [
+            self.forecastTime.hasAcceptableInput() and self.forecastLatitude.hasAcceptableInput() and self.forecastLongitude.hasAcceptableInput(),
+            self.speed.hasAcceptableInput()
+        ]
+
+        self.complete = all(mustRequired) and any(anyRequired)
         self.completeSignal.emit(self.complete)
 
     def clear(self):
@@ -1491,8 +1507,8 @@ class SigmetCustomSegment(BaseSegment):
         lengthUnit = 'NM' if context.environ.unit() == 'imperial' else 'KM'
         tips = {
             'WS': 'EMBD TS FCST N OF N2000 TOP FL360 MOV N 25{} NC'.format(speedUnit),
-            'WC': 'TC YAGI PSN N2706 W07306 CB OBS AT 1600Z WI 300{} OF CENTRE TOP FL420 NC\nFCST 2200Z TC CENTRE N2740 W07345'.format(lengthUnit),
-            'WV': 'VA ERUPTION MT ASHVAL PSN S1500 E07348 VA CLD\nOBS AT 1100Z APRX 50{} WID LINE BTN S1500 E07348 - S1530 E07642 FL310/450 MOV ESE 65{}\nFCST 1700Z APRX 50{} WID LINE BTN S1506 E07500 - S1518 E08112 - S1712 E08330'.format(lengthUnit, speedUnit, lengthUnit),
+            'WC': 'TC YAGI PSN N2706 W07306 CB OBS AT 1600Z WI 300{} OF TC CENTRE TOP FL420 NC\nFCST AT 2200Z TC CENTRE N2740 W07345'.format(lengthUnit),
+            'WV': 'VA ERUPTION MT ASHVAL PSN S1500 E07348 VA CLD\nOBS AT 1100Z APRX 50{} WID LINE BTN S1500 E07348 - S1530 E07642 FL310/450 MOV ESE 65{}\nFCST AT 1700Z APRX 50{} WID LINE BTN S1506 E07500 - S1518 E08112 - S1712 E08330'.format(lengthUnit, speedUnit, lengthUnit),
             'WA': 'MOD MTW OBS AT 1205Z N4200 E11000 FL080 STNR NC'
         }
         tip = tips[self.type.tt]

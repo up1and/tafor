@@ -36,11 +36,7 @@
        <widget class="QComboBox" name="description"/>
       </item>
       <item row="1" column="7">
-       <widget class="QLineEdit" name="obsTime">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-       </widget>
+       <widget class="QLineEdit" name="obsTime"/>
       </item>
       <item row="1" column="0">
        <widget class="QLineEdit" name="beginningTime"/>
@@ -50,9 +46,6 @@
       </item>
       <item row="0" column="7">
        <widget class="QLabel" name="obsTimeLabel">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
         <property name="text">
          <string>OBS Time</string>
         </property>
