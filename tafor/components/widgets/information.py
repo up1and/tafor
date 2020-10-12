@@ -826,6 +826,7 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         self.currentLongitude.textChanged.connect(self.setForecastPosition)
         self.speed.textEdited.connect(self.setForecastPosition)
         self.movement.currentTextChanged.connect(self.setForecastPosition)
+        self.forecastTime.textChanged.connect(self.setForecastPosition)
 
         self.currentLatitude.textEdited.connect(lambda: self.upperText(self.currentLatitude))
         self.currentLongitude.textEdited.connect(lambda: self.upperText(self.currentLongitude))
@@ -1433,13 +1434,28 @@ class SigmetCancelSegment(BaseSegment):
         self.changeSignal.connect(self.head.initState)
         self.changeSignal.connect(self.initState)
 
-        self.content.endingTime.textChanged.connect(self.setEndingTime)
+        self.content.beginningTime.textChanged.connect(self.setValidsTime)
+        self.content.endingTime.textChanged.connect(self.setValidsTime)
         self.content.sequence.currentTextChanged.connect(self.setValids)
         self.content.sequence.currentIndexChanged.connect(self.setValids)
 
-    def setEndingTime(self):
-        ending = self.content.endingTime.text()
-        self.head.endingTime.setText(ending)
+    def setValidsTime(self):
+        if self.content.endingTime.hasAcceptableInput():
+            endingText = self.content.endingTime.text()
+            self.head.endingTime.setText(endingText)
+
+        if self.content.beginningTime.hasAcceptableInput():
+            beginningText = self.content.beginningTime.text()
+            start = parseTime(beginningText)
+            beginning, _ = self.head.validPeriodTime()
+
+            if beginning < start and start - datetime.datetime.utcnow() < datetime.timedelta(hours=12):
+                beginning = start
+
+            if beginning.strftime('%d%H%M') == self.head.endingTime.text():
+                beginning = beginning - datetime.timedelta(minutes=10)
+
+            self.head.beginningTime.setText(beginning.strftime('%d%H%M'))
 
     def initState(self):
         self.prevs = []
@@ -1459,6 +1475,7 @@ class SigmetCancelSegment(BaseSegment):
         if valids:
             self.content.beginningTime.setText(valids[0])
             self.content.endingTime.setText(valids[1])
+            self.setValidsTime()
         else:
             self.content.beginningTime.clear()
             self.content.endingTime.clear()
