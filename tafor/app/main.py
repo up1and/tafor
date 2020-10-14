@@ -422,7 +422,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.updateGui()
 
     def updateSigmet(self):
-        sigmets = currentSigmet()
+        sigmets = currentSigmet(order='asc')
         context.fir.setState({
             'sigmets': sigmets
         })
