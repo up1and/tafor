@@ -8,7 +8,7 @@ from tafor.utils.thread import SerialThread
 
 
 def currentSigmet(tt=None, order='desc', showUnmatched=False):
-    recent = datetime.datetime.utcnow() - datetime.timedelta(hours=8)
+    recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
     queryset = db.query(Sigmet).filter(Sigmet.sent > recent).order_by(Sigmet.sent.desc())
 
     if tt:

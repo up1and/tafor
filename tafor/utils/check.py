@@ -264,7 +264,7 @@ class CheckSigmet(object):
 
     def save(self):
         """储存远程报文数据"""
-        recent = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
+        recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
         sigmets = db.query(Sigmet).filter(Sigmet.sent > recent).all()
         time = datetime.datetime.utcnow()
 
