@@ -46,7 +46,7 @@ class Pattern(object):
     latitude = r'(N|S)(90(0{2})?|[0-8]\d([0-5]\d)?)'
     longitude = r'(E|W)(180(0{2})?|((1[0-7]\d)|(0\d{2}))([0-5]\d)?)'
     fightLevel = r'([1-9]\d{2})'
-    airmansFightLevel = r'((?:0[0-9][1-9])|(?:1[0-4]\d)|150)'
+    airmansFightLevel = r'((?:00[1-9])|(?:0[1-9][0-9])|(?:1[0-4]\d)|150)'
     sequence = r'[A-Z]?([1-9][0-9]?|0[1-9])'
 
 
