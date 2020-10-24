@@ -971,7 +971,7 @@ class SigmetTyphoonContent(BaseSigmetContent, Ui_sigmet_typhoon.Ui_Editor):
         if not required:
             return
 
-        text = 'FCST AT {forecastTime}Z TC CENTRE {forecastLatitude} {forecastLongitude}'.format(
+        text = 'FCST AT {forecastTime}Z TC CENTRE PSN {forecastLatitude} {forecastLongitude}'.format(
                 forecastTime=self.forecastTime.text(),
                 forecastLatitude=self.forecastLatitude.text(),
                 forecastLongitude=self.forecastLongitude.text()
