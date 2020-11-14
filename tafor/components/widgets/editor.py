@@ -12,6 +12,7 @@ class BaseEditor(QDialog):
         super(BaseEditor, self).__init__(parent)
         self.parent = parent
         self.sender = sender
+        self.isStaged = False
 
         self.defaultAction()
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
@@ -24,8 +25,12 @@ class BaseEditor(QDialog):
 
     def defaultAction(self):
         self.previewSignal.connect(self.showSender)
-        self.sender.backSignal.connect(self.show)
+        self.sender.backSignal.connect(self.showEditor)
         self.sender.closeSignal.connect(self.close)
+
+    def showEditor(self):
+        self.isStaged = True
+        self.show()
 
     def showSender(self, messages):
         alwaysShow = boolean(conf.value('General/AlwaysShowEditor'))
@@ -69,9 +74,5 @@ class BaseEditor(QDialog):
     def enbaleNextButton(self):
         raise NotImplementedError
 
-    def clear(self):
-        raise NotImplementedError
-
     def closeEvent(self, event):
-        raise NotImplementedError
-
+        self.isStaged = False

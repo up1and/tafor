@@ -76,6 +76,7 @@ class TrendEditor(BaseEditor):
         self.nextButton.setEnabled(False)
 
     def closeEvent(self, event):
+        super(TrendEditor, self).closeEvent(event)
         self.clear()
 
     def showEvent(self, event):

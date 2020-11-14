@@ -207,13 +207,15 @@ class BaseTafEditor(BaseEditor):
         self.tempo3.clear()
 
     def closeEvent(self, event):
+        super(BaseTafEditor, self).closeEvent(event)
         self.clear()
         self.primary.clearType()
 
     def showEvent(self, event):
         # 检查必要配置是否完成
         if isConfigured('TAF'):
-            self.primary.setMessageType()
+            if not self.isStaged:
+                self.primary.setMessageType()
         else:
             QTimer.singleShot(0, self.showConfigError)
 

@@ -243,6 +243,9 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
 
     def clear(self):
         self.durations = None
+        self.beginningTime.clear()
+        self.endingTime.clear()
+        self.sequence.clear()
         self.obsTime.clear()
 
 

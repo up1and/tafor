@@ -184,6 +184,7 @@ class SigmetEditor(BaseEditor):
             context.fir.refresh()
 
     def closeEvent(self, event):
+        super(SigmetEditor, self).closeEvent(event)
         context.notification.sigmet.clear()
         self.sigmetCustom.setText()
         self.clear()
@@ -191,6 +192,7 @@ class SigmetEditor(BaseEditor):
     def showEvent(self, event):
         # 检查必要配置是否完成
         if isConfigured('SIGMET'):
-            self.initState()
+            if not self.isStaged:
+                self.initState()
         else:
             QTimer.singleShot(0, self.showConfigError)
