@@ -196,7 +196,7 @@ class TafValidator(object):
 
         1. 当预报平均地面风向的变化大于等于 60°，且平均风速在变化前和（或）变化后大于等于 5m/s 时
         2. 当预报平均地面风速的变化大于等于 5m/s 时
-        3. 当预报平均地面风风速变差（阵风）变化 5m/s 或以上，且平均风速在变化前和变化后大于等于 8m/s 时
+        3. 当预报地面风的阵风变化大于等于 5m/s，且变化前和（或）变化后的平均风速大于等于 8m/s 时
 
         :param refWind: 参照风组
         :param wind: 风组
@@ -255,11 +255,11 @@ class TafValidator(object):
         if abs(refSpeed - speed) >= 5:
             return True
 
-        # 3. 当预报平均地面风风速变差（阵风）变化 5m/s 或以上，且平均风速在变化前和变化后大于等于 8m/s 时
+        # 3. 当预报地面风的阵风变化大于等于 5m/s，且变化前和（或）变化后的平均风速大于等于 8m/s 时
         if refGust and gust and abs(refGust - gust) >= 5 and max(refSpeed, speed) >= 8:
             return True
 
-        if refGust != gust and max(refSpeed, speed) >= 8:
+        if any([refGust, gust]) and None in [refGust, gust] and max(refSpeed, speed) >= 8:
             return True
 
         return False
