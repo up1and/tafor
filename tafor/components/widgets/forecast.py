@@ -77,6 +77,7 @@ class BaseSegment(QWidget, SegmentMixin):
         self.cloud1.editingFinished.connect(lambda: self.validateCloud(self.cloud1))
         self.cloud2.editingFinished.connect(lambda: self.validateCloud(self.cloud2))
         self.cloud3.editingFinished.connect(lambda: self.validateCloud(self.cloud3))
+        self.cb.editingFinished.connect(lambda: self.validateCloud(self.cb))
 
         self.wind.textEdited.connect(lambda: self.upperText(self.wind))
         self.gust.textEdited.connect(lambda: self.upperText(self.gust))
@@ -251,12 +252,38 @@ class BaseSegment(QWidget, SegmentMixin):
         cloud1 = self.cloud1.text() if self.cloud1.hasAcceptableInput() else None
         cloud2 = self.cloud2.text() if self.cloud2.hasAcceptableInput() else None
         cloud3 = self.cloud3.text() if self.cloud3.hasAcceptableInput() else None
-        clouds = filter(None, [cloud1, cloud2, cloud3])
+        cb = self.cb.text() if self.cb.hasAcceptableInput() else None
+        clouds = sorted(filter(None, [cloud1, cloud2, cloud3]), key=lambda cloud: int(cloud[3:6]))
 
+        # 不同量的云不能同高度
         height = line.text()[3:]
-        cloudHeights = [c[3:] for c in clouds]
+        cloudHeights = [c[3:6] for c in clouds]
         if cloudHeights.count(height) > 1:
+            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Cloud cover with different oktas should not at the same height'))
             line.clear()
+            return
+
+        # 同一层云量之和不能超过 8 个量
+        cloudCover = {'FEW': 1, 'SCT': 3, 'BKN': 5, 'OVC': 8}
+        coverHeight = lambda cloud: (cloudCover[cloud[:3]], cloud[3:6])
+        if cb:
+            cbCover, cbHeight = coverHeight(cb)
+            for cloud in clouds:
+                cover, height = coverHeight(cloud)
+                if cbHeight == height and cbCover + cover > 8:
+                    self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Cloud cover cannot be more than 8 oktas at the same height'))
+                    line.clear()
+                    return
+
+        # 满天云以上不能有云
+        clouds = sorted(filter(None, [cloud1, cloud2, cloud3, cb]), key=lambda cloud: int(cloud[3:6]))
+        covers = [c[:3] for c in clouds]
+        if 'OVC' in covers:
+            index = covers.index('OVC')
+            if index + 1 < len(covers):
+                self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'No clouds should above overcast clouds'))
+                line.clear()
+                return
 
     def validate(self):
         self.validateGust()
@@ -264,6 +291,7 @@ class BaseSegment(QWidget, SegmentMixin):
         self.validateCloud(self.cloud3)
         self.validateCloud(self.cloud2)
         self.validateCloud(self.cloud1)
+        self.validateCloud(self.cb)
 
     def message(self):
         wind = self.wind.text() if self.wind.hasAcceptableInput() else None
