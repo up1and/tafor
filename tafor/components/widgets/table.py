@@ -184,8 +184,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         else:
             self.date = None
 
-        self.page = 1
-        self.updateGui()
+        self.setPage(1)
 
     def setStyle(self):
         header = self.table.horizontalHeader()
@@ -205,8 +204,8 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
     def setValidator(self):
         pattern = r'[a-zA-Z0-9\s\/\-\+]+'
-        date = QRegExpValidator(QRegExp(pattern))
-        self.search.setValidator(date)
+        word = QRegExpValidator(QRegExp(pattern))
+        self.search.setValidator(word)
 
     def queryset(self):
         if hasattr(self.model, 'sent'):
@@ -235,8 +234,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
     def autoSearch(self):
         self.search.setText(self.search.text().upper())
         self.keywords = self.search.text().split()
-        self.page = 1
-        self.updateGui()
+        self.setPage(1)
 
     def hideColumns(self):
         raise NotImplementedError
@@ -244,10 +242,18 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
     def prev(self):
         if self.pagination.hasPrev:
             self.setPage(self.pagination.prevNum)
+        else:
+            if self.date:
+                self.date -= datetime.timedelta(days=1)
+                self.setPage(1)
 
     def next(self):
         if self.pagination.hasNext:
             self.setPage(self.pagination.nextNum)
+        else:
+            if self.date:
+                self.date += datetime.timedelta(days=1)
+                self.setPage(1)
 
     def setPage(self, page):
         self.page = page
