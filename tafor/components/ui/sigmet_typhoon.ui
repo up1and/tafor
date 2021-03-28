@@ -6,24 +6,190 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>846</width>
-    <height>164</height>
+    <width>471</width>
+    <height>334</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string notr="true">Sigmet</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QGridLayout" name="gridLayout_3">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
    <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
     <number>0</number>
    </property>
    <property name="bottomMargin">
     <number>0</number>
    </property>
-   <item>
+   <item row="0" column="2" alignment="Qt::AlignLeft|Qt::AlignTop">
+    <widget class="QGroupBox" name="forecastGroup">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="title">
+      <string>Forecast</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_2">
+      <item row="4" column="0">
+       <widget class="QLabel" name="forecastLongitudeLabel">
+        <property name="text">
+         <string>Longitude</string>
+        </property>
+        <property name="buddy">
+         <cstring>forecastLongitude</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLineEdit" name="forecastLatitude"/>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLineEdit" name="forecastTime"/>
+      </item>
+      <item row="5" column="0">
+       <widget class="QLineEdit" name="forecastLongitude"/>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="forecastTimeLabel">
+        <property name="text">
+         <string>Forecast Time</string>
+        </property>
+        <property name="buddy">
+         <cstring>forecastTime</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="forecastLatitudeLabel">
+        <property name="text">
+         <string>Latitude</string>
+        </property>
+        <property name="buddy">
+         <cstring>forecastLatitude</cstring>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="0" column="0" alignment="Qt::AlignLeft|Qt::AlignTop">
+    <widget class="QGroupBox" name="headGroup">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="title">
+      <string>Head</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_4">
+      <item row="6" column="0">
+       <widget class="QLabel" name="phenomenaLabel">
+        <property name="text">
+         <string>Phenomena</string>
+        </property>
+        <property name="buddy">
+         <cstring>phenomena</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="10" column="0">
+       <widget class="QLabel" name="observationLabel">
+        <property name="text">
+         <string>Observation</string>
+        </property>
+        <property name="buddy">
+         <cstring>observation</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLineEdit" name="beginningTime"/>
+      </item>
+      <item row="7" column="0">
+       <widget class="QComboBox" name="phenomena"/>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="sequenceLabel">
+        <property name="text">
+         <string>Sequence</string>
+        </property>
+        <property name="buddy">
+         <cstring>sequence</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="9" column="0">
+       <widget class="QLineEdit" name="name"/>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="beginningTimeLabel">
+        <property name="text">
+         <string>Beginning</string>
+        </property>
+        <property name="buddy">
+         <cstring>beginningTime</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="12" column="0">
+       <widget class="QLabel" name="observationTimeLabel">
+        <property name="text">
+         <string>Observation Time</string>
+        </property>
+        <property name="buddy">
+         <cstring>observationTime</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="0">
+       <widget class="QLineEdit" name="sequence"/>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="endingTimeLabel">
+        <property name="text">
+         <string>Ending</string>
+        </property>
+        <property name="buddy">
+         <cstring>endingTime</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLineEdit" name="endingTime"/>
+      </item>
+      <item row="13" column="0">
+       <widget class="QLineEdit" name="observationTime"/>
+      </item>
+      <item row="8" column="0">
+       <widget class="QLabel" name="nameLabel">
+        <property name="text">
+         <string notr="true">Typhoon Name</string>
+        </property>
+        <property name="buddy">
+         <cstring>name</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="11" column="0">
+       <widget class="QComboBox" name="observation"/>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="0" column="1" alignment="Qt::AlignLeft|Qt::AlignTop">
     <widget class="QGroupBox" name="descriptionGroup">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
@@ -32,20 +198,7 @@
       <string>Description</string>
      </property>
      <layout class="QGridLayout" name="gridLayout">
-      <item row="1" column="1">
-       <widget class="QLineEdit" name="currentLongitude"/>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="currentLatitudeLabel">
-        <property name="text">
-         <string>Latitude</string>
-        </property>
-        <property name="buddy">
-         <cstring>currentLatitude</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
+      <item row="2" column="0">
        <widget class="QLabel" name="currentLongitudeLabel">
         <property name="text">
          <string>Longitude</string>
@@ -55,59 +208,7 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
-       <widget class="QLineEdit" name="currentLatitude"/>
-      </item>
-      <item row="0" column="3">
-       <widget class="QLabel" name="rangeLabel">
-        <property name="text">
-         <string>Range</string>
-        </property>
-        <property name="buddy">
-         <cstring>range</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="3">
-       <widget class="QLineEdit" name="range"/>
-      </item>
-      <item row="0" column="2">
-       <widget class="QLabel" name="heightLabel">
-        <property name="text">
-         <string>Height</string>
-        </property>
-        <property name="buddy">
-         <cstring>height</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="2">
-       <widget class="QLineEdit" name="height"/>
-      </item>
-      <item row="0" column="5">
-       <widget class="QLabel" name="speedLabel">
-        <property name="text">
-         <string>Speed</string>
-        </property>
-        <property name="buddy">
-         <cstring>speed</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="4">
-       <widget class="QLabel" name="movementLabel">
-        <property name="text">
-         <string>Movement</string>
-        </property>
-        <property name="buddy">
-         <cstring>movement</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="5">
-       <widget class="QLineEdit" name="speed"/>
-      </item>
-      <item row="1" column="4">
+      <item row="9" column="0">
        <widget class="QComboBox" name="movement">
         <item>
          <property name="text">
@@ -196,7 +297,53 @@
         </item>
        </widget>
       </item>
-      <item row="0" column="6">
+      <item row="7" column="0">
+       <widget class="QLineEdit" name="range"/>
+      </item>
+      <item row="10" column="0">
+       <widget class="QLabel" name="speedLabel">
+        <property name="text">
+         <string>Speed</string>
+        </property>
+        <property name="buddy">
+         <cstring>speed</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="heightLabel">
+        <property name="text">
+         <string>Height</string>
+        </property>
+        <property name="buddy">
+         <cstring>height</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="0">
+       <widget class="QLineEdit" name="height"/>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="currentLatitudeLabel">
+        <property name="text">
+         <string>Latitude</string>
+        </property>
+        <property name="buddy">
+         <cstring>currentLatitude</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="0">
+       <widget class="QLabel" name="rangeLabel">
+        <property name="text">
+         <string>Range</string>
+        </property>
+        <property name="buddy">
+         <cstring>range</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="12" column="0">
        <widget class="QLabel" name="intensityChangeLabel">
         <property name="text">
          <string>Intensity</string>
@@ -206,7 +353,26 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="6">
+      <item row="3" column="0">
+       <widget class="QLineEdit" name="currentLongitude"/>
+      </item>
+      <item row="11" column="0">
+       <widget class="QLineEdit" name="speed"/>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLineEdit" name="currentLatitude"/>
+      </item>
+      <item row="8" column="0">
+       <widget class="QLabel" name="movementLabel">
+        <property name="text">
+         <string>Movement</string>
+        </property>
+        <property name="buddy">
+         <cstring>movement</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="13" column="0">
        <widget class="QComboBox" name="intensityChange">
         <item>
          <property name="text">
@@ -223,60 +389,6 @@
           <string notr="true">WKN</string>
          </property>
         </item>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="forecastGroup">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="title">
-      <string>Forecast</string>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_2">
-      <item row="1" column="2">
-       <widget class="QLineEdit" name="forecastLongitude"/>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="forecastTimeLabel">
-        <property name="text">
-         <string>Forecast Time</string>
-        </property>
-        <property name="buddy">
-         <cstring>forecastTime</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QLineEdit" name="forecastLatitude"/>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLineEdit" name="forecastTime"/>
-      </item>
-      <item row="0" column="2">
-       <widget class="QLabel" name="forecastLongitudeLabel">
-        <property name="text">
-         <string>Longitude</string>
-        </property>
-        <property name="buddy">
-         <cstring>forecastLongitude</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QLabel" name="forecastLatitudeLabel">
-        <property name="text">
-         <string>Latitude</string>
-        </property>
-        <property name="buddy">
-         <cstring>forecastLatitude</cstring>
-        </property>
        </widget>
       </item>
      </layout>

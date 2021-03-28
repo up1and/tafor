@@ -29,6 +29,8 @@ class SegmentMixin(object):
     def defaultSignal(self):
         for line in self.findChildren(QLineEdit):
             line.textChanged.connect(self.checkComplete)
+            # line.textEdited.connect(lambda: self.upperText(line))
+            # line.textEdited.connect(lambda: self.coloredText(line))
 
         for combox in self.findChildren(QComboBox):
             combox.currentTextChanged.connect(self.checkComplete)

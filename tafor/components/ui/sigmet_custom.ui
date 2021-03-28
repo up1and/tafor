@@ -6,21 +6,27 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>618</width>
-    <height>298</height>
+    <width>754</width>
+    <height>158</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string notr="true">Sigmet</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QGridLayout" name="gridLayout">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
    <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
     <number>0</number>
    </property>
    <property name="bottomMargin">
     <number>0</number>
    </property>
-   <item>
+   <item row="0" column="1" alignment="Qt::AlignLeft|Qt::AlignTop">
     <widget class="QGroupBox" name="textGroup">
      <property name="title">
       <string>Text</string>
@@ -45,6 +51,60 @@ p, li { white-space: pre-wrap; }
          <bool>false</bool>
         </property>
        </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="0" column="0" alignment="Qt::AlignLeft|Qt::AlignTop">
+    <widget class="QGroupBox" name="headGroup">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="title">
+      <string>Head</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_2">
+      <item row="5" column="0">
+       <widget class="QLineEdit" name="sequence"/>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="endingTimeLabel">
+        <property name="text">
+         <string>Ending</string>
+        </property>
+        <property name="buddy">
+         <cstring>endingTime</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="sequenceLabel">
+        <property name="text">
+         <string>Sequence</string>
+        </property>
+        <property name="buddy">
+         <cstring>sequence</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="beginningTimeLabel">
+        <property name="text">
+         <string>Beginning</string>
+        </property>
+        <property name="buddy">
+         <cstring>beginningTime</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLineEdit" name="endingTime"/>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLineEdit" name="beginningTime"/>
       </item>
      </layout>
     </widget>

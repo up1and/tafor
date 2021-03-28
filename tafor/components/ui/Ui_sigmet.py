@@ -1,20 +1,24 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\sigmet_type.ui'
+# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\sigmet.ui'
 #
-# Created by: PyQt5 UI code generator 5.11.3
+# Created by: PyQt5 UI code generator 5.13.2
 #
 # WARNING! All changes made in this file will be lost!
 
+
 from PyQt5 import QtCore, QtGui, QtWidgets
+
 
 class Ui_Editor(object):
     def setupUi(self, Editor):
         Editor.setObjectName("Editor")
-        Editor.resize(759, 54)
+        Editor.resize(776, 120)
         Editor.setWindowTitle("Sigmet")
-        self.horizontalLayout = QtWidgets.QHBoxLayout(Editor)
-        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.verticalLayout = QtWidgets.QVBoxLayout(Editor)
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.typeLayout = QtWidgets.QHBoxLayout()
+        self.typeLayout.setObjectName("typeLayout")
         self.typeGroup = QtWidgets.QGroupBox(Editor)
         self.typeGroup.setTitle("")
         self.typeGroup.setObjectName("typeGroup")
@@ -33,9 +37,9 @@ class Ui_Editor(object):
         self.airmansWeather = QtWidgets.QRadioButton(self.typeGroup)
         self.airmansWeather.setObjectName("airmansWeather")
         self.typeGroupLayout.addWidget(self.airmansWeather)
-        self.horizontalLayout.addWidget(self.typeGroup)
+        self.typeLayout.addWidget(self.typeGroup)
         spacerItem = QtWidgets.QSpacerItem(0, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
-        self.horizontalLayout.addItem(spacerItem)
+        self.typeLayout.addItem(spacerItem)
         self.sortGroup = QtWidgets.QGroupBox(Editor)
         self.sortGroup.setTitle("")
         self.sortGroup.setObjectName("sortGroup")
@@ -51,7 +55,21 @@ class Ui_Editor(object):
         self.cancel = QtWidgets.QRadioButton(self.sortGroup)
         self.cancel.setObjectName("cancel")
         self.horizontalLayout_2.addWidget(self.cancel)
-        self.horizontalLayout.addWidget(self.sortGroup)
+        self.typeLayout.addWidget(self.sortGroup)
+        self.verticalLayout.addLayout(self.typeLayout)
+        self.mainLayout = QtWidgets.QHBoxLayout()
+        self.mainLayout.setObjectName("mainLayout")
+        self.leftLayout = QtWidgets.QVBoxLayout()
+        self.leftLayout.setObjectName("leftLayout")
+        self.contentLayout = QtWidgets.QHBoxLayout()
+        self.contentLayout.setObjectName("contentLayout")
+        self.leftLayout.addLayout(self.contentLayout)
+        self.location = QtWidgets.QLabel(Editor)
+        self.location.setText("Location")
+        self.location.setObjectName("location")
+        self.leftLayout.addWidget(self.location, 0, QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.mainLayout.addLayout(self.leftLayout)
+        self.verticalLayout.addLayout(self.mainLayout)
 
         self.retranslateUi(Editor)
         QtCore.QMetaObject.connectSlotsByName(Editor)
@@ -75,4 +93,3 @@ if __name__ == "__main__":
     ui.setupUi(Editor)
     Editor.show()
     sys.exit(app.exec_())
-

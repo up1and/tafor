@@ -6,24 +6,90 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>449</width>
-    <height>88</height>
+    <width>330</width>
+    <height>158</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string notr="true">Sigmet</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QHBoxLayout" name="horizontalLayout">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
    <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
     <number>0</number>
    </property>
    <property name="bottomMargin">
     <number>0</number>
    </property>
-   <item>
+   <item alignment="Qt::AlignLeft|Qt::AlignTop">
+    <widget class="QGroupBox" name="headGroup">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="title">
+      <string>Head</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_2">
+      <item row="3" column="0">
+       <widget class="QLineEdit" name="endingTime"/>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="endingTimeLabel">
+        <property name="text">
+         <string>Ending</string>
+        </property>
+        <property name="buddy">
+         <cstring>cancelEndingTime</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLineEdit" name="beginningTime"/>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="beginningTimeLabel">
+        <property name="text">
+         <string>Beginning</string>
+        </property>
+        <property name="buddy">
+         <cstring>cancelBeginningTime</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="0">
+       <widget class="QLineEdit" name="sequence"/>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="sequenceLabel">
+        <property name="text">
+         <string>Sequence</string>
+        </property>
+        <property name="buddy">
+         <cstring>cancelSequence</cstring>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item alignment="Qt::AlignLeft|Qt::AlignTop">
     <widget class="QGroupBox" name="cancelGroup">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
@@ -32,48 +98,48 @@
       <string>Cancel Information</string>
      </property>
      <layout class="QGridLayout" name="gridLayout">
-      <item row="0" column="1">
-       <widget class="QLabel" name="beginningTimeLabel">
-        <property name="text">
-         <string>Beginning</string>
-        </property>
-        <property name="buddy">
-         <cstring>beginningTime</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="sequenceLabel">
-        <property name="text">
-         <string>Sequence</string>
-        </property>
-        <property name="buddy">
-         <cstring>sequence</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="2">
-       <widget class="QLabel" name="endingTimeLabel">
+      <item row="5" column="0">
+       <widget class="QLabel" name="cancelEndingTimeLabel">
         <property name="text">
          <string>Ending</string>
         </property>
         <property name="buddy">
-         <cstring>endingTime</cstring>
+         <cstring>cancelEndingTime</cstring>
         </property>
        </widget>
       </item>
-      <item row="2" column="2">
-       <widget class="QLineEdit" name="endingTime"/>
-      </item>
-      <item row="2" column="1">
-       <widget class="QLineEdit" name="beginningTime"/>
+      <item row="3" column="0">
+       <widget class="QLabel" name="cancelBeginningTimeLabel">
+        <property name="text">
+         <string>Beginning</string>
+        </property>
+        <property name="buddy">
+         <cstring>cancelBeginningTime</cstring>
+        </property>
+       </widget>
       </item>
       <item row="2" column="0">
-       <widget class="QComboBox" name="sequence">
+       <widget class="QComboBox" name="cancelSequence">
         <property name="editable">
          <bool>true</bool>
         </property>
        </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLineEdit" name="cancelBeginningTime"/>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="cancelSequenceLabel">
+        <property name="text">
+         <string>Sequence</string>
+        </property>
+        <property name="buddy">
+         <cstring>cancelSequence</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="0">
+       <widget class="QLineEdit" name="cancelEndingTime"/>
       </item>
      </layout>
     </widget>
@@ -81,9 +147,7 @@
   </layout>
  </widget>
  <tabstops>
-  <tabstop>sequence</tabstop>
-  <tabstop>beginningTime</tabstop>
-  <tabstop>endingTime</tabstop>
+  <tabstop>cancelSequence</tabstop>
  </tabstops>
  <resources/>
  <connections/>
