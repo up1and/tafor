@@ -1,2 +1,2 @@
 from tafor.components.widgets.forecast import TafPrimarySegment, TafFmSegment, TafBecmgSegment, TafTempoSegment, TrendSegment
-from tafor.components.widgets.information import SigmetSegment
+from tafor.components.widgets.information import SigmetGeneral, SigmetTyphoon, SigmetAsh, AirmetGeneral, SigmetCancel, SigmetCustom

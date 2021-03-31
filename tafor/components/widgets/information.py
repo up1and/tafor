@@ -5,7 +5,7 @@ from itertools import cycle
 
 from PyQt5.QtGui import QIcon, QRegExpValidator, QIntValidator, QTextCharFormat, QTextCursor, QFont, QPixmap
 from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, QMenu, QActionGroup, QAction, QRadioButton, QLabel, QSpacerItem, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, QMenu, QActionGroup, QAction, QLabel, QSpacerItem, QSizePolicy
 
 from tafor import conf
 from tafor.states import context
@@ -14,13 +14,12 @@ from tafor.utils.convert import parseTime, ceilTime, roundTime, calcPosition
 from tafor.utils.service import currentSigmet
 from tafor.models import db, Sigmet
 from tafor.components.widgets.forecast import SegmentMixin
-from tafor.components.widgets.graphic import GraphicsWindow
-from tafor.components.ui import Ui_sigmet, Ui_sigmet_general, Ui_sigmet_typhoon, Ui_sigmet_ash, Ui_sigmet_cancel, Ui_sigmet_custom, main_rc
-
+from tafor.components.ui import Ui_sigmet_general, Ui_sigmet_typhoon, Ui_sigmet_ash, Ui_sigmet_cancel, Ui_sigmet_custom, main_rc
 
 
 class BaseSigmet(SegmentMixin, QWidget):
-    completeSignal = pyqtSignal(bool)
+
+    contentChanged = pyqtSignal()
 
     def __init__(self, parent):
         super().__init__()
@@ -51,6 +50,7 @@ class BaseSigmet(SegmentMixin, QWidget):
 
         self.beginningTime.textEdited.connect(lambda: self.coloredText(self.beginningTime))
         self.endingTime.textEdited.connect(lambda: self.coloredText(self.endingTime))
+        self.sequence.textEdited.connect(lambda: self.coloredText(self.sequence))
 
         self.defaultSignal()
 
@@ -138,7 +138,7 @@ class BaseSigmet(SegmentMixin, QWidget):
         count = len(sigmets) + 1
         self.sequence.setText(str(count))
 
-    def checkComplete(self):
+    def hasAcceptableInput(self):
         raise NotImplementedError
 
     def firstLine(self):
@@ -164,8 +164,8 @@ class FlightLevelMixin(object):
     def bindSignal(self):
         super().bindSignal()
         self.level.currentTextChanged.connect(self.setFightLevel)
-        self.base.editingFinished.connect(lambda :self.validateBaseTop(self.base))
-        self.top.editingFinished.connect(lambda :self.validateBaseTop(self.top))
+        self.base.editingFinished.connect(lambda: self.validateBaseTop(self.base))
+        self.top.editingFinished.connect(lambda: self.validateBaseTop(self.top))
         self.base.textEdited.connect(lambda: self.coloredText(self.base))
         self.top.textEdited.connect(lambda: self.coloredText(self.top))
 
@@ -272,7 +272,7 @@ class ObservationMixin(object):
 
     def bindSignal(self):
         super().bindSignal()
-        self.observation.currentTextChanged.connect(self.setObservation)
+        self.observation.currentTextChanged.connect(self.setObservationTime)
         self.observationTime.textChanged.connect(lambda: self.coloredText(self.observationTime))
 
     def setValidator(self):
@@ -280,7 +280,7 @@ class ObservationMixin(object):
         time = QRegExpValidator(QRegExp(self.rules.time))
         self.observationTime.setValidator(time)
 
-    def setObservation(self, text):
+    def setObservationTime(self, text):
         if text == 'OBS':
             self.observationTime.setText(self.beginningTime.text()[2:])
         else:
@@ -291,7 +291,7 @@ class ObservationMixin(object):
         # return hasattr(self, 'area') and self.area.fcstButton.isChecked()
         pass
 
-    def observation(self):
+    def observationText(self):
         if self.observation.currentText() == 'OBS':
             text = 'OBS AT {}Z'.format(self.observationTime.text()) if self.observationTime.hasAcceptableInput() else ''
         else:
@@ -315,7 +315,7 @@ class ForecastMixin(object):
         text = self.endingTime.text()[2:]
         self.forecastTime.setText(text)
 
-    def forecastTime(self):
+    def forecastText(self):
         text = 'FCST AT {}Z'.format(self.forecastTime.text())
         return text
 
@@ -384,7 +384,7 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
     #         self.forecastTimeLabel.setEnabled(False)
     #         self.forecastTime.clear()
 
-    def checkComplete(self):
+    def hasAcceptableInput(self):
         mustRequired = [
             self.beginningTime.hasAcceptableInput(),
             self.endingTime.hasAcceptableInput(),
@@ -403,16 +403,12 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
             if self.top.isEnabled():
                 mustRequired.append(self.top.hasAcceptableInput())
 
-        # if hasattr(self, 'area'):
-        #     mustRequired.append(self.area.text())
-
         if self.isFcstMode():
             mustRequired.append(self.forecastTime.hasAcceptableInput())
         else:
             mustRequired.append(self.moveState())
 
-        self.complete = all(mustRequired)
-        self.completeSignal.emit(self.complete)
+        return all(mustRequired)
 
     def phenomenon(self):
         items = [self.description.currentText(), self.phenomena.currentText()]
@@ -420,19 +416,20 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
         return text
 
     def message(self):
-        # areas = self.area.text()
-        prediction = self.parent.prediction()
+        fir = conf.value('Message/FIR')
+        phenomena = self.phenomenon()
+        observation = self.observationText()
         fightLevel = self.fightLevel()
         moveState = self.moveState()
         intensityChange = self.intensityChange.currentText()
-        if self.isFcstAreaMode():
-            fcstTime = self.fcstTime()
-            items = [prediction, '{location}', fightLevel, moveState, intensityChange, fcstTime, '{forecastLocation}']
-        else:
-            # area = areas[0] if isinstance(areas, list) else areas
-            items = [prediction, '{location}', fightLevel, moveState, intensityChange]
 
-        return ' '.join(filter(None, items))
+        items = [fir, phenomena, observation, '{location}', fightLevel, moveState, intensityChange]
+        if self.forecastTime.isEnabled():
+            forecast = self.forecastText()
+            items += [forecast, '{forecastLocation}']
+
+        content = ' '.join(filter(None, items))
+        return '\n'.join([self.firstLine(), content])
 
     def clear(self):
         super().clear()
@@ -445,6 +442,8 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
 
 class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
 
+    circleChanged = pyqtSignal()
+
     def __init__(self, parent):
         super().__init__(parent)
         self.setPhenomena()
@@ -453,9 +452,9 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
     def bindSignal(self):
         super().bindSignal()
 
-        # self.currentLatitude.editingFinished.connect(self.setCircleOnCanvas)
-        # self.currentLongitude.editingFinished.connect(self.setCircleOnCanvas)
-        # self.range.editingFinished.connect(self.setCircleOnCanvas)
+        self.currentLatitude.editingFinished.connect(lambda: self.circleChanged.emit())
+        self.currentLongitude.editingFinished.connect(lambda: self.circleChanged.emit())
+        self.range.editingFinished.connect(lambda: self.circleChanged.emit())
         # self.area.canvasWidget.canvas.pointsChanged.connect(self.setCircleOnContent)
         # self.area.canvasWidget.canvas.stateChanged.connect(self.setCircleOnContent)
 
@@ -515,41 +514,28 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
         text = ' '.join(items) if all(items) else ''
         return text
 
-    def setCircleOnCanvas(self):
-        if not context.fir.layer.drawable:
-            return
-
+    def circle(self):
+        coords = {}
         if self.currentLatitude.hasAcceptableInput() and self.currentLongitude.hasAcceptableInput():
-            lon = self.currentLongitude.text()
-            lat = self.currentLatitude.text()
-            # self.area.canvasWidget.setCircleCenter([lon, lat])
+            coords['center'] = [self.currentLongitude.text(), self.currentLatitude.text()]
 
         if self.range.hasAcceptableInput():
-            radius = self.range.text()
-            # self.area.canvasWidget.setCircleRadius(radius)
+            coords['radius'] = self.range.text()
+        
+        return coords
 
-    def setCircleOnContent(self):
-        # layer = context.fir.layer
-        # if not layer.drawable:
-        #     return
+    def updateLocation(self, circle):
+        if circle:
+            lon, lat = circle['center']
+            self.currentLongitude.setText(lon)
+            self.currentLatitude.setText(lat)
 
-        # canvas = self.area.canvasWidget.canvas
-        # points = layer.pixelToDegree(canvas.points)
-        # if points:
-        #     lon, lat = points[0]
-        #     self.currentLongitude.setText(lon)
-        #     self.currentLatitude.setText(lat)
-        # else:
-        #     self.currentLongitude.clear()
-        #     self.currentLatitude.clear()
-
-        # unit = 'NM' if context.environ.unit() == 'imperial' else 'KM'
-        # radius = round(layer.pixelToDistance(canvas.radius, unit=unit) / 10) * 10
-        # if radius:
-        #     self.range.setText(str(radius))
-        # else:
-        #     self.range.clear()
-        pass
+            radius = circle['radius']
+            self.range.setText(str(radius))
+        else:
+            self.currentLongitude.clear()
+            self.currentLatitude.clear()
+            self.range.clear()
 
     def setForecastTime(self):
         if self.durations is None or not self.endingTime.text():
@@ -636,26 +622,31 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
         return text
 
     def message(self):
-        unit = 'NM' if context.environ.unit() == 'imperial' else 'KM'
-        area = 'PSN {latitude} {Longitude} CB {prediction} WI {range}{unit} OF TC CENTRE TOP FL{height}'.format(
+        fir = conf.value('Message/FIR')
+        phenomena = self.phenomenon()
+        observation = self.observationText()
+        intensityChange = self.intensityChange.currentText()
+        moveState = self.moveState()
+        forecastPosition = self.forecastPosition()
+
+        unit = 'KM'
+        main = 'PSN {latitude} {Longitude} CB {observation} WI {range}{unit} OF TC CENTRE TOP FL{height}'.format(
                 latitude=self.currentLatitude.text(),
                 Longitude=self.currentLongitude.text(),
-                prediction=self.parent.head.prediction(),
+                observation=observation,
                 range=int(self.range.text()),
                 unit=unit,
                 height=self.height.text(),
             )
-        moveState = self.moveState()
-        intensityChange = self.intensityChange.currentText()
-        forecastPosition = self.forecastPosition()
 
+        items = [fir, phenomena, main]
         if forecastPosition:
-            messages = [area, intensityChange, forecastPosition]
+            items += [intensityChange, forecastPosition]
         else:
-            messages = [area, moveState, intensityChange]
+            items += [moveState, intensityChange]
 
-        text = ' '.join(messages)
-        return text
+        content = ' '.join(filter(None, items))
+        return '\n'.join([self.firstLine(), content])
 
     # def initState(self):
     #     if self.forecastTime.text():
@@ -663,7 +654,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
 
     #     self.setForecastTime()
 
-    def checkComplete(self):
+    def hasAcceptableInput(self):
         mustRequired = [
             self.beginningTime.hasAcceptableInput(),
             self.endingTime.hasAcceptableInput(),
@@ -683,8 +674,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
         if self.observation.currentText() == 'OBS':
             mustRequired.append(self.observationTime.hasAcceptableInput())
 
-        self.complete = all(mustRequired) and any(anyRequired)
-        self.completeSignal.emit(self.complete)
+        return all(mustRequired) and any(anyRequired)
 
     def clear(self):
         super().clear()
@@ -702,6 +692,7 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         super().bindSignal()
         self.currentLatitude.textEdited.connect(lambda: self.upperText(self.currentLatitude))
         self.currentLongitude.textEdited.connect(lambda: self.upperText(self.currentLongitude))
+        self.name.textEdited.connect(lambda: self.upperText(self.name))
 
         self.currentLatitude.textEdited.connect(lambda: self.coloredText(self.currentLatitude))
         self.currentLongitude.textEdited.connect(lambda: self.coloredText(self.currentLongitude))
@@ -728,7 +719,7 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         text = ' '.join(items) if all(items) else ''
         return text
 
-    def checkComplete(self):
+    def hasAcceptableInput(self):
         mustRequired = [
             self.beginningTime.hasAcceptableInput(),
             self.endingTime.hasAcceptableInput(),
@@ -744,9 +735,6 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         if self.top.isEnabled():
             mustRequired.append(self.top.hasAcceptableInput())
 
-        # if hasattr(self, 'area'):
-        #     mustRequired.append(self.area.text())
-
         if self.isFcstMode():
             mustRequired.append(self.forecastTime.hasAcceptableInput())
         elif self.speed.isEnabled():
@@ -756,32 +744,32 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
             mustRequired.append(self.currentLongitude.hasAcceptableInput())
             mustRequired.append(self.currentLatitude.hasAcceptableInput())
 
-        self.complete = all(mustRequired)
-        self.completeSignal.emit(self.complete)
+        return all(mustRequired)
 
     def message(self):
-        if self.currentLongitude.isEnabled() and self.currentLatitude.isEnabled():
-            prefix = 'PSN {latitude} {Longitude} VA CLD {observation}'.format(
-                    latitude=self.currentLatitude.text(),
-                    Longitude=self.currentLongitude.text(),
-                    observation=self.observation(),
-                )
-        else:
-            prefix = self.observation()
-
-        areas = self.area.text()
+        fir = conf.value('Message/FIR')
+        phenomena = self.phenomenon()
+        observation = self.observationText()
         fightLevel = self.fightLevel()
         moveState = self.moveState()
         intensityChange = self.intensityChange.currentText()
-        if self.isFcstMode():
-            area, forecastArea = areas
-            fcstTime = self.fcstTime()
-            items = [prefix, area, fightLevel, moveState, intensityChange, fcstTime, forecastArea]
-        else:
-            area = areas[0] if isinstance(areas, list) else areas
-            items = [prefix, area, fightLevel, moveState, intensityChange]
 
-        return ' '.join(filter(None, items))
+        if self.currentLongitude.isEnabled() and self.currentLatitude.isEnabled():
+            position = 'PSN {latitude} {Longitude} VA CLD {observation}'.format(
+                    latitude=self.currentLatitude.text(),
+                    Longitude=self.currentLongitude.text(),
+                    observation=observation,
+                )
+        else:
+            position = self.observationText()
+
+        items = [fir, phenomena, position, '{location}', fightLevel, moveState, intensityChange]
+        if self.forecastTime.isEnabled():
+            forecast = self.forecastText()
+            items += [forecast, '{forecastLocation}']
+
+        content = ' '.join(filter(None, items))
+        return '\n'.join([self.firstLine(), content])
 
     def clear(self):
         super().clear()
@@ -791,23 +779,96 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
 
 class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
-    def __init__(self, parent):
-        super().__init__(parent)
+    def bindSignal(self):
+        super().bindSignal()
+        self.cancelSequence.lineEdit().textEdited.connect(lambda: self.upperText(self.cancelSequence.lineEdit()))
+
+        self.cancelSequence.lineEdit().textEdited.connect(lambda: self.coloredText(self.cancelSequence.lineEdit()))
+        self.cancelBeginningTime.textEdited.connect(lambda: self.coloredText(self.cancelBeginningTime))
+        self.cancelEndingTime.textEdited.connect(lambda: self.coloredText(self.cancelEndingTime))
+
+    def setValidator(self):
+        super().setValidator()
+        sequence = QRegExpValidator(QRegExp(self.rules.sequence, Qt.CaseInsensitive))
+        self.cancelSequence.setValidator(sequence)
+
+        date = QRegExpValidator(QRegExp(self.rules.date))
+        self.cancelBeginningTime.setValidator(date)
+        self.cancelEndingTime.setValidator(date)
+
+    def hasAcceptableInput(self):
+        mustRequired = [
+            self.beginningTime.hasAcceptableInput(),
+            self.endingTime.hasAcceptableInput(),
+            self.sequence.hasAcceptableInput(),
+            self.cancelBeginningTime.hasAcceptableInput(),
+            self.cancelEndingTime.hasAcceptableInput(),
+            self.cancelSequence.lineEdit().hasAcceptableInput()
+        ]
+
+        return all(mustRequired)
+
+    def message(self):
+        fir = conf.value('Message/FIR')
+        cancel = 'CNL {} {} {}/{}'.format(
+            self.parent.sign(),
+            self.cancelSequence.currentText().strip(),
+            self.cancelBeginningTime.text(),
+            self.cancelEndingTime.text()
+        )
+        items = [fir, cancel]
+        content = ' '.join(filter(None, items))
+        return '\n'.join([self.firstLine(), content])
 
 
 class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
 
     def __init__(self, parent):
         super().__init__(parent)
+        self.setUpper()
+
+    def bindSignal(self):
+        super().bindSignal()
+        self.text.textChanged.connect(self.filterText)
+        self.text.textChanged.connect(lambda: self.contentChanged.emit())
+
+    def filterText(self):
+        origin = self.text.toPlainText()
+        text = re.sub(r'[^A-Za-z0-9)(\/\.\s,-]+', '', origin)
+        text = text.upper()
+        if origin != text:
+            cursor = self.text.textCursor()
+            pos = cursor.position()
+            self.text.setText(text)
+            cursor.setPosition(pos)
+            self.text.setTextCursor(cursor)
+
+    def setUpper(self):
+        upper = QTextCharFormat()
+        upper.setFontCapitalization(QFont.AllUppercase)
+        self.text.setCurrentCharFormat(upper)
+
+    def hasAcceptableInput(self):
+        mustRequired = [
+            self.beginningTime.hasAcceptableInput(),
+            self.endingTime.hasAcceptableInput(),
+            self.sequence.hasAcceptableInput(),
+            self.text.toPlainText().strip()
+        ]
+
+        return all(mustRequired)
+
+    def message(self):
+        fir = conf.value('Message/FIR')
+        items = [fir, self.text.toPlainText().strip()]
+        content = ' '.join(filter(None, items))
+        return '\n'.join([self.firstLine(), content])
 
 
 class AirmetGeneral(SigmetGeneral):
 
     def __init__(self, parent):
         super().__init__(parent)
-        self.setAirmetMode()
-
-    def setAirmetMode(self):
         self.forecastTime.hide()
         self.forecastTimeLabel.hide()
 
@@ -833,143 +894,3 @@ class AirmetGeneral(SigmetGeneral):
         self.base.setValidator(fightLevel)
         self.top.setValidator(fightLevel)
 
-
-class SigmetSegment(QWidget, Ui_sigmet.Ui_Editor):
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setupUi(self)
-        self.parent = parent
-
-        self.tt = 'WS'
-        self.typeButtonTexts = [btn.text() for btn in self.typeGroup.findChildren(QRadioButton)]
-
-        self.initUI()
-        self.bindSignal()
-
-    def initUI(self):
-        self.graphic = GraphicsWindow(self)
-        self.generalContent = SigmetGeneral(self)
-        self.typhoonContent = SigmetTyphoon(self)
-        self.ashContent = SigmetAsh(self)
-        self.airmetContent = AirmetGeneral(self)
-        self.cancelContent = SigmetCancel(self)
-        self.customContent = SigmetCustom(self)
-
-        self.contents = []
-        self.contents.append(self.generalContent)
-        self.contents.append(self.typhoonContent)
-        self.contents.append(self.ashContent)
-        self.contents.append(self.airmetContent)
-        self.contents.append(self.cancelContent)
-        self.contents.append(self.customContent)
-        self.currentContent = self.contents[0]
-
-        for c in self.contents:
-            self.contentLayout.addWidget(c)
-
-        self.mainLayout.addWidget(self.graphic)
-        self.changeContent()
-
-    def bindSignal(self):
-        self.significantWeather.clicked.connect(self.changeContent)
-        self.tropicalCyclone.clicked.connect(self.changeContent)
-        self.volcanicAsh.clicked.connect(self.changeContent)
-        self.airmansWeather.clicked.connect(self.changeContent)
-        self.template.clicked.connect(self.changeContent)
-        self.custom.clicked.connect(self.changeContent)
-        self.cancel.clicked.connect(self.changeContent)
-
-    def wmoHeader(self):
-        area = conf.value('Message/Area') or ''
-        icao = conf.value('Message/ICAO')
-        time = datetime.datetime.utcnow().strftime('%d%H%M')
-        messages = [self.tt + area, icao, time]
-        return ' '.join(filter(None, messages))
-
-    # def message(self):
-    #     content = ' '.join([self.head.message(), self.content.message()])
-    #     text = '\n'.join([self.head.head(), content])
-    #     text = text if text.endswith('=') else text + '='
-    #     return text
-
-    def sign(self):
-        return 'AIRMET' if self.tt == 'WA' else 'SIGMET'
-
-    def setTypeButtonText(self):
-        for i, btn in enumerate(self.typeGroup.findChildren(QRadioButton)):
-            text = self.typeButtonTexts[i]
-            if not btn.isChecked() and len(text) > 8:
-                text = text[:8]
-
-            btn.setText(text)
-
-    def setType(self, tt):
-        typeChanged = False if self.tt == tt else True
-        self.tt = tt
-        durations = {
-            'WS': 4,
-            'WC': 6,
-            'WV': 6,
-            'WA': 4,
-        }
-        self.currentContent.setSpan(durations[tt])
-        self.setTypeButtonText()
-
-        if typeChanged:
-            self.graphic.setModeButton(tt)
-
-        # self.changeSignal.emit()
-
-    def changeContent(self):
-        if self.template.isChecked():
-            if self.significantWeather.isChecked():
-                self.currentContent = self.generalContent
-
-            elif self.tropicalCyclone.isChecked():
-                self.currentContent = self.typhoonContent
-
-            elif self.volcanicAsh.isChecked():
-                self.currentContent = self.ashContent
-
-            elif self.airmansWeather.isChecked():
-                self.currentContent = self.airmetContent
-
-        elif self.cancel.isChecked():
-            self.currentContent = self.cancelContent
-            # self.currentContent.clear()
-        else:
-            self.currentContent = self.customContent
-            # self.currentContent.clear()
-
-        if self.currentContent == self.customContent:
-            self.graphic.hide()
-        else:
-            self.graphic.show()
-
-        for c in self.contents:
-            if c == self.currentContent:
-                c.show()
-            else:
-                c.hide()
-
-        if self.significantWeather.isChecked():
-            self.setType('WS')
-
-        if self.tropicalCyclone.isChecked():
-            self.setType('WC')
-
-        if self.volcanicAsh.isChecked():
-            self.setType('WV')
-
-        if self.airmansWeather.isChecked():
-            self.setType('WA')
-
-    def showNotificationMessage(self, text):
-        self.parent.showNotificationMessage(text)
-
-    def showEvent(self, event):
-        self.setTypeButtonText()
-
-    def clear(self):
-        self.content.clear()

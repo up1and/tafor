@@ -21,9 +21,9 @@ class MessageState(object):
 class FirState(QObject):
     refreshSignal = pyqtSignal()
     layersNameChanged = pyqtSignal()
+    sigmetsChanged = pyqtSignal()
 
     _state = {
-        'boundaries': [],
         'layers': [],
         'sigmets': []
     }
@@ -37,11 +37,10 @@ class FirState(QObject):
         from tafor.utils.convert import Layer
         refs = copy.deepcopy(self._state)
         self._state.update(values)
-        width = conf.value('General/FirCanvasSize') or 300
 
         self.layers = []
         for data in self._state['layers']:
-            layer = Layer(data, width=int(width))
+            layer = Layer(data)
             self.layers.append(layer)
 
         refLayerNames = [e['name'] for e in refs['layers']]
@@ -49,13 +48,30 @@ class FirState(QObject):
         if refLayerNames != layerNames:
             self.layersNameChanged.emit()
 
-    @property
-    def layer(self):
+        def diff(origin, ref):
+            return set(origin) - set(ref)
+
+        sigmets = [s.rpt for s in self.sigmets()]
+        refSigmets = [s.rpt for s in refs['sigmets']]
+        if diff(sigmets, refSigmets):
+            self.sigmetsChanged.emit()
+
+    def currentLayer(self):
         from tafor.utils.convert import Layer
         try:
             return self.layers[self.layerIndex]
         except Exception:
-            return Layer({})
+            return Layer()
+
+    def maxLayerExtent(self):
+
+        def maxExtent(extent1, extent2):
+            return [min(extent1[0], extent2[0]), min(extent1[1], extent2[1]), max(extent1[2], extent2[2]), max(extent1[3], extent2[3])]
+
+        for layer, layer2 in zip(self.layers, self.layers[1:]):
+            extent = maxExtent(layer.extent, layer2.extent)
+
+        return extent
 
     def layersName(self):
         names = []
@@ -68,33 +84,7 @@ class FirState(QObject):
         return self._state['sigmets']
 
     def boundaries(self):
-        return self.layer.decimalToPixel(self._state['boundaries'])
-
-    def sigmetsInfo(self, isAirmet=False):
-        infos = []
-        if isAirmet:
-            sigmets = [s for s in self._state['sigmets'] if s.tt == 'WA']
-        else:
-            sigmets = [s for s in self._state['sigmets'] if s.tt != 'WA']
-
-        for sig in sigmets:
-            area = {}
-            parser = sig.parser()
-            for key, item in parser.area().items():
-                polygon = self.decodeSigmetArea(item)
-                area[key] = polygon
-
-            infos.append({
-                'type': parser.type(),
-                'area': area
-            })
-
-        return infos
-
-    def decodeSigmetArea(self, area, trim=None):
-        if trim is None:
-            trim = self.trimShapes
-        return self.layer.decodeSigmetArea(area, self._state['boundaries'], trim)
+        return [[114.000001907,14.500001907],[112.000001908,14.500001907],[108.716665268,17.416666031],[107.683332443,18.333333969],[107.18972222,19.26777778],[107.929967,19.9567],[108.050001145,20.500001907],[111.500001908,20.500001907],[111.500001908,19.500001907],[114.000001907,16.666666031],[114.000001907,14.500001907]]
 
     def refresh(self):
         self.refreshSignal.emit()

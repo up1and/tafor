@@ -13,7 +13,7 @@ from tafor import root, conf, logger, __version__
 from tafor.models import db, User, Metar, Taf, Trend
 from tafor.states import context
 from tafor.utils import boolean, checkVersion, latestMetar, currentSigmet, Listen
-from tafor.utils.thread import WorkThread, FirInfoThread, CallThread, CheckUpgradeThread, RpcThread
+from tafor.utils.thread import WorkThread, LayerThread, CallThread, CheckUpgradeThread, RpcThread
 
 from tafor.components.ui import Ui_main, main_rc
 from tafor.components.taf import TafEditor
@@ -98,7 +98,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         context.other.messageChanged.connect(self.loadCustomMessage)
         context.notification.metar.messageChanged.connect(self.loadMetar)
         context.notification.sigmet.messageChanged.connect(self.loadSigmet)
-        context.fir.refreshSignal.connect(self.painter)
+        context.fir.sigmetsChanged.connect(self.sigmetEditor.updateGraphicCanvas)
+        # context.fir.refreshSignal.connect(self.painter)
 
         # 连接菜单信号
         self.tafAction.triggered.connect(self.tafEditor.show)
@@ -133,7 +134,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.metarTable.chartButtonClicked.connect(self.chartViewer.show)
 
-        self.firInfoThread.finished.connect(self.sigmetEditor.update)
+        self.layerThread.finished.connect(self.sigmetEditor.updateLayer)
 
     def setTrayIcon(self, style='normal'):
         files = {
@@ -219,7 +220,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.callThread = CallThread(self)
 
-        self.firInfoThread = FirInfoThread()
+        self.layerThread = LayerThread()
 
         self.checkUpgradeThread = CheckUpgradeThread(self)
         self.checkUpgradeThread.doneSignal.connect(self.checkUpgrade)
@@ -367,8 +368,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.workThread.start()
 
     def painter(self):
-        if conf.value('Monitor/FirApiURL') and not self.firInfoThread.isRunning():
-            self.firInfoThread.start()
+        if conf.value('Monitor/FirApiURL') and not self.layerThread.isRunning():
+            self.layerThread.start()
 
     def dialer(self, test=False):
         callSwitch = conf.value('Monitor/SelectedMobile')
@@ -382,7 +383,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.showNotificationMessage(connectionError,
                 QCoreApplication.translate('MainWindow', 'Unable to connect remote message data source, please check the settings or network status.'), 'warning')
 
-        if conf.value('Monitor/FirApiURL') and context.fir.layer.image is None and not self.firInfoThread.isRunning():
+        if conf.value('Monitor/FirApiURL') and not context.fir.currentLayer() and not self.layerThread.isRunning():
             self.showNotificationMessage(connectionError,
                 QCoreApplication.translate('MainWindow', 'Unable to connect FIR information data source, please check the settings or network status.'), 'warning')
 

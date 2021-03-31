@@ -27,7 +27,7 @@ def cli(ctx, whysoserious):
     Here you can enable some advanced features via the command line.
 
     Examples:\n
-        tafor sigmet --enbale/--disable\n
+        tafor sigmet --enable/--disable\n
         tafor token [--generate]
 
     Copyright:\n
@@ -39,10 +39,10 @@ def cli(ctx, whysoserious):
         main()
 
 @cli.command(help='Enable or disable SIGMET function.')
-@click.option('--enbale/--disable')
-def sigmet(enbale):
+@click.option('--enable/--disable')
+def sigmet(enable):
     path = 'General/Sigmet'
-    if enbale:
+    if enable:
         conf.setValue(path, True)
         click.echo('SIGMET function enabled')
     else:

@@ -363,32 +363,20 @@ def pointToList(points):
 
 class Layer(object):
 
-    def __init__(self, layers, width=300):
+    def __init__(self, layers=None):
+        if layers is None:
+            layers = {}
+
         self.image = layers.get('image', None)
         self.name = layers.get('name', '')
-        self._size = layers.get('size', [0, 0])
-        self._coordinates = layers.get('coordinates', [])
-        self._rect = layers.get('rect', [0, 0, 0, 0])
+        self.extent = layers.get('extent', [])
         self._updated = layers.get('updated', None)
-        self.width = width
-        try:
-            self.computed()
-            self.drawable = True
-        except Exception:
-            self.drawable = False
 
-    @property
-    def scale(self):
-        imageWidth = self._rect[2]
-        if imageWidth == 0:
-            return 1
-        return self.width / imageWidth
+    def __bool__(self):
+        return self.image is not None
 
-    def rect(self):
-        return [self.scale * i for i in self._rect]
-
-    def size(self):
-        return [self.scale * i for i in self._size]
+    def __repr__(self):
+        return '<Layer {} {}>'.format(self.name, self._updated)
 
     def updatedTime(self):
         fmt = '%a, %d %b %Y %H:%M:%S GMT'
@@ -397,186 +385,13 @@ class Layer(object):
         except Exception as e:
             return None
 
-    def pixmap(self):
-        if self.image is None:
-            raw = QPixmap(*self.size())
-            raw.fill(Qt.gray)
-        else:
-            raw = QPixmap()
-            raw.loadFromData(self.image)
-            raw = raw.scaled(*self.size())
+    # def pixmap(self):
+    #     if self.image is None:
+    #         raw = QPixmap(*self.size())
+    #         raw.fill(Qt.gray)
+    #     else:
+    #         raw = QPixmap()
+    #         raw.loadFromData(self.image)
+    #         raw = raw.scaled(*self.size())
 
-        rect = QRect(*self.rect())
-        image = raw.copy(rect)
-        return image
-
-    def computed(self):
-        size = self.size()
-        rect = self.rect()
-        latRange = self._coordinates[0][1] - self._coordinates[1][1]
-        longRange = self._coordinates[1][0] - self._coordinates[0][0]
-        self.initLong = self._coordinates[0][0]
-        self.initLat = self._coordinates[0][1]
-        self.dlat = latRange / size[1]
-        self.dlong = longRange / size[0]
-        self.offsetX = rect[0]
-        self.offsetY = rect[1]
-
-        self.topLeft = [rect[0], rect[1]]
-        self.topRight = [rect[0] + rect[2], rect[1]]
-        self.bottomRight = [rect[0] + rect[2], rect[1] + rect[3]]
-        self.bottomLeft = [rect[0], rect[1] + rect[3]]
-
-    def dimension(self, mode='kilometer'):
-        if mode == 'kilometer':
-            distance = distanceBetweenLatLongPoints(*self._coordinates)
-
-        if mode == 'nauticalmile':
-            distance = distanceBetweenLatLongPoints(*self._coordinates) / 1.852
-
-        if mode == 'decimal':
-            distance = distanceBetweenPoints(*self._coordinates)
-
-        if mode == 'pixel':
-            distance = distanceBetweenPoints([0, 0], self._size)
-
-        return distance
-
-    def decimalToPixel(self, degreePoints):
-        points = []
-        for lng, lat in degreePoints:
-            x = (lng - self.initLong) / self.dlong - self.offsetX
-            y = (self.initLat - lat) / self.dlat - self.offsetY
-            points.append((x, y))
-
-        return points
-
-    def pixelToDecimal(self, pixelPoints):
-        points = []
-        for lng, lat in pixelPoints:
-            longtitude = self.initLong + (lng + self.offsetX) * self.dlong
-            latitude = self.initLat - (lat + self.offsetY) * self.dlat
-            points.append((longtitude, latitude))
-
-        return points
-
-    def pixelToDegree(self, pixelPoints):
-        points = []
-        for lng, lat in pixelPoints:
-            longtitude = self.initLong + (lng + self.offsetX) * self.dlong
-            latitude = self.initLat - (lat + self.offsetY) * self.dlat
-            points.append((
-                decimalToDegree(longtitude, fmt='longitude'),
-                decimalToDegree(latitude)
-            ))
-
-        return points
-
-    def decimalToDegree(self, decimalPoints):
-        points = []
-        for lng, lat in decimalPoints:
-            points.append((
-                decimalToDegree(lng, fmt='longitude'),
-                decimalToDegree(lat)
-            ))
-
-        return points
-
-    def distanceToDecimal(self, length, unit='KM'):
-        mode = 'nauticalmile' if unit == 'NM' else 'kilometer'
-        ratio = self.dimension('decimal') / self.dimension(mode)
-        return float(length) * ratio
-
-    def distanceToPixel(self, length, unit='KM'):
-        mode = 'nauticalmile' if unit == 'NM' else 'kilometer'
-        ratio = self.dimension('pixel') / self.dimension(mode)
-        return float(length) * ratio * self.scale
-
-    def pixelToDistance(self, pixel, unit='KM'):
-        ratio = self.dimension('kilometer') / self.dimension('pixel')
-        distance = pixel * ratio / self.scale
-        if unit == 'NM':
-            distance = distance / 1.852
-        return distance
-
-    def decodeSigmetArea(self, area, boundaries, trim):
-        from tafor.utils.sigmet import decodeSigmetArea
-
-        polygon = []
-        maxx, maxy = self.rect()[2:]
-
-        if area['type'] == 'polygon':
-            decimals = [(degreeToDecimal(lng), degreeToDecimal(lat)) for lat, lng in area['area']]
-
-            try:
-                polygon = decodeSigmetArea(boundaries, decimals, mode='polygon', trim=trim)
-                polygon = self.decimalToPixel(polygon)
-            except Exception as e:
-                logger.error(e)
-
-        if area['type'] == 'line':
-            decimals = []
-            for identifier, *points in area['area']:
-                points = [(degreeToDecimal(lng), degreeToDecimal(lat)) for lat, lng in points]
-                decimals.append((identifier, points))
-
-            try:
-                polygon = decodeSigmetArea(boundaries, decimals, mode='line')
-                polygon = self.decimalToPixel(polygon)
-            except Exception as e:
-                logger.error(e)
-
-        if area['type'] == 'rectangular':
-            maxx, maxy = self.rect()[2:]
-            decimals = []
-            for identifier, deg in area['area']:
-                dec = degreeToDecimal(deg)
-                if identifier in ['N', 'S']:
-                    y = (self.initLat - dec) / self.dlat - self.offsetY
-                    points = [
-                        (0, y),
-                        (maxx, y)
-                    ]
-                else:
-                    x = (dec - self.initLong) / self.dlong - self.offsetX
-                    points = [
-                        (x, 0),
-                        (x, maxy)
-                    ]
-
-                decimals.append((identifier, self.pixelToDecimal(points)))
-
-            try:
-                polygon = decodeSigmetArea(boundaries, decimals, mode='rectangular')
-                polygon = self.decimalToPixel(polygon)
-            except Exception as e:
-                logger.error(e)
-
-        if area['type'] == 'circle':
-            point, radius = area['area']
-            width = self.distanceToDecimal(*radius)
-            center = [degreeToDecimal(point[1]), degreeToDecimal(point[0])]
-            circles = [center, width]
-
-            try:
-                polygon = decodeSigmetArea(boundaries, circles, mode='circle')
-                polygon = self.decimalToPixel(polygon)
-            except Exception as e:
-                logger.error(e)
-
-        if area['type'] == 'corridor':
-            points, width = area['area']
-            points = [(degreeToDecimal(lng), degreeToDecimal(lat)) for lat, lng in points]
-            width = self.distanceToDecimal(*width)
-            corridor = [points, width]
-
-            try:
-                polygon = decodeSigmetArea(boundaries, corridor, mode='corridor', trim=trim)
-                polygon = self.decimalToPixel(polygon)
-            except Exception as e:
-                logger.error(e)
-
-        if area['type'] == 'entire':
-            polygon = self.decimalToPixel(boundaries)
-
-        return polygon
+    #     return image

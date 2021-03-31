@@ -7,13 +7,16 @@
     <x>0</x>
     <y>0</y>
     <width>776</width>
-    <height>120</height>
+    <height>95</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string notr="true">Sigmet</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QVBoxLayout" name="layout">
+   <property name="sizeConstraint">
+    <enum>QLayout::SetFixedSize</enum>
+   </property>
    <item>
     <layout class="QHBoxLayout" name="typeLayout">
      <item>
@@ -109,12 +112,34 @@
      <item>
       <layout class="QVBoxLayout" name="leftLayout">
        <item>
-        <layout class="QHBoxLayout" name="contentLayout"/>
+        <layout class="QHBoxLayout" name="contentLayout">
+         <property name="bottomMargin">
+          <number>10</number>
+         </property>
+        </layout>
        </item>
        <item alignment="Qt::AlignLeft|Qt::AlignTop">
         <widget class="QLabel" name="location">
+         <property name="minimumSize">
+          <size>
+           <width>180</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>270</width>
+           <height>16777215</height>
+          </size>
+         </property>
          <property name="text">
           <string notr="true">Location</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+         <property name="textInteractionFlags">
+          <set>Qt::NoTextInteraction</set>
          </property>
         </widget>
        </item>

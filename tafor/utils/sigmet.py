@@ -10,7 +10,7 @@ def centroid(points):
     point = [0, 0]
 
     if not points:
-    	return point
+        return point
 
     length = len(points)
     for x, y in points:
@@ -253,30 +253,16 @@ def simplifyPolygon(points, maxPoint=7, extend=False):
     """
     return SimplifyPolygon(maxPoint=maxPoint, extend=extend)(points)
 
-def decodeSigmetArea(boundaries, area, mode='rectangular', trim=True):
-    boundary = Polygon(boundaries)
+def decodePolygon(boundary, polygon, trim):
+    polygon = Polygon(polygon)
+    if trim:
+        polygon = polygon.intersection(boundary)
+    return list(polygon.exterior.coords)
 
-    if mode == 'polygon':
-        polygon = Polygon(area)
-        if trim:
-            polygon = polygon.intersection(boundary)
-        return list(polygon.exterior.coords)
-
-    if mode == 'circle':
-        center, radius = area
-        polygon = Point(*center).buffer(radius)
-        return list(polygon.exterior.coords)
-
-    if mode == 'corridor':
-        points, width = area
-        polygon = LineString(points).buffer(width, cap_style=2, join_style=2)
-        if trim:
-            polygon = polygon.intersection(boundary)
-        return list(polygon.exterior.coords)
-
+def decodeLine(boundary, lines):
     polygons = []
     directions = {'SE': -0.25, 'NE': 0.25, 'N': 0.5, 'SW': -0.75, 'W': 1.0, 'NW': 0.75, 'E': 0.0, 'S': -0.5}
-    for identifier, points in area:
+    for identifier, points in lines:
         expands = expandLine(points)
         line = LineString(expands)
         parts = split(boundary, line)
@@ -300,6 +286,73 @@ def decodeSigmetArea(boundaries, area, mode='rectangular', trim=True):
 
     return list(current.exterior.coords)
 
+# def decodeCircle(center, radius):
+#     polygon = Point(*center).buffer(radius)
+#     return list(polygon.exterior.coords)
+
+# def decodeCorridor(boundary, points, radius, trim):
+#     polygon = LineString(points).buffer(radius, cap_style=2, join_style=2)
+#     if trim:
+#         polygon = polygon.intersection(boundary)
+#     return list(polygon.exterior.coords)
+
+# def distanceToDegree(latitude, width, unit='KM'):
+#     circumference = math.cos(latitude * math.pi / 180) * 2 * math.pi * 6378.137
+#     width = int(width)
+#     if unit == 'NM':
+#         width = width * 1.852
+
+#     return 360 / circumference * width
+
+def decodeSigmetLocation(boundaries, locations, mode, trim=True):
+    from tafor.utils.convert import degreeToDecimal
+    boundary = Polygon(boundaries)
+
+    if mode == 'polygon':
+        return {'polygon': decodePolygon(boundary, locations, trim)}
+
+    if mode == 'line':
+        lines = []
+        for identifier, *points in locations:
+            points = [(degreeToDecimal(lng), degreeToDecimal(lat)) for lat, lng in points]
+            lines.append((identifier, points))
+
+        return {'polygon': decodeLine(boundary, lines)}
+
+    if mode == 'rectangular':
+        lines = []
+        minx, miny, maxx, maxy = boundary.bounds
+        for identifier, deg in locations:
+            dec = degreeToDecimal(deg)
+            if identifier in ['N', 'S']:
+                line = [
+                    (minx, dec),
+                    (maxx, dec)
+                ]
+            else:
+                line = [
+                    (dec, miny),
+                    (dec, maxy)
+                ]
+
+            lines.append((identifier, line))
+
+        return {'polygon': decodeLine(boundary, lines)}
+
+    if mode == 'circle':
+        point, (width, unit) = locations
+        center = [degreeToDecimal(point[1]), degreeToDecimal(point[0])]
+        width = int(width) * 1.852 if unit == 'NM' else int(width)
+        return {'circle': {'center': center, 'radius': width}}
+
+    if mode == 'corridor':
+        points, (width, unit) = locations
+        line = [(degreeToDecimal(lng), degreeToDecimal(lat)) for lat, lng in points]
+        width = int(width) * 1.852 if unit == 'NM' else int(width)
+        return {'corridor': {'line': line, 'radius': width}}
+
+    if mode == 'entire':
+        return {'polygon': boundaries}
 
 class EncodeSigmetArea(object):
 

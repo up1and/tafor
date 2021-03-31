@@ -6,6 +6,7 @@ from tafor.utils import boolean
 
 
 class BaseEditor(QDialog):
+
     previewSignal = pyqtSignal(dict)
 
     def __init__(self, parent=None, sender=None):

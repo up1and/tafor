@@ -3,7 +3,7 @@ import datetime
 from uuid import uuid4
 
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QCoreApplication, QTimer
+from PyQt5.QtCore import QCoreApplication, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QMessageBox, QVBoxLayout, QLayout
 
 from tafor import conf
@@ -55,32 +55,21 @@ class BaseTafEditor(BaseEditor):
         self.tempo3.hide()
 
     def bindSignal(self):
-        self.primary.fmCheckbox.toggled.connect(lambda: self.addGroup(self.primary.fmCheckbox))
-        self.primary.becmg1Checkbox.toggled.connect(lambda: self.addGroup(self.primary.becmg1Checkbox))
-        self.primary.becmg2Checkbox.toggled.connect(lambda: self.addGroup(self.primary.becmg2Checkbox))
-        self.primary.becmg3Checkbox.toggled.connect(lambda: self.addGroup(self.primary.becmg3Checkbox))
-        self.primary.tempo1Checkbox.toggled.connect(lambda: self.addGroup(self.primary.tempo1Checkbox))
-        self.primary.tempo2Checkbox.toggled.connect(lambda: self.addGroup(self.primary.tempo2Checkbox))
-        self.primary.tempo3Checkbox.toggled.connect(lambda: self.addGroup(self.primary.tempo3Checkbox))
+        checkboxs = [
+            self.primary.fmCheckbox, 
+            self.primary.becmg1Checkbox, self.primary.becmg2Checkbox, self.primary.becmg3Checkbox,
+            self.primary.tempo1Checkbox, self.primary.tempo2Checkbox, self.primary.tempo3Checkbox
+        ]
 
-        self.primary.fmCheckbox.toggled.connect(self.fm.checkComplete)
-        self.primary.becmg1Checkbox.toggled.connect(self.becmg1.checkComplete)
-        self.primary.becmg2Checkbox.toggled.connect(self.becmg2.checkComplete)
-        self.primary.becmg3Checkbox.toggled.connect(self.becmg3.checkComplete)
-        self.primary.tempo1Checkbox.toggled.connect(self.tempo1.checkComplete)
-        self.primary.tempo2Checkbox.toggled.connect(self.tempo2.checkComplete)
-        self.primary.tempo3Checkbox.toggled.connect(self.tempo3.checkComplete)
+        for c in checkboxs:
+            c.toggled.connect(lambda: self.addGroup(c))
+            c.toggled.connect(self.enbaleNextButton)
+
+        self.primary.contentChanged.connect(self.enbaleNextButton)
+        for segment in self.becmgs + self.tempos:
+            segment.contentChanged.connect(self.enbaleNextButton)
 
         self.primary.period.textChanged.connect(self.clear)
-
-        self.primary.completeSignal.connect(self.enbaleNextButton)
-        self.fm.completeSignal.connect(self.enbaleNextButton)
-        self.becmg1.completeSignal.connect(self.enbaleNextButton)
-        self.becmg2.completeSignal.connect(self.enbaleNextButton)
-        self.becmg3.completeSignal.connect(self.enbaleNextButton)
-        self.tempo1.completeSignal.connect(self.enbaleNextButton)
-        self.tempo2.completeSignal.connect(self.enbaleNextButton)
-        self.tempo3.completeSignal.connect(self.enbaleNextButton)
 
         # 下一步
         self.nextButton.clicked.connect(self.beforeNext)
@@ -163,38 +152,39 @@ class BaseTafEditor(BaseEditor):
         if self.primary.tempo3Checkbox.isChecked():
             self.tempo3.validate()
 
-        if self.enbale:
+        if self.hasAcceptableInput():
             self.assembleMessage()
             self.previewMessage()
 
-    def enbaleNextButton(self):
-        # 允许下一步
-        completes = [self.primary.complete]
+    def hasAcceptableInput(self):
+        acceptables = [self.primary.hasAcceptableInput()]
 
         if self.primary.fmCheckbox.isChecked():
-            completes.append(self.fm.complete)
+            acceptables.append(self.fm.hasAcceptableInput())
 
         if self.primary.becmg1Checkbox.isChecked():
-            completes.append(self.becmg1.complete)
+            completes.append(self.becmg1.hasAcceptableInput())
 
         if self.primary.becmg2Checkbox.isChecked():
-            completes.append(self.becmg2.complete)
+            completes.append(self.becmg2.hasAcceptableInput())
 
         if self.primary.becmg3Checkbox.isChecked():
-            completes.append(self.becmg3.complete)
+            completes.append(self.becmg3.hasAcceptableInput())
 
         if self.primary.tempo1Checkbox.isChecked():
-            completes.append(self.tempo1.complete)
+            completes.append(self.tempo1.hasAcceptableInput())
 
         if self.primary.tempo2Checkbox.isChecked():
-            completes.append(self.tempo2.complete)
+            completes.append(self.tempo2.hasAcceptableInput())
 
         if self.primary.tempo3Checkbox.isChecked():
-            completes.append(self.tempo3.complete)
+            completes.append(self.tempo3.hasAcceptableInput())
 
-        self.enbale = all(completes)
+        return all(acceptables)
 
-        self.nextButton.setEnabled(self.enbale)
+    def enbaleNextButton(self):
+        # 允许下一步
+        self.nextButton.setEnabled(self.hasAcceptableInput())
 
     def clear(self):
         self.primary.clear()

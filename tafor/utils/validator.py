@@ -1424,15 +1424,15 @@ class SigmetParser(object):
         if 'AIRMET' in self.message:
             return 'WA'
 
-        if self.type() == 'ash':
+        if self.phenomenon() == 'ash':
             return 'WV'
 
-        if self.type() == 'typhoon':
+        if self.phenomenon() == 'typhoon':
             return 'WC'
 
         return 'WS'
 
-    def type(self):
+    def phenomenon(self):
         text = 'other'
         patterns = {
             'ts': re.compile(r'\b(TS|TSGR)\b'),
@@ -1465,7 +1465,7 @@ class SigmetParser(object):
         pattern = self.grammar.valid
         return pattern.search(self.message).groups()
 
-    def area(self, mode='object'):
+    def location(self, mode='object'):
         patterns = {
             'polygon': self.grammar.polygon,
             'line': self.grammar.lines,
@@ -1474,9 +1474,9 @@ class SigmetParser(object):
             'circle': self.grammar.circle,
             'entire': re.compile('ENTIRE')
         }
-        areas = {
-            'default': {'area': [], 'type': 'unknow'},
-            'forecast': {'area': [], 'type': 'unknow'}
+        locations = {
+            'default': {'location': [], 'type': 'unknow'},
+            'forecast': {'location': [], 'type': 'unknow'}
         }
         orders = ['default', 'forecast']
 
@@ -1488,13 +1488,13 @@ class SigmetParser(object):
             for i, match in enumerate(pattern.finditer(self.message)):
                 text = match.group()
                 order = orders[i]
-                item = self._parseArea(key, text) if mode == 'object' else text
-                areas[order]['type'] = key
-                areas[order]['area'] = item
+                item = self._parseLocation(key, text) if mode == 'object' else text
+                locations[order]['type'] = key
+                locations[order]['location'] = item
 
-        return areas
+        return locations
 
-    def _parseArea(self, key, text):
+    def _parseLocation(self, key, text):
         if key == 'polygon':
             point = self.grammar.point
             points = point.findall(text)

@@ -36,7 +36,7 @@ class TrendEditor(BaseEditor):
         self.trend.metar.setStyleSheet('QLabel {color: grey;}')
 
     def bindSignal(self):
-        self.trend.completeSignal.connect(self.enbaleNextButton)
+        self.trend.contentChanged.connect(self.enbaleNextButton)
 
         # 下一步
         self.nextButton.clicked.connect(self.beforeNext)

@@ -33,19 +33,19 @@ def remoteMessage(url):
 
     return {}
 
-def firInfo(url):
+def layerInfo(url):
     try:
         r = requests.get(url, headers=_headers, timeout=30)
         if r.status_code == 200:
             data = r.json()
-            for layer in data['layers']:
+            for layer in data:
                 imageUrl = layer['image']
                 try:
                     req = requests.get(imageUrl)
                     layer['image'] = req.content
                 except Exception as e:
                     layer['image'] = None
-            return data
+            return {'layers': data}
         else:
             logger.warn('GET {} 404 Not Found'.format(url))
 
@@ -113,11 +113,11 @@ class WorkThread(QThread):
             context.callService.setState(callService(url))
 
 
-class FirInfoThread(QThread):
+class LayerThread(QThread):
 
     def run(self):
         url = conf.value('Monitor/FirApiURL')
-        context.fir.setState(firInfo(url))
+        context.fir.setState(layerInfo(url))
 
 
 class CallThread(QThread):

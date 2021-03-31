@@ -28,18 +28,18 @@ class SegmentMixin(object):
 
     def defaultSignal(self):
         for line in self.findChildren(QLineEdit):
-            line.textChanged.connect(self.checkComplete)
+            line.textChanged.connect(lambda: self.contentChanged.emit())
             # line.textEdited.connect(lambda: self.upperText(line))
             # line.textEdited.connect(lambda: self.coloredText(line))
 
         for combox in self.findChildren(QComboBox):
-            combox.currentTextChanged.connect(self.checkComplete)
+            combox.currentTextChanged.connect(lambda: self.contentChanged.emit())
 
         for button in self.findChildren(QRadioButton):
-            button.clicked.connect(self.checkComplete)
+            button.clicked.connect(lambda: self.contentChanged.emit())
 
         for checkbox in self.findChildren(QCheckBox):
-            checkbox.clicked.connect(self.checkComplete)
+            checkbox.clicked.connect(lambda: self.contentChanged.emit())
 
     def clear(self):
         # 部分组件不能用
@@ -53,14 +53,14 @@ class SegmentMixin(object):
             checkbox.setChecked(False)
 
 
-class BaseSegment(QWidget, SegmentMixin):
-    completeSignal = pyqtSignal(bool)
+class BaseSegment(SegmentMixin, QWidget):
+
+    contentChanged = pyqtSignal()
 
     def __init__(self, name=None, parent=None):
         super(BaseSegment, self).__init__()
         self.rules = Pattern()
         self.parent = parent
-        self.complete = False
         self.identifier = ''.join(c for c in name if c.isalpha())
         self.durations = None
         self.periodText = ''
@@ -329,7 +329,7 @@ class BaseSegment(QWidget, SegmentMixin):
             messages = [winds, vis, weatherWithIntensity, weather] + clouds
         self.text = ' '.join(filter(None, messages))
 
-    def checkComplete(self):
+    def hasAcceptableInput(self):
         raise NotImplementedError
 
     def clear(self):
@@ -345,7 +345,9 @@ class BaseSegment(QWidget, SegmentMixin):
         self.durations = None
 
 
-class TemperatureGroup(QWidget, SegmentMixin):
+class TemperatureGroup(SegmentMixin, QWidget):
+
+    temperatureChanged = pyqtSignal()
 
     def __init__(self, mode='max', canSwitch=False, parent=None):
         super(TemperatureGroup, self).__init__(parent)
@@ -395,8 +397,8 @@ class TemperatureGroup(QWidget, SegmentMixin):
         self.tempTime.editingFinished.connect(self.validateTemperatureTime)
         self.temp.editingFinished.connect(self.validateTemperature)
 
-        self.temp.textChanged.connect(self.parent.checkComplete)
-        self.tempTime.textChanged.connect(self.parent.checkComplete)
+        self.temp.textChanged.connect(lambda : self.temperatureChanged.emit())
+        self.tempTime.textChanged.connect(lambda : self.temperatureChanged.emit())
 
     def setValidator(self):
         temperature = QRegExpValidator(QRegExp(self.parent.rules.temperature, Qt.CaseInsensitive))
@@ -566,6 +568,9 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.date.textEdited.connect(lambda: self.coloredText(self.date))
         self.sequence.textEdited.connect(lambda: self.coloredText(self.sequence))
 
+        for t in self.temperatures:
+            t.temperatureChanged.connect(lambda: self.contentChanged.emit())
+
         self.timer = QTimer()
         self.timer.timeout.connect(self.setDate)
         self.timer.start(1 * 1000)
@@ -683,8 +688,8 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         temperatures = sorted(temperatures, key=lambda e: (priority(e.mode), e.time))
         return temperatures
 
-    def checkComplete(self):
-        self.complete = False
+    def hasAcceptableInput(self):
+        acceptable = False
         tempRequired = [t.hasAcceptableInput() for t in self.temperatures]
         mustRequired = [
             self.date.hasAcceptableInput(),
@@ -701,15 +706,15 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
         if all(mustRequired):
             if self.cavok.isChecked():
-                self.complete = True
+                acceptable = True
             elif self.vis.hasAcceptableInput() and any(oneRequired):
-                self.complete = True
+                acceptable = True
 
         if self.cor.isChecked() and not self.sequence.hasAcceptableInput():
-            self.complete = False
+            acceptable = False
 
         if self.amd.isChecked() and not self.sequence.hasAcceptableInput():
-            self.complete = False
+            acceptable = False
 
         if self.cnl.isChecked():
             mustRequired = [
@@ -718,9 +723,9 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
                 self.sequence.hasAcceptableInput(),
             ]
             if all(mustRequired):
-                self.complete = True
+                acceptable = True
 
-        self.completeSignal.emit(self.complete)
+        return acceptable
 
     def message(self):
         super(TafPrimarySegment, self).message()
@@ -920,8 +925,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
             self.period.clear()
             self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time is overlap'))
 
-    def checkComplete(self):
-        self.complete = False
+    def hasAcceptableInput(self):
         oneRequired = (
             self.nsc.isChecked(),
             self.cavok.isChecked(),
@@ -935,10 +939,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
             self.cb.hasAcceptableInput()
         )
 
-        if self.period.hasAcceptableInput() and any(oneRequired):
-            self.complete = True
-
-        self.completeSignal.emit(self.complete)
+        return self.period.hasAcceptableInput() and any(oneRequired)
 
     def showEvent(self, event):
         self.setPeriodPlaceholder()
@@ -1000,8 +1001,8 @@ class TafFmSegment(TafGroupSegment):
             self.period.clear()
             self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time is overlap'))
 
-    def checkComplete(self):
-        self.complete = False
+    def hasAcceptableInput(self):
+        acceptable = False
         hasWeather = self.weather.lineEdit().hasAcceptableInput() and self.weather.currentText() \
             or self.weatherWithIntensity.lineEdit().hasAcceptableInput() and self.weatherWithIntensity.currentText()
         mustRequired = [
@@ -1018,11 +1019,11 @@ class TafFmSegment(TafGroupSegment):
 
         if all(mustRequired):
             if self.cavok.isChecked():
-                self.complete = True
+                acceptable = True
             elif self.vis.hasAcceptableInput() and hasWeather and any(oneRequired):
-                self.complete = True
+                acceptable = True
 
-        self.completeSignal.emit(self.complete)
+        return acceptable
 
     def message(self):
         super(TafFmSegment, self).message()
@@ -1206,8 +1207,8 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         else:
             self.at.setEnabled(True)
 
-    def checkComplete(self):
-        self.complete = False
+    def hasAcceptableInput(self):
+        acceptable = False
         oneRequired = (
             self.nsc.isChecked(),
             self.cavok.isChecked(),
@@ -1228,16 +1229,16 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         )
 
         if self.nosig.isChecked():
-            self.complete = True
+            acceptable = True
 
         if any(oneRequired):
             if any(prefixChecked):
                 if self.period.hasAcceptableInput():
-                    self.complete = True
+                    acceptable = True
             else:
-                self.complete = True
+                acceptable = True
 
-        self.completeSignal.emit(self.complete)
+        return acceptable
 
     def message(self):
         super(TrendSegment, self).message()
