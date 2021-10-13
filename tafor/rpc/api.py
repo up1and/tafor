@@ -5,7 +5,7 @@ import falcon
 
 from uuid import uuid4
 
-from tafor import root, conf
+from tafor import root, conf, logger
 from tafor.states import context
 from tafor.utils import boolean, TafParser, SigmetParser, MetarParser, AFTNMessageGenerator
 
@@ -89,6 +89,13 @@ def authorize(req, resp, resource, params):
     else:
         description = ('The provided auth token is not valid. Please request a new token and try again.')
         raise falcon.HTTPUnauthorized('Authentication Required', description, challenges)
+
+
+class LoggerComponent(object):
+
+    def process_response(self, req, resp, resource, req_succeeded):
+        logger.info('Request {} - "{} {}" {}'.format(req.remote_addr, req.method, req.relative_uri, resp.status))
+        logger.debug('Response {}'.format(resp.media))
 
 
 class CORSComponent(object):
@@ -201,6 +208,7 @@ class NotificationResource(object):
 
 class ValidateResource(object):
 
+    @falcon.before(authorize)
     def on_get(self, req, resp):
         message = req.get_param('message') or req.context.body.get('message') or ''
         message = message.strip()
@@ -270,7 +278,7 @@ class OtherResource(object):
         }
 
 
-middleware = [CORSComponent(), JSONComponent()]
+middleware = [CORSComponent(), JSONComponent(), LoggerComponent()]
 server = falcon.API(middleware=middleware)
 
 main = MainResource()
