@@ -698,7 +698,7 @@ class TafParser(object):
             self._regroup()
             self._refs()
             self._validateElements()
-        except Exception:
+        except Exception as e:
             self.failed = True
             self.tips.append('报文无法被正确解析')
 
@@ -811,9 +811,9 @@ class TafParser(object):
 
             # 检查阵性降水和积雨云
             cloud = mixture['cloud']['text']
-            if ('TS' in weather or 'SH' in weather) and 'CB' not in cloud:
+            if ('TS' in weather or 'SH' in weather) and not ('CB' in cloud or 'TCU' in cloud):
                 tokens['weather']['error'] = True
-                self.tips.append('阵性降水应包含 CB')
+                self.tips.append('阵性降水应包含对流云')
 
             if 'NSW' in weathers and len(weathers) > 1:
                 tokens['weather']['error'] = True
@@ -829,12 +829,12 @@ class TafParser(object):
             # 检查云组转折天气现象的匹配
             weather = mixture['weather']['text']
             cloud = tokens['cloud']['text']
-            if ('TS' in weather or 'SH' in weather) and 'CB' not in cloud:
+            if ('TS' in weather or 'SH' in weather) and not ('CB' in cloud or 'TCU' in cloud):
                 tokens['cloud']['error'] = True
-                self.tips.append('阵性降水应包含 CB')
+                self.tips.append('阵性降水应包含对流云')
 
             # 不同高度云组云量的验证
-            clouds = [c for c in cloud.split() if 'CB' not in c]
+            clouds = [c for c in cloud.split() if not ('CB' in c or 'TCU' in c)]
 
             for i, cloud in enumerate(clouds):
                 if i == 1 and 'FEW' in cloud:
@@ -1041,8 +1041,11 @@ class MetarParser(TafParser):
                     text = periods[0]
                     if text.startswith('FM'):
                         e.period = (parseTime(text[2:], basetime), self.primary.period[1])
-                    elif text.startswith('TL'):
+                    if text.startswith('TL'):
                         e.period = (basetime, parseTime(text[2:], basetime))
+                    if text.startswith('AT'):
+                        time = parseTime(text[2:], basetime)
+                        e.period = (time, time)
             else:
                 e.period = self.primary.period
 
@@ -1051,6 +1054,9 @@ class MetarParser(TafParser):
         origin = ' '.join(self.message.split())
         output = self.renderer(full=False).replace('\n', ' ')
         return not origin.endswith(output)
+
+    def hasTrend(self):
+        return self.becmgs or self.tempos
 
     def renderer(self, style='plain', full=True):
         """将解析后的报文重新渲染
