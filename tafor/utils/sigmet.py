@@ -5,6 +5,10 @@ from itertools import chain
 from shapely.ops import split
 from shapely.geometry import Polygon, LineString, MultiLineString, Point
 
+from pyproj import Geod
+
+
+wgs84 = Geod(ellps='WGS84')
 
 def centroid(points):
     point = [0, 0]
@@ -26,6 +30,18 @@ def bearing(origin, point):
 def distance(p1, p2):
     length = (p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2
     return math.sqrt(length)
+
+def buffer(lines, dist):
+    line = LineString(lines)
+    center = line.centroid
+    _, lat, _ =wgs84.fwd(center.x, center.y, 0, dist)
+    lon, _, _ =wgs84.fwd(center.x, center.y, 90, dist)
+    deg = (lat - center.x + lon - center.y) / 2
+
+    polygon = line.buffer(deg, cap_style=2, join_style=2)
+    if polygon.is_empty:
+        return []
+    return list(polygon.exterior.coords)
 
 def perpendicularFoot(p1, p2, p3):
     ratio = ((p3[0]- p1[0]) * (p2[0] - p1[0]) + (p3[1] - p1[1]) * (p2[1] - p1[1])) / ((p2[0] - p1[0]) * (p2[0] - p1[0]) + (p2[1] - p1[1]) * (p2[1] - p1[1]))
@@ -136,7 +152,7 @@ class SimplifyPolygon(object):
     def __init__(self, maxPoint=7, extend=False):
         self.maxPoint = maxPoint
         self.extend = extend
-        self.tolerance = 3
+        self.tolerance = 1
 
     def simplify(self, points):
         polygon = Polygon(points) if isinstance(points, list) else points
@@ -205,6 +221,7 @@ class SimplifyPolygon(object):
         return outputs
 
     def expand(self, points):
+        # this method should rewrite
         simples = self.simplify(points)
         simples = simples[:-1]
 
@@ -286,38 +303,29 @@ def decodeLine(boundary, lines):
 
     return list(current.exterior.coords)
 
-# def decodeCircle(center, radius):
-#     polygon = Point(*center).buffer(radius)
-#     return list(polygon.exterior.coords)
+def circle(center, radius):
+    circles = []
+    for i in range(0, 360):
+        lon, lat, _ = wgs84.fwd(center[0], center[1], i, radius)
+        circles.append([lon, lat])
 
-# def decodeCorridor(boundary, points, radius, trim):
-#     polygon = LineString(points).buffer(radius, cap_style=2, join_style=2)
-#     if trim:
-#         polygon = polygon.intersection(boundary)
-#     return list(polygon.exterior.coords)
+    return circles
 
-# def distanceToDegree(latitude, width, unit='KM'):
-#     circumference = math.cos(latitude * math.pi / 180) * 2 * math.pi * 6378.137
-#     width = int(width)
-#     if unit == 'NM':
-#         width = width * 1.852
-
-#     return 360 / circumference * width
-
-def decodeSigmetLocation(boundaries, locations, mode, trim=True):
+def decode(boundaries, locations, mode, trim=True):
     from tafor.utils.convert import degreeToDecimal
     boundary = Polygon(boundaries)
 
     if mode == 'polygon':
-        return {'polygon': decodePolygon(boundary, locations, trim)}
+        points = [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in locations]
+        return decodePolygon(boundary, points, trim)
 
     if mode == 'line':
         lines = []
         for identifier, *points in locations:
-            points = [(degreeToDecimal(lng), degreeToDecimal(lat)) for lat, lng in points]
+            points = [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in points]
             lines.append((identifier, points))
 
-        return {'polygon': decodeLine(boundary, lines)}
+        return decodeLine(boundary, lines)
 
     if mode == 'rectangular':
         lines = []
@@ -337,22 +345,22 @@ def decodeSigmetLocation(boundaries, locations, mode, trim=True):
 
             lines.append((identifier, line))
 
-        return {'polygon': decodeLine(boundary, lines)}
+        return decodeLine(boundary, lines)
 
     if mode == 'circle':
-        point, (width, unit) = locations
+        point, (radius, unit) = locations
         center = [degreeToDecimal(point[1]), degreeToDecimal(point[0])]
-        width = int(width) * 1.852 if unit == 'NM' else int(width)
-        return {'circle': {'center': center, 'radius': width}}
+        width = int(radius) * 1.852 if unit == 'NM' else int(radius)
+        return circle(center, width * 1000) 
 
     if mode == 'corridor':
-        points, (width, unit) = locations
-        line = [(degreeToDecimal(lng), degreeToDecimal(lat)) for lat, lng in points]
-        width = int(width) * 1.852 if unit == 'NM' else int(width)
-        return {'corridor': {'line': line, 'radius': width}}
+        points, (radius, unit) = locations
+        lines = [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in points]
+        width = int(radius) * 1.852 if unit == 'NM' else int(radius)
+        return buffer(lines, width * 1000)
 
     if mode == 'entire':
-        return {'polygon': boundaries}
+        return boundaries
 
 class EncodeSigmetArea(object):
 
@@ -439,6 +447,7 @@ class EncodeSigmetArea(object):
             return []
 
         segment = self.createArea(lines)
+
         return segment
 
     def encode(self):
@@ -449,5 +458,5 @@ class EncodeSigmetArea(object):
             return self.line()
 
 
-def encodeSigmetArea(boundaries, area, mode='rectangular'):
+def encode(boundaries, area, mode='rectangular'):
     return EncodeSigmetArea(boundaries, area, mode=mode).encode()

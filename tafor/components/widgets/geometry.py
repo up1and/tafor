@@ -1,116 +1,82 @@
-from PyQt5.QtGui import QPen, QColor, QPolygon, QBrush, QPolygonF, QPainterPath, QPixmap
-from PyQt5.QtCore import Qt, QPoint, QPointF
-from PyQt5.QtWidgets import QGraphicsPolygonItem, QGraphicsEllipseItem, QGraphicsPathItem, QGraphicsLineItem, QGraphicsPixmapItem
+from PyQt5.QtGui import QPen, QColor, QBrush, QPolygonF, QPainterPath, QPixmap, QFont
+from PyQt5.QtCore import Qt, QPointF, QRectF
+from PyQt5.QtWidgets import QGraphicsItem, QGraphicsPolygonItem, QGraphicsPixmapItem
 
 
-class PlottedPoint(QGraphicsEllipseItem):
+class CanvasMixin(object):
 
-    def __init__(self, center, radius=2):
-        super(PlottedPoint, self).__init__()
-        self.setRect(center.x() - radius, center.y() - radius, radius * 2.0, radius * 2.0)
-        self.setPen(QPen(QColor(0, 0, 0, 127), 1))
-        self.setBrush(QBrush(Qt.white, 1))
-
-
-class PlottedCircle(QGraphicsEllipseItem):
-
-    def __init__(self, center, radius, color=Qt.yellow):
-        super(PlottedCircle, self).__init__()
-        self.setRect(center.x() - radius, center.y() - radius, radius * 2.0, radius * 2.0)
-        self.setPen(QPen(Qt.white))
-        self.setBrush(QBrush(color))
-
-
-class PlottedLine(QGraphicsLineItem):
-
-    def __init__(self, point1, point2):
-        super(PlottedLine, self).__init__()
-        self.setLine(point1.x(), point1.y(), point2.x(), point2.y())
-        self.setPen(QPen(Qt.white, 1, Qt.DashLine))
-
-
-class PlottedShadowLine(QGraphicsLineItem):
-
-    def __init__(self, point1, point2):
-        super(PlottedShadowLine, self).__init__()
-        self.setLine(point1.x(), point1.y(), point2.x(), point2.y())
-        self.setPen(QPen(QColor(0, 0, 0, 127), 2))
-
-
-class PlottedPolygon(QGraphicsPolygonItem):
-
-    def __init__(self, coordinates, color=Qt.yellow):
-        super(PlottedPolygon, self).__init__()
-        polygon = QPolygonF()
-        for p in coordinates:
-            polygon.append(p)
-
-        self.setPolygon(polygon)
-        brush = QBrush(color)
-        self.setBrush(brush)
-        self.setPen(QPen(Qt.white))
-
-
-class Polygon(QGraphicsPolygonItem):
-
-    def __init__(self, lonlats):
-        super(Polygon, self).__init__()
-        self.lonlats = lonlats
-        self.setZValue(1)
-
-    def addTo(self, canvas, group):
-        self.coordinates = QPolygonF()
-        for lon, lat in self.lonlats:
+    def toCanvasCoordinates(self, canvas, lonlats):
+        coordinates = QPolygonF()
+        for lon, lat in lonlats:
             px, py = canvas.toCanvasCoordinates(lon, lat)
             if px > 1e+10:
                 continue
-            self.coordinates.append(QPointF(px, py))
+            coordinates.append(QPointF(px, py))
 
-        self.setPolygon(self.coordinates)
+        if len(coordinates) == 1:
+            coordinates = coordinates[0]
+        
+        return coordinates
+
+    def toCanvasGeometry(self, canvas, geometry):
+        lonlats = geometry['coordinates']
+        if geometry['type'] == 'Point':
+            lonlats = [lonlats]
+
+        points = []
+        for lon, lat in lonlats:
+            px, py = canvas.toCanvasCoordinates(lon, lat)
+            if px > 1e+10:
+                continue
+            points.append(QPointF(px, py))
+
+        if geometry['type'] == 'Point':
+            shape = points[0]
+
+        if geometry['type'] == 'LineString':
+            shape = QPainterPath()
+            for i, p in enumerate(points):
+                if i == 0:
+                    shape.moveTo(p)
+
+                shape.lineTo(p)
+
+        if geometry['type'] == 'Polygon':
+            shape = QPolygonF(points)
+
+        return shape
+
+
+class Polygon(QGraphicsPolygonItem, CanvasMixin):
+
+    def __init__(self, geometry):
+        super(Polygon, self).__init__()
+        self.geometry = geometry
+
+    def addTo(self, canvas, group):
+        polygon = self.toCanvasGeometry(canvas, self.geometry)
+        self.setPolygon(polygon)
         group.append(self)
 
 
 class Country(Polygon):
 
-    def __init__(self, lonlats):
-        super(Country, self).__init__(lonlats)
+    def __init__(self, geometry):
+        super(Country, self).__init__(geometry)
         self.pen = QPen(QColor(130, 130, 130))
         self.brush = QBrush(QColor(219, 219, 219))
         self.setPen(self.pen)
         self.setBrush(self.brush)
 
 
-# class Coastline(Polygon):
+class Coastline(Polygon):
 
-#     def __init__(self, lonlats):
-#         super(Coastline, self).__init__(lonlats)
-#         self.pen = QPen(QColor(130, 130, 130))
-#         self.setPen(self.pen)
-
-
-class Coastline(QGraphicsPathItem):
-
-    def __init__(self, lonlats):
-        super(Coastline, self).__init__()
-        self.lonlats = lonlats
+    def __init__(self, geometry):
+        super(Coastline, self).__init__(geometry)
+        self.geometry = geometry
         self.setZValue(1)
         # self.pen = QPen(QColor(130, 130, 130))
         # self.setPen(self.pen)
-
-    def addTo(self, canvas, group):
-        path = QPainterPath()
-        for i, (lon, lat) in enumerate(self.lonlats):
-            px, py = canvas.toCanvasCoordinates(lon, lat)
-            if px > 1e+10:
-                continue
-
-            if i == 0:
-                path.moveTo(QPointF(px, py))
-
-            path.lineTo(QPointF(px, py))
-
-        self.setPath(path)
-        group.append(self)
 
 
 class BackgroundImage(QGraphicsPixmapItem):
@@ -138,20 +104,110 @@ class BackgroundImage(QGraphicsPixmapItem):
 
 class Fir(Polygon):
 
-    def __init__(self, lonlats):
-        super(Fir, self).__init__(lonlats)
-        self.pen = QPen(QColor(255, 255, 255))
-        # self.brush = QBrush(QColor(255, 255, 255, 75))
-        self.setPen(self.pen)
-        # self.setBrush(self.brush)
+    def __init__(self, geometry):
+        super(Fir, self).__init__(geometry)
+        pen = QPen(QColor(200, 200, 200))
+        self.setPen(pen)
 
 
-class SigmetLocation(Polygon):
+class SketchGraphic(QGraphicsItem, CanvasMixin):
 
-    def __init__(self, lonlats):
-        super(SigmetLocation, self).__init__(lonlats)
-        self.pen = QPen(QColor(128, 128, 128))
-        self.brush = QBrush(QColor(255, 255, 255, 75))
-        self.setPen(self.pen)
-        self.setBrush(self.brush)
+    def __init__(self, geo=None):
+        super(SketchGraphic, self).__init__()
+        self.geo = geo
+        self.geometries = []
+
+    def boundingRect(self):
+        rect = QRectF()
+        for g in self.geometries:
+            if isinstance(g, QPointF):
+                grect = QRectF(g.x(), g.y(), 1, 1).normalized()
+            else:
+                grect = g.boundingRect()
+            rect = rect.united(grect)
+        return rect
+
+    def paint(self, painter, option, widget):
+        for i, g in enumerate(self.geometries):
+            if isinstance(g, QPointF):
+                radius = 2
+                painter.setPen(QPen(QColor(0, 0, 0, 127), 1))
+                painter.setBrush(QBrush(Qt.white, 1))
+                painter.drawEllipse(g.x() - radius, g.y() - radius, radius * 2.0, radius * 2.0)
+
+            if isinstance(g, QPolygonF):
+                colors = [QColor(240, 156, 0, 178), QColor(154, 205, 50, 100)]
+                idx = i % 2
+                color = colors[idx]
+                brush = QBrush(color)
+                painter.setBrush(brush)
+                painter.setPen(QPen(Qt.white))
+                painter.drawPolygon(g)
+
+            if isinstance(g, QPainterPath):
+                painter.setPen(QPen(Qt.white, 3))
+                painter.drawPath(g)
+                painter.setPen(QPen(QColor(0, 0, 0, 127), 2, Qt.DashLine))
+                painter.drawPath(g)
+
+    def updateGeometry(self, geo, canvas):
+        self.geo = geo
+        self.geometries = []
+        for geo in self.geo['geometries']:
+            shape = self.toCanvasGeometry(canvas, geo)
+            self.geometries.append(shape)
+
+
+class Sigmet(QGraphicsItem, CanvasMixin):
+
+    def __init__(self, geo):
+        super(Sigmet, self).__init__()
+        self.geo = geo
+        self.geometries = []
+        brushes = {
+            'ts': QBrush(QColor(240, 156, 0, 100)),
+            'turb': QBrush(QColor(37, 238, 44, 100)),
+            'ice': QBrush(QColor(67, 255, 255, 100)),
+            'ash': QBrush(QColor(250, 0, 25, 100)),
+            'typhoon': QBrush(QColor(250, 50, 250, 100)),
+            'other': QBrush(QColor(250, 250, 50, 100))
+        }
+
+        phenomenon = self.geo['properties']['phenomenon']
+        self.palettes = [
+            [QPen(QColor(204, 204, 204), 1, Qt.DashLine), brushes.get(phenomenon, brushes['other'])],
+            [QPen(QColor(204, 204, 204, 150), 0, Qt.DashLine), QBrush(QColor(154, 205, 50, 70))]
+        ]
+
+    def boundingRect(self):
+        rect = QRectF()
+        for g in self.geometries:
+            rect = rect.united(g.boundingRect())
+        return rect
+
+    def paint(self, painter, option, widget):
+        for i, geo in enumerate(self.geometries):
+            idx = i % 2
+            pen, brush = self.palettes[idx]
+            painter.setPen(pen)
+            painter.setBrush(brush)
+            painter.drawPolygon(geo)
+
+        sequence = self.geo['properties']['sequence']
+        path = QPainterPath()
+        font = QFont()
+        font.setBold(True)
+        path.addText(self.boundingRect().center(), font, sequence)
+        pen = QPen(QColor(0, 0, 0, 120))
+        brush = QBrush(Qt.white)
+        painter.strokePath(path, pen)
+        painter.fillPath(path, brush)
+
+    def addTo(self, canvas, group):
+        polygons = self.geo['geometry']['coordinates']
+        for polygon in polygons:
+            geometry = {'type': 'Polygon', 'coordinates': polygon}
+            geo = self.toCanvasGeometry(canvas, geometry)
+            self.geometries.append(geo)
         
+        group.append(self)

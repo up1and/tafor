@@ -1474,25 +1474,23 @@ class SigmetParser(object):
             'circle': self.grammar.circle,
             'entire': re.compile('ENTIRE')
         }
-        locations = {
-            'default': {'location': [], 'type': 'unknow'},
-            'forecast': {'location': [], 'type': 'unknow'}
-        }
-        orders = ['default', 'forecast']
 
+        geometries = []
         for key, pattern in patterns.items():
             m = pattern.search(self.message)
             if not m:
                 continue
 
-            for i, match in enumerate(pattern.finditer(self.message)):
+            for match in pattern.finditer(self.message):
                 text = match.group()
-                order = orders[i]
                 item = self._parseLocation(key, text) if mode == 'object' else text
-                locations[order]['type'] = key
-                locations[order]['location'] = item
+                geometry = {
+                    'type': key,
+                    'coordinates': item
+                }
+                geometries.append(geometry)
 
-        return locations
+        return geometries
 
     def _parseLocation(self, key, text):
         if key == 'polygon':
@@ -1537,6 +1535,32 @@ class SigmetParser(object):
             return center.groups(), width.groups()
 
         return []
+
+    def geo(self, boundaries, trim=None):
+        from tafor.utils.sigmet import decode
+        features = {
+            'type': 'Feature',
+            'geometry': {
+                'type': 'Polygon',
+                'coordinates': []
+            },
+            'properties': {
+                'sequence': self.sequence(),
+                'valids': self.valids(),
+                'phenomenon': self.phenomenon()
+            }
+        }
+
+        locations = self.location()
+        if len(locations) > 1:
+            features['geometry']['type'] = 'MultiPolygon'
+
+        for item in locations:
+            polygon = decode(boundaries, item['coordinates'], mode=item['type'], trim=trim)
+            features['geometry']['coordinates'].append(polygon)
+
+        return features
+        
 
     def content(self):
         outputs = [e.renderer() for e in self.elements]

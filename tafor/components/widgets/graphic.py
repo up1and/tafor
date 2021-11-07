@@ -1,6 +1,4 @@
 import os
-import sys
-import copy
 import math
 
 import shapefile
@@ -8,55 +6,98 @@ import shapely.geometry
 
 from itertools import cycle
 
-from pyproj import Proj
+from pyproj import Proj, Geod
 
-from PyQt5.QtWidgets import (QWidget, QFrame, QApplication, QVBoxLayout, QHBoxLayout, QGraphicsView, QGraphicsScene, QRubberBand, 
-    QGraphicsPolygonItem, QStyleOptionGraphicsItem, QPushButton, QToolButton, QGraphicsTextItem, QGraphicsItem, QLabel, QMenu, 
-    QActionGroup, QAction, QSpacerItem, QSizePolicy, QGraphicsPixmapItem)
-from PyQt5.QtGui import QIcon, QPainter, QPolygonF, QBrush, QPen, QColor, QPixmap
-from PyQt5.QtCore import QCoreApplication, QObject, QPoint, QPointF, Qt, QRect, QRectF, QSize, QSizeF, pyqtSignal
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView, QGraphicsScene, QRubberBand, 
+    QStyleOptionGraphicsItem, QPushButton, QToolButton, QLabel, QMenu, QActionGroup, QAction)
+from PyQt5.QtGui import QIcon, QPainter
+from PyQt5.QtCore import QCoreApplication, QObject, QPointF, Qt, QRect, QRectF, QSize, pyqtSignal
 
 from tafor import root
 from tafor.states import context
-from tafor.utils.convert import listToPoint, pointToList, decimalToDegree, degreeToDecimal
-from tafor.utils.sigmet import encodeSigmetArea, decodeSigmetLocation, simplifyLine, clipLine, clipPolygon, simplifyPolygon
-from tafor.components.widgets.geometry import BackgroundImage, Coastline, Country, Fir, SigmetLocation, PlottedPoint, PlottedCircle, PlottedLine, PlottedShadowLine, PlottedPolygon
+from tafor.utils.convert import decimalToDegree, degreeToDecimal
+from tafor.utils.sigmet import encode, buffer, circle, simplifyLine, clipLine, clipPolygon, simplifyPolygon
+from tafor.components.widgets.geometry import BackgroundImage, Coastline, Country, Fir, Sigmet, SketchGraphic
 
 
+wgs84 = Geod(ellps='WGS84')
 
-def distanceBetweenPoints(point1, point2):
-    x = point1.x() - point2.x()
-    y = point1.y() - point2.y()
-    return math.sqrt(x ** 2 + y ** 2)
+def distance(start, end):
+    *_, dist = wgs84.inv(start[0], start[1], end[0], end[1])
+    return dist
 
 def bearing(origin, point):
-    return math.atan2(origin.y() - point.y(), origin.x() - point.x())
+    return math.atan2(origin[1] - point[1], origin[0] - point[0])
 
-def centroid(points):
-    point = [0, 0]
 
-    if not points:
-        return point
+class SketchManager(object):
 
-    length = len(points)
-    for p in points:
-        point[0] += p.x()
-        point[1] += p.y()
+    def __init__(self, canvas, sketchNum=2):
+        super(SketchManager).__init__()
+        self.canvas = canvas
+        self.graphic = SketchGraphic()
+        self.sketchs = []
+        self.index = 0
 
-    point = QPointF(point[0] / length, point[1] / length)
-    return point
+        for _ in range(sketchNum):
+            sketch = Sketch(canvas)
+            self.addSketch(sketch)
 
-class Drawing(QObject):
+    def __iter__(self):
+        for s in self.sketchs:
+            yield s
+
+    def addSketch(self, sketch):
+        self.sketchs.append(sketch)
+        sketch.changed.connect(self.update)
+
+    def currentSketch(self):
+        return self.sketchs[self.index]
+
+    def first(self):
+        return self.sketchs[0]
+
+    def last(self):
+        return self.sketchs[-1]
+
+    def update(self):
+        collections = self.geo()
+        self.graphic.updateGeometry(collections, self.canvas)
+
+        if self.graphic.scene():
+            self.canvas.scene.removeItem(self.graphic)
+
+        self.canvas.scene.addItem(self.graphic)
+
+    def geo(self):
+        collections = {
+            'type': 'GeometryCollection',
+            'geometries': []
+        }
+        for s in self.sketchs:
+            geometry = s.geo()
+            if geometry:
+                collections['geometries'].append(geometry)
+
+        return collections
+
+    def clear(self):
+        for s in self.sketchs:
+            s.clear()
+
+
+class Sketch(QObject):
 
     finished = pyqtSignal()
     changed = pyqtSignal()
 
     def __init__(self, canvas):
-        super(Drawing, self).__init__()
+        super(Sketch, self).__init__()
         self.canvas = canvas
         self.done = False
         self.elements = None
         self.coordinates = []
+        self.radius = 0
 
     @property
     def maxPoint(self):
@@ -66,76 +107,42 @@ class Drawing(QObject):
             return 7
 
     @property
-    def radius(self):
-        if self.done:
-            if self.canvas.mode == 'corridor':
-                return self.coordinates[-1]
-
-            if self.canvas.mode == 'circle':
-                return distanceBetweenPoints(*self.coordinates)
-
-        return 0
-
-    @property
-    def coords(self):
-        coordinates = self.coordinates
-
-        if self.canvas.mode == 'corridor':
-            coords = [(p.x(), p.y()) for p in self.coordinates[:-1]]
-            polygon = shapely.geometry.LineString(coords).buffer(self.radius, cap_style=2, join_style=2)
-            coordinates = [QPointF(*p) for p in list(polygon.exterior.coords)]
-
-        return coordinates
-
-    @property
     def boundaries(self):
-        points = []
-        for lon, lat in context.fir.boundaries():
-            px, py = self.canvas.toCanvasCoordinates(lon, lat)
-            points.append(self.canvas.mapFromScene(px, py))
-
-        return points
-
-    @property
-    def approximateLatitude(self):
-        if self.done:
-            if self.canvas.mode == 'corridor':
-                center = centroid(self.coordinates[:-1])
-                center = self.canvas.toGeographicalCoordinates(center.x(), center.y())
-
-            if self.canvas.mode == 'circle':
-                center = self.coordinates[0]
-                center = self.canvas.toGeographicalCoordinates(center.x(), center.y())
-
-        else:
-            center = centroid([QPointF(p[0], p[1]) for p in context.fir.boundaries()])
-            center = [center.x(), center.y()]
-
-        return center[1]
+        return context.fir.boundaries()
 
     def append(self, point):
         if self.done:
             return
 
-        point = self.canvas.mapToScene(point)
+        pos = self.canvas.mapToScene(point)
+        lonlat = self.canvas.toGeographicalCoordinates(pos.x(), pos.y())
 
         if self.canvas.mode in ['polygon', 'line', 'corridor']:
             if len(self.coordinates) < self.maxPoint:
-                self.coordinates.append(point)
+                self.coordinates.append(lonlat)
                 self.redraw()
 
         if self.canvas.mode in ['rectangular', 'circle']:
-            self.coordinates.append(point)
+            self.coordinates.append(lonlat)
             if len(self.coordinates) == 2:
                 self.done = True
                 self.finished.emit()
-            
+
+            if self.canvas.mode == 'circle' and self.done:
+                # make sure the radius always multiple of 5
+                radius = distance(self.coordinates[0], self.coordinates[1])
+                self.radius = round(radius / 5000) * 5000
+                lon, lat, _ = wgs84.fwd(self.coordinates[0][0], self.coordinates[0][1], 0, self.radius)
+                self.coordinates[-1] = [lon, lat]
+
             self.redraw()
 
     def pop(self):
-        if self.canvas.mode in ['polygon', 'line', 'corridor']:
+        if self.canvas.mode in ['polygon', 'line', 'corridor', 'circle']:
             if self.done:
                 if self.canvas.mode == 'corridor':
+                    self.radius = 0
+                elif self.canvas.mode == 'circle':
                     self.coordinates.pop()
                 else:
                     if len(self.coordinates) > self.maxPoint:
@@ -149,7 +156,7 @@ class Drawing(QObject):
                     self.coordinates.pop()
                     self.redraw()
 
-        if self.canvas.mode in ['rectangular', 'circle']:
+        if self.canvas.mode in ['rectangular', 'entire']:
             self.coordinates = []
             self.done = False
             self.finished.emit()
@@ -157,26 +164,25 @@ class Drawing(QObject):
 
     def resize(self, ratio):
         if self.canvas.mode == 'circle':
-            deviation = 5
+            deviation = 5000
             if self.done:
                 if ratio > 0 or self.radius > deviation * 4:
-                    radius = self.radius + deviation * ratio
-                    center, point = self.coordinates
-                    radian = bearing(point, center)
-                    self.coordinates[-1] = QPointF(center.x() + math.cos(radian) * radius, center.y() + math.sin(radian) * radius)
+                    self.radius += deviation * ratio
+                    lon, lat, _ = wgs84.fwd(self.coordinates[0][0], self.coordinates[0][1], 0, self.radius)
+                    self.coordinates[-1] = [lon, lat]
                     self.redraw()
 
         if self.canvas.mode == 'corridor':
-            deviation = 3
+            deviation = 5000
             if self.done:
-                if ratio > 0:
-                    if len(self.coordinates) * 2 - 1 == len(self.coords):
-                        self.coordinates[-1] += deviation * ratio
+                coords = buffer(self.coordinates, self.radius + deviation * ratio)
+                if ratio > 0 and len(self.coordinates) * 2 + 1 == len(coords):
+                    self.radius += deviation * ratio
 
-                if ratio < 0 and self.coordinates[-1] > deviation:
-                    self.coordinates[-1] += deviation * ratio
+                if ratio < 0 and self.radius > deviation:
+                    self.radius += deviation * ratio
             else:
-                self.coordinates.append(deviation)
+                self.radius = deviation
                 self.done = True
                 self.finished.emit()
 
@@ -185,22 +191,19 @@ class Drawing(QObject):
     def clip(self):
         # clip the polygon with boundaries
         if self.canvas.mode in ['polygon', 'line']:
-            coordinates = [self.canvas.mapFromScene(p) for p in self.coordinates]
-            coordinates = clipPolygon(pointToList(self.boundaries), pointToList(coordinates))
+            self.coordinates = clipPolygon(self.boundaries, self.coordinates)
 
             if self.canvas.mode == 'polygon':
-                coordinates = simplifyPolygon(coordinates, maxPoint=self.maxPoint, extend=True)
+                self.coordinates = simplifyPolygon(self.coordinates, maxPoint=self.maxPoint, extend=True)
             # make the points clockwise
-            coordinates.reverse()
-            self.coordinates = [self.canvas.mapToScene(*p) for p in coordinates]
+            self.coordinates.reverse()
             self.done = True if len(self.coordinates) > 2 else False
 
         if self.canvas.mode == 'rectangular':
-            rect = QRectF(*self.coordinates)
-            polygon = [rect.topLeft(), rect.topRight(), rect.bottomRight(), rect.bottomLeft()]
-            coordinates = [self.canvas.mapFromScene(p) for p in polygon]
-            coordinates = clipPolygon(pointToList(self.boundaries), pointToList(coordinates))
-            self.coordinates = [self.canvas.mapToScene(*p) for p in coordinates]
+            topLeft, bottomRight = self.coordinates
+            topRight, bottomLeft = [bottomRight[0], topLeft[1]], [topLeft[0], bottomRight[1]]
+            polygon = [topLeft, topRight, bottomRight, bottomLeft]
+            self.coordinates = clipPolygon(self.boundaries, polygon)
             self.done = True
 
         self.finished.emit()
@@ -208,53 +211,65 @@ class Drawing(QObject):
 
     def clear(self):
         self.done = False
+        self.radius = 0
         self.coordinates = []
         self.finished.emit()
         self.redraw()
 
-    def redraw(self, silent=False):
-        items = []
-
-        shapeColors = {
-            'default': QColor(240, 156, 0, 178),
-            'forecast': QColor(154, 205, 50, 100)
-        }
-
+    def geo(self):
+        geometry = {}
         if self.canvas.mode in ['polygon', 'line', 'corridor']:
             if self.done:
-                items.append(PlottedPolygon(self.coords, color=shapeColors[self.canvas.type]))
+                geometry = {
+                    'type': 'Polygon',
+                    'coordinates': self.coordinates
+                }
             else:
                 if len(self.coordinates) == 1:
-                    items.append(PlottedPoint(self.coordinates[0]))
-                else:
-                    for i, point in enumerate(self.coordinates):
-                        if i == 0:
-                            prev = point
-                            continue
-                        else:
-                            line = PlottedLine(prev, point)
-                            shadowLine = PlottedShadowLine(prev, point)
-                            items.append(shadowLine)
-                            items.append(line)
-                            prev = point
+                    geometry = {
+                        'type': 'Point',
+                        'coordinates': self.coordinates[0]
+                    }
+
+                if len(self.coordinates) > 1:
+                    geometry = {
+                        'type': 'LineString',
+                        'coordinates': self.coordinates
+                    }
 
         if self.canvas.mode == 'rectangular':
             if self.done:
-                items.append(PlottedPolygon(self.coordinates, color=shapeColors[self.canvas.type]))
+                geometry = {
+                    'type': 'Polygon',
+                    'coordinates': self.coordinates
+                }
 
         if self.canvas.mode == 'circle':
             if self.done:
-                items.append(PlottedCircle(self.coordinates[0], self.radius, color=shapeColors[self.canvas.type]))
-                items.append(PlottedLine(*self.coordinates))
+                circles = circle(self.coordinates[0], self.radius)
+                geometry = {
+                    'type': 'Polygon',
+                    'coordinates': circles
+                }
             else:
                 if self.coordinates:
-                    items.append(PlottedPoint(self.coordinates[0]))
+                    geometry = {
+                        'type': 'Point',
+                        'coordinates': self.coordinates[0]
+                    }
 
-        if self.elements:
-            self.canvas.scene.removeItem(self.elements)
+        if self.canvas.mode == 'corridor':
+            if self.done:
+                points = buffer(self.coordinates, self.radius)
+                
+                geometry = {
+                    'type': 'Polygon',
+                    'coordinates': points
+                }
 
-        self.elements = self.canvas.scene.createItemGroup(items)
+        return geometry
 
+    def redraw(self, silent=False):
         if not silent:
             self.changed.emit()
 
@@ -262,46 +277,41 @@ class Drawing(QObject):
         message = ''
 
         if self.canvas.mode == 'rectangular':
-            # boundaries = context.fir._state['boundaries']
-            points = [self.canvas.toGeographicalCoordinates(p.x(), p.y()) for p in self.coordinates]
-            area = encodeSigmetArea(context.fir.boundaries(), points, mode='rectangular')
+            area = encode(context.fir.boundaries(), self.coordinates, mode='rectangular')
 
             lines = []
             for identifier, *points in area:
-                points = [(decimalToDegree(lng, fmt='longitude'), decimalToDegree(lat)) for lng, lat in points]
-                lnglat = simplifyLine(points)
+                points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in points]
+                lonlat = simplifyLine(points)
 
-                if lnglat:
-                    line = '{} OF {}'.format(identifier, lnglat)
+                if lonlat:
+                    line = '{} OF {}'.format(identifier, lonlat)
                     lines.append(line)
 
             message = ' AND '.join(lines)
 
         if self.canvas.mode == 'line':
             if self.done:
-                points = [self.canvas.toGeographicalCoordinates(p.x(), p.y()) for p in self.coordinates]
-                area = encodeSigmetArea(context.fir.boundaries(), points, mode='line')
+                area = encode(context.fir.boundaries(), self.coordinates, mode='line')
 
                 lines = []
                 for identifier, *points in area:
-                    points = [(decimalToDegree(lng, fmt='longitude'), decimalToDegree(lat)) for lng, lat in points]
+                    points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in points]
                     coordinates = []
-                    for lng, lat in points:
-                        coordinates.append('{} {}'.format(lat, lng))
+                    for lon, lat in points:
+                        coordinates.append('{} {}'.format(lat, lon))
 
                     line = '{} OF LINE {}'.format(identifier, ' - '.join(coordinates))
                     lines.append(line)
 
                 message = ' AND '.join(lines)
             else:
-                points = [self.canvas.toGeographicalCoordinates(p.x(), p.y()) for p in self.coordinates]
-                points = [(decimalToDegree(lng, fmt='longitude'), decimalToDegree(lat)) for lng, lat in points]
+                points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in self.coordinates]
                 coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
                 message = ' - '.join(coordinates)
 
         if self.canvas.mode == 'polygon':
-            points = [self.canvas.toGeographicalCoordinates(p.x(), p.y()) for p in self.coordinates]
-            points = [(decimalToDegree(lng, fmt='longitude'), decimalToDegree(lat)) for lng, lat in points]
+            points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in self.coordinates]
             if self.done:
                 coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
                 message = 'WI ' + ' - '.join(coordinates)
@@ -310,29 +320,22 @@ class Drawing(QObject):
                 message = ' - '.join(coordinates)
 
         if self.canvas.mode == 'corridor':
-            points = [self.canvas.toGeographicalCoordinates(p.x(), p.y()) for p in self.coordinates[:-1]]
-            points = [(decimalToDegree(lng, fmt='longitude'), decimalToDegree(lat)) for lng, lat in points]
+            points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in self.coordinates]
             if self.done:
                 unit = 'KM'
-                width = self.canvas.groundResolution(self.approximateLatitude) * self.radius / 1000
-                width = round(width)
-                # width = round(width / 5) * 5
                 coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
                 line = ' - '.join(coordinates)
-                message = 'APRX {}{} WID LINE BTN {}'.format(width, unit, line)
+                message = 'APRX {}{} WID LINE BTN {}'.format(round(self.radius / 1000), unit, line)
             else:
                 coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
                 message = ' - '.join(coordinates)
 
         if self.canvas.mode == 'circle':
-            points = [self.canvas.toGeographicalCoordinates(p.x(), p.y()) for p in self.coordinates]
-            points = [(decimalToDegree(lng, fmt='longitude'), decimalToDegree(lat)) for lng, lat in points]
+            points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in self.coordinates]
             if self.done:
                 unit = 'KM'
-                radius = self.canvas.groundResolution(self.approximateLatitude) * self.radius / 1000
-                radius = round(radius)
                 center = points[0]
-                items = ['PSN {} {}'.format(center[1], center[0]), 'WI {}{} OF CENTRE'.format(radius, unit)]
+                items = ['PSN {} {}'.format(center[1], center[0]), 'WI {}{} OF CENTRE'.format(round(self.radius / 1000), unit)]
                 message = ' - '.join(items)
             else:
                 coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
@@ -399,34 +402,34 @@ class Canvas(QGraphicsView):
         self.lock = False
         self.maxPoint = 7
 
+        self.maxLayerExtent = context.fir.maxLayerExtent()
+
         # +proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs 
         self.projection = Proj('+proj=eqc +datum=WGS84')
-        self.ratio, self.offset = 1/1113, (0, 0)
+        if self.projection.crs.is_geographic:
+            self.ratio = 100
+        else:
+            self.ratio = 1/1113
+
+        self.offset = (0, 0)
         self.scene = QGraphicsScene(self)
         self.setScene(self.scene)
         self.setTransformationAnchor(QGraphicsView.AnchorViewCenter)
         self.setRenderHint(QPainter.Antialiasing)
+        self.setFocusPolicy(Qt.StrongFocus)
 
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
-        center = self.toCanvasCoordinates(110.59724541100003, 17.78555956845455)
-        self.centerOn(QPointF(*center))
-
         self.setMouseTracking(True)
 
         self.rubberBand = QRubberBand(QRubberBand.Rectangle, self)
-        self.drawings = {
-            'default': Drawing(self),
-            'forecast': Drawing(self)
-        }
 
-    # def addGeometry(self, geometry):
-    #     self.geometries.append(geometry)
+        self.sketchManager = SketchManager(self)
 
     @property
-    def drawing(self):
-        return self.drawings[self.type]
+    def sketch(self):
+        return self.sketchManager.currentSketch()
 
     def extentBound(self, extent):
         minlon, minlat, maxlon, maxlat = extent
@@ -435,8 +438,10 @@ class Canvas(QGraphicsView):
         return minx, miny, maxx, maxy
 
     def maxZoomFactor(self):
-        extent = [98, 0, 137, 30]
-        # extent = context.fir.maxLayerExtent()
+        extent = context.fir.maxLayerExtent()
+        if not extent:
+            return 0
+
         minx, miny, maxx, maxy = self.extentBound(extent)
         rect = QRectF(0, 0, abs(maxx - minx), abs(maxy - miny))
         viewrect = self.viewport().rect()
@@ -485,44 +490,45 @@ class Canvas(QGraphicsView):
 
     def polygonMousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            if len(self.drawing.coordinates) > 2:
+            if len(self.sketch.coordinates) > 2:
                 deviation = 12
-                initPoint = self.mapFromScene(self.drawing.coordinates[0])
+                canvasPoint = self.toCanvasCoordinates(*self.sketch.coordinates[0])
+                initPoint = self.mapFromScene(*canvasPoint)
                 dx = abs(event.pos().x() - initPoint.x())
                 dy = abs(event.pos().y() - initPoint.y())
 
                 if dx < deviation and dy < deviation:
-                    self.drawing.clip()
+                    self.sketch.clip()
 
-            if not self.drawing.done and len(self.drawing.coordinates) < self.drawing.maxPoint:
-                self.drawing.append(event.pos())
+            if not self.sketch.done and len(self.sketch.coordinates) < self.sketch.maxPoint:
+                self.sketch.append(event.pos())
 
         if event.button() == Qt.RightButton:
-            self.drawing.pop()
+            self.sketch.pop()
 
     def rectangularMousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.pos = event.pos()
             self.rubberBand.setGeometry(QRect(self.pos, QSize()))
             self.rubberBand.show()
-            self.drawing.append(event.pos())
+            self.sketch.append(event.pos())
 
         if event.button() == Qt.RightButton:
-            self.drawing.pop()
+            self.sketch.pop()
 
     def circleMousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            self.drawing.append(event.pos())
+            self.sketch.append(event.pos())
 
         if event.button() == Qt.RightButton:
-            self.drawing.pop()
+            self.sketch.pop()
 
     def corridorMousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-           self.drawing.append(event.pos())
+           self.sketch.append(event.pos())
 
         if event.button() == Qt.RightButton:
-            self.drawing.pop()
+            self.sketch.pop()
 
     def mouseMoveEvent(self, event):
         self.emitMouseMoved(event)
@@ -541,14 +547,12 @@ class Canvas(QGraphicsView):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
-        # center = self.mapToScene(self.viewport().rect().center()) + QPointF(self.offset.x(), self.offset.y())
-        # self.centerOn(center)
         self.setDragMode(QGraphicsView.NoDrag)
 
         if self.lock and self.mode == 'rectangular' and event.button() == Qt.LeftButton:
             self.rubberBand.hide()
-            self.drawing.append(event.pos())
-            self.drawing.clip()
+            self.sketch.append(event.pos())
+            self.sketch.clip()
 
         super().mouseReleaseEvent(event)
 
@@ -556,7 +560,7 @@ class Canvas(QGraphicsView):
         if self.lock:
             if self.mode in ['circle', 'corridor']:
                 ratio = 1 if event.angleDelta().y() > 0 else -1
-                self.drawing.resize(ratio)
+                self.sketch.resize(ratio)
         else:
             if event.angleDelta().y() > 0:
                 self.zoomIn()
@@ -583,39 +587,52 @@ class Canvas(QGraphicsView):
 
     def setMode(self, mode):
         self.mode = mode
-        self.drawing.clear()
+        self.sketch.clear()
 
     def setType(self, key):
-        needToResetDrawing = key != 'forecast' and self.type == 'forecast'
+        needToResetSketch = key != 'forecast' and self.type == 'forecast'
         self.type = key
 
-        if needToResetDrawing:
-            # clear forecast drawing
-            self.drawings['forecast'].clear()
+        if needToResetSketch:
+            # clear last sketch
+            self.sketchManager.last().clear()
 
     def isDefaultLocationFinished(self):
         # shoud check the shape can be encode to text
-        drawing = self.drawings['default']
-        return drawing.done
+        sketch = self.sketchManager.first()
+        return sketch.done
 
-    def addCoastlines(self):
+    def updateCoastline(self):
+        if self.coastlines:
+            self.coastlines = []
+            self.scene.removeItem(self.coastlinesGroup)
+
         filename = os.path.join(root, 'shapes', 'coastline.shp')
         sf = shapefile.Reader(filename)
         shapes = sf.shapes()
-        extent = [98, 0, 137, 30]
-        bound = shapely.geometry.box(*extent)
-        # bound = None
+        extent = context.fir.maxLayerExtent()
+        if extent:
+            bound = shapely.geometry.box(*extent)
+        else:
+            bound = None
 
         for polygons in shapes:
             polygons = shapely.geometry.shape(polygons)
             if bound:
                 polygons = bound.intersection(polygons)
-            if polygons.geom_type == 'LineString':
+            if polygons.geom_type == 'Polygon':
                 polygons = [polygons]
             for shape in polygons:
                 if not shape.is_empty:
-                    p = Coastline(shape.coords)
+                    gemoetry = {
+                        'type': 'Polygon',
+                        'coordinates': shape.exterior.coords
+                    }
+                    p = Coastline(gemoetry)
                     p.addTo(self, self.coastlines)
+
+        self.coastlinesGroup = self.scene.createItemGroup(self.coastlines)
+        self.setSceneRect(self.scene.itemsBoundingRect())
 
     def updateLayer(self):
         layer = context.fir.currentLayer()
@@ -627,74 +644,43 @@ class Canvas(QGraphicsView):
             self.backgroundsGroup.setZValue(-1)
 
     def drawBoundaries(self):
-        p = Fir(context.fir.boundaries())
+        geometry = {
+            'type': 'Polygon',
+            'coordinates': context.fir.boundaries()
+        }
+        p = Fir(geometry)
         p.addTo(self, self.firs)
 
+        self.firsGroup = self.scene.createItemGroup(self.firs)
+        self.centerOn(self.firsGroup.boundingRect().center())
+
     def drawSigmets(self, sigmets):
-        brushes = {
-            'ts': QBrush(QColor(240, 156, 0, 100)),
-            'turb': QBrush(QColor(37, 238, 44, 100)),
-            'ice': QBrush(QColor(67, 255, 255, 100)),
-            'ash': QBrush(QColor(250, 0, 25, 100)),
-            'typhoon': QBrush(QColor(250, 50, 250, 100)),
-            'other': QBrush(QColor(250, 250, 50, 100))
-        }
-
-        for i, sig in enumerate(sigmets):
-            for key, location in sig['locations'].items():
-                if not location:
-                    continue
-
-                p = SigmetLocation(location)
-                p.addTo(self, self.sigmets)
-
-                points = listToPoint(area)
-                pol = QPolygon(points)
-                center = Polygon(area).centroid
-                met = context.fir.sigmets()[i]
-                parser = met.parser()
-                sequence = parser.sequence()
-
-                if key == 'default':
-                    pen = QPen(QColor(204, 204, 204), 1, Qt.DashLine)
-                    brush = brushes.get(sig['phenomenon'], brushes['other'])
-                    painter.setPen(pen)
-
-                if key == 'forecast':
-                    pen = QPen(QColor(204, 204, 204, 150), 0, Qt.DashLine)
-                    brush = QBrush(QColor(154, 205, 50, 70))
-                    painter.setPen(pen)
-
-                painter.setBrush(brush)
-                painter.drawPolygon(pol)
-                if sequence:
-                    path = QPainterPath()
-                    font = QFont()
-                    font.setBold(True)
-                    path.addText(center.x - 5, center.y + 5, font, sequence)
-                    pen = QPen(QColor(0, 0, 0, 120), 2)
-                    brush = QBrush(QColor(204, 204, 204))
-                    painter.strokePath(path, pen)
-                    painter.fillPath(path, brush)
+        for sig in sigmets:
+            parser = sig.parser()
+            geo = parser.geo(context.fir.boundaries())
+            p = Sigmet(geo=geo)
+            p.addTo(self, self.sigmets)
         
-        self.sigmets = self.scene.createItemGroup(self.sigmets)
-
-    def updateDrawing(self):
-        self.scene.addItem(self.drawing)
+        self.sigmetsGroup = self.scene.createItemGroup(self.sigmets)
+        self.sigmetsGroup.setZValue(1)
 
     def redraw(self):
-        self.addCoastlines()
+        self.updateCoastline()
         self.drawBoundaries()
-        self.polygonsGroup = self.scene.createItemGroup(self.coastlines)
-        self.firsGroup = self.scene.createItemGroup(self.firs)
 
     def clear(self):
-        pass
+        self.sketchManager.clear()
+
+    def showEvent(self, event):
+        extent = context.fir.maxLayerExtent()
+        if extent != self.maxLayerExtent:
+            self.maxLayerExtent = extent
+            self.updateCoastline()
 
 
 class GraphicsWindow(QWidget):
 
-    drawingChanged = pyqtSignal(dict)
+    sketchChanged = pyqtSignal(list)
 
     def __init__(self, parent=None):
         super(GraphicsWindow, self).__init__()
@@ -714,9 +700,6 @@ class GraphicsWindow(QWidget):
         self.zoomLayout.addWidget(self.zoomOutButton)
         self.zoomLayout.setGeometry(QRect(20, 20, 24, 48))
 
-        # self.lockButton = QPushButton(self)
-        # self.lockButton.setText('Drag')
-
         self.layerButton = QToolButton(self)
         self.layerButton.setText('Layer')
         self.layerButton.setPopupMode(QToolButton.InstantPopup)
@@ -735,9 +718,7 @@ class GraphicsWindow(QWidget):
             button.setFixedSize(26, 26)
             button.setAutoRaise(True)
 
-        spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.operationLayout = QHBoxLayout()
-        # self.operationLayout.addWidget(self.lockButton)
         self.operationLayout.addWidget(self.layerButton)
         self.operationLayout.addWidget(self.fcstButton)
         self.operationLayout.addWidget(self.modeButton)
@@ -757,46 +738,41 @@ class GraphicsWindow(QWidget):
     def bindSignal(self):
         self.zoomOutButton.clicked.connect(self.canvas.zoomOut)
         self.zoomInButton.clicked.connect(self.canvas.zoomIn)
-        # self.lockButton.clicked.connect(self.switchLock)
         self.modeButton.clicked.connect(self.nextMode)
         self.fcstButton.clicked.connect(self.switchLocationType)
         self.canvas.mouseMoved.connect(self.updatePositionLabel)
 
-        self.canvas.drawings['default'].finished.connect(self.setFcstButton)
+        self.canvas.sketchManager.first().finished.connect(self.setFcstButton)
 
-        for _, drawing in self.canvas.drawings.items():
-            drawing.changed.connect(lambda: self.drawingChanged.emit(self.drawingText()))
+        for sketch in self.canvas.sketchManager:
+            sketch.changed.connect(lambda: self.sketchChanged.emit(self.drawingText()))
 
     def drawingText(self):
-        messages = {}
-
-        for key, drawing in self.canvas.drawings.items():
-            messages[key] = [drawing.text(), drawing.done]
+        messages = []
+        for s in self.canvas.sketchManager.sketchs:
+            messages.append(s.text())
 
         return messages
 
     def location(self):
         locations = {}
-        keynames = {
-            'default': 'location',
-            'forecast': 'forecastLocation'
-        }
+        names = ['location', 'forecastLocation']
 
-        for key, drawing in self.canvas.drawings.items():
-            if drawing.done:
-                locations[keynames[key]] = drawing.text()
+        for i, sketch in enumerate(self.canvas.sketchManager.sketchs):
+            if sketch.done:
+                locations[names[i]] = sketch.text()
 
         return locations
 
     def hasAcceptableGraphic(self):
-        default = self.canvas.drawings['default']
-        forecast = self.canvas.drawings['forecast']
+        default = self.canvas.sketchManager.first()
+        forecast = self.canvas.sketchManager.last()
 
-        drawings = [default.done and default.text()]
+        sketchs = [default.done and default.text()]
         if self.canvas.type == 'forecast':
-            drawings.append(forecast.done and forecast.text())
+            sketchs.append(forecast.done and forecast.text())
 
-        return all(drawings)
+        return all(sketchs)
 
     def setModeButton(self, tt='WS'):
         if tt == 'WC':
@@ -820,7 +796,6 @@ class GraphicsWindow(QWidget):
         mode = next(self.icons)
         self.canvas.setMode(mode['mode'])
         self.modeButton.setIcon(QIcon(mode['icon']))
-        # self.modeButton.setText(mode['mode'])
 
     def switchLocationType(self):
         if self.fcstButton.isChecked():
@@ -833,10 +808,8 @@ class GraphicsWindow(QWidget):
     def switchLock(self):
         if self.canvas.lock:
             self.canvas.lock = False
-            # self.lockButton.setText('Drag')
         else:
             self.canvas.lock = True
-            # self.lockButton.setText('Lock')
 
     def setShapeMode(self):
         pass
@@ -911,23 +884,13 @@ class GraphicsWindow(QWidget):
         drawing.updateCircle(circle)
 
     def updateSigmetGraphic(self, sigmets):
-        infos = []
-        for sig in sigmets:
-            locations = {}
-            parser = sig.parser()
-            for key, item in parser.location().items():
-                polygon = decodeSigmetLocation(context.fir.boundaries(), item['location'], item['type'], self.trimShapes)
-                locations[key] = polygon
-
-            infos.append({
-                'phenomenon': parser.phenomenon(),
-                'locations': locations
-            })
-
-        self.canvas.drawSigmets(infos)
+        self.canvas.drawSigmets(sigmets)
 
     def updateLayer(self):
         self.canvas.updateLayer()
+
+    def updateCoastline(self):
+        self.canvas.updateCoastline()
 
     def resizeEvent(self, event):
         self.positionLabel.move(self.width() - self.positionLabel.width(), self.height() - self.positionLabel.height() - 10)
@@ -936,13 +899,14 @@ class GraphicsWindow(QWidget):
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Control:
             self.canvas.lock = True
-            # self.lockButton.setText('Lock')
 
     def keyReleaseEvent(self, event):
         if event.key() == Qt.Key_Control:
             self.canvas.lock = False
-            # self.lockButton.setText('Drag')
 
     def load(self):
         self.canvas.redraw()
+
+    def clear(self):
+        self.canvas.clear()
 

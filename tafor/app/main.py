@@ -99,7 +99,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         context.notification.metar.messageChanged.connect(self.loadMetar)
         context.notification.sigmet.messageChanged.connect(self.loadSigmet)
         context.fir.sigmetsChanged.connect(self.sigmetEditor.updateGraphicCanvas)
-        # context.fir.refreshSignal.connect(self.painter)
+        context.fir.refreshSignal.connect(self.painter)
 
         # 连接菜单信号
         self.tafAction.triggered.connect(self.tafEditor.show)

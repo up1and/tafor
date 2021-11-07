@@ -21,6 +21,7 @@ class MessageState(object):
 class FirState(QObject):
     refreshSignal = pyqtSignal()
     layersNameChanged = pyqtSignal()
+    layerExtendChanged = pyqtSignal()
     sigmetsChanged = pyqtSignal()
 
     _state = {
@@ -31,6 +32,7 @@ class FirState(QObject):
     showSigmet = True
     trimShapes = True
     layerIndex = 0
+    layerExtend = []
     layers = []
 
     def setState(self, values):
@@ -68,8 +70,9 @@ class FirState(QObject):
         def maxExtent(extent1, extent2):
             return [min(extent1[0], extent2[0]), min(extent1[1], extent2[1]), max(extent1[2], extent2[2]), max(extent1[3], extent2[3])]
 
-        for layer, layer2 in zip(self.layers, self.layers[1:]):
-            extent = maxExtent(layer.extent, layer2.extent)
+        extent = []
+        for layer1, layer2 in zip(self.layers, self.layers[1:]):
+            extent = maxExtent(layer1.extent, layer2.extent)
 
         return extent
 

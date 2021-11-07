@@ -66,9 +66,9 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.custom.clicked.connect(self.changeContent)
         self.cancel.clicked.connect(self.changeContent)
 
-        self.graphic.drawingChanged.connect(self.setLocationLabel)
-        self.graphic.drawingChanged.connect(self.enbaleNextButton)
-        self.graphic.drawingChanged.connect(self.updateContentLine)
+        self.graphic.sketchChanged.connect(self.setLocationLabel)
+        self.graphic.sketchChanged.connect(self.enbaleNextButton)
+        # self.graphic.sketchChanged.connect(self.updateContentLine)
 
         self.typhoonContent.circleChanged.connect(lambda: self.graphic.updateTyphoonGraphic(self.typhoonContent.circle()))
 
@@ -80,10 +80,10 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         # change content self.enbaleNextButton()
         self.sender.sendSignal.connect(self.initState)
 
-    def updateContentLine(self):
-        if self.currentContent == self.typhoonContent:
-            drawing = self.graphic.canvas.drawings['default']
-            self.typhoonContent.updateLocation(drawing.geographicalCircle())
+    # def updateContentLine(self):
+    #     if self.currentContent == self.typhoonContent:
+    #         drawing = self.graphic.canvas.drawings['default']
+    #         self.typhoonContent.updateLocation(drawing.geographicalCircle())
 
     def updateGraphicCanvas(self):
         isAirmet = True if self.tt == 'WA' else False
@@ -178,9 +178,10 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         # self.changeSignal.emit()
 
     def setLocationLabel(self, messages):
+        titles = ['DEFAULT', 'FORECAST']
         words = []
-        for key, (text, _) in messages.items():
-            label = '<span style="color: grey">{}</span>'.format(key.upper())
+        for i, text in enumerate(messages):
+            label = '<span style="color: grey">{}</span>'.format(titles[i])
             if text:
                 text = label + '  ' + text
                 words.append(text)
@@ -246,6 +247,8 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
     def clear(self):
         for c in self.contents:
             c.clear()
+
+        self.graphic.clear()
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_F5:
