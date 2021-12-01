@@ -3,8 +3,6 @@ import datetime
 
 import requests
 
-from wsgiref import simple_server
-
 from PyQt5.QtCore import QThread, pyqtSignal
 
 from tafor import conf, logger, __version__
@@ -234,5 +232,5 @@ class RpcThread(QThread):
         self.wait()
 
     def run(self):
-        httpd = simple_server.make_server('', self.port, self.app)
-        httpd.serve_forever()
+        from waitress import serve
+        serve(self.app, port=self.port)

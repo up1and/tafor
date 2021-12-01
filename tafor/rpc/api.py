@@ -81,14 +81,14 @@ def authorize(req, resp, resource, params):
 
     if req.auth is None:
         description = ('Please provide an auth token as part of the request.')
-        raise falcon.HTTPUnauthorized('Bearer Token Required', description, challenges)
+        raise falcon.HTTPUnauthorized('Bearer Token Required', description, challenges=challenges)
 
     authType, token = req.auth.split(None, 1)
     if authType == 'Bearer' and token == context.environ.token():
         req.context.user = 'webapi'
     else:
         description = ('The provided auth token is not valid. Please request a new token and try again.')
-        raise falcon.HTTPUnauthorized('Authentication Required', description, challenges)
+        raise falcon.HTTPUnauthorized('Authentication Required', description, challenges=challenges)
 
 
 class LoggerComponent(object):
@@ -96,28 +96,6 @@ class LoggerComponent(object):
     def process_response(self, req, resp, resource, req_succeeded):
         logger.info('Request {} - "{} {}" {}'.format(req.remote_addr, req.method, req.relative_uri, resp.status))
         logger.debug('Response {}'.format(resp.media))
-
-
-class CORSComponent(object):
-
-    def process_response(self, req, resp, resource, req_succeeded):
-        resp.set_header('Access-Control-Allow-Origin', '*')
-
-        if req_succeeded and req.method == 'OPTIONS' and req.get_header('Access-Control-Request-Method'):
-
-            allow = resp.get_header('Allow')
-            resp.delete_header('Allow')
-
-            allow_headers = req.get_header(
-                'Access-Control-Request-Headers',
-                default='*'
-            )
-
-            resp.set_headers((
-                ('Access-Control-Allow-Methods', allow),
-                ('Access-Control-Allow-Headers', allow_headers),
-                ('Access-Control-Max-Age', '86400'),  # 24 hours
-            ))
 
 
 class JSONComponent(object):
@@ -210,7 +188,7 @@ class ValidateResource(object):
 
     @falcon.before(authorize)
     def on_get(self, req, resp):
-        message = req.get_param('message') or req.context.body.get('message') or ''
+        message = req.get_param('message') or ''
         message = message.strip()
 
         kwargs = {
@@ -278,8 +256,8 @@ class OtherResource(object):
         }
 
 
-middleware = [CORSComponent(), JSONComponent(), LoggerComponent()]
-server = falcon.API(middleware=middleware)
+middleware = [JSONComponent(), LoggerComponent()]
+server = falcon.App(middleware=middleware, cors_enable=True)
 
 main = MainResource()
 state = StateResource()
