@@ -74,9 +74,19 @@ class Metar(Base):
     def __repr__(self):
         return '<METAR %r %r>' % (self.tt, self.rpt)
 
-    def parser(self):
+    @property
+    def report(self):
+        if hasattr(self, 'valids'):
+            html = self.valids['html']
+            if self.valids['tips']:
+                html += '<p style="color: grey"># {}</p>'.format('<br/># '.join(self.valids['tips']))
+            return html
+
+        return self.rpt
+
+    def parser(self, ignoreMetar=True, **kwargs):
         from tafor.utils import MetarParser
-        return MetarParser(self.rpt)
+        return MetarParser(self.rpt, ignoreMetar=ignoreMetar, **kwargs)
 
 class Trend(Base):
     __tablename__ = 'trends'

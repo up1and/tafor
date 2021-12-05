@@ -380,9 +380,7 @@ class Listen(object):
         if self.message:
             status = metar.save()
             if status:
-                context.notification.metar.setState({
-                    'message': None
-                })
+                context.notification.metar.clear()
 
     def sigmet(self):
         """储存 SIGMET 报文"""

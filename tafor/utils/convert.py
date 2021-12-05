@@ -180,6 +180,62 @@ def roundTime(time):
     time = time.replace(minute=0, second=0, microsecond=0)
     return time + datetime.timedelta(hours=1)
 
+def timeAgo(date, now=None):
+    """
+    Get a datetime object or a int() Epoch timestamp and return a
+    pretty string like 'an hour ago', 'Yesterday', '3 months ago',
+    'just now', etc
+    """
+    # second, minute, hour, day, week, month, year(365 days)
+    SEC_ARRAY = [60.0, 60.0, 24.0, 7.0, 365.0 / 7.0 / 12.0, 12.0]
+    SEC_ARRAY_LEN = 6
+
+    if now is None:
+        now = datetime.datetime.utcnow()
+
+    diff = now - date
+    seconds = diff.seconds
+
+    agoIn = 0
+    if seconds < 0:
+        agoIn = 1  # date is later then now, is the time in future
+        seconds *= -1  # change to positive
+
+    tmp = 0
+    i = 0
+    while i < SEC_ARRAY_LEN:
+        tmp = SEC_ARRAY[i]
+        if seconds >= tmp:
+            i += 1
+            seconds /= tmp
+        else:
+            break
+    seconds = int(seconds)
+    i *= 2
+
+    if seconds > (i == 0 and 9 or 1):
+        i += 1
+
+    locales = [
+        ['just now', 'a while'],
+        ['{} seconds ago', 'in {} seconds'],
+        ['1 minute ago', 'in 1 minute'],
+        ['{} minutes ago', 'in {} minutes'],
+        ['1 hour ago', 'in 1 hour'],
+        ['{} hours ago', 'in {} hours'],
+        ['1 day ago', 'in 1 day'],
+        ['{} days ago', 'in {} days'],
+        ['1 week ago', 'in 1 week'],
+        ['{} weeks ago', 'in {} weeks'],
+        ['1 month ago', 'in 1 month'],
+        ['{} months ago', 'in {} months'],
+        ['1 year ago', 'in 1 year'],
+        ['{} years ago', 'in {} years'],
+    ]
+
+    tmp = locales[i][agoIn]
+    return '{}' in tmp and tmp.format(seconds) or tmp
+
 def degreeToDecimal(text):
     """转换度分为十进制角度
 

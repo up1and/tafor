@@ -4,6 +4,8 @@ import datetime
 
 from collections import OrderedDict
 
+from sqlalchemy.sql import elements
+
 from tafor.utils.convert import parseTimez, parsePeriod, parseTime
 
 
@@ -1098,6 +1100,10 @@ class MetarParser(TafParser):
             tips = self.errors
         return tips
 
+    def trend(self):
+        _, *trends = self.elements
+        return ' '.join(trend.part for trend in trends)
+
     def renderer(self, style='plain'):
         """将解析后的报文重新渲染
 
@@ -1108,6 +1114,10 @@ class MetarParser(TafParser):
         :return: 根据不同风格重新渲染的报文
         """
         outputs = [e.renderer(style) for e in self.elements]
+
+        if self.ignoreMetar:
+            if style == 'html':
+                outputs[0] = '<span style="color: grey">{}</span>'.format(self.primary.part)
 
         if style == 'html':
             return '<br/>'.join(outputs) + '='

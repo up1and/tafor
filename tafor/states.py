@@ -1,4 +1,3 @@
-import re
 import sys
 import copy
 import datetime
@@ -6,6 +5,7 @@ import datetime
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from tafor import conf
+from tafor.utils import boolean
 
 
 class MessageState(object):
@@ -208,13 +208,13 @@ class OtherState(QObject):
 class NotificationMessageState(QObject):
     messageChanged = pyqtSignal()
 
-    def __init__(self):
+    def __init__(self, expire=15):
         super(NotificationMessageState, self).__init__()
         self._state = {
             'message': None,
             'created': datetime.datetime.utcnow(),
         }
-        self.expire = 15
+        self.expire = expire
 
     def state(self):
         time = self._state['created']
@@ -234,13 +234,11 @@ class NotificationMessageState(QObject):
         text = state['message']
         if text is None:
             return ''
+        return text
 
-        if text.startswith(('METAR', 'SPECI')):
-            splitPattern = re.compile(r'(BECMG|TEMPO|NOSIG)')
-            elements = splitPattern.split(text)
-            return elements[0].strip()
-        else:
-            return text
+    def created(self):
+        state = self.state()
+        return state['created']
 
     def type(self):
         message = self.message()
@@ -259,16 +257,23 @@ class NotificationMessageState(QObject):
         return 'UNKNOW'
 
     def parser(self):
-        from tafor.utils import SigmetParser
+        from tafor.utils import MetarParser, SigmetParser
         if self.type() in ['SIGMET', 'AIRMET']:
             return SigmetParser(self.message())
 
+        if self.type() in ['METAR', 'SPECI']:
+            visHas5000 = boolean(conf.value('Validator/VisHas5000'))
+            cloudHeightHas450 = boolean(conf.value('Validator/CloudHeightHas450'))
+            weakPrecipitationVerification = boolean(conf.value('Validator/WeakPrecipitationVerification'))
+            return MetarParser(self.message(), ignoreMetar=True, 
+                visHas5000=visHas5000, cloudHeightHas450=cloudHeightHas450, weakPrecipitationVerification=weakPrecipitationVerification)
+
     def clear(self):
-        self._state['message'] = None
+        self.setState({'message': None})
 
 
 class NotificationState(object):
-    metar = NotificationMessageState()
+    metar = NotificationMessageState(expire=10)
     sigmet = NotificationMessageState()
 
 

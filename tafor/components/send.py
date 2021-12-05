@@ -365,19 +365,19 @@ class TrendSender(BaseSender):
     def parse(self, message):
         self.message = message
         html = self.message['rpt']
-        metar = context.notification.metar.message()
-        if metar:
+        parser = context.notification.metar.parser()
+        if parser:
+            metar = parser.primary.part
             visHas5000 = boolean(conf.value('Validator/VisHas5000'))
             cloudHeightHas450 = boolean(conf.value('Validator/CloudHeightHas450'))
             weakPrecipitationVerification = boolean(conf.value('Validator/WeakPrecipitationVerification'))
 
-            self.parser = MetarParser(' '.join([metar, self.message['rpt']]),
+            self.parser = MetarParser(' '.join([metar, self.message['rpt']]), ignoreMetar=True,
                 visHas5000=visHas5000, cloudHeightHas450=cloudHeightHas450, weakPrecipitationVerification=weakPrecipitationVerification)
             self.parser.validate()
 
             if not self.parser.failed:
-                html = self.parser.renderer(style='html', full=False)
-                html = '<p><span style="color: grey">{}</span><br/>{}</p>'.format(metar, html)
+                html = '<p>{}</p>'.format(self.parser.renderer(style='html'))
                 if self.parser.tips:
                     html += '<p style="color: grey"># {}</p>'.format('<br/># '.join(self.parser.tips))
 

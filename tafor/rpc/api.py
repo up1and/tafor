@@ -164,13 +164,8 @@ class NotificationResource(object):
         if not message:
             raise falcon.HTTPBadRequest('Message Required', 'Please provide a notification message.')
 
-        if not (message.startswith(('METAR', 'SPECI')) or 'SIGMET' in message or 'AIRMET' in message):
-            raise falcon.HTTPBadRequest('Invalid Message', 'Only METAR/SPECI and SIGMET/AIRMET message can be supported.')
-
-        if message.startswith(('METAR', 'SPECI')):
-            context.notification.metar.setState({
-                'message': message
-            })
+        if not ('SIGMET' in message or 'AIRMET' in message):
+            raise falcon.HTTPBadRequest('Invalid Message', 'Only SIGMET/AIRMET message can be supported.')
 
         if 'SIGMET' in message or 'AIRMET' in message:
             context.notification.sigmet.setState({
@@ -200,14 +195,19 @@ class ValidateResource(object):
         if not message:
             raise falcon.HTTPBadRequest('Message Required', 'Please provide the message that needs to be validated.')
 
+        if not (message.startswith(('TAF', 'METAR', 'SPECI')) or 'SIGMET' in message or 'AIRMET' in message):
+            raise falcon.HTTPBadRequest('Invalid Message', 'Only TAF, METAR/SPECI and SIGMET/AIRMET message can be supported.')
+
         if message.startswith('TAF'):
             data = parse_taf(message, kwargs)
         elif message.startswith('METAR') or message.startswith('SPECI'):
             data = parse_metar(message, kwargs)
-        elif 'SIGMET' in message or 'AIRMET' in message:
-            data = parse_sigmet(message, kwargs)
+            context.notification.metar.setState({
+                'message': message
+            })
         else:
-            raise falcon.HTTPBadRequest('Invalid Message', 'The message could not be parsed.')
+            data = parse_sigmet(message, kwargs)
+
 
         resp.media = data
 

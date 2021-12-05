@@ -4,3 +4,4 @@ from tafor.utils.message import AFTNMessageGenerator, FileMessageGenerator, AFTN
 from tafor.utils.modem import serialComm, ftpComm
 from tafor.utils.pagination import paginate
 from tafor.utils.common import boolean, checkVersion, gitRevisionHash, verifyToken
+from tafor.utils.convert import timeAgo

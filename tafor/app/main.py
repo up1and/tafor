@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 
 from tafor import root, conf, logger, __version__
-from tafor.models import db, User, Taf, Trend
+from tafor.models import db, User, Metar, Taf, Trend
 from tafor.states import context
 from tafor.utils import boolean, checkVersion, Listen
 from tafor.utils.service import currentSigmet
@@ -98,6 +98,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         context.taf.clockSignal.connect(self.remindTaf)
         context.other.messageChanged.connect(self.loadCustomMessage)
         context.notification.metar.messageChanged.connect(self.loadMetar)
+        context.notification.metar.messageChanged.connect(self.updateRecent)
         context.notification.sigmet.messageChanged.connect(self.loadSigmet)
         context.fir.refreshSignal.connect(self.painter)
 
@@ -236,10 +237,27 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
                 QCoreApplication.translate('MainWindow', 'Received a custom message.'))
 
     def loadMetar(self):
+        parser = context.notification.metar.parser()
+        if parser is None:
+            return 
+        
+        parser.validate()
+        level='information'
         self.incomingSound.play(loop=False)
-        self.trendEditor.loadMetar()
-        self.showNotificationMessage(QCoreApplication.translate('MainWindow', 'Message Received'),
-                QCoreApplication.translate('MainWindow', 'Received a new {} message.').format(context.notification.metar.type()))
+
+        if parser.hasTrend():
+            if parser.isValid():
+                title = QCoreApplication.translate('MainWindow', 'Trend Validation Success')
+                description = QCoreApplication.translate('MainWindow', 'The trend has been successfully attached')
+            else:
+                title = QCoreApplication.translate('MainWindow', 'Trend Validation Failed')
+                description = QCoreApplication.translate('MainWindow', 'The trend has been cleared, please resend')
+                level = 'warning'
+        else:
+            title = QCoreApplication.translate('MainWindow', 'Message Received')
+            description = QCoreApplication.translate('MainWindow', 'Received a new {} message.'.format(context.notification.metar.type()))
+        
+        self.showNotificationMessage(title, description, level)
 
     def loadSigmet(self):
         self.incomingSound.play(loop=False)
@@ -461,11 +479,25 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             sigmets = currentSigmet(order='asc', showUnmatched=True)
         else:
             sigmets = []
+
         trend = db.query(Trend).order_by(Trend.sent.desc()).first()
         if trend and trend.isNosig():
             trend = None
 
-        queryset = [taf, trend] + sigmets
+        parser = context.notification.metar.parser()
+        if parser:
+            created = context.notification.metar.created()
+            metar = Metar(rpt=parser.message, created=created)
+            parser.validate()
+            metar.valids = {
+                'html': parser.renderer(style='html'),
+                'tips': parser.tips,
+                'pass': parser.isValid()
+            }
+        else:
+            metar = db.query(Metar).filter(Metar.created > recent).order_by(Metar.created.desc()).first()
+
+        queryset = [metar, taf, trend] + sigmets
         for query in queryset:
             if query:
                 RecentMessage(self, self.scrollLayout, query)

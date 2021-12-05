@@ -5,7 +5,7 @@ from PyQt5.QtCore import QCoreApplication, QTimer, Qt
 from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QLabel, QHBoxLayout
 
 from tafor import conf
-from tafor.utils import CurrentTaf, CheckTaf
+from tafor.utils import CurrentTaf, CheckTaf, timeAgo
 from tafor.styles import buttonHoverStyle
 from tafor.states import context
 from tafor.components.ui import main_rc, Ui_main_recent, Ui_main_license
@@ -37,9 +37,35 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         self.reviewer = None
         self.setText()
         self.setButton()
+        self.bindSignal()
+
+        if hasattr(self.item, 'valids'):
+            self.setNotificationMode()
+            self.timer = QTimer(self)
+            self.timer.timeout.connect(self.countdown)
+            self.timer.start(1000)
+            self.countdown()
+        else:
+            self.setReviewMode()
+
         layout.addWidget(self)
 
-    def setButton(self):
+    def countdown(self):
+        created = self.item.created
+        now = datetime.datetime.utcnow()
+        expire = 10
+
+        if now - created > datetime.timedelta(minutes=expire):
+            self.timer.stop()
+            context.notification.metar.clear()
+
+        ago = timeAgo(created, now)
+        self.timeLabel.setText(ago.capitalize())
+
+    def setReviewMode(self):
+        self.replyButton.hide()
+        self.signLabel.hide()
+
         if self.item.tt not in ['FC', 'FT', 'WS', 'WC', 'WV', 'WA']:
             self.markButton.hide()
             return
@@ -55,17 +81,41 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
             iconSrc = ':/cross.png'
 
         self.markButton.setIcon(QIcon(iconSrc))
+
+    def setNotificationMode(self):
+        self.markButton.hide()
+        isPass = self.item.valids['pass']
+        if isPass:
+            self.signLabel.hide()
+
+        style = """
+            QGroupBox {
+                border: 2px dotted #dcdcdc;
+            }
+            """
+        self.setStyleSheet(style)
+
+    def bindSignal(self):
+        self.markButton.clicked.connect(self.review)
+        self.replyButton.clicked.connect(self.parent.trendEditor.show)
+
+    def setButton(self):
+        self.replyButton.setIcon(QIcon(':/reply-arrow.png'))
+        self.replyButton.setStyleSheet(buttonHoverStyle)
         self.markButton.setStyleSheet(buttonHoverStyle)
-        self.markButton.clicked.connect(self.view)
+
+        errorIcon = QPixmap(':/error.png')
+        self.signLabel.setPixmap(errorIcon.scaled(24, 24, Qt.KeepAspectRatio))
 
     def setText(self):
         self.groupBox.setTitle(self.item.tt)
-        self.sendTime.setText(self.item.sent.strftime('%Y-%m-%d %H:%M:%S'))
+        time = self.item.sent if hasattr(self.item, 'sent') else self.item.created
+        self.timeLabel.setText(time.strftime('%Y-%m-%d %H:%M:%S'))
         self.rpt.setText(self.item.report)
         font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
         self.rpt.setStyleSheet('font: 13px "Microsoft YaHei", "{}";'.format(font.family()))
 
-    def view(self):
+    def review(self):
         message = {
             'uuid': self.item.uuid,
             'item': self.item,

@@ -10,6 +10,7 @@ from tafor.states import context
 from tafor.components.setting import isConfigured
 from tafor.components.widgets.editor import BaseEditor
 from tafor.components.widgets import TrendSegment
+from tafor.utils import message
 
 
 class TrendEditor(BaseEditor):
@@ -39,13 +40,6 @@ class TrendEditor(BaseEditor):
 
         # 下一步
         self.nextButton.clicked.connect(self.beforeNext)
-
-    def loadMetar(self):
-        message = context.notification.metar.message()
-        if message is None:
-            self.trend.metar.clear()
-        else:
-            self.trend.metar.setText(message)
 
     def enbaleNextButton(self):
         self.enbale = self.trend.complete
@@ -80,7 +74,6 @@ class TrendEditor(BaseEditor):
         self.clear()
 
     def showEvent(self, event):
-        self.loadMetar()
         if not isConfigured('Trend'):
             QTimer.singleShot(0, self.showConfigError)
 
