@@ -25,12 +25,12 @@ def parse_taf(message, kwargs):
         'html': parser.renderer(style='html'),
         'tokens': tokens,
         'tips': parser.tips,
-        'pass': not (parser.tips or not parser.isValid())
+        'pass': parser.isValid()
     }
     return data
 
 def parse_metar(message, kwargs):
-    parser = MetarParser(message, **kwargs)
+    parser = MetarParser(message, ignoreMetar=True, **kwargs)
     parser.validate()
 
     tokens = []
@@ -43,7 +43,7 @@ def parse_metar(message, kwargs):
         'html': parser.renderer(style='html'),
         'tokens': tokens,
         'tips': parser.tips,
-        'pass': not (parser.tips or not parser.isValid())
+        'pass': parser.isValid()
     }
     return data
 

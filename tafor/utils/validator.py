@@ -574,10 +574,13 @@ class TafParser(object):
     splitPattern = re.compile(r'(BECMG|(?:FM(?:\d{4}|\d{6}))|TEMPO|PROB[34]0\sTEMPO)')
 
     def __init__(self, message, parse=None, validator=None, **kwargs):
+        message = message.strip()
+        if not message.endswith('='):
+            message = message + '='
         self.message = message
         self.becmgs = []
         self.tempos = []
-        self.tips = []
+        self.errors = []
         self.failed = False
 
         self.reference = None
@@ -700,16 +703,19 @@ class TafParser(object):
             self._validateElements()
         except Exception as e:
             self.failed = True
-            self.tips.append('报文无法被正确解析')
-
-            for e in self.elements:
-                for key in e.tokens:
-                    e.tokens[key]['error'] = True
+            self.errors.append('报文无法被正确解析')
+            self._forceError()
 
         if self.hasMessageChanged():
-            self.tips.append('经过校验后的报文和原始报文有些不同')
+            self.errors.append('经过校验后的报文和原始报文有些不同')
+            self._forceError()
 
-        self.tips = list(set(self.tips))
+        self.errors = list(set(self.errors))
+
+    def _forceError(self):
+        for e in self.elements:
+            for key in e.tokens:
+                e.tokens[key]['error'] = True
 
     def _validateElements(self):
         """验证单项和多项转折"""
@@ -780,20 +786,20 @@ class TafParser(object):
             if 'NSW' in weathers:
                 if vis <= 5000:
                     tokens[key]['error'] = True
-                    self.tips.append('能见度小于 5000 米时应有天气现象')
+                    self.errors.append('能见度小于 5000 米时应有天气现象')
 
             else:
                 if vis < 1000 and set(weathers) & set(['BR', '-DZ']):
                     tokens[key]['error'] = True
-                    self.tips.append('能见度小于 1000 米，BR、-DZ 不能有')
+                    self.errors.append('能见度小于 1000 米，BR、-DZ 不能有')
 
                 if 1000 <= vis <= 5000 and set(weathers) & set(['FG', '+DZ']):
                     tokens[key]['error'] = True
-                    self.tips.append('能见度大于 1000 米、小于 5000 米，FG、+DZ 不能有')
+                    self.errors.append('能见度大于 1000 米、小于 5000 米，FG、+DZ 不能有')
 
                 if vis > 5000 and set(weathers) & set(['FG', 'FU', 'BR', 'HZ', 'SA', 'DU']):
                     tokens[key]['error'] = True
-                    self.tips.append('能见度大于 5000 米，FG、FU、BR、HZ、SA、DU 不能有')
+                    self.errors.append('能见度大于 5000 米，FG、FU、BR、HZ、SA、DU 不能有')
 
         # 检查能见度和天气现象
         if 'vis' in tokens:
@@ -813,16 +819,16 @@ class TafParser(object):
             cloud = mixture['cloud']['text']
             if ('TS' in weather or 'SH' in weather) and not ('CB' in cloud or 'TCU' in cloud):
                 tokens['weather']['error'] = True
-                self.tips.append('阵性降水应包含对流云')
+                self.errors.append('阵性降水应包含对流云')
 
             if 'NSW' in weathers and len(weathers) > 1:
                 tokens['weather']['error'] = True
-                self.tips.append('NSW 不能和其他天气现象同时存在')
+                self.errors.append('NSW 不能和其他天气现象同时存在')
 
             weatherCount = set(weathers) & set(['BR', 'HZ', 'FG', 'FU'])
             if len(weatherCount) > 1:
                 tokens['weather']['error'] = True
-                self.tips.append('BR，HZ，FG，FU 不能同时存在')
+                self.errors.append('BR，HZ，FG，FU 不能同时存在')
 
 
         if 'cloud' in tokens:
@@ -831,7 +837,7 @@ class TafParser(object):
             cloud = tokens['cloud']['text']
             if ('TS' in weather or 'SH' in weather) and not ('CB' in cloud or 'TCU' in cloud):
                 tokens['cloud']['error'] = True
-                self.tips.append('阵性降水应包含对流云')
+                self.errors.append('阵性降水应包含对流云')
 
             # 不同高度云组云量的验证
             clouds = [c for c in cloud.split() if not ('CB' in c or 'TCU' in c)]
@@ -839,11 +845,15 @@ class TafParser(object):
             for i, cloud in enumerate(clouds):
                 if i == 1 and 'FEW' in cloud:
                     tokens['cloud']['error'] = True
-                    self.tips.append('云组第二层云量不能为 FEW')
+                    self.errors.append('云组第二层云量不能为 FEW')
 
                 if i == 2 and ('FEW' in cloud or 'SCT' in cloud):
                     tokens['cloud']['error'] = True
-                    self.tips.append('云组第三层云量不能为 FEW 或 SCT')
+                    self.errors.append('云组第三层云量不能为 FEW 或 SCT')
+
+    @property
+    def tips(self):
+        return self.errors
 
     def isValid(self):
         """报文是否通过验证"""
@@ -1022,6 +1032,16 @@ class MetarParser(TafParser):
 
     splitPattern = re.compile(r'(BECMG|TEMPO)')
 
+    def __init__(self, message, parse=None, validator=None, ignoreMetar=False, **kwargs):
+        super().__init__(message, parse=parse, validator=validator, **kwargs)
+        self.ignoreMetar = ignoreMetar
+        if len(self.elements) > 1:
+            primary = self.elements[0]
+            self.metar = MetarParser(primary.part, parse=parse, validator=validator, ignoreMetar=False, **kwargs)
+            self.metar.validate()
+        else:
+            self.metar = self
+
     def _parsePeriod(self):
         """解析主报文和变化组的时间顺序"""
         time = parseTimez(self.primary.tokens['timez']['text'])
@@ -1052,13 +1072,33 @@ class MetarParser(TafParser):
     def hasMessageChanged(self):
         """校验后的报文和原始报文相比是否有变化"""
         origin = ' '.join(self.message.split())
-        output = self.renderer(full=False).replace('\n', ' ')
+        output = self.renderer().replace('\n', ' ')
         return not origin.endswith(output)
 
     def hasTrend(self):
         return self.becmgs or self.tempos
 
-    def renderer(self, style='plain', full=True):
+    def isValid(self, ignoreMetar=None):
+        if ignoreMetar is None:
+            ignoreMetar = self.ignoreMetar
+
+        if ignoreMetar:
+            elements = self.elements[1:]
+        else:
+            elements = self.elements
+
+        valids = [e.isValid() for e in elements]
+        return all(valids)
+
+    @property
+    def tips(self):
+        if self.ignoreMetar and not self.metar.isValid(ignoreMetar=False):
+            tips = list(set(self.errors) - set(self.metar.errors))
+        else:
+            tips = self.errors
+        return tips
+
+    def renderer(self, style='plain'):
         """将解析后的报文重新渲染
 
         :param style:
@@ -1067,13 +1107,7 @@ class MetarParser(TafParser):
             * html HTML 高亮风格
         :return: 根据不同风格重新渲染的报文
         """
-        outputs = [e.renderer(style) for e in self.elements[1:]]
-        if full:
-            outputs.insert(0, self.primary.part)
-        else:
-            if 'NOSIG' in self.primary.part:
-                e = self.lexerClass('NOSIG')
-                outputs = [e.renderer(style)]
+        outputs = [e.renderer(style) for e in self.elements]
 
         if style == 'html':
             return '<br/>'.join(outputs) + '='
