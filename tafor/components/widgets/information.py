@@ -90,6 +90,7 @@ class BaseSigmetHead(QWidget, SegmentMixin, Ui_sigmet_head.Ui_Editor):
         self.beginningTime.textEdited.connect(lambda: self.coloredText(self.beginningTime))
         self.endingTime.textEdited.connect(lambda: self.coloredText(self.endingTime))
         self.obsTime.textChanged.connect(lambda: self.coloredText(self.obsTime))
+        self.sequence.textEdited.connect(lambda: self.coloredText(self.sequence))
 
         self.defaultSignal()
 
@@ -1196,6 +1197,9 @@ class SigmetCancelContent(BaseSigmetContent, Ui_sigmet_cancel.Ui_Editor):
     def bindSignal(self):
         self.beginningTime.textEdited.connect(lambda: self.coloredText(self.beginningTime))
         self.endingTime.textEdited.connect(lambda: self.coloredText(self.endingTime))
+        self.sequence.editTextChanged.connect(lambda: self.coloredText(self.sequence.lineEdit()))
+
+        self.sequence.editTextChanged.connect(lambda: self.upperText(self.sequence.lineEdit()))
 
         self.defaultSignal()
 
@@ -1204,19 +1208,24 @@ class SigmetCancelContent(BaseSigmetContent, Ui_sigmet_cancel.Ui_Editor):
         self.beginningTime.setValidator(date)
         self.endingTime.setValidator(date)
 
-        self.sequence.setValidator(QIntValidator(1, 99, self.sequence))
+        sequence = QRegExpValidator(QRegExp(self.rules.sequence, Qt.CaseInsensitive))
+        self.sequence.setValidator(sequence)
 
     def message(self):
         sign = self.parent.type.sign()
-        text = 'CNL {} {} {}/{}'.format(sign, int(self.sequence.currentText()), self.beginningTime.text(), self.endingTime.text())
+        text = 'CNL {} {} {}/{}'.format(sign, self.sequence.currentText(), self.beginningTime.text(), self.endingTime.text())
         return text
 
     def checkComplete(self):
         mustRequired = [
             self.beginningTime.hasAcceptableInput(),
             self.endingTime.hasAcceptableInput(),
-            self.sequence.currentText() and int(self.sequence.currentText()),
+            self.sequence.currentText(),
         ]
+
+        sequence = self.sequence.currentText()
+        if sequence.isdigit():
+            mustRequired.append(int(sequence))
 
         self.complete = all(mustRequired)
         self.completeSignal.emit(self.complete)
