@@ -1,5 +1,5 @@
 import os
-import sys
+import datetime
 
 from setuptools import setup, Command
 from setuptools.command.test import test as TestCommand
@@ -42,7 +42,7 @@ def createVersion(filedir):
             StringStruct(u'OriginalFilename', u'tafor.exe'), 
             StringStruct(u'FileVersion', u'{version}'), 
             StringStruct(u'FileDescription', u'A Terminal Aerodrome Forecast Encoding Software'), 
-            StringStruct(u'LegalCopyright', u'Copyright (C) 2019, up1and'),])
+            StringStruct(u'LegalCopyright', u'Copyright (C) {year}, up1and'),])
           ]), 
         VarFileInfo([VarStruct(u'Translation', [2052, 1200])])
       ]
@@ -57,7 +57,9 @@ def createVersion(filedir):
             infos.append('0')
 
     prodvers = filevers = ', '.join(infos)
-    text = templates.format(filevers=filevers, prodvers=prodvers, version=__version__, ghash=ghash)
+    year = datetime.datetime.now().year
+    text = templates.format(filevers=filevers, prodvers=prodvers, 
+        version=__version__, ghash=ghash, year=year)
 
     filepath = os.path.join(filedir, '.version')
     with open(filepath, encoding='utf-8', mode='w') as f:

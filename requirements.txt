@@ -3,6 +3,7 @@ falcon
 pyserial
 python-dateutil
 python-jose
+waitress
 requests
 SQLAlchemy
 Shapely

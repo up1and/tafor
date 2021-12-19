@@ -8,7 +8,7 @@
     :license: GPLv2, see LICENSE for more details.
 """
 
-__version__ = '2.1'
+__version__ = '2.2'
 __author__ = 'up1and'
 
 
