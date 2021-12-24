@@ -39,7 +39,7 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         self.setButton()
         self.bindSignal()
 
-        if hasattr(self.item, 'valids'):
+        if hasattr(self.item, 'validations'):
             self.setNotificationMode()
             self.timer = QTimer(self)
             self.timer.timeout.connect(self.countdown)
@@ -84,8 +84,18 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
 
     def setNotificationMode(self):
         self.markButton.hide()
-        isPass = self.item.valids['pass']
-        if isPass:
+        isValidationEnabled = self.item.validations['validation']
+        isPass = self.item.validations['pass']
+        
+        if isValidationEnabled:
+            if isPass:
+                icon = ':/protect.png'
+            else:
+                icon = ':/warning-shield.png'
+
+            shieldIcon = QPixmap(icon)
+            self.signLabel.setPixmap(shieldIcon.scaled(24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        else:
             self.signLabel.hide()
 
         style = """
@@ -103,9 +113,6 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         self.replyButton.setIcon(QIcon(':/reply-arrow.png'))
         self.replyButton.setStyleSheet(buttonHoverStyle)
         self.markButton.setStyleSheet(buttonHoverStyle)
-
-        errorIcon = QPixmap(':/error.png')
-        self.signLabel.setPixmap(errorIcon.scaled(24, 24, Qt.KeepAspectRatio))
 
     def setText(self):
         self.groupBox.setTitle(self.item.tt)

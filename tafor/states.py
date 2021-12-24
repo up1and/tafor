@@ -212,6 +212,7 @@ class NotificationMessageState(QObject):
         super(NotificationMessageState, self).__init__()
         self._state = {
             'message': None,
+            'validation': False,
             'created': datetime.datetime.utcnow(),
         }
         self.expire = expire
@@ -224,9 +225,10 @@ class NotificationMessageState(QObject):
 
     def setState(self, values):
         message = self._state['message']
+        validation = self._state['validation']
         self._state.update(values)
         self._state['created'] = datetime.datetime.utcnow()
-        if message != self._state['message']:
+        if message != self._state['message'] or validation != self._state['validation']:
             self.messageChanged.emit()
 
     def message(self):
@@ -235,6 +237,9 @@ class NotificationMessageState(QObject):
         if text is None:
             return ''
         return text
+
+    def validation(self):
+        return self._state['validation']
 
     def created(self):
         state = self.state()

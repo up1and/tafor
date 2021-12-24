@@ -10,6 +10,15 @@ from tafor.states import context
 from tafor.utils import boolean, TafParser, SigmetParser, MetarParser, AFTNMessageGenerator
 
 
+def as_bool(body, name):
+    val = body.get(name)
+
+    if isinstance(val, bool):
+        return val
+
+    if val is not None:
+        msg = 'The value of the parameter must be "true" or "false".'
+        raise falcon.errors.HTTPInvalidParam(msg, name)
 
 def parse_taf(message, kwargs):
     parser = TafParser(message, **kwargs)
@@ -164,8 +173,29 @@ class NotificationResource(object):
         if not message:
             raise falcon.HTTPBadRequest('Message Required', 'Please provide a notification message.')
 
-        if not ('SIGMET' in message or 'AIRMET' in message):
+        if not (message.startswith(('METAR', 'SPECI')) or 'SIGMET' in message or 'AIRMET' in message):
             raise falcon.HTTPBadRequest('Invalid Message', 'Only SIGMET/AIRMET message can be supported.')
+
+        media = {
+            'message': message,
+            'created': falcon.http_now()
+        }
+
+        if message.startswith(('METAR', 'SPECI')):
+            validation = req.get_param_as_bool('validation', blank_as_true=False, default=False) or as_bool(req.context.body, 'validation')
+
+            context.notification.metar.setState({
+                'message': message,
+                'validation': validation
+            })
+
+            if validation:
+                kwargs = {
+                    'visHas5000': boolean(conf.value('Validator/VisHas5000')),
+                    'cloudHeightHas450': boolean(conf.value('Validator/CloudHeightHas450')),
+                    'weakPrecipitationVerification': boolean(conf.value('Validator/WeakPrecipitationVerification')),
+                }
+                media['validations'] = parse_metar(message, kwargs)
 
         if 'SIGMET' in message or 'AIRMET' in message:
             context.notification.sigmet.setState({
@@ -173,10 +203,7 @@ class NotificationResource(object):
             })
 
         resp.status = falcon.HTTP_CREATED
-        resp.media = {
-            'message': message,
-            'created': falcon.http_now()
-        }
+        resp.media = media
 
 
 class ValidateResource(object):
@@ -203,7 +230,8 @@ class ValidateResource(object):
         elif message.startswith('METAR') or message.startswith('SPECI'):
             data = parse_metar(message, kwargs)
             context.notification.metar.setState({
-                'message': message
+                'message': message,
+                'validation': True
             })
         else:
             data = parse_sigmet(message, kwargs)

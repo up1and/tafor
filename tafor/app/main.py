@@ -487,12 +487,14 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         parser = context.notification.metar.parser()
         if parser:
             created = context.notification.metar.created()
+            validation = context.notification.metar.validation()
             metar = Metar(rpt=parser.message, created=created)
             parser.validate()
-            metar.valids = {
+            metar.validations = {
                 'html': parser.renderer(style='html'),
                 'tips': parser.tips,
-                'pass': parser.isValid()
+                'pass': parser.isValid(),
+                'validation': validation
             }
         else:
             metar = db.query(Metar).filter(Metar.created > recent).order_by(Metar.created.desc()).first()

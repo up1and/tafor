@@ -76,10 +76,10 @@ class Metar(Base):
 
     @property
     def report(self):
-        if hasattr(self, 'valids'):
-            html = self.valids['html']
-            if self.valids['tips']:
-                html += '<p style="color: grey"># {}</p>'.format('<br/># '.join(self.valids['tips']))
+        if hasattr(self, 'validations'):
+            html = self.validations['html']
+            if self.validations['tips']:
+                html += '<p style="color: grey"># {}</p>'.format('<br/># '.join(self.validations['tips']))
             return html
 
         return self.rpt
