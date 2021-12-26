@@ -1037,12 +1037,23 @@ class MetarParser(TafParser):
     def __init__(self, message, parse=None, validator=None, ignoreMetar=False, **kwargs):
         super().__init__(message, parse=parse, validator=validator, **kwargs)
         self.ignoreMetar = ignoreMetar
+        self.previous = kwargs.get('previous')
         if len(self.elements) > 1:
             primary = self.elements[0]
             self.metar = MetarParser(primary.part, parse=parse, validator=validator, ignoreMetar=False, **kwargs)
             self.metar.validate()
         else:
             self.metar = self
+
+    def _split(self):
+        super()._split()
+        if 'NOSIG' in self.message:
+            metar = self.primary.part.replace('NOSIG', '').strip()
+            self.primary = self.parse(metar)
+            self.trends = [self.parse('NOSIG')]
+            self.elements = [self.primary] + self.trends
+        else:
+            self.trends = self.elements[1:]
 
     def _parsePeriod(self):
         """解析主报文和变化组的时间顺序"""
@@ -1092,6 +1103,10 @@ class MetarParser(TafParser):
         valids = [e.isValid() for e in elements]
         return all(valids)
 
+    def isSimilar(self, other):
+        other = MetarParser(other)
+        return self.primary.renderer() == other.primary.renderer()
+
     @property
     def tips(self):
         if self.ignoreMetar and not self.metar.isValid(ignoreMetar=False):
@@ -1100,11 +1115,7 @@ class MetarParser(TafParser):
             tips = self.errors
         return tips
 
-    def trend(self):
-        _, *trends = self.elements
-        return ' '.join(trend.part for trend in trends)
-
-    def renderer(self, style='plain'):
+    def renderer(self, style='plain', showDiff=False, emphasizeNosig=False):
         """将解析后的报文重新渲染
 
         :param style:
@@ -1114,15 +1125,40 @@ class MetarParser(TafParser):
         :return: 根据不同风格重新渲染的报文
         """
         outputs = [e.renderer(style) for e in self.elements]
-
-        if self.ignoreMetar:
-            if style == 'html':
-                outputs[0] = '<span style="color: grey">{}</span>'.format(self.primary.part)
+        separator = ' '
 
         if style == 'html':
-            return '<br/>'.join(outputs) + '='
+            if self.hasTrend() or emphasizeNosig:
+                separator = '<br/>'
 
-        return '\n'.join(outputs) + '='
+            metar = self.primary.part
+            if self.ignoreMetar:
+                if showDiff and self.previous:
+                    metar = self._diff(metar, self.previous)
+                    outputs[0] = metar
+
+                if self.hasTrend() or emphasizeNosig:
+                    outputs[0] = '<span style="color: grey">{}</span>'.format(metar)
+                else:
+                    return '<span style="color: grey">{}</span>'.format(separator.join(outputs) + '=')
+
+            return separator.join(outputs) + '='
+
+        if self.hasTrend():
+            separator = '\n'
+
+        return separator.join(outputs) + '='
+
+    def _diff(self, metar, previous):
+        previous, *_ = self.splitPattern.split(previous)
+        parts = metar.split()
+        elements = []
+        for e in parts:
+            if e not in previous.split():
+                e = '<strong>{}</strong>'.format(e)
+            elements.append(e)
+
+        return ' '.join(elements)
 
 
 class SigmetLexer(object):

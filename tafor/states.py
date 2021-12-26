@@ -5,7 +5,7 @@ import datetime
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from tafor import conf
-from tafor.utils import boolean
+from tafor.utils import boolean, latestMetar, MetarParser, SigmetParser
 
 
 class MessageState(object):
@@ -215,6 +215,7 @@ class NotificationMessageState(QObject):
             'validation': False,
             'created': datetime.datetime.utcnow(),
         }
+        self.previous = ''
         self.expire = expire
 
     def state(self):
@@ -224,11 +225,11 @@ class NotificationMessageState(QObject):
         return self._state
 
     def setState(self, values):
-        message = self._state['message']
+        self.previous = self._state['message']
         validation = self._state['validation']
         self._state.update(values)
         self._state['created'] = datetime.datetime.utcnow()
-        if message != self._state['message'] or validation != self._state['validation']:
+        if self.previous != self._state['message'] or validation != self._state['validation']:
             self.messageChanged.emit()
 
     def message(self):
@@ -262,7 +263,6 @@ class NotificationMessageState(QObject):
         return 'UNKNOW'
 
     def parser(self):
-        from tafor.utils import MetarParser, SigmetParser
         if self.type() in ['SIGMET', 'AIRMET']:
             return SigmetParser(self.message())
 
@@ -270,11 +270,12 @@ class NotificationMessageState(QObject):
             visHas5000 = boolean(conf.value('Validator/VisHas5000'))
             cloudHeightHas450 = boolean(conf.value('Validator/CloudHeightHas450'))
             weakPrecipitationVerification = boolean(conf.value('Validator/WeakPrecipitationVerification'))
-            return MetarParser(self.message(), ignoreMetar=True, 
+            return MetarParser(self.message(), ignoreMetar=True, previous=self.previous,
                 visHas5000=visHas5000, cloudHeightHas450=cloudHeightHas450, weakPrecipitationVerification=weakPrecipitationVerification)
 
     def clear(self):
         self.setState({'message': None})
+        self.previous = ''
 
 
 class NotificationState(object):

@@ -377,7 +377,7 @@ class TrendSender(BaseSender):
             self.parser.validate()
 
             if not self.parser.failed:
-                html = '<p>{}</p>'.format(self.parser.renderer(style='html'))
+                html = '<p>{}</p>'.format(self.parser.renderer(style='html', emphasizeNosig=True))
                 if self.parser.tips:
                     html += '<p style="color: grey"># {}</p>'.format('<br/># '.join(self.parser.tips))
 

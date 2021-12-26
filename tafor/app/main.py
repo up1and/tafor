@@ -12,8 +12,7 @@ from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 from tafor import root, conf, logger, __version__
 from tafor.models import db, User, Metar, Taf, Trend
 from tafor.states import context
-from tafor.utils import boolean, checkVersion, Listen
-from tafor.utils.service import currentSigmet
+from tafor.utils import boolean, checkVersion, latestMetar, currentSigmet, Listen
 from tafor.utils.thread import WorkThread, FirInfoThread, CallThread, CheckUpgradeThread, RpcThread
 
 from tafor.components.ui import Ui_main, main_rc
@@ -98,7 +97,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         context.taf.clockSignal.connect(self.remindTaf)
         context.other.messageChanged.connect(self.loadCustomMessage)
         context.notification.metar.messageChanged.connect(self.loadMetar)
-        context.notification.metar.messageChanged.connect(self.updateRecent)
         context.notification.sigmet.messageChanged.connect(self.loadSigmet)
         context.fir.refreshSignal.connect(self.painter)
 
@@ -237,10 +235,15 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
                 QCoreApplication.translate('MainWindow', 'Received a custom message.'))
 
     def loadMetar(self):
+        self.updateRecent()
         parser = context.notification.metar.parser()
         if parser is None:
             return 
-        
+
+        self.notifyMetar()
+
+    def notifyMetar(self):
+        parser = context.notification.metar.parser()
         parser.validate()
         level='information'
         self.incomingSound.play(loop=False)
@@ -255,7 +258,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
                 level = 'warning'
         else:
             title = QCoreApplication.translate('MainWindow', 'Message Received')
-            description = QCoreApplication.translate('MainWindow', 'Received a new {} message.'.format(context.notification.metar.type()))
+            description = QCoreApplication.translate('MainWindow', 'Received a {} message.'.format(context.notification.metar.type()))
         
         self.showNotificationMessage(title, description, level)
 
@@ -263,7 +266,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.incomingSound.play(loop=False)
         self.sigmetEditor.loadSigmet()
         self.showNotificationMessage(QCoreApplication.translate('MainWindow', 'Message Received'),
-                QCoreApplication.translate('MainWindow', 'Received a new {} message.').format(context.notification.sigmet.type()))
+                QCoreApplication.translate('MainWindow', 'Received a {} message.').format(context.notification.sigmet.type()))
 
     def setSound(self):
         self.ringSound = Sound('ring.wav', conf.value('Monitor/RemindTAFVolume'))
@@ -491,7 +494,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             metar = Metar(rpt=parser.message, created=created)
             parser.validate()
             metar.validations = {
-                'html': parser.renderer(style='html'),
+                'html': parser.renderer(style='html', showDiff=True),
                 'tips': parser.tips,
                 'pass': parser.isValid(),
                 'validation': validation
