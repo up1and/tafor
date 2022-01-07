@@ -228,8 +228,8 @@ class NotificationMessageState(QObject):
         self.previous = self._state['message']
         validation = self._state['validation']
         self._state.update(values)
-        self._state['created'] = datetime.datetime.utcnow()
         if self.previous != self._state['message'] or validation != self._state['validation']:
+            self._state['created'] = datetime.datetime.utcnow()
             self.messageChanged.emit()
 
     def message(self):

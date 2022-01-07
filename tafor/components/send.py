@@ -215,7 +215,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             self.rawText = self.generator.toString()
 
     def send(self):
-        if hasattr(self, 'parser') and not self.parser.isValid() and not (self.reportType == 'Trend' and self.parser.failed):
+        if hasattr(self, 'parser') and (not self.parser.isValid() or self.parser.failed):
             title = QCoreApplication.translate('Sender', 'Validator Warning')
             text = QCoreApplication.translate('Sender', 'The message did not pass the validator, do you still want to send?')
             ret = QMessageBox.question(self, title, text)

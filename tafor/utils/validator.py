@@ -1135,7 +1135,8 @@ class MetarParser(TafParser):
             if self.ignoreMetar:
                 if showDiff and self.previous:
                     metar = self._diff(metar, self.previous)
-                    outputs[0] = metar
+
+                outputs[0] = metar
 
                 if self.hasTrend() or emphasizeNosig:
                     outputs[0] = '<span style="color: grey">{}</span>'.format(metar)

@@ -6,7 +6,7 @@ from tafor.models import db, Metar, Sigmet
 
 
 def latestMetar():
-    recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+    recent = datetime.datetime.utcnow() - datetime.timedelta(hours=2)
     queryset = db.query(Metar).filter(Metar.created > recent).order_by(Metar.created.desc())
     return queryset.first()
 

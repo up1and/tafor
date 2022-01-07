@@ -235,12 +235,22 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
                 QCoreApplication.translate('MainWindow', 'Received a custom message.'))
 
     def loadMetar(self):
-        self.updateRecent()
         parser = context.notification.metar.parser()
-        if parser is None:
-            return 
+        metar = latestMetar()
 
-        self.notifyMetar()
+        # when local metar is same as the notification metar, clear the state and show nothing.
+        isSimilar = parser and metar and parser.isSimilar(metar.rpt)
+        if isSimilar:
+            context.notification.metar.clear()
+            return
+
+        # when local metar is not similar to the notification metar, update the recent.
+        if not isSimilar:
+            self.updateRecent()
+
+        # if there is notification, show the notification.
+        if parser:
+            self.notifyMetar()
 
     def notifyMetar(self):
         parser = context.notification.metar.parser()
