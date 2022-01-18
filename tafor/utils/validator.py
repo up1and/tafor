@@ -4,8 +4,6 @@ import datetime
 
 from collections import OrderedDict
 
-from sqlalchemy.sql import elements
-
 from tafor.utils.convert import parseTimez, parsePeriod, parseTime
 
 
@@ -464,6 +462,9 @@ class TafLexer(object):
     def __repr__(self):
         return '<{} {!r}>'.format(self.__class__.__name__, self.part)
 
+    def __bool__(self):
+        return bool(self.part)
+
     @property
     def sign(self):
         return self.tokens['sign']['text']
@@ -701,6 +702,10 @@ class TafParser(object):
 
     def validate(self):
         """验证报文转折逻辑"""
+        if self.hasMessageChanged():
+            self.errors.append('经过校验后的报文和原始报文有些不同')
+            self._forceError()
+
         try:
             self._parsePeriod()
             self._regroup()
@@ -709,10 +714,6 @@ class TafParser(object):
         except Exception as e:
             self.failed = True
             self.errors.append('报文无法被正确解析')
-            self._forceError()
-
-        if self.hasMessageChanged():
-            self.errors.append('经过校验后的报文和原始报文有些不同')
             self._forceError()
 
         self.errors = list(set(self.errors))
@@ -885,7 +886,7 @@ class TafParser(object):
             * html HTML 高亮风格
         :return: 根据不同风格重新渲染的报文
         """
-        outputs = [e.renderer(style) for e in self.elements]
+        outputs = [e.renderer(style) for e in self.elements if e]
 
         if style == 'html':
             return '<br/>'.join(outputs) + '='
@@ -1038,9 +1039,8 @@ class MetarParser(TafParser):
         super().__init__(message, parse=parse, validator=validator, **kwargs)
         self.ignoreMetar = ignoreMetar
         self.previous = kwargs.get('previous')
-        if len(self.elements) > 1:
-            primary = self.elements[0]
-            self.metar = MetarParser(primary.part, parse=parse, validator=validator, ignoreMetar=False, **kwargs)
+        if len(self.elements) > 1 and self.primary:
+            self.metar = MetarParser(self.primary.part, parse=parse, validator=validator, ignoreMetar=False, **kwargs)
             self.metar.validate()
         else:
             self.metar = self
@@ -1091,11 +1091,14 @@ class MetarParser(TafParser):
     def hasTrend(self):
         return self.becmgs or self.tempos
 
+    def hasMetar(self):
+        return self.metar is not self
+
     def isValid(self, ignoreMetar=None):
         if ignoreMetar is None:
             ignoreMetar = self.ignoreMetar
 
-        if ignoreMetar:
+        if ignoreMetar or not self.hasMetar():
             elements = self.elements[1:]
         else:
             elements = self.elements
@@ -1124,7 +1127,7 @@ class MetarParser(TafParser):
             * html HTML 高亮风格
         :return: 根据不同风格重新渲染的报文
         """
-        outputs = [e.renderer(style) for e in self.elements]
+        outputs = [e.renderer(style) for e in self.elements if e]
         separator = ' '
 
         if style == 'html':
@@ -1216,6 +1219,9 @@ class SigmetLexer(object):
 
     def __repr__(self):
         return '<SigmetLexer {!r}>'.format(self.part)
+
+    def __bool__(self):
+        return bool(self.part)
 
     def parse(self, part):
         """解析报文要素字符是否正确"""
@@ -1525,7 +1531,7 @@ class SigmetParser(object):
             * html HTML 高亮风格
         :return: 根据不同风格重新渲染的报文
         """
-        outputs = self.heads + [e.renderer(style) for e in self.elements]
+        outputs = self.heads + [e.renderer(style) for e in self.elements if e]
 
         if style == 'html':
             return '<br/>'.join(outputs) + '='

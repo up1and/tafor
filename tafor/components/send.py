@@ -53,6 +53,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.parent = parent
         self.generator = None
         self.currentGenerator = None
+        self.parser = None
         self.item = None
         self.error = None
         self.rawText = None
@@ -215,7 +216,8 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             self.rawText = self.generator.toString()
 
     def send(self):
-        if hasattr(self, 'parser') and (not self.parser.isValid() or self.parser.failed):
+        if self.parser and (not self.parser.isValid() or self.parser.failed):
+            logger.warning('Validator {}, valid {}, failed {}'.format(self.parser, self.parser.isValid(), self.parser.failed))
             title = QCoreApplication.translate('Sender', 'Validator Warning')
             text = QCoreApplication.translate('Sender', 'The message did not pass the validator, do you still want to send?')
             ret = QMessageBox.question(self, title, text)
@@ -334,6 +336,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.error = None
         self.rawText = None
         self.currentGenerator = None
+        self.parser = None
         self.rpt.setText('')
         self.rawGroup.hide()
         self.printButton.hide()
@@ -366,7 +369,7 @@ class TrendSender(BaseSender):
         self.message = message
         html = self.message['rpt']
         parser = context.notification.metar.parser()
-        if parser:
+        if parser and parser.hasMetar():
             metar = parser.primary.part
             visHas5000 = boolean(conf.value('Validator/VisHas5000'))
             cloudHeightHas450 = boolean(conf.value('Validator/CloudHeightHas450'))
