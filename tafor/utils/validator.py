@@ -462,7 +462,7 @@ class TafLexer(object):
         self.parse(part)
 
     def __repr__(self):
-        return '<TafLexer {}>'.format(self.part)
+        return '<{} {!r}>'.format(self.__class__.__name__, self.part)
 
     @property
     def sign(self):
@@ -600,6 +600,9 @@ class TafParser(object):
         if isinstance(other, self.__class__):
             return self.renderer() == other.renderer()
         return False
+
+    def __repr__(self):
+        return '<{} {!r}>'.format(self.__class__.__name__, self.renderer())
 
     def _split(self):
         """拆分主报文和变化组"""
@@ -819,7 +822,7 @@ class TafParser(object):
 
             # 检查阵性降水和积雨云
             cloud = mixture['cloud']['text']
-            if ('TS' in weather or 'SH' in weather) and not ('CB' in cloud or 'TCU' in cloud):
+            if ('TS' in weather or ('SH' in weather and '-' not in weather)) and not ('CB' in cloud or 'TCU' in cloud):
                 tokens['weather']['error'] = True
                 self.errors.append('阵性降水应包含对流云')
 
@@ -837,7 +840,7 @@ class TafParser(object):
             # 检查云组转折天气现象的匹配
             weather = mixture['weather']['text']
             cloud = tokens['cloud']['text']
-            if ('TS' in weather or 'SH' in weather) and not ('CB' in cloud or 'TCU' in cloud):
+            if ('TS' in weather or ('SH' in weather and '-' not in weather)) and not ('CB' in cloud or 'TCU' in cloud):
                 tokens['cloud']['error'] = True
                 self.errors.append('阵性降水应包含对流云')
 
@@ -899,9 +902,6 @@ class MetarLexer(TafLexer):
         'wind', 'windrange', 'vis', 'cavok', 'rvr', 'weather', 'cloud',
         'tempdew', 'pressure', 'reweather', 'windshear', 'nosig'
     ]
-
-    def __repr__(self):
-        return '<MetarLexer {}>'.format(self.part)
 
     def degToCompass(self, direction):
         val = int((direction / 22.5) + 0.5)
@@ -1215,7 +1215,7 @@ class SigmetLexer(object):
         self.parse(part)
 
     def __repr__(self):
-        return '<SigmetLexer {}>'.format(self.part)
+        return '<SigmetLexer {!r}>'.format(self.part)
 
     def parse(self, part):
         """解析报文要素字符是否正确"""
