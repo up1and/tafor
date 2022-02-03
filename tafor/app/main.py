@@ -655,7 +655,7 @@ def main():
         app.aboutToQuit.connect(rpc.terminate)
 
     versions = context.environ.environment()
-    logger.info('Version {version}+{revision}, Python {python} x{bitness}, Qt {qt} on {system} {release}'.format(**versions))
+    logger.info('Version {version}+{revision}, Python {python} {bitness}, Qt {qt} on {system} {release}'.format(**versions))
 
     try:
         window = MainWindow()

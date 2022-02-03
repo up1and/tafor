@@ -310,7 +310,7 @@ class EnvironState(object):
         return {
             'version': __version__,
             'python': platform.python_version(),
-            'bitness': 64 if sys.maxsize > 2**32 else 32,
+            'bitness': 'amd64' if sys.maxsize > 2**32 else 'win32',
             'qt': QT_VERSION_STR,
             'system': system,
             'release': platform.release(),

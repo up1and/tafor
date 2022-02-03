@@ -1,4 +1,5 @@
 import os
+import sys
 import datetime
 
 from setuptools import setup, Command
@@ -126,6 +127,42 @@ class PyInstallerCommand(Command):
             print(line.decode('utf-8').strip())
 
 
+class ZipCommand(Command):
+    user_options = []
+    description = 'Packaged zip files'
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        import zipfile
+
+        bitness = 'amd64' if sys.maxsize > 2**32 else 'win32'
+        filename = 'tafor-{version}-{bitness}.zip'.format(version=__version__, bitness=bitness)
+        output = os.path.abspath(os.path.join('tafor/dist', filename))
+
+        def zipdir(path, pack, extension=None):
+            for root, dirs, files in os.walk(path):
+                for file in files:
+                    _, ext = os.path.splitext(file)
+                    if extension and extension != ext:
+                            continue
+
+                    filename = os.path.join(root, file)
+                    arcname = os.path.relpath(os.path.join(root, file), os.path.join(path, '..'))
+                    pack.write(filename, arcname)
+
+        with zipfile.ZipFile(output, 'w') as pack:
+            pack.write(os.path.join('tafor/dist', 'tafor.exe'), 'tafor.exe')
+            zipdir('tafor/sounds', pack)
+            zipdir('tafor/i18n', pack, extension='.qm')
+
+        print('Output', output)
+
+
 setup(
     name='tafor',
     version=__version__,
@@ -137,7 +174,7 @@ setup(
     license='GPLv2',
     keywords = 'aviation taf sigmet',
     tests_require=['pytest'],
-    cmdclass ={'test': PyTest, 'docs': SphinxCommand, 'build_exe': PyInstallerCommand},
+    cmdclass ={'test': PyTest, 'docs': SphinxCommand, 'build_exe': PyInstallerCommand, 'zip': ZipCommand},
     platforms=['Windows', 'Linux', 'Mac OS-X'],
     classifiers=[
         'Development Status :: 4 - Beta',
