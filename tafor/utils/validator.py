@@ -863,6 +863,9 @@ class TafParser(object):
 
     def isValid(self):
         """报文是否通过验证"""
+        if self.failed:
+            return False
+
         valids = [e.isValid() for e in self.elements]
         return all(valids)
 
@@ -1102,6 +1105,9 @@ class MetarParser(TafParser):
             elements = self.elements[1:]
         else:
             elements = self.elements
+
+        if self.failed:
+            return False
 
         valids = [e.isValid() for e in elements]
         return all(valids)

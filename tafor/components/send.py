@@ -216,8 +216,8 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             self.rawText = self.generator.toString()
 
     def send(self):
-        if self.parser and (not self.parser.isValid() or self.parser.failed):
-            logger.warning('Validator {}, valid {}, failed {}'.format(self.parser, self.parser.isValid(), self.parser.failed))
+        if self.parser and not self.parser.isValid():
+            logger.warning('Validator {}, valid status {}'.format(self.parser, self.parser.isValid()))
             title = QCoreApplication.translate('Sender', 'Validator Warning')
             text = QCoreApplication.translate('Sender', 'The message did not pass the validator, do you still want to send?')
             ret = QMessageBox.question(self, title, text)

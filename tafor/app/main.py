@@ -464,8 +464,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.updateContractMenu()
         self.updateSigmet()
 
-        logger.debug('Update GUI')
-
     def updateContractMenu(self):
         mobile = conf.value('Monitor/SelectedMobile')
         person = db.query(User).filter_by(mobile=mobile).first()
