@@ -4,6 +4,7 @@ import datetime
 
 from collections import OrderedDict
 
+from tafor import logger
 from tafor.utils.convert import parseTimez, parsePeriod, parseTime
 
 
@@ -681,7 +682,7 @@ class TafParser(object):
 
         self.groups = group(self.becmgs, self.tempos)
 
-    def _refs(self):
+    def _createRefs(self):
         """生成参照组"""
         self.reference = copy.deepcopy(self.primary.tokens)
         if 'weather' not in self.reference:
@@ -709,12 +710,14 @@ class TafParser(object):
         try:
             self._parsePeriod()
             self._regroup()
-            self._refs()
-            self._validateElements()
+            self._createRefs()
+            self._validateFormat()
+            self._validateChange()
         except Exception as e:
             self.failed = True
             self.errors.append('报文无法被正确解析')
             self._forceError()
+            logger.exception(e)
 
         self.errors = list(set(self.errors))
 
@@ -723,11 +726,14 @@ class TafParser(object):
             for key in e.tokens:
                 e.tokens[key]['error'] = True
 
-    def _validateElements(self):
+    def _validateFormat(self):
+        pass
+
+    def _validateChange(self):
         """验证单项和多项转折"""
 
         # 验证主报文多个要素匹配
-        self._validateMutiElements(self.reference, self.primary.tokens)
+        self._validateElement(self.reference, self.primary.tokens)
 
         for e in self.groups:
             for key in e.tokens:
@@ -757,9 +763,9 @@ class TafParser(object):
                             self.reference[key]['text'] = e.tokens[key]['text']
 
             # 验证参照组与转折组之间多个要素匹配
-            self._validateMutiElements(self.reference, e.tokens)
+            self._validateElement(self.reference, e.tokens)
 
-    def _validateMutiElements(self, ref, tokens):
+    def _validateElement(self, ref, tokens):
         """验证多个元素之间的匹配规则
 
         1. 能见度和天气现象
@@ -1070,7 +1076,7 @@ class MetarParser(TafParser):
                 if len(periods) == 2:
                     start = parseTime(periods[0][2:], basetime)
                     end = parseTime(periods[1][2:], basetime)
-                    if start < end:
+                    if start > end:
                         end += datetime.timedelta(days=1)
                     e.period = (start, end)
                 else:
@@ -1084,6 +1090,22 @@ class MetarParser(TafParser):
                         e.period = (time, time)
             else:
                 e.period = self.primary.period
+
+    def _validateFormat(self):
+        for e in self.elements[1:]:
+            if 'fmtl' in e.tokens:
+                text = e.tokens['fmtl']['text']
+                periods = text.split()
+                for period in periods:
+                    conditions = [
+                        'AT' in period and not (self.primary.period[0] < e.period[0] < self.primary.period[1]),
+                        'FM' in period and not (self.primary.period[0] < e.period[0] < self.primary.period[1] and e.period[0] < e.period[1]),
+                        'TL' in period and not (self.primary.period[0] < e.period[1] < self.primary.period[1] and e.period[0] < e.period[1])
+                    ]
+                    
+                    if any(conditions):
+                        e.tokens['fmtl']['error'] = True
+                        self.errors.append('趋势时间组错误')
 
     def hasMessageChanged(self):
         """校验后的报文和原始报文相比是否有变化"""

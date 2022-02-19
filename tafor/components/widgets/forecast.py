@@ -1186,7 +1186,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
         if len(periods) == 2:
             if periods[1] <= periods[0]:
-                periods[1] = datetime.timedelta(days=1)
+                periods[1] = periods[1] + datetime.timedelta(days=1)
 
             if periods[1] - periods[0] > datetime.timedelta(hours=2):
                 self.period.clear()
