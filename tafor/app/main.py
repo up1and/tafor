@@ -98,8 +98,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         context.other.messageChanged.connect(self.loadCustomMessage)
         context.notification.metar.messageChanged.connect(self.loadMetar)
         context.notification.sigmet.messageChanged.connect(self.loadSigmet)
-        context.fir.sigmetsChanged.connect(self.sigmetEditor.updateGraphicCanvas)
-        context.fir.refreshSignal.connect(self.painter)
+        context.layer.sigmetChanged.connect(self.sigmetEditor.updateGraphicCanvas)
+        context.layer.refreshSignal.connect(self.painter)
 
         # 连接菜单信号
         self.tafAction.triggered.connect(self.tafEditor.show)
@@ -383,7 +383,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.showNotificationMessage(connectionError,
                 QCoreApplication.translate('MainWindow', 'Unable to connect remote message data source, please check the settings or network status.'), 'warning')
 
-        if conf.value('Monitor/FirApiURL') and not context.fir.currentLayer() and not self.layerThread.isRunning():
+        if conf.value('Monitor/FirApiURL') and not context.layer.currentLayers() and not self.layerThread.isRunning():
             self.showNotificationMessage(connectionError,
                 QCoreApplication.translate('MainWindow', 'Unable to connect FIR information data source, please check the settings or network status.'), 'warning')
 
@@ -455,7 +455,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def updateSigmet(self):
         sigmets = currentSigmet(order='asc')
-        context.fir.setState({
+        context.layer.setState({
             'sigmets': sigmets
         })
 

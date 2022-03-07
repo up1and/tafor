@@ -1560,7 +1560,6 @@ class SigmetParser(object):
             features['geometry']['coordinates'].append(polygon)
 
         return features
-        
 
     def content(self):
         outputs = [e.renderer() for e in self.elements]

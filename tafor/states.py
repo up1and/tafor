@@ -18,11 +18,11 @@ class MessageState(object):
         self._state = values
 
 
-class FirState(QObject):
+class LayerState(QObject):
     refreshSignal = pyqtSignal()
-    layersNameChanged = pyqtSignal()
+    layerChanged = pyqtSignal()
     layerExtendChanged = pyqtSignal()
-    sigmetsChanged = pyqtSignal()
+    sigmetChanged = pyqtSignal()
 
     _state = {
         'layers': [],
@@ -31,9 +31,9 @@ class FirState(QObject):
 
     showSigmet = True
     trimShapes = True
-    layerIndex = 0
     layerExtend = []
     layers = []
+    selected = []
 
     def setState(self, values):
         from tafor.utils.convert import Layer
@@ -48,40 +48,68 @@ class FirState(QObject):
         refLayerNames = [e['name'] for e in refs['layers']]
         layerNames = [e['name'] for e in self._state['layers']]
         if refLayerNames != layerNames:
-            self.layersNameChanged.emit()
+            self.layerChanged.emit()
 
+        # sigmet state should be separated from layer state
         def diff(origin, ref):
             return set(origin) - set(ref)
 
         sigmets = [s.rpt for s in self.sigmets()]
         refSigmets = [s.rpt for s in refs['sigmets']]
         if diff(sigmets, refSigmets):
-            self.sigmetsChanged.emit()
+            self.sigmetChanged.emit()
 
-    def currentLayer(self):
-        from tafor.utils.convert import Layer
-        try:
-            return self.layers[self.layerIndex]
-        except Exception:
-            return Layer()
+    def currentLayers(self):
+        layers = []
+        for layer in self.layers:
+            if layer.name in self.selected:
+                layers.append(layer)
 
-    def maxLayerExtent(self):
+        layers.sort(key=lambda x: x.overlay == 'standalone')
+        return layers
 
-        def maxExtent(extent1, extent2):
+    def currentStandaloneLayer(self):
+        for layer in self.layers:
+            if layer.name in self.selected and layer.overlay == 'standalone':
+                return layer
+
+    def findLayer(self, layerName):
+        for layer in self.layers:
+            if layer.name == layerName:
+                return layer
+
+    def groupLayers(self):
+        layers = {}
+        for layer in self.layers:
+            if layer.overlay not in layers:
+                layers[layer.overlay] = []
+
+            layers[layer.overlay].append(layer)
+
+        return layers
+
+    def canStack(self, layerName):
+        layer = self.findLayer(layerName)
+        standalone = self.currentStandaloneLayer()
+        if not layer:
+            return False
+
+        if standalone:
+            if layer.proj != standalone.proj:
+                return False
+
+        return True
+
+    def maxExtent(self):
+
+        def _maxExtent(extent1, extent2):
             return [min(extent1[0], extent2[0]), min(extent1[1], extent2[1]), max(extent1[2], extent2[2]), max(extent1[3], extent2[3])]
 
         extent = []
         for layer1, layer2 in zip(self.layers, self.layers[1:]):
-            extent = maxExtent(layer1.extent, layer2.extent)
+            extent = _maxExtent(layer1.extent, layer2.extent)
 
         return extent
-
-    def layersName(self):
-        names = []
-        for layer in self.layers:
-            if layer.name:
-                names.append(layer.name)
-        return names
 
     def sigmets(self):
         return self._state['sigmets']
@@ -370,7 +398,7 @@ class Context(object):
     webApi = WebApiState(message)
     callService = CallServiceState()
     taf = TafState()
-    fir = FirState()
+    layer = LayerState()
     other = OtherState()
     notification = NotificationState()
     serial = SerialState()

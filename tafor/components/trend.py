@@ -37,13 +37,13 @@ class TrendEditor(BaseEditor):
 
     def bindSignal(self):
         self.trend.contentChanged.connect(self.enbaleNextButton)
-
-        # 下一步
         self.nextButton.clicked.connect(self.beforeNext)
 
+    def hasAcceptableInput(self):
+        return self.trend.hasAcceptableInput()
+
     def enbaleNextButton(self):
-        self.enbale = self.trend.complete
-        self.nextButton.setEnabled(self.enbale)
+        self.nextButton.setEnabled(self.hasAcceptableInput())
 
     def beforeNext(self):
         self.trend.validate()
@@ -51,7 +51,7 @@ class TrendEditor(BaseEditor):
         if self.trend.period.isEnabled():
             self.trend.validatePeriod()
 
-        if self.enbale:
+        if self.hasAcceptableInput():
             self.assembleMessage()
             self.previewMessage()
 

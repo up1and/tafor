@@ -117,7 +117,7 @@ class LayerThread(QThread):
 
     def run(self):
         url = conf.value('Monitor/FirApiURL')
-        context.fir.setState(layerInfo(url))
+        context.layer.setState(layerInfo(url))
 
 
 class CallThread(QThread):

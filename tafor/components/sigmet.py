@@ -89,11 +89,11 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         isAirmet = True if self.tt == 'WA' else False
 
         if isAirmet:
-            sigmets = [s for s in context.fir.sigmets() if s.tt == 'WA']
+            sigmets = [s for s in context.layer.sigmets() if s.tt == 'WA']
         else:
-            sigmets = [s for s in context.fir.sigmets() if s.tt != 'WA']
+            sigmets = [s for s in context.layer.sigmets() if s.tt != 'WA']
 
-        self.graphic.updateSigmetGraphic(sigmets)
+        self.graphic.setCachedSigmet(sigmets)
 
     def updateLayer(self):
         self.graphic.updateLayer()
@@ -252,7 +252,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_F5:
-            context.fir.refresh()
+            context.layer.refresh()
 
     def closeEvent(self, event):
         super(SigmetEditor, self).closeEvent(event)

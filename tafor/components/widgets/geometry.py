@@ -81,11 +81,12 @@ class Coastline(Polygon):
 
 class BackgroundImage(QGraphicsPixmapItem):
 
-    def __init__(self, layer):
+    def __init__(self, layer, opacity=1):
         super(BackgroundImage, self).__init__()
         self.layer = layer
         self.setZValue(-1)
         self.setTransformationMode(Qt.SmoothTransformation)
+        self.setOpacity(opacity)
 
     def addTo(self, canvas, group):
         raw = QPixmap()

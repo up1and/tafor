@@ -9,7 +9,7 @@ from itertools import cycle
 from pyproj import Proj, Geod
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView, QGraphicsScene, QRubberBand, 
-    QStyleOptionGraphicsItem, QPushButton, QToolButton, QLabel, QMenu, QActionGroup, QAction)
+    QStyleOptionGraphicsItem, QPushButton, QToolButton, QLabel, QMenu, QActionGroup, QAction, QWidgetAction, QSlider)
 from PyQt5.QtGui import QIcon, QPainter
 from PyQt5.QtCore import QCoreApplication, QObject, QPointF, Qt, QRect, QRectF, QSize, pyqtSignal
 
@@ -17,7 +17,7 @@ from tafor import root
 from tafor.states import context
 from tafor.utils.convert import decimalToDegree, degreeToDecimal
 from tafor.utils.sigmet import encode, buffer, circle, simplifyLine, clipLine, clipPolygon, simplifyPolygon
-from tafor.components.widgets.geometry import BackgroundImage, Coastline, Country, Fir, Sigmet, SketchGraphic
+from tafor.components.widgets.geometry import BackgroundImage, Coastline, Fir, Sigmet, SketchGraphic
 
 
 wgs84 = Geod(ellps='WGS84')
@@ -108,7 +108,7 @@ class Sketch(QObject):
 
     @property
     def boundaries(self):
-        return context.fir.boundaries()
+        return context.layer.boundaries()
 
     def append(self, point):
         if self.done:
@@ -277,7 +277,7 @@ class Sketch(QObject):
         message = ''
 
         if self.canvas.mode == 'rectangular':
-            area = encode(context.fir.boundaries(), self.coordinates, mode='rectangular')
+            area = encode(context.layer.boundaries(), self.coordinates, mode='rectangular')
 
             lines = []
             for identifier, *points in area:
@@ -292,7 +292,7 @@ class Sketch(QObject):
 
         if self.canvas.mode == 'line':
             if self.done:
-                area = encode(context.fir.boundaries(), self.coordinates, mode='line')
+                area = encode(context.layer.boundaries(), self.coordinates, mode='line')
 
                 lines = []
                 for identifier, *points in area:
@@ -401,8 +401,9 @@ class Canvas(QGraphicsView):
         self.mode = 'polygon'
         self.lock = False
         self.maxPoint = 7
-
-        self.maxLayerExtent = context.fir.maxLayerExtent()
+        
+        self.backgroundOpacity = 0.5
+        self.maxLayerExtent = context.layer.maxExtent()
 
         # +proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs 
         self.projection = Proj('+proj=eqc +datum=WGS84')
@@ -438,7 +439,7 @@ class Canvas(QGraphicsView):
         return minx, miny, maxx, maxy
 
     def maxZoomFactor(self):
-        extent = context.fir.maxLayerExtent()
+        extent = context.layer.maxExtent()
         if not extent:
             return 0
 
@@ -597,12 +598,18 @@ class Canvas(QGraphicsView):
             # clear last sketch
             self.sketchManager.last().clear()
 
+    def setMixedBackgroundOpacity(self, opacity):
+        self.backgroundOpacity = opacity
+        for bg in self.backgrounds:
+            if bg.layer.overlay == 'mixed': 
+                bg.setOpacity(opacity)
+
     def isDefaultLocationFinished(self):
         # shoud check the shape can be encode to text
         sketch = self.sketchManager.first()
         return sketch.done
 
-    def updateCoastline(self):
+    def drawCoastline(self):
         if self.coastlines:
             self.coastlines = []
             self.scene.removeItem(self.coastlinesGroup)
@@ -610,7 +617,7 @@ class Canvas(QGraphicsView):
         filename = os.path.join(root, 'shapes', 'coastline.shp')
         sf = shapefile.Reader(filename)
         shapes = sf.shapes()
-        extent = context.fir.maxLayerExtent()
+        extent = context.layer.maxExtent()
         if extent:
             bound = shapely.geometry.box(*extent)
         else:
@@ -620,8 +627,12 @@ class Canvas(QGraphicsView):
             polygons = shapely.geometry.shape(polygons)
             if bound:
                 polygons = bound.intersection(polygons)
-            if polygons.geom_type == 'Polygon':
+
+            if polygons.geom_type == 'MultiPolygon':
+                polygons = polygons.geoms
+            elif polygons.geom_type == 'Polygon':
                 polygons = [polygons]
+
             for shape in polygons:
                 if not shape.is_empty:
                     gemoetry = {
@@ -634,11 +645,17 @@ class Canvas(QGraphicsView):
         self.coastlinesGroup = self.scene.createItemGroup(self.coastlines)
         self.setSceneRect(self.scene.itemsBoundingRect())
 
-    def updateLayer(self):
-        layer = context.fir.currentLayer()
-        if layer:
-            background = BackgroundImage(layer)
-            background.addTo(self, self.backgrounds)
+    def drawLayer(self):
+        layers = context.layer.currentLayers()
+        if layers:
+            if self.backgrounds:
+                self.backgrounds = []
+                self.scene.removeItem(self.backgroundsGroup)
+
+            for layer in layers:
+                opacity = self.backgroundOpacity if layer.overlay == 'mixed' else 1                
+                background = BackgroundImage(layer, opacity)
+                background.addTo(self, self.backgrounds)
 
             self.backgroundsGroup = self.scene.createItemGroup(self.backgrounds)
             self.backgroundsGroup.setZValue(-1)
@@ -646,7 +663,7 @@ class Canvas(QGraphicsView):
     def drawBoundaries(self):
         geometry = {
             'type': 'Polygon',
-            'coordinates': context.fir.boundaries()
+            'coordinates': context.layer.boundaries()
         }
         p = Fir(geometry)
         p.addTo(self, self.firs)
@@ -654,10 +671,12 @@ class Canvas(QGraphicsView):
         self.firsGroup = self.scene.createItemGroup(self.firs)
         self.centerOn(self.firsGroup.boundingRect().center())
 
-    def drawSigmets(self, sigmets):
-        for sig in sigmets:
-            parser = sig.parser()
-            geo = parser.geo(context.fir.boundaries())
+    def drawSigmets(self, geos):
+        if self.sigmets:
+            self.sigmets = []
+            self.scene.removeItem(self.sigmetsGroup)
+        
+        for geo in geos:
             p = Sigmet(geo=geo)
             p.addTo(self, self.sigmets)
         
@@ -665,17 +684,17 @@ class Canvas(QGraphicsView):
         self.sigmetsGroup.setZValue(1)
 
     def redraw(self):
-        self.updateCoastline()
+        self.drawCoastline()
         self.drawBoundaries()
 
     def clear(self):
         self.sketchManager.clear()
 
     def showEvent(self, event):
-        extent = context.fir.maxLayerExtent()
+        extent = context.layer.maxExtent()
         if extent != self.maxLayerExtent:
             self.maxLayerExtent = extent
-            self.updateCoastline()
+            self.drawCoastline()
 
 
 class GraphicsWindow(QWidget):
@@ -690,6 +709,8 @@ class GraphicsWindow(QWidget):
         self.layout.addWidget(self.canvas)
         self.setLayout(self.layout)
         self.setMaximumSize(800, 500)
+
+        self.cachedSigmets = []
 
         self.zoomInButton = QPushButton(self)
         self.zoomInButton.setText('+')
@@ -724,13 +745,22 @@ class GraphicsWindow(QWidget):
         self.operationLayout.addWidget(self.modeButton)
         self.operationLayout.setGeometry(QRect(700, 16, 90, 30))
 
+        self.opacitySilder = QSlider(Qt.Horizontal, self)
+        self.opacitySilder.setMinimum(0)
+        self.opacitySilder.setMaximum(10)
+        self.opacitySilder.setValue(5)
+        self.opacitySilder.hide()
+
         self.positionLabel = QLabel(self)
         self.positionLabel.setAttribute(Qt.WA_TransparentForMouseEvents)
 
-        self.showSigmet = True
-        self.trimShapes = True
+        self.timeLabel = QLabel(self)
+        self.timeLabel.setAttribute(Qt.WA_TransparentForMouseEvents)
+        # self.timeLabel.setStyleSheet('border: 1px solid black;')
+        self.timeLabel.setFixedSize(350, 80)
+        self.timeLabel.setAlignment(Qt.AlignBottom)
 
-        self.setLayersMenu()
+        self.setLayerMenu()
         self.setModeButton()
         self.load()
         self.bindSignal()
@@ -741,11 +771,18 @@ class GraphicsWindow(QWidget):
         self.modeButton.clicked.connect(self.nextMode)
         self.fcstButton.clicked.connect(self.switchLocationType)
         self.canvas.mouseMoved.connect(self.updatePositionLabel)
-
         self.canvas.sketchManager.first().finished.connect(self.setFcstButton)
 
         for sketch in self.canvas.sketchManager:
             sketch.changed.connect(lambda: self.sketchChanged.emit(self.drawingText()))
+
+        self.trimShapesAction.toggled.connect(lambda: self.changeSigmetDisplayMode(self.trimShapesAction, 'trimShapes'))
+        self.showSigmetAction.toggled.connect(lambda: self.changeSigmetDisplayMode(self.showSigmetAction, 'showSigmet'))
+        self.backgroundLayerActionGroup.triggered.connect(self.changeLayer)
+        self.mixedBackgroundLayerActionGroup.triggered.connect(self.changeLayer)
+        self.opacitySilder.valueChanged.connect(self.updateMixedBackgroundOpacity)
+        context.layer.layerChanged.connect(self.setLayerSelectMenu)
+        context.layer.layerChanged.connect(self.updateLayer)
 
     def drawingText(self):
         messages = []
@@ -811,65 +848,67 @@ class GraphicsWindow(QWidget):
         else:
             self.canvas.lock = True
 
+    def setCachedSigmet(self, sigmets):
+        self.cachedSigmets = sigmets
+        self.updateSigmetGraphic()
+
     def setShapeMode(self):
         pass
 
-    def setLayersMenu(self):
+    def setLayerMenu(self):
         self.layerMenu = QMenu(self)
         self.trimShapesAction = QAction(self)
         self.trimShapesAction.setText(QCoreApplication.translate('Editor', 'Trim Shapes'))
         self.trimShapesAction.setCheckable(True)
+        self.trimShapesAction.setChecked(True)
         self.showSigmetAction = QAction(self)
         self.showSigmetAction.setText(QCoreApplication.translate('Editor', 'Latest SIGMET/AIRMET'))
         self.showSigmetAction.setCheckable(True)
         self.showSigmetAction.setChecked(True)
-        self.layerActionGroup = QActionGroup(self)
-        self.layerActionGroup.setExclusive(True)
+        self.backgroundLayerActionGroup = QActionGroup(self)
+        self.mixedBackgroundLayerActionGroup = QActionGroup(self)
+        self.mixedBackgroundLayerActionGroup.setExclusive(False)
         self.layerMenu.addAction(self.trimShapesAction)
         self.layerMenu.addAction(self.showSigmetAction)
         self.layerMenu.addSeparator()
         self.layerButton.setMenu(self.layerMenu)
         self.layerButton.setStyleSheet('QToolButton::menu-indicator {image: none;}')
 
-    def setLayerSelectAction(self):
-        self.layers = context.fir.layersName()
-        if not self.layers or self.layerActionGroup.actions():
+    def setLayerSelectMenu(self):
+        layers = context.layer.groupLayers()
+        if not layers or self.backgroundLayerActionGroup.actions() or self.mixedBackgroundLayerActionGroup.actions():
             return
 
-        for i, name in enumerate(self.layers):
-            setattr(self, 'layersAction' + str(i), QAction(self))
-            action = getattr(self, 'layersAction' + str(i))
-            action.setText(name)
-            action.setCheckable(True)
-            self.layerActionGroup.addAction(action)
-            self.layerMenu.addAction(action)
+        for key, groups in layers.items():
+            actionGroup = self.backgroundLayerActionGroup if key == 'standalone' else self.mixedBackgroundLayerActionGroup
+            for layer in groups:
+                action = QAction(layer.name, self)
+                action.setCheckable(True)
+                actionGroup.addAction(action)
+                self.layerMenu.addAction(action)
 
-    def loadLayersActionState(self):
-        trimShapes = context.fir.trimShapes
-        self.trimShapesAction.setChecked(trimShapes)
+            self.layerMenu.addSeparator()
 
-        showSigmet = context.fir.showSigmet
-        self.showSigmetAction.setChecked(showSigmet)
+        if layers['mixed']:
+            self.opacitySilder.show()
+            silder = QWidgetAction(self)
+            silder.setDefaultWidget(self.opacitySilder)
+            self.layerMenu.addAction(silder)
 
-        if self.layerActionGroup.actions():
-            layerIndex = context.fir.layerIndex
-            action = self.layerActionGroup.actions()[layerIndex]
-            action.setChecked(True)
+        default = self.backgroundLayerActionGroup.actions()[0] or self.mixedBackgroundLayerActionGroup.actions()[0]
+        default.setChecked(True)
 
-    def changeLayerStatus(self, action):
+    def changeSigmetDisplayMode(self, action, attr):
         checked = action.isChecked()
-        if action == self.trimShapesAction:
-            context.fir.trimShapes = checked
+        setattr(context.layer, attr, checked)
+        self.updateSigmetGraphic()
 
-        if action == self.showSigmetAction:
-            context.fir.showSigmet = checked
-
-        if action in self.layerActionGroup.actions():
-            index = self.layerActionGroup.actions().index(action)
-            if context.fir.layerIndex != index:
-                prevLayer = context.fir.layer
-                context.fir.layerIndex = index
-                self.canvasWidget.canvas.resizeCoords(prevLayer)
+    def changeLayer(self, action):
+        stackable = context.layer.canStack(action.text())
+        if stackable:
+            self.updateLayer()
+        else:
+            action.setChecked(False)
 
     def updatePositionLabel(self, pos):
         if pos:
@@ -879,21 +918,49 @@ class GraphicsWindow(QWidget):
         else:
             self.positionLabel.clear()
 
+    def updateTimeLabel(self):
+        layers = context.layer.currentLayers()
+        words = []
+        for layer in layers:
+            text = '{} - {}'.format(layer._updated, layer.name)
+            words.append(text)
+
+        self.timeLabel.setText('\n'.join(words))
+
     def updateTyphoonGraphic(self, circle):
         drawing = self.canvas.drawings['default']
         drawing.updateCircle(circle)
 
-    def updateSigmetGraphic(self, sigmets):
-        self.canvas.drawSigmets(sigmets)
+    def updateSigmetGraphic(self):
+        sigmets = []
+        if context.layer.showSigmet:
+            sigmets = self.cachedSigmets
+
+        geos = []
+        for sig in sigmets:
+            parser = sig.parser()
+            geo = parser.geo(context.layer.boundaries(), context.layer.trimShapes)
+            geos.append(geo)
+
+        self.canvas.drawSigmets(geos)
+
+    def updateMixedBackgroundOpacity(self, value):
+        value = value / 10
+        self.canvas.setMixedBackgroundOpacity(value)
 
     def updateLayer(self):
-        self.canvas.updateLayer()
+        selected = [action.text() for action in self.backgroundLayerActionGroup.actions() + self.mixedBackgroundLayerActionGroup.actions() if action.isChecked()]
+        if selected != context.layer.selected:
+            context.layer.selected = selected
+            self.canvas.drawLayer()
+            self.updateTimeLabel()
 
     def updateCoastline(self):
-        self.canvas.updateCoastline()
+        self.canvas.drawCoastline()
 
     def resizeEvent(self, event):
-        self.positionLabel.move(self.width() - self.positionLabel.width(), self.height() - self.positionLabel.height() - 10)
+        self.positionLabel.move(self.width() - self.positionLabel.width(), self.height() - self.positionLabel.height() - 6)
+        self.timeLabel.move(18, self.height() - self.timeLabel.height() - 15)
         super(GraphicsWindow, self).resizeEvent(event)
 
     def keyPressEvent(self, event):

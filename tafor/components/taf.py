@@ -163,27 +163,26 @@ class BaseTafEditor(BaseEditor):
             acceptables.append(self.fm.hasAcceptableInput())
 
         if self.primary.becmg1Checkbox.isChecked():
-            completes.append(self.becmg1.hasAcceptableInput())
+            acceptables.append(self.becmg1.hasAcceptableInput())
 
         if self.primary.becmg2Checkbox.isChecked():
-            completes.append(self.becmg2.hasAcceptableInput())
+            acceptables.append(self.becmg2.hasAcceptableInput())
 
         if self.primary.becmg3Checkbox.isChecked():
-            completes.append(self.becmg3.hasAcceptableInput())
+            acceptables.append(self.becmg3.hasAcceptableInput())
 
         if self.primary.tempo1Checkbox.isChecked():
-            completes.append(self.tempo1.hasAcceptableInput())
+            acceptables.append(self.tempo1.hasAcceptableInput())
 
         if self.primary.tempo2Checkbox.isChecked():
-            completes.append(self.tempo2.hasAcceptableInput())
+            acceptables.append(self.tempo2.hasAcceptableInput())
 
         if self.primary.tempo3Checkbox.isChecked():
-            completes.append(self.tempo3.hasAcceptableInput())
+            acceptables.append(self.tempo3.hasAcceptableInput())
 
         return all(acceptables)
 
     def enbaleNextButton(self):
-        # 允许下一步
         self.nextButton.setEnabled(self.hasAcceptableInput())
 
     def clear(self):
