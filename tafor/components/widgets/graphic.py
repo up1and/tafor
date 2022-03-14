@@ -54,6 +54,12 @@ class SketchManager(object):
     def currentSketch(self):
         return self.sketchs[self.index]
 
+    def next(self):
+        self.index += 1
+        if self.index >= len(self.sketchs):
+            self.index = 0
+            self.last().clear()
+
     def first(self):
         return self.sketchs[0]
 
@@ -182,6 +188,7 @@ class Sketch(QObject):
                 if ratio < 0 and self.radius > deviation:
                     self.radius += deviation * ratio
             else:
+                self.coordinates = clipLine(self.boundaries, self.coordinates)
                 self.radius = deviation
                 self.done = True
                 self.finished.emit()
@@ -591,12 +598,8 @@ class Canvas(QGraphicsView):
         self.sketch.clear()
 
     def setType(self, key):
-        needToResetSketch = key != 'forecast' and self.type == 'forecast'
         self.type = key
-
-        if needToResetSketch:
-            # clear last sketch
-            self.sketchManager.last().clear()
+        self.sketchManager.next()
 
     def setMixedBackgroundOpacity(self, opacity):
         self.backgroundOpacity = opacity
@@ -756,7 +759,6 @@ class GraphicsWindow(QWidget):
 
         self.timeLabel = QLabel(self)
         self.timeLabel.setAttribute(Qt.WA_TransparentForMouseEvents)
-        # self.timeLabel.setStyleSheet('border: 1px solid black;')
         self.timeLabel.setFixedSize(350, 80)
         self.timeLabel.setAlignment(Qt.AlignBottom)
 
@@ -769,7 +771,7 @@ class GraphicsWindow(QWidget):
         self.zoomOutButton.clicked.connect(self.canvas.zoomOut)
         self.zoomInButton.clicked.connect(self.canvas.zoomIn)
         self.modeButton.clicked.connect(self.nextMode)
-        self.fcstButton.clicked.connect(self.switchLocationType)
+        self.fcstButton.clicked.connect(self.switchForward)
         self.canvas.mouseMoved.connect(self.updatePositionLabel)
         self.canvas.sketchManager.first().finished.connect(self.setFcstButton)
 
@@ -834,7 +836,7 @@ class GraphicsWindow(QWidget):
         self.canvas.setMode(mode['mode'])
         self.modeButton.setIcon(QIcon(mode['icon']))
 
-    def switchLocationType(self):
+    def switchForward(self):
         if self.fcstButton.isChecked():
             self.canvas.setType('forecast')
             self.modeButton.setEnabled(False)

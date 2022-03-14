@@ -129,6 +129,7 @@ class SketchGraphic(QGraphicsItem, CanvasMixin):
         return rect
 
     def paint(self, painter, option, widget):
+        defaultBrush = painter.brush()
         for i, g in enumerate(self.geometries):
             if isinstance(g, QPointF):
                 radius = 2
@@ -146,6 +147,7 @@ class SketchGraphic(QGraphicsItem, CanvasMixin):
                 painter.drawPolygon(g)
 
             if isinstance(g, QPainterPath):
+                painter.setBrush(defaultBrush)
                 painter.setPen(QPen(Qt.white, 3))
                 painter.drawPath(g)
                 painter.setPen(QPen(QColor(0, 0, 0, 127), 2, Qt.DashLine))
