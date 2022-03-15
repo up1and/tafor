@@ -68,7 +68,6 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
         self.graphic.sketchChanged.connect(self.setLocationLabel)
         self.graphic.sketchChanged.connect(self.enbaleNextButton)
-        # self.graphic.sketchChanged.connect(self.updateContentLine)
 
         self.typhoonContent.circleChanged.connect(lambda: self.graphic.updateTyphoonGraphic(self.typhoonContent.circle()))
 
@@ -78,12 +77,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.nextButton.clicked.connect(self.beforeNext)
 
         # change content self.enbaleNextButton()
-        self.sender.sendSignal.connect(self.initState)
-
-    # def updateContentLine(self):
-    #     if self.currentContent == self.typhoonContent:
-    #         drawing = self.graphic.canvas.drawings['default']
-    #         self.typhoonContent.updateLocation(drawing.geographicalCircle())
+        self.sender.sendSignal.connect(self.updateState)
 
     def updateGraphicCanvas(self):
         isAirmet = True if self.tt == 'WA' else False
@@ -114,13 +108,11 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
     def enbaleNextButton(self):
         self.nextButton.setEnabled(self.hasAcceptableInput())
 
-    def initState(self):
-        # self.sigmet.initState()
-        pass
+    def updateState(self):
+        self.currentContent.initState()
 
-    def loadSigmet(self):
-        # self.sigmetCustom.setText()
-        pass
+    def loadNotification(self):
+        self.customContent.loadNotification()
 
     def wmoHeader(self):
         area = conf.value('Message/Area') or ''
@@ -152,7 +144,10 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
         return all(items)
 
-    def setTypeButtonText(self):
+    def hideTypeGroupOverflow(self):
+        """
+        hide extra text when radio button has more than 8 characters
+        """
         for i, btn in enumerate(self.typeGroup.findChildren(QRadioButton)):
             text = self.typeButtonTexts[i]
             if not btn.isChecked() and len(text) > 8:
@@ -170,12 +165,10 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
             'WA': 4,
         }
         self.currentContent.setSpan(durations[tt])
-        self.setTypeButtonText()
+        self.hideTypeGroupOverflow()
 
         if typeChanged:
             self.graphic.setModeButton(tt)
-
-        # self.changeSignal.emit()
 
     def setLocationLabel(self, messages):
         titles = ['DEFAULT', 'FORECAST']
@@ -205,10 +198,8 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
         elif self.cancel.isChecked():
             self.currentContent = self.cancelContent
-            # self.currentContent.clear()
         else:
             self.currentContent = self.customContent
-            # self.currentContent.clear()
 
         if self.currentContent == self.customContent:
             self.graphic.hide()
@@ -257,13 +248,12 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
     def closeEvent(self, event):
         super(SigmetEditor, self).closeEvent(event)
         context.notification.sigmet.clear()
-        # self.sigmetCustom.setText()
         self.clear()
 
     def showEvent(self, event):
         # 检查必要配置是否完成
         if isConfigured('SIGMET'):
             if not self.isStaged:
-                self.initState()
+                self.updateState()
         else:
             QTimer.singleShot(0, self.showConfigError)

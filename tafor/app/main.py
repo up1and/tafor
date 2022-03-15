@@ -97,7 +97,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         context.taf.clockSignal.connect(self.remindTaf)
         context.other.messageChanged.connect(self.loadCustomMessage)
         context.notification.metar.messageChanged.connect(self.loadMetar)
-        context.notification.sigmet.messageChanged.connect(self.loadSigmet)
+        context.notification.sigmet.messageChanged.connect(self.loadSigmetNotification)
         context.layer.sigmetChanged.connect(self.sigmetEditor.updateGraphicCanvas)
         context.layer.refreshSignal.connect(self.painter)
 
@@ -273,9 +273,9 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         
         self.showNotificationMessage(title, description, level)
 
-    def loadSigmet(self):
+    def loadSigmetNotification(self):
         self.incomingSound.play(loop=False)
-        self.sigmetEditor.loadSigmet()
+        self.sigmetEditor.loadNotification()
         self.showNotificationMessage(QCoreApplication.translate('MainWindow', 'Message Received'),
                 QCoreApplication.translate('MainWindow', 'Received a {} message.').format(context.notification.sigmet.type()))
 

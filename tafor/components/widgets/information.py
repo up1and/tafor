@@ -38,6 +38,7 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.setPeriodTime()
         self.setSquence()
         self.updateDurations()
+        self.componentUpdate()
         # self.setPrediction(self.forecast.currentText())
 
     def bindSignal(self):
@@ -54,6 +55,12 @@ class BaseSigmet(SegmentMixin, QWidget):
 
         self.defaultSignal()
 
+    def componentUpdate(self):
+        """
+        This method is used to add some custom updates
+        """
+        pass
+
     def updateDurations(self):
         if self.beginningTime.hasAcceptableInput() and self.endingTime.hasAcceptableInput():
             beginText = self.beginningTime.text()
@@ -66,7 +73,7 @@ class BaseSigmet(SegmentMixin, QWidget):
 
     def periodTime(self):
         self.time = datetime.datetime.utcnow()
-        if self.parent.tt == 'WC':
+        if self.type() == 'WC':
             start = roundTime(self.time)
         else:
             start = ceilTime(self.time, amount=10)
@@ -119,7 +126,7 @@ class BaseSigmet(SegmentMixin, QWidget):
         time = datetime.datetime.utcnow()
         begin = datetime.datetime(time.year, time.month, time.day)
         query = db.query(Sigmet).filter(Sigmet.sent > begin)
-        if self.parent.tt == 'WA':
+        if self.type() == 'WA':
             query = query.filter(Sigmet.tt == 'WA')
         else:
             query = query.filter(Sigmet.tt != 'WA')
@@ -140,6 +147,9 @@ class BaseSigmet(SegmentMixin, QWidget):
 
     def hasAcceptableInput(self):
         raise NotImplementedError
+
+    def type(self):
+        return self.parent.tt
 
     def firstLine(self):
         area = conf.value('Message/FIR').split()[0]
@@ -335,9 +345,6 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
         self.description.currentTextChanged.connect(self.setPhenomena)
         self.phenomena.currentTextChanged.connect(self.setLevel)
 
-        # self.changeSignal.connect(self.head.initState)
-        # self.content.area.areaModeChanged.connect(self.setAreaMode)
-
     def setPhenomenaDescription(self):
         descriptions = ['OBSC', 'EMBD', 'FRQ', 'SQL', 'SEV', 'HVY', 'RDOACT']
         self.description.addItems(descriptions)
@@ -479,8 +486,6 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
         self.endingTime.textChanged.connect(self.setForecastTime)
         self.beginningTime.textEdited.connect(self.setForecastPosition)
         self.observationTime.textEdited.connect(self.setForecastPosition)
-
-        # self.changeSignal.connect(self.initState)
 
     def setValidator(self):
         super().setValidator()
@@ -783,9 +788,14 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
         super().bindSignal()
         self.cancelSequence.lineEdit().textEdited.connect(lambda: self.upperText(self.cancelSequence.lineEdit()))
 
-        self.cancelSequence.lineEdit().textEdited.connect(lambda: self.coloredText(self.cancelSequence.lineEdit()))
-        self.cancelBeginningTime.textEdited.connect(lambda: self.coloredText(self.cancelBeginningTime))
-        self.cancelEndingTime.textEdited.connect(lambda: self.coloredText(self.cancelEndingTime))
+        self.cancelSequence.lineEdit().textChanged.connect(lambda: self.coloredText(self.cancelSequence.lineEdit()))
+        self.cancelBeginningTime.textChanged.connect(lambda: self.coloredText(self.cancelBeginningTime))
+        self.cancelEndingTime.textChanged.connect(lambda: self.coloredText(self.cancelEndingTime))
+
+        self.cancelBeginningTime.textChanged.connect(self.syncValidsTime)
+        self.cancelEndingTime.textChanged.connect(self.syncValidsTime)
+        self.cancelSequence.currentTextChanged.connect(self.setValids)
+        self.cancelSequence.currentIndexChanged.connect(self.setValids)
 
     def setValidator(self):
         super().setValidator()
@@ -820,12 +830,65 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
         content = ' '.join(filter(None, items))
         return '\n'.join([self.firstLine(), content])
 
+    def syncValidsTime(self):
+        if self.cancelEndingTime.hasAcceptableInput():
+            endingText = self.cancelEndingTime.text()
+            self.endingTime.setText(endingText)
+
+        if self.cancelBeginningTime.hasAcceptableInput():
+            beginningText = self.cancelBeginningTime.text()
+            start = parseTime(beginningText)
+            beginning, _ = self.periodTime()
+
+            if beginning < start and start - datetime.datetime.utcnow() < datetime.timedelta(hours=12):
+                beginning = start
+
+            if beginning.strftime('%d%H%M') == self.endingTime.text():
+                beginning = beginning - datetime.timedelta(minutes=10)
+
+            self.beginningTime.setText(beginning.strftime('%d%H%M'))
+
+    def componentUpdate(self):
+        self.prevs = []
+        sigmets = currentSigmet(tt=self.type(), order='asc')
+
+        for sig in sigmets:
+            parser = sig.parser()
+            sequence = parser.sequence(), parser.valids()
+            self.prevs.append(sequence)
+
+        sequences = [s[0] for s in self.prevs]
+        self.cancelSequence.clear()
+        self.cancelSequence.addItems(sequences)
+
+    def setValids(self, sequence):
+        valids = self.findValids(sequence)
+        if valids:
+            self.cancelBeginningTime.setText(valids[0])
+            self.cancelEndingTime.setText(valids[1])
+            self.syncValidsTime()
+        else:
+            self.cancelBeginningTime.clear()
+            self.cancelEndingTime.clear()
+
+    def findValids(self, sequence):
+        if isinstance(sequence, int):
+            try:
+                return self.prevs[sequence][1]
+            except:
+                pass
+        else:
+            for seq, valids in self.prevs:
+                if seq == sequence:
+                    return valids
+
 
 class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
 
     def __init__(self, parent):
         super().__init__(parent)
         self.setUpper()
+        self.setApiSign()
 
     def bindSignal(self):
         super().bindSignal()
@@ -863,6 +926,55 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         items = [fir, self.text.toPlainText().strip()]
         content = ' '.join(filter(None, items))
         return '\n'.join([self.firstLine(), content])
+
+    def componentUpdate(self):
+        self.setPlaceholder()
+        self.loadLocalDB()
+
+    def setApiSign(self):
+        pixmap = QPixmap(':/api.png')
+        self.apiSign = QLabel(self)
+        self.apiSign.setPixmap(pixmap)
+        self.apiSign.setMask(pixmap.mask())
+        self.apiSign.adjustSize()
+        self.apiSign.move(650, 6)
+        self.apiSign.hide()
+
+    def setPlaceholder(self):
+        speedUnit = 'KT' if context.environ.unit() == 'imperial' else 'KMH'
+        lengthUnit = 'NM' if context.environ.unit() == 'imperial' else 'KM'
+        tips = {
+            'WS': 'EMBD TS FCST N OF N2000 TOP FL360 MOV N 25{} NC'.format(speedUnit),
+            'WC': 'TC YAGI PSN N2706 W07306 CB OBS AT 1600Z WI 300{} OF TC CENTRE TOP FL420 NC\nFCST AT 2200Z TC CENTRE N2740 W07345'.format(lengthUnit),
+            'WV': 'VA ERUPTION MT ASHVAL PSN S1500 E07348 VA CLD\nOBS AT 1100Z APRX 50{} WID LINE BTN S1500 E07348 - S1530 E07642 FL310/450 MOV ESE 65{}\nFCST AT 1700Z APRX 50{} WID LINE BTN S1506 E07500 - S1518 E08112 - S1712 E08330'.format(lengthUnit, speedUnit, lengthUnit),
+            'WA': 'MOD MTW OBS AT 1205Z N4200 E11000 FL080 STNR NC'
+        }
+        tip = tips[self.type()]
+        self.text.setPlaceholderText(tip)
+
+    def loadLocalDB(self):
+        last = db.query(Sigmet).filter(Sigmet.tt == self.type(), ~Sigmet.rpt.contains('CNL')).order_by(Sigmet.sent.desc()).first()
+        if last:
+            parser = last.parser()
+            message = parser.content()
+            self.setText(message)
+
+    def loadNotification(self):
+        parser = context.notification.sigmet.parser()
+        if parser and self.type() == parser.spec():
+            message = parser.content()
+            self.setText(message)
+            self.apiSign.show()
+    
+    def setText(self, message):
+        if message:
+            fir = conf.value('Message/FIR')
+            text = message.replace(fir, '').replace('=', '').strip()
+            self.text.setText(text)
+            self.text.moveCursor(QTextCursor.End)
+
+    def closeEvent(self, event):
+        self.apiSign.hide()
 
 
 class AirmetGeneral(SigmetGeneral):
