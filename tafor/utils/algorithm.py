@@ -1,8 +1,6 @@
 import math
 
-from itertools import chain
-
-from shapely.ops import split
+from shapely.ops import split, linemerge
 from shapely.geometry import Polygon, LineString, MultiLineString, Point
 
 from pyproj import Geod
@@ -68,17 +66,50 @@ def subAngle(direction, angle):
         degree = abs(direction - angle)
     return degree
 
-def extrapolatePoint(origin, point, ratio=10):
-    result = (point[0] + ratio * (point[0] - origin[0]), point[1] + ratio * (point[1] - origin[1]))
-    return result
+def shiftPoint(p1, p2, offset):
+    """
+    shift points with offset in orientation of line p1 -> p2
+    """
+    x1, y1 = p1
+    x2, y2 = p2
 
-def expandLine(points, ratio=10):
-    line = points.copy()
-    line[0] = extrapolatePoint(points[1], points[0], ratio)
-    line[-1] = extrapolatePoint(points[-2], points[-1], ratio)
+    if ((x1 - x2) == 0) and ((y1 - y2) == 0):  # zero length line
+        x, y = x1, y1
+    else:
+        length = offset / math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+        x = x1 + (x2 - x1) * length
+        y = y1 + (y2 - y1) * length
+    return x, y
+
+def extendLine(line, offset, side='both'):
+    """
+    extend line in same orientation
+    """
+    if side == 'both':
+        sides = ['start', 'end']
+    else:
+        sides = [side]
+
+    for side in sides:
+        coords = line.coords
+        if side == 'start':
+            point = shiftPoint(coords[0], coords[1], -1. * offset)
+            line = LineString([point] + coords[:])
+        elif side == 'end':
+            point = shiftPoint(coords[-1], coords[-2], -1. * offset)
+            line = LineString(coords[:] + [point])
     return line
 
-def simplifyLine(line):
+def lineIntersection(line1, line2, offset=10):
+    """
+    Intersection of lines
+    """
+    line1 = extendLine(line1, offset)
+    line2 = extendLine(line2, offset)
+
+    return line1.intersection(line2)
+
+def flattenLine(line):
     values = []
     for p in line:
         values += list(p)
@@ -89,34 +120,19 @@ def simplifyLine(line):
 
     return line
 
-def connectLine(lines):
+def mergeLine(lines):
+    points = []
+    lines = MultiLineString(lines)
+    merged = linemerge(lines)
 
-    def canConnect(lines):
-        points = list(chain(*lines))
-        return len(points) != len(set(points))
+    if merged.geom_type == 'LineString':
+        points = [list(merged.coords)]
 
-    def connect(lines):
-        for line in lines:
-            for current in lines:
-                if line[-1] == current[0]:
-                    points = line[:-1] + current
-                elif line[0] == current[-1]:
-                    points = current[:-1] + line
+    elif merged.geom_type == 'MultiLineString':
+        for line in merged.geoms:
+            points.append(list(line.coords))
 
-                if line[-1] == current[0] or line[0] == current[-1]:
-                    lines.append(points)
-                    lines.remove(line)
-                    lines.remove(current)
-
-        return lines
-
-    while canConnect(lines):
-        try:
-            lines = connect(lines)
-        except Exception as e:
-            lines = []
-
-    return lines
+    return points
 
 def clipLine(polygon, points):
     subj = Polygon(polygon)
@@ -147,19 +163,19 @@ def clipPolygon(subj, clip):
 
     return points
 
+
 class SimplifyPolygon(object):
 
-    def __init__(self, maxPoint=7, extend=False):
+    def __init__(self, maxPoint=7):
         self.maxPoint = maxPoint
-        self.extend = extend
-        self.tolerance = 1
+        self.tolerance = 0.1
 
     def simplify(self, points):
         polygon = Polygon(points) if isinstance(points, list) else points
         try:
             polygon = polygon.simplify(self.tolerance)
             while len(polygon.exterior.coords) > self.maxPoint:
-                self.tolerance += 1
+                self.tolerance += 0.1
                 polygon = polygon.simplify(self.tolerance)
 
             outputs = list(polygon.exterior.coords)
@@ -168,9 +184,10 @@ class SimplifyPolygon(object):
 
         return outputs
 
-    def findBaseline(self, points, simples):
-        baseshape = Polygon(simples)
+    def findBaselines(self, points, simples):
+        baseshape = Polygon(simples).buffer(0.01, cap_style=2, join_style=2)
         baselines = []
+        outsides = []
         for p, q in zip(simples, simples[1:]):
             pidx = points.index(p)
             qidx = points.index(q)
@@ -180,84 +197,73 @@ class SimplifyPolygon(object):
             else:
                 line = points[qidx:] + points[:pidx]
 
+            vertices = []
+
             if len(line) > 1:
                 for v in line[1:]:
                     vertex = Point(v)
+                    # vertex not insede the simplified polygon, means that the corresponding line is simplified
                     if not baseshape.contains(vertex):
-                        baselines.append([p, q])
-                        break
+                        newline = LineString([p, q])
+                        if newline not in baselines:
+                            baselines.append(newline)
 
-        baselines = connectLine(baselines)
-        return baselines
+                        # the vertex not inside the simplified polygon
+                        vertices.append(vertex)
 
-    def unionParts(self, baselines, simples, bufferSize):
-        parts = []
-        for lines in baselines:
-            prev = simples.index(lines[0]) - 1
-            foward = (simples.index(lines[-1]) + 1) % len(simples)
-            prevTangent = expandLine([simples[prev], lines[0]], ratio=100)
-            fowardTangent = expandLine([simples[foward], lines[-1]], ratio=100)
-            tangents = [LineString(prevTangent), LineString(fowardTangent)]
+            if vertices:
+                outsides.append(vertices)
 
-            part = LineString(lines).buffer(bufferSize, resolution=1, cap_style=2, join_style=2)
+        # caculate the max distance from vertices to baseline
+        distances = []
+        for i, line in enumerate(baselines):
+            distance = 0
+            for vertex in outsides[i]:
+                distance = max(distance, line.distance(vertex))
 
-            for t in tangents:
-                shapes = split(part, t)
-                part = max(shapes, key=lambda p: p.area)
-                part = part.buffer(0.5, resolution=1, cap_style=2, join_style=2)
+            distances.append(distance)
 
-            parts.append(part)
+        return baselines, distances
 
-        return parts
+    def extend(self, points):
+        simples = self.simplify(points)
+        outputs = simples[:-1]
+        baselines, distances = self.findBaselines(points, simples[:-1])
 
-    def removeStraightLine(self, points):
-        outputs = points[:-1]
-        deviation = bearing(outputs[-1], outputs[0]) - bearing(outputs[0], outputs[1])
+        for i, line in enumerate(baselines):
+            distance = distances[i]
 
-        if abs(deviation) < 0.04:
-            outputs = outputs[1:]
+            # get the index of the baseline vertex
+            start, end = line.coords
+            sidx, eidx = simples.index(start), simples.index(end)
+
+            # find the closest vertex to the baseline
+            prev = outputs[(sidx - 1) % len(outputs)]
+            next = outputs[(eidx + 1) % len(outputs)]
+
+            # update the baseline and nearby lines
+            start = outputs[sidx]
+            end = outputs[eidx]
+            line = LineString([start, end])
+            prevline = LineString([prev, start])
+            nextline = LineString([end, next])
+
+            # parallel baseline with distance
+            newline = line.parallel_offset(distance, 'left', resolution=1, join_style=2)
+            newline = LineString([lineIntersection(prevline, newline), lineIntersection(newline, nextline)])
+            outputs[sidx], outputs[eidx] = newline.coords
 
         outputs.append(outputs[0])
         return outputs
 
-    def expand(self, points):
-        # this method should rewrite
-        simples = self.simplify(points)
-        simples = simples[:-1]
-
-        origin = Polygon(points)
-        bufferSize = self.tolerance
-        maxBufferSize = self.tolerance + 5
-        baselines = self.findBaseline(points, simples)
-
-        while bufferSize < maxBufferSize:
-            parts = self.unionParts(baselines, simples, bufferSize)
-            extended = Polygon()
-            for part in parts:
-                extended = extended.union(part)
-
-            segment = Polygon(simples).union(extended)
-            outputs = self.simplify(segment)
-            bufferSize += 2
-
-            if Polygon(outputs).buffer(1).contains(origin):
-                break
-
-        outputs = self.removeStraightLine(outputs)
-
-        return outputs
-
-    def process(self, points):
+    def __call__(self, points, extend=False):
         if len(points) <= self.maxPoint:
             return points
 
-        if self.extend:
-            return self.expand(points)
+        if extend:
+            return self.extend(points)
 
         return self.simplify(points)
-
-    def __call__(self, points):
-        return self.process(points)
 
 
 def simplifyPolygon(points, maxPoint=7, extend=False):
@@ -268,7 +274,7 @@ def simplifyPolygon(points, maxPoint=7, extend=False):
     :param extend: 布尔值，边界的做标集，如果存在则简化多边形包含边界
     :return: 列表，简化后的多边形坐标集和简化的误差值
     """
-    return SimplifyPolygon(maxPoint=maxPoint, extend=extend)(points)
+    return SimplifyPolygon(maxPoint=maxPoint)(points, extend=extend)
 
 def decodePolygon(boundary, polygon, trim):
     polygon = Polygon(polygon)
@@ -280,8 +286,8 @@ def decodeLine(boundary, lines):
     polygons = []
     directions = {'SE': -0.25, 'NE': 0.25, 'N': 0.5, 'SW': -0.75, 'W': 1.0, 'NW': 0.75, 'E': 0.0, 'S': -0.5}
     for identifier, points in lines:
-        expands = expandLine(points)
-        line = LineString(expands)
+        line = LineString(points)
+        line = extendLine(line, 10)
         parts = split(boundary, line)
         direction = directions[identifier]
 
@@ -441,7 +447,7 @@ class EncodeSigmetArea(object):
 
     def line(self):
         lines = self.nonOverlappingLines()
-        lines = connectLine(lines)
+        lines = mergeLine(lines)
 
         if self.centerNotInPolygon() or self.lineIntersectsSameBoundary(lines):
             return []

@@ -1537,7 +1537,7 @@ class SigmetParser(object):
         return []
 
     def geo(self, boundaries, trim=None):
-        from tafor.utils.sigmet import decode
+        from tafor.utils.algorithm import decode
         features = {
             'type': 'Feature',
             'geometry': {

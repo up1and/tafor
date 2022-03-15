@@ -16,7 +16,7 @@ from PyQt5.QtCore import QCoreApplication, QObject, QPointF, Qt, QRect, QRectF, 
 from tafor import root
 from tafor.states import context
 from tafor.utils.convert import decimalToDegree, degreeToDecimal
-from tafor.utils.sigmet import encode, buffer, circle, simplifyLine, clipLine, clipPolygon, simplifyPolygon
+from tafor.utils.algorithm import encode, buffer, circle, flattenLine, clipLine, clipPolygon, simplifyPolygon
 from tafor.components.widgets.geometry import BackgroundImage, Coastline, Fir, Sigmet, SketchGraphic
 
 
@@ -289,7 +289,7 @@ class Sketch(QObject):
             lines = []
             for identifier, *points in area:
                 points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in points]
-                lonlat = simplifyLine(points)
+                lonlat = flattenLine(points)
 
                 if lonlat:
                     line = '{} OF {}'.format(identifier, lonlat)
