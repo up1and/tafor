@@ -28,6 +28,7 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.rules = Pattern()
         self.parent = parent
         self.span = 4
+        self.forecastMode = False
 
         self.setupUi(self)
         self.initState()
@@ -147,6 +148,9 @@ class BaseSigmet(SegmentMixin, QWidget):
 
     def hasAcceptableInput(self):
         raise NotImplementedError
+
+    def hasForecastMode(self):
+        return self.forecastMode
 
     def type(self):
         return self.parent.tt
@@ -297,10 +301,6 @@ class ObservationMixin(object):
             if self.beginningTime.text()[2:] == self.observationTime.text():
                 self.observationTime.clear()
 
-    def isFcstMode(self):
-        # return hasattr(self, 'area') and self.area.fcstButton.isChecked()
-        pass
-
     def observationText(self):
         if self.observation.currentText() == 'OBS':
             text = 'OBS AT {}Z'.format(self.observationTime.text()) if self.observationTime.hasAcceptableInput() else ''
@@ -324,6 +324,19 @@ class ForecastMixin(object):
 
         text = self.endingTime.text()[2:]
         self.forecastTime.setText(text)
+
+    def setForecastMode(self, mode):
+        if mode == 'forecast':
+            self.observation.setCurrentIndex(self.observation.findText('OBS'))
+            self.forecastTime.setEnabled(True)
+            self.forecastTimeLabel.setEnabled(True)
+            self.setForecastTime()
+            self.forecastMode = True
+        else:
+            self.forecastTime.setEnabled(False)
+            self.forecastTimeLabel.setEnabled(False)
+            self.forecastTime.clear()
+            self.forecastMode = False
 
     def forecastText(self):
         text = 'FCST AT {}Z'.format(self.forecastTime.text())
@@ -380,17 +393,6 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
             self.level.addItems(levels)
             self.level.setCurrentIndex(-1)
 
-    # def setAreaMode(self):
-    #     if self.isFcstMode():
-    #         self.forecast.setCurrentIndex(self.forecast.findText('OBS'))
-    #         self.forecastTime.setEnabled(True)
-    #         self.forecastTimeLabel.setEnabled(True)
-    #         self.setForecastTime()
-    #     else:
-    #         self.forecastTime.setEnabled(False)
-    #         self.forecastTimeLabel.setEnabled(False)
-    #         self.forecastTime.clear()
-
     def hasAcceptableInput(self):
         mustRequired = [
             self.beginningTime.hasAcceptableInput(),
@@ -410,7 +412,7 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
             if self.top.isEnabled():
                 mustRequired.append(self.top.hasAcceptableInput())
 
-        if self.isFcstMode():
+        if self.hasForecastMode():
             mustRequired.append(self.forecastTime.hasAcceptableInput())
         else:
             mustRequired.append(self.moveState())
@@ -431,7 +433,8 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
         intensityChange = self.intensityChange.currentText()
 
         items = [fir, phenomena, observation, '{location}', fightLevel, moveState, intensityChange]
-        if self.forecastTime.isEnabled():
+
+        if self.hasForecastMode():
             forecast = self.forecastText()
             items += [forecast, '{forecastLocation}']
 
@@ -740,7 +743,7 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         if self.top.isEnabled():
             mustRequired.append(self.top.hasAcceptableInput())
 
-        if self.isFcstMode():
+        if self.hasForecastMode():
             mustRequired.append(self.forecastTime.hasAcceptableInput())
         elif self.speed.isEnabled():
             mustRequired.append(self.speed.hasAcceptableInput())
@@ -769,7 +772,7 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
             position = self.observationText()
 
         items = [fir, phenomena, position, '{location}', fightLevel, moveState, intensityChange]
-        if self.forecastTime.isEnabled():
+        if self.hasForecastMode():
             forecast = self.forecastText()
             items += [forecast, '{forecastLocation}']
 

@@ -68,6 +68,8 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
         self.graphic.sketchChanged.connect(self.setLocationLabel)
         self.graphic.sketchChanged.connect(self.enbaleNextButton)
+        self.graphic.modeChanged.connect(self.setForecastMode)
+        self.graphic.modeChanged.connect(self.enbaleNextButton)
 
         self.typhoonContent.circleChanged.connect(lambda: self.graphic.updateTyphoonGraphic(self.typhoonContent.circle()))
 
@@ -140,7 +142,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
     def hasAcceptableInput(self):
         items = [self.currentContent.hasAcceptableInput()]
         if self.hasGraphicWindow():
-            items.append(self.graphic.hasAcceptableGraphic)
+            items.append(self.graphic.hasAcceptableGraphic())
 
         return all(items)
 
@@ -155,8 +157,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
             btn.setText(text)
 
-    def setType(self, tt):
-        typeChanged = False if self.tt == tt else True
+    def setType(self, tt, category):
         self.tt = tt
         durations = {
             'WS': 4,
@@ -167,8 +168,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.currentContent.setSpan(durations[tt])
         self.hideTypeGroupOverflow()
 
-        if typeChanged:
-            self.graphic.setModeButton(tt)
+        self.graphic.setButton(tt, category)
 
     def setLocationLabel(self, messages):
         titles = ['DEFAULT', 'FORECAST']
@@ -182,8 +182,13 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         html = '<br><br>'.join(words)
         self.location.setText(html)
 
+    def setForecastMode(self, mode):
+        if self.currentContent in [self.generalContent, self.ashContent]:
+            self.currentContent.setForecastMode(mode)
+
     def changeContent(self):
         if self.template.isChecked():
+            category = 'template'
             if self.significantWeather.isChecked():
                 self.currentContent = self.generalContent
 
@@ -197,8 +202,10 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
                 self.currentContent = self.airmetContent
 
         elif self.cancel.isChecked():
+            category = 'cancel'
             self.currentContent = self.cancelContent
         else:
+            category = 'custom'
             self.currentContent = self.customContent
 
         if self.currentContent == self.customContent:
@@ -218,16 +225,18 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
                 c.hide()
 
         if self.significantWeather.isChecked():
-            self.setType('WS')
+            tt = 'WS'
 
         if self.tropicalCyclone.isChecked():
-            self.setType('WC')
+            tt = 'WC'
 
         if self.volcanicAsh.isChecked():
-            self.setType('WV')
+            tt = 'WV'
 
         if self.airmansWeather.isChecked():
-            self.setType('WA')
+            tt = 'WA'
+        
+        self.setType(tt, category)
 
     def showNotificationMessage(self, text):
         self.parent.showNotificationMessage(text)

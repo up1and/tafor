@@ -9,7 +9,7 @@ from itertools import cycle
 from pyproj import Proj, Geod
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView, QGraphicsScene, QRubberBand, 
-    QStyleOptionGraphicsItem, QPushButton, QToolButton, QLabel, QMenu, QActionGroup, QAction, QWidgetAction, QSlider)
+    QStyleOptionGraphicsItem, QPushButton, QToolButton, QLabel, QMenu, QActionGroup, QAction, QWidgetAction, QSlider, QSpacerItem, QSizePolicy)
 from PyQt5.QtGui import QIcon, QPainter
 from PyQt5.QtCore import QCoreApplication, QObject, QPointF, Qt, QRect, QRectF, QSize, pyqtSignal
 
@@ -703,6 +703,7 @@ class Canvas(QGraphicsView):
 class GraphicsWindow(QWidget):
 
     sketchChanged = pyqtSignal(list)
+    modeChanged = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super(GraphicsWindow, self).__init__()
@@ -743,6 +744,7 @@ class GraphicsWindow(QWidget):
             button.setAutoRaise(True)
 
         self.operationLayout = QHBoxLayout()
+        self.operationLayout.addItem(QSpacerItem(0, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
         self.operationLayout.addWidget(self.layerButton)
         self.operationLayout.addWidget(self.fcstButton)
         self.operationLayout.addWidget(self.modeButton)
@@ -763,7 +765,7 @@ class GraphicsWindow(QWidget):
         self.timeLabel.setAlignment(Qt.AlignBottom)
 
         self.setLayerMenu()
-        self.setModeButton()
+        self.setButton()
         self.load()
         self.bindSignal()
 
@@ -813,7 +815,7 @@ class GraphicsWindow(QWidget):
 
         return all(sketchs)
 
-    def setModeButton(self, tt='WS'):
+    def setButton(self, tt='WS', category='template'):
         if tt == 'WC':
             icons = [{'icon': ':/circle.png', 'mode': 'circle'}]
         else:
@@ -826,6 +828,16 @@ class GraphicsWindow(QWidget):
 
         self.icons = cycle(icons)
         self.nextMode()
+
+        if tt in ['WC', 'WA'] and category == 'template' or category == 'cancel':
+            self.fcstButton.hide()
+        else:
+            self.fcstButton.show()
+
+        if category == 'cancel':
+            self.modeButton.hide()
+        else:
+            self.modeButton.show()
 
     def setFcstButton(self):
         enbale = self.canvas.isDefaultLocationFinished()
@@ -840,9 +852,11 @@ class GraphicsWindow(QWidget):
         if self.fcstButton.isChecked():
             self.canvas.setType('forecast')
             self.modeButton.setEnabled(False)
+            self.modeChanged.emit('forecast')
         else:
             self.canvas.setType('default')
             self.modeButton.setEnabled(True)
+            self.modeChanged.emit('default')
 
     def switchLock(self):
         if self.canvas.lock:
