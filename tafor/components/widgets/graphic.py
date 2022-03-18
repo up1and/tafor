@@ -130,16 +130,23 @@ class Sketch(QObject):
 
         if self.canvas.mode in ['rectangular', 'circle']:
             self.coordinates.append(lonlat)
+
             if len(self.coordinates) == 2:
                 self.done = True
                 self.finished.emit()
 
-            if self.canvas.mode == 'circle' and self.done:
-                # make sure the radius always multiple of 5
-                radius = distance(self.coordinates[0], self.coordinates[1])
-                self.radius = round(radius / 5000) * 5000
-                lon, lat, _ = wgs84.fwd(self.coordinates[0][0], self.coordinates[0][1], 0, self.radius)
-                self.coordinates[-1] = [lon, lat]
+            if self.canvas.mode == 'circle':
+                if self.done:
+                    # make sure the radius always multiple of 5
+                    radius = distance(self.coordinates[0], self.coordinates[1])
+                    self.radius = round(radius / 5000) * 5000
+                    lon, lat, _ = wgs84.fwd(self.coordinates[0][0], self.coordinates[0][1], 0, self.radius)
+                    self.coordinates[-1] = lon, lat
+
+                if self.radius and len(self.coordinates) == 1:
+                    lon, lat, _ = wgs84.fwd(self.coordinates[0][0], self.coordinates[0][1], 0, self.radius)
+                    self.coordinates.append((lon, lat))
+                    self.done = True
 
             self.redraw()
 
@@ -150,6 +157,7 @@ class Sketch(QObject):
                     self.radius = 0
                 elif self.canvas.mode == 'circle':
                     self.coordinates.pop()
+                    self.radius = 0
                 else:
                     if len(self.coordinates) > self.maxPoint:
                         self.coordinates = self.coordinates[:7]
@@ -276,9 +284,8 @@ class Sketch(QObject):
 
         return geometry
 
-    def redraw(self, silent=False):
-        if not silent:
-            self.changed.emit()
+    def redraw(self):
+        self.changed.emit()
 
     def text(self):
         message = ''
@@ -350,45 +357,33 @@ class Sketch(QObject):
 
         return message
 
-    def updateCircle(self, circle):
-        if self.canvas.mode == 'circle':
-            if 'center' in circle:
-                center = [degreeToDecimal(circle['center'][0]), degreeToDecimal(circle['center'][1])]
-                center = self.canvas.toCanvasCoordinates(*center)
-                center = QPointF(*center)
+    def circle(self):
+        return {
+            'center': self.coordinates[0] if self.coordinates else (),
+            'radius': round(self.radius / 1000)
+        }
 
-                if self.coordinates:
-                    self.coordinates[0] = center
-                else:
-                    self.coordinates = [center]
+    def setCircle(self, circle):
+        if self.canvas.mode == 'circle':
+            self.done = False
+
+            if 'center' in circle:
+                center = degreeToDecimal(circle['center'][0]), degreeToDecimal(circle['center'][1])
+                self.coordinates = [center]
+            else:
+                self.coordinates = []
 
             if 'radius' in circle:
-                radius = int(circle['radius']) * 1000 / self.canvas.groundResolution(self.approximateLatitude)
+                self.radius = int(circle['radius']) * 1000
+            else:
+                self.radius = 0
 
-                if len(self.coordinates) == 1:
-                    self.coordinates.append(QPointF(center.x() + radius, center.y()))
-
-                point = self.coordinates[-1]
-                radian = bearing(point, center)
-                self.coordinates[-1] = QPointF(center.x() + math.cos(radian) * radius, center.y() + math.sin(radian) * radius)
+            if 'center' in circle and 'radius' in circle:
+                lon, lat, _ = wgs84.fwd(center[0], center[1], 0, self.radius)
+                self.coordinates.append((lon, lat))
                 self.done = True
 
-            self.redraw(silent=True)
-
-    def geographicalCircle(self):
-        if self.canvas.mode == 'circle':
-            points = [self.canvas.toGeographicalCoordinates(p.x(), p.y()) for p in self.coordinates]
-            points = [(decimalToDegree(lng, fmt='longitude'), decimalToDegree(lat)) for lng, lat in points]
-
-            if points:
-                radius = self.canvas.groundResolution(self.approximateLatitude) * self.radius / 1000
-                radius = round(radius)
-                coords = {
-                    'center': points[0],
-                    'radius': radius
-                }
-
-                return coords
+            self.redraw()
 
 
 class Canvas(QGraphicsView):
@@ -703,6 +698,7 @@ class Canvas(QGraphicsView):
 class GraphicsWindow(QWidget):
 
     sketchChanged = pyqtSignal(list)
+    circleChanged = pyqtSignal(dict)
     modeChanged = pyqtSignal(str)
 
     def __init__(self, parent=None):
@@ -778,7 +774,7 @@ class GraphicsWindow(QWidget):
         self.canvas.sketchManager.first().finished.connect(self.setFcstButton)
 
         for sketch in self.canvas.sketchManager:
-            sketch.changed.connect(lambda: self.sketchChanged.emit(self.drawingText()))
+            sketch.changed.connect(self.handleSketchChange)
 
         self.trimShapesAction.toggled.connect(lambda: self.changeSigmetDisplayMode(self.trimShapesAction, 'trimShapes'))
         self.showSigmetAction.toggled.connect(lambda: self.changeSigmetDisplayMode(self.showSigmetAction, 'showSigmet'))
@@ -788,12 +784,21 @@ class GraphicsWindow(QWidget):
         context.layer.layerChanged.connect(self.setLayerSelectMenu)
         context.layer.layerChanged.connect(self.updateLayer)
 
-    def drawingText(self):
+    def handleSketchChange(self):
+        self.sketchChanged.emit(self.formattedCoordinates())
+        
+        if self.canvas.mode == 'circle':
+            self.circleChanged.emit(self.circleCoordinates())
+
+    def formattedCoordinates(self):
         messages = []
         for s in self.canvas.sketchManager.sketchs:
             messages.append(s.text())
 
         return messages
+
+    def circleCoordinates(self):
+        return self.canvas.sketchManager.first().circle()
 
     def location(self):
         locations = {}
@@ -943,9 +948,9 @@ class GraphicsWindow(QWidget):
 
         self.timeLabel.setText('\n'.join(words))
 
-    def updateTyphoonGraphic(self, circle):
-        drawing = self.canvas.drawings['default']
-        drawing.updateCircle(circle)
+    def setTyphoonGraphic(self, circle):
+        drawing = self.canvas.sketchManager.first()
+        drawing.setCircle(circle)
 
     def updateSigmetGraphic(self):
         sigmets = []

@@ -9,8 +9,8 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, QMenu,
 
 from tafor import conf
 from tafor.states import context
-from tafor.utils import _purePattern, Pattern, SigmetGrammar
-from tafor.utils.convert import parseTime, ceilTime, roundTime, calcPosition
+from tafor.utils import Pattern
+from tafor.utils.convert import parseTime, ceilTime, roundTime, calcPosition, decimalToDegree
 from tafor.utils.service import currentSigmet
 from tafor.models import db, Sigmet
 from tafor.components.widgets.forecast import SegmentMixin
@@ -452,7 +452,7 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
 
 class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
 
-    circleChanged = pyqtSignal()
+    circleChanged = pyqtSignal(dict)
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -462,11 +462,9 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
     def bindSignal(self):
         super().bindSignal()
 
-        self.currentLatitude.editingFinished.connect(lambda: self.circleChanged.emit())
-        self.currentLongitude.editingFinished.connect(lambda: self.circleChanged.emit())
-        self.range.editingFinished.connect(lambda: self.circleChanged.emit())
-        # self.area.canvasWidget.canvas.pointsChanged.connect(self.setCircleOnContent)
-        # self.area.canvasWidget.canvas.stateChanged.connect(self.setCircleOnContent)
+        self.currentLatitude.textEdited.connect(self.handleCircleChange)
+        self.currentLongitude.textEdited.connect(self.handleCircleChange)
+        self.range.textEdited.connect(self.handleCircleChange)
 
         self.currentLatitude.textChanged.connect(self.setForecastPosition)
         self.currentLongitude.textChanged.connect(self.setForecastPosition)
@@ -479,8 +477,8 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
         self.forecastLatitude.textEdited.connect(lambda: self.upperText(self.forecastLatitude))
         self.forecastLongitude.textEdited.connect(lambda: self.upperText(self.forecastLongitude))
 
-        self.currentLatitude.textEdited.connect(lambda: self.coloredText(self.currentLatitude))
-        self.currentLongitude.textEdited.connect(lambda: self.coloredText(self.currentLongitude))
+        self.currentLatitude.textChanged.connect(lambda: self.coloredText(self.currentLatitude))
+        self.currentLongitude.textChanged.connect(lambda: self.coloredText(self.currentLongitude))
         self.height.textEdited.connect(lambda: self.coloredText(self.height))
         self.forecastTime.textEdited.connect(lambda: self.coloredText(self.forecastTime))
         self.forecastLatitude.textEdited.connect(lambda: self.coloredText(self.forecastLatitude))
@@ -517,6 +515,9 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
         observations = ['OBS', 'FCST']
         self.observation.addItems(observations)
 
+    def handleCircleChange(self):
+        self.circleChanged.emit(self.circle())
+
     def phenomenon(self):
         items = [self.phenomena.currentText(), self.name.text()]
         text = ' '.join(items) if all(items) else ''
@@ -525,24 +526,29 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
     def circle(self):
         coords = {}
         if self.currentLatitude.hasAcceptableInput() and self.currentLongitude.hasAcceptableInput():
-            coords['center'] = [self.currentLongitude.text(), self.currentLatitude.text()]
+            coords['center'] = (self.currentLongitude.text(), self.currentLatitude.text())
 
         if self.range.hasAcceptableInput():
-            coords['radius'] = self.range.text()
+            coords['radius'] = int(self.range.text())
         
         return coords
 
-    def updateLocation(self, circle):
-        if circle:
-            lon, lat = circle['center']
+    def setTyphoonLocation(self, circle):
+        center = circle.get('center')
+        radius = circle.get('radius')
+
+        if center:
+            lon, lat = center
+            lon, lat = decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)
             self.currentLongitude.setText(lon)
             self.currentLatitude.setText(lat)
-
-            radius = circle['radius']
-            self.range.setText(str(radius))
         else:
             self.currentLongitude.clear()
             self.currentLatitude.clear()
+
+        if radius:
+            self.range.setText(str(radius))
+        else:
             self.range.clear()
 
     def setForecastTime(self):

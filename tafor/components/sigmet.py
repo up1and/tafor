@@ -71,7 +71,8 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.graphic.modeChanged.connect(self.setForecastMode)
         self.graphic.modeChanged.connect(self.enbaleNextButton)
 
-        self.typhoonContent.circleChanged.connect(lambda: self.graphic.updateTyphoonGraphic(self.typhoonContent.circle()))
+        self.graphic.circleChanged.connect(self.typhoonContent.setTyphoonLocation)
+        self.typhoonContent.circleChanged.connect(self.graphic.setTyphoonGraphic)
 
         for c in self.contents:
             c.contentChanged.connect(self.enbaleNextButton)
