@@ -52,7 +52,7 @@ class LayerState(QObject):
 
         # sigmet state should be separated from layer state
         def diff(origin, ref):
-            return set(origin) - set(ref)
+            return set(ref).symmetric_difference(origin)
 
         sigmets = [s.rpt for s in self.sigmets()]
         refSigmets = [s.rpt for s in refs['sigmets']]

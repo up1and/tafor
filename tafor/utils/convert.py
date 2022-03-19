@@ -386,14 +386,3 @@ class Layer(object):
             return datetime.datetime.strptime(self._updated, fmt)
         except Exception as e:
             return None
-
-    # def pixmap(self):
-    #     if self.image is None:
-    #         raw = QPixmap(*self.size())
-    #         raw.fill(Qt.gray)
-    #     else:
-    #         raw = QPixmap()
-    #         raw.loadFromData(self.image)
-    #         raw = raw.scaled(*self.size())
-
-    #     return image
