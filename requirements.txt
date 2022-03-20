@@ -2,7 +2,7 @@ click
 falcon
 pyserial
 python-dateutil
-python-jose
+pyjwt
 waitress
 requests
 SQLAlchemy

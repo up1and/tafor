@@ -201,9 +201,11 @@ class LicenseEditor(QDialog, Ui_main_license.Ui_Editor):
 
     def save(self):
         license = self.textarea.toPlainText().strip()
+        license = ''.join(license.split())
         conf.setValue('License', license)
         if context.environ.license():
             self.parent.setAboutMenu()
+            self.textarea.clear()
         else:
             conf.setValue('License', '')
             text = QCoreApplication.translate('Editor', 'That license key doesn\'t appear to be valid')
