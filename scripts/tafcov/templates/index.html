@@ -57,7 +57,7 @@
                 background: rgba(0,0,0,0.02);
             }
 
-            .cov .rpt, .cov .html {
+            .cov .text, .cov .html {
                 width: 40%
             }
         </style>
@@ -79,7 +79,7 @@
                     {% for message in failed %}
                     <tr>
                         <td>{{ message.id }}</td>
-                        <td class="rpt">{{ message.rpt }}</td>
+                        <td class="text">{{ message.text }}</td>
                         <td class="html">{{ message.html }}</td>
                         <td class="tips">{% for tip in message.tips %}{{ tip }}<br>{% endfor %}</td>
                         <td>{{ message.sent|datetimeformat }}</td>

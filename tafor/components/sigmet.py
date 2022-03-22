@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QVBoxLayout, QLayout, QRadioButton
 
 from tafor import conf
 from tafor.states import context
+from tafor.models import Sigmet
 from tafor.components.setting import isConfigured
 from tafor.components.widgets import SigmetGeneral, SigmetTyphoon, SigmetAsh, AirmetGeneral, SigmetCancel, SigmetCustom
 from tafor.components.widgets.graphic import GraphicsWindow
@@ -21,7 +22,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.setupUi(self)
         self.parent = parent
 
-        self.tt = 'WS'
+        self.type = 'WS'
         self.typeButtonTexts = [btn.text() for btn in self.typeGroup.findChildren(QRadioButton)]
 
         self.initUI()
@@ -83,12 +84,12 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.sender.sendSignal.connect(self.updateState)
 
     def updateGraphicCanvas(self):
-        isAirmet = True if self.tt == 'WA' else False
+        isAirmet = True if self.type == 'WA' else False
 
         if isAirmet:
-            sigmets = [s for s in context.layer.sigmets() if s.tt == 'WA']
+            sigmets = [s for s in context.layer.sigmets() if s.type == 'WA']
         else:
-            sigmets = [s for s in context.layer.sigmets() if s.tt != 'WA']
+            sigmets = [s for s in context.layer.sigmets() if s.type != 'WA']
 
         self.graphic.setCachedSigmet(sigmets)
 
@@ -102,11 +103,8 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
             self.previewMessage()
 
     def previewMessage(self):
-        sign = self.wmoHeader()
-        rpt = self.message()
-        uuid = str(uuid4())
-        message = {'sign': sign, 'rpt': rpt, 'uuid': uuid}
-        self.previewSignal.emit(message)
+        message = Sigmet(type=self.type, heading=self.heading(), text=self.message())
+        self.finished.emit(message)
 
     def enbaleNextButton(self):
         self.nextButton.setEnabled(self.hasAcceptableInput())
@@ -117,11 +115,11 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
     def loadNotification(self):
         self.customContent.loadNotification()
 
-    def wmoHeader(self):
+    def heading(self):
         area = conf.value('Message/Area') or ''
         icao = conf.value('Message/ICAO')
         time = datetime.datetime.utcnow().strftime('%d%H%M')
-        messages = [self.tt + area, icao, time]
+        messages = [self.type + area, icao, time]
         return ' '.join(filter(None, messages))
 
     def message(self):
@@ -134,8 +132,8 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         text = text if text.endswith('=') else text + '='
         return text
 
-    def sign(self):
-        return 'AIRMET' if self.tt == 'WA' else 'SIGMET'
+    def reportType(self):
+        return 'AIRMET' if self.type == 'WA' else 'SIGMET'
 
     def hasGraphicWindow(self):
         return self.currentContent not in [self.customContent, self.cancelContent]
@@ -158,18 +156,18 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
             btn.setText(text)
 
-    def setType(self, tt, category):
-        self.tt = tt
+    def setType(self, type, category):
+        self.type = type
         durations = {
             'WS': 4,
             'WC': 6,
             'WV': 6,
             'WA': 4,
         }
-        self.currentContent.setSpan(durations[tt])
+        self.currentContent.setSpan(durations[self.type])
         self.hideTypeGroupOverflow()
 
-        self.graphic.setButton(tt, category)
+        self.graphic.setButton(self.type, category)
 
     def setLocationLabel(self, messages):
         titles = ['DEFAULT', 'FORECAST']

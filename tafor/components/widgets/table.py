@@ -107,10 +107,10 @@ class ExportDialog(QDialog):
         query = db.query(model)
 
         if reportType == 'SIGMET':
-            query = query.filter(model.tt != 'WA')
+            query = query.filter(model.type != 'WA')
 
         if reportType == 'AIRMET':
-            query = query.filter(model.tt == 'WA')
+            query = query.filter(model.type == 'WA')
 
         start, end = self.startDate.date().toPyDate(), self.endDate.date().toPyDate()
         query = query.filter(
@@ -135,7 +135,7 @@ class ExportDialog(QDialog):
             timefield = 'sent'
 
         headers = ('type', 'content', 'time')
-        data = [(e.tt, e.rpt, getattr(e, timefield)) for e in self.queryset()]
+        data = [(e.type, e.text, getattr(e, timefield)) for e in self.queryset()]
 
         self.thread = ExportRecordThread(filename, data, headers=headers)
         self.thread.finished.connect(self.close)
@@ -216,17 +216,17 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         query = db.query(self.model).order_by(dateField.desc())
 
         if self.reportType == 'SIGMET':
-            query = query.filter(self.model.tt != 'WA')
+            query = query.filter(self.model.type != 'WA')
 
         if self.reportType == 'AIRMET':
-            query = query.filter(self.model.tt == 'WA')
+            query = query.filter(self.model.type == 'WA')
 
         if self.date:
             delta = datetime.timedelta(days=1)
             query = query.filter(and_(dateField >= self.date, dateField < self.date + delta))
 
         if self.keywords:
-            words = [self.model.rpt.like('%'+word+'%') for word in self.keywords]
+            words = [self.model.text.like('%'+word+'%') for word in self.keywords]
             query = query.filter(and_(*words))
 
         return query
@@ -299,14 +299,8 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.parent.statusBar.showMessage(QCoreApplication.translate('MainWindow', 'Selected message has been copied'), 5000)
 
     def view(self):
-        message = {
-            'uuid': self.selected.uuid,
-            'item': self.selected,
-            'sign': self.selected.sign,
-            'rpt': self.selected.rpt,
-            'full': '\n'.join(filter(None, [self.selected.sign, self.selected.rpt]))
-        }
-        self.reviewer.receive(message, mode='view')
+        message = self.selected
+        self.reviewer.receive(message)
         self.reviewer.show()
 
     def checkmarkLabel(self, item):
@@ -340,8 +334,8 @@ class TafTable(BaseDataTable):
         self.table.setColumnWidth(3, 50)
 
         for row, item in enumerate(items):
-            self.table.setItem(row, 0, QTableWidgetItem(item.tt))
-            self.table.setItem(row, 1, QTableWidgetItem(item.rptInline))
+            self.table.setItem(row, 0, QTableWidgetItem(item.type))
+            self.table.setItem(row, 1, QTableWidgetItem(item.flatternedText()))
             if item.sent:
                 sent = item.sent.strftime('%Y-%m-%d %H:%M:%S')
                 self.table.setItem(row, 2, QTableWidgetItem(sent))
@@ -349,7 +343,7 @@ class TafTable(BaseDataTable):
             label = self.checkmarkLabel(item)
             self.table.setCellWidget(row, 3, label)
 
-            if 'COR' in item.rpt or 'AMD' in item.rpt:
+            if 'COR' in item.text or 'AMD' in item.text:
                 self.table.item(row, 0).setForeground(self.color)
                 self.table.item(row, 1).setForeground(self.color)
                 self.table.item(row, 2).setForeground(self.color)
@@ -381,13 +375,13 @@ class MetarTable(BaseDataTable):
         self.table.setColumnWidth(2, 140)
 
         for row, item in enumerate(items):
-            self.table.setItem(row, 0,  QTableWidgetItem(item.tt))
-            self.table.setItem(row, 1,  QTableWidgetItem(item.rpt))
+            self.table.setItem(row, 0,  QTableWidgetItem(item.type))
+            self.table.setItem(row, 1,  QTableWidgetItem(item.text))
             if item.created:
                 created = item.created.strftime('%Y-%m-%d %H:%M:%S')
                 self.table.setItem(row, 2, QTableWidgetItem(created))
 
-            if item.tt == 'SP':
+            if item.type == 'SP':
                 self.table.item(row, 0).setForeground(self.color)
                 self.table.item(row, 1).setForeground(self.color)
                 self.table.item(row, 2).setForeground(self.color)
@@ -419,8 +413,8 @@ class SigmetTable(BaseDataTable):
         self.table.setColumnWidth(3, 50)
 
         for row, item in enumerate(items):
-            self.table.setItem(row, 0, QTableWidgetItem(item.tt))
-            self.table.setItem(row, 1, QTableWidgetItem(item.rpt))
+            self.table.setItem(row, 0, QTableWidgetItem(item.type))
+            self.table.setItem(row, 1, QTableWidgetItem(item.text))
             if item.sent:
                 sent = item.sent.strftime('%Y-%m-%d %H:%M:%S')
                 self.table.setItem(row, 2, QTableWidgetItem(sent))

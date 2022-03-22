@@ -176,9 +176,9 @@ class Sigmet(QGraphicsItem, CanvasMixin):
             'other': QBrush(QColor(250, 250, 50, 100))
         }
 
-        phenomenon = self.geo['properties']['phenomenon']
+        hazard = self.geo['properties']['hazard']
         self.palettes = [
-            [QPen(QColor(204, 204, 204), 1, Qt.DashLine), brushes.get(phenomenon, brushes['other'])],
+            [QPen(QColor(204, 204, 204), 1, Qt.DashLine), brushes.get(hazard, brushes['other'])],
             [QPen(QColor(204, 204, 204, 150), 0, Qt.DashLine), QBrush(QColor(154, 205, 50, 70))]
         ]
 

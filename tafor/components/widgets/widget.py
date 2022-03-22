@@ -66,11 +66,11 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         self.replyButton.hide()
         self.signLabel.hide()
 
-        if self.item.tt not in ['FC', 'FT', 'WS', 'WC', 'WV', 'WA']:
+        if self.item.type not in ['FC', 'FT', 'WS', 'WC', 'WV', 'WA']:
             self.markButton.hide()
             return
 
-        if self.item.tt in ['FC', 'FT']:
+        if self.item.type in ['FC', 'FT']:
             self.reviewer = self.parent.tafSender
         else:
             self.reviewer = self.parent.sigmetSender
@@ -115,23 +115,15 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         self.markButton.setStyleSheet(buttonHoverStyle)
 
     def setText(self):
-        self.groupBox.setTitle(self.item.tt)
+        self.groupBox.setTitle(self.item.type)
         time = self.item.sent if hasattr(self.item, 'sent') else self.item.created
         self.timeLabel.setText(time.strftime('%Y-%m-%d %H:%M:%S'))
-        self.rpt.setText(self.item.report)
+        self.text.setText(self.item.report)
         font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
-        self.rpt.setStyleSheet('font: 13px "Microsoft YaHei", "{}";'.format(font.family()))
+        self.text.setStyleSheet('font: 13px "Microsoft YaHei", "{}";'.format(font.family()))
 
     def review(self):
-        message = {
-            'uuid': self.item.uuid,
-            'item': self.item,
-            'sign': self.item.sign,
-            'rpt': self.item.rpt,
-            'full': '\n'.join(filter(None, [self.item.sign, self.item.rpt]))
-        }
-
-        self.reviewer.receive(message, mode='view')
+        self.reviewer.receive(self.item)
         self.reviewer.show()
 
 
@@ -158,7 +150,7 @@ class TafBoard(QWidget):
         if check.local():
             text = ''
         else:
-            text = taf.spec.tt + taf.period(strict=False, withDay=False)
+            text = taf.spec.type + taf.period(strict=False, withDay=False)
         return text
 
 

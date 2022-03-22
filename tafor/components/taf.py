@@ -1,16 +1,7 @@
-import datetime
+from PyQt5.QtCore import QCoreApplication, QTimer
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLayout
 
-from uuid import uuid4
-
-from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QCoreApplication, QTimer, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QMessageBox, QVBoxLayout, QLayout
-
-from tafor import conf
-from tafor.utils import CurrentTaf
-from tafor.utils.convert import parseTime, isOverlap
-from tafor.states import context
-from tafor.models import db, Taf
+from tafor.models import Taf
 from tafor.components.setting import isConfigured
 from tafor.components.widgets.editor import BaseEditor
 from tafor.components.widgets import TafPrimarySegment, TafFmSegment, TafBecmgSegment, TafTempoSegment
@@ -124,8 +115,8 @@ class BaseTafEditor(BaseEditor):
 
         groupsMessage = [e.message() for e in sortedGroup(self.becmgs + self.tempos)]
         messages = [self.primary.message()] + groupsMessage
-        self.rpt = '\n'.join(filter(None, messages)) + '='
-        self.sign = self.primary.sign()
+        self.text = '\n'.join(filter(None, messages)) + '='
+        self.heading = self.primary.heading()
 
     def beforeNext(self):
         if not self.primary.cnl.isChecked():
@@ -217,6 +208,5 @@ class TafEditor(BaseTafEditor):
         self.primary.date.setEnabled(False)
 
     def previewMessage(self):
-        uuid = str(uuid4())
-        message = {'sign': self.sign, 'rpt': self.rpt, 'uuid': uuid}
-        self.previewSignal.emit(message)
+        message = Taf(type=self.heading[0:2], heading=self.heading, text=self.text)
+        self.finished.emit(message)

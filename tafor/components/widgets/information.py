@@ -128,9 +128,9 @@ class BaseSigmet(SegmentMixin, QWidget):
         begin = datetime.datetime(time.year, time.month, time.day)
         query = db.query(Sigmet).filter(Sigmet.sent > begin)
         if self.type() == 'WA':
-            query = query.filter(Sigmet.tt == 'WA')
+            query = query.filter(Sigmet.type == 'WA')
         else:
-            query = query.filter(Sigmet.tt != 'WA')
+            query = query.filter(Sigmet.type != 'WA')
 
         def isYesterday(text):
             if text:
@@ -142,7 +142,7 @@ class BaseSigmet(SegmentMixin, QWidget):
 
             return False
 
-        sigmets = [sig for sig in query.all() if not isYesterday(sig.sign)]
+        sigmets = [sig for sig in query.all() if not isYesterday(sig.heading)]
         count = len(sigmets) + 1
         self.sequence.setText(str(count))
 
@@ -153,11 +153,11 @@ class BaseSigmet(SegmentMixin, QWidget):
         return self.forecastMode
 
     def type(self):
-        return self.parent.tt
+        return self.parent.type
 
     def firstLine(self):
         area = conf.value('Message/FIR').split()[0]
-        sign = self.parent.sign()
+        sign = self.parent.reportType()
         sequence = self.sequence.text()
         beginningTime = self.beginningTime.text()
         endingTime = self.endingTime.text()
@@ -830,7 +830,7 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
     def message(self):
         fir = conf.value('Message/FIR')
         cancel = 'CNL {} {} {}/{}'.format(
-            self.parent.sign(),
+            self.parent.reportType(),
             self.cancelSequence.currentText().strip(),
             self.cancelBeginningTime.text(),
             self.cancelEndingTime.text()
@@ -859,7 +859,7 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
     def componentUpdate(self):
         self.prevs = []
-        sigmets = currentSigmet(tt=self.type(), order='asc')
+        sigmets = currentSigmet(type=self.type(), order='asc')
 
         for sig in sigmets:
             parser = sig.parser()
@@ -962,7 +962,7 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         self.text.setPlaceholderText(tip)
 
     def loadLocalDB(self):
-        last = db.query(Sigmet).filter(Sigmet.tt == self.type(), ~Sigmet.rpt.contains('CNL')).order_by(Sigmet.sent.desc()).first()
+        last = db.query(Sigmet).filter(Sigmet.type == self.type(), ~Sigmet.text.contains('CNL')).order_by(Sigmet.sent.desc()).first()
         if last:
             parser = last.parser()
             message = parser.content()

@@ -54,8 +54,8 @@ class LayerState(QObject):
         def diff(origin, ref):
             return set(ref).symmetric_difference(origin)
 
-        sigmets = [s.rpt for s in self.sigmets()]
-        refSigmets = [s.rpt for s in refs['sigmets']]
+        sigmets = [s.text for s in self.sigmets()]
+        refSigmets = [s.text for s in refs['sigmets']]
         if diff(sigmets, refSigmets):
             self.sigmetChanged.emit()
 
@@ -382,7 +382,7 @@ class EnvironState(object):
 
         return infos
 
-    def canEnable(self, reportType):
+    def hasPermission(self, reportType):
         if reportType == 'Trend':
             return True
 

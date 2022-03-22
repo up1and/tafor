@@ -8,7 +8,7 @@ from tafor.utils.validator import TafParser, SigmetParser
 
 
 class SpecFC(object):
-    tt = 'FC'
+    type = 'FC'
     periods = ['0312', '0615', '0918', '1221', '1524', '1803', '2106', '0009']
     default = '0009'
     interval = datetime.timedelta(hours=3)
@@ -18,7 +18,7 @@ class SpecFC(object):
 
 
 class SpecFT24(object):
-    tt = 'FT'
+    type = 'FT'
     periods = ['0606', '1212', '1818', '0024']
     default = '0024'
     interval = datetime.timedelta(hours=6)
@@ -28,7 +28,7 @@ class SpecFT24(object):
 
 
 class SpecFT30(object):
-    tt = 'FT'
+    type = 'FT'
     periods = ['0612', '1218', '1824', '0006']
     default = '0006'
     interval = datetime.timedelta(hours=6)
@@ -62,7 +62,7 @@ class CurrentTaf(object):
         self._initStartTime()
 
     def __repr__(self):
-        return '<Current TAF {}{}>'.format(self.spec.tt, self.period())
+        return '<Current TAF {}{}>'.format(self.spec.type, self.period())
 
     def period(self, strict=True, withDay=True):
         if strict:
@@ -158,7 +158,7 @@ class CheckTaf(object):
     """
     def __init__(self, taf, message=None):
         self.taf = taf
-        self.tt = self.taf.spec.tt
+        self.type = self.taf.spec.type
         self.message = message
 
     def local(self, period=None):
@@ -169,8 +169,8 @@ class CheckTaf(object):
         """
         period = self.taf.period(strict=False) if period is None else period
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
-        recent = db.query(Taf).filter(Taf.rpt.contains(period), ~Taf.rpt.contains('AMD'),
-            ~Taf.rpt.contains('COR'), Taf.sent > expired).order_by(Taf.sent.desc()).first()
+        recent = db.query(Taf).filter(Taf.text.contains(period), ~Taf.text.contains('AMD'),
+            ~Taf.text.contains('COR'), Taf.sent > expired).order_by(Taf.sent.desc()).first()
         return recent
 
     def isExist(self):
@@ -181,9 +181,9 @@ class CheckTaf(object):
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
         try:
             taf = TafParser(self.message)
-            last = db.query(Taf).filter(or_(Taf.rpt == self.message, Taf.rpt == taf.renderer()), Taf.sent > expired).order_by(Taf.sent.desc()).first()
+            last = db.query(Taf).filter(or_(Taf.text == self.message, Taf.text == taf.renderer()), Taf.sent > expired).order_by(Taf.sent.desc()).first()
         except Exception:
-            last = db.query(Taf).filter(Taf.rpt == self.message, Taf.sent > expired).order_by(Taf.sent.desc()).first()
+            last = db.query(Taf).filter(Taf.text == self.message, Taf.sent > expired).order_by(Taf.sent.desc()).first()
 
         return last
 
@@ -192,7 +192,7 @@ class CheckTaf(object):
 
         :return: ORM 对象
         """
-        last = db.query(Taf).filter_by(tt=self.tt).order_by(Taf.sent.desc()).first()
+        last = db.query(Taf).filter_by(type=self.type).order_by(Taf.sent.desc()).first()
         return last
 
     def save(self):
@@ -207,13 +207,13 @@ class CheckTaf(object):
             # 修订报报文如果字符出了错误无法识别是否和本地是同一份，则会直接入库
             local = self.local()
             remote = TafParser(self.message)
-            if local and not remote.isAmended() and remote.primary.tokens['period']['text'] in local.rpt:
+            if local and not remote.isAmended() and remote.primary.tokens['period']['text'] in local.text:
                 return
 
-            item = Taf(tt=self.tt, rpt=self.message, source='api', confirmed=self.taf.time)
+            item = Taf(type=self.type, text=self.message, source='api', confirmed=self.taf.time)
             db.add(item)
             db.commit()
-            logger.info('Save {} {}'.format(self.tt, self.message))
+            logger.info('Auto Save {} {}'.format(self.type, self.message))
             return True
 
     def confirm(self):
@@ -223,44 +223,44 @@ class CheckTaf(object):
         """
         last = self.latest()
 
-        if last is not None and last.rptInline == self.message:
+        if last is not None and last.flatternedText() == self.message:
             last.confirmed = self.taf.time
             db.commit()
-            logger.info('Confirm {} {}'.format(self.tt, self.message))
+            logger.info('Auto confirm {} {}'.format(self.type, self.message))
             return True
 
 
 class CheckMetar(object):
     """检查 METAR 报文并储存
 
-    :param tt: METAR 报文类型，SA 或 SP
+    :param type: METAR 报文类型，SA 或 SP
     :param message: METAR 报文内容
     """
-    def __init__(self, tt, message):
-        self.tt = tt
+    def __init__(self, type, message):
+        self.type = type
         self.message = message
 
     def save(self):
         """储存远程报文数据"""
-        last = db.query(Metar).filter_by(tt=self.tt).order_by(Metar.created.desc()).first()
+        last = db.query(Metar).filter_by(type=self.type).order_by(Metar.created.desc()).first()
 
-        if last is None or last.rpt != self.message:
-            item = Metar(tt=self.tt, rpt=self.message)
+        if last is None or last.text != self.message:
+            item = Metar(type=self.type, text=self.message)
             db.add(item)
             db.commit()
-            logger.info('Save {} {}'.format(self.tt, self.message))
+            logger.info('Auto save {} {}'.format(self.type, self.message))
             return True
 
 
 class CheckSigmet(object):
     """检查 SIGMET 报文并储存
 
-    :param tt: SIGMET 报文类型，WS, WC, WV, WA
+    :param type: SIGMET 报文类型，WS, WC, WV, WA
     :param message: SIGMET 报文内容
     """
-    def __init__(self, tt, message):
-        self.tt = tt
-        self.message = message
+    def __init__(self, type, messages):
+        self.type = type
+        self.messages = messages
 
     def save(self):
         """储存远程报文数据"""
@@ -270,23 +270,22 @@ class CheckSigmet(object):
 
         saved = False
 
-        for message in self.message:
+        for message in self.messages:
             message = ' '.join(message.split())
             parser = SigmetParser(message)
-            message = parser.renderer()
 
-            if message not in [sig.rpt for sig in sigmets]:
-                item = Sigmet(tt=self.tt, rpt=message, source='api', confirmed=time)
+            if parser not in [sig.parser() for sig in sigmets]:
+                item = Sigmet(type=self.type, heading=parser.heading, text=parser.text, source='api', confirmed=time)
                 db.add(item)
                 saved = True
-                logger.info('Save {} {}'.format(self.tt, message))
+                logger.info('Auto save {} {}'.format(self.type, message))
 
             for sig in sigmets:
-                if not sig.confirmed and sig.rpt == message:
+                if not sig.confirmed and sig.text == message:
                     sig.confirmed = time
                     db.add(sig)
                     saved = True
-                    logger.info('Confirm {} {}'.format(self.tt, message))
+                    logger.info('Auto confirm {} {}'.format(self.type, message))
 
         db.commit()
         return saved
@@ -309,21 +308,21 @@ class Listen(object):
     def __init__(self, afterTafSaved=None):
         self.afterTafSaved = afterTafSaved
 
-    def __call__(self, tt, spec=None):
+    def __call__(self, type, spec=None):
         from tafor.states import context
 
-        self.tt = tt
+        self.type = type
         self.spec = spec or context.taf.spec
         state = context.message.state()
-        self.message = state.get(self.tt, None)
+        self.message = state.get(self.type, None)
 
-        if self.tt in ['FC', 'FT']:
+        if self.type in ['FC', 'FT']:
             return self.taf()
 
-        if self.tt in ['SA', 'SP']:
+        if self.type in ['SA', 'SP']:
             return self.metar()
 
-        if self.tt in ['WS', 'WC', 'WV', 'WA']:
+        if self.type in ['WS', 'WC', 'WV', 'WA']:
             return self.sigmet()
 
     def taf(self):
@@ -365,7 +364,7 @@ class Listen(object):
 
         # 更新状态
         context.taf.setState({
-            taf.spec.tt: {
+            taf.spec.type: {
                 'period': taf.period(strict=False),
                 'sent': True if check.local() else False,
                 'warning': expired,
@@ -376,7 +375,7 @@ class Listen(object):
     def metar(self):
         """储存 METAR 报文"""
         from tafor.states import context
-        metar = CheckMetar(self.tt, message=self.message)
+        metar = CheckMetar(self.type, message=self.message)
         if self.message:
             status = metar.save()
             if status:
@@ -384,7 +383,7 @@ class Listen(object):
 
     def sigmet(self):
         """储存 SIGMET 报文"""
-        sigmet = CheckSigmet(self.tt, message=self.message)
+        sigmet = CheckSigmet(self.type, messages=self.message)
         if self.message:
             status = sigmet.save()
 

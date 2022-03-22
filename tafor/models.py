@@ -26,40 +26,43 @@ class Taf(Base):
 
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36), default=uniqueid)
-    tt = Column(String(2), nullable=False)
-    sign = Column(String(36))
-    rpt = Column(Text, nullable=False)
+    type = Column(String(2), nullable=False)
+    heading = Column(String(36))
+    text = Column(Text, nullable=False)
     raw = Column(Text)
-    file = Column(Text)
+    protocol = Column(Text)
     source = Column(String(16), default='self')
     sent = Column(DateTime, default=datetime.datetime.utcnow)
     confirmed = Column(DateTime)
 
     def __repr__(self):
-        return '<TAF %r %r>' % (self.tt, self.rpt)
+        return '<TAF %r %r>' % (self.type, self.text)
 
-    @property
-    def rptInline(self):
-        return self.rpt.replace('\n', ' ')
+    def flatternedText(self):
+        return self.text.replace('\n', ' ')
 
     @property
     def report(self):
         parser = self.parser()
-        parts = [self.sign, parser.renderer()]
+        parts = [self.heading, parser.renderer()]
         return '\n'.join(filter(None, parts))
 
     def parser(self):
         from tafor.utils import TafParser
-        return TafParser(self.rpt)
+        return TafParser(self.text)
 
     def rawText(self):
         if not self.raw:
             return ''
-        messages = json.loads(self.raw)
-        return '\r\n\r\n\r\n\r\n'.join(messages)
+
+        if self.protocol == 'aftn':
+            messages = json.loads(self.raw)
+            return '\r\n\r\n\r\n\r\n'.join(messages)
+
+        return self.raw
 
     def isCnl(self):
-        items = self.rpt.split()
+        items = self.text.split()
         return 'CNL' in items
 
 class Metar(Base):
@@ -67,12 +70,12 @@ class Metar(Base):
 
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36), default=uniqueid)
-    tt = Column(String(2), nullable=False)
-    rpt = Column(Text, nullable=False)
+    type = Column(String(2), nullable=False)
+    text = Column(Text, nullable=False)
     created = Column(DateTime, default=datetime.datetime.utcnow)
 
     def __repr__(self):
-        return '<METAR %r %r>' % (self.tt, self.rpt)
+        return '<METAR %r %r>' % (self.type, self.text)
 
     @property
     def report(self):
@@ -82,33 +85,34 @@ class Metar(Base):
                 html += '<p style="color: grey"># {}</p>'.format('<br/># '.join(self.validations['tips']))
             return html
 
-        return self.rpt
+        return self.text
 
     def parser(self, ignoreMetar=True, **kwargs):
         from tafor.utils import MetarParser
-        return MetarParser(self.rpt, ignoreMetar=ignoreMetar, **kwargs)
+        return MetarParser(self.text, ignoreMetar=ignoreMetar, **kwargs)
 
 class Trend(Base):
     __tablename__ = 'trends'
 
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36), default=uniqueid)
-    sign = Column(String(36))
-    rpt = Column(Text, nullable=False)
+    heading = Column(String(36))
+    text = Column(Text, nullable=False)
     raw = Column(Text)
+    protocol = Column(Text)
     source = Column(String(16), default='self')
     sent = Column(DateTime, default=datetime.datetime.utcnow)
 
     def __repr__(self):
-        return '<Trend %r>' % (self.rpt)
+        return '<Trend %r>' % (self.text)
 
     @property
-    def tt(self):
+    def type(self):
         return 'TREND'
 
     @property
     def report(self):
-        return self.rpt
+        return self.text
 
     def rawText(self):
         if not self.raw:
@@ -117,28 +121,28 @@ class Trend(Base):
         return '\r\n\r\n\r\n\r\n'.join(messages)
 
     def isNosig(self):
-        return self.rpt == 'NOSIG='
+        return self.text == 'NOSIG='
 
 class Sigmet(Base):
     __tablename__ = 'sigmets'
 
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36), default=uniqueid)
-    tt = Column(String(2), nullable=False)
-    sign = Column(String(36))
-    rpt = Column(Text, nullable=False)
+    type = Column(String(2), nullable=False)
+    heading = Column(String(36))
+    text = Column(Text, nullable=False)
     raw = Column(Text)
-    file = Column(Text)
+    protocol = Column(Text)
     source = Column(String(16), default='self')
     sent = Column(DateTime, default=datetime.datetime.utcnow)
     confirmed = Column(DateTime, nullable=True)
 
     def __repr__(self):
-        return '<SIGMET %r %r>' % (self.tt, self.rpt)
+        return '<SIGMET %r %r>' % (self.type, self.text)
 
     @property
     def report(self):
-        parts = [self.sign, self.rpt]
+        parts = [self.heading, self.text]
         return '\n'.join(filter(None, parts))
 
     def parser(self):
@@ -158,7 +162,7 @@ class Sigmet(Base):
         return parseTime(ending, self.sent)
 
     def isCnl(self):
-        items = self.rpt.split()
+        items = self.text.split()
         return 'CNL' in items
 
     def isExpired(self):
@@ -169,9 +173,9 @@ class Other(Base):
 
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36), default=uniqueid)
-    rpt = Column(Text, nullable=False)
+    text = Column(Text, nullable=False)
     raw = Column(Text)
-    file = Column(Text)
+    protocol = Column(Text)
     source = Column(String(16), default='self')
     sent = Column(DateTime, default=datetime.datetime.utcnow)
 
@@ -180,7 +184,7 @@ class Other(Base):
 
     @property
     def report(self):
-        return self.rpt
+        return self.text
 
     def rawText(self):
         if not self.raw:

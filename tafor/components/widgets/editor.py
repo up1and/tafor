@@ -7,7 +7,7 @@ from tafor.utils import boolean
 
 class BaseEditor(QDialog):
 
-    previewSignal = pyqtSignal(dict)
+    finished = pyqtSignal(object)
 
     def __init__(self, parent=None, sender=None):
         super(BaseEditor, self).__init__(parent)
@@ -25,7 +25,7 @@ class BaseEditor(QDialog):
         raise NotImplementedError
 
     def defaultAction(self):
-        self.previewSignal.connect(self.showSender)
+        self.finished.connect(self.showSender)
         self.sender.backSignal.connect(self.showEditor)
         self.sender.closeSignal.connect(self.close)
 

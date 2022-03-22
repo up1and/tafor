@@ -653,13 +653,13 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
     def amendNumber(self, sort):
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        query = db.query(Taf).filter(Taf.rpt.contains(self.amdPeriod), Taf.sent > expired)
+        query = db.query(Taf).filter(Taf.text.contains(self.amdPeriod), Taf.sent > expired)
         if sort == 'COR':
-            items = query.filter(Taf.rpt.contains('COR')).all()
+            items = query.filter(Taf.text.contains('COR')).all()
             order = chr(ord('A') + len(items))
             return 'CC' + order
         elif sort == 'AMD':
-            items = query.filter(Taf.rpt.contains('AMD')).all()
+            items = query.filter(Taf.text.contains('AMD')).all()
             order = chr(ord('A') + len(items))
             return 'AA' + order
 
@@ -744,7 +744,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.text = ' '.join(filter(None, messages))
         return self.text
 
-    def sign(self):
+    def heading(self):
         area = conf.value('Message/Area') or ''
         icao = conf.value('Message/ICAO')
         time = self.date.text()

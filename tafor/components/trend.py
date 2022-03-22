@@ -6,11 +6,10 @@ from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLayout
 
 from tafor import conf
-from tafor.states import context
+from tafor.models import Trend
 from tafor.components.setting import isConfigured
 from tafor.components.widgets.editor import BaseEditor
 from tafor.components.widgets import TrendSegment
-from tafor.utils import message
 
 
 class TrendEditor(BaseEditor):
@@ -57,13 +56,12 @@ class TrendEditor(BaseEditor):
 
     def assembleMessage(self):
         message = self.trend.message()
-        self.rpt = message + '='
-        self.sign = conf.value('Message/TrendSign')
+        self.text = message + '='
+        self.heading = conf.value('Message/TrendSign')
 
     def previewMessage(self):
-        uuid = str(uuid4())
-        message = {'sign': self.sign, 'rpt': self.rpt, 'uuid': uuid}
-        self.previewSignal.emit(message)
+        message = Trend(heading=self.heading, text=self.text)
+        self.finished.emit(message)
 
     def clear(self):
         self.trend.clear()

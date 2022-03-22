@@ -1372,7 +1372,7 @@ class SigmetParser(object):
 
     def __init__(self, message, parse=None, grammar=None, **kwargs):
         self.message = message.strip()
-        self.isAirmet = True if self.sign() == 'AIRMET' else False
+        self.isAirmet = True if self.reportType() == 'AIRMET' else False
 
         if not grammar:
             grammar = self.grammarClass()
@@ -1389,12 +1389,27 @@ class SigmetParser(object):
 
     def _split(self):
         """拆分报头和报文内容"""
+        self.heading = None
         message = self.message.replace('=', '')
+        headingPattern = re.compile(r'(\w{4}\d{2}\s\w{4}\s\d{6}(?:\s\w{3})?)\b')
         splitPattern = re.compile(r'([A-Z]{4}-)')
-        *heads, elements = splitPattern.split(message)
-        self.heads = [e.strip() for e in ''.join(heads).split('\n')]
-        elements = elements.strip().split('\n')
-        self.elements = [self.parse(e, firCode=self.firCode, airportCode=self.airportCode, isAirmet=self.isAirmet) for e in elements]
+        m = headingPattern.match(message)
+        if m:
+            self.heading = m.group()
+            message = headingPattern.sub('', message).strip()
+
+        *lines, text = splitPattern.split(message)
+        self.firstline = ' '.join(e.strip() for e in lines)
+        text = text.strip()
+        self.elements = [self.parse(e, firCode=self.firCode, airportCode=self.airportCode, isAirmet=self.isAirmet) for e in text.split('\n')]
+        self.text = '\n'.join([self.firstline, text])
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            this = ' '.join(self.text.split())
+            text = ' '.join(other.text.split())
+            return this == text
+        return False
 
     def airport(self):
         pattern = re.compile(r'([A-Z]{4})-')
@@ -1412,7 +1427,7 @@ class SigmetParser(object):
         else:
             return ''
 
-    def sign(self):
+    def reportType(self):
         pattern = re.compile(r'(SIGMET|AIRMET) ([A-Z]?\d{1,2}) VALID')
         m = pattern.search(self.message)
         if m:
@@ -1420,19 +1435,19 @@ class SigmetParser(object):
         else:
             return ''
 
-    def spec(self):
+    def type(self):
         if 'AIRMET' in self.message:
             return 'WA'
 
-        if self.phenomenon() == 'ash':
+        if self.hazard() == 'ash':
             return 'WV'
 
-        if self.phenomenon() == 'typhoon':
+        if self.hazard() == 'typhoon':
             return 'WC'
 
         return 'WS'
 
-    def phenomenon(self):
+    def hazard(self):
         text = 'other'
         patterns = {
             'ts': re.compile(r'\b(TS|TSGR)\b'),
@@ -1547,7 +1562,7 @@ class SigmetParser(object):
             'properties': {
                 'sequence': self.sequence(),
                 'valids': self.valids(),
-                'phenomenon': self.phenomenon()
+                'hazard': self.hazard()
             }
         }
 
@@ -1582,7 +1597,8 @@ class SigmetParser(object):
             * html HTML 高亮风格
         :return: 根据不同风格重新渲染的报文
         """
-        outputs = self.heads + [e.renderer(style) for e in self.elements if e]
+        outputs = [self.heading, self.firstline] + [e.renderer(style) for e in self.elements if e]
+        outputs = filter(None, outputs)
 
         if style == 'html':
             return '<br/>'.join(outputs) + '='

@@ -240,7 +240,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         metar = latestMetar()
 
         # when local metar is same as the notification metar, clear the state and show nothing.
-        isSimilar = parser and metar and parser.isSimilar(metar.rpt)
+        isSimilar = parser and metar and parser.isSimilar(metar.text)
         if isSimilar:
             context.notification.metar.clear()
             return
@@ -420,7 +420,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         if not remindSwitch or sig.message not in sigmets:
             return None
 
-        mark = '{} {}'.format(sig.sign(), sig.sequence())
+        mark = '{} {}'.format(sig.reportType(), sig.sequence())
         text = QCoreApplication.translate('MainWindow', 'Time to update {}').format(mark)
         self.sigmetSound.play()
         self.remindSigmetBox.setText(text)
@@ -486,7 +486,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
         spec = context.taf.spec[:2].upper()
-        taf = db.query(Taf).filter(Taf.sent > recent, Taf.tt == spec).order_by(Taf.sent.desc()).first()
+        taf = db.query(Taf).filter(Taf.sent > recent, Taf.type == spec).order_by(Taf.sent.desc()).first()
         if boolean(conf.value('General/Sigmet')):
             sigmets = currentSigmet(order='asc', showUnmatched=True)
         else:

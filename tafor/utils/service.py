@@ -10,12 +10,12 @@ def latestMetar():
     queryset = db.query(Metar).filter(Metar.created > recent).order_by(Metar.created.desc())
     return queryset.first()
 
-def currentSigmet(tt=None, order='desc', showUnmatched=False):
+def currentSigmet(type=None, order='desc', showUnmatched=False):
     recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
     queryset = db.query(Sigmet).filter(Sigmet.sent > recent).order_by(Sigmet.sent.desc())
 
-    if tt:
-        queryset = queryset.filter(Sigmet.tt == tt)
+    if type:
+        queryset = queryset.filter(Sigmet.type == type)
 
     sigmets = []
     cancels = []

@@ -23,7 +23,7 @@
    <item>
     <widget class="QGroupBox" name="groupBox">
      <property name="title">
-      <string notr="true">Report Type</string>
+      <string notr="true">Type</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
@@ -113,9 +113,9 @@
        </widget>
       </item>
       <item>
-       <widget class="QLabel" name="rpt">
+       <widget class="QLabel" name="text">
         <property name="text">
-         <string notr="true">Report Content</string>
+         <string notr="true">Text Content</string>
         </property>
         <property name="wordWrap">
          <bool>true</bool>
