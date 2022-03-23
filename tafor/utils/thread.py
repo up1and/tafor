@@ -99,10 +99,6 @@ def repoRelease(url):
 
 class WorkThread(QThread):
 
-    def __init__(self, parent=None):
-        super(WorkThread, self).__init__(parent)
-        self.parent = parent
-
     def run(self):
         if conf.value('Monitor/WebApiURL'):
             url = conf.value('Monitor/WebApiURL') or 'http://127.0.0.1:6575'
@@ -122,10 +118,6 @@ class LayerThread(QThread):
 
 class CallThread(QThread):
 
-    def __init__(self, parent=None):
-        super(CallThread, self).__init__(parent)
-        self.parent = parent
-
     def run(self):
         url = conf.value('Monitor/CallServiceURL') or 'http://127.0.0.1:5000/api/call/'
         token = conf.value('Monitor/CallServiceToken') or ''
@@ -135,9 +127,8 @@ class CallThread(QThread):
 
 class ExportRecordThread(QThread):
 
-    def __init__(self, filename, data, headers=None, timefield='sent', parent=None):
-        super(ExportRecordThread, self).__init__(parent)
-        self.parent = parent
+    def __init__(self, filename, data, headers=None, timefield='sent'):
+        super(ExportRecordThread, self).__init__()
         self.data = data
         self.headers = headers
         self.timefield = timefield
@@ -153,12 +144,12 @@ class ExportRecordThread(QThread):
 
 
 class SerialThread(QThread):
-    doneSignal = pyqtSignal(str)
 
-    def __init__(self, message, parent=None):
-        super(SerialThread, self).__init__(parent)
+    done = pyqtSignal(str)
+
+    def __init__(self, message):
+        super(SerialThread, self).__init__()
         self.message = message
-        self.parent = parent
 
     def run(self):
         port = conf.value('Communication/SerialPort')
@@ -181,16 +172,16 @@ class SerialThread(QThread):
             logger.error(e)
         finally:
             context.serial.release()
-            self.doneSignal.emit(error)
+            self.done.emit(error)
 
 
 class FtpThread(QThread):
-    doneSignal = pyqtSignal(str)
 
-    def __init__(self, message, parent=None):
-        super(FtpThread, self).__init__(parent)
+    done = pyqtSignal(str)
+
+    def __init__(self, message):
+        super(FtpThread, self).__init__()
         self.message = message
-        self.parent = parent
 
     def run(self):
         url = conf.value('Communication/FTPHost')
@@ -205,20 +196,17 @@ class FtpThread(QThread):
             error = str(e)
             logger.error(e)
         finally:
-            self.doneSignal.emit(error)
+            self.done.emit(error)
 
 
 class CheckUpgradeThread(QThread):
-    doneSignal = pyqtSignal(dict)
 
-    def __init__(self, parent=None):
-        super(CheckUpgradeThread, self).__init__(parent)
-        self.parent = parent
+    done = pyqtSignal(dict)
 
     def run(self):
         url = 'https://api.github.com/repos/up1and/tafor/releases/latest'
         data = repoRelease(url)
-        self.doneSignal.emit(data)
+        self.done.emit(data)
 
 
 class RpcThread(QThread):

@@ -18,9 +18,11 @@ class AFTNChannel(object):
     thread = SerialThread
     sequenceConfigPath = 'Communication/ChannelSequenceNumber'
 
+    @staticmethod
     def successText():
         return QCoreApplication.translate('Sender', 'Data has been sent to the serial port')
 
+    @staticmethod
     def resendText():
         return QCoreApplication.translate('Sender', 'Some part of the AFTN message may be updated, do you still want to resend?')
 
@@ -30,18 +32,18 @@ class FtpChannel(object):
     thread = FtpThread
     sequenceConfigPath = 'Communication/FileSequenceNumber'
 
+    @staticmethod
     def successText():
         return QCoreApplication.translate('Sender', 'File has been uploaded to the host')
 
+    @staticmethod
     def resendText():
         return QCoreApplication.translate('Sender', 'The file will be resent, do you want to continue?')
 
 
 class BaseSender(QDialog, Ui_send.Ui_Sender):
 
-    sendSignal = pyqtSignal()
-    closeSignal = pyqtSignal()
-    backSignal = pyqtSignal()
+    succeeded = pyqtSignal()
 
     def __init__(self, parent=None):
         super(BaseSender, self).__init__(parent)
@@ -53,6 +55,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.parser = None
         self.message = None
         self.error = None
+        self.mode = 'send'
 
         self.sendButton = self.buttonBox.button(QDialogButtonBox.Ok)
         self.resendButton = self.buttonBox.button(QDialogButtonBox.Retry)
@@ -64,9 +67,10 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.cancelButton.setText(QCoreApplication.translate('Sender', 'Cancel'))
         self.printButton.setText(QCoreApplication.translate('Sender', 'Print'))
 
-        self.rejected.connect(self.cancel)
         self.buttonBox.accepted.connect(self.send)
         self.printButton.clicked.connect(self.print)
+        self.cancelButton.clicked.connect(self.cancel)
+        self.succeeded.connect(self.updateSequenceNumber)
 
         self.rawGroup.hide()
         self.printButton.hide()
@@ -81,17 +85,20 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         text = conf.value('General/CommunicationLine')
         return text.lower() if text else 'aftn'
 
-    def mode(self):
-        if self.message and self.message.id:
-            return 'view'
-        else:
-            return 'send'
-
     def channel(self):
         if self.protocol() == 'ftp':
             return FtpChannel
         else:
             return AFTNChannel
+
+    def updateMode(self):
+        """
+        this method only update when receive message object
+        """
+        if self.message and self.message.id:
+            self.mode = 'view'
+        else:
+            self.mode = 'send'
 
     def updateProtocolIcon(self):
         pixmap = QPixmap(':/{}.png'.format(self.protocol()))
@@ -108,7 +115,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.protocolSign.setVisible(visible)
 
     def updateContent(self):
-        if self.mode() == 'view':
+        if self.mode == 'view':
             self.sendButton.hide()
             self.setWindowTitle(QCoreApplication.translate('Sender', 'View Message'))
             self.rawGroup.setTitle(QCoreApplication.translate('Sender', 'Raw Data'))
@@ -124,13 +131,14 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
                 self.rawGroup.show()
                 self.printButton.show()
 
-        if self.mode() == 'send':
+        if self.mode == 'send':
             self.setWindowTitle(QCoreApplication.translate('Sender', 'Send Message'))
             self.rawGroup.setTitle(self.channel().successText())
 
     def receive(self, message):
         self.message = message
         self.parse()
+        self.updateMode()
         self.updateContent()
 
     def parse(self):
@@ -210,7 +218,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             if ret != QMessageBox.Yes:
                 return None
 
-        if self.mode() == 'view':
+        if self.mode == 'view':
             title = QCoreApplication.translate('Sender', 'Resend Reminder')
             ret = QMessageBox.question(self, title, self.channel().resendText())
             if ret != QMessageBox.Yes:
@@ -232,10 +240,9 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
 
         if context.environ.hasPermission(self.reportType):
             thread = self.channel().thread
-            self.thread = thread(rawText, self)
-            self.thread.doneSignal.connect(lambda: self.setRawGroup(rawText))
-            self.thread.doneSignal.connect(self.save)
-            self.thread.doneSignal.connect(self.updateSequenceNumber)
+            self.thread = thread(rawText)
+            self.thread.done.connect(lambda error: self.setRawGroup(rawText, error))
+            self.thread.finished.connect(self.save)
             self.thread.start()
         else:
             error = QCoreApplication.translate('Sender', 'Limited functionality, please check the license information')
@@ -257,7 +264,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
 
         db.add(self.message)
         db.commit()
-        self.sendSignal.emit()
+        self.succeeded.emit()
 
     def updateSequenceNumber(self):
         if not self.error:
@@ -302,9 +309,9 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
     def cancel(self):
         if self.mode == 'send':
             if (self.error or not self.sendButton.isHidden() or not self.resendButton.isHidden()):
-                self.backSignal.emit()
+                self.rejected.emit()
             else:
-                self.closeSignal.emit()
+                self.accepted.emit()
 
         self.clear()
 

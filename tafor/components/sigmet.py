@@ -81,7 +81,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.nextButton.clicked.connect(self.beforeNext)
 
         # change content self.enbaleNextButton()
-        self.sender.sendSignal.connect(self.updateState)
+        self.sender.succeeded.connect(self.updateState)
 
     def updateGraphicCanvas(self):
         isAirmet = True if self.type == 'WA' else False

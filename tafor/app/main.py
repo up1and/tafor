@@ -127,12 +127,12 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.trayMenu.aboutToShow.connect(lambda: self.setTrayIcon('light'))
             self.trayMenu.aboutToHide.connect(lambda: self.setTrayIcon('dark'))
 
-        self.tafSender.sendSignal.connect(self.updateGui)
-        self.tafSender.sendSignal.connect(self.updateGui)
-        self.trendSender.sendSignal.connect(self.updateGui)
-        self.sigmetSender.sendSignal.connect(self.updateGui)
+        self.tafSender.succeeded.connect(self.updateGui)
+        self.tafSender.succeeded.connect(self.updateGui)
+        self.trendSender.succeeded.connect(self.updateGui)
+        self.sigmetSender.succeeded.connect(self.updateGui)
 
-        self.metarTable.chartButtonClicked.connect(self.chartViewer.show)
+        self.metarTable.chartClicked.connect(self.chartViewer.show)
 
         self.layerThread.finished.connect(self.sigmetEditor.updateLayer)
 
@@ -214,16 +214,16 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.callServiceStatus = CallServiceStatus(self, self.statusBar, last=True)
 
     def setThread(self):
-        self.workThread = WorkThread(self)
+        self.workThread = WorkThread()
         self.workThread.finished.connect(self.updateMessage)
         self.workThread.finished.connect(self.notifier)
 
-        self.callThread = CallThread(self)
+        self.callThread = CallThread()
 
         self.layerThread = LayerThread()
 
-        self.checkUpgradeThread = CheckUpgradeThread(self)
-        self.checkUpgradeThread.doneSignal.connect(self.checkUpgrade)
+        self.checkUpgradeThread = CheckUpgradeThread()
+        self.checkUpgradeThread.done.connect(self.checkUpgrade)
 
     def loadCustomMessage(self):
         if not self.isVisible():

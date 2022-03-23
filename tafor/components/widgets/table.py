@@ -143,7 +143,8 @@ class ExportDialog(QDialog):
 
 
 class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
-    chartButtonClicked = pyqtSignal()
+
+    chartClicked = pyqtSignal()
 
     def __init__(self, parent, layout):
         super(BaseDataTable, self).__init__()
@@ -175,7 +176,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.infoButton.clicked.connect(self.view)
         self.calendarButton.clicked.connect(lambda : self.setCalendar(None))
         self.calendar.calendarWidget().clicked.connect(self.setCalendar)
-        self.chartButton.clicked.connect(self.chartButtonClicked.emit)
+        self.chartButton.clicked.connect(self.chartClicked.emit)
         self.exportButton.clicked.connect(self.exportDialog.show)
 
     def setCalendar(self, date):

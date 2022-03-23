@@ -26,8 +26,8 @@ class BaseEditor(QDialog):
 
     def defaultAction(self):
         self.finished.connect(self.showSender)
-        self.sender.backSignal.connect(self.showEditor)
-        self.sender.closeSignal.connect(self.close)
+        self.sender.rejected.connect(self.showEditor)
+        self.sender.accepted.connect(self.close)
 
     def showEditor(self):
         self.isStaged = True
