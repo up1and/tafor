@@ -10,10 +10,10 @@ from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 
 from tafor import root, conf, logger, __version__
-from tafor.models import db, User, Metar, Taf, Trend
+from tafor.models import db, Metar, Taf, Trend
 from tafor.states import context
 from tafor.utils import boolean, checkVersion, latestMetar, currentSigmet, Listen
-from tafor.utils.thread import WorkThread, LayerThread, CallThread, CheckUpgradeThread, RpcThread
+from tafor.utils.thread import WorkThread, LayerThread, CheckUpgradeThread, RpcThread
 
 from tafor.components.ui import Ui_main, main_rc
 from tafor.components.taf import TafEditor
@@ -25,7 +25,7 @@ from tafor.components.chart import ChartViewer
 
 from tafor.components.widgets.table import TafTable, MetarTable, SigmetTable, AirmetTable
 from tafor.components.widgets.widget import Clock, TafBoard, RecentMessage, RemindMessageBox, LicenseEditor
-from tafor.components.widgets.status import WebAPIStatus, CallServiceStatus
+from tafor.components.widgets.status import WebAPIStatus
 from tafor.components.widgets.sound import Sound
 
 
@@ -85,7 +85,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.setRecent()
         self.setTable()
-        self.setContractMenu()
         self.setAboutMenu()
         self.setSysTray()
         self.setStatus()
@@ -93,7 +92,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.setSound()
 
     def bindSignal(self):
-        context.taf.warningSignal.connect(self.dialer)
         context.taf.clockSignal.connect(self.remindTaf)
         context.other.messageChanged.connect(self.loadCustomMessage)
         context.notification.metar.messageChanged.connect(self.loadMetar)
@@ -116,10 +114,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.enterLicenseAction.triggered.connect(self.licenseEditor.enter)
         self.removeLicenseAction.triggered.connect(self.removeLicense)
         self.aboutAction.triggered.connect(self.about)
-
-        # 连接切换联系人的槽
-        self.contractsActionGroup.triggered.connect(self.changeContract)
-        self.contractsActionGroup.triggered.connect(self.settingDialog.load)
 
         self.tray.activated.connect(self.showNormal)
         self.tray.messageClicked.connect(self.showNormal)
@@ -160,23 +154,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.sigmetTable = SigmetTable(self, self.sigmetLayout)
         self.airmetTable = AirmetTable(self, self.airmetLayout)
 
-    def setContractMenu(self):
-        self.contractsActionGroup = QActionGroup(self)
-        self.contractsActionGroup.addAction(self.contractNo)
-
-        contacts = db.query(User).all()
-
-        for person in contacts:
-            setattr(self, 'contract' + str(person.id), QAction(self))
-            target = getattr(self, 'contract' + str(person.id))
-            target.setText(person.name)
-            target.setCheckable(True)
-
-            self.contractsActionGroup.addAction(target)
-            self.contractsMenu.addAction(target)
-
-        self.updateContractMenu()
-
     def setAboutMenu(self):
         registered = context.environ.license()
         if registered:
@@ -198,7 +175,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.tray.show()
 
         self.trayMenu = QMenu(self)
-        self.trayMenu.addAction(self.contractsMenu.menuAction())
         self.trayMenu.addAction(self.settingAction)
         self.trayMenu.addAction(self.aboutAction)
         self.trayMenu.addSeparator()
@@ -211,14 +187,12 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def setStatus(self):
         self.webApiStatus = WebAPIStatus(self, self.statusBar)
-        self.callServiceStatus = CallServiceStatus(self, self.statusBar, last=True)
+
 
     def setThread(self):
         self.workThread = WorkThread()
         self.workThread.finished.connect(self.updateMessage)
         self.workThread.finished.connect(self.notifier)
-
-        self.callThread = CallThread()
 
         self.layerThread = LayerThread()
 
@@ -292,20 +266,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.settingDialog.remindTrendVolume.valueChanged.connect(lambda vol: self.trendSound.play(volume=vol, loop=False))
         self.settingDialog.remindSigmetVolume.valueChanged.connect(lambda vol: self.sigmetSound.play(volume=vol, loop=False))
 
-    def changeContract(self):
-        target = self.contractsActionGroup.checkedAction()
-
-        if self.contractNo == target:
-            conf.setValue('Monitor/SelectedMobile', '')
-            logger.info('Turn off phone alerts')
-        else:
-            name = target.text()
-            person = db.query(User).filter_by(name=name).first()
-            mobile = person.mobile if person else ''
-
-            conf.setValue('Monitor/SelectedMobile', mobile)
-            logger.info('Switch contacts to %s %s' % (name, mobile))
-
     def event(self, event):
         if event.type() == QEvent.WindowStateChange and self.isMinimized():
             # 此时窗口已经最小化,
@@ -371,12 +331,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         if conf.value('Monitor/FirApiURL') and not self.layerThread.isRunning():
             self.layerThread.start()
 
-    def dialer(self, test=False):
-        callSwitch = conf.value('Monitor/SelectedMobile')
-
-        if callSwitch and context.taf.isWarning() or test:
-            self.callThread.start()
-
     def notifier(self):
         connectionError = QCoreApplication.translate('MainWindow', 'Connection Error')
         if not context.webApi.isOnline():
@@ -386,10 +340,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         if conf.value('Monitor/FirApiURL') and not context.layer.currentLayers() and not self.layerThread.isRunning():
             self.showNotificationMessage(connectionError,
                 QCoreApplication.translate('MainWindow', 'Unable to connect FIR information data source, please check the settings or network status.'), 'warning')
-
-        if not context.callService.isOnline() and self.contractsActionGroup.checkedAction() != self.contractNo:
-            self.showNotificationMessage(connectionError,
-                QCoreApplication.translate('MainWindow', 'Unable to connect phone call service, please check the settings or network status.'), 'warning')
 
     def remindTaf(self, tt):
         remindSwitch = boolean(conf.value('Monitor/RemindTAF'))
@@ -462,18 +412,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def updateGui(self):
         self.updateTable()
         self.updateRecent()
-        self.updateContractMenu()
         self.updateSigmet()
-
-    def updateContractMenu(self):
-        mobile = conf.value('Monitor/SelectedMobile')
-        person = db.query(User).filter_by(mobile=mobile).first()
-        if person:
-            action = getattr(self, 'contract' + str(person.id), None)
-            if action:
-                action.setChecked(True)
-        else:
-            self.contractNo.setChecked(True)
 
     def updateRecent(self):
         self.tafBoard.updateGui()
@@ -554,7 +493,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         <p style="margin:0;color:#444;font-size:13px">A Terminal Aerodrome Forecast Encoding Software</p>
         <p style="margin:5px 0"><a href="https://github.com/up1and/tafor" style="text-decoration:none;color:#0078d7">{} {} {}</a></p>
         <p style="margin:5px 0;color:#444">{}</p>
-        <p style="margin-top:25px;color:#444">Copyright © 2020 <a href="mailto:piratecb@gmail.com" style="text-decoration:none;color:#444">up1and</a></p>
+        <p style="margin-top:25px;color:#444">Copyright © 2022 <a href="mailto:piratecb@gmail.com" style="text-decoration:none;color:#444">up1and</a></p>
         </div>
         """.format(QCoreApplication.translate('MainWindow', 'Version'), __version__, context.environ.ghash(), register)
 

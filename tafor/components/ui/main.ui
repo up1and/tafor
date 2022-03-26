@@ -236,15 +236,7 @@
     <property name="title">
      <string>Options</string>
     </property>
-    <widget class="QMenu" name="contractsMenu">
-     <property name="title">
-      <string>Contacts</string>
-     </property>
-     <addaction name="contractNo"/>
-     <addaction name="separator"/>
-    </widget>
     <addaction name="warnTafAction"/>
-    <addaction name="contractsMenu"/>
     <addaction name="separator"/>
     <addaction name="settingAction"/>
    </widget>

@@ -52,15 +52,3 @@ class WebAPIStatus(BaseTimerStatus):
         online = context.webApi.isOnline()
         text = QCoreApplication.translate('MainWindow', 'Online') if online else QCoreApplication.translate('MainWindow', 'Offline')
         self.label.setText(text)
-
-
-class CallServiceStatus(BaseTimerStatus):
-
-    def setHead(self):
-        title = QCoreApplication.translate('MainWindow', 'Phone Service')
-        self.head.setText(title)
-
-    def setValue(self):
-        online = context.callService.isOnline()
-        text = QCoreApplication.translate('MainWindow', 'Online') if online else QCoreApplication.translate('MainWindow', 'Offline')
-        self.label.setText(text)

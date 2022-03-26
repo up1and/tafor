@@ -57,32 +57,6 @@ def layerInfo(url):
 
     return {}
 
-def callUp(url, token, mobile):
-    try:
-        r = requests.post(url, headers=_headers, auth=('api', token), data={'mobile': mobile, 'code': '000000'}, timeout=30)
-        if r.status_code in [200, 201]:
-            logger.info('Dial {} successfully'.format(mobile))
-            return r.json()
-        else:
-            logger.warn('Dial {} failed {}'.format(mobile, r.text))
-
-    except requests.exceptions.ConnectionError:
-        logger.warn('POST {} 408 Request Timeout'.format(url))
-
-    except Exception as e:
-        logger.error(e)
-
-def callService(url):
-    try:
-        r = requests.get(url, headers=_headers, timeout=5)
-        return r.json()
-
-    except requests.exceptions.ConnectionError:
-            logger.info('GET {} 408 Request Timeout'.format(url))
-
-    except Exception as e:
-        logger.error(e)
-
 def repoRelease(url):
     try:
         r = requests.get(url, headers=_headers, timeout=30)
@@ -104,25 +78,12 @@ class WorkThread(QThread):
             url = conf.value('Monitor/WebApiURL') or 'http://127.0.0.1:6575'
             context.message.setState(remoteMessage(url))
 
-        if conf.value('Monitor/SelectedMobile'):
-            url = conf.value('Monitor/CallServiceURL') or 'http://127.0.0.1:5000/api/call/'
-            context.callService.setState(callService(url))
-
 
 class LayerThread(QThread):
 
     def run(self):
         url = conf.value('Monitor/FirApiURL')
         context.layer.setState(layerInfo(url))
-
-
-class CallThread(QThread):
-
-    def run(self):
-        url = conf.value('Monitor/CallServiceURL') or 'http://127.0.0.1:5000/api/call/'
-        token = conf.value('Monitor/CallServiceToken') or ''
-        mobile = conf.value('Monitor/SelectedMobile')
-        callUp(url, token, mobile)
 
 
 class ExportRecordThread(QThread):

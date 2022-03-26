@@ -9,7 +9,6 @@ from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QTableWidgetItem, QFileDi
 
 from tafor import conf, logger
 from tafor.utils import boolean, ftpComm
-from tafor.models import db, User
 from tafor.components.ui import Ui_setting, main_rc
 
 
@@ -60,10 +59,6 @@ baseOptions = [
     ('Monitor/RemindTAFVolume', 'remindTafVolume', 'slider'),
     ('Monitor/RemindTrend', 'remindTrend', 'bool'),
     ('Monitor/RemindTrendVolume', 'remindTrendVolume', 'slider'),
-    # 电话服务
-    ('Monitor/CallServiceURL', 'callServiceURL', 'text'),
-    ('Monitor/CallServiceToken', 'callServiceToken', 'text'),
-    ('Monitor/SelectedMobile', 'selectedContract', 'mobile'),
 ]
 
 sigmetOptions = [
@@ -74,7 +69,6 @@ sigmetOptions = [
     ('Communication/SIGMETAddress', 'sigmetAddress', 'plaintext'),
     # 数据源
     ('Monitor/FirApiURL', 'firApiURL', 'text'),
-    ('General/FirCanvasSize', 'firCanvasSize', 'slider'),
     # 报文发送提醒
     ('Monitor/RemindSIGMET', 'remindSigmet', 'bool'),
     ('Monitor/RemindSIGMETVolume', 'remindSigmetVolume', 'slider'),
@@ -148,8 +142,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.closeToMinimize.setEnabled(False)
         self.closeToMinimize.setChecked(True)
 
-        self.contractTable.setColumnWidth(0, 210)
-
         self.buttonBox.button(QDialogButtonBox.Ok).setText(QCoreApplication.translate('Settings', 'OK'))
         self.buttonBox.button(QDialogButtonBox.Apply).setText(QCoreApplication.translate('Settings', 'Apply'))
         self.buttonBox.button(QDialogButtonBox.Cancel).setText(QCoreApplication.translate('Settings', 'Cancel'))
@@ -177,7 +169,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
         self.bindSignal()
         self.setValidator()
-        self.updateContract()
         self.load()
 
     def bindSignal(self):
@@ -188,12 +179,8 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.delWeatherButton.clicked.connect(lambda: self.delWeather('weather'))
         self.delWeatherWithIntensityButton.clicked.connect(lambda: self.delWeather('weatherWithIntensity'))
 
-        self.addPersonButton.clicked.connect(self.addPerson)
-        self.delPersonButton.clicked.connect(self.delPerson)
-
         self.resetNumberButton.clicked.connect(self.resetChannelNumber)
         self.testLoginButton.clicked.connect(self.testFtpLogin)
-        self.callUpButton.clicked.connect(self.testCallUp)
         self.ftpHost.textEdited.connect(self.resetFtpLoginButton)
 
         self.importBrowseButton.clicked.connect(lambda: self.openFile(self.importPath))
@@ -242,42 +229,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         option = getattr(self, weather + 'List')
         option.takeItem(option.currentRow())
 
-    def addPerson(self):
-        """添加联系人"""
-        name = self.personName.text()
-        number = self.personMobile.text()
-        if name and number:
-            person = User(name, number)
-            db.add(person)
-            db.commit()
-
-        self.updateContract()
-
-    def delPerson(self):
-        """删除联系人"""
-        row = self.contractTable.currentRow()
-        name = self.contractTable.item(row, 0).text()
-
-        person = db.query(User).filter_by(name=name).first()
-        db.delete(person)
-        db.commit()
-
-        self.updateContract()
-
-    def updateContract(self):
-        """更新联系人列表"""
-        items = db.query(User).all()
-        self.contractTable.setRowCount(len(items))
-
-        for row, item in enumerate(items):
-            self.contractTable.setItem(row, 0,  QTableWidgetItem(item.name))
-            self.contractTable.setItem(row, 1,  QTableWidgetItem(item.mobile))
-
-        self.selectedContract.clear()
-        options = [item.name for item in items]
-        options.insert(0, QCoreApplication.translate('MainWindow', 'None'))
-        self.selectedContract.addItems(options)
-
     def updateSoundVolume(self):
         """更新提醒声音音量"""
         self.parent.ringSound.setVolume(conf.value('Monitor/RemindTAFVolume'))
@@ -287,10 +238,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
     def showEvent(self, event):
         self.loadSerialNumber()
-
-    def testCallUp(self):
-        """手动测试电话拨号"""
-        self.parent.dialer(test=True)
 
     def testFtpLogin(self):
         url = self.ftpHost.text()
@@ -417,12 +364,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             except (ValueError, TypeError):
                 pass
 
-        if category == 'mobile':
-            person = db.query(User).filter_by(mobile=val).first()
-            if person:
-                index = option.findText(person.name, Qt.MatchFixedString)
-                option.setCurrentIndex(index)
-
     def loadValueFromWidget(self, option, category):
         if category == 'text':
             val = option.text()
@@ -445,11 +386,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         if category == 'list':
             items = [option.item(i).text() for i in range(option.count())]
             val = json.dumps(items)
-
-        if category == 'mobile':
-            name = option.currentText()
-            person = db.query(User).filter_by(name=name).first()
-            val = person.mobile if person else ''
 
         return val
 

@@ -1,5 +1,4 @@
 import os
-import re
 import json
 import datetime
 
@@ -7,7 +6,6 @@ from uuid import uuid4
 
 from sqlalchemy import Column, Integer, String, Text, DateTime, create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.schema import ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 
 from tafor import root
@@ -191,17 +189,6 @@ class Other(Base):
             return ''
         messages = json.loads(self.raw)
         return '\r\n\r\n\r\n\r\n'.join(messages)
-
-class User(Base):
-    __tablename__ = 'users'
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String(8))
-    mobile = Column(String(20))
-
-    def __repr__(self):
-        return '<User %r %r>' % (self.name, self.mobile)
-
 
 
 engine = create_engine(SQLALCHEMY_DATABASE_URI, echo=False)

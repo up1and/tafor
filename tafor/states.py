@@ -130,16 +130,6 @@ class WebApiState(object):
         return True if self._store.state() else False
 
 
-class CallServiceState(object):
-    _state = None
-
-    def isOnline(self):
-        return True if self._state else False
-
-    def setState(self, value):
-        self._state = value
-
-
 class SerialState(object):
     _lock = False
 
@@ -396,7 +386,6 @@ class EnvironState(object):
 class Context(object):
     message = MessageState()
     webApi = WebApiState(message)
-    callService = CallServiceState()
     taf = TafState()
     layer = LayerState()
     other = OtherState()
