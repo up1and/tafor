@@ -6,7 +6,7 @@ from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QComboBox, QRadioButton, QToolButton, QCheckBox, QMessageBox, QHBoxLayout, QVBoxLayout
 
 from tafor import conf
-from tafor.utils import Pattern, CurrentTaf, CheckTaf, boolean
+from tafor.utils import Pattern, CurrentTaf, boolean
 from tafor.utils.convert import parseDayHour, parsePeriod, parseTime, isOverlap
 from tafor.states import context
 from tafor.models import db, Taf
@@ -616,10 +616,11 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
                 self.sequence.setText(order)
 
     def setNormalPeriod(self, taf, strict=False):
-        check = CheckTaf(taf)
         period = taf.period(strict=strict)
+        expired = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
+        recent = db.query(Taf).filter(Taf.text.contains(period), Taf.sent > expired).order_by(Taf.sent.desc()).first()
 
-        if period and check.local(period) or not self.date.hasAcceptableInput():
+        if period and recent or not self.date.hasAcceptableInput():
             self.period.clear()
             self.durations = None
         else:

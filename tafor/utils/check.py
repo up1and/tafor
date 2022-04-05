@@ -2,7 +2,7 @@ import datetime
 
 from sqlalchemy import or_
 
-from tafor import conf, logger
+from tafor import conf
 from tafor.models import db, Taf, Metar, Sigmet
 from tafor.utils.validator import TafParser, SigmetParser
 
@@ -149,241 +149,94 @@ class CurrentTaf(object):
         return periodWithDay
 
 
-class CheckTaf(object):
-    """检查 TAF 报文并储存
+def availableMetar(type, message):
+    last = db.query(Metar).filter_by(type=type).order_by(Metar.created.desc()).first()
+    if last is None or last.text != message:
+        return Metar(type=type, text=message)
 
-    :param taf: 当前报文对象
-    :param message: TAF 报文内容
+def availableTaf(type, message):
+    time = datetime.datetime.utcnow()
+    last = db.query(Taf).filter_by(type=type).order_by(Taf.sent.desc()).first()
+    if last is None or last.flatternedText() != message:
+        return Taf(type=type, text=message, source='api', confirmed=time)
 
-    """
-    def __init__(self, taf, message=None):
-        self.taf = taf
-        self.type = self.taf.spec.type
-        self.message = message
-
-    def local(self, period=None):
-        """返回本地数据当前时次的最新报文，忽略 AMD COR 报文
-
-        :param period: 报文的有效时段
-        :return: ORM 对象
-        """
-        period = self.taf.period(strict=False) if period is None else period
-        expired = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
-        recent = db.query(Taf).filter(Taf.text.contains(period), ~Taf.text.contains('AMD'),
-            ~Taf.text.contains('COR'), Taf.sent > expired).order_by(Taf.sent.desc()).first()
-        return recent
-
-    def isExist(self):
-        """查询有没有已经入库的报文
-
-        :return: ORM 对象
-        """
-        expired = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
-        try:
-            taf = TafParser(self.message)
-            last = db.query(Taf).filter(or_(Taf.text == self.message, Taf.text == taf.renderer()), Taf.sent > expired).order_by(Taf.sent.desc()).first()
-        except Exception:
-            last = db.query(Taf).filter(Taf.text == self.message, Taf.sent > expired).order_by(Taf.sent.desc()).first()
-
+    if last and not last.confirmed and last.flatternedText() == message:
+        last.confirmed = time
         return last
 
-    def latest(self):
-        """查询本地最新的报文
+def availableSigmet(type, messages):
+    recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+    sigmets = db.query(Sigmet).filter(Sigmet.sent > recent).all()
+    time = datetime.datetime.utcnow()
 
-        :return: ORM 对象
-        """
-        last = db.query(Taf).filter_by(type=self.type).order_by(Taf.sent.desc()).first()
-        return last
+    availables = []
 
-    def save(self):
-        """储存远程报文数据
+    for message in messages:
+        message = ' '.join(message.split())
+        parser = SigmetParser(message)
 
-        :param callback: 储存完成后的回掉函数
-        """
-        isExist = self.isExist()
+        if parser not in [sig.parser() for sig in sigmets]:
+            item = Sigmet(type=type, heading=parser.heading, text=parser.text, source='api', confirmed=time)
+            availables.append(item)
 
-        if isExist is None:  # 没有报文入库
-            # 本地正常报已发，远程数据和本地数据不一样的情况不作入库处理
-            # 修订报报文如果字符出了错误无法识别是否和本地是同一份，则会直接入库
-            local = self.local()
-            remote = TafParser(self.message)
-            if local and not remote.isAmended() and remote.primary.tokens['period']['text'] in local.text:
-                return
+        for sig in sigmets:
+            if not sig.confirmed and sig.text == message:
+                sig.confirmed = time
+                availables.append(sig)
 
-            item = Taf(type=self.type, text=self.message, source='api', confirmed=self.taf.time)
-            db.add(item)
-            db.commit()
-            logger.info('Auto Save {} {}'.format(self.type, self.message))
-            return True
-
-    def confirm(self):
-        """确认本地数据和远程数据是否一致
-
-        :param callback: 确认完成后的回掉函数
-        """
-        last = self.latest()
-
-        if last is not None and last.flatternedText() == self.message:
-            last.confirmed = self.taf.time
-            db.commit()
-            logger.info('Auto confirm {} {}'.format(self.type, self.message))
-            return True
+    return availables
 
 
-class CheckMetar(object):
-    """检查 METAR 报文并储存
+def findAvailables(messages, wishlist=None):
+    availables = []
+    for key, text in messages.items():
+        if wishlist and key not in wishlist:
+            continue
 
-    :param type: METAR 报文类型，SA 或 SP
-    :param message: METAR 报文内容
-    """
-    def __init__(self, type, message):
-        self.type = type
-        self.message = message
+        if key in ['SA', 'SP']:
+            message = availableMetar(key, text)
+            if message:
+                availables.append(message)
 
-    def save(self):
-        """储存远程报文数据"""
-        last = db.query(Metar).filter_by(type=self.type).order_by(Metar.created.desc()).first()
+        if key in ['FC', 'FT']:
+            message = availableTaf(key, text)
+            if message:
+                availables.append(message)
 
-        if last is None or last.text != self.message:
-            item = Metar(type=self.type, text=self.message)
-            db.add(item)
-            db.commit()
-            logger.info('Auto save {} {}'.format(self.type, self.message))
-            return True
+        if key in ['WS', 'WC', 'WV', 'WA']:
+            message = availableSigmet(key, text)
+            if message:
+                availables += message
 
+    return availables
 
-class CheckSigmet(object):
-    """检查 SIGMET 报文并储存
+def createTafStatus(spec):
+    currentTaf = CurrentTaf(spec)
+    period = currentTaf.period(strict=False)
 
-    :param type: SIGMET 报文类型，WS, WC, WV, WA
-    :param message: SIGMET 报文内容
-    """
-    def __init__(self, type, messages):
-        self.type = type
-        self.messages = messages
+    clockRemind = currentTaf.hasExpired(offset=5)
+    hasExpired = False
+    recent = None
 
-    def save(self):
-        """储存远程报文数据"""
-        recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        sigmets = db.query(Sigmet).filter(Sigmet.sent > recent).all()
-        time = datetime.datetime.utcnow()
+    if currentTaf.hasExpired():
+        expired = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
+        recent = db.query(Taf).filter(Taf.text.contains(period), Taf.sent > expired).order_by(Taf.sent.desc()).first()
+        if recent:
+            if not recent.confirmed:
+                hasExpired = True
+        else:
+            hasExpired = True
 
-        saved = False
+    # The alarm clock no longer rings after the cancel message is issued
+    latest = db.query(Taf).filter_by(type=currentTaf.spec.type).order_by(Taf.sent.desc()).first()
+    if latest and latest.isCnl():
+        hasExpired = False
+        clockRemind = False
 
-        for message in self.messages:
-            message = ' '.join(message.split())
-            parser = SigmetParser(message)
-
-            if parser not in [sig.parser() for sig in sigmets]:
-                item = Sigmet(type=self.type, heading=parser.heading, text=parser.text, source='api', confirmed=time)
-                db.add(item)
-                saved = True
-                logger.info('Auto save {} {}'.format(self.type, message))
-
-            for sig in sigmets:
-                if not sig.confirmed and sig.text == message:
-                    sig.confirmed = time
-                    db.add(sig)
-                    saved = True
-                    logger.info('Auto confirm {} {}'.format(self.type, message))
-
-        db.commit()
-        return saved
-
-
-class Listen(object):
-    """监听远程报文数据
-
-    :param callback: 回调函数
-
-    使用方法::
-
-        listen = Listen()
-        # 监听不同类型的报文
-        listen('SA')
-        listen('FC')
-        listen('FT')
-
-    """
-    def __init__(self, afterTafSaved=None):
-        self.afterTafSaved = afterTafSaved
-
-    def __call__(self, type, spec=None):
-        from tafor.states import context
-
-        self.type = type
-        self.spec = spec or context.taf.spec
-        state = context.message.state()
-        self.message = state.get(self.type, None)
-
-        if self.type in ['FC', 'FT']:
-            return self.taf()
-
-        if self.type in ['SA', 'SP']:
-            return self.metar()
-
-        if self.type in ['WS', 'WC', 'WV', 'WA']:
-            return self.sigmet()
-
-    def taf(self):
-        """储存并更新本地 TAF 报文状态"""
-        from tafor.states import context
-
-        taf = CurrentTaf(self.spec)
-        check = CheckTaf(taf, message=self.message)
-        clock = taf.hasExpired(offset=5)
-
-        # 储存确认报文
-        status = False
-        if self.message:
-            status = check.save()
-
-            latest = check.latest()
-            if latest and not latest.confirmed:
-                status = check.confirm()
-
-        if status and self.afterTafSaved:
-            self.afterTafSaved()
-
-        # 查询报文是否过期
-        expired = False
-
-        if taf.hasExpired():
-            local = check.local()
-            if local:
-                if not local.confirmed:
-                    expired = True
-            else:
-                expired = True
-
-        # 最后一份报文不存在或是取消报时不再告警
-        latest = check.latest()
-        if latest and latest.isCnl() or not latest:
-            expired = False
-            clock = False
-
-        # 更新状态
-        context.taf.setState({
-            taf.spec.type: {
-                'period': taf.period(strict=False),
-                'sent': True if check.local() else False,
-                'warning': expired,
-                'clock': clock,
-            }
-        })
-
-    def metar(self):
-        """储存 METAR 报文"""
-        from tafor.states import context
-        metar = CheckMetar(self.type, message=self.message)
-        if self.message:
-            status = metar.save()
-            if status:
-                context.notification.metar.clear()
-
-    def sigmet(self):
-        """储存 SIGMET 报文"""
-        sigmet = CheckSigmet(self.type, messages=self.message)
-        if self.message:
-            status = sigmet.save()
+    return {
+            'period': period,
+            'message': recent,
+            'hasExpired': hasExpired,
+            'clockRemind': clockRemind,
+        }
 

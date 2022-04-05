@@ -12,7 +12,7 @@ from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 from tafor import root, conf, logger, __version__
 from tafor.models import db, Metar, Taf, Trend
 from tafor.states import context
-from tafor.utils import boolean, checkVersion, latestMetar, currentSigmet, Listen
+from tafor.utils import boolean, checkVersion, latestMetar, currentSigmet, findAvailables, createTafStatus
 from tafor.utils.thread import WorkThread, LayerThread, CheckUpgradeThread, RpcThread
 
 from tafor.components.ui import Ui_main, main_rc
@@ -92,7 +92,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.setSound()
 
     def bindSignal(self):
-        context.taf.clockSignal.connect(self.remindTaf)
+        context.taf.reminded.connect(self.remindTaf)
         context.other.messageChanged.connect(self.loadCustomMessage)
         context.notification.metar.messageChanged.connect(self.loadMetar)
         context.notification.sigmet.messageChanged.connect(self.loadSigmetNotification)
@@ -319,7 +319,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.trendSound.stop()
 
         # 管理报文告警声音
-        if warnSwitch and context.taf.isWarning():
+        if warnSwitch and context.taf.hasExpired():
             self.alarmSound.play()
         else:
             self.alarmSound.stop()
@@ -341,25 +341,22 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.showNotificationMessage(connectionError,
                 QCoreApplication.translate('MainWindow', 'Unable to connect FIR information data source, please check the settings or network status.'), 'warning')
 
-    def remindTaf(self, tt):
+    def remindTaf(self):
         remindSwitch = boolean(conf.value('Monitor/RemindTAF'))
         if not remindSwitch:
             return None
 
-        state = context.taf.state()
-        clock = state[tt]['clock']
-        period = state[tt]['period']
-        sent = state[tt]['sent']
-        warning = state[tt]['warning']
+        type = context.taf.spec[:2].upper()
+        period = context.taf.period()
 
-        if clock and not warning and not sent:
-            current = tt + period[2:4] + period[7:]
+        if context.taf.needReminded():
+            current = type + period[2:4] + period[7:]
             text = QCoreApplication.translate('MainWindow', 'Time to issue {}').format(current)
             self.ringSound.play()
             self.remindTafBox.setText(text)
             ret = self.remindTafBox.exec_()
             if not ret:
-                QTimer.singleShot(1000 * 60 * 5, lambda: self.remindTaf(tt))
+                QTimer.singleShot(1000 * 60 * 5, self.remindTaf)
 
             if not self.remindTafBox.isVisible():
                 self.ringSound.stop()
@@ -382,26 +379,40 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.sigmetSound.stop()
 
     def updateMessage(self):
+        wishlist = ['SA', 'SP']
+        if conf.value('General/TAFSpec'):
+            wishlist.append('FT')
+        else:
+            wishlist.append('FC')
 
-        def afterTafSaved():
+        if boolean(conf.value('General/Sigmet')):
+            wishlist.extend(['WS', 'WC', 'WV', 'WA'])
+
+        messages = context.message.message()
+        items = findAvailables(messages, wishlist=wishlist)
+
+        for item in items:
+            if item.id:
+                logger.info('Auto confirm {} {}'.format(item.type, item.text))
+            else:
+                logger.info('Auto Save {} {}'.format(item.type, item.text))
+
+            if item.type in ['SA', 'SP']:
+                context.notification.metar.clear()
+
+            db.add(item)
+
+        db.commit()
+
+        if items:
             self.notificationSound.play(loop=False)
             self.remindTafBox.close()
 
-        listen = Listen(afterTafSaved=afterTafSaved)
-
-        names = ['SA', 'SP']
-        if conf.value('General/TAFSpec'):
-            names.append('FT')
-        else:
-            names.append('FC')
-
-        if boolean(conf.value('General/Sigmet')):
-            names.extend(['WS', 'WC', 'WV', 'WA'])
-
-        for i in names:
-            listen(i)
-
         self.updateGui()
+
+    def updateTaf(self):
+        status = createTafStatus(context.taf.spec)
+        context.taf.setState(status)
 
     def updateSigmet(self):
         sigmets = currentSigmet(order='asc')
@@ -410,9 +421,10 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         })
 
     def updateGui(self):
+        self.updateTaf()
+        self.updateSigmet()
         self.updateTable()
         self.updateRecent()
-        self.updateSigmet()
 
     def updateRecent(self):
         self.tafBoard.updateGui()

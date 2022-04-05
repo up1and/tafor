@@ -5,7 +5,7 @@ from PyQt5.QtCore import QCoreApplication, QTimer, Qt
 from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QLabel, QHBoxLayout
 
 from tafor import conf
-from tafor.utils import CurrentTaf, CheckTaf, timeAgo
+from tafor.utils import CurrentTaf, timeAgo
 from tafor.styles import buttonHoverStyle
 from tafor.states import context
 from tafor.components.ui import main_rc, Ui_main_recent, Ui_main_license
@@ -146,8 +146,7 @@ class TafBoard(QWidget):
 
     def current(self):
         taf = CurrentTaf(context.taf.spec)
-        check = CheckTaf(taf)
-        if check.local():
+        if context.taf.message():
             text = ''
         else:
             text = taf.spec.type + taf.period(strict=False, withDay=False)

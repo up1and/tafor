@@ -17,7 +17,7 @@ _headers = {
 }
 
 
-def remoteMessage(url):
+def fetchMessage(url):
     try:
         r = requests.get(url, headers=_headers, timeout=30)
         if r.status_code == 200:
@@ -76,7 +76,7 @@ class WorkThread(QThread):
     def run(self):
         if conf.value('Monitor/WebApiURL'):
             url = conf.value('Monitor/WebApiURL') or 'http://127.0.0.1:6575'
-            context.message.setState(remoteMessage(url))
+            context.message.setMessage(fetchMessage(url))
 
 
 class LayerThread(QThread):

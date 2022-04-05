@@ -8,14 +8,16 @@ from tafor import conf
 from tafor.utils import boolean, latestMetar, MetarParser, SigmetParser
 
 
-class MessageState(object):
-    _state = {}
+class MessageState(QObject):
 
-    def state(self):
-        return self._state
+    messages = {}
+    sigmets = []
 
-    def setState(self, values):
-        self._state = values
+    def message(self):
+        return self.messages
+
+    def setMessage(self, values):
+        self.messages = values
 
 
 class LayerState(QObject):
@@ -127,7 +129,7 @@ class WebApiState(object):
         self._store = store
 
     def isOnline(self):
-        return True if self._store.state() else False
+        return True if self._store.message() else False
 
 
 class SerialState(object):
@@ -144,27 +146,27 @@ class SerialState(object):
 
 
 class TafState(QObject):
-    warningSignal = pyqtSignal()
-    clockSignal = pyqtSignal(str)
+
+    reminded = pyqtSignal()
 
     _state = {
-        'FC': {
-            'period': '',
-            'sent': False,
-            'warning': False,
-            'clock': False,
-        },
-        'FT': {
-            'period': '',
-            'sent': False,
-            'warning': False,
-            'clock': False,
-        }
+        'period': '',
+        'message': None,
+        'hasExpired': False,
+        'clockRemind': False,
     }
 
-    def isWarning(self):
-        warnings = [v['warning'] for k, v in self._state.items()]
-        return any(warnings)
+    def hasExpired(self):
+        return self._state['hasExpired']
+
+    def needReminded(self):
+        return self._state['clockRemind'] and self._state['message'] is None
+
+    def period(self):
+        return self._state['period']
+
+    def message(self):
+        return self._state['message']
 
     def state(self):
         return self._state
@@ -185,13 +187,8 @@ class TafState(QObject):
         refs = copy.deepcopy(self._state)
         self._state.update(values)
 
-        for tt, state in values.items():
-            if 'warning' in state:
-                self.warningSignal.emit()
-
-            if 'clock' in state:
-                if refs[tt]['clock'] != state['clock']:
-                    self.clockSignal.emit(tt)
+        if refs['clockRemind'] != self._state['clockRemind']:
+            self.reminded.emit()
 
 
 class OtherState(QObject):
