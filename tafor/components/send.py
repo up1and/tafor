@@ -123,7 +123,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             text = self.message.rawText()
             self.raw.setText(text)
 
-            if not self.message.confirmed and datetime.datetime.utcnow() - self.message.sent < datetime.timedelta(hours=2):
+            if not self.message.confirmed and datetime.datetime.utcnow() - self.message.created < datetime.timedelta(hours=2):
                 # enable resend button
                 self.resendButton.show()
 
@@ -254,7 +254,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             # resend the message
             self.message.raw = self.generator.toJson()
             self.message.protocol = self.protocol()
-            self.message.sent = datetime.datetime.utcnow()
+            self.message.created = datetime.datetime.utcnow()
             logger.debug('Resend ' + self.message.text)
         else:
             # create the message
@@ -285,7 +285,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         raw = QCoreApplication.translate('Sender', 'Raw Data')
         aftn = AFTNDecoder(self.item.raw)
         texts = [priority, aftn.priority, address, aftn.address, originator, aftn.originator,
-            content, self.item.report, raw, self.item.rawText(), time, '{} UTC'.format(self.item.sent)]
+            content, self.item.report, raw, self.item.rawText(), time, '{} UTC'.format(self.item.created)]
 
         elements = []
         for title, content in zip(texts[::2], texts[1::2]):

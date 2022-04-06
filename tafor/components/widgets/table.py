@@ -98,12 +98,6 @@ class ExportDialog(QDialog):
     def queryset(self):
         model = self.parent.model
         reportType = self.parent.reportType
-
-        if hasattr(model, 'sent'):
-            dateField = model.sent
-        else:
-            dateField = model.created
-
         query = db.query(model)
 
         if reportType == 'SIGMET':
@@ -114,7 +108,7 @@ class ExportDialog(QDialog):
 
         start, end = self.startDate.date().toPyDate(), self.endDate.date().toPyDate()
         query = query.filter(
-            dateField >= start, dateField < end + datetime.timedelta(hours=24)).order_by(dateField.desc())
+            model.created >= start, model.created < end + datetime.timedelta(hours=24)).order_by(model.created.desc())
 
         return query
 
@@ -209,12 +203,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.search.setValidator(word)
 
     def queryset(self):
-        if hasattr(self.model, 'sent'):
-            dateField = self.model.sent
-        else:
-            dateField = self.model.created
-
-        query = db.query(self.model).order_by(dateField.desc())
+        query = db.query(self.model).order_by(self.model.created.desc())
 
         if self.reportType == 'SIGMET':
             query = query.filter(self.model.type != 'WA')
@@ -224,7 +213,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
         if self.date:
             delta = datetime.timedelta(days=1)
-            query = query.filter(and_(dateField >= self.date, dateField < self.date + delta))
+            query = query.filter(and_(self.model.created >= self.date, self.model.created < self.date + delta))
 
         if self.keywords:
             words = [self.model.text.like('%'+word+'%') for word in self.keywords]
@@ -337,9 +326,9 @@ class TafTable(BaseDataTable):
         for row, item in enumerate(items):
             self.table.setItem(row, 0, QTableWidgetItem(item.type))
             self.table.setItem(row, 1, QTableWidgetItem(item.flatternedText()))
-            if item.sent:
-                sent = item.sent.strftime('%Y-%m-%d %H:%M:%S')
-                self.table.setItem(row, 2, QTableWidgetItem(sent))
+            if item.created:
+                created = item.created.strftime('%Y-%m-%d %H:%M:%S')
+                self.table.setItem(row, 2, QTableWidgetItem(created))
 
             label = self.checkmarkLabel(item)
             self.table.setCellWidget(row, 3, label)
@@ -416,9 +405,9 @@ class SigmetTable(BaseDataTable):
         for row, item in enumerate(items):
             self.table.setItem(row, 0, QTableWidgetItem(item.type))
             self.table.setItem(row, 1, QTableWidgetItem(item.text))
-            if item.sent:
-                sent = item.sent.strftime('%Y-%m-%d %H:%M:%S')
-                self.table.setItem(row, 2, QTableWidgetItem(sent))
+            if item.created:
+                created = item.created.strftime('%Y-%m-%d %H:%M:%S')
+                self.table.setItem(row, 2, QTableWidgetItem(created))
 
             label = self.checkmarkLabel(item)
             self.table.setCellWidget(row, 3, label)

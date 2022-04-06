@@ -618,7 +618,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
     def setNormalPeriod(self, taf, strict=False):
         period = taf.period(strict=strict)
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
-        recent = db.query(Taf).filter(Taf.text.contains(period), Taf.sent > expired).order_by(Taf.sent.desc()).first()
+        recent = db.query(Taf).filter(Taf.text.contains(period), Taf.created > expired).order_by(Taf.created.desc()).first()
 
         if period and recent or not self.date.hasAcceptableInput():
             self.period.clear()
@@ -654,7 +654,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
     def amendNumber(self, sort):
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        query = db.query(Taf).filter(Taf.text.contains(self.amdPeriod), Taf.sent > expired)
+        query = db.query(Taf).filter(Taf.text.contains(self.amdPeriod), Taf.created > expired)
         if sort == 'COR':
             items = query.filter(Taf.text.contains('COR')).all()
             order = chr(ord('A') + len(items))

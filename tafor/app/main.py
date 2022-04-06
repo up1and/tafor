@@ -435,13 +435,13 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
         spec = context.taf.spec[:2].upper()
-        taf = db.query(Taf).filter(Taf.sent > recent, Taf.type == spec).order_by(Taf.sent.desc()).first()
+        taf = db.query(Taf).filter(Taf.created > recent, Taf.type == spec).order_by(Taf.created.desc()).first()
         if boolean(conf.value('General/Sigmet')):
             sigmets = context.message.sigmets(show='all')
         else:
             sigmets = []
 
-        trend = db.query(Trend).order_by(Trend.sent.desc()).first()
+        trend = db.query(Trend).order_by(Trend.created.desc()).first()
         if trend and trend.isNosig():
             trend = None
 

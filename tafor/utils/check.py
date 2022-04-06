@@ -156,7 +156,7 @@ def availableMetar(type, message):
 
 def availableTaf(type, message):
     time = datetime.datetime.utcnow()
-    last = db.query(Taf).filter_by(type=type).order_by(Taf.sent.desc()).first()
+    last = db.query(Taf).filter_by(type=type).order_by(Taf.created.desc()).first()
     if last is None or last.flatternedText() != message:
         return Taf(type=type, text=message, source='api', confirmed=time)
 
@@ -166,7 +166,7 @@ def availableTaf(type, message):
 
 def availableSigmet(type, messages):
     recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-    sigmets = db.query(Sigmet).filter(Sigmet.sent > recent).all()
+    sigmets = db.query(Sigmet).filter(Sigmet.created > recent).all()
     time = datetime.datetime.utcnow()
 
     availables = []
@@ -220,7 +220,7 @@ def createTafStatus(spec):
 
     if currentTaf.hasExpired():
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
-        recent = db.query(Taf).filter(Taf.text.contains(period), Taf.sent > expired).order_by(Taf.sent.desc()).first()
+        recent = db.query(Taf).filter(Taf.text.contains(period), Taf.created > expired).order_by(Taf.created.desc()).first()
         if recent:
             if not recent.confirmed:
                 hasExpired = True
@@ -228,7 +228,7 @@ def createTafStatus(spec):
             hasExpired = True
 
     # The alarm clock no longer rings after the cancel message is issued
-    latest = db.query(Taf).filter_by(type=currentTaf.spec.type).order_by(Taf.sent.desc()).first()
+    latest = db.query(Taf).filter_by(type=currentTaf.spec.type).order_by(Taf.created.desc()).first()
     if latest and latest.isCnl():
         hasExpired = False
         clockRemind = False

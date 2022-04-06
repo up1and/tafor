@@ -30,7 +30,7 @@ class Taf(Base):
     raw = Column(Text)
     protocol = Column(Text)
     source = Column(String(16), default='self')
-    sent = Column(DateTime, default=datetime.datetime.utcnow)
+    created = Column(DateTime, default=datetime.datetime.utcnow)
     confirmed = Column(DateTime)
 
     def __repr__(self):
@@ -99,7 +99,7 @@ class Trend(Base):
     raw = Column(Text)
     protocol = Column(Text)
     source = Column(String(16), default='self')
-    sent = Column(DateTime, default=datetime.datetime.utcnow)
+    created = Column(DateTime, default=datetime.datetime.utcnow)
 
     def __repr__(self):
         return '<Trend %r>' % (self.text)
@@ -132,7 +132,7 @@ class Sigmet(Base):
     raw = Column(Text)
     protocol = Column(Text)
     source = Column(String(16), default='self')
-    sent = Column(DateTime, default=datetime.datetime.utcnow)
+    created = Column(DateTime, default=datetime.datetime.utcnow)
     confirmed = Column(DateTime, nullable=True)
 
     def __repr__(self):
@@ -157,7 +157,7 @@ class Sigmet(Base):
         from tafor.utils.convert import parseTime
         parser = self.parser()
         _, ending = parser.valids()
-        return parseTime(ending, self.sent)
+        return parseTime(ending, self.created)
 
     def isCnl(self):
         items = self.text.split()
@@ -175,7 +175,7 @@ class Other(Base):
     raw = Column(Text)
     protocol = Column(Text)
     source = Column(String(16), default='self')
-    sent = Column(DateTime, default=datetime.datetime.utcnow)
+    created = Column(DateTime, default=datetime.datetime.utcnow)
 
     def __repr__(self):
         return '<Other %r>' % (self.raw)

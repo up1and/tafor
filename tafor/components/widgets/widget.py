@@ -116,8 +116,7 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
 
     def setText(self):
         self.groupBox.setTitle(self.item.type)
-        time = self.item.sent if hasattr(self.item, 'sent') else self.item.created
-        self.timeLabel.setText(time.strftime('%Y-%m-%d %H:%M:%S'))
+        self.timeLabel.setText(self.item.created.strftime('%Y-%m-%d %H:%M:%S'))
         self.text.setText(self.item.report)
         font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
         self.text.setStyleSheet('font: 13px "Microsoft YaHei", "{}";'.format(font.family()))

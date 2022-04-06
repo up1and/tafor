@@ -125,7 +125,7 @@ class BaseSigmet(SegmentMixin, QWidget):
     def setSquence(self):
         time = datetime.datetime.utcnow()
         begin = datetime.datetime(time.year, time.month, time.day)
-        query = db.query(Sigmet).filter(Sigmet.sent > begin)
+        query = db.query(Sigmet).filter(Sigmet.created > begin)
         if self.type() == 'WA':
             query = query.filter(Sigmet.type == 'WA')
         else:
@@ -961,7 +961,7 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         self.text.setPlaceholderText(tip)
 
     def loadLocalDB(self):
-        last = db.query(Sigmet).filter(Sigmet.type == self.type(), ~Sigmet.text.contains('CNL')).order_by(Sigmet.sent.desc()).first()
+        last = db.query(Sigmet).filter(Sigmet.type == self.type(), ~Sigmet.text.contains('CNL')).order_by(Sigmet.created.desc()).first()
         if last:
             parser = last.parser()
             message = parser.content()

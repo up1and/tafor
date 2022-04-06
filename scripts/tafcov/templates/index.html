@@ -82,7 +82,7 @@
                         <td class="text">{{ message.text }}</td>
                         <td class="html">{{ message.html }}</td>
                         <td class="tips">{% for tip in message.tips %}{{ tip }}<br>{% endfor %}</td>
-                        <td>{{ message.sent|datetimeformat }}</td>
+                        <td>{{ message.created|datetimeformat }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -101,7 +101,7 @@
                     <tr>
                         <td>{{ message.id }}</td>
                         <td>{{ message.html }}</td>
-                        <td>{{ message.sent|datetimeformat }}</td>
+                        <td>{{ message.created|datetimeformat }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
