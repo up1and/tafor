@@ -43,6 +43,8 @@ class FtpChannel(object):
 
 class BaseSender(QDialog, Ui_send.Ui_Sender):
 
+    closed = pyqtSignal()
+    backed = pyqtSignal()
     succeeded = pyqtSignal()
 
     def __init__(self, parent=None):
@@ -309,9 +311,9 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
     def cancel(self):
         if self.mode == 'send':
             if (self.error or not self.sendButton.isHidden() or not self.resendButton.isHidden()):
-                self.rejected.emit()
+                self.backed.emit()
             else:
-                self.accepted.emit()
+                self.closed.emit()
 
         self.clear()
 
