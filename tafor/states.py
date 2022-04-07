@@ -10,79 +10,106 @@ from tafor.utils import boolean, latestMetar, MetarParser, SigmetParser
 
 class MessageState(QObject):
 
-    messages = {}
-    sigmets = []
-
-    def message(self):
-        return self.messages
-
-    def setMessage(self, values):
-        self.messages = values
-
-
-class LayerState(QObject):
-    refreshSignal = pyqtSignal()
-    layerChanged = pyqtSignal()
-    layerExtendChanged = pyqtSignal()
     sigmetChanged = pyqtSignal()
 
     _state = {
-        'layers': [],
+        'remote': {},
         'sigmets': []
+    }
+
+    def message(self):
+        return self._state['remote']
+
+    def sigmets(self, type=None, airsigmet=None, show='nocnl'):
+        types = []
+
+        if airsigmet == 'SIGMET':
+            types = ['WS', 'WC', 'WV']
+
+        if airsigmet == 'AIRMET':
+            types = ['WV']
+
+        if isinstance(type, str):
+            types = [type]
+
+        if show == 'all':
+            sigmets = self._state['sigmets']
+        else:
+            sigmets = [s for s in self._state['sigmets'] if not s.isCnl()]
+
+        if types:
+            return [s for s in sigmets if s.type in types]
+
+        return sigmets
+
+    def setMessage(self, values):
+        self._state['remote'] = values
+
+    def setSigmet(self, values):
+        def diff(origin, ref):
+            return set(ref).symmetric_difference(origin)
+
+        sigmets = [s.text for s in self.sigmets()]
+        refSigmets = [s.text for s in values]
+        self._state['sigmets'] = values
+
+        if diff(sigmets, refSigmets):
+            self.sigmetChanged.emit()
+
+
+class LayerState(QObject):
+    refreshed = pyqtSignal()
+    changed = pyqtSignal()
+
+    _state = {
+        'layers': []
     }
 
     showSigmet = True
     trimShapes = True
     layerExtend = []
-    layers = []
     selected = []
 
-    def setState(self, values):
+    def layers(self):
+        return self._state['layers']
+
+    def setLayer(self, values):
         from tafor.utils.convert import Layer
-        refs = copy.deepcopy(self._state)
-        self._state.update(values)
 
-        self.layers = []
-        for data in self._state['layers']:
+        layers = []
+        for data in values:
             layer = Layer(data)
-            self.layers.append(layer)
+            layers.append(layer)
 
-        refLayerNames = [e['name'] for e in refs['layers']]
-        layerNames = [e['name'] for e in self._state['layers']]
+        refLayerNames = [e.name for e in self.layers()]
+        layerNames = [e.name for e in layers]
+        self._state['layers'] = layers
+
         if refLayerNames != layerNames:
-            self.layerChanged.emit()
-
-        # sigmet state should be separated from layer state
-        def diff(origin, ref):
-            return set(ref).symmetric_difference(origin)
-
-        sigmets = [s.text for s in self.sigmets()]
-        refSigmets = [s.text for s in refs['sigmets']]
-        if diff(sigmets, refSigmets):
-            self.sigmetChanged.emit()
+            self.changed.emit()
 
     def currentLayers(self):
         layers = []
-        for layer in self.layers:
+        for layer in self.layers():
             if layer.name in self.selected:
                 layers.append(layer)
 
-        layers.sort(key=lambda x: x.overlay == 'standalone')
+        layers.sort(key=lambda x: x.overlay == 'mixed')
         return layers
 
     def currentStandaloneLayer(self):
-        for layer in self.layers:
+        for layer in self.layers():
             if layer.name in self.selected and layer.overlay == 'standalone':
                 return layer
 
     def findLayer(self, layerName):
-        for layer in self.layers:
+        for layer in self.layers():
             if layer.name == layerName:
                 return layer
 
     def groupLayers(self):
         layers = {}
-        for layer in self.layers:
+        for layer in self.layers():
             if layer.overlay not in layers:
                 layers[layer.overlay] = []
 
@@ -108,19 +135,16 @@ class LayerState(QObject):
             return [min(extent1[0], extent2[0]), min(extent1[1], extent2[1]), max(extent1[2], extent2[2]), max(extent1[3], extent2[3])]
 
         extent = []
-        for layer1, layer2 in zip(self.layers, self.layers[1:]):
+        for layer1, layer2 in zip(self.layers(), self.layers()[1:]):
             extent = _maxExtent(layer1.extent, layer2.extent)
 
         return extent
-
-    def sigmets(self):
-        return self._state['sigmets']
 
     def boundaries(self):
         return [[114.000001907,14.500001907],[112.000001908,14.500001907],[108.716665268,17.416666031],[107.683332443,18.333333969],[107.18972222,19.26777778],[107.929967,19.9567],[108.050001145,20.500001907],[111.500001908,20.500001907],[111.500001908,19.500001907],[114.000001907,16.666666031],[114.000001907,14.500001907]]
 
     def refresh(self):
-        self.refreshSignal.emit()
+        self.refreshed.emit()
 
 
 class WebApiState(object):

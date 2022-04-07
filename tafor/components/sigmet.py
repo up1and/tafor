@@ -23,6 +23,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.parent = parent
 
         self.type = 'WS'
+        self.category = 'template'
         self.typeButtonTexts = [btn.text() for btn in self.typeGroup.findChildren(QRadioButton)]
 
         self.initUI()
@@ -84,12 +85,14 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.sender.succeeded.connect(self.updateState)
 
     def updateGraphicCanvas(self):
-        isAirmet = True if self.type == 'WA' else False
+        if self.category == 'custom':
+            return
 
-        if isAirmet:
-            sigmets = [s for s in context.layer.sigmets() if s.type == 'WA']
+        if self.category == 'cancel':
+            sigmets = context.message.sigmets(type=self.type)
         else:
-            sigmets = [s for s in context.layer.sigmets() if s.type != 'WA']
+            airsigmet = self.reportType()
+            sigmets = context.message.sigmets(airsigmet=airsigmet)
 
         self.graphic.setCachedSigmet(sigmets)
 
@@ -158,6 +161,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
     def setType(self, type, category):
         self.type = type
+        self.category = category
         durations = {
             'WS': 4,
             'WC': 6,
@@ -168,6 +172,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.hideTypeGroupOverflow()
 
         self.graphic.setButton(self.type, category)
+        self.updateGraphicCanvas()
 
     def setLocationLabel(self, messages):
         titles = ['DEFAULT', 'FORECAST']

@@ -781,8 +781,8 @@ class GraphicsWindow(QWidget):
         self.backgroundLayerActionGroup.triggered.connect(self.changeLayer)
         self.mixedBackgroundLayerActionGroup.triggered.connect(self.changeLayer)
         self.opacitySilder.valueChanged.connect(self.updateMixedBackgroundOpacity)
-        context.layer.layerChanged.connect(self.setLayerSelectMenu)
-        context.layer.layerChanged.connect(self.updateLayer)
+        context.layer.changed.connect(self.setLayerSelectMenu)
+        context.layer.changed.connect(self.updateLayer)
 
     def handleSketchChange(self):
         self.sketchChanged.emit(self.formattedCoordinates())

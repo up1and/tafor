@@ -83,7 +83,7 @@ class LayerThread(QThread):
 
     def run(self):
         url = conf.value('Monitor/FirApiURL')
-        context.layer.setState(layerInfo(url))
+        context.layer.setLayer(layerInfo(url))
 
 
 class ExportRecordThread(QThread):

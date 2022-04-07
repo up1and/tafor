@@ -96,8 +96,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         context.other.messageChanged.connect(self.loadCustomMessage)
         context.notification.metar.messageChanged.connect(self.loadMetar)
         context.notification.sigmet.messageChanged.connect(self.loadSigmetNotification)
-        context.layer.sigmetChanged.connect(self.sigmetEditor.updateGraphicCanvas)
-        context.layer.refreshSignal.connect(self.painter)
+        context.message.sigmetChanged.connect(self.sigmetEditor.updateGraphicCanvas)
+        context.layer.refreshed.connect(self.painter)
 
         # 连接菜单信号
         self.tafAction.triggered.connect(self.tafEditor.show)
@@ -363,7 +363,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def remindSigmet(self, sig):
         remindSwitch = boolean(conf.value('Monitor/RemindSIGMET'))
-        sigmets = [sig.report.strip() for sig in currentSigmet()]
+        sigmets = [sig.report.strip() for sig in context.message.sigmets()]
         if not remindSwitch or sig.message not in sigmets:
             return None
 
@@ -415,10 +415,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         context.taf.setState(status)
 
     def updateSigmet(self):
-        sigmets = currentSigmet(order='asc')
-        context.layer.setState({
-            'sigmets': sigmets
-        })
+        sigmets = currentSigmet()
+        context.message.setSigmet(sigmets)
 
     def updateGui(self):
         self.updateTaf()
@@ -439,7 +437,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         spec = context.taf.spec[:2].upper()
         taf = db.query(Taf).filter(Taf.sent > recent, Taf.type == spec).order_by(Taf.sent.desc()).first()
         if boolean(conf.value('General/Sigmet')):
-            sigmets = currentSigmet(order='asc', showUnmatched=True)
+            sigmets = context.message.sigmets(show='all')
         else:
             sigmets = []
 

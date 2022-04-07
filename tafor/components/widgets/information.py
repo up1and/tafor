@@ -11,7 +11,6 @@ from tafor import conf
 from tafor.states import context
 from tafor.utils import Pattern
 from tafor.utils.convert import parseTime, ceilTime, roundTime, calcPosition, decimalToDegree
-from tafor.utils.service import currentSigmet
 from tafor.models import db, Sigmet
 from tafor.components.widgets.forecast import SegmentMixin
 from tafor.components.ui import Ui_sigmet_general, Ui_sigmet_typhoon, Ui_sigmet_ash, Ui_sigmet_cancel, Ui_sigmet_custom, main_rc
@@ -859,7 +858,7 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
     def componentUpdate(self):
         self.prevs = []
-        sigmets = currentSigmet(type=self.type(), order='asc')
+        sigmets = context.message.sigmets(type=self.type())
 
         for sig in sigmets:
             parser = sig.parser()
