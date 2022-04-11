@@ -25,7 +25,6 @@ from tafor.components.chart import ChartViewer
 
 from tafor.components.widgets.table import TafTable, MetarTable, SigmetTable, AirmetTable
 from tafor.components.widgets.widget import Clock, TafBoard, RecentMessage, RemindMessageBox, LicenseEditor
-from tafor.components.widgets.status import WebAPIStatus
 from tafor.components.widgets.sound import Sound
 
 
@@ -87,7 +86,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.setTable()
         self.setAboutMenu()
         self.setSysTray()
-        self.setStatus()
         self.setThread()
         self.setSound()
 
@@ -184,10 +182,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         message =  'Tafor {}'.format(__version__)
         self.tray.setToolTip(message)
-
-    def setStatus(self):
-        self.webApiStatus = WebAPIStatus(self, self.statusBar)
-
 
     def setThread(self):
         self.workThread = WorkThread()
@@ -333,7 +327,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def notifier(self):
         connectionError = QCoreApplication.translate('MainWindow', 'Connection Error')
-        if not context.webApi.isOnline():
+        if not context.message.message():
             self.showNotificationMessage(connectionError,
                 QCoreApplication.translate('MainWindow', 'Unable to connect remote message data source, please check the settings or network status.'), 'warning')
 

@@ -5,7 +5,7 @@ import datetime
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from tafor import conf
-from tafor.utils import boolean, latestMetar, MetarParser, SigmetParser
+from tafor.utils import boolean, MetarParser, SigmetParser
 
 
 class MessageState(QObject):
@@ -145,15 +145,6 @@ class LayerState(QObject):
 
     def refresh(self):
         self.refreshed.emit()
-
-
-class WebApiState(object):
-
-    def __init__(self, store):
-        self._store = store
-
-    def isOnline(self):
-        return True if self._store.message() else False
 
 
 class SerialState(object):
@@ -406,7 +397,6 @@ class EnvironState(object):
 
 class Context(object):
     message = MessageState()
-    webApi = WebApiState(message)
     taf = TafState()
     layer = LayerState()
     other = OtherState()
