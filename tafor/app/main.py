@@ -390,6 +390,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         messages = context.message.message()
         items = findAvailables(messages, wishlist=wishlist)
+        needPlaySound = False
 
         for item in items:
             if item.id:
@@ -399,12 +400,14 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
             if item.type in ['SA', 'SP']:
                 context.notification.metar.clear()
+            else:
+                needPlaySound = True
 
             db.add(item)
 
         db.commit()
 
-        if items:
+        if needPlaySound:
             self.notificationSound.play(loop=False)
             self.remindTafBox.close()
 
