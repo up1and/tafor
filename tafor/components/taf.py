@@ -1,6 +1,7 @@
 from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLayout
 
+from tafor.states import context
 from tafor.models import Taf
 from tafor.components.setting import isConfigured
 from tafor.components.widgets.editor import BaseEditor
@@ -76,7 +77,7 @@ class BaseTafEditor(BaseEditor):
         checks = [c for c in fmCheckboxs + becmgCheckboxs + tempoCheckboxs if c.isChecked()]
         if len(checks) > 5:
             clickedbox.setChecked(False)
-            self.showNotificationMessage(QCoreApplication.translate('Editor', 'Change groups cannot be more than 5'))
+            context.flash.editor('taf', QCoreApplication.translate('Editor', 'Change groups cannot be more than 5'))
             return
 
         def manipulate(checkboxs, groups):

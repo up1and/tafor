@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (QDialog, QFileDialog, QWidget, QDialogButtonBox, QT
 
 from sqlalchemy import and_
 
-from tafor import conf
+from tafor.states import context
 from tafor.styles import calendarStyle, dateEditHiddenStyle, buttonHoverStyle
 from tafor.models import db, Taf, Metar, Sigmet
 from tafor.utils import paginate
@@ -286,7 +286,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
     def copySelected(self, item):
         self.parent.clip.setText(item.text())
-        self.parent.statusBar.showMessage(QCoreApplication.translate('MainWindow', 'Selected message has been copied'), 5000)
+        context.flash.statusbar(QCoreApplication.translate('MainWindow', 'Selected message has been copied'), 5000)
 
     def view(self):
         message = self.selected

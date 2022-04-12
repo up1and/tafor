@@ -231,7 +231,7 @@ class BaseSegment(SegmentMixin, QWidget):
 
             if 'TS' in weather and ('TS' in weatherWithIntensity or 'RA' in weatherWithIntensity):
                 line.setCurrentIndex(-1)
-                self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Weather phenomena conflict'))
+                context.flash.editor(self.editorname(), QCoreApplication.translate('Editor', 'Weather phenomena conflict'))
 
     def validateGust(self):
         if not self.gust.hasAcceptableInput() or not self.wind.hasAcceptableInput():
@@ -261,7 +261,7 @@ class BaseSegment(SegmentMixin, QWidget):
         height = line.text()[3:]
         cloudHeights = [c[3:6] for c in clouds]
         if cloudHeights.count(height) > 1:
-            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Cloud cover with different oktas should not at the same height'))
+            context.flash.editor(self.editorname(), QCoreApplication.translate('Editor', 'Cloud cover with different oktas should not at the same height'))
             line.clear()
             return
 
@@ -273,7 +273,7 @@ class BaseSegment(SegmentMixin, QWidget):
             for cloud in clouds:
                 cover, height = coverHeight(cloud)
                 if cbHeight == height and cbCover + cover > 8:
-                    self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Cloud cover cannot be more than 8 oktas at the same height'))
+                    context.flash.editor(self.editorname(), QCoreApplication.translate('Editor', 'Cloud cover cannot be more than 8 oktas at the same height'))
                     line.clear()
                     return
 
@@ -283,7 +283,7 @@ class BaseSegment(SegmentMixin, QWidget):
         if 'OVC' in covers:
             index = covers.index('OVC')
             if index + 1 < len(covers):
-                self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'No clouds should above overcast clouds'))
+                context.flash.editor(self.editorname(), QCoreApplication.translate('Editor', 'No clouds should above overcast clouds'))
                 line.clear()
                 return
 
@@ -294,6 +294,9 @@ class BaseSegment(SegmentMixin, QWidget):
         self.validateCloud(self.cloud2)
         self.validateCloud(self.cloud1)
         self.validateCloud(self.cb)
+
+    def editorname(self):
+        return 'trend' if 'trend' in self.__class__.__name__.lower() else 'taf'
 
     def message(self):
         wind = self.wind.text() if self.wind.hasAcceptableInput() else None
@@ -430,7 +433,7 @@ class TemperatureGroup(SegmentMixin, QWidget):
         except Exception:
             self.time = None
             self.tempTime.clear()
-            self.parent.parent.showNotificationMessage(text)
+            context.flash.editor('taf', text)
             return
 
         valid = durations[0] <= time <= durations[1] and time not in self.parent.findTemperatureTime(self)
@@ -453,7 +456,7 @@ class TemperatureGroup(SegmentMixin, QWidget):
         else:
             self.time = None
             self.tempTime.clear()
-            self.parent.parent.showNotificationMessage(text)
+            context.flash.editor('taf', text)
 
     def validateTemperature(self):
         if not self.temp.hasAcceptableInput():
@@ -467,7 +470,7 @@ class TemperatureGroup(SegmentMixin, QWidget):
             if minTemperature and temperature <= minTemperature:
                 self.temperature = None
                 self.temp.clear()
-                self.parent.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'The maximum temperature needs to be greater than the minimum temperature'))
+                context.flash.editor('taf', QCoreApplication.translate('Editor', 'The maximum temperature needs to be greater than the minimum temperature'))
             else:
                 self.temperature = temperature
 
@@ -476,7 +479,7 @@ class TemperatureGroup(SegmentMixin, QWidget):
             if maxTemperature and maxTemperature <= temperature:
                 self.temperature = None
                 self.temp.clear()
-                self.parent.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'The minimum temperature needs to be less than the maximum temperature'))
+                context.flash.editor('taf', QCoreApplication.translate('Editor', 'The minimum temperature needs to be less than the maximum temperature'))
             else:
                 self.temperature = temperature
 
@@ -895,7 +898,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
         if end - start > datetime.timedelta(hours=self.span()):
             self.period.clear()
-            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time more than {} hours').format(self.span()))
+            context.flash.editor('taf', QCoreApplication.translate('Editor', 'Change group time more than {} hours').format(self.span()))
             return
 
         if self.parent.primary.durations is None:
@@ -905,12 +908,12 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         
         if start < durations[0] or durations[1] < start:
             self.period.clear()
-            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Start time of change group is not corret'))
+            context.flash.editor('taf', QCoreApplication.translate('Editor', 'Start time of change group is not corret'))
             return
 
         if end < durations[0] or durations[1] < end or (self.identifier.startswith('BECMG') and end == durations[1]):
             self.period.clear()
-            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'End time of change group is not corret'))
+            context.flash.editor('taf', QCoreApplication.translate('Editor', 'End time of change group is not corret'))
             return
 
     def validateGroupsPeriod(self):
@@ -924,7 +927,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         periods = [g.durations for g in groups if g.isVisible() and g.durations and self != g]
         if isPeriodOverlay(self.durations, periods):
             self.period.clear()
-            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time is overlap'))
+            context.flash.editor('taf', QCoreApplication.translate('Editor', 'Change group time is overlap'))
 
     def hasAcceptableInput(self):
         oneRequired = (
@@ -983,7 +986,7 @@ class TafFmSegment(TafGroupSegment):
         start, end = self.durations
         if start < durations[0] or durations[1] <= start:
             self.period.clear()
-            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Time of change group is not corret'))
+            context.flash.editor('taf', QCoreApplication.translate('Editor', 'Time of change group is not corret'))
             return
 
     def validateGroupsPeriod(self):
@@ -1000,7 +1003,7 @@ class TafFmSegment(TafGroupSegment):
         periods = [g.durations for g in groups if g.isVisible() and g.durations and self != g]
         if inPeriod(self.durations[0], periods):
             self.period.clear()
-            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Change group time is overlap'))
+            context.flash.editor('taf', QCoreApplication.translate('Editor', 'Change group time is overlap'))
 
     def hasAcceptableInput(self):
         acceptable = False
@@ -1194,12 +1197,12 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
             if periods[1] - periods[0] > datetime.timedelta(hours=2):
                 self.period.clear()
-                self.parent.showNotificationMessage(errorInfo)
+                context.flash.editor('trend', errorInfo)
 
         for time in periods:
             if (time - delta) > utc:
                 self.period.clear()
-                self.parent.showNotificationMessage(errorInfo)
+                context.flash.editor('trend', errorInfo)
 
     def updateAtStatus(self):
         if self.tempo.isChecked():

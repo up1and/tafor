@@ -2,6 +2,7 @@ from PyQt5.QtCore import QCoreApplication, QTimer, Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QHBoxLayout, QLabel, QPushButton
 
 from tafor import conf
+from tafor.states import context
 from tafor.utils import boolean
 
 
@@ -28,6 +29,8 @@ class BaseEditor(QDialog):
         self.finished.connect(self.showSender)
         self.sender.backed.connect(self.showEditor)
         self.sender.closed.connect(self.close)
+
+        context.flash.editorMessageChanged.connect(self.showNotification)
 
     def showEditor(self):
         self.isStaged = True
@@ -62,9 +65,10 @@ class BaseEditor(QDialog):
         self.bottomBox.setLayout(bottomLayout)
         layout.addWidget(self.bottomBox)
 
-    def showNotificationMessage(self, message):
-        self.notificationArea.setText(message)
-        QTimer.singleShot(10 * 1000, self.notificationArea.clear)
+    def showNotification(self, editorname, message):
+        if editorname in self.__class__.__name__.lower():
+            self.notificationArea.setText(message)
+            QTimer.singleShot(10 * 1000, self.notificationArea.clear)
 
     def assembleMessage(self):
         raise NotImplementedError

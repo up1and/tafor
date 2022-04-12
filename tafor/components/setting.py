@@ -5,9 +5,10 @@ import datetime
 
 from PyQt5.QtGui import QIcon, QIntValidator
 from PyQt5.QtCore import QCoreApplication, QStandardPaths, QSettings, QTimer, Qt
-from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QTableWidgetItem, QFileDialog, QMessageBox
+from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QFileDialog, QMessageBox
 
 from tafor import conf, logger
+from tafor.states import context
 from tafor.utils import boolean, ftpComm
 from tafor.components.ui import Ui_setting, main_rc
 
@@ -403,7 +404,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             logger.error(e)
 
         else:
-            self.parent.statusBar.showMessage(QCoreApplication.translate('Settings', 'Configuration has been exported'), 5000)
+            context.flash.statusbar(QCoreApplication.translate('Settings', 'Configuration has been exported'), 5000)
 
     def importConf(self):
         filename = self.importPath.text()
@@ -417,7 +418,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         else:
             self.load()
             self.onConfigChanged()
-            self.parent.statusBar.showMessage(QCoreApplication.translate('Settings', 'Configuration has been imported'), 5000)
+            context.flash.statusbar(QCoreApplication.translate('Settings', 'Configuration has been imported'), 5000)
 
     def openFile(self, receiver):
         title = QCoreApplication.translate('Settings', 'Open Configuration File')

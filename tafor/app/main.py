@@ -99,6 +99,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         context.notification.sigmet.messageChanged.connect(self.loadSigmetNotification)
         context.message.sigmetChanged.connect(self.sigmetEditor.updateGraphicCanvas)
         context.layer.refreshed.connect(self.painter)
+        context.flash.systemMessageChanged.connect(self.showSystemNotification)
+        context.flash.statusbarMessageChanged.connect(self.showStatusbarNotification)
 
         # 连接菜单信号
         self.tafAction.triggered.connect(self.tafEditor.show)
@@ -216,7 +218,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.incomingSound.play(loop=False)
         self.customSender.load()
         self.customSender.show()
-        self.showNotificationMessage(QCoreApplication.translate('MainWindow', 'Message Received'),
+
+        context.flash.info(QCoreApplication.translate('MainWindow', 'Message Received'),
                 QCoreApplication.translate('MainWindow', 'Received a custom message.'))
 
     def loadMetar(self):
@@ -240,7 +243,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def notifyMetar(self):
         parser = context.notification.metar.parser()
         parser.validate()
-        level='information'
+        notify = context.flash.info
         self.incomingSound.play(loop=False)
 
         if parser.hasTrend():
@@ -250,17 +253,17 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             else:
                 title = QCoreApplication.translate('MainWindow', 'Trend Validation Failed')
                 description = QCoreApplication.translate('MainWindow', 'The trend has been cleared, please resend')
-                level = 'warning'
+                notify = context.flash.warning
         else:
             title = QCoreApplication.translate('MainWindow', 'Message Received')
             description = QCoreApplication.translate('MainWindow', 'Received a {} message.'.format(context.notification.metar.type()))
         
-        self.showNotificationMessage(title, description, level)
+        notify(title, description)
 
     def loadSigmetNotification(self):
         self.incomingSound.play(loop=False)
         self.sigmetEditor.loadNotification()
-        self.showNotificationMessage(QCoreApplication.translate('MainWindow', 'Message Received'),
+        context.flash.info(QCoreApplication.translate('MainWindow', 'Message Received'),
                 QCoreApplication.translate('MainWindow', 'Received a {} message.').format(context.notification.sigmet.type()))
 
     def event(self, event):
@@ -331,12 +334,12 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def notifier(self):
         connectionError = QCoreApplication.translate('MainWindow', 'Connection Error')
         if not context.message.message():
-            self.showNotificationMessage(connectionError,
-                QCoreApplication.translate('MainWindow', 'Unable to connect remote message data source, please check the settings or network status.'), 'warning')
+            context.flash.warning(connectionError,
+                QCoreApplication.translate('MainWindow', 'Unable to connect remote message data source, please check the settings or network status.'))
 
         if conf.value('Monitor/FirApiURL') and not context.layer.currentLayers() and not self.layerThread.isRunning():
-            self.showNotificationMessage(connectionError,
-                QCoreApplication.translate('MainWindow', 'Unable to connect FIR information data source, please check the settings or network status.'), 'warning')
+            context.flash.warning(connectionError,
+                QCoreApplication.translate('MainWindow', 'Unable to connect FIR information data source, please check the settings or network status.'))
 
     def remindTaf(self):
         remindSwitch = boolean(conf.value('Monitor/RemindTAF'))
@@ -471,10 +474,13 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.sigmetTable.updateGui()
         self.airmetTable.updateGui()
 
-    def showNotificationMessage(self, title, content, level='information'):
+    def showSystemNotification(self, title, content, level='information'):
         icons = ['noicon', 'information', 'warning', 'critical']
         icon = QSystemTrayIcon.MessageIcon(icons.index(level))
         self.tray.showMessage(title, content, icon)
+
+    def showStatusbarNotification(self, text, timeout):
+        self.statusBar.showMessage(text, timeout)
 
     def openSetting(self):
         if not self.isVisible():

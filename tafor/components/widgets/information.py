@@ -89,17 +89,17 @@ class BaseSigmet(SegmentMixin, QWidget):
 
         if start - time > datetime.timedelta(hours=24):
             self.beginningTime.clear()
-            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Start time cannot be less than the current time'))
+            context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'Start time cannot be less than the current time'))
             return
 
         if end <= start:
             self.endingTime.clear()
-            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Ending time must be greater than the beginning time'))
+            context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'Ending time must be greater than the beginning time'))
             return
 
         if end - start > datetime.timedelta(hours=self.span):
             self.endingTime.clear()
-            self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'Valid period more than {} hours').format(self.span))
+            context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'Valid period more than {} hours').format(self.span))
             return
 
     def validate(self):
@@ -216,7 +216,7 @@ class FlightLevelMixin(object):
         if base and top:
             if int(top) <= int(base):
                 line.clear()
-                self.parent.showNotificationMessage(QCoreApplication.translate('Editor', 'The top flight level needs to be greater than the base flight level'))
+                context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'The top flight level needs to be greater than the base flight level'))
 
     def fightLevel(self):
         level = self.level.currentText()

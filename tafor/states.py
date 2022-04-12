@@ -3,13 +3,13 @@ import copy
 import datetime
 
 from PyQt5.QtCore import QObject, pyqtSignal
+from numpy import tile
 
 from tafor import conf
 from tafor.utils import boolean, MetarParser, SigmetParser
 
 
 class MessageState(QObject):
-
     sigmetChanged = pyqtSignal()
 
     _state = {
@@ -161,7 +161,6 @@ class SerialState(object):
 
 
 class TafState(QObject):
-
     reminded = pyqtSignal()
 
     _state = {
@@ -226,6 +225,32 @@ class OtherState(QObject):
 
     def state(self):
         return self._state
+
+
+class FlashState(QObject):
+    systemMessageChanged = pyqtSignal(str, str, str)
+    statusbarMessageChanged = pyqtSignal(str, int)
+    editorMessageChanged = pyqtSignal(str, str)
+
+    def addMessage(self, title, text, level='information', dest='system', timeout=5000):
+        if dest == 'editor':
+            self.editorMessageChanged.emit(title, text)
+        elif dest == 'statusbar':
+            self.statusbarMessageChanged.emit(text, timeout)
+        else:
+            self.systemMessageChanged.emit(title, text, level)
+
+    def info(self, title, text):
+        self.addMessage(title, text)
+
+    def warning(self, title, text):
+        self.addMessage(title, text, level='warning')
+
+    def statusbar(self, text, timeout=5000):
+        self.addMessage('', text, dest='statusbar', timeout=timeout)
+
+    def editor(self, title, text):
+        self.addMessage(title, text, dest='editor')
 
 
 class NotificationMessageState(QObject):
@@ -401,6 +426,7 @@ class Context(object):
     layer = LayerState()
     other = OtherState()
     notification = NotificationState()
+    flash = FlashState()
     serial = SerialState()
     environ = EnvironState()
 

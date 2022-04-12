@@ -242,9 +242,6 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         
         self.setType(tt, category)
 
-    def showNotificationMessage(self, text):
-        self.parent.showNotificationMessage(text)
-
     def showEvent(self, event):
         self.setTypeButtonText()
 
