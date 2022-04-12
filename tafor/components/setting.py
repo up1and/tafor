@@ -168,7 +168,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.originatorAddress.setPlaceholderText('YUSOYMYX')
 
         self.bindSignal()
-        self.setValidator()
+        self.setupValidator()
         self.load()
 
     def bindSignal(self):
@@ -193,7 +193,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.save)
         self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.onConfigChanged)
 
-    def setValidator(self):
+    def setupValidator(self):
         """设置验证器"""
         self.baudrate.setValidator(QIntValidator(self.baudrate))
         self.channelSequenceNumber.setValidator(QIntValidator(self.channelSequenceNumber))

@@ -202,7 +202,7 @@ class TafState(QObject):
         refs = copy.deepcopy(self._state)
         self._state.update(values)
 
-        if refs['clockRemind'] != self._state['clockRemind']:
+        if self._state['clockRemind'] and refs['clockRemind'] != self._state['clockRemind']:
             self.reminded.emit()
 
 

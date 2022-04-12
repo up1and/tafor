@@ -31,7 +31,7 @@ class BaseSigmet(SegmentMixin, QWidget):
 
         self.setupUi(self)
         self.initState()
-        self.setValidator()
+        self.setupValidator()
         self.bindSignal()
 
     def initState(self):
@@ -114,7 +114,7 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.beginningTime.setText(beginningTime.strftime('%d%H%M'))
         self.endingTime.setText(endingTime.strftime('%d%H%M'))
 
-    def setValidator(self):
+    def setupValidator(self):
         date = QRegExpValidator(QRegExp(self.rules.date))
         self.beginningTime.setValidator(date)
         self.endingTime.setValidator(date)
@@ -182,8 +182,8 @@ class FlightLevelMixin(object):
         self.base.textEdited.connect(lambda: self.coloredText(self.base))
         self.top.textEdited.connect(lambda: self.coloredText(self.top))
 
-    def setValidator(self):
-        super().setValidator()
+    def setupValidator(self):
+        super(FlightLevelMixin, self).setupValidator()
         fightLevel = QRegExpValidator(QRegExp(self.rules.fightLevel))
         self.base.setValidator(fightLevel)
         self.top.setValidator(fightLevel)
@@ -248,8 +248,8 @@ class MovementMixin(object):
         super().bindSignal()
         self.movement.currentTextChanged.connect(self.setSpeed)
 
-    def setValidator(self):
-        super().setValidator()
+    def setupValidator(self):
+        super(MovementMixin, self).setupValidator()
         self.speed.setValidator(QIntValidator(1, 99, self.speed))
 
     def setSpeed(self, text):
@@ -288,8 +288,8 @@ class ObservationMixin(object):
         self.observation.currentTextChanged.connect(self.setObservationTime)
         self.observationTime.textChanged.connect(lambda: self.coloredText(self.observationTime))
 
-    def setValidator(self):
-        super().setValidator()
+    def setupValidator(self):
+        super(ObservationMixin, self).setupValidator()
         time = QRegExpValidator(QRegExp(self.rules.time))
         self.observationTime.setValidator(time)
 
@@ -312,8 +312,8 @@ class ObservationMixin(object):
 
 class ForecastMixin(object):
 
-    def setValidator(self):
-        super().setValidator()
+    def setupValidator(self):
+        super(ForecastMixin, self).setupValidator()
         time = QRegExpValidator(QRegExp(self.rules.time))
         self.forecastTime.setValidator(time)
 
@@ -487,8 +487,8 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
         self.beginningTime.textEdited.connect(self.setForecastPosition)
         self.observationTime.textEdited.connect(self.setForecastPosition)
 
-    def setValidator(self):
-        super().setValidator()
+    def setupValidator(self):
+        super(SigmetTyphoon, self).setupValidator()
 
         latitude = QRegExpValidator(QRegExp(self.rules.latitude, Qt.CaseInsensitive))
         self.currentLatitude.setValidator(latitude)
@@ -710,8 +710,8 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         self.currentLatitude.textEdited.connect(lambda: self.coloredText(self.currentLatitude))
         self.currentLongitude.textEdited.connect(lambda: self.coloredText(self.currentLongitude))
 
-    def setValidator(self):
-        super().setValidator()
+    def setupValidator(self):
+        super(SigmetAsh, self).setupValidator()
         latitude = QRegExpValidator(QRegExp(self.rules.latitude, Qt.CaseInsensitive))
         self.currentLatitude.setValidator(latitude)
 
@@ -805,8 +805,8 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
         self.cancelSequence.currentTextChanged.connect(self.setValids)
         self.cancelSequence.currentIndexChanged.connect(self.setValids)
 
-    def setValidator(self):
-        super().setValidator()
+    def setupValidator(self):
+        super(SigmetCancel, self).setupValidator()
         sequence = QRegExpValidator(QRegExp(self.rules.sequence, Qt.CaseInsensitive))
         self.cancelSequence.setValidator(sequence)
 
@@ -1008,8 +1008,8 @@ class AirmetGeneral(SigmetGeneral):
 
         self.phenomena.addItems(phenomenas)
 
-    def setValidator(self):
-        super().setValidator()
+    def setupValidator(self):
+        super(AirmetGeneral, self).setupValidator()
         fightLevel = QRegExpValidator(QRegExp(self.rules.airmansFightLevel))
         self.base.setValidator(fightLevel)
         self.top.setValidator(fightLevel)

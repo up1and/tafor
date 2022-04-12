@@ -51,9 +51,12 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.setup()
         self.bindSignal()
-        self.updateGui()
         self.worker()
         self.painter()
+
+        self.updateSigmet()
+        self.updateTable()
+        self.updateRecent()
 
     def setup(self):
         self.setWindowIcon(QIcon(':/logo.png'))
@@ -82,12 +85,12 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.mainTab.removeTab(3)
             self.mainTab.removeTab(3)
 
-        self.setRecent()
-        self.setTable()
-        self.setAboutMenu()
-        self.setSysTray()
-        self.setThread()
-        self.setSound()
+        self.setupRecent()
+        self.setupTable()
+        self.setupAboutMenu()
+        self.setupSysTray()
+        self.setupThread()
+        self.setupSound()
 
     def bindSignal(self):
         context.taf.reminded.connect(self.remindTaf)
@@ -140,19 +143,19 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             icon.setIsMask(True)
         self.tray.setIcon(icon)
 
-    def setRecent(self):
+    def setupRecent(self):
         self.clock = Clock(self, self.tipsLayout)
         self.tipsLayout.addSpacerItem(QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
         self.tafBoard = TafBoard(self, self.tipsLayout)
         self.scrollLayout.setAlignment(Qt.AlignTop)
 
-    def setTable(self):
+    def setupTable(self):
         self.tafTable = TafTable(self, self.tafLayout)
         self.metarTable = MetarTable(self, self.metarLayout)
         self.sigmetTable = SigmetTable(self, self.sigmetLayout)
         self.airmetTable = AirmetTable(self, self.airmetLayout)
 
-    def setAboutMenu(self):
+    def setupAboutMenu(self):
         registered = context.environ.license()
         if registered:
             self.enterLicenseAction.setVisible(False)
@@ -161,7 +164,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.enterLicenseAction.setVisible(True)
             self.removeLicenseAction.setVisible(False)
 
-    def setSysTray(self):
+    def setupSysTray(self):
         self.tray = QSystemTrayIcon(self)
         if self.sysInfo.startswith('Windows 10') or self.sysInfo.startswith('Ubuntu'):
             style = 'light'
@@ -183,7 +186,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         message =  'Tafor {}'.format(__version__)
         self.tray.setToolTip(message)
 
-    def setThread(self):
+    def setupThread(self):
         self.workThread = WorkThread()
         self.workThread.finished.connect(self.updateMessage)
         self.workThread.finished.connect(self.notifier)
@@ -192,6 +195,19 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.checkUpgradeThread = CheckUpgradeThread()
         self.checkUpgradeThread.done.connect(self.checkUpgrade)
+
+    def setupSound(self):
+        self.ringSound = Sound('ring.wav', conf.value('Monitor/RemindTAFVolume'))
+        self.notificationSound = Sound('notification.wav', 100)
+        self.incomingSound = Sound('notification-incoming.wav', 100)
+        self.alarmSound = Sound('alarm.wav', conf.value('Monitor/WarnTAFVolume'))
+        self.trendSound = Sound('trend.wav', conf.value('Monitor/RemindTrendVolume'))
+        self.sigmetSound = Sound('sigmet.wav', conf.value('Monitor/RemindSIGMETVolume'))
+
+        self.settingDialog.warnTafVolume.valueChanged.connect(lambda vol: self.alarmSound.play(volume=vol, loop=False))
+        self.settingDialog.remindTafVolume.valueChanged.connect(lambda vol: self.ringSound.play(volume=vol, loop=False))
+        self.settingDialog.remindTrendVolume.valueChanged.connect(lambda vol: self.trendSound.play(volume=vol, loop=False))
+        self.settingDialog.remindSigmetVolume.valueChanged.connect(lambda vol: self.sigmetSound.play(volume=vol, loop=False))
 
     def loadCustomMessage(self):
         if not self.isVisible():
@@ -246,19 +262,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.sigmetEditor.loadNotification()
         self.showNotificationMessage(QCoreApplication.translate('MainWindow', 'Message Received'),
                 QCoreApplication.translate('MainWindow', 'Received a {} message.').format(context.notification.sigmet.type()))
-
-    def setSound(self):
-        self.ringSound = Sound('ring.wav', conf.value('Monitor/RemindTAFVolume'))
-        self.notificationSound = Sound('notification.wav', 100)
-        self.incomingSound = Sound('notification-incoming.wav', 100)
-        self.alarmSound = Sound('alarm.wav', conf.value('Monitor/WarnTAFVolume'))
-        self.trendSound = Sound('trend.wav', conf.value('Monitor/RemindTrendVolume'))
-        self.sigmetSound = Sound('sigmet.wav', conf.value('Monitor/RemindSIGMETVolume'))
-
-        self.settingDialog.warnTafVolume.valueChanged.connect(lambda vol: self.alarmSound.play(volume=vol, loop=False))
-        self.settingDialog.remindTafVolume.valueChanged.connect(lambda vol: self.ringSound.play(volume=vol, loop=False))
-        self.settingDialog.remindTrendVolume.valueChanged.connect(lambda vol: self.trendSound.play(volume=vol, loop=False))
-        self.settingDialog.remindSigmetVolume.valueChanged.connect(lambda vol: self.sigmetSound.play(volume=vol, loop=False))
 
     def event(self, event):
         if event.type() == QEvent.WindowStateChange and self.isMinimized():

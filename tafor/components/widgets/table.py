@@ -143,8 +143,8 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
     def __init__(self, parent, layout):
         super(BaseDataTable, self).__init__()
         self.setupUi(self)
-        self.setStyle()
-        self.setValidator()
+        self.setupStyle()
+        self.setupValidator()
         self.page = 1
         self.pagination = None
         self.reportType = ''
@@ -181,7 +181,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
         self.setPage(1)
 
-    def setStyle(self):
+    def setupStyle(self):
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(1, QHeaderView.Stretch)
         self.table.setStyleSheet('QTableWidget {border: 0;} QTableWidget::item {padding: 5px 0;}')
@@ -197,7 +197,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.infoButton.hide()
         self.chartButton.hide()
 
-    def setValidator(self):
+    def setupValidator(self):
         pattern = r'[a-zA-Z0-9\s\/\-\+]+'
         word = QRegExpValidator(QRegExp(pattern))
         self.search.setValidator(word)

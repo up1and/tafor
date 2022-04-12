@@ -174,7 +174,7 @@ class BaseSegment(SegmentMixin, QWidget):
         else:
             self.weatherWithIntensity.setEnabled(True)
 
-    def setValidator(self):
+    def setupValidator(self):
         wind = QRegExpValidator(QRegExp(self.rules.wind, Qt.CaseInsensitive))
         self.wind.setValidator(wind)
 
@@ -358,7 +358,7 @@ class TemperatureGroup(SegmentMixin, QWidget):
         self.time = None
 
         self.setupUi()
-        self.setValidator()
+        self.setupValidator()
         self.bindSignal()
 
     def setupUi(self):
@@ -400,7 +400,7 @@ class TemperatureGroup(SegmentMixin, QWidget):
         self.temp.textChanged.connect(lambda : self.temperatureChanged.emit())
         self.tempTime.textChanged.connect(lambda : self.temperatureChanged.emit())
 
-    def setValidator(self):
+    def setupValidator(self):
         temperature = QRegExpValidator(QRegExp(self.parent.rules.temperature, Qt.CaseInsensitive))
         self.temp.setValidator(temperature)
 
@@ -513,7 +513,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         super(TafPrimarySegment, self).__init__(name, parent)
         self.setupUi(self)
 
-        self.setValidator()
+        self.setupValidator()
         self.period.setEnabled(False)
         self.sequence.setEnabled(False)
 
@@ -547,8 +547,8 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         for p, n in zip(orders, orders[1:]):
             self.setTabOrder(p, n)
 
-    def setValidator(self):
-        super(TafPrimarySegment, self).setValidator()
+    def setupValidator(self):
+        super(TafPrimarySegment, self).setupValidator()
 
         date = QRegExpValidator(QRegExp(self.rules.date))
         self.date.setValidator(date)
@@ -791,7 +791,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         super(TafGroupSegment, self).__init__(name, parent)
         self.setupUi(self)
         self.name.setText(name)
-        self.setValidator()
+        self.setupValidator()
         self.bindSignal()
 
     def bindSignal(self):
@@ -802,8 +802,8 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.period.editingFinished.connect(self.validateGroupsPeriod)
         self.period.textChanged.connect(lambda: self.coloredText(self.period))
 
-    def setValidator(self):
-        super(TafGroupSegment, self).setValidator()
+    def setupValidator(self):
+        super(TafGroupSegment, self).setupValidator()
         period = QRegExpValidator(QRegExp(self.rules.period))
         self.period.setValidator(period)
 
@@ -961,8 +961,8 @@ class TafFmSegment(TafGroupSegment):
         super(TafFmSegment, self).bindSignal()
         self.period.textEdited.disconnect(self.fillPeriod)
 
-    def setValidator(self):
-        super(TafFmSegment, self).setValidator()
+    def setupValidator(self):
+        super(TafFmSegment, self).setupValidator()
         period = QRegExpValidator(QRegExp(self.rules.fmPeriod))
         self.period.setValidator(period)
 
@@ -1079,7 +1079,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
     def __init__(self, name='TREND', parent=None):
         super(TrendSegment, self).__init__(name, parent)
         self.setupUi(self)
-        self.setValidator()
+        self.setupValidator()
         self.bindSignal()
 
     def bindSignal(self):
@@ -1101,8 +1101,8 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         if self.fm.isChecked() and self.tl.isChecked():   
             self.autoFillSlash()
 
-    def setValidator(self):
-        super(TrendSegment, self).setValidator()
+    def setupValidator(self):
+        super(TrendSegment, self).setupValidator()
         self.setPeriodValidator()
 
     def setPeriodValidator(self):

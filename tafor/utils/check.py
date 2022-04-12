@@ -216,11 +216,10 @@ def createTafStatus(spec):
 
     clockRemind = currentTaf.hasExpired(offset=5)
     hasExpired = False
-    recent = None
+    expired = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
+    recent = db.query(Taf).filter(Taf.text.contains(period), Taf.created > expired).order_by(Taf.created.desc()).first()
 
     if currentTaf.hasExpired():
-        expired = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
-        recent = db.query(Taf).filter(Taf.text.contains(period), Taf.created > expired).order_by(Taf.created.desc()).first()
         if recent:
             if not recent.confirmed:
                 hasExpired = True
