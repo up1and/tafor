@@ -47,15 +47,17 @@ class BaseTafEditor(BaseEditor):
         self.tempo3.hide()
 
     def bindSignal(self):
-        checkboxs = [
-            self.primary.fmCheckbox, 
-            self.primary.becmg1Checkbox, self.primary.becmg2Checkbox, self.primary.becmg3Checkbox,
-            self.primary.tempo1Checkbox, self.primary.tempo2Checkbox, self.primary.tempo3Checkbox
-        ]
+        for c in self.primary.groupCheckboxs:
+            c.stateChanged.connect(self.enbaleNextButton)
 
-        for c in checkboxs:
-            c.toggled.connect(lambda: self.addGroup(c))
-            c.toggled.connect(self.enbaleNextButton)
+        # This is a weird bug, when I loop and connect the slot, the lambda function always pass the last value to the slot.
+        self.primary.fmCheckbox.toggled.connect(lambda: self.addGroup(self.primary.fmCheckbox))
+        self.primary.becmg1Checkbox.toggled.connect(lambda: self.addGroup(self.primary.becmg1Checkbox))
+        self.primary.becmg2Checkbox.toggled.connect(lambda: self.addGroup(self.primary.becmg2Checkbox))
+        self.primary.becmg3Checkbox.toggled.connect(lambda: self.addGroup(self.primary.becmg3Checkbox))
+        self.primary.tempo1Checkbox.toggled.connect(lambda: self.addGroup(self.primary.tempo1Checkbox))
+        self.primary.tempo2Checkbox.toggled.connect(lambda: self.addGroup(self.primary.tempo2Checkbox))
+        self.primary.tempo3Checkbox.toggled.connect(lambda: self.addGroup(self.primary.tempo3Checkbox))
 
         self.primary.contentChanged.connect(self.enbaleNextButton)
         for segment in self.becmgs + self.tempos:
@@ -196,7 +198,7 @@ class BaseTafEditor(BaseEditor):
         # 检查必要配置是否完成
         if isConfigured('TAF'):
             if not self.isStaged:
-                self.primary.setMessageType()
+                self.primary.updateMessageType()
         else:
             QTimer.singleShot(0, self.showConfigError)
 

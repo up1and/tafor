@@ -520,6 +520,12 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.period.setEnabled(False)
         self.sequence.setEnabled(False)
 
+        self.groupCheckboxs = [
+            self.fmCheckbox,
+            self.becmg1Checkbox, self.becmg2Checkbox, self.becmg3Checkbox,
+            self.tempo1Checkbox, self.tempo2Checkbox, self.tempo3Checkbox,
+        ]
+
         self.tmax = TemperatureGroup(mode='max', parent=self)
         self.tmin = TemperatureGroup(mode='min', parent=self)
         self.temperatureLayout.addWidget(self.tmax)
@@ -559,10 +565,10 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
     def bindSignal(self):
         super(TafPrimarySegment, self).bindSignal()
 
-        self.normal.clicked.connect(self.setMessageType)
-        self.cor.clicked.connect(self.setMessageType)
-        self.amd.clicked.connect(self.setMessageType)
-        self.cnl.clicked.connect(self.setMessageType)
+        self.normal.clicked.connect(self.updateMessageType)
+        self.cor.clicked.connect(self.updateMessageType)
+        self.amd.clicked.connect(self.updateMessageType)
+        self.cnl.clicked.connect(self.updateMessageType)
         self.prevButton.clicked.connect(lambda: self.setCurrentPeriod('prev'))
         self.resetButton.clicked.connect(lambda: self.setCurrentPeriod('reset'))
 
@@ -591,7 +597,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             self.tempo3Checkbox.hide()
             self.tempo3Checkbox.setChecked(False)
 
-    def setMessageType(self):
+    def updateMessageType(self):
         if not self.date.hasAcceptableInput():
             return
 
@@ -618,6 +624,14 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             if not self.sequence.hasAcceptableInput():
                 self.sequence.setText(order)
 
+        if self.cnl.isChecked():
+            for c in self.groupCheckboxs:
+                c.setEnabled(False)
+                c.setChecked(False)
+        else:
+            for c in self.groupCheckboxs:
+                c.setEnabled(True)
+
     def setNormalPeriod(self, taf, strict=False):
         period = taf.period(strict=strict)
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
@@ -638,7 +652,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
     def setCurrentPeriod(self, action):
         if action == 'reset':
             self.offset = 0
-            self.setMessageType()
+            self.updateMessageType()
             self.resetButton.setEnabled(False)
             self.prevButton.setEnabled(True)
 
@@ -648,7 +662,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             ret = QMessageBox.question(self, title, text)
             if ret == QMessageBox.Yes:
                 self.offset -= 1
-                self.setMessageType()
+                self.updateMessageType()
                 self.resetButton.setEnabled(True)
                 self.prevButton.setEnabled(True)
 
@@ -774,15 +788,11 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
     def clear(self):
         super(TafPrimarySegment, self).clear()
 
-        self.fmCheckbox.setChecked(False)
-        self.becmg1Checkbox.setChecked(False)
-        self.becmg2Checkbox.setChecked(False)
-        self.becmg3Checkbox.setChecked(False)
-        self.tempo1Checkbox.setChecked(False)
-        self.tempo2Checkbox.setChecked(False)
-
         self.cavok.setChecked(False)
         self.nsc.setChecked(False)
+
+        for c in self.groupCheckboxs:
+            c.setChecked(False)
 
         for t in self.temperatures:
             t.clear()
