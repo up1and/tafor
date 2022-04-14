@@ -37,13 +37,10 @@ class BaseEditor(QDialog):
         self.show()
 
     def showSender(self, messages):
-        alwaysShow = boolean(conf.value('General/AlwaysShowEditor'))
-        if not alwaysShow:
-            self.hide()
-
         if self.sender.isVisible():
             self.sender.clear()
 
+        self.hide()
         self.sender.receive(messages)
         self.sender.show()
 

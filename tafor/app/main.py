@@ -5,7 +5,7 @@ import datetime
 
 from PyQt5.QtGui import QIcon, QDesktopServices
 from PyQt5.QtCore import QCoreApplication, QTranslator, QLocale, QEvent, QTimer, Qt, QUrl, QSysInfo, QProcess
-from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy, QActionGroup, QAction,
+from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy,
         QSystemTrayIcon, QMenu, QMessageBox, QStyleFactory)
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 
@@ -61,7 +61,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def setup(self):
         self.setWindowIcon(QIcon(':/logo.png'))
 
-        self.clip = QApplication.clipboard()
         self.remindTafBox = RemindMessageBox(self)
         self.remindSigmetBox = RemindMessageBox(self)
 
@@ -128,6 +127,9 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.tafSender.succeeded.connect(self.updateGui)
         self.trendSender.succeeded.connect(self.updateGui)
         self.sigmetSender.succeeded.connect(self.updateGui)
+
+        self.settingDialog.restarted.connect(self.restart)
+        self.settingDialog.settingChanged.connect(self.closeSender)
 
         self.metarTable.chartClicked.connect(self.chartViewer.show)
 
@@ -328,7 +330,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.workThread.start()
 
     def painter(self):
-        if conf.value('Monitor/FirApiURL') and not self.layerThread.isRunning():
+        if conf.value('Interface/LayerApiURL') and not self.layerThread.isRunning():
             self.layerThread.start()
 
     def notifier(self):
@@ -337,7 +339,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             context.flash.warning(connectionError,
                 QCoreApplication.translate('MainWindow', 'Unable to connect remote message data source, please check the settings or network status.'))
 
-        if conf.value('Monitor/FirApiURL') and not context.layer.currentLayers() and not self.layerThread.isRunning():
+        if conf.value('Interface/LayerApiURL') and not context.layer.currentLayers() and not self.layerThread.isRunning():
             context.flash.warning(connectionError,
                 QCoreApplication.translate('MainWindow', 'Unable to connect FIR information data source, please check the settings or network status.'))
 
@@ -474,6 +476,11 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.sigmetTable.updateGui()
         self.airmetTable.updateGui()
 
+    def closeSender(self):
+        self.tafSender.close()
+        self.trendSender.close()
+        self.sigmetSender.close()
+
     def showSystemNotification(self, title, content, level='information'):
         icons = ['noicon', 'information', 'warning', 'critical']
         icon = QSystemTrayIcon.MessageIcon(icons.index(level))
@@ -518,19 +525,10 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         aboutBox.setWindowTitle(title)
         layout = aboutBox.layout()
         layout.removeItem(layout.itemAt(0))
-        tokenButton = aboutBox.addButton(QCoreApplication.translate('MainWindow', 'Token'), QMessageBox.ResetRole)
         aboutBox.addButton(QMessageBox.Ok)
         if not self.isVisible():
             self.showNormal()
         aboutBox.exec()
-
-        if aboutBox.clickedButton() == tokenButton:
-            token = context.environ.token()
-            self.clip.setText(token)
-            QMessageBox.information(self, QCoreApplication.translate('MainWindow', 'Authentication Token'),
-                QCoreApplication.translate('MainWindow',
-                    'The authentication token for the RPC service has been copied to the clipboard.\n\n{}\n'
-                    ).format(token))
 
     def openDocs(self):
         devDocs = os.path.join(root, '../docs/_build/html/index.html')
@@ -603,7 +601,7 @@ def main():
     localServer = QLocalServer()
     localServer.listen(serverName)
 
-    if boolean(conf.value('General/RPC')):
+    if boolean(conf.value('Interface/RPC')):
         rpc = RpcThread()
         rpc.start()
         app.aboutToQuit.connect(rpc.terminate)

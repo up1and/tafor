@@ -1,11 +1,9 @@
 import re
 import datetime
 
-from itertools import cycle
-
-from PyQt5.QtGui import QIcon, QRegExpValidator, QIntValidator, QTextCharFormat, QTextCursor, QFont, QPixmap
+from PyQt5.QtGui import QRegExpValidator, QIntValidator, QTextCharFormat, QTextCursor, QFont, QPixmap
 from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, QMenu, QActionGroup, QAction, QLabel, QSpacerItem, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QLabel
 
 from tafor import conf
 from tafor.states import context

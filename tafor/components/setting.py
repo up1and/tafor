@@ -1,15 +1,17 @@
 import os
 import sys
 import json
+import secrets
 import datetime
 
-from PyQt5.QtGui import QIcon, QIntValidator
-from PyQt5.QtCore import QCoreApplication, QStandardPaths, QSettings, QTimer, Qt
-from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QFileDialog, QMessageBox
+from PyQt5.QtGui import QIcon, QIntValidator, QTextCursor
+from PyQt5.QtCore import QCoreApplication, QStandardPaths, QSettings, QTimer, Qt, pyqtSignal
+from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QFileDialog, QMessageBox, QApplication
 
 from tafor import conf, logger
 from tafor.states import context
-from tafor.utils import boolean, ftpComm
+from tafor.utils import boolean, ftpComm, ipAddress
+from tafor.styles import tabStyle
 from tafor.components.ui import Ui_setting, main_rc
 
 
@@ -21,13 +23,11 @@ baseOptions = [
     ('General/TAFSpec', 'tafSpecification', 'comboxindex'),
     ('General/CloseToMinimize', 'closeToMinimize', 'bool'),
     ('General/Debug', 'debugMode', 'bool'),
-    ('General/RPC', 'rpcService', 'bool'),
-    ('General/AlwaysShowEditor', 'alwaysShowEditor', 'bool'),
     ('General/AutoComletionGroupTime', 'autoComletionGroupTime', 'bool'),
     # 验证选项
-    ('Validator/VisHas5000', 'visHas5000', 'bool'),
-    ('Validator/CloudHeightHas450', 'cloudHeightHas450', 'bool'),
-    ('Validator/WeakPrecipitationVerification', 'weakPrecipitationVerification', 'bool'),
+    ('Validation/VisHas5000', 'visHas5000', 'bool'),
+    ('Validation/CloudHeightHas450', 'cloudHeightHas450', 'bool'),
+    ('Validation/WeakPrecipitationVerification', 'weakPrecipitationVerification', 'bool'),
     # 报文字符
     ('Message/ICAO', 'icao', 'text'),
     ('Message/Area', 'area', 'text'),
@@ -50,8 +50,9 @@ baseOptions = [
     ('Communication/TrendAddress', 'trendAddress', 'plaintext'),
     # FTP 设置
     ('Communication/FTPHost', 'ftpHost', 'text'),
-    # 数据源
-    ('Monitor/WebApiURL', 'webApiURL', 'text'),
+    # 接口
+    ('Interface/RPC', 'serviceGroup', 'bool'),
+    ('Interface/WebApiURL', 'webApiURL', 'text'),
     # TAF 报文迟发告警
     ('Monitor/WarnTAFTime', 'warnTafTime', 'text'),
     ('Monitor/WarnTAFVolume', 'warnTafVolume', 'slider'),
@@ -68,11 +69,13 @@ sigmetOptions = [
     # AFTN 配置
     ('Communication/AIRMETAddress', 'airmetAddress', 'plaintext'),
     ('Communication/SIGMETAddress', 'sigmetAddress', 'plaintext'),
-    # 数据源
-    ('Monitor/FirApiURL', 'firApiURL', 'text'),
+    # 接口
+    ('Interface/LayerApiURL', 'layerApiURL', 'text'),
     # 报文发送提醒
     ('Monitor/RemindSIGMET', 'remindSigmet', 'bool'),
     ('Monitor/RemindSIGMETVolume', 'remindSigmetVolume', 'slider'),
+    # 图层
+    ('Layer/FIRBoundary', 'firBoundary', 'plaintext'),
 ]
 
 
@@ -93,7 +96,7 @@ def isConfigured(reportType='TAF'):
             'Communication/MaxSendAddress', 'Communication/OriginatorAddress']
     taf = ['Message/ICAO', 'Message/Area', 'Communication/TAFAddress']
     trend = ['Message/TrendSign', 'Communication/TrendAddress']
-    sigmet = ['Message/ICAO', 'Message/FIR', 'Message/Area', 'Communication/SIGMETAddress', 'Communication/AIRMETAddress']
+    sigmet = ['Message/ICAO', 'Message/FIR', 'Message/Area', 'Communication/SIGMETAddress', 'Communication/AIRMETAddress', 'Layer/FIRBoundary']
 
     options = serial + aftn
     if reportType == 'TAF':
@@ -125,6 +128,9 @@ def saveConf(filename, options):
 class SettingDialog(QDialog, Ui_setting.Ui_Settings):
     """设置窗口"""
 
+    restarted = pyqtSignal()
+    settingChanged = pyqtSignal()
+
     def __init__(self, parent=None):
         super(SettingDialog, self).__init__(parent)
         self.parent = parent
@@ -153,20 +159,21 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             options = baseOptions
             self.fir.hide()
             self.firLabel.hide()
-            self.firApiURL.hide()
-            self.firApiLabel.hide()
-            self.firCanvasSize.hide()
-            self.firCanvasSizeLabel.hide()
+            self.layerApiURL.hide()
+            self.layerApiLabel.hide()
             self.remindSigmet.hide()
             self.remindSigmetVolume.hide()
             self.addressTab.removeTab(2)
             self.addressTab.removeTab(2)
+            self.settingTab.removeTab(6)
 
         self.options = setupOptions(options)
 
         self.icao.setPlaceholderText('YUSO')
         self.fir.setPlaceholderText('YUDD SHANLON FIR')
         self.originatorAddress.setPlaceholderText('YUSOYMYX')
+
+        self.setStyleSheet(tabStyle)
 
         self.bindSignal()
         self.setupValidator()
@@ -182,6 +189,8 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
         self.resetNumberButton.clicked.connect(self.resetChannelNumber)
         self.testLoginButton.clicked.connect(self.testFtpLogin)
+        self.regenerateTokenButton.clicked.connect(self.regenerateAuthToken)
+        self.copyTokenButton.clicked.connect(self.copyAuthToken)
         self.ftpHost.textEdited.connect(self.resetFtpLoginButton)
 
         self.importBrowseButton.clicked.connect(lambda: self.openFile(self.importPath))
@@ -189,10 +198,8 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.importButton.clicked.connect(self.importConf)
         self.exportButton.clicked.connect(self.exportConf)
 
-        self.buttonBox.accepted.connect(self.save)
-        self.buttonBox.accepted.connect(self.onConfigChanged)
-        self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.save)
-        self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.onConfigChanged)
+        self.buttonBox.accepted.connect(self.applyChange)
+        self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.applyChange)
 
     def setupValidator(self):
         """设置验证器"""
@@ -214,9 +221,27 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.channelSequenceNumber.setText('1')
         logger.info('Reset channel sequence number to one')
 
+    def regenerateAuthToken(self):
+        title = QCoreApplication.translate('Settings', 'Regenerate Auth Token')
+        text = QCoreApplication.translate('Settings', 
+        'Regenerating the token will cause the existing service to be unavailable due to authentication failure, are you sure you want to do this?')
+        ret = QMessageBox.information(self, title, text, QMessageBox.Yes | QMessageBox.No)
+        if ret == QMessageBox.Yes:
+            authToken = secrets.token_urlsafe(24)
+            conf.setValue('Interface/AuthToken', authToken)
+            self.loadAuthToken()
+
+    def copyAuthToken(self):
+        authToken = context.environ.token()
+        QApplication.clipboard().setText(authToken)
+
     def loadSerialNumber(self):
         """单独载入流水号"""
         self.loadValue('Communication/ChannelSequenceNumber', 'channelSequenceNumber')
+
+    def loadAuthToken(self):
+        token = context.environ.token()
+        self.token.setText(token)
 
     def addWeather(self, weather):
         """添加天气现象"""
@@ -260,8 +285,8 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
     def onConfigChanged(self):
         restartRequiredOptions = [
-            'General/WindowsStyle', 'General/InterfaceScaling', 'General/TAFSpec',
-            'General/Debug', 'General/RPC', 'Message/Weather', 'Message/WeatherWithIntensity',
+            'General/WindowsStyle', 'General/TAFSpec', 'General/Debug', 'General/InterfaceScaling',
+            'Layer/FIRBoundary', 'Interface/RPC', 'Message/Weather', 'Message/WeatherWithIntensity',
         ]
 
         closeSenderOptions = [
@@ -271,14 +296,9 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             'Message/FIR', 'Message/Area', 'Communication/SIGMETAddress', 'Communication/AIRMETAddress',
         ]
 
-        if self.hasValueChanged('General/FirCanvasSize'):
-            self.parent.sigmetEditor.close()
-
         for key in closeSenderOptions:
             if self.hasValueChanged(key):
-                self.parent.tafSender.close()
-                self.parent.trendSender.close()
-                self.parent.sigmetSender.close()
+                self.settingChanged.emit()
                 break
 
         for key in restartRequiredOptions:
@@ -287,7 +307,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
                 break
 
         self.updateSoundVolume()
-        self.parent.updateGui()
+        self.load()
 
     def hasValueChanged(self, key):
         if key not in self.options:
@@ -303,6 +323,16 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
         return prev != value
 
+    def hasValidFirBoundary(self):
+        text = self.firBoundary.toPlainText()
+        try:
+            boundary = json.loads(text)
+            if not isinstance(boundary, list):
+                return False
+        except ValueError as e:
+            return False
+        return True
+
     def cachePrevConf(self):
         self.prevConf = {}
         for path in self.options:
@@ -313,7 +343,17 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         text = QCoreApplication.translate('Settings', 'Program need to restart to apply the configuration, do you wish to restart now?')
         ret = QMessageBox.information(self, title, text, QMessageBox.Yes | QMessageBox.No)
         if ret == QMessageBox.Yes:
-            self.parent.restart()
+            self.restarted.emit()
+
+    def applyChange(self):
+        if not self.hasValidFirBoundary():
+            title = QCoreApplication.translate('Settings', 'Format Error')
+            text = QCoreApplication.translate('Settings', 'FIR boundary format is invalid, please check it.')
+            QMessageBox.warning(self, title, text)
+            return
+
+        self.save()
+        self.onConfigChanged()
 
     def save(self):
         """保存设置"""
@@ -330,8 +370,12 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         """载入设置"""
         self.runOnStart.setChecked(self.autoRun.contains('Tafor'))
 
+        self.serviceHost.setText('http://{}:9407'.format(ipAddress()))
+
         for key, value in self.options.items():
             self.loadValue(key, value['object'], value['type'])
+
+        self.loadAuthToken()
 
     def loadValue(self, path, option, category='text'):
         val = conf.value(path)
@@ -340,8 +384,12 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         if val is None:
             return 0
 
-        if category in ['text', 'plaintext']:
+        if category == 'text':
             option.setText(val)
+
+        if category == 'plaintext':
+            option.setPlainText(val)
+            option.moveCursor(QTextCursor.End)
 
         if category == 'bool':
             val = boolean(val)

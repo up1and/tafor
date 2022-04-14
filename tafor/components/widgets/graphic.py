@@ -910,7 +910,7 @@ class GraphicsWindow(QWidget):
 
             self.layerMenu.addSeparator()
 
-        if layers['mixed']:
+        if 'mixed' in layers and layers['mixed']:
             self.opacitySilder.show()
             silder = QWidgetAction(self)
             silder.setDefaultWidget(self.opacitySilder)

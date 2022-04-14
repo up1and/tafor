@@ -144,9 +144,9 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.updateContent()
 
     def parse(self):
-        visHas5000 = boolean(conf.value('Validator/VisHas5000'))
-        cloudHeightHas450 = boolean(conf.value('Validator/CloudHeightHas450'))
-        weakPrecipitationVerification = boolean(conf.value('Validator/WeakPrecipitationVerification'))
+        visHas5000 = boolean(conf.value('Validation/VisHas5000'))
+        cloudHeightHas450 = boolean(conf.value('Validation/CloudHeightHas450'))
+        weakPrecipitationVerification = boolean(conf.value('Validation/WeakPrecipitationVerification'))
 
         self.parser = TafParser(self.message.text,
             visHas5000=visHas5000, cloudHeightHas450=cloudHeightHas450, weakPrecipitationVerification=weakPrecipitationVerification)
@@ -362,9 +362,9 @@ class TrendSender(BaseSender):
         parser = context.notification.metar.parser()
         if parser and parser.hasMetar():
             metar = parser.primary.part
-            visHas5000 = boolean(conf.value('Validator/VisHas5000'))
-            cloudHeightHas450 = boolean(conf.value('Validator/CloudHeightHas450'))
-            weakPrecipitationVerification = boolean(conf.value('Validator/WeakPrecipitationVerification'))
+            visHas5000 = boolean(conf.value('Validation/VisHas5000'))
+            cloudHeightHas450 = boolean(conf.value('Validation/CloudHeightHas450'))
+            weakPrecipitationVerification = boolean(conf.value('Validation/WeakPrecipitationVerification'))
 
             self.parser = MetarParser(' '.join([metar, self.message.text]), ignoreMetar=True,
                 visHas5000=visHas5000, cloudHeightHas450=cloudHeightHas450, weakPrecipitationVerification=weakPrecipitationVerification)

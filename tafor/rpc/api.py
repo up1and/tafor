@@ -191,9 +191,9 @@ class NotificationResource(object):
 
             if validation:
                 kwargs = {
-                    'visHas5000': boolean(conf.value('Validator/VisHas5000')),
-                    'cloudHeightHas450': boolean(conf.value('Validator/CloudHeightHas450')),
-                    'weakPrecipitationVerification': boolean(conf.value('Validator/WeakPrecipitationVerification')),
+                    'visHas5000': boolean(conf.value('Validation/VisHas5000')),
+                    'cloudHeightHas450': boolean(conf.value('Validation/CloudHeightHas450')),
+                    'weakPrecipitationVerification': boolean(conf.value('Validation/WeakPrecipitationVerification')),
                 }
                 media['validations'] = parse_metar(message, kwargs)
 
@@ -214,9 +214,9 @@ class ValidateResource(object):
         message = message.strip()
 
         kwargs = {
-            'visHas5000': boolean(conf.value('Validator/VisHas5000')),
-            'cloudHeightHas450': boolean(conf.value('Validator/CloudHeightHas450')),
-            'weakPrecipitationVerification': boolean(conf.value('Validator/WeakPrecipitationVerification')),
+            'visHas5000': boolean(conf.value('Validation/VisHas5000')),
+            'cloudHeightHas450': boolean(conf.value('Validation/CloudHeightHas450')),
+            'weakPrecipitationVerification': boolean(conf.value('Validation/WeakPrecipitationVerification')),
         }
 
         if not message:

@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>620</width>
+    <width>553</width>
     <height>462</height>
    </rect>
   </property>
@@ -15,782 +15,537 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <layout class="QHBoxLayout" name="mainLayout">
-     <item>
-      <widget class="QWidget" name="leftLayout" native="true">
-       <property name="maximumSize">
-        <size>
-         <width>120</width>
-         <height>16777215</height>
-        </size>
-       </property>
-       <layout class="QVBoxLayout" name="leftbox">
-        <property name="leftMargin">
-         <number>0</number>
-        </property>
-        <property name="topMargin">
-         <number>0</number>
-        </property>
-        <property name="rightMargin">
-         <number>0</number>
-        </property>
-        <property name="bottomMargin">
-         <number>0</number>
-        </property>
-        <item>
-         <widget class="QListWidget" name="menu">
-          <item>
-           <property name="text">
-            <string>General</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>Message</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>Communication</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>Monitor</string>
-           </property>
-          </item>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </item>
-     <item>
-      <widget class="QStackedWidget" name="stackedWidget">
-       <property name="frameShadow">
-        <enum>QFrame::Plain</enum>
-       </property>
-       <property name="currentIndex">
-        <number>0</number>
-       </property>
-       <widget class="QWidget" name="generalPage">
-        <layout class="QVBoxLayout" name="verticalLayout_6">
-         <property name="leftMargin">
-          <number>0</number>
+    <widget class="QTabWidget" name="settingTab">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="generalPage">
+      <attribute name="title">
+       <string>General</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_6">
+       <item>
+        <widget class="QGroupBox" name="generalGroup">
+         <property name="title">
+          <string>General</string>
          </property>
-         <property name="topMargin">
-          <number>0</number>
+         <layout class="QGridLayout" name="gridLayout_9">
+          <item row="0" column="1">
+           <widget class="QComboBox" name="windowsStyle">
+            <item>
+             <property name="text">
+              <string notr="true">System</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string notr="true">Fusion</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="interfaceScalingLabel">
+            <property name="text">
+             <string>Interface Scaling</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="communicationLineLabel">
+            <property name="text">
+             <string>Priority Communication Line</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QComboBox" name="tafSpecification">
+            <item>
+             <property name="text">
+              <string>9 hours</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>24 hours</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>30 hours</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="5" column="0">
+           <widget class="QCheckBox" name="closeToMinimize">
+            <property name="text">
+             <string>Minimize to system tray when closed</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QCheckBox" name="runOnStart">
+            <property name="text">
+             <string>Run on system startup</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="tafSpecificationLabel">
+            <property name="text">
+             <string>TAF Specification</string>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="0">
+           <widget class="QCheckBox" name="autoComletionGroupTime">
+            <property name="text">
+             <string>Change group auto completion time</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="windowsStyleLabel">
+            <property name="text">
+             <string>Windows Style</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="1">
+           <widget class="QCheckBox" name="debugMode">
+            <property name="text">
+             <string>Enable debug mode</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QComboBox" name="communicationLine">
+            <item>
+             <property name="text">
+              <string notr="true">AFTN</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string notr="true">FTP</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QComboBox" name="interfaceScaling">
+            <item>
+             <property name="text">
+              <string>Normal</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Large</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Largest</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="backupGroup">
+         <property name="title">
+          <string>Backup</string>
          </property>
-         <property name="rightMargin">
-          <number>0</number>
+         <layout class="QGridLayout" name="gridLayout_5">
+          <property name="sizeConstraint">
+           <enum>QLayout::SetMaximumSize</enum>
+          </property>
+          <item row="0" column="0">
+           <widget class="QLineEdit" name="importPath">
+            <property name="placeholderText">
+             <string>PATH</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QPushButton" name="exportButton">
+            <property name="text">
+             <string>Export</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QPushButton" name="importButton">
+            <property name="text">
+             <string>Import</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QPushButton" name="importBrowseButton">
+            <property name="text">
+             <string>Browse</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QPushButton" name="exportBrowseButton">
+            <property name="text">
+             <string>Browse</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLineEdit" name="exportPath">
+            <property name="placeholderText">
+             <string>PATH</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
          </property>
-         <property name="bottomMargin">
-          <number>0</number>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>0</height>
+          </size>
          </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="messagePage">
+      <attribute name="title">
+       <string>Message</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <item>
+        <widget class="QGroupBox" name="prefixGroup">
+         <property name="title">
+          <string>Prefix</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_10">
+          <item row="0" column="1">
+           <widget class="QLineEdit" name="icao">
+            <property name="placeholderText">
+             <string notr="true">ZJHK</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="areaLabel">
+            <property name="text">
+             <string>Intelligence Area</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="icaoLabel">
+            <property name="text">
+             <string>Airport Code</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLineEdit" name="area">
+            <property name="placeholderText">
+             <string notr="true">CI35</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QLineEdit" name="fir">
+            <property name="placeholderText">
+             <string notr="true">ZJSA SANYA FIR</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QLineEdit" name="trendSign">
+            <property name="placeholderText">
+             <string notr="true">TRENDING</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="firLabel">
+            <property name="text">
+             <string>FIR Area</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="trendSignLabel">
+            <property name="text">
+             <string>Trend Identifier</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="weatherGroup">
+         <property name="title">
+          <string>Weather Phenomenon</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout">
+          <item row="0" column="1">
+           <layout class="QHBoxLayout" name="addWeatherLayout">
+            <item>
+             <widget class="QLineEdit" name="weather">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="placeholderText">
+               <string>Weather without intensity</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="addWeatherButton">
+              <property name="maximumSize">
+               <size>
+                <width>25</width>
+                <height>25</height>
+               </size>
+              </property>
+              <property name="text">
+               <string notr="true">+</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="delWeatherButton">
+              <property name="maximumSize">
+               <size>
+                <width>25</width>
+                <height>25</height>
+               </size>
+              </property>
+              <property name="text">
+               <string notr="true">—</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="1" column="1">
+           <widget class="QListWidget" name="weatherList">
+            <property name="dragDropMode">
+             <enum>QAbstractItemView::InternalMove</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QListWidget" name="weatherWithIntensityList">
+            <property name="dragDropMode">
+             <enum>QAbstractItemView::InternalMove</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <layout class="QHBoxLayout" name="addWeatherWithIntensityLayout">
+            <item>
+             <widget class="QLineEdit" name="weatherWithIntensity">
+              <property name="placeholderText">
+               <string>Weather with intensity</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="addWeatherWithIntensityButton">
+              <property name="maximumSize">
+               <size>
+                <width>25</width>
+                <height>25</height>
+               </size>
+              </property>
+              <property name="text">
+               <string notr="true">+</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="delWeatherWithIntensityButton">
+              <property name="maximumSize">
+               <size>
+                <width>25</width>
+                <height>25</height>
+               </size>
+              </property>
+              <property name="text">
+               <string notr="true">—</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="communicationPage">
+      <attribute name="title">
+       <string>Communication</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_4">
+       <item>
+        <layout class="QHBoxLayout" name="communicationTopLayout">
          <item>
-          <widget class="QGroupBox" name="generalGroup">
+          <widget class="QGroupBox" name="serialGroup">
            <property name="title">
-            <string>General</string>
+            <string>Serial Parameters</string>
            </property>
-           <layout class="QGridLayout" name="gridLayout_9">
-            <item row="7" column="0">
-             <widget class="QCheckBox" name="autoComletionGroupTime">
+           <layout class="QGridLayout" name="gridLayout_11">
+            <item row="0" column="0">
+             <widget class="QLabel" name="portLabel">
               <property name="text">
-               <string>Change group auto completion time</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QLabel" name="interfaceScalingLabel">
-              <property name="text">
-               <string>Interface Scaling</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="0">
-             <widget class="QLabel" name="communicationLineLabel">
-              <property name="text">
-               <string>Priority Communication Line</string>
+               <string>Port</string>
               </property>
              </widget>
             </item>
             <item row="0" column="1">
-             <widget class="QComboBox" name="windowsStyle">
+             <widget class="QLineEdit" name="port">
+              <property name="placeholderText">
+               <string notr="true">COM1</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="baudrateLabel">
+              <property name="text">
+               <string>Baudrate</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLineEdit" name="baudrate">
+              <property name="placeholderText">
+               <string notr="true">9600</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="parityLabel">
+              <property name="text">
+               <string>Parity</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QComboBox" name="parity">
+              <property name="currentText">
+               <string notr="true">NONE</string>
+              </property>
               <item>
                <property name="text">
-                <string notr="true">System</string>
+                <string notr="true">NONE</string>
                </property>
               </item>
               <item>
                <property name="text">
-                <string notr="true">Fusion</string>
+                <string notr="true">EVEN</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string notr="true">ODD</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="3" column="0">
+             <widget class="QLabel" name="bytesizeLabel">
+              <property name="text">
+               <string>Bytesize</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1">
+             <widget class="QComboBox" name="bytesize">
+              <property name="currentText">
+               <string notr="true">5</string>
+              </property>
+              <item>
+               <property name="text">
+                <string notr="true">5</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string notr="true">6</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string notr="true">7</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string notr="true">8</string>
                </property>
               </item>
              </widget>
             </item>
             <item row="4" column="0">
-             <widget class="QCheckBox" name="runOnStart">
+             <widget class="QLabel" name="stopbitsLabel">
               <property name="text">
-               <string>Run on system startup</string>
+               <string>Stopbits</string>
               </property>
              </widget>
             </item>
-            <item row="1" column="1">
-             <widget class="QComboBox" name="interfaceScaling">
+            <item row="4" column="1">
+             <widget class="QComboBox" name="stopbits">
+              <property name="currentText">
+               <string notr="true">1</string>
+              </property>
               <item>
                <property name="text">
-                <string>Normal</string>
+                <string notr="true">1</string>
                </property>
               </item>
               <item>
                <property name="text">
-                <string>Large</string>
+                <string notr="true">1.5</string>
                </property>
               </item>
               <item>
                <property name="text">
-                <string>Largest</string>
+                <string notr="true">2</string>
                </property>
               </item>
-             </widget>
-            </item>
-            <item row="3" column="1">
-             <widget class="QComboBox" name="tafSpecification">
-              <item>
-               <property name="text">
-                <string>9 hours</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>24 hours</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>30 hours</string>
-               </property>
-              </item>
-             </widget>
-            </item>
-            <item row="0" column="0">
-             <widget class="QLabel" name="windowsStyleLabel">
-              <property name="text">
-               <string>Windows Style</string>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="0">
-             <widget class="QCheckBox" name="closeToMinimize">
-              <property name="text">
-               <string>Minimize to system tray when closed</string>
-              </property>
-             </widget>
-            </item>
-            <item row="6" column="0">
-             <widget class="QCheckBox" name="alwaysShowEditor">
-              <property name="text">
-               <string>Always show forecast editor</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="1">
-             <widget class="QComboBox" name="communicationLine">
-              <item>
-               <property name="text">
-                <string notr="true">AFTN</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string notr="true">FTP</string>
-               </property>
-              </item>
-             </widget>
-            </item>
-            <item row="6" column="1">
-             <widget class="QCheckBox" name="rpcService">
-              <property name="text">
-               <string>Enable RPC interface service</string>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="1">
-             <widget class="QCheckBox" name="debugMode">
-              <property name="text">
-               <string>Enable debug mode</string>
-              </property>
-             </widget>
-            </item>
-            <item row="10" column="0" colspan="2">
-             <spacer name="verticalSpacer">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>0</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-            <item row="3" column="0">
-             <widget class="QLabel" name="tafSpecificationLabel">
-              <property name="text">
-               <string>TAF Specification</string>
-              </property>
              </widget>
             </item>
            </layout>
           </widget>
          </item>
          <item>
-          <widget class="QGroupBox" name="validatorGroup">
-           <property name="title">
-            <string>Validator</string>
+          <widget class="QGroupBox" name="aftnGroup">
+           <property name="maximumSize">
+            <size>
+             <width>239</width>
+             <height>16777215</height>
+            </size>
            </property>
-           <layout class="QGridLayout" name="gridLayout_4">
-            <item row="1" column="0">
-             <widget class="QCheckBox" name="cloudHeightHas450">
-              <property name="text">
-               <string>Cloud height has 450 meters</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="0">
-             <widget class="QCheckBox" name="visHas5000">
-              <property name="text">
-               <string>Visibility has 5000 meters</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="1">
-             <widget class="QCheckBox" name="weakPrecipitationVerification">
-              <property name="maximumSize">
-               <size>
-                <width>274</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>Weak precipitation participates verification</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-         </item>
-         <item>
-          <widget class="QGroupBox" name="backupGroup">
            <property name="title">
-            <string>Backup</string>
+            <string>AFTN Parameters</string>
            </property>
-           <layout class="QGridLayout" name="gridLayout_5">
-            <property name="sizeConstraint">
-             <enum>QLayout::SetMaximumSize</enum>
-            </property>
-            <item row="0" column="0">
-             <widget class="QLineEdit" name="importPath">
-              <property name="placeholderText">
-               <string>PATH</string>
-              </property>
-             </widget>
-            </item>
+           <layout class="QGridLayout" name="gridLayout_3">
             <item row="1" column="2">
-             <widget class="QPushButton" name="exportButton">
-              <property name="text">
-               <string>Export</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="2">
-             <widget class="QPushButton" name="importButton">
-              <property name="text">
-               <string>Import</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="1">
-             <widget class="QPushButton" name="importBrowseButton">
-              <property name="text">
-               <string>Browse</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="1">
-             <widget class="QPushButton" name="exportBrowseButton">
-              <property name="text">
-               <string>Browse</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QLineEdit" name="exportPath">
-              <property name="placeholderText">
-               <string>PATH</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-       <widget class="QWidget" name="messagePage">
-        <layout class="QVBoxLayout" name="verticalLayout_2">
-         <property name="leftMargin">
-          <number>0</number>
-         </property>
-         <property name="topMargin">
-          <number>0</number>
-         </property>
-         <property name="rightMargin">
-          <number>0</number>
-         </property>
-         <property name="bottomMargin">
-          <number>0</number>
-         </property>
-         <item>
-          <widget class="QGroupBox" name="prefixGroup">
-           <property name="title">
-            <string>Prefix</string>
-           </property>
-           <layout class="QGridLayout" name="gridLayout_10">
-            <item row="0" column="1">
-             <widget class="QLineEdit" name="icao">
-              <property name="placeholderText">
-               <string notr="true">ZJHK</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QLabel" name="areaLabel">
-              <property name="text">
-               <string>Intelligence Area</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="0">
-             <widget class="QLabel" name="icaoLabel">
-              <property name="text">
-               <string>Airport Code</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="1">
-             <widget class="QLineEdit" name="area">
-              <property name="placeholderText">
-               <string notr="true">CI35</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="1">
-             <widget class="QLineEdit" name="fir">
-              <property name="placeholderText">
-               <string notr="true">ZJSA SANYA FIR</string>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="1">
-             <widget class="QLineEdit" name="trendSign">
-              <property name="placeholderText">
-               <string notr="true">TREND</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="0">
-             <widget class="QLabel" name="firLabel">
-              <property name="text">
-               <string>FIR Area</string>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="0">
-             <widget class="QLabel" name="trendSignLabel">
-              <property name="text">
-               <string>Trend Identifier</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-         </item>
-         <item>
-          <widget class="QGroupBox" name="weatherGroup">
-           <property name="title">
-            <string>Weather Phenomenon</string>
-           </property>
-           <layout class="QGridLayout" name="gridLayout">
-            <item row="0" column="1">
-             <layout class="QHBoxLayout" name="addWeatherLayout">
-              <item>
-               <widget class="QLineEdit" name="weather">
-                <property name="text">
-                 <string/>
-                </property>
-                <property name="placeholderText">
-                 <string>Weather without intensity</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="addWeatherButton">
-                <property name="maximumSize">
-                 <size>
-                  <width>25</width>
-                  <height>25</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string notr="true">+</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="delWeatherButton">
-                <property name="maximumSize">
-                 <size>
-                  <width>25</width>
-                  <height>25</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string notr="true">—</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item row="1" column="1">
-             <widget class="QListWidget" name="weatherList">
-              <property name="dragDropMode">
-               <enum>QAbstractItemView::InternalMove</enum>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QListWidget" name="weatherWithIntensityList">
-              <property name="dragDropMode">
-               <enum>QAbstractItemView::InternalMove</enum>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="0">
-             <layout class="QHBoxLayout" name="addWeatherWithIntensityLayout">
-              <item>
-               <widget class="QLineEdit" name="weatherWithIntensity">
-                <property name="placeholderText">
-                 <string>Weather with intensity</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="addWeatherWithIntensityButton">
-                <property name="maximumSize">
-                 <size>
-                  <width>25</width>
-                  <height>25</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string notr="true">+</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="delWeatherWithIntensityButton">
-                <property name="maximumSize">
-                 <size>
-                  <width>25</width>
-                  <height>25</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string notr="true">—</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-           </layout>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-       <widget class="QWidget" name="communicationPage">
-        <layout class="QVBoxLayout" name="verticalLayout_4">
-         <property name="leftMargin">
-          <number>0</number>
-         </property>
-         <property name="topMargin">
-          <number>0</number>
-         </property>
-         <property name="rightMargin">
-          <number>0</number>
-         </property>
-         <property name="bottomMargin">
-          <number>0</number>
-         </property>
-         <item>
-          <layout class="QHBoxLayout" name="topLayout">
-           <item>
-            <widget class="QGroupBox" name="serialGroup">
-             <property name="title">
-              <string>Serial Parameters</string>
-             </property>
-             <layout class="QGridLayout" name="gridLayout_11">
-              <item row="0" column="0">
-               <widget class="QLabel" name="portLabel">
-                <property name="text">
-                 <string>Port</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="1">
-               <widget class="QLineEdit" name="port">
-                <property name="placeholderText">
-                 <string notr="true">COM1</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="0">
-               <widget class="QLabel" name="baudrateLabel">
-                <property name="text">
-                 <string>Baudrate</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="1">
-               <widget class="QLineEdit" name="baudrate">
-                <property name="placeholderText">
-                 <string notr="true">9600</string>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="0">
-               <widget class="QLabel" name="parityLabel">
-                <property name="text">
-                 <string>Parity</string>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="1">
-               <widget class="QComboBox" name="parity">
-                <property name="currentText">
-                 <string notr="true">NONE</string>
-                </property>
-                <item>
-                 <property name="text">
-                  <string notr="true">NONE</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string notr="true">EVEN</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string notr="true">ODD</string>
-                 </property>
-                </item>
-               </widget>
-              </item>
-              <item row="3" column="0">
-               <widget class="QLabel" name="bytesizeLabel">
-                <property name="text">
-                 <string>Bytesize</string>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="1">
-               <widget class="QComboBox" name="bytesize">
-                <property name="currentText">
-                 <string notr="true">5</string>
-                </property>
-                <item>
-                 <property name="text">
-                  <string notr="true">5</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string notr="true">6</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string notr="true">7</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string notr="true">8</string>
-                 </property>
-                </item>
-               </widget>
-              </item>
-              <item row="4" column="0">
-               <widget class="QLabel" name="stopbitsLabel">
-                <property name="text">
-                 <string>Stopbits</string>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="1">
-               <widget class="QComboBox" name="stopbits">
-                <property name="currentText">
-                 <string notr="true">1</string>
-                </property>
-                <item>
-                 <property name="text">
-                  <string notr="true">1</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string notr="true">1.5</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string notr="true">2</string>
-                 </property>
-                </item>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-           </item>
-           <item>
-            <widget class="QGroupBox" name="aftnGroup">
-             <property name="maximumSize">
-              <size>
-               <width>239</width>
-               <height>16777215</height>
-              </size>
-             </property>
-             <property name="title">
-              <string>AFTN Parameters</string>
-             </property>
-             <layout class="QGridLayout" name="gridLayout_3">
-              <item row="1" column="2">
-               <widget class="QPushButton" name="resetNumberButton">
-                <property name="maximumSize">
-                 <size>
-                  <width>50</width>
-                  <height>16777215</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Reset</string>
-                </property>
-               </widget>
-              </item>
-              <item row="5" column="0">
-               <widget class="QLabel" name="maxSendAddressLabel">
-                <property name="text">
-                 <string>Max Address</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="1">
-               <widget class="QLineEdit" name="channelSequenceNumber">
-                <property name="placeholderText">
-                 <string notr="true">1</string>
-                </property>
-               </widget>
-              </item>
-              <item row="5" column="1" colspan="2">
-               <widget class="QLineEdit" name="maxSendAddress">
-                <property name="placeholderText">
-                 <string notr="true">21</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="0">
-               <widget class="QLabel" name="channelLabel">
-                <property name="text">
-                 <string>Channel</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="1" colspan="2">
-               <widget class="QLineEdit" name="channel">
-                <property name="placeholderText">
-                 <string notr="true">YMA</string>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="1" colspan="2">
-               <widget class="QLineEdit" name="originatorAddress">
-                <property name="placeholderText">
-                 <string notr="true">ZJHKYMYX</string>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="0">
-               <widget class="QLabel" name="originatorAddressLabel">
-                <property name="text">
-                 <string>Originator</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="0">
-               <widget class="QLabel" name="channelSequenceNumberLabel">
-                <property name="text">
-                 <string>Sequence Number</string>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="0">
-               <widget class="QLabel" name="channelSequenceLengthLabel">
-                <property name="text">
-                 <string>Sequence Length</string>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="1" colspan="2">
-               <widget class="QComboBox" name="channelSequenceLength">
-                <item>
-                 <property name="text">
-                  <string notr="true">3</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string notr="true">4</string>
-                 </property>
-                </item>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-           </item>
-          </layout>
-         </item>
-         <item>
-          <widget class="QGroupBox" name="ftpGroup">
-           <property name="title">
-            <string>FTP Parameters</string>
-           </property>
-           <layout class="QHBoxLayout" name="horizontalLayout">
-            <item>
-             <widget class="QLabel" name="ftpHostLabel">
-              <property name="text">
-               <string>Host</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLineEdit" name="ftpHost">
-              <property name="placeholderText">
-               <string notr="true">ftp://user:passwd@hostname:port/path</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="testLoginButton">
+             <widget class="QPushButton" name="resetNumberButton">
               <property name="maximumSize">
                <size>
                 <width>50</width>
@@ -798,340 +553,612 @@
                </size>
               </property>
               <property name="text">
-               <string>Login</string>
+               <string>Reset</string>
               </property>
              </widget>
             </item>
-           </layout>
-          </widget>
-         </item>
-         <item>
-          <widget class="QGroupBox" name="addressGroup">
-           <property name="title">
-            <string>Send Address</string>
-           </property>
-           <layout class="QVBoxLayout" name="verticalLayout_10">
-            <item>
-             <widget class="QTabWidget" name="addressTab">
-              <property name="currentIndex">
-               <number>3</number>
-              </property>
-              <widget class="QWidget" name="tafTab">
-               <attribute name="title">
-                <string notr="true">TAF</string>
-               </attribute>
-               <layout class="QVBoxLayout" name="verticalLayout_3">
-                <property name="leftMargin">
-                 <number>0</number>
-                </property>
-                <property name="topMargin">
-                 <number>0</number>
-                </property>
-                <property name="rightMargin">
-                 <number>0</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>0</number>
-                </property>
-                <item>
-                 <widget class="QTextEdit" name="tafAddress">
-                  <property name="placeholderText">
-                   <string>Please separate multiple addresses by space</string>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-              <widget class="QWidget" name="trendTab">
-               <attribute name="title">
-                <string notr="true">TREND</string>
-               </attribute>
-               <layout class="QVBoxLayout" name="verticalLayout_9">
-                <property name="leftMargin">
-                 <number>0</number>
-                </property>
-                <property name="topMargin">
-                 <number>0</number>
-                </property>
-                <property name="rightMargin">
-                 <number>0</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>0</number>
-                </property>
-                <item>
-                 <widget class="QTextEdit" name="trendAddress">
-                  <property name="placeholderText">
-                   <string>Please separate multiple addresses by space</string>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-              <widget class="QWidget" name="sigmetTab">
-               <attribute name="title">
-                <string notr="true">SIGMET</string>
-               </attribute>
-               <layout class="QVBoxLayout" name="verticalLayout_7">
-                <property name="leftMargin">
-                 <number>0</number>
-                </property>
-                <property name="topMargin">
-                 <number>0</number>
-                </property>
-                <property name="rightMargin">
-                 <number>0</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>0</number>
-                </property>
-                <item>
-                 <widget class="QTextEdit" name="sigmetAddress">
-                  <property name="placeholderText">
-                   <string>Please separate multiple addresses by space</string>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-              <widget class="QWidget" name="airmetTab">
-               <attribute name="title">
-                <string notr="true">AIRMET</string>
-               </attribute>
-               <layout class="QVBoxLayout" name="verticalLayout_8">
-                <property name="leftMargin">
-                 <number>0</number>
-                </property>
-                <property name="topMargin">
-                 <number>0</number>
-                </property>
-                <property name="rightMargin">
-                 <number>0</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>0</number>
-                </property>
-                <item>
-                 <widget class="QTextEdit" name="airmetAddress">
-                  <property name="placeholderText">
-                   <string>Please separate multiple addresses by space</string>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-       <widget class="QWidget" name="monitorPage">
-        <layout class="QVBoxLayout" name="verticalLayout_5">
-         <property name="leftMargin">
-          <number>0</number>
-         </property>
-         <property name="topMargin">
-          <number>0</number>
-         </property>
-         <property name="rightMargin">
-          <number>0</number>
-         </property>
-         <property name="bottomMargin">
-          <number>0</number>
-         </property>
-         <item>
-          <widget class="QGroupBox" name="dataSourceGroup">
-           <property name="title">
-            <string>Data Source</string>
-           </property>
-           <layout class="QGridLayout" name="gridLayout_6">
-            <item row="0" column="0">
-             <widget class="QLabel" name="webApiLabel">
-              <property name="minimumSize">
-               <size>
-                <width>100</width>
-                <height>0</height>
-               </size>
-              </property>
+            <item row="5" column="0">
+             <widget class="QLabel" name="maxSendAddressLabel">
               <property name="text">
-               <string>Message Request URL</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QLabel" name="firApiLabel">
-              <property name="text">
-               <string>FIR Request URL</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="1">
-             <widget class="QLineEdit" name="webApiURL">
-              <property name="placeholderText">
-               <string>URL</string>
+               <string>Max Address</string>
               </property>
              </widget>
             </item>
             <item row="1" column="1">
-             <widget class="QLineEdit" name="firApiURL">
-              <property name="text">
-               <string/>
-              </property>
+             <widget class="QLineEdit" name="channelSequenceNumber">
               <property name="placeholderText">
-               <string>URL</string>
+               <string notr="true">1</string>
               </property>
              </widget>
             </item>
-           </layout>
-          </widget>
-         </item>
-         <item>
-          <widget class="QGroupBox" name="warnGroup">
-           <property name="title">
-            <string>Late Monitoring</string>
-           </property>
-           <layout class="QGridLayout" name="gridLayout_8">
+            <item row="5" column="1" colspan="2">
+             <widget class="QLineEdit" name="maxSendAddress">
+              <property name="placeholderText">
+               <string notr="true">21</string>
+              </property>
+             </widget>
+            </item>
             <item row="0" column="0">
-             <widget class="QLabel" name="warnTafTimeLabel">
-              <property name="minimumSize">
-               <size>
-                <width>100</width>
-                <height>0</height>
-               </size>
-              </property>
+             <widget class="QLabel" name="channelLabel">
               <property name="text">
-               <string>Alarm Time</string>
+               <string>Channel</string>
               </property>
              </widget>
             </item>
-            <item row="0" column="1">
-             <widget class="QLineEdit" name="warnTafTime">
-              <property name="maximumSize">
-               <size>
-                <width>120</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
+            <item row="0" column="1" colspan="2">
+             <widget class="QLineEdit" name="channel">
               <property name="placeholderText">
-               <string>Unit minutes</string>
+               <string notr="true">YMA</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="1" colspan="2">
+             <widget class="QLineEdit" name="originatorAddress">
+              <property name="placeholderText">
+               <string notr="true">ZJHKYMYX</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="0">
+             <widget class="QLabel" name="originatorAddressLabel">
+              <property name="text">
+               <string>Originator</string>
               </property>
              </widget>
             </item>
             <item row="1" column="0">
-             <widget class="QLabel" name="warnTafVolumeLabel">
-              <property name="minimumSize">
-               <size>
-                <width>100</width>
-                <height>0</height>
-               </size>
-              </property>
+             <widget class="QLabel" name="channelSequenceNumberLabel">
               <property name="text">
-               <string>Alarm Sound</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="1">
-             <widget class="QSlider" name="warnTafVolume">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-         </item>
-         <item>
-          <widget class="QGroupBox" name="remindGroup">
-           <property name="title">
-            <string>Sound Reminder and Volume</string>
-           </property>
-           <layout class="QGridLayout" name="gridLayout_7">
-            <item row="2" column="1">
-             <widget class="QSlider" name="remindSigmetVolume">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
+               <string>Sequence Number</string>
               </property>
              </widget>
             </item>
             <item row="2" column="0">
-             <widget class="QCheckBox" name="remindSigmet">
-              <property name="minimumSize">
-               <size>
-                <width>100</width>
-                <height>0</height>
-               </size>
-              </property>
+             <widget class="QLabel" name="channelSequenceLengthLabel">
               <property name="text">
-               <string>SIGMET</string>
+               <string>Sequence Length</string>
               </property>
              </widget>
             </item>
-            <item row="1" column="0">
-             <widget class="QCheckBox" name="remindTrend">
-              <property name="minimumSize">
-               <size>
-                <width>100</width>
-                <height>0</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>Trend</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="1">
-             <widget class="QSlider" name="remindTrendVolume">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="0">
-             <widget class="QCheckBox" name="remindTaf">
-              <property name="minimumSize">
-               <size>
-                <width>100</width>
-                <height>0</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>TAF</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="1">
-             <widget class="QSlider" name="remindTafVolume">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
+            <item row="2" column="1" colspan="2">
+             <widget class="QComboBox" name="channelSequenceLength">
+              <item>
+               <property name="text">
+                <string notr="true">3</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string notr="true">4</string>
+               </property>
+              </item>
              </widget>
             </item>
            </layout>
           </widget>
          </item>
-         <item>
-          <spacer name="verticalSpacer_2">
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>40</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
         </layout>
-       </widget>
-      </widget>
-     </item>
-    </layout>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="ftpGroup">
+         <property name="title">
+          <string>FTP Parameters</string>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout">
+          <item>
+           <widget class="QLabel" name="ftpHostLabel">
+            <property name="text">
+             <string>Host</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="ftpHost">
+            <property name="placeholderText">
+             <string notr="true">ftp://user:passwd@hostname:port/path</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="testLoginButton">
+            <property name="maximumSize">
+             <size>
+              <width>50</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Login</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTabWidget" name="addressTab">
+         <property name="currentIndex">
+          <number>0</number>
+         </property>
+         <widget class="QWidget" name="tafTab">
+          <attribute name="title">
+           <string notr="true">TAF</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="verticalLayout_3">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
+           <item>
+            <widget class="QPlainTextEdit" name="tafAddress">
+             <property name="frameShape">
+              <enum>QFrame::NoFrame</enum>
+             </property>
+             <property name="placeholderText">
+              <string>Please separate multiple addresses by space</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="trendTab">
+          <attribute name="title">
+           <string notr="true">TREND</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="verticalLayout_9">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
+           <item>
+            <widget class="QPlainTextEdit" name="trendAddress">
+             <property name="frameShape">
+              <enum>QFrame::NoFrame</enum>
+             </property>
+             <property name="placeholderText">
+              <string>Please separate multiple addresses by space</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="sigmetTab">
+          <attribute name="title">
+           <string notr="true">SIGMET</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="verticalLayout_7">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
+           <item>
+            <widget class="QPlainTextEdit" name="sigmetAddress">
+             <property name="frameShape">
+              <enum>QFrame::NoFrame</enum>
+             </property>
+             <property name="placeholderText">
+              <string>Please separate multiple addresses by space</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="airmetTab">
+          <attribute name="title">
+           <string notr="true">AIRMET</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="verticalLayout_8">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
+           <item>
+            <widget class="QPlainTextEdit" name="airmetAddress">
+             <property name="frameShape">
+              <enum>QFrame::NoFrame</enum>
+             </property>
+             <property name="placeholderText">
+              <string>Please separate multiple addresses by space</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="interfacePage">
+      <attribute name="title">
+       <string>Interface</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_5">
+       <item>
+        <widget class="QGroupBox" name="dataSourceGroup">
+         <property name="title">
+          <string>Data Source</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_6">
+          <item row="1" column="1">
+           <widget class="QLineEdit" name="layerApiURL">
+            <property name="text">
+             <string/>
+            </property>
+            <property name="placeholderText">
+             <string>URL</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLineEdit" name="webApiURL">
+            <property name="placeholderText">
+             <string>URL</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="layerApiLabel">
+            <property name="text">
+             <string>Layer URL</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="webApiLabel">
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Message URL</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="serviceGroup">
+         <property name="title">
+          <string>Background Service</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_12">
+          <item row="0" column="1" colspan="3">
+           <widget class="QLineEdit" name="serviceHost">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="tokenLabel">
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Auth Token</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="3">
+           <widget class="QPushButton" name="regenerateTokenButton">
+            <property name="text">
+             <string>Regeneration</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLineEdit" name="token">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="serviceHostLabel">
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Host</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QPushButton" name="copyTokenButton">
+            <property name="maximumSize">
+             <size>
+              <width>50</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Copy</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="monitorPage">
+      <attribute name="title">
+       <string>Monitor</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_10">
+       <item>
+        <widget class="QGroupBox" name="warnGroup">
+         <property name="title">
+          <string>Late Monitoring</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_8">
+          <item row="0" column="0">
+           <widget class="QLabel" name="warnTafTimeLabel">
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Alarm Time</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLineEdit" name="warnTafTime">
+            <property name="maximumSize">
+             <size>
+              <width>120</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+            <property name="placeholderText">
+             <string>Unit minutes</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="warnTafVolumeLabel">
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Alarm Sound</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QSlider" name="warnTafVolume">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="remindGroup">
+         <property name="title">
+          <string>Sound Reminder and Volume</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_7">
+          <item row="0" column="0">
+           <widget class="QCheckBox" name="remindTaf">
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>TAF</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QSlider" name="remindTafVolume">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QCheckBox" name="remindTrend">
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Trend</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QSlider" name="remindTrendVolume">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QCheckBox" name="remindSigmet">
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>SIGMET</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QSlider" name="remindSigmetVolume">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_3">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="validationPage">
+      <attribute name="title">
+       <string>Validation</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_13">
+       <item>
+        <widget class="QGroupBox" name="forecastValidationGroup">
+         <property name="title">
+          <string>TAF and Trend</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_4">
+          <item row="1" column="0">
+           <widget class="QCheckBox" name="cloudHeightHas450">
+            <property name="text">
+             <string>Cloud height has 450 meters</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QCheckBox" name="visHas5000">
+            <property name="text">
+             <string>Visibility has 5000 meters</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QCheckBox" name="weakPrecipitationVerification">
+            <property name="text">
+             <string>Weak precipitation participates verification</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_4">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="layerPage">
+      <attribute name="title">
+       <string>Layer</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_11">
+       <item>
+        <widget class="QGroupBox" name="boundaryGroup">
+         <property name="title">
+          <string>FIR Boundary</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_12">
+          <item>
+           <widget class="QPlainTextEdit" name="firBoundary">
+            <property name="placeholderText">
+             <string>Please enter a list of points with longitude and latitude coordinates of FIR, Json format, such as [[lon, lat], [lon, lat], ...]</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
    </item>
    <item>
     <widget class="QDialogButtonBox" name="buttonBox">
@@ -1143,7 +1170,6 @@
   </layout>
  </widget>
  <tabstops>
-  <tabstop>menu</tabstop>
   <tabstop>icao</tabstop>
   <tabstop>area</tabstop>
   <tabstop>fir</tabstop>
@@ -1163,17 +1189,9 @@
   <tabstop>channel</tabstop>
   <tabstop>channelSequenceNumber</tabstop>
   <tabstop>originatorAddress</tabstop>
-  <tabstop>addressTab</tabstop>
   <tabstop>tafAddress</tabstop>
   <tabstop>sigmetAddress</tabstop>
   <tabstop>trendAddress</tabstop>
-  <tabstop>warnTafVolume</tabstop>
-  <tabstop>remindTaf</tabstop>
-  <tabstop>remindTafVolume</tabstop>
-  <tabstop>remindTrend</tabstop>
-  <tabstop>remindTrendVolume</tabstop>
-  <tabstop>remindSigmet</tabstop>
-  <tabstop>remindSigmetVolume</tabstop>
   <tabstop>runOnStart</tabstop>
   <tabstop>closeToMinimize</tabstop>
   <tabstop>importPath</tabstop>
@@ -1214,22 +1232,6 @@
     <hint type="destinationlabel">
      <x>286</x>
      <y>274</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>menu</sender>
-   <signal>currentRowChanged(int)</signal>
-   <receiver>stackedWidget</receiver>
-   <slot>setCurrentIndex(int)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>91</x>
-     <y>170</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>145</x>
-     <y>124</y>
     </hint>
    </hints>
   </connection>

@@ -77,3 +77,9 @@ dateEditHiddenStyle = """
     }
 
 """
+
+tabStyle = """
+    QTabBar::tab {
+        height: 22px;
+    }
+"""

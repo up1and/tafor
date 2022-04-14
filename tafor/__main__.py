@@ -31,7 +31,7 @@ def cli(ctx, whysoserious):
         tafor token [--generate]
 
     Copyright:\n
-    (c) 2019 up1and.
+    (c) 2022 up1and.
     """
     if ctx.invoked_subcommand is None:
         # It's a easter egg, but I haven't decided what to leave.
@@ -55,7 +55,7 @@ def token(generate):
     from tafor.states import context
     if generate:
         authToken = secrets.token_urlsafe(24)
-        conf.setValue('AuthToken', authToken)
+        conf.setValue('Interface/AuthToken', authToken)
         click.echo(authToken)
     else:
         authToken = context.environ.token()

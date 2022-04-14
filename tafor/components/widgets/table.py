@@ -3,8 +3,8 @@ import datetime
 
 from PyQt5.QtGui import QIcon, QRegExpValidator, QColor, QPixmap, QCursor
 from PyQt5.QtCore import QCoreApplication, QStandardPaths, QRegExp, QDate, Qt, pyqtSignal
-from PyQt5.QtWidgets import (QDialog, QFileDialog, QWidget, QDialogButtonBox, QTableWidgetItem, QHeaderView, QLabel, QLineEdit, QCalendarWidget, 
-    QVBoxLayout, QFormLayout, QLabel, QDateEdit, QLayout)
+from PyQt5.QtWidgets import (QDialog, QFileDialog, QWidget, QDialogButtonBox, QTableWidgetItem, QHeaderView, QLabel, QCalendarWidget, 
+    QVBoxLayout, QFormLayout, QLabel, QDateEdit, QLayout, QApplication)
 
 from sqlalchemy import and_
 
@@ -123,13 +123,8 @@ class ExportDialog(QDialog):
         if not filename:
             return
 
-        if self.parent.reportType == 'METAR':
-            timefield = 'created'
-        else:
-            timefield = 'sent'
-
-        headers = ('type', 'content', 'time')
-        data = [(e.type, e.text, getattr(e, timefield)) for e in self.queryset()]
+        headers = ('type', 'text', 'created')
+        data = [(e.type, e.text, e.created) for e in self.queryset()]
 
         self.thread = ExportRecordThread(filename, data, headers=headers)
         self.thread.finished.connect(self.close)
@@ -285,7 +280,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
             self.calendar.show()
 
     def copySelected(self, item):
-        self.parent.clip.setText(item.text())
+        QApplication.clipboard().setText(item.text())
         context.flash.statusbar(QCoreApplication.translate('MainWindow', 'Selected message has been copied'), 5000)
 
     def view(self):

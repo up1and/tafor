@@ -45,7 +45,7 @@ def layerInfo(url):
                     layer['image'] = req.content
                 except Exception as e:
                     layer['image'] = None
-            return {'layers': data}
+            return data
         else:
             logger.warn('GET {} 404 Not Found'.format(url))
 
@@ -55,7 +55,7 @@ def layerInfo(url):
     except Exception as e:
         logger.error(e)
 
-    return {}
+    return []
 
 def repoRelease(url):
     try:
@@ -74,25 +74,24 @@ def repoRelease(url):
 class WorkThread(QThread):
 
     def run(self):
-        if conf.value('Monitor/WebApiURL'):
-            url = conf.value('Monitor/WebApiURL') or 'http://127.0.0.1:6575'
+        if conf.value('Interface/WebApiURL'):
+            url = conf.value('Interface/WebApiURL') or 'http://127.0.0.1:6575'
             context.message.setMessage(fetchMessage(url))
 
 
 class LayerThread(QThread):
 
     def run(self):
-        url = conf.value('Monitor/FirApiURL')
+        url = conf.value('Interface/LayerApiURL')
         context.layer.setLayer(layerInfo(url))
 
 
 class ExportRecordThread(QThread):
 
-    def __init__(self, filename, data, headers=None, timefield='sent'):
+    def __init__(self, filename, data, headers=None):
         super(ExportRecordThread, self).__init__()
         self.data = data
         self.headers = headers
-        self.timefield = timefield
         self.filename = filename
 
     def run(self):

@@ -1,9 +1,9 @@
 import sys
 import copy
+import json
 import datetime
 
 from PyQt5.QtCore import QObject, pyqtSignal
-from numpy import tile
 
 from tafor import conf
 from tafor.utils import boolean, MetarParser, SigmetParser
@@ -141,7 +141,14 @@ class LayerState(QObject):
         return extent
 
     def boundaries(self):
-        return [[114.000001907,14.500001907],[112.000001908,14.500001907],[108.716665268,17.416666031],[107.683332443,18.333333969],[107.18972222,19.26777778],[107.929967,19.9567],[108.050001145,20.500001907],[111.500001908,20.500001907],[111.500001908,19.500001907],[114.000001907,16.666666031],[114.000001907,14.500001907]]
+        try:
+            boundary = json.loads(conf.value('Layer/FIRBoundary'))
+            if not isinstance(boundary, list):
+                return []
+        except Exception as e:
+            return []
+
+        return boundary
 
     def refresh(self):
         self.refreshed.emit()
@@ -315,9 +322,9 @@ class NotificationMessageState(QObject):
             return SigmetParser(self.message())
 
         if self.type() in ['METAR', 'SPECI']:
-            visHas5000 = boolean(conf.value('Validator/VisHas5000'))
-            cloudHeightHas450 = boolean(conf.value('Validator/CloudHeightHas450'))
-            weakPrecipitationVerification = boolean(conf.value('Validator/WeakPrecipitationVerification'))
+            visHas5000 = boolean(conf.value('Validation/VisHas5000'))
+            cloudHeightHas450 = boolean(conf.value('Validation/CloudHeightHas450'))
+            weakPrecipitationVerification = boolean(conf.value('Validation/WeakPrecipitationVerification'))
             return MetarParser(self.message(), ignoreMetar=True, previous=self.previous,
                 visHas5000=visHas5000, cloudHeightHas450=cloudHeightHas450, weakPrecipitationVerification=weakPrecipitationVerification)
 
@@ -379,7 +386,7 @@ class EnvironState(object):
         return 'imperial' if spec else 'metric'
 
     def token(self):
-        return conf.value('AuthToken') or self.authToken
+        return conf.value('Interface/AuthToken') or self.authToken
 
     def license(self):
         from tafor.utils import verifyToken
