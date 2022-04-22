@@ -46,6 +46,7 @@ class Ui_Recent(object):
         self.horizontalLayout.addItem(spacerItem)
         self.replyButton = QtWidgets.QToolButton(self.toolsWidget)
         self.replyButton.setEnabled(True)
+        self.replyButton.setText("Reply")
         self.replyButton.setIconSize(QtCore.QSize(20, 20))
         self.replyButton.setAutoRaise(True)
         self.replyButton.setObjectName("replyButton")
@@ -68,8 +69,7 @@ class Ui_Recent(object):
         QtCore.QMetaObject.connectSlotsByName(Recent)
 
     def retranslateUi(self, Recent):
-        _translate = QtCore.QCoreApplication.translate
-        self.replyButton.setText(_translate("Recent", "Reply"))
+        pass
 
 
 if __name__ == "__main__":

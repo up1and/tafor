@@ -80,7 +80,7 @@
             <bool>true</bool>
            </property>
            <property name="text">
-            <string>Reply</string>
+            <string notr="true">Reply</string>
            </property>
            <property name="iconSize">
             <size>

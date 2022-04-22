@@ -258,7 +258,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
                 notify = context.flash.warning
         else:
             title = QCoreApplication.translate('MainWindow', 'Message Received')
-            description = QCoreApplication.translate('MainWindow', 'Received a {} message.'.format(context.notification.metar.type()))
+            description = QCoreApplication.translate('MainWindow', 'Received a {} message'.format(context.notification.metar.type()))
         
         notify(title, description)
 
@@ -266,7 +266,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.incomingSound.play(loop=False)
         self.sigmetEditor.loadNotification()
         context.flash.info(QCoreApplication.translate('MainWindow', 'Message Received'),
-                QCoreApplication.translate('MainWindow', 'Received a {} message.').format(context.notification.sigmet.type()))
+                QCoreApplication.translate('MainWindow', 'Received a {} message').format(context.notification.sigmet.type()))
 
     def event(self, event):
         if event.type() == QEvent.WindowStateChange and self.isMinimized():

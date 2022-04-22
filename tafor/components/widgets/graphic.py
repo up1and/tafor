@@ -748,7 +748,7 @@ class GraphicsWindow(QWidget):
         self.fcstButton.setEnabled(False)
         self.fcstButton.setText('Fcst')
         self.fcstButton.setCheckable(True)
-        self.fcstButton.setIcon(QIcon(':/f.png'))
+        self.fcstButton.setIcon(QIcon(':/overlap.png'))
 
         self.modeButton = QToolButton(self)
         self.modeButton.setText('Mode')

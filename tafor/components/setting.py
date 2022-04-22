@@ -341,7 +341,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
     def applyChange(self):
         if not self.hasValidFirBoundary():
             title = QCoreApplication.translate('Settings', 'Format Error')
-            text = QCoreApplication.translate('Settings', 'FIR boundary format is invalid, please check it.')
+            text = QCoreApplication.translate('Settings', 'FIR boundary format is invalid, please check it')
             QMessageBox.warning(self, title, text)
             return
 
