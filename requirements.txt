@@ -3,6 +3,8 @@ falcon
 pyserial
 python-dateutil
 pyjwt
+pyshp
+pyproj
 waitress
 requests
 SQLAlchemy

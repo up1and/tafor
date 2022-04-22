@@ -1,3 +1,4 @@
+import os
 import sys
 import copy
 import json
@@ -5,7 +6,7 @@ import datetime
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
-from tafor import conf
+from tafor import root, conf
 from tafor.utils import boolean, MetarParser, SigmetParser
 
 
@@ -430,6 +431,12 @@ class EnvironState(object):
         if reportType in ['SIGMET', 'AIRMET']:
             return 'fir' in self.license()
 
+    def bundlePath(self, relativePath):
+        if hasattr(sys, '_MEIPASS'): 
+            base = sys._MEIPASS
+        else:
+            base = root
+        return os.path.join(base, relativePath)
 
 class Context(object):
     message = MessageState()

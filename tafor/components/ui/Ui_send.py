@@ -57,13 +57,7 @@ class Ui_Sender(object):
         _translate = QtCore.QCoreApplication.translate
         Sender.setWindowTitle(_translate("Sender", "Send Message"))
         self.textGroup.setTitle(_translate("Sender", "Message"))
-        self.text.setMarkdown(_translate("Sender", "Text Content\n"
-"\n"
-""))
         self.rawGroup.setTitle(_translate("Sender", "Data has been sent to the serial port"))
-        self.raw.setMarkdown(_translate("Sender", "Raw Content\n"
-"\n"
-""))
 
 
 if __name__ == "__main__":

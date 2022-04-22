@@ -13,7 +13,6 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView, Q
 from PyQt5.QtGui import QIcon, QPainter
 from PyQt5.QtCore import QCoreApplication, QObject, QPointF, Qt, QRect, QRectF, QSize, pyqtSignal
 
-from tafor import root
 from tafor.states import context
 from tafor.utils.convert import decimalToDegree, degreeToDecimal
 from tafor.utils.algorithm import encode, buffer, circle, flattenLine, clipLine, clipPolygon, simplifyPolygon
@@ -631,7 +630,7 @@ class Canvas(QGraphicsView):
             self.coastlines = []
             self.scene.removeItem(self.coastlinesGroup)
 
-        filename = os.path.join(root, 'shapes', 'coastline.shp')
+        filename = os.path.join(context.environ.bundlePath('shapes'), 'coastline.shp')
         sf = shapefile.Reader(filename)
         shapes = sf.shapes()
         extent = context.layer.maxExtent()

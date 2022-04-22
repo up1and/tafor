@@ -37,11 +37,6 @@
           <height>100</height>
          </size>
         </property>
-        <property name="markdown">
-         <string>Text Content
-
-</string>
-        </property>
         <property name="cursorWidth">
          <number>0</number>
         </property>
@@ -70,11 +65,6 @@
         <property name="styleSheet">
          <string notr="true">background-color: rgb(0, 0, 0);
 color: rgb(255, 255, 255);</string>
-        </property>
-        <property name="markdown">
-         <string>Raw Content
-
-</string>
         </property>
         <property name="cursorWidth">
          <number>0</number>

@@ -115,10 +115,10 @@ class PyInstallerCommand(Command):
     def run(self):
         import subprocess
         source = os.path.abspath(os.path.dirname(__file__))
-        cwddir = os.path.join(source, 'tafor')
-        createEnviron(cwddir)
-        createVersion(cwddir)
-        proc = subprocess.Popen(r'pyinstaller __main__.py -w -F -i icons\icon.ico -n tafor --version-file .version', cwd=cwddir, 
+        src = os.path.join(source, 'tafor')
+        createEnviron(src)
+        createVersion(src)
+        proc = subprocess.Popen(r'pyinstaller __main__.py -w -F -i icons\icon.ico --add-data shapes;shapes -n tafor --version-file .version', cwd=src, 
                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
         while True:
             line = proc.stdout.readline()
