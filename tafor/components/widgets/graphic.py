@@ -8,7 +8,7 @@ from itertools import cycle
 
 from pyproj import Proj, Geod
 
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView, QGraphicsScene, QRubberBand, 
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView, QGraphicsScene, QRubberBand, QGraphicsDropShadowEffect,
     QStyleOptionGraphicsItem, QPushButton, QToolButton, QLabel, QMenu, QActionGroup, QAction, QWidgetAction, QSlider, QSpacerItem, QSizePolicy)
 from PyQt5.QtGui import QIcon, QPainter
 from PyQt5.QtCore import QCoreApplication, QObject, QPointF, Qt, QRect, QRectF, QSize, pyqtSignal
@@ -28,6 +28,26 @@ def distance(start, end):
 
 def bearing(origin, point):
     return math.atan2(origin[1] - point[1], origin[0] - point[0])
+
+def degTodms(deg, pretty=None):
+    """Convert from decimal degrees to degrees, minutes, seconds."""
+
+    m, s = divmod(abs(deg)*3600, 60)
+    d, m = divmod(m, 60)
+    if deg < 0:
+        d = -d
+    d, m = int(d), int(m)
+
+    if pretty:
+        if pretty=='lat':
+            hemi = 'N' if d>=0 else 'S'
+        elif pretty=='lon':
+            hemi = 'E' if d>=0 else 'W'
+        else:
+            hemi = '?'
+        return '{hemi:1s} {d:d}°{m:d}′{s:.0f}″'.format(
+                    d=abs(d), m=m, s=s, hemi=hemi)
+    return d, m, s
 
 
 class SketchManager(object):
@@ -407,12 +427,11 @@ class Canvas(QGraphicsView):
         self.backgroundOpacity = 0.5
         self.maxLayerExtent = context.layer.maxExtent()
 
-        # +proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs 
-        self.projection = Proj('+proj=eqc +datum=WGS84')
+        self.projection = Proj(context.layer.crs)
         if self.projection.crs.is_geographic:
             self.ratio = 100
         else:
-            self.ratio = 1/1113
+            self.ratio = 1/1000
 
         self.offset = (0, 0)
         self.scene = QGraphicsScene(self)
@@ -753,6 +772,7 @@ class GraphicsWindow(QWidget):
         self.opacitySilder.hide()
 
         self.positionLabel = QLabel(self)
+        self.positionLabel.setMinimumWidth(190)
         self.positionLabel.setAttribute(Qt.WA_TransparentForMouseEvents)
 
         self.timeLabel = QLabel(self)
@@ -934,7 +954,7 @@ class GraphicsWindow(QWidget):
     def updatePositionLabel(self, pos):
         if pos:
             lon, lat = pos
-            text = '{:.2f}, {:.2f}'.format(lat, lon)
+            text = '{}, {}'.format(degTodms(lat, pretty='lat'), degTodms(lon, pretty='lon'))
             self.positionLabel.setText(text)
         else:
             self.positionLabel.clear()
@@ -943,7 +963,7 @@ class GraphicsWindow(QWidget):
         layers = context.layer.currentLayers()
         words = []
         for layer in layers:
-            text = '{} - {}'.format(layer._updated, layer.name)
+            text = '{} - {}'.format(layer.updatedTime(), layer.name)
             words.append(text)
 
         self.timeLabel.setText('\n'.join(words))
@@ -975,6 +995,14 @@ class GraphicsWindow(QWidget):
             context.layer.selected = selected
             self.canvas.drawLayer()
             self.updateTimeLabel()
+
+        if selected:
+            labelStyle = 'QLabel {color:white;}'
+        else:
+            labelStyle = 'QLabel {color:black;}'
+
+        self.timeLabel.setStyleSheet(labelStyle)
+        self.positionLabel.setStyleSheet(labelStyle)
 
     def updateCoastline(self):
         self.canvas.drawCoastline()

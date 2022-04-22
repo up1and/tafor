@@ -173,6 +173,9 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.fir.setPlaceholderText('YUDD SHANLON FIR')
         self.originatorAddress.setPlaceholderText('YUSOYMYX')
 
+        self.projection.setText(context.layer.crs)
+        self.projection.setEnabled(False)
+
         self.setStyleSheet(tabStyle)
 
         self.bindSignal()

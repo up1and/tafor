@@ -70,6 +70,10 @@ class LayerState(QObject):
     layerExtend = []
     selected = []
 
+    # +proj=webmerc +datum=WGS84
+    # +proj=eqc
+    crs = '+proj=webmerc +datum=WGS84'
+
     def layers(self):
         return self._state['layers']
 

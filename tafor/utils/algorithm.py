@@ -298,7 +298,7 @@ def decodeLine(boundary, lines):
             degree = subAngle(direction, angle)
             return degree
 
-        polygon = min(parts, key=tolerance)
+        polygon = min(parts.geoms, key=tolerance)
         polygons.append(polygon)
 
     for i, polygon in enumerate(polygons):

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>553</width>
-    <height>462</height>
+    <width>560</width>
+    <height>460</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -1140,6 +1140,22 @@
        <string>Layer</string>
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_11">
+       <item>
+        <widget class="QGroupBox" name="projectionGroup">
+         <property name="title">
+          <string>Projection</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_14">
+          <item>
+           <widget class="QLineEdit" name="projection">
+            <property name="placeholderText">
+             <string notr="true">+proj=webmerc +datum=WGS84</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
        <item>
         <widget class="QGroupBox" name="boundaryGroup">
          <property name="title">
