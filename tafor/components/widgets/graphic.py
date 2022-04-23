@@ -31,11 +31,11 @@ def bearing(origin, point):
 def degTodms(deg, pretty=None):
     """Convert from decimal degrees to degrees, minutes, seconds."""
 
-    m, s = divmod(abs(deg)*3600, 60)
+    m, s = divmod(abs(deg) * 3600, 60)
     d, m = divmod(m, 60)
     if deg < 0:
         d = -d
-    d, m = int(d), int(m)
+    d, m, s = int(d), int(m), int(s)
 
     if pretty:
         if pretty=='lat':
@@ -44,7 +44,7 @@ def degTodms(deg, pretty=None):
             hemi = 'E' if d>=0 else 'W'
         else:
             hemi = '?'
-        return '{hemi:1s} {d:d}°{m:d}′{s:.0f}″'.format(
+        return '{hemi:1s}{d:02d}°{m:02d}′{s:02d}″'.format(
                     d=abs(d), m=m, s=s, hemi=hemi)
     return d, m, s
 
@@ -771,7 +771,7 @@ class GraphicsWindow(QWidget):
         self.opacitySilder.hide()
 
         self.positionLabel = QLabel(self)
-        self.positionLabel.setMinimumWidth(190)
+        self.positionLabel.setMinimumWidth(185)
         self.positionLabel.setAttribute(Qt.WA_TransparentForMouseEvents)
 
         self.timeLabel = QLabel(self)
@@ -937,6 +937,7 @@ class GraphicsWindow(QWidget):
 
         default = self.backgroundLayerActionGroup.actions()[0] or self.mixedBackgroundLayerActionGroup.actions()[0]
         default.setChecked(True)
+        context.layer.selected = [default.text()]
 
     def changeSigmetDisplayMode(self, action, attr):
         checked = action.isChecked()
@@ -946,7 +947,10 @@ class GraphicsWindow(QWidget):
     def changeLayer(self, action):
         stackable = context.layer.canStack(action.text())
         if stackable:
-            self.updateLayer()
+            selected = [action.text() for action in self.backgroundLayerActionGroup.actions() + self.mixedBackgroundLayerActionGroup.actions() if action.isChecked()]
+            if selected != context.layer.selected:
+                context.layer.selected = selected
+                self.updateLayer()
         else:
             action.setChecked(False)
 
@@ -962,7 +966,8 @@ class GraphicsWindow(QWidget):
         layers = context.layer.currentLayers()
         words = []
         for layer in layers:
-            text = '{} - {}'.format(layer.updatedTime(), layer.name)
+            updated = layer.updatedTime()
+            text = '{} - {}'.format(updated.strftime('%Y-%m-%d %H:%M'), layer.name)
             words.append(text)
 
         self.timeLabel.setText('\n'.join(words))
@@ -992,22 +997,20 @@ class GraphicsWindow(QWidget):
         self.canvas.setMixedBackgroundOpacity(value)
 
     def updateLayer(self):
-        selected = [action.text() for action in self.backgroundLayerActionGroup.actions() + self.mixedBackgroundLayerActionGroup.actions() if action.isChecked()]
-        if selected != context.layer.selected:
-            context.layer.selected = selected
-            self.canvas.drawLayer()
-            self.updateTimeLabel()
+        self.canvas.drawLayer()
+        self.updateTimeLabel()
 
-        if selected:
+    def updateCoastline(self):
+        self.canvas.drawCoastline()
+
+    def updateLabelStyle(self):
+        if context.layer.layers():
             labelStyle = 'QLabel {color:white;}'
         else:
             labelStyle = 'QLabel {color:black;}'
 
         self.timeLabel.setStyleSheet(labelStyle)
         self.positionLabel.setStyleSheet(labelStyle)
-
-    def updateCoastline(self):
-        self.canvas.drawCoastline()
 
     def resizeEvent(self, event):
         self.positionLabel.move(self.width() - self.positionLabel.width(), self.height() - self.positionLabel.height() - 6)

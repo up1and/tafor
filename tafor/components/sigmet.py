@@ -98,6 +98,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
     def updateLayer(self):
         self.graphic.updateLayer()
+        self.graphic.updateLabelStyle()
 
     def beforeNext(self):
         self.currentContent.validate()
