@@ -935,7 +935,7 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
 
     def componentUpdate(self):
         self.setPlaceholder()
-        self.loadLocalDB()
+        self.loadLocalDatabase()
 
     def setApiSign(self):
         pixmap = QPixmap(':/api.png')
@@ -958,7 +958,7 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         tip = tips[self.type()]
         self.text.setPlaceholderText(tip)
 
-    def loadLocalDB(self):
+    def loadLocalDatabase(self):
         last = db.query(Sigmet).filter(Sigmet.type == self.type(), ~Sigmet.text.contains('CNL')).order_by(Sigmet.created.desc()).first()
         if last:
             parser = last.parser()
@@ -974,7 +974,7 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
     
     def setText(self, message):
         if message:
-            fir = conf.value('Message/FIR')
+            fir = conf.value('Message/FIR') or ''
             text = message.replace(fir, '').replace('=', '').strip()
             self.text.setText(text)
             self.text.moveCursor(QTextCursor.End)

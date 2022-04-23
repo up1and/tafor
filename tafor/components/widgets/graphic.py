@@ -972,6 +972,9 @@ class GraphicsWindow(QWidget):
         drawing.setCircle(circle)
 
     def updateSigmetGraphic(self):
+        if not context.layer.boundaries():
+            return
+
         sigmets = []
         if context.layer.showSigmet:
             sigmets = self.cachedSigmets
