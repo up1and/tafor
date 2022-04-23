@@ -71,9 +71,17 @@ class LayerState(QObject):
     layerExtend = []
     selected = []
 
-    # +proj=webmerc +datum=WGS84
-    # +proj=eqc
-    crs = '+proj=webmerc +datum=WGS84'
+    def projection(self):
+        from pyproj import Proj
+
+        try:
+            proj = Proj(conf.value('Layer/Projection'))
+
+        except Exception as e:
+            conf.setValue('Layer/Projection', '+proj=webmerc +datum=WGS84')
+            proj = Proj('+proj=webmerc +datum=WGS84')
+
+        return proj
 
     def layers(self):
         return self._state['layers']

@@ -6,12 +6,12 @@ import shapely.geometry
 
 from itertools import cycle
 
-from pyproj import Proj, Geod
+from pyproj import Geod
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView, QGraphicsScene, QRubberBand, QGraphicsDropShadowEffect,
     QStyleOptionGraphicsItem, QPushButton, QToolButton, QLabel, QMenu, QActionGroup, QAction, QWidgetAction, QSlider, QSpacerItem, QSizePolicy)
 from PyQt5.QtGui import QIcon, QPainter
-from PyQt5.QtCore import QCoreApplication, QObject, QPointF, Qt, QRect, QRectF, QSize, pyqtSignal
+from PyQt5.QtCore import QCoreApplication, QObject, Qt, QRect, QRectF, QSize, pyqtSignal
 
 from tafor.states import context
 from tafor.utils.convert import decimalToDegree, degreeToDecimal
@@ -426,11 +426,11 @@ class Canvas(QGraphicsView):
         self.backgroundOpacity = 0.5
         self.maxLayerExtent = context.layer.maxExtent()
 
-        self.projection = Proj(context.layer.crs)
+        self.projection = context.layer.projection()
         if self.projection.crs.is_geographic:
             self.ratio = 100
         else:
-            self.ratio = 1/1000
+            self.ratio = 1 / 1000
 
         self.offset = (0, 0)
         self.scene = QGraphicsScene(self)

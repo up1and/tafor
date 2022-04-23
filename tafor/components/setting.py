@@ -75,6 +75,7 @@ sigmetOptions = [
     ('Monitor/RemindSIGMET', 'remindSigmet', 'bool'),
     ('Monitor/RemindSIGMETVolume', 'remindSigmetVolume', 'slider'),
     # 图层
+    ('Layer/Projection', 'projection', 'text'),
     ('Layer/FIRBoundary', 'firBoundary', 'plaintext'),
 ]
 
@@ -172,9 +173,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.icao.setPlaceholderText('YUSO')
         self.fir.setPlaceholderText('YUDD SHANLON FIR')
         self.originatorAddress.setPlaceholderText('YUSOYMYX')
-
-        self.projection.setText(context.layer.crs)
-        self.projection.setEnabled(False)
 
         self.setStyleSheet(tabStyle)
 
@@ -289,7 +287,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
     def onConfigChanged(self):
         restartRequiredOptions = [
             'General/WindowsStyle', 'General/TAFSpec', 'General/Debug', 'General/InterfaceScaling',
-            'Layer/FIRBoundary', 'Interface/RPC', 'Message/Weather', 'Message/WeatherWithIntensity',
+            'Layer/FIRBoundary', 'Layer/Projection', 'Interface/RPC', 'Message/Weather', 'Message/WeatherWithIntensity',
         ]
 
         closeSenderOptions = [
