@@ -1,7 +1,7 @@
 import datetime
 
 from PyQt5.QtGui import QFontMetrics, QFont, QPixmap
-from PyQt5.QtCore import QCoreApplication, QTimer, QSize, Qt, pyqtSignal
+from PyQt5.QtCore import QCoreApplication, QTimer, Qt, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QMessageBox, QTextEdit, QLabel
 from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
 
@@ -78,8 +78,10 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.printButton.hide()
         self.resendButton.hide()
 
-        # self.text.setStyleSheet('font-size: 13px;')
-        # self.raw.setStyleSheet('font-size: 13px; background-color: rgb(0, 0, 0); color: rgb(255, 255, 255);')
+        font = context.environ.fixedFont()
+        font.setPointSize(11)
+        self.text.setFont(font)
+        self.raw.setFont(font)
 
         self.updateProtocolIcon()
 
@@ -111,7 +113,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             self.protocolSign.setPixmap(pixmap)
             self.protocolSign.setMask(pixmap.mask())
             self.protocolSign.adjustSize()
-            self.protocolSign.move(688, 2)
+            self.protocolSign.move(self.width() - 100, 3)
 
         visible = self.sendButton.isVisible() or self.resendButton.isVisible()
         self.protocolSign.setVisible(visible)

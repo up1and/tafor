@@ -3,7 +3,7 @@ import sys
 import json
 import datetime
 
-from PyQt5.QtGui import QIcon, QDesktopServices
+from PyQt5.QtGui import QIcon, QFont, QDesktopServices
 from PyQt5.QtCore import QCoreApplication, QTranslator, QLocale, QEvent, QTimer, Qt, QUrl, QSysInfo, QProcess
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy,
         QSystemTrayIcon, QMenu, QMessageBox, QStyleFactory)
@@ -581,6 +581,10 @@ def main():
     os.environ['TAFOR_ARGS'] = json.dumps(sys.argv[1:])
 
     app = QApplication(sys.argv)
+
+    font = QFont('Microsoft YaHei', 9)
+    font.setStyleHint(QFont.System)
+    app.setFont(font)
 
     translator = QTranslator()
     locale = QLocale.system().name()

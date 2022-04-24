@@ -153,6 +153,10 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
         self.exportDialog = ExportDialog(self)
 
+        font = context.environ.fixedFont()
+        font.setPointSize(10)
+        self.table.setFont(font)
+
         layout.addWidget(self)
         self.bindSignal()
 

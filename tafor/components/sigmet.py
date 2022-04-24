@@ -31,6 +31,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
         self.setWindowTitle(QCoreApplication.translate('Editor', 'Encoding Significant Meteorological Information'))
         self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px;}')
+        self.location.setFont(context.environ.fixedFont())
 
     def initUI(self):
         self.graphic = GraphicsWindow(self)

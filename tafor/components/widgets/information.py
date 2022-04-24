@@ -29,6 +29,7 @@ class BaseSigmet(SegmentMixin, QWidget):
 
         self.setupUi(self)
         self.initState()
+        self.setupFont()
         self.setupValidator()
         self.bindSignal()
 

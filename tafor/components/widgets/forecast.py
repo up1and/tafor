@@ -3,7 +3,7 @@ import datetime
 
 from PyQt5.QtGui import QIcon, QRegExpValidator
 from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, QTimer, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QComboBox, QRadioButton, QToolButton, QCheckBox, QMessageBox, QHBoxLayout, QVBoxLayout
+from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QComboBox, QRadioButton, QToolButton, QCheckBox, QTextEdit, QMessageBox, QHBoxLayout, QVBoxLayout
 
 from tafor import conf
 from tafor.utils import Pattern, CurrentTaf, boolean
@@ -40,6 +40,20 @@ class SegmentMixin(object):
 
         for checkbox in self.findChildren(QCheckBox):
             checkbox.clicked.connect(lambda: self.contentChanged.emit())
+
+    def setupFont(self):
+        fixedFont = context.environ.fixedFont()
+        for line in self.findChildren(QLineEdit):
+            line.setFont(fixedFont)
+
+        for combox in self.findChildren(QComboBox):
+            combox.setFont(fixedFont)
+
+        for checkbox in self.findChildren(QCheckBox):
+            checkbox.setFont(fixedFont)
+
+        for text in self.findChildren(QTextEdit):
+            text.setFont(fixedFont)
 
     def clear(self):
         # 部分组件不能用
@@ -544,6 +558,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
         self.offset = 0
 
+        self.setupFont()
         self.bindSignal()
         self.initMessageSpec()
         self.setOrder()
@@ -804,6 +819,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         super(TafGroupSegment, self).__init__(name, parent)
         self.setupUi(self)
         self.name.setText(name)
+        self.setupFont()
         self.setupValidator()
         self.bindSignal()
 
@@ -814,6 +830,10 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.period.editingFinished.connect(self.validatePeriod)
         self.period.editingFinished.connect(self.validateGroupsPeriod)
         self.period.textChanged.connect(lambda: self.coloredText(self.period))
+
+    def setupFont(self):
+        super(TafGroupSegment, self).setupFont()
+        self.name.setFont(context.environ.fixedFont())
 
     def setupValidator(self):
         super(TafGroupSegment, self).setupValidator()
@@ -1092,6 +1112,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
     def __init__(self, name='TREND', parent=None):
         super(TrendSegment, self).__init__(name, parent)
         self.setupUi(self)
+        self.setupFont()
         self.setupValidator()
         self.bindSignal()
 
@@ -1109,6 +1130,12 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         self.period.editingFinished.connect(self.validatePeriod)
 
         self.period.textChanged.connect(lambda: self.coloredText(self.period))
+
+    def setupFont(self):
+        super(TrendSegment, self).setupFont()
+        font = context.environ.fixedFont()
+        self.becmg.setFont(font)
+        self.tempo.setFont(font)
 
     def autoFillPeriodSlash(self):
         if self.fm.isChecked() and self.tl.isChecked():   

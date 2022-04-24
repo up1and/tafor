@@ -48,6 +48,11 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         else:
             self.setReviewMode()
 
+        font = context.environ.fixedFont()
+        self.setFont(font)
+        font.setPointSize(12)
+        self.text.setFont(font)
+
         layout.addWidget(self)
 
     def countdown(self):
@@ -118,8 +123,6 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         self.groupBox.setTitle(self.item.type)
         self.timeLabel.setText(self.item.created.strftime('%Y-%m-%d %H:%M:%S'))
         self.text.setText(self.item.report)
-        font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
-        self.text.setStyleSheet('font: 13px "Microsoft YaHei", "{}";'.format(font.family()))
 
     def review(self):
         self.reviewer.receive(self.item)
@@ -136,6 +139,7 @@ class TafBoard(QWidget):
         self.setLayout(layout)
 
         self.board = QLabel()
+        self.board.setFont(context.environ.fixedFont())
         layout.addWidget(self.board)
 
         container.addWidget(self)
@@ -162,8 +166,10 @@ class Clock(QWidget):
         self.setLayout(layout)
 
         self.zone = QLabel('UTC')
+        self.zone.setFont(context.environ.fixedFont())
         self.zone.setStyleSheet('QLabel {color: grey;}')
         self.label = QLabel()
+        self.label.setFont(context.environ.fixedFont())
         layout.addWidget(self.zone)
         layout.addWidget(self.label)
 

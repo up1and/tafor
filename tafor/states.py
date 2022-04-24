@@ -446,6 +446,12 @@ class EnvironState(object):
             base = root
         return os.path.join(base, relativePath)
 
+    def fixedFont(self):
+        from PyQt5.QtGui import QFontDatabase
+        font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
+        return font
+
+
 class Context(object):
     message = MessageState()
     taf = TafState()

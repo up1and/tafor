@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Sender(object):
     def setupUi(self, Sender):
         Sender.setObjectName("Sender")
-        Sender.resize(738, 488)
+        Sender.resize(900, 517)
         self.verticalLayout = QtWidgets.QVBoxLayout(Sender)
         self.verticalLayout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
         self.verticalLayout.setObjectName("verticalLayout")
@@ -23,8 +23,7 @@ class Ui_Sender(object):
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.textGroup)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.text = QtWidgets.QTextEdit(self.textGroup)
-        self.text.setMinimumSize(QtCore.QSize(700, 0))
-        self.text.setMaximumSize(QtCore.QSize(16777215, 100))
+        self.text.setMinimumSize(QtCore.QSize(812, 0))
         self.text.setCursorWidth(0)
         self.text.setTextInteractionFlags(QtCore.Qt.TextSelectableByKeyboard|QtCore.Qt.TextSelectableByMouse)
         self.text.setObjectName("text")
@@ -35,7 +34,7 @@ class Ui_Sender(object):
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.rawGroup)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.raw = QtWidgets.QTextEdit(self.rawGroup)
-        self.raw.setMinimumSize(QtCore.QSize(700, 300))
+        self.raw.setMinimumSize(QtCore.QSize(812, 300))
         self.raw.setStyleSheet("background-color: rgb(0, 0, 0);\n"
 "color: rgb(255, 255, 255);")
         self.raw.setCursorWidth(0)
