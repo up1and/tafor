@@ -256,13 +256,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         option = getattr(self, weather + 'List')
         option.takeItem(option.currentRow())
 
-    def updateSoundVolume(self):
-        """更新提醒声音音量"""
-        self.parent.ringSound.setVolume(conf.value('Monitor/RemindTAFVolume'))
-        self.parent.alarmSound.setVolume(conf.value('Monitor/WarnTAFVolume'))
-        self.parent.trendSound.setVolume(conf.value('Monitor/RemindTrendVolume'))
-        self.parent.sigmetSound.setVolume(conf.value('Monitor/RemindSIGMETVolume'))
-
     def showEvent(self, event):
         self.loadSerialNumber()
 
@@ -307,7 +300,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
                 self.promptRestartRequired()
                 break
 
-        self.updateSoundVolume()
         self.load()
 
     def hasValueChanged(self, key):

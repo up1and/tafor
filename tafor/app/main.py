@@ -201,12 +201,12 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.checkUpgradeThread.done.connect(self.checkUpgrade)
 
     def setupSound(self):
-        self.ringSound = Sound('ring.wav', conf.value('Monitor/RemindTAFVolume'))
-        self.notificationSound = Sound('notification.wav', 100)
-        self.incomingSound = Sound('notification-incoming.wav', 100)
-        self.alarmSound = Sound('alarm.wav', conf.value('Monitor/WarnTAFVolume'))
-        self.trendSound = Sound('trend.wav', conf.value('Monitor/RemindTrendVolume'))
-        self.sigmetSound = Sound('sigmet.wav', conf.value('Monitor/RemindSIGMETVolume'))
+        self.ringSound = Sound('ring.wav', 'Monitor/RemindTAFVolume')
+        self.notificationSound = Sound('notification.wav')
+        self.incomingSound = Sound('notification-incoming.wav')
+        self.alarmSound = Sound('alarm.wav', 'Monitor/WarnTAFVolume')
+        self.trendSound = Sound('trend.wav', 'Monitor/RemindTrendVolume')
+        self.sigmetSound = Sound('sigmet.wav', 'Monitor/RemindSIGMETVolume')
 
         self.settingDialog.warnTafVolume.valueChanged.connect(lambda vol: self.alarmSound.play(volume=vol, loop=False))
         self.settingDialog.remindTafVolume.valueChanged.connect(lambda vol: self.ringSound.play(volume=vol, loop=False))
