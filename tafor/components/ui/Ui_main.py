@@ -14,8 +14,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(870, 650)
-        MainWindow.setMinimumSize(QtCore.QSize(870, 650))
+        MainWindow.resize(900, 660)
+        MainWindow.setMinimumSize(QtCore.QSize(900, 660))
         MainWindow.setWindowTitle("Tafor")
         self.centralWidget = QtWidgets.QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
@@ -39,7 +39,7 @@ class Ui_MainWindow(object):
         self.recentArea.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
         self.recentArea.setObjectName("recentArea")
         self.scrollContents = QtWidgets.QWidget()
-        self.scrollContents.setGeometry(QtCore.QRect(0, 0, 846, 562))
+        self.scrollContents.setGeometry(QtCore.QRect(0, 0, 876, 572))
         self.scrollContents.setStyleSheet("background:#fff")
         self.scrollContents.setObjectName("scrollContents")
         self.scrollLayout = QtWidgets.QVBoxLayout(self.scrollContents)
@@ -88,7 +88,7 @@ class Ui_MainWindow(object):
         self.verticalLayout.addWidget(self.mainTab)
         MainWindow.setCentralWidget(self.centralWidget)
         self.menuBar = QtWidgets.QMenuBar(MainWindow)
-        self.menuBar.setGeometry(QtCore.QRect(0, 0, 870, 23))
+        self.menuBar.setGeometry(QtCore.QRect(0, 0, 900, 23))
         self.menuBar.setObjectName("menuBar")
         self.issueMenu = QtWidgets.QMenu(self.menuBar)
         self.issueMenu.setObjectName("issueMenu")

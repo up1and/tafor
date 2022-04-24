@@ -726,7 +726,7 @@ class GraphicsWindow(QWidget):
         self.layout.setContentsMargins(0, 6, 0, 0)
         self.layout.addWidget(self.canvas)
         self.setLayout(self.layout)
-        self.setMaximumSize(800, 500)
+        self.setMaximumSize(960, 600)
 
         self.cachedSigmets = []
 
@@ -757,12 +757,13 @@ class GraphicsWindow(QWidget):
             button.setFixedSize(26, 26)
             button.setAutoRaise(True)
 
-        self.operationLayout = QHBoxLayout()
+        self.operationWidget = QWidget(self)
+        self.operationWidget.setMinimumHeight(44)
+        self.operationLayout = QHBoxLayout(self.operationWidget)
         self.operationLayout.addItem(QSpacerItem(0, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
         self.operationLayout.addWidget(self.layerButton)
         self.operationLayout.addWidget(self.fcstButton)
         self.operationLayout.addWidget(self.modeButton)
-        self.operationLayout.setGeometry(QRect(700, 16, 90, 30))
 
         self.opacitySilder = QSlider(Qt.Horizontal, self)
         self.opacitySilder.setMinimum(0)
@@ -771,8 +772,9 @@ class GraphicsWindow(QWidget):
         self.opacitySilder.hide()
 
         self.positionLabel = QLabel(self)
-        self.positionLabel.setMinimumWidth(185)
         self.positionLabel.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self.positionLabel.setMinimumWidth(200)
+        self.positionLabel.setAlignment(Qt.AlignRight | Qt.AlignBottom)
 
         self.timeLabel = QLabel(self)
         self.timeLabel.setAttribute(Qt.WA_TransparentForMouseEvents)
@@ -1013,7 +1015,8 @@ class GraphicsWindow(QWidget):
         self.positionLabel.setStyleSheet(labelStyle)
 
     def resizeEvent(self, event):
-        self.positionLabel.move(self.width() - self.positionLabel.width(), self.height() - self.positionLabel.height() - 6)
+        self.operationWidget.move(self.width() - self.operationWidget.width() - 10, 10)
+        self.positionLabel.move(self.width() - self.positionLabel.width() - 18, self.height() - self.positionLabel.height() - 15)
         self.timeLabel.move(18, self.height() - self.timeLabel.height() - 15)
         super(GraphicsWindow, self).resizeEvent(event)
 
