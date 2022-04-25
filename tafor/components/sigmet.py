@@ -1,9 +1,7 @@
 import datetime
 
-from uuid import uuid4
-
 from PyQt5.QtCore import QCoreApplication, QTimer, Qt
-from PyQt5.QtWidgets import QVBoxLayout, QLayout, QRadioButton
+from PyQt5.QtWidgets import QRadioButton
 
 from tafor import conf
 from tafor.states import context
@@ -32,6 +30,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.setWindowTitle(QCoreApplication.translate('Editor', 'Encoding Significant Meteorological Information'))
         self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px;}')
         self.location.setFont(context.environ.fixedFont())
+        self.location.setMargin(4)
 
     def initUI(self):
         self.graphic = GraphicsWindow(self)
@@ -182,7 +181,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         for i, text in enumerate(messages):
             label = '<span style="color: grey">{}</span>'.format(titles[i])
             if text:
-                text = label + '  ' + text
+                text = label + '<br>' + text
                 words.append(text)
 
         html = '<br><br>'.join(words)

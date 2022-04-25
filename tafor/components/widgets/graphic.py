@@ -8,7 +8,7 @@ from itertools import cycle
 
 from pyproj import Geod
 
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView, QGraphicsScene, QRubberBand, QGraphicsDropShadowEffect,
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView, QGraphicsScene, QRubberBand,
     QStyleOptionGraphicsItem, QPushButton, QToolButton, QLabel, QMenu, QActionGroup, QAction, QWidgetAction, QSlider, QSpacerItem, QSizePolicy)
 from PyQt5.QtGui import QIcon, QPainter
 from PyQt5.QtCore import QCoreApplication, QObject, Qt, QRect, QRectF, QSize, pyqtSignal

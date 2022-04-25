@@ -240,6 +240,11 @@ class FlightLevelMixin(object):
 
         return text
 
+    def clear(self):
+        super().clear()
+        self.top.clear()
+        self.base.clear()
+
 
 class MovementMixin(object):
 
@@ -279,6 +284,11 @@ class MovementMixin(object):
 
         return text
 
+    def clear(self):
+        super().clear()
+        self.movement.setCurrentIndex(0)
+        self.speed.clear()
+
 
 class ObservationMixin(object):
 
@@ -307,6 +317,11 @@ class ObservationMixin(object):
                 self.observationTime.text()) if self.observationTime.hasAcceptableInput() else self.observation.currentText()
 
         return text
+
+    def clear(self):
+        super().clear()
+        self.observationTime.clear()
+        self.observation.setCurrentIndex(0)
 
 
 class ForecastMixin(object):
@@ -339,6 +354,10 @@ class ForecastMixin(object):
     def forecastText(self):
         text = 'FCST AT {}Z'.format(self.forecastTime.text())
         return text
+
+    def clear(self):
+        super().clear()
+        self.forecastTime.clear()
 
 
 class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin, BaseSigmet, Ui_sigmet_general.Ui_Editor):
@@ -442,8 +461,8 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
     def clear(self):
         super().clear()
         self.description.setCurrentIndex(1)
-        self.observation.setCurrentIndex(0)
         self.level.setCurrentIndex(1)
+        self.intensityChange.setCurrentIndex(0)
         self.forecastTime.setEnabled(False)
         self.forecastTimeLabel.setEnabled(False)
 
@@ -691,6 +710,10 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
     def clear(self):
         super().clear()
         self.name.clear()
+        self.forecastTime.clear()
+        self.forecastLatitude.clear()
+        self.forecastLongitude.clear()
+        self.intensityChange.setCurrentIndex(0)
 
 
 class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin, BaseSigmet, Ui_sigmet_ash.Ui_Editor):
@@ -787,6 +810,10 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         super().clear()
         self.name.clear()
         self.phenomena.setCurrentIndex(0)
+        self.level.setCurrentIndex(-1)
+        self.intensityChange.setCurrentIndex(0)
+        self.currentLatitude.clear()
+        self.currentLongitude.clear()
 
 
 class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
