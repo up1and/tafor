@@ -481,7 +481,7 @@ class Canvas(QGraphicsView):
         zoom = QStyleOptionGraphicsItem.levelOfDetailFromTransform(self.transform())
         factor = self.maxZoomFactor()
 
-        if factor < 0.9 and zoom > 0.15:
+        if factor < 0.8 and zoom > 0.15:
             self.scale(0.8, 0.8)
 
     def leaveEvent(self, event):
