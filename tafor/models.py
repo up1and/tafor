@@ -115,8 +115,12 @@ class Trend(Base):
     def rawText(self):
         if not self.raw:
             return ''
-        messages = json.loads(self.raw)
-        return '\r\n\r\n\r\n\r\n'.join(messages)
+
+        if self.protocol == 'aftn':
+            messages = json.loads(self.raw)
+            return '\r\n\r\n\r\n\r\n'.join(messages)
+
+        return self.raw
 
     def isNosig(self):
         return self.text == 'NOSIG='
@@ -150,8 +154,12 @@ class Sigmet(Base):
     def rawText(self):
         if not self.raw:
             return ''
-        messages = json.loads(self.raw)
-        return '\r\n\r\n\r\n\r\n'.join(messages)
+
+        if self.protocol == 'aftn':
+            messages = json.loads(self.raw)
+            return '\r\n\r\n\r\n\r\n'.join(messages)
+
+        return self.raw
 
     def expired(self):
         from tafor.utils.convert import parseTime
@@ -187,8 +195,12 @@ class Other(Base):
     def rawText(self):
         if not self.raw:
             return ''
-        messages = json.loads(self.raw)
-        return '\r\n\r\n\r\n\r\n'.join(messages)
+
+        if self.protocol == 'aftn':
+            messages = json.loads(self.raw)
+            return '\r\n\r\n\r\n\r\n'.join(messages)
+
+        return self.raw
 
 
 engine = create_engine(SQLALCHEMY_DATABASE_URI, echo=False)
