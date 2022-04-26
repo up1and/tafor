@@ -49,7 +49,11 @@ class AppGlobals(object):
 
     @property
     def conf(self):
-        return self._conf
+        if os.environ.get('TAFOR_ENV') == 'TEST':
+            from tests import conf
+            return conf
+        else:
+            return self._conf
 
     @property
     def logger(self):

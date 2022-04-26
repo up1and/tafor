@@ -303,8 +303,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.licenseEditor.close()
             self.settingDialog.close()
             self.chartViewer.close()
-            self.remindTafBox = None
-            self.remindSigmetBox = None
+            self.remindTafBox.close()
+            self.remindSigmetBox.close()
 
             self.tray.hide()
             event.accept()

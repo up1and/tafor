@@ -2,8 +2,7 @@ import pytest
 
 from PyQt5.QtCore import Qt
 
-from tafor.app import MainWindow
-from tafor.components.setting import isConfigured
+from tafor.components.setting import SettingDialog, isConfigured
 
 
 def test_is_configured():
@@ -16,9 +15,9 @@ class TestSetting(object):
 
     @pytest.fixture
     def setting(self, qtbot):
-        window = MainWindow()
-        qtbot.addWidget(window)
-        return window.settingDialog
+        dialog = SettingDialog()
+        qtbot.addWidget(dialog)
+        return dialog
 
     def test_reset_channel_number(self, qtbot, setting):
         qtbot.mouseClick(setting.resetNumberButton, Qt.LeftButton)
@@ -33,7 +32,6 @@ class TestSetting(object):
         setting.addWeather('weatherWithIntensity')
         setting.delWeather('weather')
         setting.delWeather('weatherWithIntensity')
-        setting.updateSoundVolume()
 
 
 if __name__ == '__main__':
