@@ -1,6 +1,0 @@
-Flask
-gunicorn
-requests
-cryptography
-python-dateutil
-Pillow
