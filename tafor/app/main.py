@@ -47,7 +47,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.painterTimer = QTimer()
         self.painterTimer.timeout.connect(self.painter)
-        self.painterTimer.start(5 * 60 * 1000)
+        self.painterTimer.start(2 * 60 * 1000)
 
         self.setup()
         self.bindSignal()

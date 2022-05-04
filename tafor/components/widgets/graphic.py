@@ -697,7 +697,7 @@ class Canvas(QGraphicsView):
             p.addTo(self, self.sigmets)
         
         self.sigmetsGroup = self.scene.createItemGroup(self.sigmets)
-        self.sigmetsGroup.setZValue(1)
+        self.sigmetsGroup.setZValue(0)
 
     def redraw(self):
         self.drawCoastline()
@@ -739,6 +739,10 @@ class GraphicsWindow(QWidget):
         self.zoomLayout.addWidget(self.zoomOutButton)
         self.zoomLayout.setGeometry(QRect(20, 20, 24, 48))
 
+        self.refreshButton = QToolButton(self)
+        self.refreshButton.setText('Refresh')
+        self.refreshButton.setIcon(QIcon(':/synchronize.png'))
+
         self.layerButton = QToolButton(self)
         self.layerButton.setText('Layer')
         self.layerButton.setPopupMode(QToolButton.InstantPopup)
@@ -753,14 +757,16 @@ class GraphicsWindow(QWidget):
         self.modeButton = QToolButton(self)
         self.modeButton.setText('Mode')
 
-        for button in [self.layerButton, self.fcstButton, self.modeButton]:
+        for button in [self.refreshButton, self.layerButton, self.fcstButton, self.modeButton]:
             button.setFixedSize(26, 26)
             button.setAutoRaise(True)
 
         self.operationWidget = QWidget(self)
-        self.operationWidget.setMinimumHeight(44)
+        self.operationWidget.setMinimumSize(140, 44)
         self.operationLayout = QHBoxLayout(self.operationWidget)
+        self.operationLayout.setSpacing(0)
         self.operationLayout.addItem(QSpacerItem(0, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        self.operationLayout.addWidget(self.refreshButton)
         self.operationLayout.addWidget(self.layerButton)
         self.operationLayout.addWidget(self.fcstButton)
         self.operationLayout.addWidget(self.modeButton)
@@ -791,6 +797,7 @@ class GraphicsWindow(QWidget):
         self.zoomInButton.clicked.connect(self.canvas.zoomIn)
         self.modeButton.clicked.connect(self.nextMode)
         self.fcstButton.clicked.connect(self.switchForward)
+        self.refreshButton.clicked.connect(context.layer.refresh)
         self.canvas.mouseMoved.connect(self.updatePositionLabel)
         self.canvas.sketchManager.first().finished.connect(self.setFcstButton)
 
@@ -1015,7 +1022,7 @@ class GraphicsWindow(QWidget):
         self.positionLabel.setStyleSheet(labelStyle)
 
     def resizeEvent(self, event):
-        self.operationWidget.move(self.width() - self.operationWidget.width() - 10, 10)
+        self.operationWidget.move(self.width() - self.operationWidget.width() - 4, 10)
         self.positionLabel.move(self.width() - self.positionLabel.width() - 18, self.height() - self.positionLabel.height() - 15)
         self.timeLabel.move(18, self.height() - self.timeLabel.height() - 15)
         super(GraphicsWindow, self).resizeEvent(event)

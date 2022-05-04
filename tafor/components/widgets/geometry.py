@@ -91,14 +91,11 @@ class BackgroundImage(QGraphicsPixmapItem):
     def addTo(self, canvas, group):
         raw = QPixmap()
         raw.loadFromData(self.layer.image)
-        # print(raw.size())
         minx, miny, maxx, maxy = canvas.extentBound(self.layer.extent)
         width = abs(maxx - minx)
         height = abs(maxy - miny)
         raw = raw.scaled(width, height)
-        print(width, height)
         self.setPixmap(raw)
-        # height has -15 pixels offset, don't know why
         self.setPos(minx, maxy)
         group.append(self)
 
@@ -200,6 +197,7 @@ class Sigmet(QGraphicsItem, CanvasMixin):
         path = QPainterPath()
         font = QFont()
         font.setBold(True)
+        font.setPointSize(16)
         path.addText(self.boundingRect().center(), font, sequence)
         pen = QPen(QColor(0, 0, 0, 120))
         brush = QBrush(Qt.white)
