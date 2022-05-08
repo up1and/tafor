@@ -194,8 +194,8 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.copyTokenButton.clicked.connect(self.copyAuthToken)
         self.ftpHost.textEdited.connect(self.resetFtpLoginButton)
 
-        self.importBrowseButton.clicked.connect(lambda: self.openFile(self.importPath))
-        self.exportBrowseButton.clicked.connect(lambda: self.openDirectory(self.exportPath))
+        self.importBrowseButton.clicked.connect(self.openFile)
+        self.exportBrowseButton.clicked.connect(self.openDirectory)
         self.importButton.clicked.connect(self.importConf)
         self.exportButton.clicked.connect(self.exportConf)
 
@@ -461,14 +461,14 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             self.onConfigChanged()
             context.flash.statusbar(QCoreApplication.translate('Settings', 'Configuration has been imported'), 5000)
 
-    def openFile(self, receiver):
+    def openFile(self):
         title = QCoreApplication.translate('Settings', 'Open Configuration File')
         path = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)
         filename, _ = QFileDialog.getOpenFileName(self, title, path, '(*.json)')
-        receiver.setText(filename)
+        self.importPath.setText(filename)
 
-    def openDirectory(self, receiver):
+    def openDirectory(self):
         title = QCoreApplication.translate('Settings', 'Save Configuration File')
         path = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)
         filename, _ = QFileDialog.getSaveFileName(self, title, os.path.join(path, 'tafor.json'), '(*.json)')
-        receiver.setText(filename)
+        self.exportPath.setText(filename)

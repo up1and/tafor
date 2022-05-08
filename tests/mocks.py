@@ -1,6 +1,7 @@
 class MockConfig(object):
 
     config = {
+        'General/Sigmet': 'true',
         'General/WindowsStyle': 'System',
         'General/CommunicationLine': 'AFTN',
         'General/InterfaceScaling': 0,
@@ -14,8 +15,8 @@ class MockConfig(object):
         'Message/ICAO': 'YUSO',
         'Message/Area': 'NT36',
         'Message/TrendSign': 'TRENDING',
-        'Message/Weather': '["BR", "FG", "FU", "HZ", "TS", "NSW", "MIFG", "BCFG", "PRFG", "BR BCFG"]',
-        'Message/WeatherWithIntensity': '["DZ", "RA", "SHRA", "TSRA", "TSGR"]',
+        'Message/Weather': '["FG", "FU", "HZ", "TS", "NSW", "MIFG", "BCFG", "PRFG", "BR BCFG"]',
+        'Message/WeatherWithIntensity': '["DZ", "RA", "TSRA", "TSGR"]',
         'Communication/SerialPort': 'COM1',
         'Communication/SerialBaudrate': '2400',
         'Communication/SerialParity': 'NONE',
