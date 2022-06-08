@@ -662,7 +662,7 @@ class Canvas(QGraphicsView):
         self.setSceneRect(self.scene.itemsBoundingRect())
 
     def drawLayer(self):
-        layers = context.layer.currentLayers()
+        layers = [layer for layer in context.layer.currentLayers() if layer]
         if layers:
             if self.backgrounds:
                 self.backgrounds = []
@@ -976,7 +976,11 @@ class GraphicsWindow(QWidget):
         words = []
         for layer in layers:
             updated = layer.updatedTime()
-            text = '{} - {}'.format(updated.strftime('%Y-%m-%d %H:%M'), layer.name)
+            if updated:
+                text = updated.strftime('%Y-%m-%d %H:%M')
+            else:
+                text = 'N/A'
+            text = '{} - {}'.format(text, layer.name)
             words.append(text)
 
         self.timeLabel.setText('\n'.join(words))
