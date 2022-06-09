@@ -250,7 +250,7 @@ class MovementMixin(object):
 
     def bindSignal(self):
         super().bindSignal()
-        self.movement.currentTextChanged.connect(self.setSpeed)
+        self.direction.currentTextChanged.connect(self.setSpeed)
 
     def setupValidator(self):
         super(MovementMixin, self).setupValidator()
@@ -265,14 +265,14 @@ class MovementMixin(object):
             self.speedLabel.setEnabled(True)
 
     def moveState(self):
-        movement = self.movement.currentText()
+        movement = self.direction.currentText()
         if movement == 'STNR':
             return movement
 
         if not self.speed.hasAcceptableInput():
             return
 
-        movement = self.movement.currentText()
+        movement = self.direction.currentText()
         unit = 'KT' if context.environ.unit() == 'imperial' else 'KMH'
         speed = int(self.speed.text()) if self.speed.text() else ''
 
@@ -286,7 +286,7 @@ class MovementMixin(object):
 
     def clear(self):
         super().clear()
-        self.movement.setCurrentIndex(0)
+        self.direction.setCurrentIndex(0)
         self.speed.clear()
 
 
@@ -486,7 +486,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
         self.currentLatitude.textChanged.connect(self.setForecastPosition)
         self.currentLongitude.textChanged.connect(self.setForecastPosition)
         self.speed.textEdited.connect(self.setForecastPosition)
-        self.movement.currentTextChanged.connect(self.setForecastPosition)
+        self.direction.currentTextChanged.connect(self.setForecastPosition)
         self.forecastTime.textChanged.connect(self.setForecastPosition)
 
         self.currentLatitude.textEdited.connect(lambda: self.upperText(self.currentLatitude))
@@ -595,14 +595,14 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
         if not (all(mustRequired) and any(anyRequired)):
             return
 
-        movement = self.movement.currentText()
+        movement = self.direction.currentText()
 
         if movement == 'STNR':
             self.forecastLatitude.clear()
             self.forecastLongitude.clear()
             return
 
-        direction = {
+        directions = {
             'N': 0,
             'NNE': 22.5,
             'NE': 45,
@@ -625,7 +625,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
         fcstTime = self.forecastTime.text()
 
         time = self.moveTime(observationTime or beginningTime, fcstTime).seconds
-        degree = direction[movement]
+        degree = directions[movement]
         speed = self.speed.text()
         latitude = self.currentLatitude.text()
         longitude = self.currentLongitude.text()

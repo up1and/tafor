@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>776</width>
-    <height>106</height>
+    <height>141</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -108,40 +108,7 @@
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="mainLayout">
-     <item>
-      <layout class="QVBoxLayout" name="leftLayout">
-       <item>
-        <layout class="QHBoxLayout" name="contentLayout"/>
-       </item>
-       <item alignment="Qt::AlignLeft|Qt::AlignTop">
-        <widget class="QLabel" name="location">
-         <property name="minimumSize">
-          <size>
-           <width>200</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>300</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="text">
-          <string notr="true">Location</string>
-         </property>
-         <property name="wordWrap">
-          <bool>true</bool>
-         </property>
-         <property name="textInteractionFlags">
-          <set>Qt::NoTextInteraction</set>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-    </layout>
+    <layout class="QHBoxLayout" name="contentLayout"/>
    </item>
   </layout>
  </widget>

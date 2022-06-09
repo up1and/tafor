@@ -620,7 +620,7 @@ class Canvas(QGraphicsView):
             if bg.layer.overlay == 'mixed': 
                 bg.setOpacity(opacity)
 
-    def isDefaultLocationFinished(self):
+    def isInitialLocationFinished(self):
         # shoud check the shape can be encode to text
         sketch = self.sketchManager.first()
         return sketch.done
@@ -723,10 +723,10 @@ class GraphicsWindow(QWidget):
         super(GraphicsWindow, self).__init__()
         self.canvas = Canvas()
         self.layout = QVBoxLayout()
-        self.layout.setContentsMargins(0, 6, 0, 0)
+        self.layout.setContentsMargins(0, 8, 0, 0)
         self.layout.addWidget(self.canvas)
         self.setLayout(self.layout)
-        self.setMaximumSize(960, 600)
+        self.setMaximumSize(960, 620)
 
         self.cachedSigmets = []
 
@@ -787,6 +787,13 @@ class GraphicsWindow(QWidget):
         self.timeLabel.setFixedSize(350, 80)
         self.timeLabel.setAlignment(Qt.AlignBottom)
 
+        self.locationLabel = QLabel(self)
+        self.locationLabel.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self.locationLabel.setFixedSize(600, 200)
+        self.locationLabel.setWordWrap(True)
+        self.locationLabel.setAlignment(Qt.AlignBottom)
+        self.locationLabel.setFont(context.environ.fixedFont())
+
         self.setLayerMenu()
         self.setButton()
         self.load()
@@ -803,6 +810,8 @@ class GraphicsWindow(QWidget):
 
         for sketch in self.canvas.sketchManager:
             sketch.changed.connect(self.handleSketchChange)
+
+        self.sketchChanged.connect(self.updateLocationLabel)
 
         self.trimShapesAction.toggled.connect(lambda: self.changeSigmetDisplayMode(self.trimShapesAction, 'trimShapes'))
         self.showSigmetAction.toggled.connect(lambda: self.changeSigmetDisplayMode(self.showSigmetAction, 'showSigmet'))
@@ -873,7 +882,7 @@ class GraphicsWindow(QWidget):
             self.modeButton.show()
 
     def setFcstButton(self):
-        enbale = self.canvas.isDefaultLocationFinished()
+        enbale = self.canvas.isInitialLocationFinished()
         self.fcstButton.setEnabled(enbale)
 
     def nextMode(self):
@@ -900,9 +909,6 @@ class GraphicsWindow(QWidget):
     def setCachedSigmet(self, sigmets):
         self.cachedSigmets = sigmets
         self.updateSigmetGraphic()
-
-    def setShapeMode(self):
-        pass
 
     def setLayerMenu(self):
         self.layerMenu = QMenu(self)
@@ -985,6 +991,18 @@ class GraphicsWindow(QWidget):
 
         self.timeLabel.setText('\n'.join(words))
 
+    def updateLocationLabel(self, messages):
+        titles = ['INITIAL', 'FINAL']
+        words = []
+        for i, text in enumerate(messages):
+            label = '<span style="color: grey">{}</span>'.format(titles[i])
+            if text:
+                text = label + '<br>' + text
+                words.append(text)
+
+        html = '<br><br>'.join(words)
+        self.locationLabel.setText(html)
+
     def setTyphoonGraphic(self, circle):
         drawing = self.canvas.sketchManager.first()
         drawing.setCircle(circle)
@@ -1017,18 +1035,20 @@ class GraphicsWindow(QWidget):
         self.canvas.drawCoastline()
 
     def updateLabelStyle(self):
-        if context.layer.layers():
+        if context.layer.currentLayers():
             labelStyle = 'QLabel {color:white;}'
         else:
             labelStyle = 'QLabel {color:black;}'
 
         self.timeLabel.setStyleSheet(labelStyle)
         self.positionLabel.setStyleSheet(labelStyle)
+        self.locationLabel.setStyleSheet(labelStyle)
 
     def resizeEvent(self, event):
         self.operationWidget.move(self.width() - self.operationWidget.width() - 4, 10)
         self.positionLabel.move(self.width() - self.positionLabel.width() - 18, self.height() - self.positionLabel.height() - 15)
         self.timeLabel.move(18, self.height() - self.timeLabel.height() - 15)
+        self.locationLabel.move(self.width() / 2 - self.locationLabel.width() / 2, self.height() - self.locationLabel.height() - 75)
         super(GraphicsWindow, self).resizeEvent(event)
 
     def keyPressEvent(self, event):

@@ -29,8 +29,6 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
         self.setWindowTitle(QCoreApplication.translate('Editor', 'Encoding Significant Meteorological Information'))
         self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px;}')
-        self.location.setFont(context.environ.fixedFont())
-        self.location.setMargin(4)
 
     def initUI(self):
         self.graphic = GraphicsWindow(self)
@@ -53,9 +51,8 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         for c in self.contents:
             self.contentLayout.addWidget(c)
 
-        self.mainLayout.addWidget(self.graphic)
+        self.contentLayout.addWidget(self.graphic)
         self.changeContent()
-        self.location.clear()
 
         self.addBottomBox(self.layout)
 
@@ -68,7 +65,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.custom.clicked.connect(self.changeContent)
         self.cancel.clicked.connect(self.changeContent)
 
-        self.graphic.sketchChanged.connect(self.setLocationLabel)
+        # self.graphic.sketchChanged.connect(self.setLocationLabel)
         self.graphic.sketchChanged.connect(self.enbaleNextButton)
         self.graphic.modeChanged.connect(self.setForecastMode)
         self.graphic.modeChanged.connect(self.enbaleNextButton)
@@ -175,18 +172,6 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.graphic.setButton(self.type, category)
         self.updateGraphicCanvas()
 
-    def setLocationLabel(self, messages):
-        titles = ['DEFAULT', 'FORECAST']
-        words = []
-        for i, text in enumerate(messages):
-            label = '<span style="color: grey">{}</span>'.format(titles[i])
-            if text:
-                text = label + '<br>' + text
-                words.append(text)
-
-        html = '<br><br>'.join(words)
-        self.location.setText(html)
-
     def setForecastMode(self, mode):
         if self.currentContent in [self.generalContent, self.ashContent]:
             self.currentContent.setForecastMode(mode)
@@ -217,11 +202,6 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
             self.graphic.hide()
         else:
             self.graphic.show()
-
-        if self.currentContent in [self.currentContent, self.cancelContent]:
-            self.location.show()
-        else:
-            self.location.hide()
 
         for c in self.contents:
             if c == self.currentContent:

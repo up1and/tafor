@@ -104,7 +104,7 @@ class Fir(Polygon):
 
     def __init__(self, geometry):
         super(Fir, self).__init__(geometry)
-        pen = QPen(QColor(200, 200, 200))
+        pen = QPen(QColor(200, 200, 200), 2)
         self.setPen(pen)
 
 
