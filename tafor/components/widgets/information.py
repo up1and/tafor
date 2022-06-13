@@ -38,7 +38,6 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.setSquence()
         self.updateDurations()
         self.componentUpdate()
-        # self.setPrediction(self.forecast.currentText())
 
     def bindSignal(self):
         self.beginningTime.textChanged.connect(self.updateDurations)
@@ -493,10 +492,11 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
         self.currentLongitude.textEdited.connect(lambda: self.upperText(self.currentLongitude))
         self.forecastLatitude.textEdited.connect(lambda: self.upperText(self.forecastLatitude))
         self.forecastLongitude.textEdited.connect(lambda: self.upperText(self.forecastLongitude))
+        self.name.textEdited.connect(lambda: self.upperText(self.name))
 
         self.currentLatitude.textChanged.connect(lambda: self.coloredText(self.currentLatitude))
         self.currentLongitude.textChanged.connect(lambda: self.coloredText(self.currentLongitude))
-        self.height.textEdited.connect(lambda: self.coloredText(self.height))
+        self.top.textEdited.connect(lambda: self.coloredText(self.top))
         self.forecastTime.textEdited.connect(lambda: self.coloredText(self.forecastTime))
         self.forecastLatitude.textEdited.connect(lambda: self.coloredText(self.forecastLatitude))
         self.forecastLongitude.textEdited.connect(lambda: self.coloredText(self.forecastLongitude))
@@ -517,7 +517,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
         self.forecastLongitude.setValidator(longitude)
 
         fightLevel = QRegExpValidator(QRegExp(self.rules.fightLevel))
-        self.height.setValidator(fightLevel)
+        self.top.setValidator(fightLevel)
 
         time = QRegExpValidator(QRegExp(self.rules.time))
         self.forecastTime.setValidator(time)
@@ -661,13 +661,13 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
         forecastPosition = self.forecastPosition()
 
         unit = 'KM'
-        main = 'PSN {latitude} {Longitude} CB {observation} WI {range}{unit} OF TC CENTRE TOP FL{height}'.format(
+        main = 'PSN {latitude} {Longitude} CB {observation} WI {range}{unit} OF TC CENTRE TOP FL{top}'.format(
                 latitude=self.currentLatitude.text(),
                 Longitude=self.currentLongitude.text(),
                 observation=observation,
                 range=int(self.range.text()),
                 unit=unit,
-                height=self.height.text(),
+                top=self.top.text(),
             )
 
         items = [fir, phenomena, main]
@@ -679,12 +679,6 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
         content = ' '.join(filter(None, items))
         return '\n'.join([self.firstLine(), content])
 
-    # def initState(self):
-    #     if self.forecastTime.text():
-    #         return
-
-    #     self.setForecastTime()
-
     def hasAcceptableInput(self):
         mustRequired = [
             self.beginningTime.hasAcceptableInput(),
@@ -693,7 +687,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
             self.name.text(),
             self.currentLatitude.hasAcceptableInput(),
             self.currentLongitude.hasAcceptableInput(),
-            self.height.hasAcceptableInput(),
+            self.top.hasAcceptableInput(),
             self.range.hasAcceptableInput()
         ]
 
@@ -732,6 +726,8 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         self.currentLatitude.textEdited.connect(lambda: self.coloredText(self.currentLatitude))
         self.currentLongitude.textEdited.connect(lambda: self.coloredText(self.currentLongitude))
 
+        self.phenomena.currentTextChanged.connect(self.setEruptionOrCloud)
+
     def setupValidator(self):
         super(SigmetAsh, self).setupValidator()
         latitude = QRegExpValidator(QRegExp(self.rules.latitude, Qt.CaseInsensitive))
@@ -746,6 +742,16 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
     def setFcstOrObs(self):
         observations = ['FCST', 'OBS']
         self.observation.addItems(observations)
+
+    def setEruptionOrCloud(self, text='ERUPTION'):
+        enbaled = text == 'ERUPTION'
+        self.name.setEnabled(enbaled)
+        self.nameLabel.setEnabled(enbaled)
+        self.currentLatitude.setEnabled(enbaled)
+        self.currentLatitudeLabel.setEnabled(enbaled)
+        self.currentLongitude.setEnabled(enbaled)
+        self.currentLongitudeLabel.setEnabled(enbaled)
+        self.contentChanged.emit()
 
     def phenomenon(self):
         items = ['VA', self.phenomena.currentText()]
