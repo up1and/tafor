@@ -54,7 +54,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.contentLayout.addWidget(self.graphic)
         self.changeContent()
 
-        self.addBottomBox(self.layout)
+        self.addBottomBox(self.mainLayout)
 
     def bindSignal(self):
         self.significantWeather.clicked.connect(self.changeContent)
@@ -65,7 +65,6 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.custom.clicked.connect(self.changeContent)
         self.cancel.clicked.connect(self.changeContent)
 
-        # self.graphic.sketchChanged.connect(self.setLocationLabel)
         self.graphic.sketchChanged.connect(self.enbaleNextButton)
         self.graphic.modeChanged.connect(self.setForecastMode)
         self.graphic.modeChanged.connect(self.enbaleNextButton)
@@ -95,7 +94,6 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
     def updateLayer(self):
         self.graphic.updateLayer()
-        self.graphic.updateLabelStyle()
 
     def beforeNext(self):
         self.currentContent.validate()

@@ -17,6 +17,7 @@ from tafor.states import context
 from tafor.utils.convert import decimalToDegree, degreeToDecimal
 from tafor.utils.algorithm import encode, buffer, circle, flattenLine, clipLine, clipPolygon, simplifyPolygon
 from tafor.components.widgets.geometry import BackgroundImage, Coastline, Fir, Sigmet, SketchGraphic
+from tafor.components.widgets.widget import OutlinedLabel
 
 
 wgs84 = Geod(ellps='WGS84')
@@ -713,6 +714,63 @@ class Canvas(QGraphicsView):
             self.drawCoastline()
 
 
+class LocationWidget(QWidget):
+
+    def __init__(self, parent=None):
+        super(LocationWidget, self).__init__(parent)
+        self.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self.setFixedSize(600, 200)
+
+        self.location = QLabel(self)
+        self.location.setWordWrap(True)
+        self.location.setStyleSheet('QLabel { color: #fff; background-color: rgba(0, 0, 0, 0.35); border-radius: 3px; padding: 5px; }')
+
+        font = context.environ.fixedFont()
+        font.setPointSize(10)
+        self.location.setFont(font)
+
+        self.verticalLayout = QVBoxLayout(self)
+        self.verticalLayout.addItem(QSpacerItem(20, 0, QSizePolicy.Minimum, QSizePolicy.Expanding))
+        self.verticalLayout.addWidget(self.location)
+
+        self.hide()
+
+    def setText(self, text):
+        self.location.setText(text)
+        if text:
+            self.show()
+        else:
+            self.hide()
+
+
+class LayerInfoWidget(QWidget):
+
+    def __init__(self, parent=None):
+        super(LayerInfoWidget, self).__init__(parent)
+        self.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self.setFixedSize(350, 80)
+
+        self.verticalLayout = QVBoxLayout(self)
+        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout.setSpacing(0)
+        self.verticalLayout.addItem(QSpacerItem(20, 0, QSizePolicy.Minimum, QSizePolicy.Expanding))
+
+    def setLabel(self, words):
+        if not words:
+            return
+
+        for i in range(self.verticalLayout.count()):
+            if i > 0:
+                widget = self.verticalLayout.itemAt(i).widget()
+                if widget:
+                    widget.deleteLater()
+
+        for text in words:
+            label = OutlinedLabel(self)
+            label.setText(text)
+            self.verticalLayout.addWidget(label)
+
+
 class GraphicsWindow(QWidget):
 
     sketchChanged = pyqtSignal(list)
@@ -722,10 +780,9 @@ class GraphicsWindow(QWidget):
     def __init__(self, parent=None):
         super(GraphicsWindow, self).__init__()
         self.canvas = Canvas()
-        self.layout = QVBoxLayout()
-        self.layout.setContentsMargins(0, 8, 0, 0)
-        self.layout.addWidget(self.canvas)
-        self.setLayout(self.layout)
+        self.verticalLayout = QVBoxLayout(self)
+        self.verticalLayout.setContentsMargins(0, 8, 0, 0)
+        self.verticalLayout.addWidget(self.canvas)
         self.setMaximumSize(960, 620)
 
         self.cachedSigmets = []
@@ -777,22 +834,13 @@ class GraphicsWindow(QWidget):
         self.opacitySilder.setValue(5)
         self.opacitySilder.hide()
 
-        self.positionLabel = QLabel(self)
+        self.positionLabel = OutlinedLabel(self)
         self.positionLabel.setAttribute(Qt.WA_TransparentForMouseEvents)
         self.positionLabel.setMinimumWidth(200)
         self.positionLabel.setAlignment(Qt.AlignRight | Qt.AlignBottom)
 
-        self.timeLabel = QLabel(self)
-        self.timeLabel.setAttribute(Qt.WA_TransparentForMouseEvents)
-        self.timeLabel.setFixedSize(350, 80)
-        self.timeLabel.setAlignment(Qt.AlignBottom)
-
-        self.locationLabel = QLabel(self)
-        self.locationLabel.setAttribute(Qt.WA_TransparentForMouseEvents)
-        self.locationLabel.setFixedSize(600, 200)
-        self.locationLabel.setWordWrap(True)
-        self.locationLabel.setAlignment(Qt.AlignBottom)
-        self.locationLabel.setFont(context.environ.fixedFont())
+        self.layerInfoWidget = LayerInfoWidget(self)
+        self.locationWidget = LocationWidget(self)
 
         self.setLayerMenu()
         self.setButton()
@@ -977,7 +1025,7 @@ class GraphicsWindow(QWidget):
         else:
             self.positionLabel.clear()
 
-    def updateTimeLabel(self):
+    def updateLayerInfoLabel(self):
         layers = context.layer.currentLayers()
         words = []
         for layer in layers:
@@ -989,19 +1037,19 @@ class GraphicsWindow(QWidget):
             text = '{} - {}'.format(text, layer.name)
             words.append(text)
 
-        self.timeLabel.setText('\n'.join(words))
+        self.layerInfoWidget.setLabel(words)
 
     def updateLocationLabel(self, messages):
         titles = ['INITIAL', 'FINAL']
         words = []
         for i, text in enumerate(messages):
-            label = '<span style="color: grey">{}</span>'.format(titles[i])
+            label = '<span style="color: lightgray">{}</span>'.format(titles[i])
             if text:
                 text = label + '<br>' + text
                 words.append(text)
 
         html = '<br><br>'.join(words)
-        self.locationLabel.setText(html)
+        self.locationWidget.setText(html)
 
     def setTyphoonGraphic(self, circle):
         drawing = self.canvas.sketchManager.first()
@@ -1029,26 +1077,16 @@ class GraphicsWindow(QWidget):
 
     def updateLayer(self):
         self.canvas.drawLayer()
-        self.updateTimeLabel()
+        self.updateLayerInfoLabel()
 
     def updateCoastline(self):
         self.canvas.drawCoastline()
 
-    def updateLabelStyle(self):
-        if context.layer.currentLayers():
-            labelStyle = 'QLabel {color:white;}'
-        else:
-            labelStyle = 'QLabel {color:black;}'
-
-        self.timeLabel.setStyleSheet(labelStyle)
-        self.positionLabel.setStyleSheet(labelStyle)
-        self.locationLabel.setStyleSheet(labelStyle)
-
     def resizeEvent(self, event):
         self.operationWidget.move(self.width() - self.operationWidget.width() - 4, 10)
         self.positionLabel.move(self.width() - self.positionLabel.width() - 18, self.height() - self.positionLabel.height() - 15)
-        self.timeLabel.move(18, self.height() - self.timeLabel.height() - 15)
-        self.locationLabel.move(self.width() / 2 - self.locationLabel.width() / 2, self.height() - self.locationLabel.height() - 75)
+        self.layerInfoWidget.move(18, self.height() - self.layerInfoWidget.height() - 15)
+        self.locationWidget.move(self.width() / 2 - self.locationWidget.width() / 2, self.height() - self.locationWidget.height() - 75)
         super(GraphicsWindow, self).resizeEvent(event)
 
     def keyPressEvent(self, event):
