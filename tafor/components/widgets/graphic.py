@@ -111,6 +111,8 @@ class SketchManager(object):
         for s in self.sketchs:
             s.clear()
 
+        self.index = 0
+
 
 class Sketch(QObject):
 
@@ -609,7 +611,6 @@ class Canvas(QGraphicsView):
 
     def setMode(self, mode):
         self.mode = mode
-        self.sketch.clear()
 
     def setType(self, key):
         self.type = key
@@ -930,13 +931,15 @@ class GraphicsWindow(QWidget):
             self.modeButton.show()
 
     def setFcstButton(self):
-        enbale = self.canvas.isInitialLocationFinished()
-        self.fcstButton.setEnabled(enbale)
+        enbaled = self.canvas.isInitialLocationFinished()
+        self.fcstButton.setEnabled(enbaled)
 
     def nextMode(self):
         mode = next(self.icons)
         self.canvas.setMode(mode['mode'])
         self.modeButton.setIcon(QIcon(mode['icon']))
+
+        self.clear()
 
     def switchForward(self):
         if self.fcstButton.isChecked():
@@ -1102,4 +1105,5 @@ class GraphicsWindow(QWidget):
 
     def clear(self):
         self.canvas.clear()
-
+        self.fcstButton.setEnabled(False)
+        self.fcstButton.setChecked(False)
