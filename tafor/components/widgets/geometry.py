@@ -127,7 +127,7 @@ class SketchGraphic(QGraphicsItem, CanvasMixin):
 
     def paint(self, painter, option, widget):
         defaultBrush = painter.brush()
-        for i, g in enumerate(self.geometries):
+        for g in self.geometries:
             if isinstance(g, QPointF):
                 radius = 2
                 painter.setPen(QPen(QColor(0, 0, 0, 127), 1))
@@ -135,9 +135,11 @@ class SketchGraphic(QGraphicsItem, CanvasMixin):
                 painter.drawEllipse(g.x() - radius, g.y() - radius, radius * 2.0, radius * 2.0)
 
             if isinstance(g, QPolygonF):
-                colors = [QColor(240, 156, 0, 178), QColor(154, 205, 50, 100)]
-                idx = i % 2
-                color = colors[idx]
+                colors = {
+                    'initial': QColor(240, 156, 0, 178),
+                    'final': QColor(154, 205, 50, 100)
+                }
+                color = colors[g.properties['location']]
                 brush = QBrush(color)
                 painter.setBrush(brush)
                 painter.setPen(QPen(Qt.white))
@@ -153,9 +155,24 @@ class SketchGraphic(QGraphicsItem, CanvasMixin):
     def updateGeometry(self, geo, canvas):
         self.geo = geo
         self.geometries = []
-        for geo in self.geo['geometries']:
-            shape = self.toCanvasGeometry(canvas, geo)
-            self.geometries.append(shape)
+        for i, geo in enumerate(self.geo['geometries']):
+            geometries = []
+            if geo['type'] == 'MultiPolygon':
+                for coords in geo['coordinates']:
+                    geometries.append({
+                        'type': 'Polygon',
+                        'coordinates': coords
+                })
+            else:
+                geometries = [geo]
+
+            location = 'initial' if i == 0 else 'final'
+            properties = {'location': location}
+
+            for geometry in geometries:
+                shape = self.toCanvasGeometry(canvas, geometry)
+                shape.properties = properties
+                self.geometries.append(shape)
 
 
 class Sigmet(QGraphicsItem, CanvasMixin):
@@ -164,6 +181,8 @@ class Sigmet(QGraphicsItem, CanvasMixin):
         super(Sigmet, self).__init__()
         self.geo = geo
         self.geometries = []
+
+    def palette(self, hazard, location):
         brushes = {
             'ts': QBrush(QColor(240, 156, 0, 100)),
             'turb': QBrush(QColor(37, 238, 44, 100)),
@@ -173,11 +192,12 @@ class Sigmet(QGraphicsItem, CanvasMixin):
             'other': QBrush(QColor(250, 250, 50, 100))
         }
 
-        hazard = self.geo['properties']['hazard']
-        self.palettes = [
-            [QPen(QColor(204, 204, 204), 1, Qt.DashLine), brushes.get(hazard, brushes['other'])],
-            [QPen(QColor(204, 204, 204, 150), 0, Qt.DashLine), QBrush(QColor(154, 205, 50, 70))]
-        ]
+        palettes = {
+            'initial': [QPen(QColor(204, 204, 204), 1, Qt.DashLine), brushes.get(hazard, brushes['other'])],
+            'final': [QPen(QColor(204, 204, 204, 150), 0, Qt.DashLine), QBrush(QColor(154, 205, 50, 70))]
+        }
+
+        return palettes[location]
 
     def boundingRect(self):
         rect = QRectF()
@@ -186,29 +206,37 @@ class Sigmet(QGraphicsItem, CanvasMixin):
         return rect
 
     def paint(self, painter, option, widget):
-        for i, geo in enumerate(self.geometries):
-            idx = i % 2
-            pen, brush = self.palettes[idx]
+        for geo in self.geometries:
+            hazard = geo.properties['hazard']
+            location = geo.properties['location']
+            pen, brush = self.palette(hazard, location)
             painter.setPen(pen)
             painter.setBrush(brush)
             painter.drawPolygon(geo)
 
-        sequence = self.geo['properties']['sequence']
-        path = QPainterPath()
-        font = QFont()
-        font.setBold(True)
-        font.setPointSize(16)
-        path.addText(self.boundingRect().center(), font, sequence)
-        pen = QPen(QColor(0, 0, 0, 120))
-        brush = QBrush(Qt.white)
-        painter.strokePath(path, pen)
-        painter.fillPath(path, brush)
+            if location == 'initial':
+                sequence = geo.properties['sequence']
+                path = QPainterPath()
+                font = QFont()
+                font.setBold(True)
+                font.setPointSize(16)
+                path.addText(geo.boundingRect().center(), font, sequence)
+                pen = QPen(QColor(0, 0, 0, 120))
+                brush = QBrush(Qt.white)
+                painter.strokePath(path, pen)
+                painter.fillPath(path, brush)
 
     def addTo(self, canvas, group):
-        polygons = self.geo['geometry']['coordinates']
-        for polygon in polygons:
-            geometry = {'type': 'Polygon', 'coordinates': polygon}
-            geo = self.toCanvasGeometry(canvas, geometry)
-            self.geometries.append(geo)
-        
+        for feature in self.geo['features']:
+            if feature['geometry']['type'] == 'Polygon':
+                polygons = [feature['geometry']['coordinates']]
+            else:
+                polygons = feature['geometry']['coordinates']
+
+            for polygon in polygons:
+                geometry = {'type': 'Polygon', 'coordinates': polygon}
+                geo = self.toCanvasGeometry(canvas, geometry)
+                geo.properties = feature['properties']
+                self.geometries.append(geo)
+                
         group.append(self)

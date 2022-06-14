@@ -13,9 +13,10 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView, Q
 from PyQt5.QtGui import QIcon, QPainter
 from PyQt5.QtCore import QCoreApplication, QObject, Qt, QRect, QRectF, QSize, pyqtSignal
 
+from tafor import logger
 from tafor.states import context
 from tafor.utils.convert import decimalToDegree, degreeToDecimal
-from tafor.utils.algorithm import encode, buffer, circle, flattenLine, clipLine, clipPolygon, simplifyPolygon
+from tafor.utils.algorithm import encode, depth, buffer, circle, flattenLine, clipLine, clipPolygon, simplifyPolygon
 from tafor.components.widgets.geometry import BackgroundImage, Coastline, Fir, Sigmet, SketchGraphic
 from tafor.components.widgets.widget import OutlinedLabel
 
@@ -181,6 +182,9 @@ class Sketch(QObject):
                     self.coordinates.pop()
                     self.radius = 0
                 else:
+                    if self.canvas.mode == 'line' and depth(self.coordinates) > 1:
+                        self.coordinates = self.coordinates[0]
+
                     if len(self.coordinates) > self.maxPoint:
                         self.coordinates = self.coordinates[:7]
                 self.done = False
@@ -211,8 +215,8 @@ class Sketch(QObject):
         if self.canvas.mode == 'corridor':
             deviation = 5000
             if self.done:
-                coords = buffer(self.coordinates, self.radius + deviation * ratio)
-                if ratio > 0 and len(self.coordinates) * 2 + 1 == len(coords):
+                polygon = buffer(self.coordinates, self.radius + deviation * ratio)
+                if ratio > 0 and len(self.coordinates) * 2 + 1 == len(polygon.exterior.coords):
                     self.radius += deviation * ratio
 
                 if ratio < 0 and self.radius > deviation:
@@ -228,20 +232,27 @@ class Sketch(QObject):
     def clip(self):
         # clip the polygon with boundaries
         if self.canvas.mode in ['polygon', 'line']:
-            self.coordinates = clipPolygon(self.boundaries, self.coordinates)
+            mode = 'single' if self.canvas.mode == 'polygon' else 'multi'
+            self.coordinates = clipPolygon(self.boundaries, self.coordinates, mode=mode)
 
             if self.canvas.mode == 'polygon':
                 self.coordinates = simplifyPolygon(self.coordinates, maxPoint=self.maxPoint, extend=True)
-            # make the points clockwise
-            self.coordinates.reverse()
-            self.done = True if len(self.coordinates) > 2 else False
+                # make the points clockwise
+                self.coordinates.reverse()
+                self.done = True if len(self.coordinates) > 2 else False
 
         if self.canvas.mode == 'rectangular':
             topLeft, bottomRight = self.coordinates
             topRight, bottomLeft = [bottomRight[0], topLeft[1]], [topLeft[0], bottomRight[1]]
             polygon = [topLeft, topRight, bottomRight, bottomLeft]
-            self.coordinates = clipPolygon(self.boundaries, polygon)
+            self.coordinates = clipPolygon(self.boundaries, polygon, mode='multi')
             self.done = True
+
+        if self.canvas.mode in ['line', 'rectangular']:
+            if depth(self.coordinates) > 1:
+                self.done = True
+            else:
+                self.done = True if len(self.coordinates) > 2 else False
 
         self.finished.emit()
         self.redraw()
@@ -256,12 +267,7 @@ class Sketch(QObject):
     def geo(self):
         geometry = {}
         if self.canvas.mode in ['polygon', 'line', 'corridor']:
-            if self.done:
-                geometry = {
-                    'type': 'Polygon',
-                    'coordinates': self.coordinates
-                }
-            else:
+            if not self.done:
                 if len(self.coordinates) == 1:
                     geometry = {
                         'type': 'Point',
@@ -274,19 +280,30 @@ class Sketch(QObject):
                         'coordinates': self.coordinates
                     }
 
-        if self.canvas.mode == 'rectangular':
+        if self.canvas.mode in ['polygon']:
             if self.done:
                 geometry = {
                     'type': 'Polygon',
                     'coordinates': self.coordinates
                 }
 
+        if self.canvas.mode in ['line', 'rectangular']:
+            if self.done:
+                geometry = {
+                    'coordinates': self.coordinates
+                }
+
+                if depth(self.coordinates) > 1:
+                    geometry['type'] = 'MultiPolygon'
+                else:
+                    geometry['type'] = 'Polygon'
+
         if self.canvas.mode == 'circle':
             if self.done:
-                circles = circle(self.coordinates[0], self.radius)
+                polygon = circle(self.coordinates[0], self.radius)
                 geometry = {
                     'type': 'Polygon',
-                    'coordinates': circles
+                    'coordinates': list(polygon.exterior.coords)
                 }
             else:
                 if self.coordinates:
@@ -297,11 +314,11 @@ class Sketch(QObject):
 
         if self.canvas.mode == 'corridor':
             if self.done:
-                points = buffer(self.coordinates, self.radius)
+                polygon = buffer(self.coordinates, self.radius)
                 
                 geometry = {
                     'type': 'Polygon',
-                    'coordinates': points
+                    'coordinates': list(polygon.exterior.coords)
                 }
 
         return geometry
@@ -313,18 +330,26 @@ class Sketch(QObject):
         message = ''
 
         if self.canvas.mode == 'rectangular':
-            area = encode(context.layer.boundaries(), self.coordinates, mode='rectangular')
 
-            lines = []
-            for identifier, *points in area:
-                points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in points]
-                lonlat = flattenLine(points)
+            # bug, the sketch changed signal emitted before the clipping
+            if depth(self.coordinates) > 1:
+                self.done = True
+            else:
+                self.done = True if len(self.coordinates) > 2 else False
 
-                if lonlat:
-                    line = '{} OF {}'.format(identifier, lonlat)
-                    lines.append(line)
+            if self.done:
+                area = encode(context.layer.boundaries(), self.coordinates, mode='rectangular')
 
-            message = ' AND '.join(lines)
+                lines = []
+                for identifier, *points in area:
+                    points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in points]
+                    lonlat = flattenLine(points)
+
+                    if lonlat:
+                        line = '{} OF {}'.format(identifier, lonlat)
+                        lines.append(line)
+
+                message = ' AND '.join(lines)
 
         if self.canvas.mode == 'line':
             if self.done:
@@ -878,8 +903,11 @@ class GraphicsWindow(QWidget):
 
     def formattedCoordinates(self):
         messages = []
-        for s in self.canvas.sketchManager.sketchs:
-            messages.append(s.text())
+        try:
+            for s in self.canvas.sketchManager.sketchs:
+                messages.append(s.text())
+        except Exception as e:
+            logger.error(e)
 
         return messages
 
@@ -1069,8 +1097,12 @@ class GraphicsWindow(QWidget):
         geos = []
         for sig in sigmets:
             parser = sig.parser()
-            geo = parser.geo(context.layer.boundaries(), context.layer.trimShapes)
-            geos.append(geo)
+
+            try:
+                geo = parser.geo(context.layer.boundaries(), context.layer.trimShapes)
+                geos.append(geo)
+            except Exception as e:
+                logger.error('Sigmet area can not be decoded, "{}" Error {}'.format(sig.text, e))
 
         self.canvas.drawSigmets(geos)
 

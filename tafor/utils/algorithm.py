@@ -1,7 +1,7 @@
 import math
 
 from shapely.ops import split, linemerge
-from shapely.geometry import Polygon, LineString, MultiLineString, Point
+from shapely.geometry import Polygon, MultiPolygon, LineString, LinearRing, MultiLineString, Point
 
 from pyproj import Geod
 
@@ -23,11 +23,33 @@ def centroid(points):
     return point
 
 def bearing(origin, point):
+    if isinstance(origin, Point):
+        origin = [origin.x, origin.y]
+
+    if isinstance(point, Point):
+        point = [point.x, point.y]
+
     return math.atan2(origin[1] - point[1], origin[0] - point[0])
 
 def distance(p1, p2):
     length = (p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2
     return math.sqrt(length)
+
+def depth(l):
+    if isinstance(l, list):
+        return max(map(depth, l)) + 1 if l else 1
+    else:
+        return 0
+
+def slope(line, ndigits=5):
+    x1, y1 = line.coords[0]
+    x2, y2 = line.coords[-1]
+
+    if x2 - x1 == 0:
+        return None
+
+    s = (y2 - y1) / (x2 - x1)
+    return round(s, ndigits)
 
 def buffer(lines, dist):
     line = LineString(lines)
@@ -37,9 +59,7 @@ def buffer(lines, dist):
     deg = (lat - center.x + lon - center.y) / 2
 
     polygon = line.buffer(deg, cap_style=2, join_style=2)
-    if polygon.is_empty:
-        return []
-    return list(polygon.exterior.coords)
+    return polygon
 
 def perpendicularFoot(p1, p2, p3):
     ratio = ((p3[0]- p1[0]) * (p2[0] - p1[0]) + (p3[1] - p1[1]) * (p2[1] - p1[1])) / ((p2[0] - p1[0]) * (p2[0] - p1[0]) + (p2[1] - p1[1]) * (p2[1] - p1[1]))
@@ -120,20 +140,6 @@ def flattenLine(line):
 
     return line
 
-def mergeLine(lines):
-    points = []
-    lines = MultiLineString(lines)
-    merged = linemerge(lines)
-
-    if merged.geom_type == 'LineString':
-        points = [list(merged.coords)]
-
-    elif merged.geom_type == 'MultiLineString':
-        for line in merged.geoms:
-            points.append(list(line.coords))
-
-    return points
-
 def clipLine(polygon, points):
     subj = Polygon(polygon)
     clip = LineString(points)
@@ -145,7 +151,17 @@ def clipLine(polygon, points):
 
     return points
 
-def clipPolygon(subj, clip):
+def whichSide(line, point):
+    # form a LinearRing with the end-points of the splitter and a point
+    # determine which side of the line the point is on
+    coords = line + [point]
+    ring = LinearRing(coords)
+    if ring.is_ccw:
+        return 'right'
+    else:
+        return 'left'
+
+def clipPolygon(subj, clip, mode='single'):
     """计算两个多边形之间的交集，并根据允许的最大点平滑多边形
 
     :param subj: 列表，目标多边形的坐标集
@@ -155,11 +171,22 @@ def clipPolygon(subj, clip):
     """
     subj = Polygon(subj)
     clip = Polygon(clip)
+    points = []
     try:
-        intersection = subj.intersection(clip)
-        points = list(intersection.exterior.coords)
+        polygon = subj.intersection(clip)
+
+        if polygon.geom_type == 'MultiPolygon':
+            if mode == 'single':
+                polygon = max(polygon.geoms, key=lambda p: p.area)
+            else:
+                for p in polygon.geoms:
+                    points.append(list(p.exterior.coords))
+
+        if polygon.geom_type == 'Polygon':
+            points = list(polygon.exterior.coords)
+
     except Exception as e:
-        points = []
+        print(e)
 
     return points
 
@@ -280,7 +307,12 @@ def decodePolygon(boundary, polygon, trim):
     polygon = Polygon(polygon)
     if trim:
         polygon = polygon.intersection(boundary)
-    return list(polygon.exterior.coords)
+
+    # there can be only one area in polygon sigmet
+    if polygon.geom_type == 'MultiPolygon':
+        polygon = max(polygon.geoms, key=lambda p: p.area)
+
+    return polygon
 
 def decodeLine(boundary, lines):
     polygons = []
@@ -291,15 +323,17 @@ def decodeLine(boundary, lines):
         parts = split(boundary, line)
         direction = directions[identifier]
 
-        def tolerance(part):
-            center = [part.centroid.x, part.centroid.y]
-            vector = perpendicularVector(points, center)
-            angle = bearing(vector, [0, 0]) / math.pi
-            degree = subAngle(direction, angle)
-            return degree
+        refPoint = (line.centroid.x + math.cos(direction * math.pi) * 10, line.centroid.y + math.sin(direction * math.pi) * 10)
+        side = whichSide(points, refPoint)
 
-        polygon = min(parts.geoms, key=tolerance)
-        polygons.append(polygon)
+        shapes = []
+        for part in parts.geoms:
+            center = (part.centroid.x, part.centroid.y)
+            if side == whichSide(points, center):
+                shapes.append(part)
+
+        if shapes:
+            polygons.append(MultiPolygon(shapes))
 
     for i, polygon in enumerate(polygons):
         if i == 0:
@@ -307,7 +341,7 @@ def decodeLine(boundary, lines):
         else:
             current = current.intersection(polygon)
 
-    return list(current.exterior.coords)
+    return current
 
 def circle(center, radius):
     circles = []
@@ -315,7 +349,7 @@ def circle(center, radius):
         lon, lat, _ = wgs84.fwd(center[0], center[1], i, radius)
         circles.append([lon, lat])
 
-    return circles
+    return Polygon(circles)
 
 def decode(boundaries, locations, mode, trim=True):
     from tafor.utils.convert import degreeToDecimal
@@ -366,103 +400,165 @@ def decode(boundaries, locations, mode, trim=True):
         return buffer(lines, width * 1000)
 
     if mode == 'entire':
-        return boundaries
+        return boundary
 
-class EncodeSigmetArea(object):
+def mergeSameSlopeLines(lines):
+    points = []
+    for line in lines:
+        points += line.coords
 
-    def __init__(self, boundaries, area, mode='rectangular'):
-        self.boundaries = boundaries
-        self.area = area
-        self.mode = mode
+    points = [Point(p) for p in points]
+    box = LineString(points).envelope
+    center = box.centroid
 
-    @classmethod
-    def bearingToDirection(cls, angle):
-        directions = {'SE': -0.25, 'NE': 0.25, 'N': 0.5, 'SW': -0.75, 'W': 1.0, 'NW': 0.75, 'E': 0.0, 'S': -0.5}
-        bearing = angle / math.pi
+    while len(points) > 2:
+        target = min(points, key=lambda p: p.distance(center))
+        points.remove(target)
 
-        deviation = 10
-        identifier = ''
-        for k, v in directions.items():
-            value = subAngle(v, bearing)
-            if value < deviation or (value == deviation and len(k) < len(identifier)):
-                deviation = value
-                identifier = k
+    return LineString(points)
 
-        return identifier
+def findNonOverlappingLines(boundaries, points):
+    lines = []
+    boundary = LineString(boundaries).buffer(0.3)
+    for p, q in zip(points, points[1:]):
+        line = LineString([p, q])
+        if not boundary.contains(line):
+            lines.append(line)
 
-    def nonOverlappingLines(self):
-        lines = []
-        boundary = LineString(self.boundaries).buffer(0.3)
-        for p, q in zip(self.area, self.area[1:]):
-            line = LineString([p, q])
-            if not boundary.contains(line):
-                lines.append(list(line.coords))
+    return lines
 
-        return lines
+def findLines(boundaries, polygons):
 
-    def boundaryContainsLine(self, line):
-        for points in zip(self.boundaries, self.boundaries[1:]):
-            bound = LineString(points).buffer(0.1)
-            line = LineString(line)
-            if bound.contains(line):
+    def _contains(origin, lines):
+        for line in lines:
+            polyline = line.buffer(0.1)
+            if polyline.contains(origin):
                 return True
 
         return False
 
-    def lineIntersectsSameBoundary(self, lines):
-        for line in lines:
-            straightLine = [line[0], line[-1]]
-            if self.boundaryContainsLine(straightLine):
-                return True
+    # find the lines that not overlap with the boundary based on the polygon
+    lines = []
+    for points in polygons:
+        geoms = findNonOverlappingLines(boundaries, points)
+        for line in geoms:
+            lines.append(line)
+    
+    # find the same slope line
+    slopes = [slope(line) for line in lines]
+    slopeLines = []
+    for s in set(slopes):
+        if slopes.count(s) > 1:
+            parallelLines = []
+            for line in lines:
+                if s == slope(line):
+                    parallelLines.append(line)
 
-        return False
+            slopeLines.append(parallelLines)
 
-    def centerNotInPolygon(self):
-        polygon = Polygon(self.area)
-        return polygon.disjoint(polygon.centroid)
+    # remove the parallel line
+    mergeLines = []
+    for parallelLines in slopeLines:
+        sameLines = []
+        for line in parallelLines:
+            extendLines = [extendLine(l, offset=100) for l in parallelLines if l is not line]
+            if _contains(line, extendLines):
+                sameLines.append(line)
 
-    def createArea(self, lines):
-        segment = []
+        if sameLines:
+            mergeLines.append(sameLines)
 
-        points = []
-        for line in lines:
-            points += line
+    # merge the same line
+    for sameLines in mergeLines:
+        keep, *removes = sameLines
+        idx = lines.index(keep)
+        lines[idx] = mergeSameSlopeLines(sameLines)
+        for r in removes:
+            lines.remove(r)
 
-        exlude = set(self.area) - set(points)
-        if not exlude:
-            exlude = self.area
-        center = centroid(exlude)
+    return lines
 
-        for line in lines:
-            vector = perpendicularVector(line, center)
-            identifier = self.bearingToDirection(bearing(vector, [0, 0]))
-            segment.append([identifier] + line)
+def bearingToDirection(angle):
+    directions = {'SE': -0.25, 'NE': 0.25, 'N': 0.5, 'SW': -0.75, 'W': 1.0, 'NW': 0.75, 'E': 0.0, 'S': -0.5}
+    bearing = angle / math.pi
 
-        return segment
+    deviation = 10
+    identifier = ''
+    for k, v in directions.items():
+        value = subAngle(v, bearing)
+        if value < deviation or (value == deviation and len(k) < len(identifier)):
+            deviation = value
+            identifier = k
 
-    def rectangular(self):
-        lines = self.nonOverlappingLines()
-        segment = self.createArea(lines)
-        return segment
+    return identifier
 
-    def line(self):
-        lines = self.nonOverlappingLines()
-        lines = mergeLine(lines)
+def determineDirection(lines, polygons):
 
-        if self.centerNotInPolygon() or self.lineIntersectsSameBoundary(lines):
-            return []
+    def _average(angles):
+        # calculate the average value based on the area
+        areas = [area for _, area in angles]
+        totalArea = sum(areas)
+        num = 0
+        for angle, area in angles:
+            num += angle * area / totalArea
+        return num
 
-        segment = self.createArea(lines)
+    # determine the polygon corresponding to each line, then calculate slope and area
+    geoms = []
+    for line in lines:
+        angles = []
+        for points in polygons:
+            polygon = Polygon(points)
+            polyline = line.buffer(0.1)
+            if polyline.intersects(polygon):
+                if len(line.coords) > 2:
+                    # optional, use line centroid to calculate angle
+                    intersect = polyline.intersection(polygon)
+                    angle = bearing(polygon.centroid, intersect.centroid)
+                else:
+                    # use perpendicular foot to calculate angle
+                    center = polygon.centroid
+                    vector = perpendicularVector(line.coords, (center.x, center.y))
+                    angle = bearing(vector, [0, 0])
 
-        return segment
+                angles.append((angle, polygon.area))
 
-    def encode(self):
-        if self.mode == 'rectangular':
-            return self.rectangular()
+        geoms.append([line, angles])
 
-        if self.mode == 'line':
-            return self.line()
+    # find the direction of the line
+    segment = []
+    for line, angles in geoms:
+        angle = _average(angles)
+        identifier = bearingToDirection(angle)
+        segment.append([identifier] + list(line.coords))
 
+    return segment
 
-def encode(boundaries, area, mode='rectangular'):
-    return EncodeSigmetArea(boundaries, area, mode=mode).encode()
+def encodeRectangular(boundaries, polygons):
+    lines = findLines(boundaries, polygons)
+    segment = determineDirection(lines, polygons)
+    return segment
+
+def encodeLine(boundaries, polygons):
+    lines = findLines(boundaries, polygons)
+    # merge the line with same point
+    merged = linemerge(MultiLineString(lines))
+    if merged.geom_type == 'MultiLineString':
+        lines = merged.geoms
+    else:
+        lines = [merged]
+
+    segment = determineDirection(lines, polygons)
+    return segment
+
+def encode(boundaries, coordinates, mode):
+    if depth(coordinates) < 2:
+        polygons = [coordinates]
+    else:
+        polygons = coordinates
+
+    if mode == 'rectangular':
+        return encodeRectangular(boundaries, polygons)
+
+    if mode == 'line':
+        return encodeLine(boundaries, polygons)

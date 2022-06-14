@@ -153,7 +153,8 @@ class BaseSigmet(SegmentMixin, QWidget):
         return self.parent.type
 
     def firstLine(self):
-        area = conf.value('Message/FIR').split()[0]
+        fir = conf.value('Message/FIR')
+        area = fir.split()[0] if fir else ''
         sign = self.parent.reportType()
         sequence = self.sequence.text()
         beginningTime = self.beginningTime.text()

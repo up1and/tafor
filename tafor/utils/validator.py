@@ -1553,28 +1553,47 @@ class SigmetParser(object):
 
     def geo(self, boundaries, trim=None):
         from tafor.utils.algorithm import decode
-        features = {
-            'type': 'Feature',
-            'geometry': {
-                'type': 'Polygon',
-                'coordinates': []
-            },
-            'properties': {
-                'sequence': self.sequence(),
-                'valids': self.valids(),
-                'hazard': self.hazard()
-            }
+        collections = {
+            'type': 'FeatureCollection',
+            'features': []
         }
 
+        sequence = self.sequence()
+        valids = self.valids()
+        hazard = self.hazard()
+
         locations = self.location()
-        if len(locations) > 1:
-            features['geometry']['type'] = 'MultiPolygon'
-
-        for item in locations:
+        for i, item in enumerate(locations):
             polygon = decode(boundaries, item['coordinates'], mode=item['type'], trim=trim)
-            features['geometry']['coordinates'].append(polygon)
+            features = {
+                'type': 'Feature',
+                'geometry': {
+                    'type': 'Polygon',
+                    'coordinates': []
+                },
+                'properties': {
+                    'sequence': sequence,
+                    'valids': valids,
+                    'hazard': hazard,
+                    'location': 'initial'
+                }
+            }
+            if polygon.geom_type == 'MultiPolygon':
+                coords = []
+                for p in polygon.geoms:
+                    coords.append(list(p.exterior.coords))
+                features['geometry']['type'] = 'MultiPolygon'
+            else:
+                coords = list(polygon.exterior.coords)
 
-        return features
+            features['geometry']['coordinates'] = coords
+
+            if i > 0:
+                features['properties']['location'] = 'final'
+
+            collections['features'].append(features)
+
+        return collections
 
     def content(self):
         outputs = [e.renderer() for e in self.elements]
