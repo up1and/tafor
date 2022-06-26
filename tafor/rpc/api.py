@@ -206,40 +206,6 @@ class NotificationResource(object):
         resp.media = media
 
 
-class ValidateResource(object):
-
-    @falcon.before(authorize)
-    def on_get(self, req, resp):
-        message = req.get_param('message') or ''
-        message = message.strip()
-
-        kwargs = {
-            'visHas5000': boolean(conf.value('Validation/VisHas5000')),
-            'cloudHeightHas450': boolean(conf.value('Validation/CloudHeightHas450')),
-            'weakPrecipitationVerification': boolean(conf.value('Validation/WeakPrecipitationVerification')),
-        }
-
-        if not message:
-            raise falcon.HTTPBadRequest('Message Required', 'Please provide the message that needs to be validated.')
-
-        if not (message.startswith(('TAF', 'METAR', 'SPECI')) or 'SIGMET' in message or 'AIRMET' in message):
-            raise falcon.HTTPBadRequest('Invalid Message', 'Only TAF, METAR/SPECI and SIGMET/AIRMET message can be supported.')
-
-        if message.startswith('TAF'):
-            data = parse_taf(message, kwargs)
-        elif message.startswith('METAR') or message.startswith('SPECI'):
-            data = parse_metar(message, kwargs)
-            context.notification.metar.setState({
-                'message': message,
-                'validation': True
-            })
-        else:
-            data = parse_sigmet(message, kwargs)
-
-
-        resp.media = data
-
-
 class OtherResource(object):
 
     @falcon.before(authorize)
@@ -291,10 +257,8 @@ main = MainResource()
 state = StateResource()
 other = OtherResource()
 notification = NotificationResource()
-validate = ValidateResource()
 
 server.add_route('/api/state', state)
-server.add_route('/api/validate', validate)
 server.add_route('/api/others', other)
 server.add_route('/api/notifications', notification)
 
