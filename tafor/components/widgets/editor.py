@@ -36,12 +36,12 @@ class BaseEditor(QDialog):
         self.isStaged = True
         self.show()
 
-    def showSender(self, messages):
+    def showSender(self, message):
         if self.sender.isVisible():
             self.sender.clear()
 
         self.hide()
-        self.sender.receive(messages)
+        self.sender.receive(message)
         self.sender.show()
 
     def showConfigError(self):

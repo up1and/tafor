@@ -7,7 +7,7 @@ from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
 
 from tafor import conf, logger
 from tafor.states import context
-from tafor.models import db
+from tafor.models import db, Other
 from tafor.utils import boolean, TafParser, MetarParser, SigmetParser, AFTNMessageGenerator, FileMessageGenerator, AFTNDecoder
 from tafor.utils.thread import SerialThread, FtpThread
 from tafor.components.ui import Ui_send, main_rc
@@ -428,8 +428,9 @@ class CustomSender(BaseSender):
         return 'aftn'
 
     def load(self):
-        self.message = context.other.state()
+        state = context.other.state()
         rawText = self.generateRawText()
+        self.message = Other(uuid=state['uuid'], text=state['message'], source='api')
         self.setRawGroup(rawText)
         self.protocolSign.show()
         self.sendButton.show()
@@ -437,9 +438,10 @@ class CustomSender(BaseSender):
         self.rawGroup.setTitle(QCoreApplication.translate('Sender', 'Received Messages'))
 
     def parameters(self):
-        message = self.message['message']
-        priority = self.message['priority']
-        address = self.message['address']
+        state = context.other.state()
+        message = state['message']
+        priority = state['priority']
+        address = state['address']
         channel = conf.value('Communication/Channel') or ''
         originator = conf.value('Communication/OriginatorAddress') or ''
         number = conf.value(self.channel().sequenceConfigPath) or 1
