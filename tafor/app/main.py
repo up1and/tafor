@@ -57,6 +57,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.updateSigmet()
         self.updateTable()
         self.updateRecent()
+        self.updateRegisterMenu()
 
     def setup(self):
         self.setWindowIcon(QIcon(':/logo.png'))
@@ -86,7 +87,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.setupRecent()
         self.setupTable()
-        self.setupAboutMenu()
         self.setupSysTray()
         self.setupThread()
         self.setupSound()
@@ -131,6 +131,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.settingDialog.restarted.connect(self.restart)
         self.settingDialog.settingChanged.connect(self.closeSender)
 
+        self.licenseEditor.licenseChanged.connect(self.updateRegisterMenu)
+
         self.metarTable.chartClicked.connect(self.chartViewer.show)
 
         self.layerThread.finished.connect(self.sigmetEditor.updateLayer)
@@ -158,15 +160,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.metarTable = MetarTable(self, self.metarLayout)
         self.sigmetTable = SigmetTable(self, self.sigmetLayout)
         self.airmetTable = AirmetTable(self, self.airmetLayout)
-
-    def setupAboutMenu(self):
-        registered = context.environ.license()
-        if registered:
-            self.enterLicenseAction.setVisible(False)
-            self.removeLicenseAction.setVisible(True)
-        else:
-            self.enterLicenseAction.setVisible(True)
-            self.removeLicenseAction.setVisible(False)
 
     def setupSysTray(self):
         self.tray = QSystemTrayIcon(self)
@@ -380,6 +373,15 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         if not self.remindSigmetBox.isVisible():
             self.sigmetSound.stop()
 
+    def updateRegisterMenu(self):
+        registered = context.environ.license()
+        if registered:
+            self.enterLicenseAction.setVisible(False)
+            self.removeLicenseAction.setVisible(True)
+        else:
+            self.enterLicenseAction.setVisible(True)
+            self.removeLicenseAction.setVisible(False)
+
     def updateMessage(self):
         wishlist = ['SA', 'SP']
         if conf.value('General/TAFSpec'):
@@ -571,8 +573,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         text = QCoreApplication.translate('MainWindow', 'Remove license key? This will revert tafor to an unregistered state.')
         ret = QMessageBox.question(self, title, text)
         if ret == QMessageBox.Yes:
-            conf.setValue('License', '')
-            self.setAboutMenu()
+            self.licenseEditor.removeLicense()
 
 
 def main():

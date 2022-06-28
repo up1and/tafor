@@ -3,6 +3,7 @@ falcon
 pyserial
 python-dateutil
 pyjwt
+pyjwt[crypto]
 pyshp
 pyproj
 waitress

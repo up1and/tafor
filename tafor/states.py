@@ -401,9 +401,13 @@ class EnvironState(object):
     def token(self):
         return conf.value('Interface/AuthToken') or self.authToken
 
-    def license(self):
+    def license(self, token=None):
         from tafor.utils import verifyToken
-        payload = verifyToken(conf.value('License'), self.key)
+
+        if not token:
+            token = conf.value('License')
+
+        payload = verifyToken(token, self.key)
 
         if payload is None:
             return {}

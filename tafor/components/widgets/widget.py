@@ -2,7 +2,7 @@ import math
 import datetime
 
 from PyQt5.QtGui import QPixmap, QIcon, QBrush, QPen, QFontMetrics, QPainterPath, QPainter
-from PyQt5.QtCore import QCoreApplication, QTimer, QSize, Qt
+from PyQt5.QtCore import QCoreApplication, QTimer, QSize, Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QLabel, QHBoxLayout
 
 from tafor import conf
@@ -271,6 +271,8 @@ class Clock(QWidget):
 
 class LicenseEditor(QDialog, Ui_main_license.Ui_Editor):
 
+    licenseChanged = pyqtSignal()
+
     def __init__(self, parent):
         super(LicenseEditor, self).__init__(parent)
         self.setupUi(self)
@@ -281,12 +283,10 @@ class LicenseEditor(QDialog, Ui_main_license.Ui_Editor):
     def save(self):
         license = self.textarea.toPlainText().strip()
         license = ''.join(license.split())
-        conf.setValue('License', license)
-        if context.environ.license():
-            self.parent.setAboutMenu()
+        if context.environ.license(license):
+            self.setLicense(license)
             self.textarea.clear()
         else:
-            conf.setValue('License', '')
             text = QCoreApplication.translate('Editor', 'That license key doesn\'t appear to be valid')
             QMessageBox.critical(self, 'Tafor', text)
 
@@ -296,3 +296,13 @@ class LicenseEditor(QDialog, Ui_main_license.Ui_Editor):
             QMessageBox.information(self, 'Tafor', text)
         else:
             self.show()
+
+    def setLicense(self, text):
+        prev = conf.value('License')
+        conf.setValue('License', text)
+
+        if prev != text:
+            self.licenseChanged.emit()
+
+    def removeLicense(self):
+        self.setLicense('')
