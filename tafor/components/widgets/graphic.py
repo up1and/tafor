@@ -242,11 +242,12 @@ class Sketch(QObject):
                 self.done = True if len(self.coordinates) > 2 else False
 
         if self.canvas.mode == 'rectangular':
-            topLeft, bottomRight = self.coordinates
-            topRight, bottomLeft = [bottomRight[0], topLeft[1]], [topLeft[0], bottomRight[1]]
-            polygon = [topLeft, topRight, bottomRight, bottomLeft]
-            self.coordinates = clipPolygon(self.boundaries, polygon, mode='multi')
-            self.done = True
+            if len(self.coordinates) == 2:
+                topLeft, bottomRight = self.coordinates
+                topRight, bottomLeft = [bottomRight[0], topLeft[1]], [topLeft[0], bottomRight[1]]
+                polygon = [topLeft, topRight, bottomRight, bottomLeft]
+                self.coordinates = clipPolygon(self.boundaries, polygon, mode='multi')
+                self.done = True
 
         if self.canvas.mode in ['line', 'rectangular']:
             if depth(self.coordinates) > 1:
@@ -563,6 +564,7 @@ class Canvas(QGraphicsView):
             self.pos = event.pos()
             self.rubberBand.setGeometry(QRect(self.pos, QSize()))
             self.rubberBand.show()
+            self.sketch.clear()
             self.sketch.append(event.pos())
 
         if event.button() == Qt.RightButton:
