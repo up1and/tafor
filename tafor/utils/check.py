@@ -155,14 +155,21 @@ def availableMetar(type, message):
         return Metar(type=type, text=message)
 
 def availableTaf(type, message):
-    time = datetime.datetime.utcnow()
-    last = db.query(Taf).filter_by(type=type).order_by(Taf.created.desc()).first()
-    if last is None or last.flatternedText() != message:
-        return Taf(type=type, text=message, source='api', confirmed=time)
+    recent = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
+    tafs = db.query(Taf).filter(type==type, Taf.created > recent).all()
 
-    if last and not last.confirmed and last.flatternedText() == message:
-        last.confirmed = time
-        return last
+    def _match(objects, message):
+        for taf in objects:
+            if taf.flatternedText() == message:
+                return taf
+
+    matched = _match(tafs, message)
+    if matched:
+        if not matched.confirmed:
+            matched.confirmed = datetime.datetime.utcnow()
+            return matched
+    else:
+        return Taf(type=type, text=message, source='api', confirmed=datetime.datetime.utcnow())
 
 def availableSigmet(type, messages):
     recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
