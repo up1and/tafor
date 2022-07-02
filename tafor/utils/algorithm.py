@@ -212,7 +212,7 @@ class SimplifyPolygon(object):
         return outputs
 
     def findBaselines(self, points, simples):
-        baseshape = Polygon(simples).buffer(0.01, cap_style=2, join_style=2)
+        baseshape = Polygon(simples).buffer(0.1, cap_style=2, join_style=2)
         baselines = []
         outsides = []
         for p, q in zip(simples, simples[1:]):
@@ -419,7 +419,7 @@ def mergeSameSlopeLines(lines):
 
 def findNonOverlappingLines(boundaries, points):
     lines = []
-    boundary = LineString(boundaries).buffer(0.3)
+    boundary = LineString(boundaries).buffer(0.1)
     for p, q in zip(points, points[1:]):
         line = LineString([p, q])
         if not boundary.contains(line):
@@ -512,7 +512,7 @@ def determineDirection(lines, polygons):
             polyline = line.buffer(0.1)
             if polyline.intersects(polygon):
                 if len(line.coords) > 2:
-                    # optional, use line centroid to calculate angle
+                    # use line centroid to calculate angle
                     intersect = polyline.intersection(polygon)
                     angle = bearing(polygon.centroid, intersect.centroid)
                 else:
@@ -542,11 +542,12 @@ def encodeRectangular(boundaries, polygons):
 def encodeLine(boundaries, polygons):
     lines = findLines(boundaries, polygons)
     # merge the line with same point
-    merged = linemerge(MultiLineString(lines))
-    if merged.geom_type == 'MultiLineString':
-        lines = merged.geoms
-    else:
-        lines = [merged]
+    if lines:
+        merged = linemerge(MultiLineString(lines))
+        if merged.geom_type == 'MultiLineString':
+            lines = merged.geoms
+        else:
+            lines = [merged]
 
     segment = determineDirection(lines, polygons)
     return segment

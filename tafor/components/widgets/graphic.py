@@ -328,79 +328,82 @@ class Sketch(QObject):
 
     def text(self):
         message = ''
+        try:
+            if self.canvas.mode == 'rectangular':
 
-        if self.canvas.mode == 'rectangular':
+                # bug, the sketch changed signal emitted before the clipping
+                if depth(self.coordinates) > 1:
+                    self.done = True
+                else:
+                    self.done = True if len(self.coordinates) > 2 else False
 
-            # bug, the sketch changed signal emitted before the clipping
-            if depth(self.coordinates) > 1:
-                self.done = True
-            else:
-                self.done = True if len(self.coordinates) > 2 else False
+                if self.done:
+                    area = encode(context.layer.boundaries(), self.coordinates, mode='rectangular')
 
-            if self.done:
-                area = encode(context.layer.boundaries(), self.coordinates, mode='rectangular')
+                    lines = []
+                    for identifier, *points in area:
+                        points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in points]
+                        lonlat = flattenLine(points)
 
-                lines = []
-                for identifier, *points in area:
-                    points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in points]
-                    lonlat = flattenLine(points)
+                        if lonlat:
+                            line = '{} OF {}'.format(identifier, lonlat)
+                            lines.append(line)
 
-                    if lonlat:
-                        line = '{} OF {}'.format(identifier, lonlat)
+                    message = ' AND '.join(lines)
+
+            if self.canvas.mode == 'line':
+                if self.done:
+                    area = encode(context.layer.boundaries(), self.coordinates, mode='line')
+
+                    lines = []
+                    for identifier, *points in area:
+                        points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in points]
+                        coordinates = []
+                        for lon, lat in points:
+                            coordinates.append('{} {}'.format(lat, lon))
+
+                        line = '{} OF LINE {}'.format(identifier, ' - '.join(coordinates))
                         lines.append(line)
 
-                message = ' AND '.join(lines)
+                    message = ' AND '.join(lines)
+                else:
+                    points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in self.coordinates]
+                    coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
+                    message = ' - '.join(coordinates)
 
-        if self.canvas.mode == 'line':
-            if self.done:
-                area = encode(context.layer.boundaries(), self.coordinates, mode='line')
-
-                lines = []
-                for identifier, *points in area:
-                    points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in points]
-                    coordinates = []
-                    for lon, lat in points:
-                        coordinates.append('{} {}'.format(lat, lon))
-
-                    line = '{} OF LINE {}'.format(identifier, ' - '.join(coordinates))
-                    lines.append(line)
-
-                message = ' AND '.join(lines)
-            else:
+            if self.canvas.mode == 'polygon':
                 points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in self.coordinates]
-                coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
-                message = ' - '.join(coordinates)
+                if self.done:
+                    coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
+                    message = 'WI ' + ' - '.join(coordinates)
+                else:
+                    coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
+                    message = ' - '.join(coordinates)
 
-        if self.canvas.mode == 'polygon':
-            points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in self.coordinates]
-            if self.done:
-                coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
-                message = 'WI ' + ' - '.join(coordinates)
-            else:
-                coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
-                message = ' - '.join(coordinates)
+            if self.canvas.mode == 'corridor':
+                points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in self.coordinates]
+                if self.done:
+                    unit = 'KM'
+                    coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
+                    line = ' - '.join(coordinates)
+                    message = 'APRX {}{} WID LINE BTN {}'.format(round(self.radius / 1000), unit, line)
+                else:
+                    coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
+                    message = ' - '.join(coordinates)
 
-        if self.canvas.mode == 'corridor':
-            points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in self.coordinates]
-            if self.done:
-                unit = 'KM'
-                coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
-                line = ' - '.join(coordinates)
-                message = 'APRX {}{} WID LINE BTN {}'.format(round(self.radius / 1000), unit, line)
-            else:
-                coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
-                message = ' - '.join(coordinates)
+            if self.canvas.mode == 'circle':
+                points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in self.coordinates]
+                if self.done:
+                    unit = 'KM'
+                    center = points[0]
+                    items = ['PSN {} {}'.format(center[1], center[0]), 'WI {}{} OF CENTRE'.format(round(self.radius / 1000), unit)]
+                    message = ' - '.join(items)
+                else:
+                    coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
+                    message = ' - '.join(coordinates)
 
-        if self.canvas.mode == 'circle':
-            points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in self.coordinates]
-            if self.done:
-                unit = 'KM'
-                center = points[0]
-                items = ['PSN {} {}'.format(center[1], center[0]), 'WI {}{} OF CENTRE'.format(round(self.radius / 1000), unit)]
-                message = ' - '.join(items)
-            else:
-                coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
-                message = ' - '.join(coordinates)
+        except Exception as e:
+            logger.error(e)
 
         return message
 
@@ -903,12 +906,8 @@ class GraphicsWindow(QWidget):
 
     def formattedCoordinates(self):
         messages = []
-        try:
-            for s in self.canvas.sketchManager.sketchs:
-                messages.append(s.text())
-        except Exception as e:
-            logger.error(e)
-
+        for s in self.canvas.sketchManager.sketchs:
+            messages.append(s.text())
         return messages
 
     def circleCoordinates(self):
