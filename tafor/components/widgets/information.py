@@ -479,8 +479,8 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
     def bindSignal(self):
         super().bindSignal()
 
-        self.currentLatitude.textEdited.connect(self.handleCircleChange)
-        self.currentLongitude.textEdited.connect(self.handleCircleChange)
+        self.currentLatitude.editingFinished.connect(self.handleCircleChange)
+        self.currentLongitude.editingFinished.connect(self.handleCircleChange)
         self.range.textEdited.connect(self.handleCircleChange)
 
         self.currentLatitude.textChanged.connect(self.setForecastPosition)
