@@ -66,8 +66,8 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.cancel.clicked.connect(self.changeContent)
 
         self.graphic.sketchChanged.connect(self.enbaleNextButton)
-        self.graphic.modeChanged.connect(self.setForecastMode)
-        self.graphic.modeChanged.connect(self.enbaleNextButton)
+        self.graphic.overlapChanged.connect(self.setOverlapMode)
+        self.graphic.overlapChanged.connect(self.enbaleNextButton)
 
         self.graphic.circleChanged.connect(self.typhoonContent.setTyphoonLocation)
         self.typhoonContent.circleChanged.connect(self.graphic.setTyphoonGraphic)
@@ -170,9 +170,9 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.graphic.setButton(self.type, category)
         self.updateGraphicCanvas()
 
-    def setForecastMode(self, mode):
+    def setOverlapMode(self, mode):
         if self.currentContent in [self.generalContent, self.ashContent]:
-            self.currentContent.setForecastMode(mode)
+            self.currentContent.setOverlapMode(mode)
 
     def changeContent(self):
         if self.template.isChecked():

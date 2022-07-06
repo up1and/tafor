@@ -229,6 +229,12 @@ class Sketch(QObject):
 
             self.redraw()
 
+    def filled(self):
+        if self.canvas.mode == 'entire':
+            self.coordinates = self.boundaries
+            self.done = True
+            self.redraw()
+
     def clip(self):
         # clip the polygon with boundaries
         if self.canvas.mode in ['polygon', 'line']:
@@ -281,7 +287,7 @@ class Sketch(QObject):
                         'coordinates': self.coordinates
                     }
 
-        if self.canvas.mode in ['polygon']:
+        if self.canvas.mode in ['polygon', 'entire']:
             if self.done:
                 geometry = {
                     'type': 'Polygon',
@@ -402,6 +408,10 @@ class Sketch(QObject):
                 else:
                     coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
                     message = ' - '.join(coordinates)
+
+            if self.canvas.mode == 'entire':
+                if self.done:
+                    message = 'ENTIRE FIR'
 
         except Exception as e:
             logger.error(e)
@@ -642,6 +652,9 @@ class Canvas(QGraphicsView):
     def setMode(self, mode):
         self.mode = mode
 
+        if mode == 'entire':
+            self.sketch.filled()
+
     def setType(self, key):
         self.type = key
         self.sketchManager.next()
@@ -806,7 +819,7 @@ class GraphicsWindow(QWidget):
 
     sketchChanged = pyqtSignal(list)
     circleChanged = pyqtSignal(dict)
-    modeChanged = pyqtSignal(str)
+    overlapChanged = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super(GraphicsWindow, self).__init__()
@@ -836,16 +849,16 @@ class GraphicsWindow(QWidget):
         self.layerButton.setPopupMode(QToolButton.InstantPopup)
         self.layerButton.setIcon(QIcon(':/layers.png'))
 
-        self.fcstButton = QToolButton(self)
-        self.fcstButton.setEnabled(False)
-        self.fcstButton.setText('Fcst')
-        self.fcstButton.setCheckable(True)
-        self.fcstButton.setIcon(QIcon(':/overlap.png'))
+        self.overlapButton = QToolButton(self)
+        self.overlapButton.setEnabled(False)
+        self.overlapButton.setText('Overlap')
+        self.overlapButton.setCheckable(True)
+        self.overlapButton.setIcon(QIcon(':/overlap.png'))
 
         self.modeButton = QToolButton(self)
         self.modeButton.setText('Mode')
 
-        for button in [self.refreshButton, self.layerButton, self.fcstButton, self.modeButton]:
+        for button in [self.refreshButton, self.layerButton, self.overlapButton, self.modeButton]:
             button.setFixedSize(26, 26)
             button.setAutoRaise(True)
 
@@ -856,7 +869,7 @@ class GraphicsWindow(QWidget):
         self.operationLayout.addItem(QSpacerItem(0, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
         self.operationLayout.addWidget(self.refreshButton)
         self.operationLayout.addWidget(self.layerButton)
-        self.operationLayout.addWidget(self.fcstButton)
+        self.operationLayout.addWidget(self.overlapButton)
         self.operationLayout.addWidget(self.modeButton)
 
         self.opacitySilder = QSlider(Qt.Horizontal, self)
@@ -882,10 +895,10 @@ class GraphicsWindow(QWidget):
         self.zoomOutButton.clicked.connect(self.canvas.zoomOut)
         self.zoomInButton.clicked.connect(self.canvas.zoomIn)
         self.modeButton.clicked.connect(self.nextMode)
-        self.fcstButton.clicked.connect(self.switchForward)
+        self.overlapButton.clicked.connect(self.switchForward)
         self.refreshButton.clicked.connect(context.layer.refresh)
         self.canvas.mouseMoved.connect(self.updatePositionLabel)
-        self.canvas.sketchManager.first().finished.connect(self.setFcstButton)
+        self.canvas.sketchManager.first().finished.connect(self.updateFcstButton)
 
         for sketch in self.canvas.sketchManager:
             sketch.changed.connect(self.handleSketchChange)
@@ -943,42 +956,42 @@ class GraphicsWindow(QWidget):
                 {'icon': ':/polygon.png', 'mode': 'polygon'},
                 {'icon': ':/line.png', 'mode': 'line'},
                 {'icon': ':/rectangular.png', 'mode': 'rectangular'},
-                {'icon': ':/corridor.png', 'mode': 'corridor'}
+                {'icon': ':/corridor.png', 'mode': 'corridor'},
+                {'icon': ':/filled-polygon.png', 'mode': 'entire'}
             ]
 
         self.icons = cycle(icons)
         self.nextMode()
 
         if tt in ['WC', 'WA'] and category == 'template' or category == 'cancel':
-            self.fcstButton.hide()
+            self.overlapButton.hide()
         else:
-            self.fcstButton.show()
+            self.overlapButton.show()
 
         if category == 'cancel':
             self.modeButton.hide()
         else:
             self.modeButton.show()
 
-    def setFcstButton(self):
+    def updateFcstButton(self):
         enbaled = self.canvas.isInitialLocationFinished()
-        self.fcstButton.setEnabled(enbaled)
+        self.overlapButton.setEnabled(enbaled)
 
     def nextMode(self):
+        self.clear()
         mode = next(self.icons)
         self.canvas.setMode(mode['mode'])
         self.modeButton.setIcon(QIcon(mode['icon']))
 
-        self.clear()
-
     def switchForward(self):
-        if self.fcstButton.isChecked():
-            self.canvas.setType('forecast')
+        if self.overlapButton.isChecked():
+            self.canvas.setType('final')
             self.modeButton.setEnabled(False)
-            self.modeChanged.emit('forecast')
+            self.overlapChanged.emit('final')
         else:
-            self.canvas.setType('default')
+            self.canvas.setType('initial')
             self.modeButton.setEnabled(True)
-            self.modeChanged.emit('default')
+            self.overlapChanged.emit('initial')
 
     def switchLock(self):
         if self.canvas.lock:
@@ -1138,5 +1151,5 @@ class GraphicsWindow(QWidget):
 
     def clear(self):
         self.canvas.clear()
-        self.fcstButton.setEnabled(False)
-        self.fcstButton.setChecked(False)
+        self.overlapButton.setEnabled(False)
+        self.overlapButton.setChecked(False)

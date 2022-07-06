@@ -338,8 +338,8 @@ class ForecastMixin(object):
         text = self.endingTime.text()[2:]
         self.forecastTime.setText(text)
 
-    def setForecastMode(self, mode):
-        if mode == 'forecast':
+    def setOverlapMode(self, mode):
+        if mode == 'final':
             self.observation.setCurrentIndex(self.observation.findText('OBS'))
             self.forecastTime.setEnabled(True)
             self.forecastTimeLabel.setEnabled(True)
