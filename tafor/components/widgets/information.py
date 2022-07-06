@@ -26,6 +26,7 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.parent = parent
         self.span = 4
         self.forecastMode = False
+        self.mode = 'polygon'
 
         self.setupUi(self)
         self.initState()
@@ -34,8 +35,8 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.bindSignal()
 
     def initState(self):
-        self.setPeriodTime()
-        self.setSquence()
+        self.updateSquence()
+        self.updatePeriodTime()
         self.updateDurations()
         self.componentUpdate()
 
@@ -107,10 +108,8 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.span = span
         self.initState()
 
-    def setPeriodTime(self):
-        beginningTime, endingTime = self.periodTime()
-        self.beginningTime.setText(beginningTime.strftime('%d%H%M'))
-        self.endingTime.setText(endingTime.strftime('%d%H%M'))
+    def setLocationMode(self, mode):
+        self.mode = mode
 
     def setupValidator(self):
         date = QRegExpValidator(QRegExp(self.rules.date))
@@ -120,7 +119,12 @@ class BaseSigmet(SegmentMixin, QWidget):
         sequence = QRegExpValidator(QRegExp(self.rules.sequence, Qt.CaseInsensitive))
         self.sequence.setValidator(sequence)
 
-    def setSquence(self):
+    def updatePeriodTime(self):
+        beginningTime, endingTime = self.periodTime()
+        self.beginningTime.setText(beginningTime.strftime('%d%H%M'))
+        self.endingTime.setText(endingTime.strftime('%d%H%M'))
+
+    def updateSquence(self):
         time = datetime.datetime.utcnow()
         begin = datetime.datetime(time.year, time.month, time.day)
         query = db.query(Sigmet).filter(Sigmet.created > begin)
@@ -449,11 +453,13 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
         moveState = self.moveState()
         intensityChange = self.intensityChange.currentText()
 
-        items = [fir, phenomena, observation, '{location}', fightLevel, moveState, intensityChange]
+        items = [fir, phenomena, observation, '{location}', fightLevel]
 
         if self.hasForecastMode():
             forecast = self.forecastText()
-            items += [forecast, '{forecastLocation}']
+            items += [intensityChange, forecast, '{forecastLocation}']
+        else:
+            items += [moveState, intensityChange]
 
         content = ' '.join(filter(None, items))
         return '\n'.join([self.firstLine(), content])
@@ -534,7 +540,8 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
         self.observation.addItems(observations)
 
     def handleCircleChange(self):
-        self.circleChanged.emit(self.circle())
+        if self.mode == 'circle':
+            self.circleChanged.emit(self.circle())
 
     def phenomenon(self):
         items = [self.phenomena.currentText(), self.name.text()]
@@ -653,26 +660,35 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
 
         return text
 
+    def fightLevel(self):
+        return 'TOP FL{}'.format(self.top.text())
+
     def message(self):
         fir = conf.value('Message/FIR')
         phenomena = self.phenomenon()
-        observation = self.observationText()
-        intensityChange = self.intensityChange.currentText()
+        position = 'PSN {latitude} {Longitude} CB {observation}'.format(
+            latitude=self.currentLatitude.text(),
+            Longitude=self.currentLongitude.text(),
+            observation=self.observationText()
+        )
+        fightLevel = self.fightLevel()
         moveState = self.moveState()
+        intensityChange = self.intensityChange.currentText()
         forecastPosition = self.forecastPosition()
 
-        unit = 'KM'
-        main = 'PSN {latitude} {Longitude} CB {observation} WI {range}{unit} OF TC CENTRE TOP FL{top}'.format(
-                latitude=self.currentLatitude.text(),
-                Longitude=self.currentLongitude.text(),
-                observation=observation,
+        if self.mode == 'circle':
+            location = 'WI {range}{unit} OF TC CENTRE'.format(
                 range=int(self.range.text()),
-                unit=unit,
-                top=self.top.text(),
+                unit='KM'
             )
+        else:
+            location = '{location}'
 
-        items = [fir, phenomena, main]
-        if forecastPosition:
+        items = [fir, phenomena, position, location, fightLevel]
+
+        if self.hasForecastMode():
+            items += [intensityChange, forecastPosition, '{forecastLocation}']
+        elif forecastPosition:
             items += [intensityChange, forecastPosition]
         else:
             items += [moveState, intensityChange]
@@ -688,9 +704,11 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
             self.name.text(),
             self.currentLatitude.hasAcceptableInput(),
             self.currentLongitude.hasAcceptableInput(),
-            self.top.hasAcceptableInput(),
-            self.range.hasAcceptableInput()
+            self.top.hasAcceptableInput()
         ]
+
+        if self.mode == 'circle':
+            mustRequired.append(self.range.hasAcceptableInput())
 
         anyRequired = [
             self.forecastTime.hasAcceptableInput() and self.forecastLatitude.hasAcceptableInput() and self.forecastLongitude.hasAcceptableInput(),
@@ -805,10 +823,16 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         else:
             position = self.observationText()
 
-        items = [fir, phenomena, position, '{location}', fightLevel, moveState, intensityChange]
+        items = [fir, phenomena, position, '{location}', fightLevel]
         if self.hasForecastMode():
             forecast = self.forecastText()
             items += [forecast, '{forecastLocation}']
+
+        if self.hasForecastMode():
+            forecast = self.forecastText()
+            items += [intensityChange, forecast, '{forecastLocation}']
+        else:
+            items += [moveState, intensityChange]
 
         content = ' '.join(filter(None, items))
         return '\n'.join([self.firstLine(), content])

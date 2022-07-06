@@ -1,3 +1,4 @@
+from mimetypes import init
 import os
 import math
 
@@ -820,6 +821,7 @@ class GraphicsWindow(QWidget):
     sketchChanged = pyqtSignal(list)
     circleChanged = pyqtSignal(dict)
     overlapChanged = pyqtSignal(str)
+    modeChanged = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super(GraphicsWindow, self).__init__()
@@ -895,10 +897,11 @@ class GraphicsWindow(QWidget):
         self.zoomOutButton.clicked.connect(self.canvas.zoomOut)
         self.zoomInButton.clicked.connect(self.canvas.zoomIn)
         self.modeButton.clicked.connect(self.nextMode)
+        self.modeButton.clicked.connect(self.updateOverlapButton)
         self.overlapButton.clicked.connect(self.switchForward)
         self.refreshButton.clicked.connect(context.layer.refresh)
         self.canvas.mouseMoved.connect(self.updatePositionLabel)
-        self.canvas.sketchManager.first().finished.connect(self.updateFcstButton)
+        self.canvas.sketchManager.first().finished.connect(self.updateOverlapButton)
 
         for sketch in self.canvas.sketchManager:
             sketch.changed.connect(self.handleSketchChange)
@@ -939,18 +942,21 @@ class GraphicsWindow(QWidget):
         return locations
 
     def hasAcceptableGraphic(self):
-        default = self.canvas.sketchManager.first()
-        forecast = self.canvas.sketchManager.last()
+        initial = self.canvas.sketchManager.first()
+        final = self.canvas.sketchManager.last()
 
-        sketchs = [default.done and default.text()]
-        if self.canvas.type == 'forecast':
-            sketchs.append(forecast.done and forecast.text())
+        sketchs = [initial.done and initial.text()]
+        if self.canvas.type == 'final':
+            sketchs.append(final.done and final.text())
 
         return all(sketchs)
 
     def setButton(self, tt='WS', category='template'):
         if tt == 'WC':
-            icons = [{'icon': ':/circle.png', 'mode': 'circle'}]
+            icons = [
+                {'icon': ':/circle.png', 'mode': 'circle'},
+                {'icon': ':/polygon.png', 'mode': 'polygon'}
+            ]
         else:
             icons = [
                 {'icon': ':/polygon.png', 'mode': 'polygon'},
@@ -963,7 +969,7 @@ class GraphicsWindow(QWidget):
         self.icons = cycle(icons)
         self.nextMode()
 
-        if tt in ['WC', 'WA'] and category == 'template' or category == 'cancel':
+        if tt in ['WA'] and category == 'template' or category == 'cancel':
             self.overlapButton.hide()
         else:
             self.overlapButton.show()
@@ -973,8 +979,10 @@ class GraphicsWindow(QWidget):
         else:
             self.modeButton.show()
 
-    def updateFcstButton(self):
+    def updateOverlapButton(self):
         enbaled = self.canvas.isInitialLocationFinished()
+        if self.canvas.mode == 'circle':
+            enbaled = False
         self.overlapButton.setEnabled(enbaled)
 
     def nextMode(self):
@@ -982,6 +990,7 @@ class GraphicsWindow(QWidget):
         mode = next(self.icons)
         self.canvas.setMode(mode['mode'])
         self.modeButton.setIcon(QIcon(mode['icon']))
+        self.modeChanged.emit(mode['mode'])
 
     def switchForward(self):
         if self.overlapButton.isChecked():
