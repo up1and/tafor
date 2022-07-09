@@ -227,9 +227,9 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             context.notification.metar.clear()
             return
 
-        # when local metar is not similar to the notification metar, update the recent.
-        if not isSimilar:
-            self.updateRecent()
+        # when local metar is not similar to the notification metar, update the recent and trend sender.
+        self.updateRecent()
+        self.trendSender.reload()
 
         # if there is notification, show the notification.
         if parser:
@@ -456,7 +456,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         if parser:
             created = context.notification.metar.created()
             validation = context.notification.metar.validation()
-            metar = Metar(rpt=parser.message, created=created)
+            metar = Metar(text=parser.message, created=created)
             parser.validate()
             metar.validations = {
                 'html': parser.renderer(style='html', showDiff=True),

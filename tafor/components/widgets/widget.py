@@ -133,6 +133,7 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
 
         font = context.environ.fixedFont()
         self.setFont(font)
+        self.timeLabel.setFont(font)
         font.setPointSize(12)
         self.text.setFont(font)
 

@@ -380,6 +380,9 @@ class TrendSender(BaseSender):
         self.text.setHtml(html)
         self.resizeText()
 
+    def reload(self):
+        if self.isVisible():
+            self.parse()
 
 class SigmetSender(BaseSender):
 
