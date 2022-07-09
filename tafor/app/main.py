@@ -221,39 +221,29 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         parser = context.notification.metar.parser()
         metar = latestMetar()
 
+        # if there is notification, play reminder sound.
+        if parser:
+            self.trendSound.play()
+        else:
+            self.trendSound.stop()
+
         # when local metar is same as the notification metar, clear the state and show nothing.
         isSimilar = parser and metar and parser.isSimilar(metar.text)
         if isSimilar:
             context.notification.metar.clear()
             return
 
+        # when validation does not pass, enable system warning notification.
+        if parser and context.notification.metar.validation():
+            parser.validate()
+            if parser.hasTrend() and not parser.isValid():
+                title = QCoreApplication.translate('MainWindow', 'Trend Validation Failed')
+                description = QCoreApplication.translate('MainWindow', 'The trend has been cleared, please resend')
+                context.flash.warning(title, description)
+
         # when local metar is not similar to the notification metar, update the recent and trend sender.
         self.updateRecent()
         self.trendSender.reload()
-
-        # if there is notification, show the notification.
-        if parser:
-            self.notifyMetar()
-
-    def notifyMetar(self):
-        parser = context.notification.metar.parser()
-        parser.validate()
-        notify = context.flash.info
-        self.incomingSound.play(loop=False)
-
-        if parser.hasTrend():
-            if parser.isValid():
-                title = QCoreApplication.translate('MainWindow', 'Trend Validation Success')
-                description = QCoreApplication.translate('MainWindow', 'The trend has been successfully attached')
-            else:
-                title = QCoreApplication.translate('MainWindow', 'Trend Validation Failed')
-                description = QCoreApplication.translate('MainWindow', 'The trend has been cleared, please resend')
-                notify = context.flash.warning
-        else:
-            title = QCoreApplication.translate('MainWindow', 'Message Received')
-            description = QCoreApplication.translate('MainWindow', 'Received a {} message'.format(context.notification.metar.type()))
-        
-        notify(title, description)
 
     def loadSigmetNotification(self):
         self.incomingSound.play(loop=False)
@@ -308,7 +298,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         # 管理趋势声音
         utc = datetime.datetime.utcnow()
-        if trendSwitch and utc.minute in (57, 58, 59):
+        if trendSwitch and (utc.minute in (57, 58, 59) or context.notification.metar.message()):
             self.trendSound.play()
         else:
             self.trendSound.stop()
