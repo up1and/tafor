@@ -5,10 +5,11 @@ from PyQt5.QtGui import QPixmap, QIcon, QBrush, QPen, QFontMetrics, QPainterPath
 from PyQt5.QtCore import QCoreApplication, QTimer, QSize, Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QLabel, QHBoxLayout
 
-from tafor import conf
+from tafor import conf, logger
 from tafor.utils import CurrentTaf, timeAgo
 from tafor.styles import buttonHoverStyle
 from tafor.states import context
+from tafor.components.widgets.geometry import SigmetBackground
 from tafor.components.ui import main_rc, Ui_main_recent, Ui_main_license
 
 
@@ -136,6 +137,19 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         self.timeLabel.setFont(font)
         font.setPointSize(12)
         self.text.setFont(font)
+
+        if self.item.type in ['WS', 'WC', 'WV', 'WA'] and not self.item.isCnl():
+            parser = self.item.parser()
+            geos = parser.geo(context.layer.boundaries(), trim=True)
+            if geos['features']:
+                try:
+                    background = SigmetBackground(geos, self)
+                    background.adjustSize()
+                    background.move(self.width() - background.width() - 70, 24)
+                    background.setAttribute(Qt.WA_TransparentForMouseEvents)
+
+                except Exception as e:
+                    logger.exception(e)
 
         layout.addWidget(self)
 

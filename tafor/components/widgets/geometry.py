@@ -1,6 +1,9 @@
-from PyQt5.QtGui import QPen, QColor, QBrush, QPolygonF, QPainterPath, QPixmap, QFont
+from turtle import shape
+import shapely
+
+from PyQt5.QtGui import QPen, QColor, QBrush, QPolygonF, QPainterPath, QPixmap, QFont, QPainter
 from PyQt5.QtCore import Qt, QPointF, QRectF
-from PyQt5.QtWidgets import QGraphicsItem, QGraphicsPolygonItem, QGraphicsPixmapItem
+from PyQt5.QtWidgets import QGraphicsItem, QGraphicsPolygonItem, QGraphicsPixmapItem, QWidget
 
 
 class CanvasMixin(object):
@@ -45,6 +48,26 @@ class CanvasMixin(object):
             shape = QPolygonF(points)
 
         return shape
+
+
+class ColorMixin(object):
+
+    def findPalette(self, hazard, location):
+        brushes = {
+            'ts': QBrush(QColor(240, 156, 0, 100)),
+            'turb': QBrush(QColor(37, 238, 44, 100)),
+            'ice': QBrush(QColor(67, 255, 255, 100)),
+            'ash': QBrush(QColor(250, 0, 25, 100)),
+            'typhoon': QBrush(QColor(250, 50, 250, 100)),
+            'other': QBrush(QColor(250, 250, 50, 100))
+        }
+
+        palettes = {
+            'initial': [QPen(QColor(204, 204, 204), 1, Qt.DashLine), brushes.get(hazard, brushes['other'])],
+            'final': [QPen(QColor(204, 204, 204, 150), 1, Qt.DashLine), QBrush(QColor(154, 205, 50, 70))]
+        }
+
+        return palettes[location]
 
 
 class Polygon(QGraphicsPolygonItem, CanvasMixin):
@@ -175,29 +198,12 @@ class SketchGraphic(QGraphicsItem, CanvasMixin):
                 self.geometries.append(shape)
 
 
-class Sigmet(QGraphicsItem, CanvasMixin):
+class Sigmet(QGraphicsItem, CanvasMixin, ColorMixin):
 
     def __init__(self, geo):
         super(Sigmet, self).__init__()
         self.geo = geo
         self.geometries = []
-
-    def palette(self, hazard, location):
-        brushes = {
-            'ts': QBrush(QColor(240, 156, 0, 100)),
-            'turb': QBrush(QColor(37, 238, 44, 100)),
-            'ice': QBrush(QColor(67, 255, 255, 100)),
-            'ash': QBrush(QColor(250, 0, 25, 100)),
-            'typhoon': QBrush(QColor(250, 50, 250, 100)),
-            'other': QBrush(QColor(250, 250, 50, 100))
-        }
-
-        palettes = {
-            'initial': [QPen(QColor(204, 204, 204), 1, Qt.DashLine), brushes.get(hazard, brushes['other'])],
-            'final': [QPen(QColor(204, 204, 204, 150), 0, Qt.DashLine), QBrush(QColor(154, 205, 50, 70))]
-        }
-
-        return palettes[location]
 
     def boundingRect(self):
         rect = QRectF()
@@ -209,7 +215,7 @@ class Sigmet(QGraphicsItem, CanvasMixin):
         for geo in self.geometries:
             hazard = geo.properties['hazard']
             location = geo.properties['location']
-            pen, brush = self.palette(hazard, location)
+            pen, brush = self.findPalette(hazard, location)
             painter.setPen(pen)
             painter.setBrush(brush)
             painter.drawPolygon(geo)
@@ -240,3 +246,69 @@ class Sigmet(QGraphicsItem, CanvasMixin):
                 self.geometries.append(geo)
                 
         group.append(self)
+
+
+class SigmetBackground(QWidget, ColorMixin):
+
+    def __init__(self, geo, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(200, 120)
+        self.parent = parent
+        self.geo = geo
+        self.geometries = []
+        self.fitSize()
+
+    def toCanvasCoordinates(self, lonlats):
+        poly = shapely.geometry.Polygon(lonlats)
+        poly = shapely.affinity.scale(poly, xfact=self.ratio, yfact=-self.ratio, origin=self.centroid)
+        poly = shapely.affinity.translate(poly, 
+            xoff=-self.rect.x() + self.width() / 2, yoff=-self.rect.y() + self.height() / 2)
+
+        polygon = QPolygonF()
+        for p in poly.exterior.coords:
+            polygon.append(QPointF(*p))
+
+        return polygon
+
+    def fitSize(self):
+
+        def toPolygons(feature):
+            if feature['geometry']['type'] == 'Polygon':
+                polygons = [feature['geometry']['coordinates']]
+            else:
+                polygons = feature['geometry']['coordinates']
+
+            return polygons
+
+        box = shapely.geometry.Polygon()
+        for feature in self.geo['features']:
+            polygons = toPolygons(feature)
+            for polygon in polygons:
+                geom = shapely.geometry.Polygon(polygon)
+                box = box.union(geom)
+
+        rect = box.envelope
+        self.centroid = rect.centroid
+        minx, miny, maxx, maxy = rect.bounds
+        self.rect = QRectF(minx, miny, maxx - minx, maxy - miny)
+        self.ratio = min(self.width() / self.rect.width(), self.height() / self.rect.height())
+
+        self.geometries = []
+        for feature in self.geo['features']:
+            polygons = toPolygons(feature)
+            for polygon in polygons:
+                geom = self.toCanvasCoordinates(polygon)
+                geom.properties = feature['properties']
+                self.geometries.append(geom)
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        painter = QPainter(self)
+
+        for geo in self.geometries:
+            hazard = geo.properties['hazard']
+            location = geo.properties['location']
+            _, brush = self.findPalette(hazard, location)
+            painter.setPen(Qt.NoPen)
+            painter.setBrush(brush)
+            painter.drawPolygon(geo)
