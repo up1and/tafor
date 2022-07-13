@@ -335,6 +335,7 @@ def decodeLine(boundary, lines):
         if shapes:
             polygons.append(MultiPolygon(shapes))
 
+    current = Polygon()
     for i, polygon in enumerate(polygons):
         if i == 0:
             current = polygon

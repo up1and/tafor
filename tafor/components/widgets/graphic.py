@@ -1,4 +1,3 @@
-from mimetypes import init
 import os
 import math
 
@@ -448,26 +447,15 @@ class Sketch(QObject):
             self.redraw()
 
 
-class Canvas(QGraphicsView):
-
-    mouseMoved = pyqtSignal(tuple)
+class BaseCanvas(QGraphicsView):
 
     def __init__(self):
-        super(Canvas, self).__init__()
-        self.maps = []
+        super(BaseCanvas, self).__init__()
+        self.extent = None
 
         self.coastlines = []
         self.firs = []
         self.sigmets = []
-        self.backgrounds = []
-
-        self.type = 'default'
-        self.mode = 'polygon'
-        self.lock = False
-        self.maxPoint = 7
-        
-        self.backgroundOpacity = 0.5
-        self.maxLayerExtent = context.layer.maxExtent()
 
         self.projection = context.layer.projection()
         if self.projection.crs.is_geographic:
@@ -485,10 +473,151 @@ class Canvas(QGraphicsView):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
+    def setExtent(self, extent):
+        self.extent = extent
+
+    def bbox(self):
+        if self.extent:
+            bound = shapely.geometry.box(*self.extent)
+        else:
+            bound = None
+
+        return bound
+
+    def drawCoastline(self):
+        if self.coastlines:
+            self.coastlines = []
+            self.scene.removeItem(self.coastlinesGroup)
+
+        filename = os.path.join(context.environ.bundlePath('shapes'), 'coastline.shp')
+        sf = shapefile.Reader(filename)
+        shapes = sf.shapes()
+
+        if self.extent is None:
+            self.setExtent(context.layer.maxExtent())
+
+        bound = self.bbox()
+        for polygons in shapes:
+            polygons = shapely.geometry.shape(polygons)
+            if bound:
+                polygons = bound.intersection(polygons)
+
+            if polygons.geom_type == 'MultiPolygon':
+                polygons = polygons.geoms
+            elif polygons.geom_type == 'Polygon':
+                polygons = [polygons]
+
+            for shape in polygons:
+                if not shape.is_empty:
+                    gemoetry = {
+                        'type': 'Polygon',
+                        'coordinates': shape.exterior.coords
+                    }
+                    p = Coastline(gemoetry)
+                    p.addTo(self, self.coastlines)
+
+        self.coastlinesGroup = self.scene.createItemGroup(self.coastlines)
+        self.setSceneRect(self.scene.itemsBoundingRect())
+
+    def drawBoundaries(self):
+        geometry = {
+            'type': 'Polygon',
+            'coordinates': context.layer.boundaries()
+        }
+        p = Fir(geometry)
+        p.addTo(self, self.firs)
+
+        self.firsGroup = self.scene.createItemGroup(self.firs)
+        self.centerOn(self.firsGroup.boundingRect().center())
+
+    def drawSigmets(self, geos):
+        if self.sigmets:
+            self.sigmets = []
+            self.scene.removeItem(self.sigmetsGroup)
+        
+        for geo in geos:
+            p = Sigmet(geo=geo)
+            p.addTo(self, self.sigmets)
+        
+        self.sigmetsGroup = self.scene.createItemGroup(self.sigmets)
+        self.sigmetsGroup.setZValue(0)
+
+    def toGeographicalCoordinates(self, x, y):
+        px, py = (x - self.offset[0]) / self.ratio, (self.offset[1] - y) / self.ratio
+        return self.projection(px, py, inverse=True)
+        
+    def toCanvasCoordinates(self, longitude, latitude):
+        px, py = self.projection(longitude, latitude)
+        return px * self.ratio + self.offset[0], -py * self.ratio + self.offset[1]
+
+    def redraw(self):
+        self.drawCoastline()
+        self.drawBoundaries()
+
+
+class Viewer(BaseCanvas):
+
+    def __init__(self):
+        super(Viewer, self).__init__()
+        self.scale(0.4096, 0.4096)
+
+    def mousePressEvent(self, event):
+        if event.buttons() == Qt.LeftButton:
+            self.setDragMode(QGraphicsView.ScrollHandDrag)
+            self.pos = event.pos()
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.LeftButton:
+            offset = self.pos - event.pos()
+            self.pos = event.pos()
+            x = self.horizontalScrollBar().value() + offset.x()
+            y = self.verticalScrollBar().value() + offset.y()
+            self.horizontalScrollBar().setValue(x)
+            self.verticalScrollBar().setValue(y)
+
+    def mouseReleaseEvent(self, event):
+        self.setDragMode(QGraphicsView.NoDrag)
+
+    def mouseDoubleClickEvent(self, event):
+        if event.buttons() == Qt.LeftButton:
+            self.zoomIn()
+
+    def zoomIn(self):
+        zoom = QStyleOptionGraphicsItem.levelOfDetailFromTransform(self.transform())
+        if zoom < 1:
+            self.scale(1.25, 1.25)
+
+    def zoomOut(self):
+        zoom = QStyleOptionGraphicsItem.levelOfDetailFromTransform(self.transform())
+        if zoom > 0.4:
+            self.scale(0.8, 0.8)
+
+    def wheelEvent(self, event):
+        if event.angleDelta().y() > 0:
+            self.zoomIn()
+        else:
+            self.zoomOut()
+
+
+class Canvas(BaseCanvas):
+
+    mouseMoved = pyqtSignal(tuple)
+
+    def __init__(self):
+        super(Canvas, self).__init__()
+        self.backgrounds = []
+
+        self.type = 'default'
+        self.mode = 'polygon'
+        self.lock = False
+        self.maxPoint = 7
+        
+        self.backgroundOpacity = 0.5
+        self.maxLayerExtent = context.layer.maxExtent()
+
         self.setMouseTracking(True)
 
         self.rubberBand = QRubberBand(QRubberBand.Rectangle, self)
-
         self.sketchManager = SketchManager(self)
 
     @property
@@ -638,14 +767,6 @@ class Canvas(QGraphicsView):
         pos = self.mapToScene(event.pos())
         self.mouseMoved.emit(self.toGeographicalCoordinates(pos.x(), pos.y()))
 
-    def toGeographicalCoordinates(self, x, y):
-        px, py = (x - self.offset[0]) / self.ratio, (self.offset[1] - y) / self.ratio
-        return self.projection(px, py, inverse=True)
-        
-    def toCanvasCoordinates(self, longitude, latitude):
-        px, py = self.projection(longitude, latitude)
-        return px * self.ratio + self.offset[0], -py * self.ratio + self.offset[1]
-
     def groundResolution(self, latitude):
         resolution = math.cos(latitude * math.pi / 180) * 2 * math.pi * 6378137 / self.scene.width()
         return resolution
@@ -671,42 +792,6 @@ class Canvas(QGraphicsView):
         sketch = self.sketchManager.first()
         return sketch.done
 
-    def drawCoastline(self):
-        if self.coastlines:
-            self.coastlines = []
-            self.scene.removeItem(self.coastlinesGroup)
-
-        filename = os.path.join(context.environ.bundlePath('shapes'), 'coastline.shp')
-        sf = shapefile.Reader(filename)
-        shapes = sf.shapes()
-        extent = context.layer.maxExtent()
-        if extent:
-            bound = shapely.geometry.box(*extent)
-        else:
-            bound = None
-
-        for polygons in shapes:
-            polygons = shapely.geometry.shape(polygons)
-            if bound:
-                polygons = bound.intersection(polygons)
-
-            if polygons.geom_type == 'MultiPolygon':
-                polygons = polygons.geoms
-            elif polygons.geom_type == 'Polygon':
-                polygons = [polygons]
-
-            for shape in polygons:
-                if not shape.is_empty:
-                    gemoetry = {
-                        'type': 'Polygon',
-                        'coordinates': shape.exterior.coords
-                    }
-                    p = Coastline(gemoetry)
-                    p.addTo(self, self.coastlines)
-
-        self.coastlinesGroup = self.scene.createItemGroup(self.coastlines)
-        self.setSceneRect(self.scene.itemsBoundingRect())
-
     def drawLayer(self):
         layers = [layer for layer in context.layer.currentLayers() if layer]
         if layers:
@@ -721,33 +806,6 @@ class Canvas(QGraphicsView):
 
             self.backgroundsGroup = self.scene.createItemGroup(self.backgrounds)
             self.backgroundsGroup.setZValue(-1)
-
-    def drawBoundaries(self):
-        geometry = {
-            'type': 'Polygon',
-            'coordinates': context.layer.boundaries()
-        }
-        p = Fir(geometry)
-        p.addTo(self, self.firs)
-
-        self.firsGroup = self.scene.createItemGroup(self.firs)
-        self.centerOn(self.firsGroup.boundingRect().center())
-
-    def drawSigmets(self, geos):
-        if self.sigmets:
-            self.sigmets = []
-            self.scene.removeItem(self.sigmetsGroup)
-        
-        for geo in geos:
-            p = Sigmet(geo=geo)
-            p.addTo(self, self.sigmets)
-        
-        self.sigmetsGroup = self.scene.createItemGroup(self.sigmets)
-        self.sigmetsGroup.setZValue(0)
-
-    def redraw(self):
-        self.drawCoastline()
-        self.drawBoundaries()
 
     def clear(self):
         self.sketchManager.clear()
@@ -814,6 +872,38 @@ class LayerInfoWidget(QWidget):
             label = OutlinedLabel(self)
             label.setText(text)
             self.verticalLayout.addWidget(label)
+
+
+class GraphicsViewer(QWidget):
+
+    def __init__(self, parent=None):
+        super(GraphicsViewer, self).__init__()
+        self.canvas = Viewer()
+        self.verticalLayout = QVBoxLayout(self)
+        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout.addWidget(self.canvas)
+        self.setMaximumSize(812, 300)
+
+        self.geometries = []
+        self.canvas.setExtent(self.extent())
+        self.canvas.drawCoastline()
+        self.canvas.drawBoundaries()
+
+    def extent(self):
+        boundary = shapely.geometry.Polygon(context.layer.boundaries())
+        bbox = boundary.envelope
+        bbox = shapely.affinity.scale(bbox, xfact=4, yfact=2)
+        return bbox.bounds
+
+    def setSigmet(self, geo):
+        self.geometries = [geo]
+        self.updateSigmetGraphic()
+
+    def updateSigmetGraphic(self):
+        self.canvas.drawSigmets(self.geometries)
+
+    def clear(self):
+        self.geometries = []
 
 
 class GraphicsWindow(QWidget):

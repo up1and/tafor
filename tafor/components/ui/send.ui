@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>900</width>
-    <height>517</height>
+    <height>526</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -22,7 +22,7 @@
      <property name="title">
       <string>Message</string>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout_2">
+     <layout class="QVBoxLayout" name="textLayout">
       <item>
        <widget class="QTextEdit" name="text">
         <property name="minimumSize">
@@ -43,11 +43,19 @@
     </widget>
    </item>
    <item>
+    <widget class="QGroupBox" name="canvasGroup">
+     <property name="title">
+      <string>Canvas</string>
+     </property>
+     <layout class="QVBoxLayout" name="canvasLayout"/>
+    </widget>
+   </item>
+   <item>
     <widget class="QGroupBox" name="rawGroup">
      <property name="title">
       <string>Data has been sent to the serial port</string>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout_3">
+     <layout class="QVBoxLayout" name="rawLayout">
       <item>
        <widget class="QTextEdit" name="raw">
         <property name="minimumSize">

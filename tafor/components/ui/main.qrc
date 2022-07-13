@@ -30,6 +30,8 @@
         <file alias="aftn.png">../../icons/aftn.png</file>
         <file alias="ftp.png">../../icons/ftp.png</file>
         <file alias="api.png">../../icons/api.png</file>
+        <file alias="words.png">../../icons/words.png</file>
+        <file alias="map.png">../../icons/map.png</file>
         <file alias="protect.png">../../icons/protect.png</file>
         <file alias="warning-shield.png">../../icons/warning-shield.png</file>
         <file alias="reply-arrow.png">../../icons/reply-arrow.png</file>

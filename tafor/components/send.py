@@ -1,8 +1,10 @@
 import datetime
 
-from PyQt5.QtGui import QFontMetrics, QFont, QPixmap
-from PyQt5.QtCore import QCoreApplication, QTimer, Qt, pyqtSignal
-from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QMessageBox, QTextEdit, QLabel
+from itertools import cycle
+
+from PyQt5.QtGui import QFontMetrics, QFont, QPixmap, QIcon
+from PyQt5.QtCore import QCoreApplication, QTimer, QSize, Qt, pyqtSignal
+from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QMessageBox, QTextEdit, QLabel, QToolButton
 from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
 
 from tafor import conf, logger
@@ -10,6 +12,7 @@ from tafor.states import context
 from tafor.models import db, Other
 from tafor.utils import boolean, TafParser, MetarParser, SigmetParser, AFTNMessageGenerator, FileMessageGenerator, AFTNDecoder
 from tafor.utils.thread import SerialThread, FtpThread
+from tafor.components.widgets.graphic import GraphicsViewer
 from tafor.components.ui import Ui_send, main_rc
 
 
@@ -58,11 +61,19 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.message = None
         self.error = None
         self.mode = 'send'
+        self.group = None
+        self.groupNames = cycle(['raw'])
 
         self.sendButton = self.buttonBox.button(QDialogButtonBox.Ok)
         self.resendButton = self.buttonBox.button(QDialogButtonBox.Retry)
         self.cancelButton = self.buttonBox.button(QDialogButtonBox.Cancel)
         self.printButton = self.buttonBox.button(QDialogButtonBox.Reset)
+
+        self.switchButton = QToolButton(self)
+        self.switchButton.setText('Switch')
+        self.switchButton.setFixedSize(26, 26)
+        self.switchButton.setIconSize(QSize(20, 20))
+        self.switchButton.setAutoRaise(True)
 
         self.sendButton.setText(QCoreApplication.translate('Sender', 'Send'))
         self.resendButton.setText(QCoreApplication.translate('Sender', 'Resend'))
@@ -73,10 +84,13 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.printButton.clicked.connect(self.print)
         self.cancelButton.clicked.connect(self.cancel)
         self.succeeded.connect(self.updateSequenceNumber)
+        self.succeeded.connect(self.updateVisibility)
 
         self.rawGroup.hide()
+        self.canvasGroup.hide()
         self.printButton.hide()
         self.resendButton.hide()
+        self.switchButton.hide()
 
         font = context.environ.fixedFont()
         font.setPointSize(11)
@@ -132,12 +146,24 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
                 self.resendButton.show()
 
             if text:
-                self.rawGroup.show()
-                self.printButton.show()
+                self.group = 'raw'
 
         if self.mode == 'send':
             self.setWindowTitle(QCoreApplication.translate('Sender', 'Send Message'))
             self.rawGroup.setTitle(self.channel().successText())
+
+    def updateVisibility(self):
+        if self.group == 'raw':
+            self.rawGroup.show()
+            self.printButton.show()
+
+        if self.group is None:
+            self.rawGroup.hide()
+            self.printButton.hide()
+
+    def updateSequenceNumber(self):
+        if not self.error:
+            conf.setValue(self.channel().sequenceConfigPath, str(self.generator.number))
 
     def receive(self, message):
         self.message = message
@@ -173,7 +199,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             return None
 
         self.raw.setText(rawText)
-        self.rawGroup.show()
+        self.group = next(self.groupNames)
         self.printButton.show()
         self.sendButton.hide()
         self.resendButton.hide()
@@ -270,10 +296,6 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         db.commit()
         self.succeeded.emit()
 
-    def updateSequenceNumber(self):
-        if not self.error:
-            conf.setValue(self.channel().sequenceConfigPath, str(self.generator.number))
-
     def print(self):
         printer = QPrinter()
         dialog = QPrintDialog(printer)
@@ -332,6 +354,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.message = None
         self.error = None
         self.parser = None
+        self.group = None
         self.text.setText('')
         self.rawGroup.hide()
         self.printButton.hide()
@@ -389,6 +412,10 @@ class SigmetSender(BaseSender):
     def __init__(self, parent=None):
         super(SigmetSender, self).__init__(parent)
         self.reportType = 'SIGMET'
+        self.graphic = GraphicsViewer(self)
+        self.canvasLayout.addWidget(self.graphic)
+        self.switchButton.clicked.connect(self.switchGroup)
+        self.groupNames = cycle(['canvas', 'raw'])
 
     def parse(self):
         if self.message.heading and self.message.heading[0:2] == 'WA' or 'AIRMET' in self.message.text.split():
@@ -407,8 +434,14 @@ class SigmetSender(BaseSender):
             self.text.setHtml(html)
             self.resizeText()
 
+            if not self.message.isCnl():
+                geo = self.parser.geo(context.layer.boundaries(), trim=True)
+                self.graphic.setSigmet(geo)
+
         except Exception as e:
             logger.error(e)
+
+        self.switchGroup()
 
     def save(self):
         super(SigmetSender, self).save()
@@ -416,6 +449,57 @@ class SigmetSender(BaseSender):
             delta = self.message.expired() - datetime.datetime.utcnow() - datetime.timedelta(minutes=20)
             sig = self.message.parser()
             QTimer.singleShot(delta.total_seconds() * 1000, lambda: self.parent.remindSigmet(sig))
+
+    def switchGroup(self):
+        self.group = next(self.groupNames)
+
+        if self.message.isCnl() and self.group == 'canvas':
+            self.group = next(self.groupNames)
+
+        if not self.message.raw and self.group == 'raw':
+            self.group = next(self.groupNames)
+
+        if not self.message.raw and self.message.isCnl():
+            self.group = None
+
+        self.updateVisibility()
+        
+    def updateVisibility(self):
+        if self.group is None:
+            self.rawGroup.hide()
+            self.canvasGroup.hide()
+
+        if self.group == 'canvas':
+            self.rawGroup.hide()
+            self.canvasGroup.show()
+
+        if self.group == 'raw':
+            self.rawGroup.show()
+            self.canvasGroup.hide()
+
+        if not self.message.raw or self.message.isCnl():
+            self.switchButton.hide()
+        else:
+            if self.group == 'canvas':
+                icon = ':/words.png'
+            else:
+                icon = ':/map.png'
+            
+            self.switchButton.setIcon(QIcon(icon))
+            self.switchButton.show()
+
+        if self.message.raw:
+            self.printButton.show()
+        else:
+            self.printButton.hide()
+
+    def resizeEvent(self, event):
+        self.switchButton.move(self.width() - 70, self.textGroup.height() + 50)
+        super(SigmetSender, self).resizeEvent(event)
+
+    def clear(self):
+        super().clear()
+        self.groupNames = cycle(['canvas', 'raw'])
 
 
 class CustomSender(BaseSender):
