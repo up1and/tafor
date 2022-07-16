@@ -73,6 +73,8 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.graphic.circleChanged.connect(self.typhoonContent.setTyphoonLocation)
         self.typhoonContent.circleChanged.connect(self.graphic.setTyphoonGraphic)
 
+        self.ashContent.locationChanged.connect(self.graphic.setAdvisoryGraphic)
+
         for c in self.contents:
             c.contentChanged.connect(self.enbaleNextButton)
 

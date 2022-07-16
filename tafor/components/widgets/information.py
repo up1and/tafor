@@ -1,14 +1,17 @@
 import re
 import datetime
 
-from PyQt5.QtGui import QRegExpValidator, QIntValidator, QTextCharFormat, QTextCursor, QFont, QPixmap
-from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QLabel
+from itertools import cycle
 
-from tafor import conf
+from PyQt5.QtGui import QRegExpValidator, QIntValidator, QTextCharFormat, QTextCursor, QFont, QPixmap, QIcon
+from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, pyqtSignal
+from PyQt5.QtWidgets import QWidget, QLabel, QToolButton
+
+from tafor import conf, logger
 from tafor.states import context
 from tafor.utils import Pattern
-from tafor.utils.convert import parseTime, ceilTime, roundTime, calcPosition, decimalToDegree
+from tafor.utils.convert import parseTime, ceilTime, roundTime, calcPosition, decimalToDegree, degreeToDecimal
+from tafor.utils.validator import AshAdvisoryParser
 from tafor.models import db, Sigmet
 from tafor.components.widgets.forecast import SegmentMixin
 from tafor.components.ui import Ui_sigmet_general, Ui_sigmet_typhoon, Ui_sigmet_ash, Ui_sigmet_cancel, Ui_sigmet_custom, main_rc
@@ -29,6 +32,8 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.mode = 'polygon'
 
         self.setupUi(self)
+        self.switchButton = QToolButton(self)
+        self.switchButton.hide()
         self.initState()
         self.setupFont()
         self.setupValidator()
@@ -362,6 +367,166 @@ class ForecastMixin(object):
     def clear(self):
         super().clear()
         self.forecastTime.clear()
+
+
+class AdvisoryMixin(object):
+
+    locationChanged = pyqtSignal(dict)
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.switchButton.setText('Switch')
+        self.switchButton.setFixedSize(26, 26)
+        self.switchButton.setAutoRaise(True)
+        self.switchButton.move(233, 12)
+        self.switchButton.show()
+        self.advisory.hide()
+
+        self.groupNames = cycle(['main', 'advisory'])
+        self.switchGroup()
+        self.upperTextEdit()
+
+    def bindSignal(self):
+        super().bindSignal()
+        self.switchButton.clicked.connect(self.switchGroup)
+        self.text.textChanged.connect(self.parseText)
+        self.initial.currentTextChanged.connect(self.updateFinalLocation)
+        self.initial.currentTextChanged.connect(self.handleLocationChange)
+        self.final.currentTextChanged.connect(self.handleLocationChange)
+
+    def switchGroup(self):
+        self.group = next(self.groupNames)
+        if self.group == 'main':
+            icon = ':/forward.png'
+        else:
+            icon = ':/back.png'
+
+        self.switchButton.setIcon(QIcon(icon))
+        self.updateVisibility()
+
+    def upperTextEdit(self):
+        upper = QTextCharFormat()
+        upper.setFontCapitalization(QFont.AllUppercase)
+        self.text.setCurrentCharFormat(upper)
+
+    def parseText(self):
+        text = self.text.toPlainText()
+        try:
+            self.parser = AshAdvisoryParser(text)
+            options = self.parser.availableLocations()
+            self.initial.clear()
+            self.initial.addItems(options)
+            self.autoFill()
+            self.text.setStyleSheet('color: black')
+        except Exception as e:
+            context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'Advisory message can not be decoded'))
+            self.text.setStyleSheet('color: grey')
+            logger.debug('Advisory message can not be decoded\n"{}"\nError {}'.format(text, e), exc_info=True)
+
+    def updateFinalLocation(self):
+        index = self.initial.currentIndex()
+        rests = ['']
+        if index + 1 < self.initial.count():
+            rests.append(self.initial.itemText(index + 1))
+
+        self.final.clear()
+        self.final.addItems(rests)
+
+    def updateVisibility(self):
+        if self.group == 'main':
+            self.advisory.hide()
+            self.main.show()
+        else:
+            self.advisory.show()
+            self.main.hide()
+
+    def autoFill(self):
+        volcanoName = self.parser.volcanoName()
+        if volcanoName:
+            self.name.setText(volcanoName)
+
+        position = self.parser.position()
+        if position:
+            lon, lat = position
+            self.currentLatitude.setText(lat)
+            self.currentLongitude.setText(lon)
+
+        initial = self.initial.currentText()
+        if 'OBS' in initial:
+            self.observation.setCurrentIndex(self.observation.findText('OBS'))
+
+        if 'FCST' in initial:
+            self.observation.setCurrentIndex(self.observation.findText('FCST'))
+
+        initialData = self.parser.location(initial)
+        fightLevel = initialData.get('fightLevel', None)
+        if fightLevel:
+            base, top = fightLevel.split('/')
+            pattern = re.compile(r'\d+')
+            m = pattern.search(base)
+            if m:
+                self.base.setText(m.group())
+            else:
+                self.level.setCurrentIndex(self.level.findText(base))
+
+            m = pattern.search(top)
+            if m:
+                self.top.setText(m.group())
+
+        initialTime = initialData.get('time', None)
+        if initialTime:
+            self.observationTime.setText(initialTime.strftime('%H%M'))
+            # self.beginningTime.setText(initialTime.strftime('%d%H%M'))
+
+        finalData = self.parser.location(self.final.currentText())
+        finalTime = finalData.get('time', None)
+        if finalTime:
+            self.forecastTime.setText(finalTime.strftime('%H%M'))
+            # self.endingTime.setText(finalTime.strftime('%d%H%M'))
+            self.forecastTime.setEnabled(True)
+            self.forecastTimeLabel.setEnabled(True)
+        else:
+            self.forecastTime.setEnabled(False)
+            self.forecastTimeLabel.setEnabled(False)
+
+    def handleLocationChange(self):
+        locations = {}
+        initial = self.initial.currentText()
+        if initial:
+            data = self.parser.location(initial)
+            locations['initial'] = [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in data['coordinates']]
+
+        final = self.final.currentText()
+        if final:
+            data = self.parser.location(final)
+            locations['final'] = [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in data['coordinates']]
+
+        if initial:
+            self.locationChanged.emit(locations)
+
+        self.autoFill()
+
+    def setLocationMode(self, mode):
+        super().setLocationMode(mode)
+
+        if self.mode in ['polygon', 'line']:
+            self.switchButton.show()
+        else:
+            self.switchButton.hide()
+            if self.group == 'advisory':
+                self.switchGroup()
+                return
+
+        self.updateVisibility()
+
+    def clear(self):
+        super().clear()
+        if self.group == 'advisory':
+            self.group = next(self.groupNames)
+
+        self.text.clear()
+        self.initial.clear()
+        self.final.clear()
 
 
 class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin, BaseSigmet, Ui_sigmet_general.Ui_Editor):
@@ -729,7 +894,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
         self.intensityChange.setCurrentIndex(0)
 
 
-class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin, BaseSigmet, Ui_sigmet_ash.Ui_Editor):
+class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin, AdvisoryMixin, BaseSigmet, Ui_sigmet_ash.Ui_Editor):
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -952,8 +1117,8 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
 
     def __init__(self, parent):
         super().__init__(parent)
-        self.setUpper()
-        self.setApiSign()
+        self.setupApiSign()
+        self.upperTextEdit()
 
     def bindSignal(self):
         super().bindSignal()
@@ -971,7 +1136,7 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
             cursor.setPosition(pos)
             self.text.setTextCursor(cursor)
 
-    def setUpper(self):
+    def upperTextEdit(self):
         upper = QTextCharFormat()
         upper.setFontCapitalization(QFont.AllUppercase)
         self.text.setCurrentCharFormat(upper)
@@ -993,10 +1158,10 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         return '\n'.join([self.firstLine(), content])
 
     def componentUpdate(self):
-        self.setPlaceholder()
+        self.setupPlaceholder()
         self.loadLocalDatabase()
 
-    def setApiSign(self):
+    def setupApiSign(self):
         pixmap = QPixmap(':/api.png')
         self.apiSign = QLabel(self)
         self.apiSign.setPixmap(pixmap)
@@ -1005,7 +1170,7 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         self.apiSign.move(650, 6)
         self.apiSign.hide()
 
-    def setPlaceholder(self):
+    def setupPlaceholder(self):
         speedUnit = 'KT' if context.environ.unit() == 'imperial' else 'KMH'
         lengthUnit = 'NM' if context.environ.unit() == 'imperial' else 'KM'
         tips = {

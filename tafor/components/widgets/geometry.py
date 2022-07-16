@@ -198,6 +198,14 @@ class SketchGraphic(QGraphicsItem, CanvasMixin):
                 self.geometries.append(shape)
 
 
+class OutlinedSketchGraphic(SketchGraphic):
+
+    def paint(self, painter, option, widget):
+        for g in self.geometries:
+            painter.setPen(QPen(QColor(0, 0, 0, 127), 2, Qt.DashLine))
+            painter.drawPolygon(g)
+
+
 class Sigmet(QGraphicsItem, CanvasMixin, ColorMixin):
 
     def __init__(self, geo):

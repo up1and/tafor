@@ -17,7 +17,7 @@ from tafor import logger
 from tafor.states import context
 from tafor.utils.convert import decimalToDegree, degreeToDecimal
 from tafor.utils.algorithm import encode, depth, buffer, circle, flattenLine, clipLine, clipPolygon, simplifyPolygon
-from tafor.components.widgets.geometry import BackgroundImage, Coastline, Fir, Sigmet, SketchGraphic
+from tafor.components.widgets.geometry import BackgroundImage, Coastline, Fir, Sigmet, SketchGraphic, OutlinedSketchGraphic
 from tafor.components.widgets.widget import OutlinedLabel
 
 
@@ -53,15 +53,18 @@ def degTodms(deg, pretty=None):
 
 class SketchManager(object):
 
-    def __init__(self, canvas, sketchNum=2):
-        super(SketchManager).__init__()
+    def __init__(self, canvas, sketchNames=None):
         self.canvas = canvas
         self.graphic = SketchGraphic()
+        self.outlinedGraphic = OutlinedSketchGraphic()
         self.sketchs = []
         self.index = 0
 
-        for _ in range(sketchNum):
-            sketch = Sketch(canvas)
+        if sketchNames is None:
+            sketchNames = []
+
+        for name in sketchNames:
+            sketch = Sketch(canvas, name)
             self.addSketch(sketch)
 
     def __iter__(self):
@@ -91,18 +94,27 @@ class SketchManager(object):
         collections = self.geo()
         self.graphic.updateGeometry(collections, self.canvas)
 
+        outlines = self.geo(outline=True)
+        self.outlinedGraphic.updateGeometry(outlines, self.canvas)
+
         if self.graphic.scene():
             self.canvas.scene.removeItem(self.graphic)
+            self.canvas.scene.removeItem(self.outlinedGraphic)
 
         self.canvas.scene.addItem(self.graphic)
+        self.canvas.scene.addItem(self.outlinedGraphic)
 
-    def geo(self):
+    def geo(self, outline=False):
         collections = {
             'type': 'GeometryCollection',
             'geometries': []
         }
         for s in self.sketchs:
-            geometry = s.geo()
+            if outline:
+                geometry = s.outline()
+            else:
+                geometry = s.geo()
+
             if geometry:
                 collections['geometries'].append(geometry)
 
@@ -120,13 +132,18 @@ class Sketch(QObject):
     finished = pyqtSignal()
     changed = pyqtSignal()
 
-    def __init__(self, canvas):
+    def __init__(self, canvas, name):
         super(Sketch, self).__init__()
         self.canvas = canvas
+        self.name = name
         self.done = False
         self.elements = None
         self.coordinates = []
+        self.exterior = []
         self.radius = 0
+
+    def __repr__(self):
+        return '<Sketch %s %r>' % (self.name, self.canvas.mode)
 
     @property
     def maxPoint(self):
@@ -187,6 +204,7 @@ class Sketch(QObject):
 
                     if len(self.coordinates) > self.maxPoint:
                         self.coordinates = self.coordinates[:7]
+
                 self.done = False
                 self.finished.emit()
                 self.redraw()
@@ -200,6 +218,10 @@ class Sketch(QObject):
             self.coordinates = []
             self.done = False
             self.finished.emit()
+            self.redraw()
+
+        if self.exterior:
+            self.exterior = []
             self.redraw()
 
     def resize(self, ratio):
@@ -229,11 +251,14 @@ class Sketch(QObject):
 
             self.redraw()
 
-    def filled(self):
-        if self.canvas.mode == 'entire':
+    def filled(self, coordinates=None, mode=None):
+        self.coordinates = coordinates
+        self.exterior = coordinates
+        if mode == 'entire':
             self.coordinates = self.boundaries
             self.done = True
-            self.redraw()
+
+        self.clip()
 
     def clip(self):
         # clip the polygon with boundaries
@@ -268,6 +293,7 @@ class Sketch(QObject):
         self.done = False
         self.radius = 0
         self.coordinates = []
+        self.exterior = []
         self.finished.emit()
         self.redraw()
 
@@ -327,6 +353,16 @@ class Sketch(QObject):
                     'type': 'Polygon',
                     'coordinates': list(polygon.exterior.coords)
                 }
+
+        return geometry
+
+    def outline(self):
+        geometry = {}
+        if self.exterior:
+            geometry = {
+                'type': 'Polygon',
+                'coordinates': self.exterior
+            }
 
         return geometry
 
@@ -607,7 +643,7 @@ class Canvas(BaseCanvas):
         super(Canvas, self).__init__()
         self.backgrounds = []
 
-        self.type = 'default'
+        self.type = 'initial'
         self.mode = 'polygon'
         self.lock = False
         self.maxPoint = 7
@@ -618,7 +654,7 @@ class Canvas(BaseCanvas):
         self.setMouseTracking(True)
 
         self.rubberBand = QRubberBand(QRubberBand.Rectangle, self)
-        self.sketchManager = SketchManager(self)
+        self.sketchManager = SketchManager(self, sketchNames=['initial', 'final'])
 
     @property
     def sketch(self):
@@ -775,11 +811,12 @@ class Canvas(BaseCanvas):
         self.mode = mode
 
         if mode == 'entire':
-            self.sketch.filled()
+            self.sketch.filled(mode='entire')
 
     def setType(self, key):
-        self.type = key
-        self.sketchManager.next()
+        if self.type != key:
+            self.type = key
+            self.sketchManager.next()
 
     def setMixedBackgroundOpacity(self, opacity):
         self.backgroundOpacity = opacity
@@ -1093,10 +1130,7 @@ class GraphicsWindow(QWidget):
             self.overlapChanged.emit('initial')
 
     def switchLock(self):
-        if self.canvas.lock:
-            self.canvas.lock = False
-        else:
-            self.canvas.lock = True
+        self.canvas.lock = not self.canvas.lock
 
     def setCachedSigmet(self, sigmets):
         self.cachedSigmets = sigmets
@@ -1198,6 +1232,25 @@ class GraphicsWindow(QWidget):
     def setTyphoonGraphic(self, circle):
         drawing = self.canvas.sketchManager.first()
         drawing.setCircle(circle)
+
+    def setAdvisoryGraphic(self, locations):
+        self.overlapButton.setChecked(False)
+        self.overlapButton.setEnabled(False)
+
+        if 'initial' in locations:
+            initial = self.canvas.sketchManager.first()
+            initial.filled(locations['initial'])
+        
+        if 'initial' in locations and 'final' in locations:
+            initial = self.canvas.sketchManager.first()
+            if initial.done:
+                final = self.canvas.sketchManager.last()
+                final.filled(locations['final'])
+                if final.done:
+                    self.overlapButton.setChecked(True)
+                    self.overlapButton.setEnabled(True)
+
+        self.switchForward()
 
     def updateSigmetGraphic(self):
         if not context.layer.boundaries():

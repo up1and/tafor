@@ -6,14 +6,14 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>431</width>
-    <height>456</height>
+    <width>713</width>
+    <height>592</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string notr="true">Sigmet</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QHBoxLayout" name="horizontalLayout">
    <property name="leftMargin">
     <number>0</number>
    </property>
@@ -27,435 +27,470 @@
     <number>0</number>
    </property>
    <item>
-    <widget class="QGroupBox" name="headingGroup">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="title">
-      <string>Heading</string>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_1">
-      <item row="0" column="2">
-       <widget class="QLabel" name="sequenceLabel">
-        <property name="text">
-         <string>Sequence</string>
+    <widget class="QWidget" name="main" native="true">
+     <layout class="QVBoxLayout" name="mainLayout">
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="QGroupBox" name="headingGroup">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
         </property>
-        <property name="buddy">
-         <cstring>sequence</cstring>
+        <property name="title">
+         <string>Heading</string>
         </property>
+        <layout class="QGridLayout" name="gridLayout_1">
+         <item row="0" column="2">
+          <widget class="QLabel" name="sequenceLabel">
+           <property name="text">
+            <string>Sequence</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="beginningTimeLabel">
+           <property name="text">
+            <string>Beginning</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLabel" name="endingTimeLabel">
+           <property name="text">
+            <string>Ending</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QLineEdit" name="sequence"/>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLineEdit" name="beginningTime"/>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLineEdit" name="endingTime"/>
+         </item>
+        </layout>
        </widget>
       </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="beginningTimeLabel">
-        <property name="text">
-         <string>Beginning</string>
+      <item>
+       <widget class="QGroupBox" name="typeGroup">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
         </property>
-        <property name="buddy">
-         <cstring>beginningTime</cstring>
+        <property name="title">
+         <string>Type</string>
         </property>
+        <layout class="QGridLayout" name="gridLayout_2">
+         <item row="0" column="0">
+          <widget class="QLabel" name="phenomenaLabel">
+           <property name="text">
+            <string>Phenomena</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QComboBox" name="phenomena"/>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLabel" name="nameLabel">
+           <property name="text">
+            <string>Volcano Name</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLineEdit" name="name"/>
+         </item>
+        </layout>
        </widget>
       </item>
-      <item row="0" column="1">
-       <widget class="QLabel" name="endingTimeLabel">
-        <property name="text">
-         <string>Ending</string>
+      <item>
+       <widget class="QGroupBox" name="positionGroup">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
         </property>
-        <property name="buddy">
-         <cstring>endingTime</cstring>
+        <property name="title">
+         <string>Position</string>
         </property>
+        <layout class="QGridLayout" name="gridLayout_3">
+         <item row="1" column="0">
+          <widget class="QLineEdit" name="currentLatitude"/>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="currentLatitudeLabel">
+           <property name="text">
+            <string>Latitude</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLabel" name="currentLongitudeLabel">
+           <property name="text">
+            <string>Longitude</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLineEdit" name="currentLongitude"/>
+         </item>
+        </layout>
        </widget>
       </item>
-      <item row="1" column="2">
-       <widget class="QLineEdit" name="sequence"/>
+      <item>
+       <widget class="QGroupBox" name="obsFcstGroup">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="title">
+         <string>Observation / Forecast</string>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_4">
+         <item row="0" column="1">
+          <widget class="QLabel" name="observationTimeLabel">
+           <property name="text">
+            <string>Observation Time</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="observationLabel">
+           <property name="text">
+            <string>Observation</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLineEdit" name="observationTime"/>
+         </item>
+         <item row="1" column="0">
+          <widget class="QComboBox" name="observation"/>
+         </item>
+         <item row="0" column="2">
+          <widget class="QLabel" name="forecastTimeLabel">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="text">
+            <string>Forecast Time</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QLineEdit" name="forecastTime">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
       </item>
-      <item row="1" column="0">
-       <widget class="QLineEdit" name="beginningTime"/>
+      <item>
+       <widget class="QGroupBox" name="extentGroup">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="title">
+         <string>Extent</string>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_5">
+         <item row="1" column="1">
+          <widget class="QLineEdit" name="base"/>
+         </item>
+         <item row="0" column="2">
+          <widget class="QLabel" name="topLabel">
+           <property name="text">
+            <string>Top</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QLineEdit" name="top"/>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLabel" name="baseLabel">
+           <property name="text">
+            <string>Base</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="levelLabel">
+           <property name="text">
+            <string>Fight Level</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QComboBox" name="level">
+           <item>
+            <property name="text">
+             <string notr="true"/>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">SFC</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+        </layout>
+       </widget>
       </item>
-      <item row="1" column="1">
-       <widget class="QLineEdit" name="endingTime"/>
+      <item>
+       <widget class="QGroupBox" name="changeGroup">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="title">
+         <string>Change</string>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_6">
+         <item row="0" column="1">
+          <widget class="QLabel" name="speedLabel">
+           <property name="text">
+            <string>Speed</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLineEdit" name="speed"/>
+         </item>
+         <item row="1" column="0">
+          <widget class="QComboBox" name="direction">
+           <item>
+            <property name="text">
+             <string notr="true">N</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">NNE</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">NE</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">ENE</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">E</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">ESE</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">SE</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">SSE</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">S</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">SSW</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">SW</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">WSW</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">W</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">WNW</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">NW</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">NNW</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">STNR</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="directionLabel">
+           <property name="text">
+            <string>Direction</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QLabel" name="intensityChangeLabel">
+           <property name="text">
+            <string>Intensity</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QComboBox" name="intensityChange">
+           <item>
+            <property name="text">
+             <string notr="true">NC</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">INTSF</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">WKN</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <spacer name="verticalSpacer">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>40</height>
+         </size>
+        </property>
+       </spacer>
       </item>
      </layout>
     </widget>
    </item>
    <item>
-    <widget class="QGroupBox" name="typeGroup">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="title">
-      <string>Type</string>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_2">
-      <item row="0" column="0">
-       <widget class="QLabel" name="phenomenaLabel">
-        <property name="text">
-         <string>Phenomena</string>
-        </property>
-        <property name="buddy">
-         <cstring>phenomena</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QComboBox" name="phenomena"/>
-      </item>
-      <item row="0" column="1">
-       <widget class="QLabel" name="nameLabel">
-        <property name="text">
-         <string>Volcano Name</string>
-        </property>
-        <property name="buddy">
-         <cstring>name</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QLineEdit" name="name"/>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="positionGroup">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="title">
-      <string>Position</string>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_3">
-      <item row="1" column="0">
-       <widget class="QLineEdit" name="currentLatitude"/>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="currentLatitudeLabel">
-        <property name="text">
-         <string>Latitude</string>
-        </property>
-        <property name="buddy">
-         <cstring>currentLatitude</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QLabel" name="currentLongitudeLabel">
-        <property name="text">
-         <string>Longitude</string>
-        </property>
-        <property name="buddy">
-         <cstring>currentLongitude</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QLineEdit" name="currentLongitude"/>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="obsFcstGroup">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="title">
-      <string>Observation / Forecast</string>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_4">
-      <item row="0" column="1">
-       <widget class="QLabel" name="observationTimeLabel">
-        <property name="text">
-         <string>Observation Time</string>
-        </property>
-        <property name="buddy">
-         <cstring>observationTime</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="observationLabel">
-        <property name="text">
-         <string>Observation</string>
-        </property>
-        <property name="buddy">
-         <cstring>observation</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QLineEdit" name="observationTime"/>
-      </item>
-      <item row="1" column="0">
-       <widget class="QComboBox" name="observation"/>
-      </item>
-      <item row="0" column="2">
-       <widget class="QLabel" name="forecastTimeLabel">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="text">
-         <string>Forecast Time</string>
-        </property>
-        <property name="buddy">
-         <cstring>forecastTime</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="2">
-       <widget class="QLineEdit" name="forecastTime">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="extentGroup">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="title">
-      <string>Extent</string>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_5">
-      <item row="0" column="1">
-       <widget class="QLabel" name="baseLabel">
-        <property name="text">
-         <string>Base</string>
-        </property>
-        <property name="buddy">
-         <cstring>base</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QComboBox" name="level">
-        <item>
-         <property name="text">
-          <string notr="true"/>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string notr="true">SFC</string>
-         </property>
-        </item>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="levelLabel">
-        <property name="text">
-         <string>Fight Level</string>
-        </property>
-        <property name="buddy">
-         <cstring>level</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QLineEdit" name="base"/>
-      </item>
-      <item row="0" column="2">
-       <widget class="QLabel" name="topLabel">
-        <property name="text">
-         <string>Top</string>
-        </property>
-        <property name="buddy">
-         <cstring>top</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="2">
-       <widget class="QLineEdit" name="top"/>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="changeGroup">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="title">
-      <string>Change</string>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_6">
-      <item row="0" column="1">
-       <widget class="QLabel" name="speedLabel">
-        <property name="text">
-         <string>Speed</string>
-        </property>
-        <property name="buddy">
-         <cstring>speed</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QLineEdit" name="speed"/>
-      </item>
-      <item row="1" column="0">
-       <widget class="QComboBox" name="direction">
-        <item>
-         <property name="text">
-          <string notr="true">N</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string notr="true">NNE</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string notr="true">NE</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string notr="true">ENE</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string notr="true">E</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string notr="true">ESE</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string notr="true">SE</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string notr="true">SSE</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string notr="true">S</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string notr="true">SSW</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string notr="true">SW</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string notr="true">WSW</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string notr="true">W</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string notr="true">WNW</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string notr="true">NW</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string notr="true">NNW</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string notr="true">STNR</string>
-         </property>
-        </item>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="directionLabel">
-        <property name="text">
-         <string>Direction</string>
-        </property>
-        <property name="buddy">
-         <cstring>direction</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="2">
-       <widget class="QLabel" name="intensityChangeLabel">
-        <property name="text">
-         <string>Intensity</string>
-        </property>
-        <property name="buddy">
-         <cstring>intensityChange</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="2">
-       <widget class="QComboBox" name="intensityChange">
-        <item>
-         <property name="text">
-          <string notr="true">NC</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string notr="true">INTSF</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string notr="true">WKN</string>
-         </property>
-        </item>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <spacer name="verticalSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
+    <widget class="QWidget" name="advisory" native="true">
+     <property name="maximumSize">
       <size>
-       <width>20</width>
-       <height>0</height>
+       <width>263</width>
+       <height>16777215</height>
       </size>
      </property>
-    </spacer>
+     <layout class="QVBoxLayout" name="advisoryLayout">
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="QGroupBox" name="periodGroup">
+        <property name="title">
+         <string>Period and Location</string>
+        </property>
+        <layout class="QGridLayout" name="gridLayout">
+         <item row="0" column="0">
+          <widget class="QLabel" name="initialLabel">
+           <property name="text">
+            <string>Initial</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLabel" name="finalLabel">
+           <property name="text">
+            <string>Final</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QComboBox" name="initial"/>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="final"/>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QGroupBox" name="textGroup">
+        <property name="title">
+         <string>Advisory Text</string>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <item>
+          <widget class="QTextEdit" name="text"/>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </widget>
    </item>
   </layout>
  </widget>

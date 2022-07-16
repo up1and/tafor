@@ -166,6 +166,26 @@ class SigmetGrammar(object):
         return pattern
 
 
+class AdvisoryGrammar(object):
+    time = re.compile(r'(\d{2})/(\d{2})(\d{2})Z')
+    fightLevel = re.compile(r'(FL[1-9]\d{2}/[1-9]\d{2})|(FL[1-9]\d{2})|(\d{4,5}FT)|(\d{4,5}M)|(SFC/FL[1-9]\d{2})')
+    speed = re.compile(r'(\d{1,2})(KMH|KT)')
+
+    _point = r'((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))'
+    _pointSpacer = r'\s?-\s?'
+
+    @property
+    def point(self):
+        return re.compile(self._point)
+
+    @property
+    def polygon(self):
+        pattern = re.compile(
+            r'(?:{}(?:{})?)+'.format(self._point, self._pointSpacer)
+        )
+        return pattern
+
+
 class TafValidator(object):
     """根据行业标准验证 TAF 报文单项要素之间的转折
 
@@ -1624,3 +1644,92 @@ class SigmetParser(object):
 
         return '\n'.join(outputs) + '='
 
+
+class AshAdvisoryParser(object):
+
+    grammarClass = AdvisoryGrammar
+
+    def __init__(self, message, grammar=None):
+        if not grammar:
+            grammar = self.grammarClass()
+
+        self.grammar = grammar
+        self.message = message
+        self.tokens = OrderedDict()
+        self.time = None
+        self.parse()
+
+    def parse(self):
+        splitPattern = re.compile(r'VA ADVISORY')
+        *_, text = splitPattern.split(self.message)
+
+        matches = re.finditer(r'^\s*([^:]+?)\s*:\s*(.*?)\s*$', text, re.MULTILINE)
+        prev = None
+        for match in matches:
+            key, value = match.groups()
+            values = key.split('\n')
+            if len(values) > 1:
+                *temps, key = values
+                if prev:
+                    self.tokens[prev] = self.tokens[prev] + ' '.join(temps)
+
+            self.tokens[key] = value
+            prev = key
+
+        if 'DTG' in self.tokens:
+            self.time = datetime.datetime.strptime(self.tokens['DTG'], '%Y%m%d/%H%MZ')
+
+    def volcanoName(self):
+        if 'VOLCANO' in self.tokens:
+            text = self.tokens['VOLCANO']
+            name = text.split()[0]
+            return name
+
+        return ''
+
+    def position(self):
+        if 'PSN' in self.tokens:
+            text = self.tokens['PSN']
+            lat, lon = text.split()
+            return lon, lat
+
+        return ''
+
+    def observationTime(self):
+        if self.time and 'OBS VA DTG' in self.tokens:
+            text = self.tokens['OBS VA DTG']
+            match = self.grammar.time.search(text)
+            day, hour, minute = match.groups()
+            time = self.time.replace(day=int(day), hour=int(hour), minute=int(minute))
+            return time
+
+    def availableLocations(self):
+        keys = []
+        for key in self.tokens:
+            if 'VA CLD' in key:
+                keys.append(key)
+
+        return keys
+
+    def location(self, key):
+        if key not in self.tokens:
+            return {}
+
+        data = {}
+        text = self.tokens[key]
+        point = self.grammar.point
+        data['coordinates'] = point.findall(text)
+
+        if 'OBS' in key:
+            data['time'] = self.observationTime()
+        else:
+            match = self.grammar.time.search(text)
+            if match and self.time:
+                day, hour, minute = match.groups()
+                data['time'] = self.time.replace(day=int(day), hour=int(hour), minute=int(minute))
+
+        match = self.grammar.fightLevel.search(text)
+        if match:
+            data['fightLevel'] = match.group()
+
+        return data

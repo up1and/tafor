@@ -1,9 +1,7 @@
 from PyQt5.QtCore import QCoreApplication, QTimer, Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QHBoxLayout, QLabel, QPushButton
 
-from tafor import conf
 from tafor.states import context
-from tafor.utils import boolean
 
 
 class BaseEditor(QDialog):
@@ -52,6 +50,7 @@ class BaseEditor(QDialog):
     def addBottomBox(self, layout):
         self.bottomBox = QWidget()
         bottomLayout = QHBoxLayout()
+        # bottomLayout.setContentsMargins(0, 0, 0, 0)
         self.nextButton = QPushButton()
         self.nextButton.setEnabled(False)
         self.nextButton.setText(QCoreApplication.translate('Editor', 'Next'))
