@@ -4,9 +4,6 @@ import datetime
 
 from dateutil import relativedelta
 
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import QRect, Qt
-
 from tafor import logger
 
 

@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Editor(object):
     def setupUi(self, Editor):
         Editor.setObjectName("Editor")
-        Editor.resize(713, 592)
+        Editor.resize(713, 456)
         Editor.setWindowTitle("Sigmet")
         self.horizontalLayout = QtWidgets.QHBoxLayout(Editor)
         self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
@@ -226,7 +226,7 @@ class Ui_Editor(object):
         self.intensityChange.setItemText(2, "WKN")
         self.gridLayout_6.addWidget(self.intensityChange, 1, 2, 1, 1)
         self.mainLayout.addWidget(self.changeGroup)
-        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem = QtWidgets.QSpacerItem(20, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.mainLayout.addItem(spacerItem)
         self.horizontalLayout.addWidget(self.main)
         self.advisory = QtWidgets.QWidget(Editor)

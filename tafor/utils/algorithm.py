@@ -54,8 +54,8 @@ def slope(line, ndigits=5):
 def buffer(lines, dist):
     line = LineString(lines)
     center = line.centroid
-    _, lat, _ =wgs84.fwd(center.x, center.y, 0, dist)
-    lon, _, _ =wgs84.fwd(center.x, center.y, 90, dist)
+    _, lat, _ = wgs84.fwd(center.x, center.y, 0, dist)
+    lon, _, _ = wgs84.fwd(center.x, center.y, 90, dist)
     deg = (lat - center.x + lon - center.y) / 2
 
     polygon = line.buffer(deg, cap_style=2, join_style=2)

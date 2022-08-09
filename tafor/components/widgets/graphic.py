@@ -17,7 +17,7 @@ from tafor import logger
 from tafor.states import context
 from tafor.utils.convert import decimalToDegree, degreeToDecimal
 from tafor.utils.algorithm import encode, depth, buffer, circle, flattenLine, clipLine, clipPolygon, simplifyPolygon
-from tafor.components.widgets.geometry import BackgroundImage, Coastline, Fir, Sigmet, SketchGraphic, OutlinedSketchGraphic
+from tafor.components.widgets.geometry import BackgroundImage, Coastline, Fir, Sigmet, SketchGraphic, StickerGraphic
 from tafor.components.widgets.widget import OutlinedLabel
 
 
@@ -55,8 +55,7 @@ class SketchManager(object):
 
     def __init__(self, canvas, sketchNames=None):
         self.canvas = canvas
-        self.graphic = SketchGraphic()
-        self.outlinedGraphic = OutlinedSketchGraphic()
+        self.graphics = []
         self.sketchs = []
         self.index = 0
 
@@ -91,30 +90,35 @@ class SketchManager(object):
         return self.sketchs[-1]
 
     def update(self):
-        collections = self.geo()
-        self.graphic.updateGeometry(collections, self.canvas)
+        if self.graphics:
+            self.graphics = []
+            self.canvas.scene.removeItem(self.graphicsGroup)
 
-        outlines = self.geo(outline=True)
-        self.outlinedGraphic.updateGeometry(outlines, self.canvas)
+        sketchGeometries = []
+        stickerGeometries = []
+        for sketch in self.sketchs:
+            sketchGeometries.append(sketch.geo())
+            stickerGeometries += sketch.stickers
 
-        if self.graphic.scene():
-            self.canvas.scene.removeItem(self.graphic)
-            self.canvas.scene.removeItem(self.outlinedGraphic)
+        sketchCollections = self.merge(sketchGeometries)
+        stickerCollections = self.merge(stickerGeometries)
 
-        self.canvas.scene.addItem(self.graphic)
-        self.canvas.scene.addItem(self.outlinedGraphic)
+        graphic = SketchGraphic()
+        graphic.updateGeometry(sketchCollections, self.canvas)
+        self.graphics.append(graphic)
 
-    def geo(self, outline=False):
+        sticker = StickerGraphic()
+        sticker.updateGeometry(stickerCollections, self.canvas)
+        self.graphics.append(sticker)
+        
+        self.graphicsGroup = self.canvas.scene.createItemGroup(self.graphics)
+
+    def merge(self, geometries):
         collections = {
             'type': 'GeometryCollection',
             'geometries': []
         }
-        for s in self.sketchs:
-            if outline:
-                geometry = s.outline()
-            else:
-                geometry = s.geo()
-
+        for geometry in geometries:
             if geometry:
                 collections['geometries'].append(geometry)
 
@@ -139,7 +143,7 @@ class Sketch(QObject):
         self.done = False
         self.elements = None
         self.coordinates = []
-        self.exterior = []
+        self.stickers = []
         self.radius = 0
 
     def __repr__(self):
@@ -220,8 +224,8 @@ class Sketch(QObject):
             self.finished.emit()
             self.redraw()
 
-        if self.exterior:
-            self.exterior = []
+        if self.stickers:
+            self.stickers = []
             self.redraw()
 
     def resize(self, ratio):
@@ -251,14 +255,39 @@ class Sketch(QObject):
 
             self.redraw()
 
-    def filled(self, coordinates=None, mode=None):
-        self.coordinates = coordinates
-        self.exterior = coordinates
+    def filled(self, mode=None, **kwargs):
         if mode == 'entire':
             self.coordinates = self.boundaries
             self.done = True
+            self.finished.emit()
+            self.redraw()
 
-        self.clip()
+        if mode in ['polygon', 'line']:
+            self.coordinates = kwargs.get('coordinates')
+            self.clip()
+
+        if mode == 'circle':
+            radius = kwargs.get('radius')
+            center = kwargs.get('center')
+            self.done = False
+
+            if center:
+                self.coordinates = [center]
+            else:
+                self.coordinates = []
+
+            if radius:
+                self.radius = int(radius) * 1000
+            else:
+                self.radius = 0
+
+            if center and radius:
+                lon, lat, _ = wgs84.fwd(center[0], center[1], 0, self.radius)
+                self.coordinates.append((lon, lat))
+                self.done = True
+
+            self.finished.emit()
+            self.redraw()
 
     def clip(self):
         # clip the polygon with boundaries
@@ -289,11 +318,15 @@ class Sketch(QObject):
         self.finished.emit()
         self.redraw()
 
+    def pin(self, geometries):
+        self.stickers = geometries
+        self.redraw()
+
     def clear(self):
         self.done = False
         self.radius = 0
         self.coordinates = []
-        self.exterior = []
+        self.stickers = []
         self.finished.emit()
         self.redraw()
 
@@ -353,16 +386,6 @@ class Sketch(QObject):
                     'type': 'Polygon',
                     'coordinates': list(polygon.exterior.coords)
                 }
-
-        return geometry
-
-    def outline(self):
-        geometry = {}
-        if self.exterior:
-            geometry = {
-                'type': 'Polygon',
-                'coordinates': self.exterior
-            }
 
         return geometry
 
@@ -456,31 +479,15 @@ class Sketch(QObject):
 
     def circle(self):
         return {
-            'center': self.coordinates[0] if self.coordinates else (),
-            'radius': round(self.radius / 1000)
+            'type': 'Feature',
+            'geometry': {
+                'type': 'Point',
+                'coordinates': self.coordinates[0] if self.coordinates else ()
+            },
+            'properties': {
+                'radius': round(self.radius / 1000)
+            }
         }
-
-    def setCircle(self, circle):
-        if self.canvas.mode == 'circle':
-            self.done = False
-
-            if 'center' in circle:
-                center = degreeToDecimal(circle['center'][0]), degreeToDecimal(circle['center'][1])
-                self.coordinates = [center]
-            else:
-                self.coordinates = []
-
-            if 'radius' in circle:
-                self.radius = int(circle['radius']) * 1000
-            else:
-                self.radius = 0
-
-            if 'center' in circle and 'radius' in circle:
-                lon, lat, _ = wgs84.fwd(center[0], center[1], 0, self.radius)
-                self.coordinates.append((lon, lat))
-                self.done = True
-
-            self.redraw()
 
 
 class BaseCanvas(QGraphicsView):
@@ -545,11 +552,11 @@ class BaseCanvas(QGraphicsView):
 
             for shape in polygons:
                 if not shape.is_empty:
-                    gemoetry = {
+                    geometry = {
                         'type': 'Polygon',
                         'coordinates': shape.exterior.coords
                     }
-                    p = Coastline(gemoetry)
+                    p = Coastline(geometry)
                     p.addTo(self, self.coastlines)
 
         self.coastlinesGroup = self.scene.createItemGroup(self.coastlines)
@@ -1229,26 +1236,59 @@ class GraphicsWindow(QWidget):
         html = '<br><br>'.join(words)
         self.locationWidget.setText(html)
 
-    def setTyphoonGraphic(self, circle):
-        drawing = self.canvas.sketchManager.first()
-        drawing.setCircle(circle)
+    def setTyphoonGraphic(self, feature):
+        sketch = self.canvas.sketchManager.first()
+        sketch.filled(mode='circle', center=feature['geometry']['coordinates'], radius=feature['properties']['radius'])
 
-    def setAdvisoryGraphic(self, locations):
+    def setAdvisoryGraphic(self, collections):
         self.overlapButton.setChecked(False)
         self.overlapButton.setEnabled(False)
 
-        if 'initial' in locations:
-            initial = self.canvas.sketchManager.first()
-            initial.filled(locations['initial'])
-        
-        if 'initial' in locations and 'final' in locations:
-            initial = self.canvas.sketchManager.first()
-            if initial.done:
-                final = self.canvas.sketchManager.last()
-                final.filled(locations['final'])
-                if final.done:
-                    self.overlapButton.setChecked(True)
-                    self.overlapButton.setEnabled(True)
+        initial = self.canvas.sketchManager.first()
+        final = self.canvas.sketchManager.last()
+
+        def _filled(sketch, feature):
+            if feature['geometry']['type'] == 'Polygon':
+                sketch.filled(mode=self.canvas.mode, coordinates=feature['geometry']['coordinates'])
+
+            if feature['geometry']['type'] == 'Point':
+                sketch.filled(mode=self.canvas.mode, center=feature['geometry']['coordinates'], radius=feature['properties']['radius'])
+
+        for feature in collections['features']:
+            type = feature['properties']['type']
+            location = feature['properties']['location']
+            if type == 'sketch':
+                if location == 'initial':
+                    _filled(initial, feature)
+
+                if location == 'final':
+                    if initial.done:
+                        _filled(final, feature)
+                        if final.done:
+                            self.overlapButton.setChecked(True)
+                            self.overlapButton.setEnabled(True)
+
+                feature['properties']['type'] = 'exterior'
+
+        stickers = {
+            'initial': [],
+            'final': []
+        }
+        for feature in collections['features']:
+            location = feature['properties']['location']
+            geometry = feature['geometry']
+            if location == 'initial':
+                stickers['initial'].append(geometry)
+
+            if location == 'final':
+                stickers['final'].append(geometry)
+
+        for key, geometries in stickers.items():
+            if geometries:
+                if key == 'initial':
+                    initial.pin(geometries)
+                else:
+                    final.pin(geometries)
 
         self.switchForward()
 

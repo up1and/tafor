@@ -11,7 +11,7 @@ from tafor import conf, logger
 from tafor.states import context
 from tafor.utils import Pattern
 from tafor.utils.convert import parseTime, ceilTime, roundTime, calcPosition, decimalToDegree, degreeToDecimal
-from tafor.utils.validator import AshAdvisoryParser
+from tafor.utils.validator import AshAdvisoryParser, TyphoonAdvisoryParser
 from tafor.models import db, Sigmet
 from tafor.components.widgets.forecast import SegmentMixin
 from tafor.components.ui import Ui_sigmet_general, Ui_sigmet_typhoon, Ui_sigmet_ash, Ui_sigmet_cancel, Ui_sigmet_custom, main_rc
@@ -411,8 +411,11 @@ class AdvisoryMixin(object):
 
     def parseText(self):
         text = self.text.toPlainText()
+        if not text:
+            return
+
         try:
-            self.parser = AshAdvisoryParser(text)
+            self.parser = self.advisoryParser(text)
             options = self.parser.availableLocations()
             self.initial.clear()
             self.initial.addItems(options)
@@ -422,6 +425,49 @@ class AdvisoryMixin(object):
             context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'Advisory message can not be decoded'))
             self.text.setStyleSheet('color: grey')
             logger.debug('Advisory message can not be decoded\n"{}"\nError {}'.format(text, e), exc_info=True)
+
+    def autoFill(self):
+        name = self.parser.name()
+        if name:
+            self.name.setText(name)
+
+        position = self.parser.position()
+        if position:
+            lat, lon = position
+            self.currentLatitude.setText(lat)
+            self.currentLongitude.setText(lon)
+
+        initial = self.initial.currentText()
+        if 'OBS' in initial:
+            self.observation.setCurrentIndex(self.observation.findText('OBS'))
+
+        if 'FCST' in initial:
+            self.observation.setCurrentIndex(self.observation.findText('FCST'))
+
+        features = self.parser.location(initial)
+        if features and 'time' in features['properties']:
+            time = features['properties']['time']
+            self.observationTime.setText(time.strftime('%H%M'))
+            # self.beginningTime.setText(initialTime.strftime('%d%H%M'))
+
+        features = self.parser.location(self.final.currentText())
+        if features and 'time' in features['properties']:
+            time = features['properties']['time']
+            self.forecastTime.setText(time.strftime('%H%M'))
+            # self.endingTime.setText(finalTime.strftime('%d%H%M'))
+            self.forecastTime.setEnabled(True)
+            self.forecastTimeLabel.setEnabled(True)
+        else:
+            self.forecastTime.setEnabled(False)
+            self.forecastTimeLabel.setEnabled(False)
+
+        movement = self.parser.movement()
+        if movement:
+            self.direction.setCurrentIndex(self.direction.findText(movement))
+
+            if movement != 'STNR':
+                speed = str(self.parser.speed())
+                self.speed.setText(speed)
 
     def updateFinalLocation(self):
         index = self.initial.currentIndex()
@@ -440,76 +486,70 @@ class AdvisoryMixin(object):
             self.advisory.show()
             self.main.hide()
 
-    def autoFill(self):
-        volcanoName = self.parser.volcanoName()
-        if volcanoName:
-            self.name.setText(volcanoName)
-
-        position = self.parser.position()
-        if position:
-            lon, lat = position
-            self.currentLatitude.setText(lat)
-            self.currentLongitude.setText(lon)
-
-        initial = self.initial.currentText()
-        if 'OBS' in initial:
-            self.observation.setCurrentIndex(self.observation.findText('OBS'))
-
-        if 'FCST' in initial:
-            self.observation.setCurrentIndex(self.observation.findText('FCST'))
-
-        initialData = self.parser.location(initial)
-        fightLevel = initialData.get('fightLevel', None)
-        if fightLevel:
-            base, top = fightLevel.split('/')
-            pattern = re.compile(r'\d+')
-            m = pattern.search(base)
-            if m:
-                self.base.setText(m.group())
-            else:
-                self.level.setCurrentIndex(self.level.findText(base))
-
-            m = pattern.search(top)
-            if m:
-                self.top.setText(m.group())
-
-        initialTime = initialData.get('time', None)
-        if initialTime:
-            self.observationTime.setText(initialTime.strftime('%H%M'))
-            # self.beginningTime.setText(initialTime.strftime('%d%H%M'))
-
-        finalData = self.parser.location(self.final.currentText())
-        finalTime = finalData.get('time', None)
-        if finalTime:
-            self.forecastTime.setText(finalTime.strftime('%H%M'))
-            # self.endingTime.setText(finalTime.strftime('%d%H%M'))
-            self.forecastTime.setEnabled(True)
-            self.forecastTimeLabel.setEnabled(True)
-        else:
-            self.forecastTime.setEnabled(False)
-            self.forecastTimeLabel.setEnabled(False)
-
     def handleLocationChange(self):
-        locations = {}
-        initial = self.initial.currentText()
-        if initial:
-            data = self.parser.location(initial)
-            locations['initial'] = [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in data['coordinates']]
+        collections = {
+            'type': 'FeatureCollection'
+        }
+        locations = []
 
-        final = self.final.currentText()
-        if final:
-            data = self.parser.location(final)
-            locations['final'] = [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in data['coordinates']]
+        # when in polygon mode, there is no final position, and the initial geometry is a polygon
+        if not (self.parser.type == 'TC ADVISORY' and self.mode == 'polygon'):
+            initial = self.initial.currentText()
+            if initial:
+                feature = self.parser.location(initial)
+                feature['properties']['location'] = 'initial'
+                feature['properties']['type'] = 'sketch'
+                locations.append(feature)
 
-        if initial:
-            self.locationChanged.emit(locations)
+            final = self.final.currentText()
+            if initial and final:
+                feature = self.parser.location(final)
+                feature['properties']['location'] = 'final'
+                feature['properties']['type'] = 'sketch'
+                locations.append(feature)
+
+        if self.parser.type == 'TC ADVISORY':
+            for feature in locations:
+                if self.range.hasAcceptableInput():
+                    feature['properties']['radius'] = int(self.range.text())
+
+            properties = {
+                'type': 'exterior',
+                'location': 'initial'
+            }
+
+            route = self.parser.route()
+            if route:
+                features = {
+                    'geometry': route,
+                    'properties': properties
+                }
+                locations.append(features)
+
+            polygon = self.parser.polygon()
+            if polygon:
+                if self.mode == 'polygon':
+                    properties = {
+                        'type': 'sketch',
+                        'location': 'initial'
+                    }
+
+                features = {
+                    'geometry': polygon,
+                    'properties': properties
+                }
+                locations.append(features)
+
+        collections['features'] = locations
+        if collections['features']:
+            self.locationChanged.emit(collections)
 
         self.autoFill()
 
     def setLocationMode(self, mode):
         super().setLocationMode(mode)
 
-        if self.mode in ['polygon', 'line']:
+        if self.mode in ['polygon', 'line', 'circle']:
             self.switchButton.show()
         else:
             self.switchButton.hide()
@@ -638,7 +678,7 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
         self.forecastTimeLabel.setEnabled(False)
 
 
-class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
+class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixin, BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
 
     circleChanged = pyqtSignal(dict)
 
@@ -646,6 +686,32 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
         super().__init__(parent)
         self.setPhenomena()
         self.setFcstOrObs()
+        self.advisoryParser = TyphoonAdvisoryParser
+
+        # testStr = (
+        #     "TC ADVISORY\n"
+        #     "DTG: 20220702/0600Z\n"
+        #     "TCAC: TOKYO\n"
+        #     "TC: CHABA\n"
+        #     "ADVISORY NR: 2022/14 \n"
+        #     "PSN: 02/0600Z N2110 E11120 \n"
+        #     "CB: WI N1755 E11105 - N1955 E10840 - N2220 E11205 - N2110 E11330 - N1905 E11230 - N1755 E11105 TOP FL530\n"
+        #     "MOV: NNW 07KT\n"
+        #     "INTST CHANGE: WKN\n"
+        #     "C: 965HPA\n"
+        #     "MAX WIND: 70KT\n"
+        #     "FCST PSN +6 HR: 02/1200Z N2155 E11050\n"
+        #     "FCST MAX WIND +6 HR: 60KT\n"
+        #     "FCST PSN +12 HR: 02/1800Z N2235 E11010\n"
+        #     "FCST MAX WIND +12 HR: 45KT\n"
+        #     "FCST PSN +18 HR: 03/0000Z N2310 E11000\n"
+        #     "FCST MAX WIND +18 HR: NIL\n"
+        #     "FCST PSN +24 HR: 03/0600Z N2340 E10955\n"
+        #     "FCST MAX WIND +24 HR: NIL \n"
+        #     "RMK: NIL\n"
+        #     "NXT MSG: 20220702/1200Z="
+        # )
+        # self.text.setText(testStr)
 
     def bindSignal(self):
         super().bindSignal()
@@ -704,28 +770,12 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
         observations = ['OBS', 'FCST']
         self.observation.addItems(observations)
 
-    def handleCircleChange(self):
-        if self.mode == 'circle':
-            self.circleChanged.emit(self.circle())
+    def setTyphoonLocation(self, feature):
+        if not feature:
+            return
 
-    def phenomenon(self):
-        items = [self.phenomena.currentText(), self.name.text()]
-        text = ' '.join(items) if all(items) else ''
-        return text
-
-    def circle(self):
-        coords = {}
-        if self.currentLatitude.hasAcceptableInput() and self.currentLongitude.hasAcceptableInput():
-            coords['center'] = (self.currentLongitude.text(), self.currentLatitude.text())
-
-        if self.range.hasAcceptableInput():
-            coords['radius'] = int(self.range.text())
-        
-        return coords
-
-    def setTyphoonLocation(self, circle):
-        center = circle.get('center')
-        radius = circle.get('radius')
+        center = feature['geometry']['coordinates']
+        radius = feature['properties']['radius']
 
         if center:
             lon, lat = center
@@ -806,6 +856,53 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, BaseSigmet, 
         forecastLatitude, forecastLongitude = calcPosition(latitude, longitude, speed, time, degree)
         self.forecastLatitude.setText(forecastLatitude)
         self.forecastLongitude.setText(forecastLongitude)
+
+    def autoFill(self):
+        super().autoFill()
+        height = self.parser.height()
+        if height:
+            self.top.setText(height)
+
+        intensity = self.parser.intensity()
+        if intensity:
+            self.intensityChange.setCurrentIndex(self.intensityChange.findText(intensity))
+
+        radius = self.parser.range()
+        if radius:
+            self.range.setText(str(radius))
+
+        # features = self.parser.location(self.final.currentText())
+
+    def handleCircleChange(self):
+        if self.mode == 'circle':
+            self.circleChanged.emit(self.circle())
+
+    def phenomenon(self):
+        items = [self.phenomena.currentText(), self.name.text()]
+        text = ' '.join(items) if all(items) else ''
+        return text
+
+    def circle(self):
+        feature = {
+            'type': 'Feature',
+            'properties': {}
+        }
+        geometry = {}
+        if self.currentLatitude.hasAcceptableInput() and self.currentLongitude.hasAcceptableInput():
+            geometry = {
+                'type': 'Point',
+                'coordinates': (degreeToDecimal(self.currentLongitude.text()), degreeToDecimal(self.currentLatitude.text()))
+            }
+
+        if self.range.hasAcceptableInput():
+            feature['properties']['radius'] = self.range.int(self.range.text())
+
+        if geometry:
+            feature['geometry'] = geometry
+        else:
+            feature = {}
+        
+        return feature
 
     def moveTime(self, start, end):
         return parseTime(end) - parseTime(start)
@@ -900,6 +997,38 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         super().__init__(parent)
         self.setPhenomena()
         self.setFcstOrObs()
+        self.advisoryParser = AshAdvisoryParser
+
+        # testStr = (
+        #     "FVFE01 RJTD 142100\n"
+        #     "VA ADVISORY\n"
+        #     "DTG: 20210814/2100Z\n"
+        #     "VAAC: TOKYO\n"
+        #     "VOLCANO: FUKUTOKU-OKA-NO-BA 284130\n"
+        #     "PSN: N2417 E14129\n"
+        #     "AREA: JAPAN\n"
+        #     "SUMMIT ELEV: -29M\n"
+        #     "ADVISORY NR: 2021/16\n"
+        #     "INFO SOURCE: HIMAWARI-8\n"
+        #     "AVIATION COLOUR CODE: NIL\n"
+        #     "ERUPTION DETAILS: VA EMISSIONS CONTINUING\n"
+        #     "OBS VA DTG: 14/2020Z\n"
+        #     "OBS VA CLD: SFC/FL480 N2433 E14132 - N2411 E14137 - N2106 E13408 -\n"
+        #     "N2030 E12501 - N1829 E11931 - N2032 E11751 - N2342 E12603 - N2314\n"
+        #     "E13222 MOV W 55KT\n"
+        #     "FCST VA CLD +6 HR: 15/0220Z SFC/FL510 N2533 E14014 - N2412 E14141 -\n"
+        #     "N2214 E13836 - N2050 E13001 - N2008 E12142 - N1633 E11431 - N1832\n"
+        #     "E11203 - N2402 E12019 - N2355 E13843\n"
+        #     "FCST VA CLD +12 HR: 15/0820Z SFC/FL520 N2608 E13902 - N2409 E14145 -\n"
+        #     "N2054 E13813 - N2019 E11914 - N1426 E10847 - N1633 E10627 - N2334\n"
+        #     "E11717 - N2504 E12425 - N2314 E13600\n"
+        #     "FCST VA CLD +18 HR: 15/1420Z SFC/FL530 N2659 E13836 - N2416 E14148 -\n"
+        #     "N1936 E13735 - N2050 E12525 - N1846 E11503 - N1134 E10322 - N1259\n"
+        #     "E10041 - N2042 E11014 - N2524 E12436 - N2352 E13446\n"
+        #     "RMK: NIL\n"
+        #     "NXT ADVISORY: 20210815/0000Z="
+        # )
+        # self.text.setText(testStr)
 
     def bindSignal(self):
         super().bindSignal()
@@ -936,6 +1065,24 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         self.currentLongitude.setEnabled(enbaled)
         self.currentLongitudeLabel.setEnabled(enbaled)
         self.contentChanged.emit()
+
+    def autoFill(self):
+        super().autoFill()
+        initial = self.initial.currentText()
+        features = self.parser.location(initial)
+        if features and 'fightLevel' in features['properties']:
+            fightLevel = features['properties']['fightLevel']
+            base, top = fightLevel.split('/')
+            pattern = re.compile(r'\d+')
+            m = pattern.search(base)
+            if m:
+                self.base.setText(m.group())
+            else:
+                self.level.setCurrentIndex(self.level.findText(base))
+
+            m = pattern.search(top)
+            if m:
+                self.top.setText(m.group())
 
     def phenomenon(self):
         items = ['VA', self.phenomena.currentText()]

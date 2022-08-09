@@ -5,7 +5,7 @@ import datetime
 from collections import OrderedDict
 
 from tafor import logger
-from tafor.utils.convert import parseTimez, parsePeriod, parseTime
+from tafor.utils.convert import parseTimez, parsePeriod, parseTime, degreeToDecimal
 
 
 weather = [
@@ -167,8 +167,11 @@ class SigmetGrammar(object):
 
 
 class AdvisoryGrammar(object):
+    name = re.compile(r'\b([A-Z-]+)\b')
     time = re.compile(r'(\d{2})/(\d{2})(\d{2})Z')
     fightLevel = re.compile(r'(FL[1-9]\d{2}/[1-9]\d{2})|(FL[1-9]\d{2})|(\d{4,5}FT)|(\d{4,5}M)|(SFC/FL[1-9]\d{2})')
+    height = re.compile(r'TOP\sFL(\d+)')
+    movement = re.compile(r'\b(STNR|N|NNE|NE|ENE|E|ESE|SE|SSE|S|SSW|SW|WSW|W|WNW|NW|NNW)\b')
     speed = re.compile(r'(\d{1,2})(KMH|KT)')
 
     _point = r'((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))'
@@ -1645,7 +1648,7 @@ class SigmetParser(object):
         return '\n'.join(outputs) + '='
 
 
-class AshAdvisoryParser(object):
+class AdvisoryParser(object):
 
     grammarClass = AdvisoryGrammar
 
@@ -1660,8 +1663,8 @@ class AshAdvisoryParser(object):
         self.parse()
 
     def parse(self):
-        splitPattern = re.compile(r'VA ADVISORY')
-        *_, text = splitPattern.split(self.message)
+        pattern = re.compile(r'{}'.format(self.type))
+        *_, text = pattern.split(self.message)
 
         matches = re.finditer(r'^\s*([^:]+?)\s*:\s*(.*?)\s*$', text, re.MULTILINE)
         prev = None
@@ -1679,57 +1682,213 @@ class AshAdvisoryParser(object):
         if 'DTG' in self.tokens:
             self.time = datetime.datetime.strptime(self.tokens['DTG'], '%Y%m%d/%H%MZ')
 
-    def volcanoName(self):
-        if 'VOLCANO' in self.tokens:
-            text = self.tokens['VOLCANO']
-            name = text.split()[0]
-            return name
-
-        return ''
-
     def position(self):
         if 'PSN' in self.tokens:
             text = self.tokens['PSN']
-            lat, lon = text.split()
-            return lon, lat
+            match = self.grammar.point.search(text)
+            if match:
+                return match.groups()
+
+    def name(self):
+        field = self.fields['name']
+        if field in self.tokens:
+            text = self.tokens[field]
+            match = self.grammar.name.match(text)
+            if match:
+                return match.group()
 
         return ''
 
+    def movement(self):
+        field = self.fields['movement']
+        if field in self.tokens:
+            text = self.tokens[field]
+            match = self.grammar.movement.search(text)
+            if match:
+                return match.group(1)
+
+        return ''
+
+    def speed(self, unit='KMH'):
+        field = self.fields['movement']
+        if field in self.tokens:
+            text = self.tokens[field]
+            match = self.grammar.speed.search(text)
+            if match:
+                speed, u = match.groups()
+                if unit == 'KMH' and u == 'KT':
+                    speed = int(speed) * 1.852
+
+                if unit == 'KT' and u == 'KMH':
+                    speed = int(speed) / 1.852
+                
+                return int(speed)
+
     def observationTime(self):
-        if self.time and 'OBS VA DTG' in self.tokens:
-            text = self.tokens['OBS VA DTG']
-            match = self.grammar.time.search(text)
-            day, hour, minute = match.groups()
-            time = self.time.replace(day=int(day), hour=int(hour), minute=int(minute))
-            return time
+        raise NotImplementedError
 
     def availableLocations(self):
         keys = []
+        field = self.fields['locations']
         for key in self.tokens:
-            if 'VA CLD' in key:
+            if field in key:
                 keys.append(key)
 
         return keys
+
+    def _findLocationTime(self, key):
+        if not self.time:
+            return
+
+        match = re.search(r'\d+', key)
+        obstime = self.observationTime()
+        if match and obstime:
+            hour = int(match.group())
+            time = obstime + datetime.timedelta(hours=hour)
+            return time
+        else:
+            return self.time
+
+
+class TyphoonAdvisoryParser(AdvisoryParser):
+
+    type = 'TC ADVISORY'
+    fields = {
+        'name': 'TC',
+        'movement': 'MOV',
+        'locations': 'PSN'
+    }
+
+    def observationTime(self):
+        return self.time
 
     def location(self, key):
         if key not in self.tokens:
             return {}
 
-        data = {}
+        features = {
+            'type': 'Feature',
+            'properties': {}
+        }
         text = self.tokens[key]
-        point = self.grammar.point
-        data['coordinates'] = point.findall(text)
+        coordinates = self.grammar.point.findall(text)
+        coordinates = [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in coordinates]
+        if coordinates:
+            geometry = {
+                'type': 'Point',
+                'coordinates': coordinates[0]
+            }
+            features['geometry'] = geometry
 
-        if 'OBS' in key:
-            data['time'] = self.observationTime()
-        else:
+        time = self._findLocationTime(key)
+        if time:
+            features['properties']['time'] = time
+
+        return features
+
+    def height(self):
+        if 'CB' in self.tokens:
+            text= self.tokens['CB']
+            match = self.grammar.height.search(text)
+            if match:
+                return match.group(1)
+
+        return ''
+
+    def intensity(self):
+        if 'INTST CHANGE' in self.tokens:
+            text= self.tokens['INTST CHANGE']
+            return text.strip()
+
+    def route(self):
+        locations = self.availableLocations()
+        geometry = {}
+        coordinates = []
+        for key in locations:
+            text = self.tokens[key]
+            coordinates += self.grammar.point.findall(text)
+
+        if coordinates:
+            geometry = {
+                'type': 'LineString',
+                'coordinates': [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in coordinates]
+            }
+
+        return geometry
+
+    def polygon(self):
+        geometry = {}
+        if 'CB' in self.tokens:
+            text = self.tokens['CB']
+            coordinates = self.grammar.point.findall(text)
+            if coordinates:
+                geometry = {
+                    'type': 'Polygon',
+                    'coordinates': [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in coordinates]
+                }
+
+        return geometry
+
+    def range(self):
+        from tafor.utils.algorithm import wgs84
+
+        center = self.position()
+        polygon = self.polygon()
+        if not center or not polygon:
+            return
+
+        distances = []
+        lat, lon = center
+        center = degreeToDecimal(lon), degreeToDecimal(lat)
+        for lon, lat in polygon['coordinates']:
+            _, _, distance = wgs84.inv(center[0], center[1], lon, lat)
+            distances.append(distance)
+
+        return int(max(distances) / 1000)
+
+
+class AshAdvisoryParser(AdvisoryParser):
+
+    type = 'VA ADVISORY'
+    fields = {
+        'name': 'VOLCANO',
+        'movement': 'OBS VA CLD',
+        'locations': 'VA CLD'
+    }
+
+    def observationTime(self):
+        if self.time and 'OBS VA DTG' in self.tokens:
+            text = self.tokens['OBS VA DTG']
             match = self.grammar.time.search(text)
-            if match and self.time:
+            if match:
                 day, hour, minute = match.groups()
-                data['time'] = self.time.replace(day=int(day), hour=int(hour), minute=int(minute))
+                time = self.time.replace(day=int(day), hour=int(hour), minute=int(minute))
+                return time
+
+    def location(self, key):
+        if key not in self.tokens:
+            return {}
+
+        features = {
+            'type': 'Feature',
+            'properties': {}
+        }
+        text = self.tokens[key]
+        coordinates = self.grammar.point.findall(text)
+        coordinates = [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in coordinates]
+        if coordinates:
+            geometry = {
+                'type': 'Polygon',
+                'coordinates': coordinates
+            }
+            features['geometry'] = geometry
+
+        time = self._findLocationTime(key)
+        if time:
+            features['properties']['time'] = time
 
         match = self.grammar.fightLevel.search(text)
         if match:
-            data['fightLevel'] = match.group()
+            features['properties']['fightLevel'] = match.group()
 
-        return data
+        return features

@@ -198,12 +198,27 @@ class SketchGraphic(QGraphicsItem, CanvasMixin):
                 self.geometries.append(shape)
 
 
-class OutlinedSketchGraphic(SketchGraphic):
+class StickerGraphic(SketchGraphic):
 
     def paint(self, painter, option, widget):
         for g in self.geometries:
-            painter.setPen(QPen(QColor(0, 0, 0, 127), 2, Qt.DashLine))
-            painter.drawPolygon(g)
+            if isinstance(g, QPolygonF):
+                painter.setPen(QPen(QColor(0, 0, 0, 127), 2, Qt.DashLine))
+                painter.drawPolygon(g)
+
+            if isinstance(g, QPainterPath):
+                painter.setPen(QPen(QColor(0, 0, 0, 127), 2, Qt.DashLine))
+                painter.drawPath(g)
+
+                font = QFont()
+                font.setBold(True)
+                font.setPointSize(12)
+                painter.setFont(font)
+
+                for i in range(g.elementCount()):
+                    e = g.elementAt(i)
+                    point = QPointF(e) - QPointF(8, -5)
+                    painter.drawText(point, '✕')
 
 
 class Sigmet(QGraphicsItem, CanvasMixin, ColorMixin):
