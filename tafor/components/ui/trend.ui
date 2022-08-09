@@ -7,13 +7,25 @@
     <x>0</x>
     <y>0</y>
     <width>868</width>
-    <height>158</height>
+    <height>140</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string notr="true">Trend</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
    <item row="0" column="0" colspan="2">
     <widget class="QGroupBox" name="typeGroup">
      <property name="title">

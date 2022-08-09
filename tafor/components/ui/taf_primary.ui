@@ -6,14 +6,26 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>978</width>
-    <height>201</height>
+    <width>965</width>
+    <height>183</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string notr="true">PRIMARY</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
    <item row="2" column="0">
     <widget class="QLineEdit" name="date"/>
    </item>

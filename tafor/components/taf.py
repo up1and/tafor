@@ -19,6 +19,7 @@ class BaseTafEditor(BaseEditor):
         window = QWidget(self)
         layout = QVBoxLayout(window)
         layout.setSizeConstraint(QLayout.SetFixedSize)
+        layout.setSpacing(18)
         self.primary = TafPrimarySegment(parent=self)
         self.fm = TafFmSegment('FM', self)
         self.becmg1, self.becmg2, self.becmg3 = TafBecmgSegment('BECMG1', self), TafBecmgSegment('BECMG2', self), TafBecmgSegment('BECMG3', self)

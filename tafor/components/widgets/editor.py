@@ -50,7 +50,7 @@ class BaseEditor(QDialog):
     def addBottomBox(self, layout):
         self.bottomBox = QWidget()
         bottomLayout = QHBoxLayout()
-        # bottomLayout.setContentsMargins(0, 0, 0, 0)
+        bottomLayout.setContentsMargins(0, 9, 0, 0)
         self.nextButton = QPushButton()
         self.nextButton.setEnabled(False)
         self.nextButton.setText(QCoreApplication.translate('Editor', 'Next'))
