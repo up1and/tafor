@@ -494,7 +494,7 @@ class BaseCanvas(QGraphicsView):
 
     def __init__(self):
         super(BaseCanvas, self).__init__()
-        self.extent = None
+        self.extent = []
 
         self.coastlines = []
         self.firs = []
@@ -536,7 +536,7 @@ class BaseCanvas(QGraphicsView):
         sf = shapefile.Reader(filename)
         shapes = sf.shapes()
 
-        if self.extent is None:
+        if not self.extent:
             self.setExtent(context.layer.maxExtent())
 
         bound = self.bbox()
@@ -937,7 +937,7 @@ class GraphicsViewer(QWidget):
         boundary = shapely.geometry.Polygon(context.layer.boundaries())
         bbox = boundary.envelope
         bbox = shapely.affinity.scale(bbox, xfact=4, yfact=2)
-        return bbox.bounds
+        return list(bbox.bounds)
 
     def setSigmet(self, geo):
         self.geometries = [geo]
