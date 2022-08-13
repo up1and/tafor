@@ -439,7 +439,8 @@ class SigmetSender(BaseSender):
                 self.graphic.setSigmet(geo)
 
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
+            self.graphic.clear()
 
         self.switchGroup()
 

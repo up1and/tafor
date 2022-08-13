@@ -323,13 +323,20 @@ def decodeLine(boundary, lines):
         parts = split(boundary, line)
         direction = directions[identifier]
 
+        refLine = [points[0], points[-1]]
         refPoint = (line.centroid.x + math.cos(direction * math.pi) * 10, line.centroid.y + math.sin(direction * math.pi) * 10)
-        side = whichSide(points, refPoint)
+        side = whichSide(refLine, refPoint)
 
         shapes = []
         for part in parts.geoms:
-            center = (part.centroid.x, part.centroid.y)
-            if side == whichSide(points, center):
+            center = part.representative_point()
+            if len(points) > 2:
+                polyline = Polygon(points)
+                if polyline.intersects(part):
+                    other = part.difference(polyline)
+                    center = other.representative_point()
+
+            if side == whichSide(refLine, center):
                 shapes.append(part)
 
         if shapes:

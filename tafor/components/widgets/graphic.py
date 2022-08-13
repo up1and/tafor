@@ -948,6 +948,7 @@ class GraphicsViewer(QWidget):
 
     def clear(self):
         self.geometries = []
+        self.updateSigmetGraphic()
 
 
 class GraphicsWindow(QWidget):
