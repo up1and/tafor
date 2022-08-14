@@ -225,6 +225,39 @@ class TafState(QObject):
             self.reminded.emit()
 
 
+class SigmetState(object):
+
+    _state = {}
+    
+    ahead = 20
+
+    def add(self, uuid, text, time):
+        self._state[uuid] = {
+            'text': text,
+            'time': time
+        }
+
+    def update(self, uuid, time):
+        self._state[uuid]['time'] = time
+
+    def remove(self, uuid):
+        self._state.pop(uuid, None)
+
+    def state(self):
+        return self._state
+
+    def outdate(self):
+        outdates = []
+        now = datetime.datetime.utcnow()
+        for uuid, value in self._state.items():
+            if value['time'] - datetime.timedelta(minutes=self.ahead) < now:
+                outdates.append(
+                    {'uuid': uuid, 'text': value['text'], 'time': value['time']}
+                )
+
+        return outdates
+    
+
 class OtherState(QObject):
     messageChanged = pyqtSignal()
 
@@ -459,6 +492,7 @@ class EnvironState(object):
 class Context(object):
     message = MessageState()
     taf = TafState()
+    sigmet = SigmetState()
     layer = LayerState()
     other = OtherState()
     notification = NotificationState()

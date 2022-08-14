@@ -119,39 +119,41 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         self.item = item
         self.parent = parent
         self.reviewer = None
-        self.setText()
-        self.setButton()
+        self.remind = False
+        self.updateText()
+        self.updateButton()
         self.bindSignal()
 
         if hasattr(self.item, 'validations'):
-            self.setNotificationMode()
+            self.notificationMode()
             self.timer = QTimer(self)
             self.timer.timeout.connect(self.countdown)
             self.timer.start(1000)
             self.countdown()
         else:
-            self.setReviewMode()
+            self.reviewMode()
 
         font = context.environ.fixedFont()
         self.setFont(font)
         self.timeLabel.setFont(font)
         font.setPointSize(12)
         self.text.setFont(font)
+        layout.addWidget(self)
 
         if self.item.type in ['WS', 'WC', 'WV', 'WA'] and not self.item.isCnl():
             parser = self.item.parser()
             geos = parser.geo(context.layer.boundaries(), trim=True)
             if geos['features']:
+                height = self.group.sizeHint().height() - 30
+                size = (int(height / 0.6), height)
                 try:
-                    background = SigmetBackground(geos, self)
+                    background = SigmetBackground(geos, size=size, parent=self)
                     background.adjustSize()
-                    background.move(self.width() - background.width() - 70, 24)
+                    background.move(self.width() - background.width() - 110, 16)
                     background.setAttribute(Qt.WA_TransparentForMouseEvents)
 
                 except Exception as e:
                     logger.exception(e)
-
-        layout.addWidget(self)
 
     def countdown(self):
         created = self.item.created
@@ -165,9 +167,10 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         ago = timeAgo(created, now)
         self.timeLabel.setText(ago.capitalize())
 
-    def setReviewMode(self):
+    def reviewMode(self):
         self.replyButton.hide()
         self.signLabel.hide()
+        self.reminderButton.hide()
 
         if self.item.type not in ['FC', 'FT', 'WS', 'WC', 'WV', 'WA']:
             self.markButton.hide()
@@ -177,16 +180,24 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
             self.reviewer = self.parent.tafSender
         else:
             self.reviewer = self.parent.sigmetSender
+            if self.item.uuid in context.sigmet.state():
+                self.remind = True
+            else:
+                self.remind = False
+
+            self.updateGui()
+            self.reminderButton.show()
 
         if self.item.confirmed:
-            iconSrc = ':/checkmark.png'
+            icon = ':/checkmark.png'
         else:
-            iconSrc = ':/cross.png'
+            icon = ':/cross.png'
 
-        self.markButton.setIcon(QIcon(iconSrc))
+        self.markButton.setIcon(QIcon(icon))
 
-    def setNotificationMode(self):
+    def notificationMode(self):
         self.markButton.hide()
+        self.reminderButton.hide()
         isValidationEnabled = self.item.validations['validation']
         isPass = self.item.validations['pass']
         
@@ -211,16 +222,38 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
     def bindSignal(self):
         self.markButton.clicked.connect(self.review)
         self.replyButton.clicked.connect(self.parent.trendEditor.show)
+        self.reminderButton.clicked.connect(self.updateRemindState)
 
-    def setButton(self):
+    def updateButton(self):
         self.replyButton.setIcon(QIcon(':/reply-arrow.png'))
         self.replyButton.setStyleSheet(buttonHoverStyle)
         self.markButton.setStyleSheet(buttonHoverStyle)
+        self.reminderButton.setStyleSheet(buttonHoverStyle)
 
-    def setText(self):
-        self.groupBox.setTitle(self.item.type)
+    def updateText(self):
+        self.group.setTitle(self.item.type)
         self.timeLabel.setText(self.item.created.strftime('%Y-%m-%d %H:%M:%S'))
         self.text.setText(self.item.report)
+
+    def updateGui(self):
+        if self.remind:
+            icon = ':/reminder.png'
+        else:
+            icon = ':/no-reminder.png'
+
+        self.reminderButton.setIcon(QIcon(icon))
+        self.reminderButton.setStyleSheet(buttonHoverStyle)
+
+    def updateRemindState(self):
+        if self.remind:
+            context.sigmet.remove(self.item.uuid)
+        else:
+            time = self.item.expired()
+            sig = self.item.parser()
+            context.sigmet.add(self.item.uuid, sig, time)
+
+        self.remind = not self.remind
+        self.updateGui()
 
     def review(self):
         self.reviewer.receive(self.item)

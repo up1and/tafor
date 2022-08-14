@@ -273,9 +273,11 @@ class Sigmet(QGraphicsItem, CanvasMixin, ColorMixin):
 
 class SigmetBackground(QWidget, ColorMixin):
 
-    def __init__(self, geo, parent=None):
+    def __init__(self, geo, size=None, parent=None):
         super().__init__(parent)
-        self.setFixedSize(200, 120)
+        if size is None:
+            size = (200, 110)
+        self.setFixedSize(*size)
         self.parent = parent
         self.geo = geo
         self.geometries = []

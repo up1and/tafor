@@ -416,6 +416,7 @@ class SigmetSender(BaseSender):
         self.canvasLayout.addWidget(self.graphic)
         self.switchButton.clicked.connect(self.switchGroup)
         self.groupNames = cycle(['canvas', 'raw'])
+        self.succeeded.connect(self.updateReminder)
 
     def parse(self):
         if self.message.heading and self.message.heading[0:2] == 'WA' or 'AIRMET' in self.message.text.split():
@@ -443,13 +444,6 @@ class SigmetSender(BaseSender):
             self.graphic.clear()
 
         self.switchGroup()
-
-    def save(self):
-        super(SigmetSender, self).save()
-        if not self.message.isCnl():
-            delta = self.message.expired() - datetime.datetime.utcnow() - datetime.timedelta(minutes=20)
-            sig = self.message.parser()
-            QTimer.singleShot(delta.total_seconds() * 1000, lambda: self.parent.remindSigmet(sig))
 
     def switchGroup(self):
         self.group = next(self.groupNames)
@@ -493,6 +487,12 @@ class SigmetSender(BaseSender):
             self.printButton.show()
         else:
             self.printButton.hide()
+
+    def updateReminder(self):
+        if not self.message.isCnl():
+            time = self.message.expired()
+            sig = self.message.parser()
+            context.sigmet.add(uuid=self.message.uuid, text=sig, time=time)
 
     def resizeEvent(self, event):
         self.switchButton.move(self.width() - 70, self.textGroup.height() + 50)

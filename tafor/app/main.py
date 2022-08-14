@@ -346,19 +346,24 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             if not self.remindTafBox.isVisible():
                 self.ringSound.stop()
 
-    def remindSigmet(self, sig):
+    def remindSigmet(self):
         remindSwitch = boolean(conf.value('Monitor/RemindSIGMET'))
-        sigmets = [sig.report.strip() for sig in context.message.sigmets()]
-        if not remindSwitch or sig.message not in sigmets:
+        if not remindSwitch:
             return None
 
-        mark = '{} {}'.format(sig.reportType(), sig.sequence())
-        text = QCoreApplication.translate('MainWindow', 'Time to update {}').format(mark)
-        self.sigmetSound.play()
-        self.remindSigmetBox.setText(text)
-        ret = self.remindSigmetBox.exec_()
-        if not ret:
-            QTimer.singleShot(1000 * 60 * 5, lambda: self.remindSigmet(sig))
+        outdates = context.sigmet.outdate()
+        for item in outdates:
+            sig = item['text']
+            mark = '{} {}'.format(sig.reportType(), sig.sequence())
+            text = QCoreApplication.translate('MainWindow', 'Time to update {}').format(mark)
+            self.sigmetSound.play()
+            self.remindSigmetBox.setText(text)
+            ret = self.remindSigmetBox.exec_()
+            if ret:
+                context.sigmet.remove(item['uuid'])
+            else:
+                time = item['time'] + datetime.timedelta(minutes=5)
+                context.sigmet.update(item['uuid'], time)
 
         if not self.remindSigmetBox.isVisible():
             self.sigmetSound.stop()
@@ -420,6 +425,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.updateSigmet()
         self.updateTable()
         self.updateRecent()
+        self.remindSigmet()
 
     def updateRecent(self):
         self.tafBoard.updateGui()

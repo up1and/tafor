@@ -36,5 +36,7 @@
         <file alias="protect.png">../../icons/protect.png</file>
         <file alias="warning-shield.png">../../icons/warning-shield.png</file>
         <file alias="reply-arrow.png">../../icons/reply-arrow.png</file>
+        <file alias="reminder.png">../../icons/reminder.png</file>
+        <file alias="no-reminder.png">../../icons/no-reminder.png</file>
     </qresource>
 </RCC>
