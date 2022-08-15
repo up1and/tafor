@@ -115,8 +115,8 @@ class BackgroundImage(QGraphicsPixmapItem):
         raw = QPixmap()
         raw.loadFromData(self.layer.image)
         minx, miny, maxx, maxy = canvas.extentBound(self.layer.extent)
-        width = abs(maxx - minx)
-        height = abs(maxy - miny)
+        width = int(abs(maxx - minx))
+        height = int(abs(maxy - miny))
         raw = raw.scaled(width, height)
         self.setPixmap(raw)
         self.setPos(minx, maxy)
@@ -153,9 +153,10 @@ class SketchGraphic(QGraphicsItem, CanvasMixin):
         for g in self.geometries:
             if isinstance(g, QPointF):
                 radius = 2
+                rect = QRectF(g.x() - radius, g.y() - radius, radius * 2.0, radius * 2.0)
                 painter.setPen(QPen(QColor(0, 0, 0, 127), 1))
                 painter.setBrush(QBrush(Qt.white, 1))
-                painter.drawEllipse(g.x() - radius, g.y() - radius, radius * 2.0, radius * 2.0)
+                painter.drawEllipse(rect)
 
             if isinstance(g, QPolygonF):
                 colors = {

@@ -1328,7 +1328,7 @@ class GraphicsWindow(QWidget):
         self.operationWidget.move(self.width() - self.operationWidget.width() - 4, 10)
         self.positionLabel.move(self.width() - self.positionLabel.width() - 18, self.height() - self.positionLabel.height() - 15)
         self.layerInfoWidget.move(18, self.height() - self.layerInfoWidget.height() - 15)
-        self.locationWidget.move(self.width() / 2 - self.locationWidget.width() / 2, self.height() - self.locationWidget.height() - 75)
+        self.locationWidget.move(int(self.width() / 2 - self.locationWidget.width() / 2), self.height() - self.locationWidget.height() - 75)
         super(GraphicsWindow, self).resizeEvent(event)
 
     def keyPressEvent(self, event):

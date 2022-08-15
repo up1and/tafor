@@ -207,7 +207,7 @@ class TafState(QObject):
 
     @property
     def spec(self):
-        index = conf.value('General/TAFSpec')
+        index = int(conf.value('General/TAFSpec'))
         specification = 'fc'
         if index == 1:
             specification = 'ft24'
