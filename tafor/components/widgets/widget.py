@@ -113,13 +113,14 @@ class RemindMessageBox(QMessageBox):
 
 class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
 
-    def __init__(self, parent, layout, item):
+    def __init__(self, parent, layout, item, index=None):
         super(RecentMessage, self).__init__(parent)
         self.setupUi(self)
         self.item = item
         self.parent = parent
         self.reviewer = None
         self.remind = False
+        self.background = None
         self.updateText()
         self.updateButton()
         self.bindSignal()
@@ -138,7 +139,10 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         self.timeLabel.setFont(font)
         font.setPointSize(12)
         self.text.setFont(font)
-        layout.addWidget(self)
+        if index:
+            layout.insertWidget(index, self)
+        else:
+            layout.addWidget(self)
 
         if self.item.type in ['WS', 'WC', 'WV', 'WA'] and not self.item.isCnl():
             parser = self.item.parser()
@@ -147,13 +151,14 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
                 height = self.group.sizeHint().height() - 30
                 size = (int(height / 0.6), height)
                 try:
-                    background = SigmetBackground(geos, size=size, parent=self)
-                    background.adjustSize()
-                    background.move(self.width() - background.width() - 110, 16)
-                    background.setAttribute(Qt.WA_TransparentForMouseEvents)
+                    self.background = SigmetBackground(geos, size=size, parent=self)
+                    self.background.setAttribute(Qt.WA_TransparentForMouseEvents)
 
                 except Exception as e:
                     logger.exception(e)
+
+    def uuid(self):
+        return self.item.uuid
 
     def countdown(self):
         created = self.item.created
@@ -185,7 +190,7 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
             else:
                 self.remind = False
 
-            self.updateGui()
+            self.updateReminderButton()
             self.reminderButton.show()
 
         if self.item.confirmed:
@@ -235,7 +240,7 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         self.timeLabel.setText(self.item.created.strftime('%Y-%m-%d %H:%M:%S'))
         self.text.setText(self.item.report)
 
-    def updateGui(self):
+    def updateReminderButton(self):
         if self.remind:
             icon = ':/reminder.png'
         else:
@@ -246,14 +251,26 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
 
     def updateRemindState(self):
         if self.remind:
-            context.sigmet.remove(self.item.uuid)
+            self.removeRemind()
         else:
-            time = self.item.expired()
-            sig = self.item.parser()
-            context.sigmet.add(self.item.uuid, sig, time)
+            self.addRemind()
 
-        self.remind = not self.remind
-        self.updateGui()
+    def removeRemind(self):
+        self.remind = False
+        context.sigmet.remove(self.item.uuid)
+        self.updateReminderButton()
+
+    def addRemind(self):
+        self.remind = True
+        time = self.item.expired()
+        sig = self.item.parser()
+        context.sigmet.add(self.item.uuid, sig, time)
+        self.updateReminderButton()
+
+    def resizeEvent(self, event):
+        if self.background:
+            self.background.move(self.width() - self.background.width() - 100, self.text.pos().y() - self.timeLabel.height() - 15)
+        super(RecentMessage, self).resizeEvent(event)
 
     def review(self):
         self.reviewer.receive(self.item)

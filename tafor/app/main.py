@@ -3,6 +3,8 @@ import sys
 import json
 import datetime
 
+from uuid import uuid4
+
 from PyQt5.QtGui import QIcon, QFont, QDesktopServices
 from PyQt5.QtCore import QCoreApplication, QTranslator, QLocale, QEvent, QTimer, Qt, QUrl, QSysInfo, QProcess
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy,
@@ -326,9 +328,18 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             context.flash.warning(connectionError,
                 QCoreApplication.translate('MainWindow', 'Unable to connect FIR information data source, please check the settings or network status.'))
 
+    def recentWidget(self):
+        recents = []
+        for i in range(self.scrollLayout.count()):
+            widget = self.scrollLayout.itemAt(i).widget()
+            if isinstance(widget, RecentMessage):
+                recents.append(widget)
+
+        return recents
+
     def remindTaf(self):
         remindSwitch = boolean(conf.value('Monitor/RemindTAF'))
-        if not remindSwitch:
+        if not remindSwitch or self.remindTafBox.isVisible():
             return None
 
         type = context.taf.spec[:2].upper()
@@ -348,7 +359,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def remindSigmet(self):
         remindSwitch = boolean(conf.value('Monitor/RemindSIGMET'))
-        if not remindSwitch:
+        if not remindSwitch or self.remindSigmetBox.isVisible():
             return None
 
         outdates = context.sigmet.outdate()
@@ -360,7 +371,9 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.remindSigmetBox.setText(text)
             ret = self.remindSigmetBox.exec_()
             if ret:
-                context.sigmet.remove(item['uuid'])
+                for widget in self.recentWidget():
+                    if item['uuid'] == widget.uuid():
+                        widget.removeRemind()
             else:
                 time = item['time'] + datetime.timedelta(minutes=5)
                 context.sigmet.update(item['uuid'], time)
@@ -430,12 +443,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def updateRecent(self):
         self.tafBoard.updateGui()
 
-        for i in range(self.scrollLayout.count()):
-            if i > 0:
-                widget = self.scrollLayout.itemAt(i).widget()
-                if widget:
-                    widget.deleteLater()
-
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
         spec = context.taf.spec[:2].upper()
         taf = db.query(Taf).filter(Taf.created > recent, Taf.type == spec).order_by(Taf.created.desc()).first()
@@ -450,9 +457,10 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         parser = context.notification.metar.parser()
         if parser:
+            uuid = str(uuid4())
             created = context.notification.metar.created()
             validation = context.notification.metar.validation()
-            metar = Metar(text=parser.message, created=created)
+            metar = Metar(uuid=uuid, text=parser.message, created=created)
             parser.validate()
             metar.validations = {
                 'html': parser.renderer(style='html', showDiff=True),
@@ -463,10 +471,16 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         else:
             metar = db.query(Metar).filter(Metar.created > recent).order_by(Metar.created.desc()).first()
 
-        queryset = [metar, taf, trend] + sigmets
-        for query in queryset:
-            if query:
-                RecentMessage(self, self.scrollLayout, query)
+        queryset = list(filter(None, [metar, taf, trend] + sigmets))
+        uuids = [q.uuid for q in queryset]
+        for widget in self.recentWidget():
+            if widget.uuid() not in uuids:
+                widget.deleteLater()
+
+        widgetUuids = [widget.uuid() for widget in self.recentWidget()]
+        for i, query in enumerate(queryset):
+            if query.uuid not in widgetUuids:
+                RecentMessage(self, self.scrollLayout, query, index=i+1)
 
     def updateTable(self):
         self.tafTable.updateGui()

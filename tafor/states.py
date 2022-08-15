@@ -238,7 +238,8 @@ class SigmetState(object):
         }
 
     def update(self, uuid, time):
-        self._state[uuid]['time'] = time
+        if uuid in self._state:
+            self._state[uuid]['time'] = time
 
     def remove(self, uuid):
         self._state.pop(uuid, None)
