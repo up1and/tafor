@@ -407,6 +407,7 @@ class TrendSender(BaseSender):
         if self.isVisible():
             self.parse()
 
+
 class SigmetSender(BaseSender):
 
     def __init__(self, parent=None):

@@ -30,7 +30,6 @@ from tafor.components.widgets.widget import Clock, TafBoard, RecentMessage, Remi
 from tafor.components.widgets.sound import Sound
 
 
-
 class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def __init__(self, parent=None):

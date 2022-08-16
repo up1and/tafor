@@ -226,7 +226,7 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
 
     def bindSignal(self):
         self.markButton.clicked.connect(self.review)
-        self.replyButton.clicked.connect(self.parent.trendEditor.show)
+        self.replyButton.clicked.connect(self.parent.trendEditor.quote)
         self.reminderButton.clicked.connect(self.updateRemindState)
 
     def updateButton(self):

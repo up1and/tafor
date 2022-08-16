@@ -116,7 +116,7 @@ class BaseSegment(SegmentMixin, QWidget):
 
         self.defaultSignal()
 
-    def setPeriodPlaceholder(self):
+    def setupPeriodPlaceholder(self):
         raise NotImplementedError
 
     def setClouds(self, enbale):
@@ -840,7 +840,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         period = QRegExpValidator(QRegExp(self.rules.period))
         self.period.setValidator(period)
 
-    def setPeriodPlaceholder(self):
+    def setupPeriodPlaceholder(self):
         if self.parent.primary.durations is None:
             self.period.setPlaceholderText('')
             return
@@ -976,7 +976,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         return self.period.hasAcceptableInput() and any(oneRequired)
 
     def showEvent(self, event):
-        self.setPeriodPlaceholder()
+        self.setupPeriodPlaceholder()
 
     def clear(self):
         super(TafGroupSegment, self).clear()
@@ -1119,9 +1119,9 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
     def bindSignal(self):
         super(TrendSegment, self).bindSignal()
         self.nosig.toggled.connect(self.setNosig)
-        self.at.clicked.connect(self.setAt)
-        self.fm.clicked.connect(self.setFmTl)
-        self.tl.clicked.connect(self.setFmTl)
+        self.at.toggled.connect(self.setAt)
+        self.fm.toggled.connect(self.setFmTl)
+        self.tl.toggled.connect(self.setFmTl)
 
         self.becmg.clicked.connect(self.updateAtStatus)
         self.tempo.clicked.connect(self.updateAtStatus)
@@ -1143,9 +1143,9 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
     def setupValidator(self):
         super(TrendSegment, self).setupValidator()
-        self.setPeriodValidator()
+        self.setupPeriodValidator()
 
-    def setPeriodValidator(self):
+    def setupPeriodValidator(self):
         if self.fm.isChecked() and self.tl.isChecked():
             period = QRegExpValidator(QRegExp(self.rules.trendFmTlPeriod))
         else:
@@ -1153,7 +1153,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
         self.period.setValidator(period)
 
-    def setPeriodPlaceholder(self):
+    def setupPeriodPlaceholder(self):
         time = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
         self.period.setPlaceholderText('{:02d}'.format(time.hour))
 
@@ -1192,26 +1192,87 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
             self.fm.setChecked(False)
             self.tl.setChecked(False)
             self.period.setEnabled(True)
-            self.setPeriodPlaceholder()
+            self.setupPeriodPlaceholder()
         else:
             self.period.setEnabled(False)
             self.period.setPlaceholderText('')
 
         self.period.clear()
-        self.setPeriodValidator()
+        self.setupPeriodValidator()
 
     def setFmTl(self):
         checked = [self.fm.isChecked(), self.tl.isChecked()]
         if any(checked):
             self.at.setChecked(False)
             self.period.setEnabled(True)
-            self.setPeriodPlaceholder()
+            self.setupPeriodPlaceholder()
         else:
             self.period.setEnabled(False)
             self.period.setPlaceholderText('')
 
         self.period.clear()
-        self.setPeriodValidator()
+        self.setupPeriodValidator()
+
+    def autoFill(self, tokens):
+        if 'sign' in tokens:
+            sign = tokens['sign']['text']
+            if sign == 'BECMG':
+                self.becmg.setChecked(True)
+            else:
+                self.tempo.setChecked(True)
+
+        if 'fmtl' in tokens:
+            periods = tokens['fmtl']['text'].split()
+            if len(periods) == 2:
+                self.fm.setChecked(True)
+                self.tl.setChecked(True)
+                period = periods[0][2:] + '/' + periods[1][2:]
+                self.period.setText(period)
+            else:
+                period = periods[0]
+                if period.startswith('TL'):
+                    self.tl.setChecked(True)
+                if period.startswith('FM'):
+                    self.fm.setChecked(True)
+                if period.startswith('AT'):
+                    self.at.setChecked(True)
+
+                self.period.setText(period[2:])
+
+        if 'wind' in tokens:
+            wind = tokens['wind']['text'].replace('MPS', '')
+            if 'G' in wind:
+                wind, gust = wind.split('G')
+                self.gust.setText(gust)
+
+            self.wind.setText(wind)
+
+        if 'vis' in tokens:
+            vis = tokens['vis']['text']
+            self.vis.setText(vis)
+
+        if 'weather' in tokens:
+            weathers = tokens['weather']['text'].split()
+            for weather in weathers:
+                self.weatherWithIntensity.setCurrentIndex(self.weatherWithIntensity.findText(weather))
+                self.weather.setCurrentIndex(self.weather.findText(weather))
+
+        if 'cloud' in tokens:
+            clouds = tokens['cloud']['text']
+            if 'NSC' in clouds:
+                self.nsc.setChecked(True)
+            else:
+                clouds = clouds.split(' ')
+                lines = [self.cloud3, self.cloud2, self.cloud1]
+                for cloud in clouds:
+                    if 'TCU' in cloud or 'CB' in cloud:
+                        self.cb.setText(cloud[:6])
+                    elif lines:
+                        line = lines.pop()
+                        line.setText(cloud)
+
+        if 'cavok' in tokens:
+            self.cavok.setChecked(True)
 
     def formatPeriod(self):
         if (self.at.isChecked() or self.fm.isChecked() and not self.tl.isChecked()) and self.period.text() == '2400':

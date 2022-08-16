@@ -1,11 +1,8 @@
-import datetime
-
-from uuid import uuid4
-
 from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLayout
 
 from tafor import conf
+from tafor.states import context
 from tafor.models import Trend
 from tafor.components.setting import isConfigured
 from tafor.components.widgets.editor import BaseEditor
@@ -63,6 +60,16 @@ class TrendEditor(BaseEditor):
     def previewMessage(self):
         message = Trend(heading=self.heading, text=self.text)
         self.finished.emit(message)
+
+    def autoFill(self):
+        parser = context.notification.metar.parser()
+        for i, part in enumerate(parser.trends):
+            if i == 0:
+                self.trend.autoFill(part.tokens)
+
+    def quote(self):
+        self.autoFill()
+        self.show()
 
     def clear(self):
         self.trend.clear()
