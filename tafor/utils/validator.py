@@ -1238,7 +1238,7 @@ class SigmetLexer(object):
     ]
 
     airmetKeywords = ['ISOL', 'OCNL', 'MOD', 'BKN', 'OVC', 'WIND', 'VIS', 'AIRMET',
-        'BR', 'DS', 'DU', 'DZ', 'FC', 'FG', 'FU', 'GR', 'GS', 'HZ', 'PL', 'PO', 'RA', 'SA', 'SG', 'SN', 'SQ', 'SS', 'VA'
+        'BR', 'DU', 'DZ', 'FC', 'FG', 'FU', 'GR', 'GS', 'HZ', 'PL', 'PO', 'RA', 'SA', 'SG', 'SN', 'SQ', 'TCU'
     ]
 
     defaultRules = ['latitude', 'longitude', 'fightLevel', 'speed', 'obsTime', 'typhoonRange', 'sequence', 'valid', 'width']
