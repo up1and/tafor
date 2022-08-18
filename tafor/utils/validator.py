@@ -13,6 +13,7 @@ weather = [
     'PO', 'FC', 'TS', 'FZFG', 'BLSN', 'BLSA', 'BLDU', 'DRSN', 'DRSA',
     'DRDU', 'MIFG', 'BCFG', 'PRFG'
 ]
+
 weatherWithIntensity = [
     'DZ', 'RA', 'SN', 'SG', 'PL', 'DS', 'SS', 'TSRA', 'TSSN', 'TSPL',
     'TSGR', 'TSGS', 'SHRA', 'SHSN', 'SHGR', 'SHGS', 'FZRA', 'FZDZ'
@@ -78,7 +79,7 @@ class MetarGrammar(TafGrammar):
     tempdew = re.compile(r'\b(M?\d{2}/(?:M)?\d{2})\b')
     pressure = re.compile(r'\b(Q\d{4})\b')
     reweather = re.compile(r'\b(RE\w+)\b')
-    windshear = re.compile(r'\b(WS\s(?:(?:ALL\sRWY)|(?:RWY\d{2})))\b')
+    windshear = re.compile(r'\b(WS\s(?:(?:ALL\sRWY)|(?:R\d{2})))\b')
     nosig = re.compile(r'\bNOSIG\b')
     fmtl = re.compile(r'\b((?:AT|FM|TL)\d{4})\b')
 
@@ -1133,8 +1134,11 @@ class MetarParser(TafParser):
     def hasMessageChanged(self):
         """校验后的报文和原始报文相比是否有变化"""
         origin = ' '.join(self.message.split())
-        output = self.renderer().replace('\n', ' ')
-        return not origin.endswith(output)
+        outputs = [e.renderer('plain') for e in self.elements if e and e != self.primary]
+        if outputs:
+            output = ' '.join(outputs) + '='
+            return not origin.endswith(output)
+        return False
 
     def hasTrend(self):
         return self.becmgs or self.tempos
