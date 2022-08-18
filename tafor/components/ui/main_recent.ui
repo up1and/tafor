@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>872</width>
-    <height>98</height>
+    <width>800</width>
+    <height>116</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -25,7 +25,7 @@
      <property name="title">
       <string notr="true">Type</string>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout_2">
+     <layout class="QVBoxLayout" name="groupLayout">
       <item>
        <widget class="QWidget" name="toolsWidget" native="true">
         <property name="minimumSize">
@@ -135,6 +135,13 @@
         </property>
         <property name="wordWrap">
          <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="tip">
+        <property name="text">
+         <string notr="true">Tip Content</string>
         </property>
        </widget>
       </item>

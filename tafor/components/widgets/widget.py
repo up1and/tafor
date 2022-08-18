@@ -1,7 +1,7 @@
 import math
 import datetime
 
-from PyQt5.QtGui import QPixmap, QIcon, QBrush, QPen, QFontMetrics, QPainterPath, QPainter
+from PyQt5.QtGui import QPixmap, QIcon, QBrush, QPen, QFont, QFontMetrics, QPainterPath, QPainter
 from PyQt5.QtCore import QCoreApplication, QTimer, QSize, Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QLabel, QHBoxLayout
 
@@ -121,11 +121,12 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         self.reviewer = None
         self.remind = False
         self.background = None
-        self.updateText()
-        self.updateButton()
-        self.bindSignal()
+        self.validations = None
 
-        if hasattr(self.item, 'validations'):
+        if hasattr(item, 'validations'):
+            self.validations = item.validations
+
+        if self.validations:
             self.notificationMode()
             self.timer = QTimer(self)
             self.timer.timeout.connect(self.countdown)
@@ -139,10 +140,16 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         self.timeLabel.setFont(font)
         font.setPointSize(12)
         self.text.setFont(font)
-        if index:
-            layout.insertWidget(index, self)
-        else:
-            layout.addWidget(self)
+
+        font = QFont()
+        font.setPointSize(11)
+        self.tip.setFont(font)
+        self.tip.setContentsMargins(0, 9, 0, 0)
+        self.tip.hide()
+
+        self.updateText()
+        self.updateButton()
+        self.bindSignal()
 
         if self.item.type in ['WS', 'WC', 'WV', 'WA'] and not self.item.isCnl():
             parser = self.item.parser()
@@ -156,6 +163,11 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
 
                 except Exception as e:
                     logger.exception(e)
+
+        if index:
+            layout.insertWidget(index, self)
+        else:
+            layout.addWidget(self)
 
     def uuid(self):
         return self.item.uuid
@@ -238,7 +250,14 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
     def updateText(self):
         self.group.setTitle(self.item.type)
         self.timeLabel.setText(self.item.created.strftime('%Y-%m-%d %H:%M:%S'))
-        self.text.setText(self.item.report)
+        if self.validations:
+            self.text.setText(self.validations['html'])
+            if self.validations['tips']:
+                html = '<p style="color: grey"># {}</p>'.format('<br/># '.join(self.validations['tips']))
+                self.tip.setText(html)
+                self.tip.show()
+        else:
+            self.text.setText(self.item.report)
 
     def updateReminderButton(self):
         if self.remind:
@@ -269,7 +288,7 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
 
     def resizeEvent(self, event):
         if self.background:
-            self.background.move(self.width() - self.background.width() - 100, self.text.pos().y() - self.timeLabel.height() - 15)
+            self.background.move(self.width() - self.background.width() - 100, 16)
         super(RecentMessage, self).resizeEvent(event)
 
     def review(self):

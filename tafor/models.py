@@ -77,12 +77,6 @@ class Metar(Base):
 
     @property
     def report(self):
-        if hasattr(self, 'validations'):
-            html = self.validations['html']
-            if self.validations['tips']:
-                html += '<p style="color: grey"># {}</p>'.format('<br/># '.join(self.validations['tips']))
-            return html
-
         return self.text
 
     def parser(self, ignoreMetar=True, **kwargs):

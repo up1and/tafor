@@ -189,7 +189,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         else:
             html = '<p>{}<br/>{}</p>'.format(self.message.heading, html)
         if self.parser.tips:
-            html += '<p style="color: grey"># {}</p>'.format('<br/># '.join(self.parser.tips))
+            html += '<p style="color: grey; font-family: Microsoft YaHei; font-size: 10pt;"># {}</p>'.format('<br/># '.join(self.parser.tips))
 
         self.text.setHtml(html)
         self.resizeText()
@@ -398,7 +398,7 @@ class TrendSender(BaseSender):
             if not self.parser.failed:
                 html = '<p>{}</p>'.format(self.parser.renderer(style='html', emphasizeNosig=True))
                 if self.parser.tips:
-                    html += '<p style="color: grey"># {}</p>'.format('<br/># '.join(self.parser.tips))
+                    html += '<p style="color: grey; font-family: Microsoft YaHei; font-size: 10pt;"># {}</p>'.format('<br/># '.join(self.parser.tips))
 
         self.text.setHtml(html)
         self.resizeText()
