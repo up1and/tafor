@@ -1277,11 +1277,8 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         text = re.sub(r'[^A-Za-z0-9)(\/\.\s,-]+', '', origin)
         text = text.upper()
         if origin != text:
-            cursor = self.text.textCursor()
-            pos = cursor.position()
             self.text.setText(text)
-            cursor.setPosition(pos)
-            self.text.setTextCursor(cursor)
+            self.text.moveCursor(QTextCursor.End)
 
     def upperTextEdit(self):
         upper = QTextCharFormat()
