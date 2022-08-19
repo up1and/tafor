@@ -386,15 +386,15 @@ class NotificationState(object):
 
 
 class EnvironState(object):
-    key = """-----BEGIN PUBLIC KEY-----
-    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2AZZfefXdgpvnWcV9xMf
-    qlBqTS/8XZXq9BwFRpe0thoS3fER8s5fGKDWiOzO2I2PEwvahXyPny4hxHll7vF+
-    lgd3dl0Z5BRslDGzSUe3/S2vqu4jAiyFmF3z8HZ9Jcr7BXi8yYUOr/LUfOP2gWK3
-    GnORnWhBTb/llaGjN72yoJKJpKEbJYlrBJdsOyBrAeXbg1QNktOuqPf5toP/72qU
-    2a/RRvpK9koSHMvhqd6ex5h+MHvcQZ759Fi1wxj5ChkB6BGgsHGR+7f49c92Gd4o
-    2TKLicLL6vcidL4QkXdhRaZTJyd8pYI6Su+FUK7mcaBDpEaUl9xWupJnjsfKx1bf
-    WQIDAQAB
-    -----END PUBLIC KEY-----"""
+    key = ('-----BEGIN PUBLIC KEY-----\n'
+        'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2AZZfefXdgpvnWcV9xMf\n'
+        'qlBqTS/8XZXq9BwFRpe0thoS3fER8s5fGKDWiOzO2I2PEwvahXyPny4hxHll7vF+\n'
+        'lgd3dl0Z5BRslDGzSUe3/S2vqu4jAiyFmF3z8HZ9Jcr7BXi8yYUOr/LUfOP2gWK3\n'
+        'GnORnWhBTb/llaGjN72yoJKJpKEbJYlrBJdsOyBrAeXbg1QNktOuqPf5toP/72qU\n'
+        '2a/RRvpK9koSHMvhqd6ex5h+MHvcQZ759Fi1wxj5ChkB6BGgsHGR+7f49c92Gd4o\n'
+        '2TKLicLL6vcidL4QkXdhRaZTJyd8pYI6Su+FUK7mcaBDpEaUl9xWupJnjsfKx1bf\n'
+        'WQIDAQAB\n'
+        '-----END PUBLIC KEY-----')
     authToken = 'VGhlIFZveWFnZSBvZiB0aGUgTW9vbg=='
     exp = 0
 
@@ -404,7 +404,7 @@ class EnvironState(object):
         from PyQt5.QtCore import QT_VERSION_STR
         from tafor import __version__
 
-        if not sys.platform == 'darwin':  # To avoid a crash with our Mac app
+        if not sys.platform == 'darwin':
             system = platform.system()
         else:
             system = 'Darwin'
@@ -437,12 +437,11 @@ class EnvironState(object):
 
     def license(self, token=None):
         from tafor.utils import verifyToken
-
+        token = token or conf.value('License')
         if not token:
-            token = conf.value('License')
+            return {}
 
         payload = verifyToken(token, self.key)
-
         if payload is None:
             return {}
 

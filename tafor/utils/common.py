@@ -1,3 +1,5 @@
+from tafor import logger
+
 
 def boolean(value):
     return value if isinstance(value, bool) else value == 'true'
@@ -63,11 +65,9 @@ def gitRevisionHash():
     return ghash
 
 def verifyToken(token, key):
-    import re
     import jwt
     try:
-        key = re.sub('\s\s+' , '\n', key)
         data = jwt.decode(token, key, algorithms='RS256')
+        return data
     except Exception as e:
-        return None
-    return data
+        logger.error(e)
