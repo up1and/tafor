@@ -184,7 +184,7 @@ class FlightLevelMixin(object):
 
     def bindSignal(self):
         super().bindSignal()
-        self.format.currentTextChanged.connect(self.setFightLevel)
+        self.format.currentTextChanged.connect(self.setFlightLevel)
         self.base.editingFinished.connect(lambda: self.validateBaseTop(self.base))
         self.top.editingFinished.connect(lambda: self.validateBaseTop(self.top))
         self.base.textEdited.connect(lambda: self.coloredText(self.base))
@@ -192,11 +192,11 @@ class FlightLevelMixin(object):
 
     def setupValidator(self):
         super(FlightLevelMixin, self).setupValidator()
-        fightLevel = QRegExpValidator(QRegExp(self.rules.fightLevel))
-        self.base.setValidator(fightLevel)
-        self.top.setValidator(fightLevel)
+        flightLevel = QRegExpValidator(QRegExp(self.rules.flightLevel))
+        self.base.setValidator(flightLevel)
+        self.top.setValidator(flightLevel)
 
-    def setFightLevel(self, text):
+    def setFlightLevel(self, text):
         if text in ['TOP', 'TOP ABV', 'SFC', 'BLW']:
             self.base.setEnabled(False)
             self.top.setEnabled(True)
@@ -226,7 +226,7 @@ class FlightLevelMixin(object):
                 line.clear()
                 context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'The top flight level needs to be greater than the base flight level'))
 
-    def fightLevel(self):
+    def flightLevel(self):
         format = self.format.currentText()
         base = self.base.text()
         top = self.top.text()
@@ -576,13 +576,13 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
         self.setPhenomenaDescription()
         self.setPhenomena()
         self.setFcstOrObs()
-        self.setLevel('TS')
+        self.setFlightLevelFormat('TS')
 
     def bindSignal(self):
         super().bindSignal()
 
         self.description.currentTextChanged.connect(self.setPhenomena)
-        self.phenomena.currentTextChanged.connect(self.setLevel)
+        self.phenomena.currentTextChanged.connect(self.setFlightLevelFormat)
 
     def setPhenomenaDescription(self):
         descriptions = ['OBSC', 'EMBD', 'FRQ', 'SQL', 'SEV', 'HVY', 'RDOACT']
@@ -607,7 +607,7 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
         observations = ['FCST', 'OBS']
         self.observation.addItems(observations)
 
-    def setLevel(self, text):
+    def setFlightLevelFormat(self, text):
         self.format.clear()
 
         if text in ['CB', 'TCU', 'TS', 'TSGR']:
@@ -654,11 +654,11 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
         fir = conf.value('Message/FIR')
         phenomena = self.phenomenon()
         observation = self.observationText()
-        fightLevel = self.fightLevel()
+        flightLevel = self.flightLevel()
         moveState = self.moveState()
         intensityChange = self.intensityChange.currentText()
 
-        items = [fir, phenomena, observation, '{location}', fightLevel]
+        items = [fir, phenomena, observation, '{location}', flightLevel]
 
         if self.hasForecastMode():
             forecast = self.forecastText()
@@ -754,8 +754,8 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         self.currentLongitude.setValidator(longitude)
         self.forecastLongitude.setValidator(longitude)
 
-        fightLevel = QRegExpValidator(QRegExp(self.rules.fightLevel))
-        self.top.setValidator(fightLevel)
+        flightLevel = QRegExpValidator(QRegExp(self.rules.flightLevel))
+        self.top.setValidator(flightLevel)
 
         time = QRegExpValidator(QRegExp(self.rules.time))
         self.forecastTime.setValidator(time)
@@ -924,7 +924,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
 
         return text
 
-    def fightLevel(self):
+    def flightLevel(self):
         return 'TOP FL{}'.format(self.top.text())
 
     def message(self):
@@ -935,7 +935,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
             Longitude=self.currentLongitude.text(),
             observation=self.observationText()
         )
-        fightLevel = self.fightLevel()
+        flightLevel = self.flightLevel()
         moveState = self.moveState()
         intensityChange = self.intensityChange.currentText()
         forecastPosition = self.forecastPosition()
@@ -948,7 +948,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         else:
             location = '{location}'
 
-        items = [fir, phenomena, position, location, fightLevel]
+        items = [fir, phenomena, position, location, flightLevel]
 
         if self.hasForecastMode():
             items += [intensityChange, forecastPosition, '{forecastLocation}']
@@ -1072,9 +1072,9 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         super().autoFill()
         initial = self.initial.currentText()
         features = self.parser.location(initial)
-        if features and 'fightLevel' in features['properties']:
-            fightLevel = features['properties']['fightLevel']
-            base, top = fightLevel.split('/')
+        if features and 'flightLevel' in features['properties']:
+            flightLevel = features['properties']['flightLevel']
+            base, top = flightLevel.split('/')
             pattern = re.compile(r'\d+')
             m = pattern.search(base)
             if m:
@@ -1124,7 +1124,7 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         fir = conf.value('Message/FIR')
         phenomena = self.phenomenon()
         observation = self.observationText()
-        fightLevel = self.fightLevel()
+        flightLevel = self.flightLevel()
         moveState = self.moveState()
         intensityChange = self.intensityChange.currentText()
 
@@ -1137,7 +1137,7 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         else:
             position = self.observationText()
 
-        items = [fir, phenomena, position, '{location}', fightLevel]
+        items = [fir, phenomena, position, '{location}', flightLevel]
         if self.hasForecastMode():
             forecast = self.forecastText()
             items += [forecast, '{forecastLocation}']
@@ -1378,7 +1378,7 @@ class AirmetGeneral(SigmetGeneral):
 
     def setupValidator(self):
         super(AirmetGeneral, self).setupValidator()
-        fightLevel = QRegExpValidator(QRegExp(self.rules.airmansFightLevel))
-        self.base.setValidator(fightLevel)
-        self.top.setValidator(fightLevel)
+        flightLevel = QRegExpValidator(QRegExp(self.rules.airmansFlightLevel))
+        self.base.setValidator(flightLevel)
+        self.top.setValidator(flightLevel)
 

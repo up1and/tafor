@@ -47,8 +47,8 @@ class Pattern(object):
 
     latitude = r'(N|S)(90(0{2})?|[0-8]\d([0-5]\d)?)'
     longitude = r'(E|W)(180(0{2})?|((1[0-7]\d)|(0\d{2}))([0-5]\d)?)'
-    fightLevel = r'([1-9]\d{2})'
-    airmansFightLevel = r'((?:00[1-9])|(?:0[1-9][0-9])|(?:1[0-4]\d)|150)'
+    flightLevel = r'([1-9]\d{2})'
+    airmansFlightLevel = r'((?:00[1-9])|(?:0[1-9][0-9])|(?:1[0-4]\d)|150)'
     sequence = r'[A-Z]?([1-9][0-9]?|0[1-9])'
 
 
@@ -87,7 +87,7 @@ class MetarGrammar(TafGrammar):
 class SigmetGrammar(object):
     latitude = re.compile(r'(N|S)(90(0{2})?|[0-8]\d([0-5]\d)?)')
     longitude = re.compile(r'(E|W)(180(0{2})?|((1[0-7]\d)|(0\d{2}))([0-5]\d)?)')
-    fightLevel = re.compile(r'(FL[1-9]\d{2}/[1-9]\d{2})|(FL[1-9]\d{2})|(\d{4,5}FT)|(\d{4,5}M)|(SFC/FL[1-9]\d{2})')
+    flightLevel = re.compile(r'(FL[1-9]\d{2}/[1-9]\d{2})|(FL[1-9]\d{2})|(\d{4,5}FT)|(\d{4,5}M)|(SFC/FL[1-9]\d{2})')
     speed = re.compile(r'(\d{1,2})(KMH|KT)')
     obsTime = re.compile(r'(\d{4}Z)')
     typhoonRange = re.compile(r'(\d{1,3}KM)')
@@ -95,7 +95,7 @@ class SigmetGrammar(object):
     valid = re.compile(r'(\d{6})/(\d{6})')
     width = re.compile(r'(\d{1,3})NM')
 
-    airmansFightLevel = re.compile(r'(FL\d{3}/\d{3})|(FL\d{3})|(\d{4,5}FT)|(\d{4,5}M)|(SFC/FL\d{3})')
+    airmansFlightLevel = re.compile(r'(FL\d{3}/\d{3})|(FL\d{3})|(\d{4,5}FT)|(\d{4,5}M)|(SFC/FL\d{3})')
     wind = re.compile(r'(0[1-9]0|[12][0-9]0|3[0-6]0)/(1[5-9]|[2-4][0-9]|P49)(MPS|KT)')
     vis = re.compile(r'(9999|5000|[01234][0-9]00|0[0-7]50)(M|FT)')
     cloud = re.compile(r'((?:\d{3,4}|SFC)/(?:ABV)?\d{3,5}(?:M|FT))')
@@ -170,7 +170,7 @@ class SigmetGrammar(object):
 class AdvisoryGrammar(object):
     name = re.compile(r'\b([A-Z-]+)\b')
     time = re.compile(r'(\d{2})/(\d{2})(\d{2})Z')
-    fightLevel = re.compile(r'(FL[1-9]\d{2}/[1-9]\d{2})|(FL[1-9]\d{2})|(\d{4,5}FT)|(\d{4,5}M)|(SFC/FL[1-9]\d{2})')
+    flightLevel = re.compile(r'(FL[1-9]\d{2}/[1-9]\d{2})|(FL[1-9]\d{2})|(\d{4,5}FT)|(\d{4,5}M)|(SFC/FL[1-9]\d{2})')
     height = re.compile(r'TOP\sFL(\d+)')
     movement = re.compile(r'\b(STNR|N|NNE|NE|ENE|E|ESE|SE|SSE|S|SSW|SW|WSW|W|WNW|NW|NNW)\b')
     speed = re.compile(r'(\d{1,2})(KMH|KT)')
@@ -1245,9 +1245,9 @@ class SigmetLexer(object):
         'BR', 'DU', 'DZ', 'FC', 'FG', 'FU', 'GR', 'GS', 'HZ', 'PL', 'PO', 'RA', 'SA', 'SG', 'SN', 'SQ', 'TCU'
     ]
 
-    defaultRules = ['latitude', 'longitude', 'fightLevel', 'speed', 'obsTime', 'typhoonRange', 'sequence', 'valid', 'width']
+    defaultRules = ['latitude', 'longitude', 'flightLevel', 'speed', 'obsTime', 'typhoonRange', 'sequence', 'valid', 'width']
 
-    airmetRules = ['airmansFightLevel', 'wind', 'vis', 'cloud']
+    airmetRules = ['airmansFlightLevel', 'wind', 'vis', 'cloud']
 
     def __init__(self, part, firCode=None, airportCode=None, grammar=None, keywords=None, rules=None, isAirmet=False,**kwargs):
         super(SigmetLexer, self).__init__()
@@ -1891,8 +1891,8 @@ class AshAdvisoryParser(AdvisoryParser):
         if time:
             features['properties']['time'] = time
 
-        match = self.grammar.fightLevel.search(text)
+        match = self.grammar.flightLevel.search(text)
         if match:
-            features['properties']['fightLevel'] = match.group()
+            features['properties']['flightLevel'] = match.group()
 
         return features
