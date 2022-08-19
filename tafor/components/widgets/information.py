@@ -184,7 +184,7 @@ class FlightLevelMixin(object):
 
     def bindSignal(self):
         super().bindSignal()
-        self.level.currentTextChanged.connect(self.setFightLevel)
+        self.format.currentTextChanged.connect(self.setFightLevel)
         self.base.editingFinished.connect(lambda: self.validateBaseTop(self.base))
         self.top.editingFinished.connect(lambda: self.validateBaseTop(self.top))
         self.base.textEdited.connect(lambda: self.coloredText(self.base))
@@ -227,24 +227,24 @@ class FlightLevelMixin(object):
                 context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'The top flight level needs to be greater than the base flight level'))
 
     def fightLevel(self):
-        level = self.level.currentText()
+        format = self.format.currentText()
         base = self.base.text()
         top = self.top.text()
 
-        if not level:
+        if not format:
             if base and top:
                 text = 'FL{}/{}'.format(base, top) if all([top, base]) else ''
             else:
                 text = base if base else top
                 text = 'FL{}'.format(text) if text else ''
 
-        if level in ['TOP', 'TOP ABV', 'BLW']:
-            text = '{} FL{}'.format(level, top) if top else ''
+        if format in ['TOP', 'TOP ABV', 'BLW']:
+            text = '{} FL{}'.format(format, top) if top else ''
 
-        if level == 'ABV':
+        if format == 'ABV':
             text = 'ABV FL{}'.format(base) if base else ''
 
-        if level == 'SFC':
+        if format == 'SFC':
             text = 'SFC/FL{}'.format(top) if top else ''
 
         return text
@@ -510,8 +510,8 @@ class AdvisoryMixin(object):
 
         if self.parser.type == 'TC ADVISORY':
             for feature in locations:
-                if self.range.hasAcceptableInput():
-                    feature['properties']['radius'] = int(self.range.text())
+                if self.radius.hasAcceptableInput():
+                    feature['properties']['radius'] = int(self.radius.text())
 
             properties = {
                 'type': 'exterior',
@@ -608,16 +608,16 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
         self.observation.addItems(observations)
 
     def setLevel(self, text):
-        self.level.clear()
+        self.format.clear()
 
         if text in ['CB', 'TCU', 'TS', 'TSGR']:
-            levels = ['', 'TOP', 'ABV', 'SFC', 'TOP ABV']
-            self.level.addItems(levels)
-            self.level.setCurrentIndex(self.level.findText('TOP'))
+            formats = ['', 'TOP', 'ABV', 'SFC', 'TOP ABV']
+            self.format.addItems(formats)
+            self.format.setCurrentIndex(self.format.findText('TOP'))
         else:
-            levels = ['', 'ABV', 'BLW', 'SFC']
-            self.level.addItems(levels)
-            self.level.setCurrentIndex(-1)
+            formats = ['', 'ABV', 'BLW', 'SFC']
+            self.format.addItems(formats)
+            self.format.setCurrentIndex(-1)
 
     def hasAcceptableInput(self):
         mustRequired = [
@@ -672,7 +672,7 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
     def clear(self):
         super().clear()
         self.description.setCurrentIndex(1)
-        self.level.setCurrentIndex(1)
+        self.format.setCurrentIndex(1)
         self.intensityChange.setCurrentIndex(0)
         self.forecastTime.setEnabled(False)
         self.forecastTimeLabel.setEnabled(False)
@@ -718,7 +718,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
 
         self.currentLatitude.editingFinished.connect(self.handleCircleChange)
         self.currentLongitude.editingFinished.connect(self.handleCircleChange)
-        self.range.textEdited.connect(self.handleCircleChange)
+        self.radius.textEdited.connect(self.handleCircleChange)
 
         self.currentLatitude.textChanged.connect(self.setForecastPosition)
         self.currentLongitude.textChanged.connect(self.setForecastPosition)
@@ -761,7 +761,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         self.forecastTime.setValidator(time)
 
         self.speed.setValidator(QIntValidator(1, 99, self.speed))
-        self.range.setValidator(QIntValidator(1, 999, self.range))
+        self.radius.setValidator(QIntValidator(1, 999, self.radius))
 
     def setPhenomena(self, text='TC'):
         self.phenomena.addItems(['TC'])
@@ -787,9 +787,9 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
             self.currentLatitude.clear()
 
         if radius:
-            self.range.setText(str(radius))
+            self.radius.setText(str(radius))
         else:
-            self.range.clear()
+            self.radius.clear()
 
     def setForecastTime(self):
         if self.durations is None or not self.endingTime.text():
@@ -867,15 +867,17 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         if intensity:
             self.intensityChange.setCurrentIndex(self.intensityChange.findText(intensity))
 
-        radius = self.parser.range()
+        radius = self.parser.radius()
         if radius:
-            self.range.setText(str(radius))
+            self.radius.setText(str(radius))
 
         # features = self.parser.location(self.final.currentText())
 
     def handleCircleChange(self):
         if self.mode == 'circle':
-            self.circleChanged.emit(self.circle())
+            feature = self.circle()
+            if feature:
+                self.circleChanged.emit(feature)
 
     def phenomenon(self):
         items = [self.phenomena.currentText(), self.name.text()]
@@ -894,8 +896,8 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
                 'coordinates': (degreeToDecimal(self.currentLongitude.text()), degreeToDecimal(self.currentLatitude.text()))
             }
 
-        if self.range.hasAcceptableInput():
-            feature['properties']['radius'] = self.range.int(self.range.text())
+        if self.radius.hasAcceptableInput():
+            feature['properties']['radius'] = int(self.radius.text())
 
         if geometry:
             feature['geometry'] = geometry
@@ -939,8 +941,8 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         forecastPosition = self.forecastPosition()
 
         if self.mode == 'circle':
-            location = 'WI {range}{unit} OF TC CENTRE'.format(
-                range=int(self.range.text()),
+            location = 'WI {radius}{unit} OF TC CENTRE'.format(
+                radius=int(self.radius.text()),
                 unit='KM'
             )
         else:
@@ -970,7 +972,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         ]
 
         if self.mode == 'circle':
-            mustRequired.append(self.range.hasAcceptableInput())
+            mustRequired.append(self.radius.hasAcceptableInput())
 
         anyRequired = [
             self.forecastTime.hasAcceptableInput() and self.forecastLatitude.hasAcceptableInput() and self.forecastLongitude.hasAcceptableInput(),
@@ -1078,7 +1080,7 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
             if m:
                 self.base.setText(m.group())
             else:
-                self.level.setCurrentIndex(self.level.findText(base))
+                self.format.setCurrentIndex(self.format.findText(base))
 
             m = pattern.search(top)
             if m:
@@ -1153,7 +1155,7 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         super().clear()
         self.name.clear()
         self.phenomena.setCurrentIndex(0)
-        self.level.setCurrentIndex(-1)
+        self.format.setCurrentIndex(-1)
         self.intensityChange.setCurrentIndex(0)
         self.currentLatitude.clear()
         self.currentLongitude.clear()

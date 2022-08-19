@@ -1833,7 +1833,7 @@ class TyphoonAdvisoryParser(AdvisoryParser):
 
         return geometry
 
-    def range(self):
+    def radius(self):
         from tafor.utils.algorithm import wgs84
 
         center = self.position()

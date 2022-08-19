@@ -195,12 +195,12 @@
      </property>
      <layout class="QGridLayout" name="gridLayout_4">
       <item row="0" column="2">
-       <widget class="QLabel" name="levelLabel">
+       <widget class="QLabel" name="formatLabel">
         <property name="text">
-         <string>Fight Level</string>
+         <string>Format</string>
         </property>
         <property name="buddy">
-         <cstring>level</cstring>
+         <cstring>format</cstring>
         </property>
        </widget>
       </item>
@@ -221,7 +221,7 @@
        <widget class="QLineEdit" name="top"/>
       </item>
       <item row="1" column="2">
-       <widget class="QComboBox" name="level"/>
+       <widget class="QComboBox" name="format"/>
       </item>
       <item row="0" column="4">
        <widget class="QLabel" name="topLabel">
@@ -416,7 +416,7 @@
   <tabstop>observation</tabstop>
   <tabstop>observationTime</tabstop>
   <tabstop>forecastTime</tabstop>
-  <tabstop>level</tabstop>
+  <tabstop>format</tabstop>
   <tabstop>base</tabstop>
   <tabstop>top</tabstop>
   <tabstop>direction</tabstop>

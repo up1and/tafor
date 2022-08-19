@@ -241,14 +241,14 @@
           </widget>
          </item>
          <item row="0" column="0">
-          <widget class="QLabel" name="levelLabel">
+          <widget class="QLabel" name="formatLabel">
            <property name="text">
-            <string>Fight Level</string>
+            <string>Format</string>
            </property>
           </widget>
          </item>
          <item row="1" column="0">
-          <widget class="QComboBox" name="level">
+          <widget class="QComboBox" name="format">
            <item>
             <property name="text">
              <string notr="true"/>
@@ -505,7 +505,7 @@
   <tabstop>observation</tabstop>
   <tabstop>observationTime</tabstop>
   <tabstop>forecastTime</tabstop>
-  <tabstop>level</tabstop>
+  <tabstop>format</tabstop>
   <tabstop>base</tabstop>
   <tabstop>top</tabstop>
   <tabstop>direction</tabstop>
