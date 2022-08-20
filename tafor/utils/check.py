@@ -187,7 +187,7 @@ def availableSigmet(type, messages):
             availables.append(item)
 
         for sig in sigmets:
-            if not sig.confirmed and sig.text == message:
+            if not sig.confirmed and sig.parser() == parser:
                 sig.confirmed = time
                 availables.append(sig)
 

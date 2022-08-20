@@ -122,11 +122,13 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         self.remind = False
         self.background = None
         self.validations = None
+        self.mode = 'review'
 
         if hasattr(item, 'validations'):
             self.validations = item.validations
+            self.mode = 'notification'
 
-        if self.validations:
+        if self.mode == 'notification':
             self.notificationMode()
             self.timer = QTimer(self)
             self.timer.timeout.connect(self.countdown)
@@ -188,14 +190,12 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         self.replyButton.hide()
         self.signLabel.hide()
         self.reminderButton.hide()
-
-        if self.item.type not in ['FC', 'FT', 'WS', 'WC', 'WV', 'WA']:
-            self.markButton.hide()
-            return
+        self.updateMarkButton()
 
         if self.item.type in ['FC', 'FT']:
             self.reviewer = self.parent.tafSender
-        else:
+
+        if self.item.type in ['WS', 'WC', 'WV', 'WA']:
             self.reviewer = self.parent.sigmetSender
             if self.item.uuid in context.sigmet.state():
                 self.remind = True
@@ -204,13 +204,6 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
 
             self.updateReminderButton()
             self.reminderButton.show()
-
-        if self.item.confirmed:
-            icon = ':/checkmark.png'
-        else:
-            icon = ':/cross.png'
-
-        self.markButton.setIcon(QIcon(icon))
 
     def notificationMode(self):
         self.markButton.hide()
@@ -267,6 +260,23 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
 
         self.reminderButton.setIcon(QIcon(icon))
         self.reminderButton.setStyleSheet(buttonHoverStyle)
+
+    def updateMarkButton(self):
+        if self.item.type not in ['FC', 'FT', 'WS', 'WC', 'WV', 'WA']:
+            self.markButton.hide()
+            return
+
+        if self.item.confirmed:
+            icon = ':/checkmark.png'
+        else:
+            icon = ':/cross.png'
+
+        self.markButton.setIcon(QIcon(icon))
+
+    def updateGui(self):
+        if self.mode == 'review':
+            self.updateMarkButton()
+            self.updateReminderButton()
 
     def updateRemindState(self):
         if self.remind:

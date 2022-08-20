@@ -475,6 +475,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         for widget in self.recentWidget():
             if widget.uuid() not in uuids:
                 widget.deleteLater()
+            else:
+                widget.updateGui()
 
         widgetUuids = [widget.uuid() for widget in self.recentWidget()]
         for i, query in enumerate(queryset):
