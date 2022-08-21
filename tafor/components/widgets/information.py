@@ -385,6 +385,7 @@ class AdvisoryMixin(object):
         self.groupNames = cycle(['main', 'advisory'])
         self.switchGroup()
         self.upperTextEdit()
+        self.text.setMaximumWidth(243)
 
     def bindSignal(self):
         super().bindSignal()
@@ -424,7 +425,7 @@ class AdvisoryMixin(object):
         except Exception as e:
             context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'Advisory message can not be decoded'))
             self.text.setStyleSheet('color: grey')
-            logger.debug('Advisory message can not be decoded\n"{}"\nError {}'.format(text, e), exc_info=True)
+            logger.error('Advisory message can not be decoded\n"{}"\nError {}'.format(text, e), exc_info=True)
 
     def autoFill(self):
         name = self.parser.name()
@@ -497,21 +498,26 @@ class AdvisoryMixin(object):
             initial = self.initial.currentText()
             if initial:
                 feature = self.parser.location(initial)
-                feature['properties']['location'] = 'initial'
-                feature['properties']['type'] = 'sketch'
-                locations.append(feature)
+                if 'geometry' in feature:
+                    feature['properties']['location'] = 'initial'
+                    feature['properties']['type'] = 'sketch'
+                    locations.append(feature)
 
             final = self.final.currentText()
             if initial and final:
                 feature = self.parser.location(final)
-                feature['properties']['location'] = 'final'
-                feature['properties']['type'] = 'sketch'
-                locations.append(feature)
+                if 'geometry' in feature:
+                    feature['properties']['location'] = 'final'
+                    feature['properties']['type'] = 'sketch'
+                    locations.append(feature)
 
         if self.parser.type == 'TC ADVISORY':
             for feature in locations:
                 if self.radius.hasAcceptableInput():
-                    feature['properties']['radius'] = int(self.radius.text())
+                    radius = int(self.radius.text())
+                else:
+                    radius = 0
+                feature['properties']['radius'] = radius
 
             properties = {
                 'type': 'exterior',
@@ -544,7 +550,10 @@ class AdvisoryMixin(object):
         if collections['features']:
             self.locationChanged.emit(collections)
 
-        self.autoFill()
+        try:
+            self.autoFill()
+        except Exception as e:
+            logger.error(e, exc_info=True)
 
     def setLocationMode(self, mode):
         super().setLocationMode(mode)
@@ -896,11 +905,9 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
                 'coordinates': (degreeToDecimal(self.currentLongitude.text()), degreeToDecimal(self.currentLatitude.text()))
             }
 
-        if self.radius.hasAcceptableInput():
-            feature['properties']['radius'] = int(self.radius.text())
-
-        if geometry:
+        if geometry and self.radius.hasAcceptableInput():
             feature['geometry'] = geometry
+            feature['properties']['radius'] = int(self.radius.text())
         else:
             feature = {}
         
@@ -1074,13 +1081,16 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         features = self.parser.location(initial)
         if features and 'flightLevel' in features['properties']:
             flightLevel = features['properties']['flightLevel']
-            base, top = flightLevel.split('/')
             pattern = re.compile(r'\d+')
-            m = pattern.search(base)
-            if m:
-                self.base.setText(m.group())
+            if '/' in flightLevel:
+                base, top = flightLevel.split('/')
+                m = pattern.search(base)
+                if m:
+                    self.base.setText(m.group())
+                else:
+                    self.format.setCurrentIndex(self.format.findText(base))
             else:
-                self.format.setCurrentIndex(self.format.findText(base))
+                top = flightLevel
 
             m = pattern.search(top)
             if m:

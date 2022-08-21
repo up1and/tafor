@@ -1667,9 +1667,14 @@ class AdvisoryParser(object):
         self.parse()
 
     def parse(self):
-        pattern = re.compile(r'{}'.format(self.type))
-        *_, text = pattern.split(self.message)
-
+        regex = r'{}((?:\s?.+\s?)*)'.format(self.type)
+        if '=' in self.message:
+            regex += '='
+        pattern = re.compile(regex)
+        match = pattern.search(self.message)
+        if not match:
+            return
+        text = match.group(1)
         matches = re.finditer(r'^\s*([^:]+?)\s*:\s*(.*?)\s*$', text, re.MULTILINE)
         prev = None
         for match in matches:

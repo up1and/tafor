@@ -1239,7 +1239,8 @@ class GraphicsWindow(QWidget):
 
     def setTyphoonGraphic(self, feature):
         sketch = self.canvas.sketchManager.first()
-        sketch.filled(mode='circle', center=feature['geometry']['coordinates'], radius=feature['properties']['radius'])
+        if feature:
+            sketch.filled(mode='circle', center=feature['geometry']['coordinates'], radius=feature['properties']['radius'])
 
     def setAdvisoryGraphic(self, collections):
         self.overlapButton.setChecked(False)
