@@ -322,10 +322,16 @@ class Sketch(QObject):
         self.stickers = geometries
         self.redraw()
 
-    def clear(self):
+    def empty(self):
+        """
+        clear sketch, but do not emit signal
+        """
         self.done = False
         self.radius = 0
         self.coordinates = []
+
+    def clear(self):
+        self.empty()
         self.stickers = []
         self.finished.emit()
         self.redraw()
@@ -1241,6 +1247,11 @@ class GraphicsWindow(QWidget):
         sketch = self.canvas.sketchManager.first()
         if feature:
             sketch.filled(mode='circle', center=feature['geometry']['coordinates'], radius=feature['properties']['radius'])
+        else:
+            # update sketch manually
+            sketch.empty()
+            self.canvas.sketchManager.update()
+            self.updateLocationLabel(self.formattedCoordinates())
 
     def setAdvisoryGraphic(self, collections):
         self.overlapButton.setChecked(False)

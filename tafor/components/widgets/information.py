@@ -745,8 +745,8 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         self.currentLongitude.textChanged.connect(lambda: self.coloredText(self.currentLongitude))
         self.top.textEdited.connect(lambda: self.coloredText(self.top))
         self.forecastTime.textEdited.connect(lambda: self.coloredText(self.forecastTime))
-        self.forecastLatitude.textEdited.connect(lambda: self.coloredText(self.forecastLatitude))
-        self.forecastLongitude.textEdited.connect(lambda: self.coloredText(self.forecastLongitude))
+        self.forecastLatitude.textChanged.connect(lambda: self.coloredText(self.forecastLatitude))
+        self.forecastLongitude.textChanged.connect(lambda: self.coloredText(self.forecastLongitude))
 
         self.endingTime.textChanged.connect(self.setForecastTime)
         self.beginningTime.textEdited.connect(self.setForecastPosition)
@@ -880,13 +880,10 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         if radius:
             self.radius.setText(str(radius))
 
-        # features = self.parser.location(self.final.currentText())
-
     def handleCircleChange(self):
         if self.mode == 'circle':
             feature = self.circle()
-            if feature:
-                self.circleChanged.emit(feature)
+            self.circleChanged.emit(feature)
 
     def phenomenon(self):
         items = [self.phenomena.currentText(), self.name.text()]
