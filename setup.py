@@ -117,8 +117,13 @@ class PyInstallerCommand(Command):
         source = os.path.abspath(os.path.dirname(__file__))
         src = os.path.join(source, 'tafor')
         createEnviron(src)
-        createVersion(src)
-        proc = subprocess.Popen(r'pyinstaller __main__.py -w -F -i icons\icon.ico --add-data shapes;shapes -n tafor --version-file .version', cwd=src, 
+        createVersion(source)
+        command = (
+            r'pyinstaller {src}//__main__.py -w -F'
+            r' -i {src}//icons//icon.ico --add-data {src}//shapes;shapes -n tafor --version-file {source}//.version'
+            r' --specpath {source} --distpath {source}//dist --workpath {source}//build'
+            ).format(src=src, source=source)
+        proc = subprocess.Popen(command, cwd=src, 
                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
         while True:
             line = proc.stdout.readline()
@@ -126,25 +131,17 @@ class PyInstallerCommand(Command):
                 break
             print(line.decode('utf-8').strip())
 
+        if os.path.exists(os.path.join(source, 'dist', 'tafor.exe')):
+            self.package()
 
-class ZipCommand(Command):
-    user_options = []
-    description = 'Packaged zip files'
-
-    def initialize_options(self):
-        pass
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
+    def package(self):
         import zipfile
 
         bitness = 'amd64' if sys.maxsize > 2**32 else 'win32'
         filename = 'tafor-{version}-{bitness}.zip'.format(version=__version__, bitness=bitness)
-        output = os.path.abspath(os.path.join('tafor/dist', filename))
+        output = os.path.abspath(os.path.join('dist', filename))
 
-        def zipdir(path, pack, extension=None):
+        def zipdir(path, package, extension=None):
             for root, dirs, files in os.walk(path):
                 for file in files:
                     _, ext = os.path.splitext(file)
@@ -153,12 +150,12 @@ class ZipCommand(Command):
 
                     filename = os.path.join(root, file)
                     arcname = os.path.relpath(os.path.join(root, file), os.path.join(path, '..'))
-                    pack.write(filename, arcname)
+                    package.write(filename, arcname)
 
-        with zipfile.ZipFile(output, 'w') as pack:
-            pack.write(os.path.join('tafor/dist', 'tafor.exe'), 'tafor.exe')
-            zipdir('tafor/sounds', pack)
-            zipdir('tafor/i18n', pack, extension='.qm')
+        with zipfile.ZipFile(output, 'w') as package:
+            package.write(os.path.join('dist', 'tafor.exe'), 'tafor.exe')
+            zipdir('tafor/sounds', package)
+            zipdir('tafor/i18n', package, extension='.qm')
 
         print('Output', output)
 
@@ -174,7 +171,7 @@ setup(
     license='GPLv2',
     keywords = 'aviation taf sigmet',
     tests_require=['pytest'],
-    cmdclass ={'test': PyTest, 'docs': SphinxCommand, 'build_exe': PyInstallerCommand, 'zip': ZipCommand},
+    cmdclass ={'test': PyTest, 'docs': SphinxCommand, 'build': PyInstallerCommand},
     platforms=['Windows', 'Linux', 'Mac OS-X'],
     classifiers=[
         'Development Status :: 4 - Beta',
