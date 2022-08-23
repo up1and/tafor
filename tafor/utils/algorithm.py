@@ -138,8 +138,6 @@ def flattenLine(line):
         if values.count(v) > 1:
             return v
 
-    return line
-
 def clipLine(polygon, points):
     subj = Polygon(polygon)
     clip = LineString(points)
@@ -427,7 +425,7 @@ def mergeSameSlopeLines(lines):
 
 def findNonOverlappingLines(boundaries, points):
     lines = []
-    boundary = LineString(boundaries).buffer(0.1)
+    boundary = LineString(boundaries).buffer(0.3)
     for p, q in zip(points, points[1:]):
         line = LineString([p, q])
         if not boundary.contains(line):
