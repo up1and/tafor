@@ -207,12 +207,12 @@ class TafState(QObject):
 
     @property
     def spec(self):
-        index = int(conf.value('General/TAFSpec'))
+        index = conf.value('General/TAFSpec') or 0
         specification = 'fc'
-        if index == 1:
+        if int(index) == 1:
             specification = 'ft24'
 
-        if index == 2:
+        if int(index) == 2:
             specification = 'ft30'
 
         return specification
