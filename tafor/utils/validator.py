@@ -1692,8 +1692,9 @@ class AdvisoryParser(object):
             self.time = datetime.datetime.strptime(self.tokens['DTG'], '%Y%m%d/%H%MZ')
 
     def position(self):
-        if 'PSN' in self.tokens:
-            text = self.tokens['PSN']
+        keys = ['PSN', 'OBS PSN']
+        text = self._findText(keys)
+        if text:
             match = self.grammar.point.search(text)
             if match:
                 return match.groups()
@@ -1757,6 +1758,11 @@ class AdvisoryParser(object):
             return time
         else:
             return self.time
+
+    def _findText(self, keys):
+        for key in keys:
+            if key in self.tokens:
+                return self.tokens[key]
 
 
 class TyphoonAdvisoryParser(AdvisoryParser):
@@ -1840,7 +1846,6 @@ class TyphoonAdvisoryParser(AdvisoryParser):
 
     def radius(self):
         from tafor.utils.algorithm import wgs84
-
         center = self.position()
         polygon = self.polygon()
         if not center or not polygon:
