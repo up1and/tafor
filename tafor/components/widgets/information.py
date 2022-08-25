@@ -303,7 +303,8 @@ class ObservationMixin(object):
 
     def bindSignal(self):
         super().bindSignal()
-        self.observation.currentTextChanged.connect(self.setObservationTime)
+        self.observation.currentTextChanged.connect(self.updateObservationTime)
+        self.beginningTime.textChanged.connect(self.updateObservationTime)
         self.observationTime.textChanged.connect(lambda: self.coloredText(self.observationTime))
 
     def setupValidator(self):
@@ -311,8 +312,9 @@ class ObservationMixin(object):
         time = QRegExpValidator(QRegExp(self.rules.time))
         self.observationTime.setValidator(time)
 
-    def setObservationTime(self, text):
-        if text == 'OBS':
+    def updateObservationTime(self):
+        observation = self.observation.currentText()
+        if observation == 'OBS':
             self.observationTime.setText(self.beginningTime.text()[2:])
         else:
             if self.beginningTime.text()[2:] == self.observationTime.text():
@@ -335,13 +337,17 @@ class ObservationMixin(object):
 
 class ForecastMixin(object):
 
+    def bindSignal(self):
+        super().bindSignal()
+        self.forecastTime.textChanged.connect(lambda: self.coloredText(self.forecastTime))
+
     def setupValidator(self):
         super(ForecastMixin, self).setupValidator()
         time = QRegExpValidator(QRegExp(self.rules.time))
         self.forecastTime.setValidator(time)
 
     def setForecastTime(self):
-        if self.durations is None or not self.endingTime.text():
+        if self.durations is None or not self.endingTime.text() or not self.forecastTime.isEnabled():
             return
 
         text = self.endingTime.text()[2:]
@@ -489,7 +495,8 @@ class AdvisoryMixin(object):
 
     def handleLocationChange(self):
         collections = {
-            'type': 'FeatureCollection'
+            'type': 'FeatureCollection',
+            'features': []
         }
         locations = []
 
@@ -547,8 +554,7 @@ class AdvisoryMixin(object):
                 locations.append(features)
 
         collections['features'] = locations
-        if collections['features']:
-            self.locationChanged.emit(collections)
+        self.locationChanged.emit(collections)
 
         try:
             self.autoFill()
@@ -572,10 +578,13 @@ class AdvisoryMixin(object):
         super().clear()
         if self.group == 'advisory':
             self.group = next(self.groupNames)
+            self.advisory.hide()
+            self.main.show()
 
         self.text.clear()
         self.initial.clear()
         self.final.clear()
+        self.parser = None
 
 
 class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin, BaseSigmet, Ui_sigmet_general.Ui_Editor):
@@ -589,7 +598,6 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
 
     def bindSignal(self):
         super().bindSignal()
-
         self.description.currentTextChanged.connect(self.setPhenomena)
         self.phenomena.currentTextChanged.connect(self.setFlightLevelFormat)
 
@@ -724,16 +732,18 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
 
     def bindSignal(self):
         super().bindSignal()
-
         self.currentLatitude.editingFinished.connect(self.handleCircleChange)
         self.currentLongitude.editingFinished.connect(self.handleCircleChange)
         self.radius.textEdited.connect(self.handleCircleChange)
 
-        self.currentLatitude.textChanged.connect(self.setForecastPosition)
-        self.currentLongitude.textChanged.connect(self.setForecastPosition)
-        self.speed.textEdited.connect(self.setForecastPosition)
-        self.direction.currentTextChanged.connect(self.setForecastPosition)
-        self.forecastTime.textChanged.connect(self.setForecastPosition)
+        self.currentLatitude.textChanged.connect(self.updateForecastPosition)
+        self.currentLongitude.textChanged.connect(self.updateForecastPosition)
+        self.speed.textEdited.connect(self.updateForecastPosition)
+        self.direction.currentTextChanged.connect(self.updateForecastPosition)
+        self.forecastTime.textChanged.connect(self.updateForecastPosition)
+        self.beginningTime.textEdited.connect(self.updateForecastPosition)
+        self.observationTime.textEdited.connect(self.updateForecastPosition)
+        self.endingTime.textChanged.connect(self.setForecastTime)
 
         self.currentLatitude.textEdited.connect(lambda: self.upperText(self.currentLatitude))
         self.currentLongitude.textEdited.connect(lambda: self.upperText(self.currentLongitude))
@@ -744,17 +754,11 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         self.currentLatitude.textChanged.connect(lambda: self.coloredText(self.currentLatitude))
         self.currentLongitude.textChanged.connect(lambda: self.coloredText(self.currentLongitude))
         self.top.textEdited.connect(lambda: self.coloredText(self.top))
-        self.forecastTime.textEdited.connect(lambda: self.coloredText(self.forecastTime))
         self.forecastLatitude.textChanged.connect(lambda: self.coloredText(self.forecastLatitude))
         self.forecastLongitude.textChanged.connect(lambda: self.coloredText(self.forecastLongitude))
 
-        self.endingTime.textChanged.connect(self.setForecastTime)
-        self.beginningTime.textEdited.connect(self.setForecastPosition)
-        self.observationTime.textEdited.connect(self.setForecastPosition)
-
     def setupValidator(self):
         super(SigmetTyphoon, self).setupValidator()
-
         latitude = QRegExpValidator(QRegExp(self.rules.latitude, Qt.CaseInsensitive))
         self.currentLatitude.setValidator(latitude)
         self.forecastLatitude.setValidator(latitude)
@@ -800,18 +804,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         else:
             self.radius.clear()
 
-    def setForecastTime(self):
-        if self.durations is None or not self.endingTime.text():
-            return
-
-        text = self.endingTime.text()
-        time = parseTime(text)
-        time = time - datetime.timedelta(minutes=time.minute)
-        fcstTime = time.strftime('%H%M')
-
-        self.forecastTime.setText(fcstTime)
-
-    def setForecastPosition(self):
+    def updateForecastPosition(self):
         mustRequired = [
             self.currentLatitude.hasAcceptableInput(),
             self.currentLongitude.hasAcceptableInput(),
@@ -991,6 +984,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
     def clear(self):
         super().clear()
         self.name.clear()
+        self.top.clear()
         self.forecastTime.clear()
         self.forecastLatitude.clear()
         self.forecastLongitude.clear()
@@ -1388,4 +1382,3 @@ class AirmetGeneral(SigmetGeneral):
         flightLevel = QRegExpValidator(QRegExp(self.rules.airmansFlightLevel))
         self.base.setValidator(flightLevel)
         self.top.setValidator(flightLevel)
-

@@ -1267,9 +1267,11 @@ class GraphicsWindow(QWidget):
             if feature['geometry']['type'] == 'Point':
                 sketch.filled(mode=self.canvas.mode, center=feature['geometry']['coordinates'], radius=feature['properties']['radius'])
 
+        locations = []
         for feature in collections['features']:
             type = feature['properties']['type']
             location = feature['properties']['location']
+            locations.append(location)
             if type == 'sketch':
                 if location == 'initial':
                     _filled(initial, feature)
@@ -1302,6 +1304,13 @@ class GraphicsWindow(QWidget):
                     initial.pin(geometries)
                 else:
                     final.pin(geometries)
+
+        # if feature is empty, clear the sketch
+        if 'initial' not in locations:
+            initial.clear()
+        
+        if 'final' not in locations:
+            final.clear()
 
         self.switchForward()
 
