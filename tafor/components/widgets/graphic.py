@@ -15,7 +15,7 @@ from PyQt5.QtCore import QCoreApplication, QObject, Qt, QRect, QRectF, QSize, py
 
 from tafor import logger
 from tafor.states import context
-from tafor.utils.convert import decimalToDegree, degreeToDecimal
+from tafor.utils.convert import decimalToDegree
 from tafor.utils.algorithm import encode, depth, buffer, circle, flattenLine, clipLine, clipPolygon, simplifyPolygon
 from tafor.components.widgets.geometry import BackgroundImage, Coastline, Fir, Sigmet, SketchGraphic, StickerGraphic
 from tafor.components.widgets.widget import OutlinedLabel
@@ -69,6 +69,11 @@ class SketchManager(object):
     def __iter__(self):
         for s in self.sketchs:
             yield s
+
+    def get(self, name):
+        for sketch in self.sketchs:
+            if name == sketch.name:
+                return sketch
 
     def addSketch(self, sketch):
         self.sketchs.append(sketch)
@@ -148,6 +153,9 @@ class Sketch(QObject):
 
     def __repr__(self):
         return '<Sketch %s %r>' % (self.name, self.canvas.mode)
+
+    def __bool__(self):
+        return bool(self.coordinates)
 
     @property
     def maxPoint(self):
@@ -492,7 +500,8 @@ class Sketch(QObject):
                 'coordinates': self.coordinates[0] if self.coordinates else ()
             },
             'properties': {
-                'radius': round(self.radius / 1000)
+                'radius': round(self.radius / 1000),
+                'location': self.name
             }
         }
 
@@ -838,11 +847,6 @@ class Canvas(BaseCanvas):
             if bg.layer.overlay == 'mixed': 
                 bg.setOpacity(opacity)
 
-    def isInitialLocationFinished(self):
-        # shoud check the shape can be encode to text
-        sketch = self.sketchManager.first()
-        return sketch.done
-
     def drawLayer(self):
         layers = [layer for layer in context.layer.currentLayers() if layer]
         if layers:
@@ -1045,10 +1049,10 @@ class GraphicsWindow(QWidget):
         self.overlapButton.clicked.connect(self.switchForward)
         self.refreshButton.clicked.connect(context.layer.refresh)
         self.canvas.mouseMoved.connect(self.updatePositionLabel)
-        self.canvas.sketchManager.first().finished.connect(self.updateOverlapButton)
 
         for sketch in self.canvas.sketchManager:
             sketch.changed.connect(self.handleSketchChange)
+            sketch.finished.connect(self.updateOverlapButton)
 
         self.sketchChanged.connect(self.updateLocationLabel)
 
@@ -1073,7 +1077,14 @@ class GraphicsWindow(QWidget):
         return messages
 
     def circleCoordinates(self):
-        return self.canvas.sketchManager.first().circle()
+        collections = {
+            'type': 'FeatureCollection',
+            'features': []
+        }
+        for sketch in self.canvas.sketchManager:
+            collections['features'].append(sketch.circle())
+
+        return collections
 
     def location(self):
         locations = {}
@@ -1125,10 +1136,16 @@ class GraphicsWindow(QWidget):
             self.modeButton.show()
 
     def updateOverlapButton(self):
-        enbaled = self.canvas.isInitialLocationFinished()
+        initial = self.canvas.sketchManager.first()
+        enbaled = initial.done
         if self.type == 'WC' and self.canvas.mode == 'polygon':
             enbaled = False
         self.overlapButton.setEnabled(enbaled)
+        
+        if enbaled:
+            final = self.canvas.sketchManager.last()
+            checked = bool(final)
+            self.overlapButton.setChecked(checked)
 
     def nextMode(self):
         self.clear()
@@ -1247,15 +1264,21 @@ class GraphicsWindow(QWidget):
         html = '<br><br>'.join(words)
         self.locationWidget.setText(html)
 
-    def setTyphoonGraphic(self, feature):
-        sketch = self.canvas.sketchManager.first()
-        if feature:
-            sketch.filled(mode='circle', center=feature['geometry']['coordinates'], radius=feature['properties']['radius'])
-        else:
-            # update sketch manually
-            sketch.empty()
-            self.canvas.sketchManager.update()
-            self.updateLocationLabel(self.formattedCoordinates())
+    def setTyphoonGraphic(self, collections):
+        names = []
+        for feature in collections['features']:
+            name = feature['properties']['location']
+            names.append(name)
+            sketch = self.canvas.sketchManager.get(name)
+            sketch.filled(mode='circle',
+                center=feature['geometry']['coordinates'], radius=feature['properties']['radius'])
+
+        # clear sketch manually
+        for sketch in self.canvas.sketchManager:
+            if sketch.name not in names:
+                sketch.empty()
+                self.canvas.sketchManager.update()
+                self.updateLocationLabel(self.formattedCoordinates())
 
     def setAdvisoryGraphic(self, collections):
         self.overlapButton.setChecked(False)

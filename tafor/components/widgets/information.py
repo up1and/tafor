@@ -734,8 +734,8 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         super().bindSignal()
         self.currentLatitude.editingFinished.connect(self.handleCircleChange)
         self.currentLongitude.editingFinished.connect(self.handleCircleChange)
-        # self.forecastLatitude.editingFinished.connect(self.handleCircleChange)
-        # self.forecastLongitude.editingFinished.connect(self.handleCircleChange)
+        self.forecastLatitude.editingFinished.connect(self.handleCircleChange)
+        self.forecastLongitude.editingFinished.connect(self.handleCircleChange)
         self.radius.textEdited.connect(self.handleCircleChange)
 
         self.currentLatitude.textChanged.connect(self.updateForecastPosition)
@@ -784,21 +784,28 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         observations = ['OBS', 'FCST']
         self.observation.addItems(observations)
 
-    def setTyphoonLocation(self, feature):
-        if not feature:
+    def setTyphoonLocation(self, collections):
+        if not collections['features']:
             return
 
-        center = feature['geometry']['coordinates']
-        radius = feature['properties']['radius']
+        for feature in collections['features']:
+            location = feature['properties']['location']
+            if location == 'initial':
+                longitude, latitude = self.currentLongitude, self.currentLatitude
+                radius = feature['properties']['radius']
+            else:
+                longitude, latitude = self.forecastLongitude, self.forecastLatitude
 
-        if center:
-            lon, lat = center
-            lon, lat = decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)
-            self.currentLongitude.setText(lon)
-            self.currentLatitude.setText(lat)
-        else:
-            self.currentLongitude.clear()
-            self.currentLatitude.clear()
+            center = feature['geometry']['coordinates']
+            if center:
+                lon, lat = center
+                lon, lat = decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)
+                longitude.setText(lon)
+                latitude.setText(lat)
+            else:
+                if longitude.hasAcceptableInput() and latitude.hasAcceptableInput():
+                    longitude.clear()
+                    latitude.clear()
 
         if radius:
             self.radius.setText(str(radius))
@@ -860,6 +867,8 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         self.forecastLatitude.setText(forecastLatitude)
         self.forecastLongitude.setText(forecastLongitude)
 
+        self.handleCircleChange()
+
     def autoFill(self):
         super().autoFill()
         height = self.parser.height()
@@ -876,8 +885,17 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
 
     def handleCircleChange(self):
         if self.mode == 'circle':
-            feature = self.circle('initial')
-            self.circleChanged.emit(feature)
+            collections = {
+                'type': 'FeatureCollection',
+                'features': []
+            }
+            initial = self.circle('initial')
+            if initial:
+                collections['features'].append(initial)
+                final = self.circle('final')
+                if final:
+                    collections['features'].append(final)
+            self.circleChanged.emit(collections)
 
     def phenomenon(self):
         items = [self.phenomena.currentText(), self.name.text()]
