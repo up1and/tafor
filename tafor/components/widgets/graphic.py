@@ -466,10 +466,11 @@ class Sketch(QObject):
             if self.canvas.mode == 'circle':
                 points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in self.coordinates]
                 if self.done:
-                    unit = 'KM'
                     center = points[0]
-                    items = ['PSN {} {}'.format(center[1], center[0]), 'WI {}{} OF CENTRE'.format(round(self.radius / 1000), unit)]
-                    message = ' - '.join(items)
+                    message = 'PSN {} {}'.format(center[1], center[0])
+                    if self.name == 'initial':
+                        unit = 'KM'
+                        message += ' / WI {}{} OF CENTRE'.format(round(self.radius / 1000), unit)
                 else:
                     coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
                     message = ' - '.join(coordinates)
@@ -966,6 +967,8 @@ class GraphicsWindow(QWidget):
 
     def __init__(self, parent=None):
         super(GraphicsWindow, self).__init__()
+        self.parent = parent
+        self.type = ''
         self.canvas = Canvas()
         self.verticalLayout = QVBoxLayout(self)
         self.verticalLayout.setContentsMargins(0, 8, 0, 0)
@@ -1107,6 +1110,7 @@ class GraphicsWindow(QWidget):
                 {'icon': ':/filled-polygon.png', 'mode': 'entire'}
             ]
 
+        self.type = tt
         self.icons = cycle(icons)
         self.nextMode()
 
@@ -1122,7 +1126,7 @@ class GraphicsWindow(QWidget):
 
     def updateOverlapButton(self):
         enbaled = self.canvas.isInitialLocationFinished()
-        if self.canvas.mode == 'circle':
+        if self.type == 'WC' and self.canvas.mode == 'polygon':
             enbaled = False
         self.overlapButton.setEnabled(enbaled)
 

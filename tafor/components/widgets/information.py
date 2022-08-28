@@ -734,6 +734,8 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         super().bindSignal()
         self.currentLatitude.editingFinished.connect(self.handleCircleChange)
         self.currentLongitude.editingFinished.connect(self.handleCircleChange)
+        # self.forecastLatitude.editingFinished.connect(self.handleCircleChange)
+        # self.forecastLongitude.editingFinished.connect(self.handleCircleChange)
         self.radius.textEdited.connect(self.handleCircleChange)
 
         self.currentLatitude.textChanged.connect(self.updateForecastPosition)
@@ -773,7 +775,6 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         time = QRegExpValidator(QRegExp(self.rules.time))
         self.forecastTime.setValidator(time)
 
-        self.speed.setValidator(QIntValidator(1, 99, self.speed))
         self.radius.setValidator(QIntValidator(1, 999, self.radius))
 
     def setPhenomena(self, text='TC'):
@@ -875,7 +876,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
 
     def handleCircleChange(self):
         if self.mode == 'circle':
-            feature = self.circle()
+            feature = self.circle('initial')
             self.circleChanged.emit(feature)
 
     def phenomenon(self):
@@ -883,17 +884,26 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         text = ' '.join(items) if all(items) else ''
         return text
 
-    def circle(self):
+    def circle(self, location):
         feature = {
             'type': 'Feature',
-            'properties': {}
+            'properties': {
+                'location': location
+            }
         }
         geometry = {}
-        if self.currentLatitude.hasAcceptableInput() and self.currentLongitude.hasAcceptableInput():
-            geometry = {
-                'type': 'Point',
-                'coordinates': (degreeToDecimal(self.currentLongitude.text()), degreeToDecimal(self.currentLatitude.text()))
-            }
+        if location == 'initial':
+            if self.currentLatitude.hasAcceptableInput() and self.currentLongitude.hasAcceptableInput():
+                geometry = {
+                    'type': 'Point',
+                    'coordinates': (degreeToDecimal(self.currentLongitude.text()), degreeToDecimal(self.currentLatitude.text()))
+                }
+        else:
+            if self.forecastLatitude.hasAcceptableInput() and self.forecastLongitude.hasAcceptableInput():
+                geometry = {
+                    'type': 'Point',
+                    'coordinates': (degreeToDecimal(self.forecastLongitude.text()), degreeToDecimal(self.forecastLatitude.text()))
+                }
 
         if geometry and self.radius.hasAcceptableInput():
             feature['geometry'] = geometry
@@ -947,9 +957,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
 
         items = [fir, phenomena, position, location, flightLevel]
 
-        if self.hasForecastMode():
-            items += [intensityChange, forecastPosition, '{forecastLocation}']
-        elif forecastPosition:
+        if forecastPosition:
             items += [intensityChange, forecastPosition]
         else:
             items += [moveState, intensityChange]
@@ -1048,6 +1056,8 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
 
         longitude = QRegExpValidator(QRegExp(self.rules.longitude, Qt.CaseInsensitive))
         self.currentLongitude.setValidator(longitude)
+
+        self.speed.setValidator(QIntValidator(1, 200, self.speed))
 
     def setPhenomena(self, text='ERUPTION'):
         self.phenomena.addItems(['ERUPTION', 'CLD'])
