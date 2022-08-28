@@ -237,10 +237,6 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
         self.graphic.clear()
 
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key_F5:
-            context.layer.refresh()
-
     def closeEvent(self, event):
         super(SigmetEditor, self).closeEvent(event)
         context.notification.sigmet.clear()

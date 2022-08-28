@@ -75,5 +75,9 @@ class BaseEditor(QDialog):
     def enbaleNextButton(self):
         raise NotImplementedError
 
+    def keyPressEvent(self, event):
+        if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_Return:
+            self.beforeNext()
+
     def closeEvent(self, event):
         self.isStaged = False
