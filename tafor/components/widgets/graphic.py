@@ -337,10 +337,10 @@ class Sketch(QObject):
         self.done = False
         self.radius = 0
         self.coordinates = []
+        self.stickers = []
 
     def clear(self):
         self.empty()
-        self.stickers = []
         self.finished.emit()
         self.redraw()
 
@@ -666,7 +666,6 @@ class Canvas(BaseCanvas):
         super(Canvas, self).__init__()
         self.backgrounds = []
 
-        self.type = 'initial'
         self.mode = 'polygon'
         self.lock = False
         self.maxPoint = 7
@@ -836,9 +835,9 @@ class Canvas(BaseCanvas):
         if mode == 'entire':
             self.sketch.filled(mode='entire')
 
-    def setType(self, key):
-        if self.type != key:
-            self.type = key
+    def setSketch(self, name):
+        sketch = self.sketchManager.currentSketch()
+        if sketch.name != name:
             self.sketchManager.next()
 
     def setMixedBackgroundOpacity(self, opacity):
@@ -1046,7 +1045,7 @@ class GraphicsWindow(QWidget):
         self.zoomInButton.clicked.connect(self.canvas.zoomIn)
         self.modeButton.clicked.connect(self.nextMode)
         self.modeButton.clicked.connect(self.updateOverlapButton)
-        self.overlapButton.clicked.connect(self.switchForward)
+        self.overlapButton.toggled.connect(self.handleOverlap)
         self.refreshButton.clicked.connect(context.layer.refresh)
         self.canvas.mouseMoved.connect(self.updatePositionLabel)
 
@@ -1101,7 +1100,7 @@ class GraphicsWindow(QWidget):
         final = self.canvas.sketchManager.last()
 
         sketchs = [initial.done and initial.text()]
-        if self.canvas.type == 'final':
+        if self.canvas.sketchManager.currentSketch() == final:
             sketchs.append(final.done and final.text())
 
         return all(sketchs)
@@ -1154,13 +1153,13 @@ class GraphicsWindow(QWidget):
         self.modeButton.setIcon(QIcon(mode['icon']))
         self.modeChanged.emit(mode['mode'])
 
-    def switchForward(self):
-        if self.overlapButton.isChecked():
-            self.canvas.setType('final')
+    def handleOverlap(self, checked):
+        if checked:
+            self.canvas.setSketch('final')
             self.modeButton.setEnabled(False)
             self.overlapChanged.emit('final')
         else:
-            self.canvas.setType('initial')
+            self.canvas.setSketch('initial')
             self.modeButton.setEnabled(True)
             self.overlapChanged.emit('initial')
 
@@ -1339,7 +1338,7 @@ class GraphicsWindow(QWidget):
         if 'final' not in locations:
             final.clear()
 
-        self.switchForward()
+        self.updateOverlapButton()
 
     def updateSigmetGraphic(self):
         if not context.layer.boundaries():
