@@ -88,7 +88,7 @@ class SigmetGrammar(object):
     latitude = re.compile(r'(N|S)(90(0{2})?|[0-8]\d([0-5]\d)?)')
     longitude = re.compile(r'(E|W)(180(0{2})?|((1[0-7]\d)|(0\d{2}))([0-5]\d)?)')
     flightLevel = re.compile(r'(FL[1-9]\d{2}/[1-9]\d{2})|(FL[1-9]\d{2})|(\d{4,5}FT)|(\d{4,5}M)|(SFC/FL[1-9]\d{2})')
-    speed = re.compile(r'(\d{1,2})(KMH|KT)')
+    speed = re.compile(r'(\d{1,3})(KMH|KT)')
     obsTime = re.compile(r'(\d{4}Z)')
     typhoonRange = re.compile(r'(\d{1,3}KM)')
     sequence = re.compile(r'([A-Z]?\d{1,2})')
@@ -102,7 +102,7 @@ class SigmetGrammar(object):
 
     _point = r'((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))'
     _pointSpacer = r'\s?-\s?'
-    _radius = r'\bWI\s(\d{3})(KM|NM)\sOF\s(?:TC\s)?(?:CENTRE|CENTER)\b'
+    _radius = r'\bWI\s(\d{1,3})(KM|NM)\sOF\s(?:TC\s)?(?:CENTRE|CENTER)\b'
 
     @property
     def point(self):
@@ -138,7 +138,7 @@ class SigmetGrammar(object):
     @property
     def corridor(self):
         pattern = re.compile(
-            r'APRX\s(\d{2,3})(KM|NM)'
+            r'APRX\s(\d{1,3})(KM|NM)'
             r'\sWID\sLINE\sBTN\s'
             r'(%s(?:%s)?)+' % (self._point, self._pointSpacer)
         )
