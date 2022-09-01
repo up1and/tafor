@@ -103,8 +103,8 @@ class RemindMessageBox(QMessageBox):
         title = QCoreApplication.translate('MainWindow', 'Alarm')
         self.setIconPixmap(icon)
         self.setWindowTitle(title)
-        self.addButton(QCoreApplication.translate('MainWindow', 'Snooze'), QMessageBox.ApplyRole)
-        self.addButton(QCoreApplication.translate('MainWindow', 'Dismiss'), QMessageBox.RejectRole)
+        self.addButton(QCoreApplication.translate('MainWindow', 'Dismiss'), QMessageBox.AcceptRole)
+        self.addButton(QCoreApplication.translate('MainWindow', 'Snooze'), QMessageBox.RejectRole)
         self.parent = parent
 
     def showEvent(self, event):

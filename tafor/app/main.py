@@ -350,7 +350,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.ringSound.play()
             self.remindTafBox.setText(text)
             ret = self.remindTafBox.exec_()
-            if not ret:
+            if ret == QMessageBox.RejectRole:
                 QTimer.singleShot(1000 * 60 * 5, self.remindTaf)
 
             if not self.remindTafBox.isVisible():
@@ -369,7 +369,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.sigmetSound.play()
             self.remindSigmetBox.setText(text)
             ret = self.remindSigmetBox.exec_()
-            if ret:
+            if ret == QMessageBox.AcceptRole:
+                context.sigmet.remove(item['uuid'])
                 for widget in self.recentWidget():
                     if item['uuid'] == widget.uuid():
                         widget.removeRemind()
