@@ -630,14 +630,12 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             if self.cor.isChecked():
                 order = self.amendNumber('COR')
                 self.sequence.setValidator(ccc)
-
-            if self.amd.isChecked() or self.cnl.isChecked():
+            else:
                 order = self.amendNumber('AMD')
                 self.sequence.setValidator(aaa)
 
             self.sequence.setEnabled(True)
-            if not self.sequence.hasAcceptableInput():
-                self.sequence.setText(order)
+            self.sequence.setText(order)
 
         if self.cnl.isChecked():
             for c in self.groupCheckboxs:
@@ -691,7 +689,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             items = query.filter(Taf.text.contains('COR')).all()
             order = chr(ord('A') + len(items))
             return 'CC' + order
-        elif sort == 'AMD':
+        else:
             items = query.filter(Taf.text.contains('AMD')).all()
             order = chr(ord('A') + len(items))
             return 'AA' + order
