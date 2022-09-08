@@ -102,7 +102,7 @@ class SigmetGrammar(object):
 
     _point = r'((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))'
     _pointSpacer = r'\s?-\s?'
-    _radius = r'\bWI\s(\d{1,3})(KM|NM)\sOF\s(?:TC\s)?(?:CENTRE|CENTER)\b'
+    _radius = r'WI\s(\d{1,3})(KM|NM)\sOF\s(?:TC\s)?(?:CENTRE|CENTER)'
 
     @property
     def point(self):
@@ -159,12 +159,8 @@ class SigmetGrammar(object):
         return pattern
 
     @property
-    def circle(self):
-        pattern = re.compile(
-            r'(?:PSN\s)?'
-            r'%s(.+)?%s' % (self._point, self._radius)
-        )
-        return pattern
+    def position(self):
+        return re.compile(r'PSN\s{}'.format(self._point))
 
 
 class AdvisoryGrammar(object):
@@ -1513,7 +1509,7 @@ class SigmetParser(object):
             'line': self.grammar.lines,
             'corridor': self.grammar.corridor,
             'rectangular': self.grammar.rectangulars,
-            'circle': self.grammar.circle,
+            'circle': self.grammar.position,
             'entire': re.compile('ENTIRE')
         }
 
@@ -1522,6 +1518,11 @@ class SigmetParser(object):
             m = pattern.search(self.message)
             if not m:
                 continue
+
+            if key == 'circle':
+                m = self.grammar.radius.search(self.message)
+                if not m:
+                    continue
 
             for match in pattern.finditer(self.message):
                 text = match.group()
@@ -1573,7 +1574,7 @@ class SigmetParser(object):
             point = self.grammar.point
             radius = self.grammar.radius
             center = point.search(text)
-            width = radius.search(text)
+            width = radius.search(self.message)
             return center.groups(), width.groups()
 
         return []
