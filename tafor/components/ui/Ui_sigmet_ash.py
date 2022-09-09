@@ -305,8 +305,8 @@ class Ui_Editor(object):
         self.directionLabel.setText(_translate("Editor", "Direction"))
         self.intensityChangeLabel.setText(_translate("Editor", "Intensity"))
         self.periodGroup.setTitle(_translate("Editor", "Period and Location"))
-        self.initialLabel.setText(_translate("Editor", "Initial"))
-        self.finalLabel.setText(_translate("Editor", "Final"))
+        self.initialLabel.setText(_translate("Editor", "Initial Location"))
+        self.finalLabel.setText(_translate("Editor", "Final Location"))
         self.textGroup.setTitle(_translate("Editor", "Advisory Text"))
 
 

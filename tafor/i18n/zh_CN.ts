@@ -175,12 +175,12 @@
         <translation>编发趋势</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="675"/>
+        <location filename="../components/widgets/forecast.py" line="673"/>
         <source>Tips</source>
         <translation>提示</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="676"/>
+        <location filename="../components/widgets/forecast.py" line="674"/>
         <source>Do you want to change the message valid period to previous?</source>
         <translation>报文有效时段要变更为上一份吗？</translation>
     </message>
@@ -256,7 +256,7 @@
         <translation>取消信息</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="1290"/>
+        <location filename="../components/widgets/forecast.py" line="1288"/>
         <source>Trend valid time is not corret</source>
         <translation>趋势有效时段不正确</translation>
     </message>
@@ -266,12 +266,12 @@
         <translation>设置错误</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="931"/>
+        <location filename="../components/widgets/forecast.py" line="929"/>
         <source>Change group time more than {} hours</source>
         <translation>变化组时间超过 {} 小时</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="1036"/>
+        <location filename="../components/widgets/forecast.py" line="1034"/>
         <source>Change group time is overlap</source>
         <translation>变化组时间有重叠</translation>
     </message>
@@ -281,12 +281,12 @@
         <translation>温度组时间不正确</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="941"/>
+        <location filename="../components/widgets/forecast.py" line="939"/>
         <source>Start time of change group is not corret</source>
         <translation>变化组起始时间不正确</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="946"/>
+        <location filename="../components/widgets/forecast.py" line="944"/>
         <source>End time of change group is not corret</source>
         <translation>变化组结束时间不正确</translation>
     </message>
@@ -311,17 +311,17 @@
         <translation>垂直能见度</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="96"/>
+        <location filename="../components/widgets/information.py" line="97"/>
         <source>Start time cannot be less than the current time</source>
         <translation>起始时间不能小于当前时间</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="101"/>
+        <location filename="../components/widgets/information.py" line="102"/>
         <source>Ending time must be greater than the beginning time</source>
         <translation>有效结束时间需要大于有效开始时间</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="106"/>
+        <location filename="../components/widgets/information.py" line="107"/>
         <source>Valid period more than {} hours</source>
         <translation>有效期大于 {} 小时</translation>
     </message>
@@ -331,7 +331,7 @@
         <translation>最高温度需要大于最小温度</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="227"/>
+        <location filename="../components/widgets/information.py" line="228"/>
         <source>The top flight level needs to be greater than the base flight level</source>
         <translation>顶高需要大于底高</translation>
     </message>
@@ -356,7 +356,7 @@
         <translation>最小温度需要小于最大温度</translation>
     </message>
     <message>
-        <location filename="../components/widgets/forecast.py" line="1019"/>
+        <location filename="../components/widgets/forecast.py" line="1017"/>
         <source>Time of change group is not corret</source>
         <translation>变化组时间不正确</translation>
     </message>
@@ -376,12 +376,12 @@
         <translation>请先完成基础设置，否则你可能不能发送报文</translation>
     </message>
     <message>
-        <location filename="../components/widgets/widget.py" line="374"/>
+        <location filename="../components/widgets/widget.py" line="384"/>
         <source>That license key doesn&apos;t appear to be valid</source>
         <translation>该许可证密钥似乎无效</translation>
     </message>
     <message>
-        <location filename="../components/widgets/widget.py" line="379"/>
+        <location filename="../components/widgets/widget.py" line="389"/>
         <source>Please fill in the airport information or flight information region in the settings first</source>
         <translation>请先在设置中填写机场信息或飞行情报区信息</translation>
     </message>
@@ -441,12 +441,12 @@
         <translation>观测时间</translation>
     </message>
     <message>
-        <location filename="../components/widgets/graphic.py" line="1150"/>
+        <location filename="../components/widgets/graphic.py" line="1176"/>
         <source>Trim Shapes</source>
         <translation>裁剪图形</translation>
     </message>
     <message>
-        <location filename="../components/widgets/graphic.py" line="1154"/>
+        <location filename="../components/widgets/graphic.py" line="1180"/>
         <source>Latest SIGMET/AIRMET</source>
         <translation>最新气象情报</translation>
     </message>
@@ -471,11 +471,6 @@
         <translation>类型</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_typhoon.py" line="303"/>
-        <source>Position</source>
-        <translation>位置</translation>
-    </message>
-    <message>
         <location filename="../components/ui/Ui_sigmet_typhoon.py" line="306"/>
         <source>Observation / Forecast</source>
         <translation>观测 / 预报</translation>
@@ -496,11 +491,6 @@
         <translation>方向</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_typhoon.py" line="317"/>
-        <source>Final Position</source>
-        <translation>最终位置</translation>
-    </message>
-    <message>
         <location filename="../components/ui/Ui_sigmet_general.py" line="244"/>
         <source>Format</source>
         <translation>格式</translation>
@@ -511,22 +501,12 @@
         <translation>时段和位置</translation>
     </message>
     <message>
-        <location filename="../components/ui/Ui_sigmet_typhoon.py" line="321"/>
-        <source>Initial</source>
-        <translation>初始</translation>
-    </message>
-    <message>
-        <location filename="../components/ui/Ui_sigmet_typhoon.py" line="322"/>
-        <source>Final</source>
-        <translation>最终</translation>
-    </message>
-    <message>
         <location filename="../components/ui/Ui_sigmet_typhoon.py" line="323"/>
         <source>Advisory Text</source>
         <translation>咨询报文</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="425"/>
+        <location filename="../components/widgets/information.py" line="433"/>
         <source>Advisory message can not be decoded</source>
         <translation>咨询报文无法解析</translation>
     </message>
@@ -534,6 +514,26 @@
         <location filename="../components/ui/Ui_sigmet_typhoon.py" line="311"/>
         <source>Radius</source>
         <translation>半径</translation>
+    </message>
+    <message>
+        <location filename="../components/ui/Ui_sigmet_typhoon.py" line="321"/>
+        <source>Initial Location</source>
+        <translation>初始位置</translation>
+    </message>
+    <message>
+        <location filename="../components/ui/Ui_sigmet_typhoon.py" line="322"/>
+        <source>Final Location</source>
+        <translation>最终位置</translation>
+    </message>
+    <message>
+        <location filename="../components/ui/Ui_sigmet_typhoon.py" line="303"/>
+        <source>Position</source>
+        <translation>位置</translation>
+    </message>
+    <message>
+        <location filename="../components/ui/Ui_sigmet_typhoon.py" line="317"/>
+        <source>Final Position</source>
+        <translation>最终位置</translation>
     </message>
 </context>
 <context>
@@ -619,17 +619,17 @@
         <translation>检查更新</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="575"/>
+        <location filename="../app/main.py" line="578"/>
         <source>New version found {}, do you want to download now?</source>
         <translation>发现新版本 {}，想现在下载么？</translation>
     </message>
     <message>
-        <location filename="../components/widgets/widget.py" line="107"/>
+        <location filename="../components/widgets/widget.py" line="106"/>
         <source>Dismiss</source>
         <translation>关闭</translation>
     </message>
     <message>
-        <location filename="../components/widgets/widget.py" line="106"/>
+        <location filename="../components/widgets/widget.py" line="107"/>
         <source>Snooze</source>
         <translation>暂停</translation>
     </message>
@@ -649,12 +649,12 @@
         <translation>下一页</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="570"/>
+        <location filename="../app/main.py" line="573"/>
         <source>The current version is already the latest version.</source>
         <translation>当前版本已经是最新版本</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="564"/>
+        <location filename="../app/main.py" line="567"/>
         <source>Unable to get the latest version information.</source>
         <translation>无法获取最新版本信息</translation>
     </message>
@@ -694,7 +694,7 @@
         <translation>无法获取情报区信息数据，请检查设置或者网络状态。</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="532"/>
+        <location filename="../app/main.py" line="535"/>
         <source>Version</source>
         <translation>版本</translation>
     </message>
@@ -709,22 +709,22 @@
         <translation>输入证书</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="581"/>
+        <location filename="../app/main.py" line="584"/>
         <source>Remove license key? </source>
         <translation>删除注册信息？</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="582"/>
+        <location filename="../app/main.py" line="585"/>
         <source>Remove license key? This will revert tafor to an unregistered state.</source>
         <translation>删除注册信息？这会恢复到未注册状态。</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="522"/>
+        <location filename="../app/main.py" line="525"/>
         <source>Unregistered</source>
         <translation>未注册</translation>
     </message>
     <message>
-        <location filename="../app/main.py" line="521"/>
+        <location filename="../app/main.py" line="524"/>
         <source>{} days remaining</source>
         <translation>剩余 {} 天</translation>
     </message>
