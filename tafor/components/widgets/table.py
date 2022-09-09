@@ -296,7 +296,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         if item.confirmed:
             iconSrc = ':/checkmark.png'
         else:
-            iconSrc = ':/cross.png'
+            iconSrc = ':/questionmark.png'
 
         label = QLabel()
         icon = QPixmap(iconSrc)

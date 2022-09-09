@@ -5,7 +5,7 @@
         <file alias="logo-dark.png">../../icons/logo-dark.png</file>
         <file alias="setting.png">../../icons/setting.png</file>
         <file alias="checkmark.png">../../icons/checkmark.png</file>
-        <file alias="cross.png">../../icons/cross.png</file>
+        <file alias="questionmark.png">../../icons/questionmark.png</file>
         <file alias="time.png">../../icons/time.png</file>
         <file alias="info.png">../../icons/info.png</file>
         <file alias="export.png">../../icons/export.png</file>

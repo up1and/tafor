@@ -269,7 +269,7 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         if self.item.confirmed:
             icon = ':/checkmark.png'
         else:
-            icon = ':/cross.png'
+            icon = ':/questionmark.png'
 
         self.markButton.setIcon(QIcon(icon))
 
