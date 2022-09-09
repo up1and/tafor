@@ -34,6 +34,7 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.setupUi(self)
         self.switchButton = QToolButton(self)
         self.switchButton.hide()
+        self.headingGroup.setMinimumWidth(263)
         self.initState()
         self.setupFont()
         self.setupValidator()
