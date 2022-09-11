@@ -102,7 +102,8 @@ class SketchManager(object):
         sketchGeometries = []
         stickerGeometries = []
         for sketch in self.sketchs:
-            sketchGeometries.append(sketch.geo())
+            collections = sketch.geo()
+            sketchGeometries += collections['geometries']
             stickerGeometries += sketch.stickers
 
         sketchCollections = self.merge(sketchGeometries)
@@ -345,63 +346,72 @@ class Sketch(QObject):
         self.redraw()
 
     def geo(self):
-        geometry = {}
+        geometries = []
         if self.canvas.mode in ['polygon', 'line', 'corridor']:
             if not self.done:
                 if len(self.coordinates) == 1:
-                    geometry = {
+                    geometries = [{
                         'type': 'Point',
                         'coordinates': self.coordinates[0]
-                    }
+                    }]
 
                 if len(self.coordinates) > 1:
-                    geometry = {
+                    geometries = [{
                         'type': 'LineString',
                         'coordinates': self.coordinates
-                    }
+                    }]
 
         if self.canvas.mode in ['polygon', 'entire']:
             if self.done:
-                geometry = {
+                geometries = [{
                     'type': 'Polygon',
                     'coordinates': self.coordinates
-                }
+                }]
 
         if self.canvas.mode in ['line', 'rectangular']:
             if self.done:
-                geometry = {
-                    'coordinates': self.coordinates
-                }
-
                 if depth(self.coordinates) > 1:
-                    geometry['type'] = 'MultiPolygon'
+                    shapeType = 'MultiPolygon'
                 else:
-                    geometry['type'] = 'Polygon'
+                    shapeType = 'Polygon'
+
+                geometries = [{
+                    'type': shapeType,
+                    'coordinates': self.coordinates
+                }]
 
         if self.canvas.mode == 'circle':
             if self.done:
                 polygon = circle(self.coordinates[0], self.radius)
-                geometry = {
-                    'type': 'Polygon',
-                    'coordinates': list(polygon.exterior.coords)
-                }
-            else:
-                if self.coordinates:
-                    geometry = {
+                geometries = [
+                    {
+                        'type': 'Polygon',
+                        'coordinates': list(polygon.exterior.coords)
+                    },
+                    {
                         'type': 'Point',
                         'coordinates': self.coordinates[0]
                     }
+                ]
+            else:
+                if self.coordinates:
+                    geometries = [{
+                        'type': 'Point',
+                        'coordinates': self.coordinates[0]
+                    }]
 
         if self.canvas.mode == 'corridor':
             if self.done:
                 polygon = buffer(self.coordinates, self.radius)
-                
-                geometry = {
+                geometries = [{
                     'type': 'Polygon',
                     'coordinates': list(polygon.exterior.coords)
-                }
+                }]
 
-        return geometry
+        return {
+            'type': 'GeometryCollection',
+            'geometries': geometries
+        }
 
     def redraw(self):
         self.changed.emit()
