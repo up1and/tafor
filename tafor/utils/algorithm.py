@@ -139,13 +139,15 @@ def flattenLine(line):
             return v
 
 def clipLine(polygon, points):
-    subj = Polygon(polygon)
-    clip = LineString(points)
-    if subj.intersects(clip):
-        intersection = subj.intersection(clip)
+    poly = Polygon(polygon)
+    line = LineString(points)
+    if poly.intersects(line):
+        intersection = poly.intersection(line)
         if isinstance(intersection, MultiLineString):
             intersection = intersection[0]
         points = list(intersection.coords)
+    elif not poly.covers(line):
+        points = []
 
     return points
 

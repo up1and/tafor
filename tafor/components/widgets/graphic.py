@@ -257,10 +257,15 @@ class Sketch(QObject):
                 if ratio < 0 and self.radius > deviation:
                     self.radius += deviation * ratio
             else:
-                self.coordinates = clipLine(self.boundaries, self.coordinates)
-                self.radius = deviation
-                self.done = True
-                self.finished.emit()
+                if len(self.coordinates) > 1:
+                    self.coordinates = clipLine(self.boundaries, self.coordinates)
+                    if len(self.coordinates) > 1:
+                        self.radius = deviation
+                        self.done = True
+                    else:
+                        self.radius = 0
+                        self.done = False
+                    self.finished.emit()
 
             self.redraw()
 
