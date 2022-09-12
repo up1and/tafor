@@ -247,9 +247,11 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.trendSender.reload()
 
     def loadSigmetNotification(self):
-        self.incomingSound.play(loop=False)
-        self.sigmetEditor.loadNotification()
-        context.flash.info(QCoreApplication.translate('MainWindow', 'Message Received'),
+        self.sigmetEditor.updateCustomText()
+        message = context.notification.sigmet.message()
+        if message:
+            self.incomingSound.play(loop=False)
+            context.flash.info(QCoreApplication.translate('MainWindow', 'Message Received'),
                 QCoreApplication.translate('MainWindow', 'Received a {} message').format(context.notification.sigmet.type()))
 
     def event(self, event):

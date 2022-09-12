@@ -1309,8 +1309,7 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         text = re.sub(r'[^A-Za-z0-9)(\/\.\s,-]+', '', origin)
         text = text.upper()
         if origin != text:
-            self.text.setText(text)
-            self.text.moveCursor(QTextCursor.End)
+            self.setText(text)
 
     def upperTextEdit(self):
         upper = QTextCharFormat()
@@ -1335,7 +1334,7 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
 
     def componentUpdate(self):
         self.setupPlaceholder()
-        self.loadLocalDatabase()
+        self.updateText()
 
     def setupApiSign(self):
         pixmap = QPixmap(':/api.png')
@@ -1343,7 +1342,7 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         self.apiSign.setPixmap(pixmap)
         self.apiSign.setMask(pixmap.mask())
         self.apiSign.adjustSize()
-        self.apiSign.move(650, 6)
+        self.apiSign.move(552, 80)
         self.apiSign.hide()
 
     def setupPlaceholder(self):
@@ -1362,25 +1361,32 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         last = db.query(Sigmet).filter(Sigmet.type == self.type(), ~Sigmet.text.contains('CNL')).order_by(Sigmet.created.desc()).first()
         if last:
             parser = last.parser()
-            message = parser.content()
-            self.setText(message)
+            return 'database', parser.content()
 
     def loadNotification(self):
         parser = context.notification.sigmet.parser()
-        if parser and self.type() == parser.spec():
-            message = parser.content()
-            self.setText(message)
-            self.apiSign.show()
-    
-    def setText(self, message):
-        if message:
+        if parser and self.type() == parser.type():
+            return 'notification', parser.content()
+
+    def updateText(self):
+        rv = self.loadNotification() or self.loadLocalDatabase()
+        if rv:
+            source, message = rv
             fir = conf.value('Message/FIR') or ''
             text = message.replace(fir, '').replace('=', '').strip()
-            self.text.setText(text)
-            self.text.moveCursor(QTextCursor.End)
+            self.setText(text)
 
-    def closeEvent(self, event):
-        self.apiSign.hide()
+            if hasattr(self, 'apiSign'):
+                if source == 'notification':
+                    self.apiSign.show()
+                else:
+                    self.apiSign.hide()
+        else:
+            self.text.clear()
+    
+    def setText(self, message):
+        self.text.setText(message)
+        self.text.moveCursor(QTextCursor.End)
 
 
 class AirmetGeneral(SigmetGeneral):

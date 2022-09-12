@@ -115,8 +115,8 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
     def updateState(self):
         self.currentContent.initState()
 
-    def loadNotification(self):
-        self.customContent.loadNotification()
+    def updateCustomText(self):
+        self.customContent.updateText()
 
     def heading(self):
         area = conf.value('Message/Area') or ''
