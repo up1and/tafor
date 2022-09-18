@@ -183,6 +183,10 @@ class Other(Base):
         return '<Other %r>' % (self.raw)
 
     @property
+    def type(self):
+        return ''
+
+    @property
     def report(self):
         return self.text
 

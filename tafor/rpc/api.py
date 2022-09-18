@@ -5,9 +5,12 @@ import falcon
 
 from uuid import uuid4
 
+from sqlalchemy.orm import sessionmaker, scoped_session
+
 from tafor import root, conf, logger
+from tafor.models import engine, Taf, Metar, Sigmet, Other
 from tafor.states import context
-from tafor.utils import boolean, TafParser, SigmetParser, MetarParser, AFTNMessageGenerator
+from tafor.utils import boolean, paginate, TafParser, SigmetParser, MetarParser, AFTNMessageGenerator
 
 
 def as_bool(body, name):
@@ -125,6 +128,31 @@ class JSONComponent(object):
                                    'Could not decode the request body. The JSON was incorrect or not encoded as UTF-8.')
 
 
+class SQLAlchemySessionComponent(object):
+    """
+    Create a session for every request and close it when the request ends.
+    """
+
+    def __init__(self, db_engine):
+        self.engine = db_engine
+        self.session_factory = sessionmaker(bind=db_engine)
+
+    def process_resource(self, req, resp, resource, params):
+        if req.method == 'OPTIONS':
+            return
+
+        req.context['session'] = scoped_session(self.session_factory)
+
+    def process_response(self, req, resp, resource, req_succeeded):
+        if req.method == 'OPTIONS':
+            return
+
+        if req.context.get('session'):
+            if not req_succeeded:
+                req.context['session'].rollback()
+            req.context['session'].close()
+
+
 class MainResource(object):
 
     def on_get(self, req, resp):
@@ -206,7 +234,121 @@ class NotificationResource(object):
         resp.media = media
 
 
-class OtherResource(object):
+class ResourceCollection(object):
+
+    def args(self, req):
+        page = req.get_param('page') or req.context.body.get('page') or '1'
+        limit = req.get_param('limit') or req.context.body.get('limit') or '20'
+
+        page = int(page.strip())
+        limit = int(limit.strip())
+        return page, limit
+
+    def dump(self, items):
+        data = []
+        for item in items:
+            data.append({
+                'uuid': item.uuid,
+                'type': item.type,
+                'message': item.text,
+                'created': falcon.dt_to_http(item.created)
+            })
+        return data
+
+    def links(self, req, pagination, endpoint):
+        info = {}
+        params = req.params.copy()
+        route = req.prefix + endpoint
+        if pagination.hasPrev:
+            params['page'] = pagination.prevNum
+            url = route + falcon.to_query_str(params)
+            info['prev'] = url
+        if pagination.hasNext:
+            params['page'] = pagination.nextNum
+            url = route + falcon.to_query_str(params)
+            info['next'] = url
+
+        return info
+
+
+class MetarsResource(ResourceCollection):
+
+    @falcon.before(authorize)
+    def on_get(self, req, resp):
+        page, limit = self.args(req)
+        queryset = req.context.get('session').query(Metar).order_by(Metar.created.desc())
+        pagination = paginate(queryset, page, perPage=limit)
+
+        metars = self.dump(pagination.items)
+        links = self.links(req, pagination, '/api/metars')
+
+        resp.media = {
+            'metars': metars,
+            'links': links
+        }
+
+
+class TafsResource(ResourceCollection):
+
+    @falcon.before(authorize)
+    def on_get(self, req, resp):
+        page, limit = self.args(req)
+        queryset = req.context.get('session').query(Taf).order_by(Taf.created.desc())
+        pagination = paginate(queryset, page, perPage=limit)
+
+        tafs = self.dump(pagination.items)
+        links = self.links(req, pagination, '/api/tafs')
+
+        resp.media = {
+            'tafs': tafs,
+            'links': links
+        }
+
+
+class SigmetsResource(ResourceCollection):
+
+    @falcon.before(authorize)
+    def on_get(self, req, resp):
+        page, limit = self.args(req)
+        since = req.get_param('since') or req.context.body.get('since')
+
+        queryset = req.context.get('session').query(Sigmet).order_by(Sigmet.created.desc())
+
+        if since:
+            try:
+                since = falcon.http_date_to_dt(since)
+            except Exception as e:
+                raise falcon.HTTPBadRequest('Invalid Parameter', 'Require RFC 1123 date string.')
+
+            queryset = queryset.filter(Sigmet.created > since)
+
+        pagination = paginate(queryset, page, perPage=limit)
+
+        sigmets = self.dump(pagination.items)
+        links = self.links(req, pagination, '/api/sigmets')
+
+        resp.media = {
+            'sigmets': sigmets,
+            'links': links
+        }
+
+
+class OthersResource(ResourceCollection):
+
+    @falcon.before(authorize)
+    def on_get(self, req, resp):
+        page, limit = self.args(req)
+
+        queryset = req.context.get('session').query(Other).order_by(Other.created.desc())
+        pagination = paginate(queryset, page, perPage=limit)
+
+        others = self.dump(pagination.items)
+        links = self.links(req, pagination, '/api/others')
+
+        resp.media = {
+            'others': others,
+            'links': links
+        }
 
     @falcon.before(authorize)
     def on_post(self, req, resp):
@@ -250,16 +392,22 @@ class OtherResource(object):
         }
 
 
-middleware = [JSONComponent(), LoggerComponent()]
+middleware = [JSONComponent(), LoggerComponent(), SQLAlchemySessionComponent(engine)]
 server = falcon.App(middleware=middleware, cors_enable=True)
 
 main = MainResource()
 state = StateResource()
-other = OtherResource()
+metars = MetarsResource()
+tafs = TafsResource()
+others = OthersResource()
+sigmets = SigmetsResource()
 notification = NotificationResource()
 
 server.add_route('/api/state', state)
-server.add_route('/api/others', other)
+server.add_route('/api/metars', metars)
+server.add_route('/api/tafs', tafs)
+server.add_route('/api/sigmets', sigmets)
+server.add_route('/api/others', others)
 server.add_route('/api/notifications', notification)
 
 static = webui()
