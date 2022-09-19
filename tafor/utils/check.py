@@ -223,8 +223,11 @@ def createTafStatus(spec):
 
     clockRemind = currentTaf.hasExpired(offset=5)
     hasExpired = False
+
+    # Ignore AMD COR message
     expired = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
-    recent = db.query(Taf).filter(Taf.text.contains(period), Taf.created > expired).order_by(Taf.created.desc()).first()
+    recent = db.query(Taf).filter(Taf.text.contains(period),  ~Taf.text.contains('AMD'),
+        ~Taf.text.contains('COR'), Taf.created > expired).order_by(Taf.created.desc()).first()
 
     if currentTaf.hasExpired():
         if recent:
