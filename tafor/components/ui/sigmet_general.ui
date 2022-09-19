@@ -28,12 +28,6 @@
    </property>
    <item>
     <widget class="QGroupBox" name="headingGroup">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
      <property name="title">
       <string>Heading</string>
      </property>
@@ -82,12 +76,6 @@
    </item>
    <item>
     <widget class="QGroupBox" name="typeGroup">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
      <property name="title">
       <string>Type</string>
      </property>
@@ -102,6 +90,9 @@
         </property>
        </widget>
       </item>
+      <item row="1" column="0">
+       <widget class="QComboBox" name="description"/>
+      </item>
       <item row="0" column="0">
        <widget class="QLabel" name="descriptionLabel">
         <property name="text">
@@ -112,37 +103,31 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
-       <widget class="QComboBox" name="description"/>
-      </item>
       <item row="1" column="1">
        <widget class="QComboBox" name="phenomena"/>
+      </item>
+      <item row="1" column="2">
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>0</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
       </item>
      </layout>
     </widget>
    </item>
    <item>
     <widget class="QGroupBox" name="obsFcstGroup">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
      <property name="title">
       <string>Observation / Forecast</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_3">
-      <item row="0" column="1">
-       <widget class="QLabel" name="observationTimeLabel">
-        <property name="text">
-         <string>Observation Time</string>
-        </property>
-        <property name="buddy">
-         <cstring>observationTime</cstring>
-        </property>
-       </widget>
-      </item>
       <item row="0" column="0">
        <widget class="QLabel" name="observationLabel">
         <property name="text">
@@ -152,12 +137,6 @@
          <cstring>observation</cstring>
         </property>
        </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QLineEdit" name="observationTime"/>
-      </item>
-      <item row="1" column="0">
-       <widget class="QComboBox" name="observation"/>
       </item>
       <item row="0" column="2">
        <widget class="QLabel" name="forecastTimeLabel">
@@ -172,6 +151,16 @@
         </property>
        </widget>
       </item>
+      <item row="0" column="1">
+       <widget class="QLabel" name="observationTimeLabel">
+        <property name="text">
+         <string>Observation Time</string>
+        </property>
+        <property name="buddy">
+         <cstring>observationTime</cstring>
+        </property>
+       </widget>
+      </item>
       <item row="1" column="2">
        <widget class="QLineEdit" name="forecastTime">
         <property name="enabled">
@@ -179,17 +168,17 @@
         </property>
        </widget>
       </item>
+      <item row="1" column="0">
+       <widget class="QComboBox" name="observation"/>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLineEdit" name="observationTime"/>
+      </item>
      </layout>
     </widget>
    </item>
    <item>
     <widget class="QGroupBox" name="extentGroup">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
      <property name="title">
       <string>Extent</string>
      </property>
@@ -238,12 +227,6 @@
    </item>
    <item>
     <widget class="QGroupBox" name="changeGroup">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
      <property name="title">
       <string>Change</string>
      </property>

@@ -5,7 +5,7 @@ from itertools import cycle
 
 from PyQt5.QtGui import QRegExpValidator, QIntValidator, QTextCharFormat, QTextCursor, QFont, QPixmap, QIcon
 from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QLabel, QToolButton
+from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QToolButton
 
 from tafor import conf, logger
 from tafor.states import context
@@ -34,11 +34,24 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.setupUi(self)
         self.switchButton = QToolButton(self)
         self.switchButton.hide()
-        self.headingGroup.setMinimumWidth(263)
+        self.headingGroup.setMinimumWidth(77 * 3 + 32)
         self.initState()
         self.setupFont()
+        self.setupMainElementWidth()
         self.setupValidator()
         self.bindSignal()
+
+    def setupMainElementWidth(self):
+        if hasattr(self, 'main'):
+            parent = self.main
+        else:
+            parent = self
+
+        for label in parent.findChildren(QLabel):
+            label.setMaximumWidth(77)
+
+        for line in parent.findChildren(QLineEdit):
+            line.setMaximumWidth(77)
 
     def initState(self):
         self.updateSquence()
@@ -392,7 +405,7 @@ class AdvisoryMixin(object):
         self.groupNames = cycle(['main', 'advisory'])
         self.switchGroup()
         self.upperTextEdit()
-        self.text.setMaximumWidth(243)
+        self.text.setPlaceholderText(QCoreApplication.translate('Editor', 'Type advisory message here...'))
 
     def bindSignal(self):
         super().bindSignal()
@@ -1309,7 +1322,11 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         text = re.sub(r'[^A-Za-z0-9)(\/\.\s,-]+', '', origin)
         text = text.upper()
         if origin != text:
-            self.setText(text)
+            cursor = self.text.textCursor()
+            pos = cursor.position()
+            self.text.setText(text)
+            cursor.movePosition(QTextCursor.Left, QTextCursor.MoveAnchor, len(text) - pos)
+            self.text.setTextCursor(cursor)
 
     def upperTextEdit(self):
         upper = QTextCharFormat()
@@ -1342,7 +1359,6 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         self.apiSign.setPixmap(pixmap)
         self.apiSign.setMask(pixmap.mask())
         self.apiSign.adjustSize()
-        self.apiSign.move(552, 80)
         self.apiSign.hide()
 
     def setupPlaceholder(self):
@@ -1387,6 +1403,10 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
     def setText(self, message):
         self.text.setText(message)
         self.text.moveCursor(QTextCursor.End)
+
+    def resizeEvent(self, event):
+        self.apiSign.move(self.width() - 43, 80)
+        super(SigmetCustom, self).resizeEvent(event)
 
 
 class AirmetGeneral(SigmetGeneral):

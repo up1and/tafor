@@ -22,7 +22,6 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
         self.type = 'WS'
         self.category = 'template'
-        self.typeButtonTexts = [btn.text() for btn in self.typeGroup.findChildren(QRadioButton)]
 
         self.initUI()
         self.bindSignal()
@@ -148,17 +147,6 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
         return all(items)
 
-    def hideTypeGroupOverflow(self):
-        """
-        hide extra text when radio button has more than 8 characters
-        """
-        for i, btn in enumerate(self.typeGroup.findChildren(QRadioButton)):
-            text = self.typeButtonTexts[i]
-            if not btn.isChecked() and len(text) > 8:
-                text = text[:8]
-
-            btn.setText(text)
-
     def setType(self, type, category):
         self.type = type
         self.category = category
@@ -169,8 +157,6 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
             'WA': 4,
         }
         self.currentContent.setSpan(durations[self.type])
-        self.hideTypeGroupOverflow()
-
         self.graphic.setButton(self.type, category)
         self.updateGraphicCanvas()
 

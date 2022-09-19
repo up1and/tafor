@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\sigmet_custom.ui'
+# Form implementation generated from reading ui file 'd:\Work\tafor\tafor\components\ui\sigmet_custom.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.4
 #
@@ -79,13 +79,3 @@ class Ui_Editor(object):
         self.endingTimeLabel.setText(_translate("Editor", "Ending"))
         self.sequenceLabel.setText(_translate("Editor", "Sequence"))
         self.textGroup.setTitle(_translate("Editor", "Text"))
-
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    Editor = QtWidgets.QWidget()
-    ui = Ui_Editor()
-    ui.setupUi(Editor)
-    Editor.show()
-    sys.exit(app.exec_())

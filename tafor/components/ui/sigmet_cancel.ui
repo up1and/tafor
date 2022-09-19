@@ -28,12 +28,6 @@
    </property>
    <item>
     <widget class="QGroupBox" name="headingGroup">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
      <property name="title">
       <string>Heading</string>
      </property>
@@ -47,7 +41,7 @@
          <string>Ending</string>
         </property>
         <property name="buddy">
-         <cstring>cancelEndingTime</cstring>
+         <cstring>endingTime</cstring>
         </property>
        </widget>
       </item>
@@ -57,7 +51,7 @@
          <string>Beginning</string>
         </property>
         <property name="buddy">
-         <cstring>cancelBeginningTime</cstring>
+         <cstring>beginningTime</cstring>
         </property>
        </widget>
       </item>
@@ -70,7 +64,7 @@
          <string>Sequence</string>
         </property>
         <property name="buddy">
-         <cstring>cancelSequence</cstring>
+         <cstring>sequence</cstring>
         </property>
        </widget>
       </item>
@@ -82,12 +76,6 @@
    </item>
    <item>
     <widget class="QGroupBox" name="cancelGroup">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
      <property name="title">
       <string>Cancel Information</string>
      </property>

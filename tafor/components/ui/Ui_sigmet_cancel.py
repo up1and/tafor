@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\Work\tafor\tafor\components\ui\sigmet_cancel.ui'
+# Form implementation generated from reading ui file 'd:\Work\tafor\tafor\components\ui\sigmet_cancel.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.4
 #
@@ -20,11 +20,6 @@ class Ui_Editor(object):
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout.setObjectName("verticalLayout")
         self.headingGroup = QtWidgets.QGroupBox(Editor)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.headingGroup.sizePolicy().hasHeightForWidth())
-        self.headingGroup.setSizePolicy(sizePolicy)
         self.headingGroup.setObjectName("headingGroup")
         self.gridLayout_2 = QtWidgets.QGridLayout(self.headingGroup)
         self.gridLayout_2.setObjectName("gridLayout_2")
@@ -48,11 +43,6 @@ class Ui_Editor(object):
         self.gridLayout_2.addWidget(self.sequence, 1, 2, 1, 1)
         self.verticalLayout.addWidget(self.headingGroup)
         self.cancelGroup = QtWidgets.QGroupBox(Editor)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.cancelGroup.sizePolicy().hasHeightForWidth())
-        self.cancelGroup.setSizePolicy(sizePolicy)
         self.cancelGroup.setObjectName("cancelGroup")
         self.gridLayout = QtWidgets.QGridLayout(self.cancelGroup)
         self.gridLayout.setObjectName("gridLayout")
@@ -78,9 +68,9 @@ class Ui_Editor(object):
         self.verticalLayout.addWidget(self.cancelGroup)
         spacerItem = QtWidgets.QSpacerItem(20, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem)
-        self.endingTimeLabel.setBuddy(self.cancelEndingTime)
-        self.beginningTimeLabel.setBuddy(self.cancelBeginningTime)
-        self.sequenceLabel.setBuddy(self.cancelSequence)
+        self.endingTimeLabel.setBuddy(self.endingTime)
+        self.beginningTimeLabel.setBuddy(self.beginningTime)
+        self.sequenceLabel.setBuddy(self.sequence)
         self.cancelSequenceLabel.setBuddy(self.cancelSequence)
         self.cancelEndingTimeLabel.setBuddy(self.cancelEndingTime)
         self.cancelBeginningTimeLabel.setBuddy(self.cancelBeginningTime)
@@ -103,13 +93,3 @@ class Ui_Editor(object):
         self.cancelSequenceLabel.setText(_translate("Editor", "Sequence"))
         self.cancelEndingTimeLabel.setText(_translate("Editor", "Ending"))
         self.cancelBeginningTimeLabel.setText(_translate("Editor", "Beginning"))
-
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    Editor = QtWidgets.QWidget()
-    ui = Ui_Editor()
-    ui.setupUi(Editor)
-    Editor.show()
-    sys.exit(app.exec_())
