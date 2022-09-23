@@ -219,18 +219,15 @@ class Sketch(QObject):
                         self.coordinates = self.coordinates[:7]
 
                 self.done = False
-                self.finished.emit()
                 self.redraw()
 
-            else:
-                if self.coordinates:
-                    self.coordinates.pop()
-                    self.redraw()
+            elif self.coordinates:
+                self.coordinates.pop()
+                self.redraw()
 
-        if self.canvas.mode in ['rectangular', 'entire']:
+        if self.canvas.mode in ['rectangular']:
             self.coordinates = []
             self.done = False
-            self.finished.emit()
             self.redraw()
 
         if self.stickers:
@@ -775,10 +772,10 @@ class Canvas(BaseCanvas):
     def rectangularMousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.pos = event.pos()
-            self.rubberBand.setGeometry(QRect(self.pos, QSize()))
-            self.rubberBand.show()
-            self.sketch.clear()
-            self.sketch.append(event.pos())
+            if not self.sketch:
+                self.rubberBand.setGeometry(QRect(self.pos, QSize()))
+                self.rubberBand.show()
+                self.sketch.append(event.pos())
 
         if event.button() == Qt.RightButton:
             self.sketch.pop()
@@ -1149,7 +1146,7 @@ class GraphicsWindow(QWidget):
     def updateOverlapButton(self):
         initial = self.canvas.sketchManager.first()
         enbaled = initial.done
-        if self.type == 'WC' and self.canvas.mode == 'polygon':
+        if self.type == 'WC' and self.canvas.mode == 'polygon' or self.canvas.mode == 'entire':
             enbaled = False
         self.overlapButton.setEnabled(enbaled)
         
