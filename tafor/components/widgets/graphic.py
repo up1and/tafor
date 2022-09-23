@@ -1139,14 +1139,11 @@ class GraphicsWindow(QWidget):
         self.icons = cycle(icons)
         self.nextMode()
 
-        if tt in ['WA'] and category == 'template' or category == 'cancel':
-            self.overlapButton.hide()
-        else:
-            self.overlapButton.show()
-
         if category == 'cancel':
+            self.overlapButton.hide()
             self.modeButton.hide()
         else:
+            self.overlapButton.show()
             self.modeButton.show()
 
     def updateOverlapButton(self):

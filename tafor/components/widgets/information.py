@@ -1204,6 +1204,31 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         self.currentLongitude.clear()
 
 
+class AirmetGeneral(SigmetGeneral):
+
+    def setPhenomenaDescription(self):
+        descriptions = ['ISOL', 'OCNL', 'FRQ', 'MOD']
+        self.description.addItems(descriptions)
+
+    def setPhenomena(self, text='ISOL'):
+        self.phenomena.clear()
+
+        if text == 'MOD':
+            phenomenas = ['TURB', 'ICE', 'MTW']
+        elif text == 'FRQ':
+            phenomenas = ['CB', 'TCU']
+        else:
+            phenomenas = ['CB', 'TCU', 'TS', 'TSGR']
+
+        self.phenomena.addItems(phenomenas)
+
+    def setupValidator(self):
+        super(AirmetGeneral, self).setupValidator()
+        flightLevel = QRegExpValidator(QRegExp(self.rules.airmansFlightLevel))
+        self.base.setValidator(flightLevel)
+        self.top.setValidator(flightLevel)
+
+
 class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
     def bindSignal(self):
@@ -1407,33 +1432,3 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
     def resizeEvent(self, event):
         self.apiSign.move(self.width() - 43, 80)
         super(SigmetCustom, self).resizeEvent(event)
-
-
-class AirmetGeneral(SigmetGeneral):
-
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.forecastTime.hide()
-        self.forecastTimeLabel.hide()
-
-    def setPhenomenaDescription(self):
-        descriptions = ['ISOL', 'OCNL', 'FRQ', 'MOD']
-        self.description.addItems(descriptions)
-
-    def setPhenomena(self, text='ISOL'):
-        self.phenomena.clear()
-
-        if text == 'MOD':
-            phenomenas = ['TURB', 'ICE', 'MTW']
-        elif text == 'FRQ':
-            phenomenas = ['CB', 'TCU']
-        else:
-            phenomenas = ['CB', 'TCU', 'TS', 'TSGR']
-
-        self.phenomena.addItems(phenomenas)
-
-    def setupValidator(self):
-        super(AirmetGeneral, self).setupValidator()
-        flightLevel = QRegExpValidator(QRegExp(self.rules.airmansFlightLevel))
-        self.base.setValidator(flightLevel)
-        self.top.setValidator(flightLevel)

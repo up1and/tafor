@@ -161,7 +161,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.updateGraphicCanvas()
 
     def setOverlapMode(self, mode):
-        if self.currentContent in [self.generalContent, self.typhoonContent, self.ashContent]:
+        if self.currentContent not in [self.customContent, self.cancelContent]:
             self.currentContent.setOverlapMode(mode)
 
     def setLocationMode(self, mode):
