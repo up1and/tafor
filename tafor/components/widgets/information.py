@@ -206,9 +206,10 @@ class FlightLevelMixin(object):
 
     def setupValidator(self):
         super(FlightLevelMixin, self).setupValidator()
-        flightLevel = QRegExpValidator(QRegExp(self.rules.flightLevel))
-        self.base.setValidator(flightLevel)
-        self.top.setValidator(flightLevel)
+        self.base.setValidator(QIntValidator(1, 999, self.base))
+        self.top.setValidator(QIntValidator(100, 999, self.top))
+        self.base.setMaxLength(3)
+        self.top.setMaxLength(3)
 
     def setFlightLevel(self, text):
         if text in ['TOP', 'TOP ABV', 'SFC', 'BLW']:
@@ -245,6 +246,12 @@ class FlightLevelMixin(object):
         base = self.base.text()
         top = self.top.text()
 
+        if base:
+            base = str(int(base)).zfill(3)
+
+        if top:
+            top = str(int(top)).zfill(3)
+
         if not format:
             if base and top:
                 text = 'FL{}/{}'.format(base, top) if all([top, base]) else ''
@@ -274,10 +281,12 @@ class MovementMixin(object):
     def bindSignal(self):
         super().bindSignal()
         self.direction.currentTextChanged.connect(self.setSpeed)
+        self.speed.textEdited.connect(lambda: self.coloredText(self.speed))
 
     def setupValidator(self):
         super(MovementMixin, self).setupValidator()
         self.speed.setValidator(QIntValidator(1, 99, self.speed))
+        self.speed.setMaxLength(2)
 
     def setSpeed(self, text):
         if text == 'STNR':
@@ -661,7 +670,7 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
             mustRequired.append(self.observationTime.hasAcceptableInput())
 
         if self.base.isEnabled() and self.top.isEnabled():
-            mustRequired.append(self.base.hasAcceptableInput() or self.top.hasAcceptableInput())
+            mustRequired.append(self.base.hasAcceptableInput() and self.top.hasAcceptableInput())
         else:
             if self.base.isEnabled():
                 mustRequired.append(self.base.hasAcceptableInput())
@@ -769,6 +778,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
 
         self.currentLatitude.textChanged.connect(lambda: self.coloredText(self.currentLatitude))
         self.currentLongitude.textChanged.connect(lambda: self.coloredText(self.currentLongitude))
+        self.radius.textEdited.connect(lambda: self.coloredText(self.radius))
         self.top.textEdited.connect(lambda: self.coloredText(self.top))
         self.forecastLatitude.textChanged.connect(lambda: self.coloredText(self.forecastLatitude))
         self.forecastLongitude.textChanged.connect(lambda: self.coloredText(self.forecastLongitude))
@@ -783,13 +793,14 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         self.currentLongitude.setValidator(longitude)
         self.forecastLongitude.setValidator(longitude)
 
-        flightLevel = QRegExpValidator(QRegExp(self.rules.flightLevel))
-        self.top.setValidator(flightLevel)
+        self.top.setValidator(QIntValidator(100, 999, self.top))
+        self.radius.setMaxLength(3)
 
         time = QRegExpValidator(QRegExp(self.rules.time))
         self.forecastTime.setValidator(time)
 
         self.radius.setValidator(QIntValidator(1, 999, self.radius))
+        self.radius.setMaxLength(3)
 
     def setPhenomena(self, text='TC'):
         self.phenomena.addItems(['TC'])
@@ -1090,6 +1101,7 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         self.currentLongitude.setValidator(longitude)
 
         self.speed.setValidator(QIntValidator(1, 200, self.speed))
+        self.speed.setMaxLength(3)
 
     def setPhenomena(self, text='ERUPTION'):
         self.phenomena.addItems(['ERUPTION', 'CLD'])
@@ -1224,9 +1236,10 @@ class AirmetGeneral(SigmetGeneral):
 
     def setupValidator(self):
         super(AirmetGeneral, self).setupValidator()
-        flightLevel = QRegExpValidator(QRegExp(self.rules.airmansFlightLevel))
-        self.base.setValidator(flightLevel)
-        self.top.setValidator(flightLevel)
+        self.base.setValidator(QIntValidator(1, 100, self.base))
+        self.top.setValidator(QIntValidator(1, 150, self.top))
+        self.base.setMaxLength(3)
+        self.top.setMaxLength(3)
 
 
 class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):

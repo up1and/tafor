@@ -31,7 +31,7 @@ class Pattern(object):
     date = r'(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])'
     wind = r'00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)'
     gust = r'(0[1-9]|[1-4][0-9]|P49)'
-    vis = r'(9999|[5-9]000|[01234][0-9]00|0[0-7]50)'
+    vis = r'(9999|[5-9]000|[0-4][0-9]00|0[0-7]50)'
     cloud = r'(FEW|SCT|BKN|OVC)(00[1-9]|0[1-4][0-9]|050)'
     vv = r'VV(00[1-9]|010)'
     temperature = r'M?([0-5][0-9])'
@@ -47,8 +47,6 @@ class Pattern(object):
 
     latitude = r'(N|S)(90(0{2})?|[0-8]\d([0-5]\d)?)'
     longitude = r'(E|W)(180(0{2})?|((1[0-7]\d)|(0\d{2}))([0-5]\d)?)'
-    flightLevel = r'([1-9]\d{2})'
-    airmansFlightLevel = r'((?:00[1-9])|(?:0[1-9][0-9])|(?:1[0-4]\d)|150)'
     sequence = r'[A-Z]?([1-9][0-9]?|0[1-9])'
 
 
@@ -62,7 +60,7 @@ class TafGrammar(object):
     temperature = re.compile(r'\b(T(?:X|N)M?(\d{2})/(\d{2}|\d{4})Z)\b')
 
     wind = re.compile(r'\b(VRB|0[0-9]0|[12][0-9]0|3[0-6]0)(0[0-9]|[1-4][0-9]|P49)(?:G(0[1-9]|[1-4][0-9]|P49))?(?:MPS|KT)\b')
-    vis = re.compile(r'\b(?<!/)(9999|[5-9]000|[01234][0-9]00|0[0-7]50)(?!/)\b')
+    vis = re.compile(r'\b(?<!/)(9999|[5-9]000|[0-4][0-9]00|0[0-7]50)(?!/)\b')
     weather = re.compile(r'([-+]?\b({})\b)|(\b({})\b)'.format('|'.join(weatherWithIntensity), '|'.join(weather)))
     cloud = re.compile(r'\b(?:SKC|NSC|(FEW|SCT|BKN|OVC)(\d{3})(CB|TCU)?)\b|\b(?:(VV)(///|\d{3}\b))')
     cavok = re.compile(r'\bCAVOK\b')
@@ -87,7 +85,7 @@ class MetarGrammar(TafGrammar):
 class SigmetGrammar(object):
     latitude = re.compile(r'(N|S)(90(0{2})?|[0-8]\d([0-5]\d)?)')
     longitude = re.compile(r'(E|W)(180(0{2})?|((1[0-7]\d)|(0\d{2}))([0-5]\d)?)')
-    flightLevel = re.compile(r'(FL[1-9]\d{2}/[1-9]\d{2})|(FL[1-9]\d{2})|(\d{4,5}FT)|(\d{4,5}M)|(SFC/FL[1-9]\d{2})')
+    flightLevel = re.compile(r'(FL(?:[1-9]\d{2}|0[1-9]\d|00[1-9])/[1-9]\d{2})|(FL[1-9]\d{2})|(\d{4,5}FT)|(\d{4,5}M)|(SFC/FL[1-9]\d{2})')
     speed = re.compile(r'(\d{1,3})(KMH|KT)')
     obsTime = re.compile(r'(\d{4}Z)')
     typhoonRange = re.compile(r'(\d{1,3}KM)')
@@ -95,7 +93,6 @@ class SigmetGrammar(object):
     valid = re.compile(r'(\d{6})/(\d{6})')
     width = re.compile(r'(\d{1,3})NM')
 
-    airmansFlightLevel = re.compile(r'(FL\d{3}/\d{3})|(FL\d{3})|(\d{4,5}FT)|(\d{4,5}M)|(SFC/FL\d{3})')
     wind = re.compile(r'(0[1-9]0|[12][0-9]0|3[0-6]0)/(1[5-9]|[2-4][0-9]|P49)(MPS|KT)')
     vis = re.compile(r'(9999|5000|[01234][0-9]00|0[0-7]50)(M|FT)')
     cloud = re.compile(r'((?:\d{3,4}|SFC)/(?:ABV)?\d{3,5}(?:M|FT))')
@@ -1243,7 +1240,7 @@ class SigmetLexer(object):
 
     defaultRules = ['latitude', 'longitude', 'flightLevel', 'speed', 'obsTime', 'typhoonRange', 'sequence', 'valid', 'width']
 
-    airmetRules = ['airmansFlightLevel', 'wind', 'vis', 'cloud']
+    airmetRules = ['wind', 'vis', 'cloud']
 
     def __init__(self, part, firCode=None, airportCode=None, grammar=None, keywords=None, rules=None, isAirmet=False,**kwargs):
         super(SigmetLexer, self).__init__()
