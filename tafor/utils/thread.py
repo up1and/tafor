@@ -5,7 +5,7 @@ import requests
 
 from PyQt5.QtCore import QThread, pyqtSignal
 
-from tafor import conf, logger, __version__
+from tafor import conf, logger
 from tafor.rpc import server
 from tafor.states import context
 from tafor.utils import serialComm, ftpComm
@@ -13,7 +13,7 @@ from tafor.utils.baudot import encode, ITA2_STANDARD
 
 
 _headers = {
-    'User-Agent': 'tafor/{}'.format(__version__)
+    'User-Agent': 'Tafor/{version}+{revision} ({system} {release}; {bitness})'.format(**context.environ.environment())
 }
 
 
