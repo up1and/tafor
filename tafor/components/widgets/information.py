@@ -383,11 +383,15 @@ class ForecastMixin(object):
             self.forecastTimeLabel.setEnabled(True)
             self.setForecastTime()
             self.forecastMode = True
+            if hasattr(self, 'finalPositionGroup'):
+                self.finalPositionGroup.setEnabled(True)
         else:
             self.forecastTime.setEnabled(False)
             self.forecastTimeLabel.setEnabled(False)
             self.forecastTime.clear()
             self.forecastMode = False
+            if hasattr(self, 'finalPositionGroup'):
+                self.finalPositionGroup.setEnabled(False)
 
     def forecastText(self):
         text = 'FCST AT {}Z'.format(self.forecastTime.text())
