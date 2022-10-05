@@ -490,9 +490,17 @@ class SigmetSender(BaseSender):
             self.printButton.hide()
 
     def updateReminder(self):
-        if not self.message.isCnl():
+        sig = self.message.parser()
+        if self.message.isCnl():
+            cancelSequence = sig.cancelSequence()
+            states = context.sigmet.state().copy()
+            for uuid, value in states.items():
+                parser = value['text']
+                sequence = parser.sequence(), '/'.join(parser.valids())
+                if cancelSequence == sequence:
+                    context.sigmet.remove(uuid=uuid)
+        else:
             time = self.message.expired()
-            sig = self.message.parser()
             context.sigmet.add(uuid=self.message.uuid, text=sig, time=time)
 
     def resizeEvent(self, event):
