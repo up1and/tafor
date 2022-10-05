@@ -948,7 +948,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
         def isPeriodOverlay(period, periods):
             for p in periods:
-                if isOverlap(period, p):
+                if period and isOverlap(period, p):
                     return True
 
         groups = self.parent.tempos if self.identifier.startswith('TEMPO') else self.parent.becmgs
