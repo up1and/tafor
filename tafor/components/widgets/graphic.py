@@ -984,6 +984,7 @@ class GraphicsWindow(QWidget):
         super(GraphicsWindow, self).__init__()
         self.parent = parent
         self.type = ''
+        self.quietly = False
         self.canvas = Canvas()
         self.verticalLayout = QVBoxLayout(self)
         self.verticalLayout.setContentsMargins(0, 8, 0, 0)
@@ -1078,7 +1079,7 @@ class GraphicsWindow(QWidget):
     def handleSketchChange(self):
         self.sketchChanged.emit(self.formattedCoordinates())
         
-        if self.canvas.mode == 'circle':
+        if not self.quietly and self.canvas.mode == 'circle':
             self.circleChanged.emit(self.circleCoordinates())
 
     def formattedCoordinates(self):
@@ -1273,6 +1274,8 @@ class GraphicsWindow(QWidget):
         self.locationWidget.setText(html)
 
     def setTyphoonGraphic(self, collections):
+        # quietly update sketches while not sending back circle changed signal.
+        self.quietly = True
         names = []
         for feature in collections['features']:
             name = feature['properties']['location']
@@ -1281,12 +1284,11 @@ class GraphicsWindow(QWidget):
             sketch.filled(mode='circle',
                 center=feature['geometry']['coordinates'], radius=feature['properties']['radius'])
 
-        # clear sketch manually
         for sketch in self.canvas.sketchManager:
             if sketch.name not in names:
-                sketch.empty()
-                self.canvas.sketchManager.update()
-                self.updateLocationLabel(self.formattedCoordinates())
+                sketch.clear()
+
+        self.quietly = False
 
     def setAdvisoryGraphic(self, collections):
         self.overlapButton.setChecked(False)
