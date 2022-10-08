@@ -18,7 +18,7 @@ from tafor.components.ui import Ui_setting, main_rc
 baseOptions = [
     # 通用设置
     ('General/WindowsStyle', 'windowsStyle', 'combox'),
-    ('General/CommunicationLine', 'communicationLine', 'combox'),
+    ('General/CommunicationProtocol', 'communicationProtocol', 'combox'),
     ('General/InterfaceScaling', 'interfaceScaling', 'comboxindex'),
     ('General/TAFSpec', 'tafSpecification', 'comboxindex'),
     ('General/CloseToMinimize', 'closeToMinimize', 'bool'),
@@ -29,9 +29,9 @@ baseOptions = [
     ('Validation/CloudHeightHas450', 'cloudHeightHas450', 'bool'),
     ('Validation/WeakPrecipitationVerification', 'weakPrecipitationVerification', 'bool'),
     # 报文字符
-    ('Message/ICAO', 'icao', 'text'),
-    ('Message/Area', 'area', 'text'),
-    ('Message/TrendSign', 'trendSign', 'text'),
+    ('Message/Airport', 'airport', 'text'),
+    ('Message/BulletinNumber', 'bulletinNumber', 'text'),
+    ('Message/TrendIdentifier', 'trendIdentifier', 'text'),
     ('Message/Weather', 'weatherList', 'list'),
     ('Message/WeatherWithIntensity', 'weatherWithIntensityList', 'list'),
     # 串口设置
@@ -52,28 +52,28 @@ baseOptions = [
     ('Communication/FTPHost', 'ftpHost', 'text'),
     # 接口
     ('Interface/RPC', 'serviceGroup', 'bool'),
-    ('Interface/WebApiURL', 'webApiURL', 'text'),
+    ('Interface/MessageURL', 'messageURL', 'text'),
     # TAF 报文迟发告警
-    ('Monitor/WarnTAFTime', 'warnTafTime', 'text'),
-    ('Monitor/WarnTAFVolume', 'warnTafVolume', 'slider'),
+    ('Monitor/DelayMinutes', 'delayMinutes', 'text'),
+    ('Monitor/AlarmVolume', 'alarmVolume', 'slider'),
     # 报文发送提醒
     ('Monitor/RemindTAF', 'remindTaf', 'bool'),
-    ('Monitor/RemindTAFVolume', 'remindTafVolume', 'slider'),
+    ('Monitor/TAFVolume', 'tafVolume', 'slider'),
     ('Monitor/RemindTrend', 'remindTrend', 'bool'),
-    ('Monitor/RemindTrendVolume', 'remindTrendVolume', 'slider'),
+    ('Monitor/TrendVolume', 'trendVolume', 'slider'),
 ]
 
 sigmetOptions = [
     # 报文字符
-    ('Message/FIR', 'fir', 'text'),
+    ('Message/FIRName', 'firName', 'text'),
     # AFTN 配置
     ('Communication/AIRMETAddress', 'airmetAddress', 'plaintext'),
     ('Communication/SIGMETAddress', 'sigmetAddress', 'plaintext'),
     # 接口
-    ('Interface/LayerApiURL', 'layerApiURL', 'text'),
+    ('Interface/LayerURL', 'layerURL', 'text'),
     # 报文发送提醒
     ('Monitor/RemindSIGMET', 'remindSigmet', 'bool'),
-    ('Monitor/RemindSIGMETVolume', 'remindSigmetVolume', 'slider'),
+    ('Monitor/SIGMETVolume', 'sigmetVolume', 'slider'),
     # 图层
     ('Layer/Projection', 'projection', 'text'),
     ('Layer/FIRBoundary', 'firBoundary', 'plaintext'),
@@ -95,9 +95,9 @@ def isConfigured(reportType='TAF'):
             'Communication/SerialBytesize', 'Communication/SerialStopbits']
     aftn = ['Communication/Channel', 'Communication/ChannelSequenceNumber', 'Communication/ChannelSequenceLength',
             'Communication/MaxSendAddress', 'Communication/OriginatorAddress']
-    taf = ['Message/ICAO', 'Message/Area', 'Communication/TAFAddress']
-    trend = ['Message/TrendSign', 'Communication/TrendAddress']
-    sigmet = ['Message/ICAO', 'Message/FIR', 'Message/Area', 'Communication/SIGMETAddress', 'Communication/AIRMETAddress', 'Layer/FIRBoundary']
+    taf = ['Message/Airport', 'Message/BulletinNumber', 'Communication/TAFAddress']
+    trend = ['Message/TrendIdentifier', 'Communication/TrendAddress']
+    sigmet = ['Message/Airport', 'Message/FIRName', 'Message/BulletinNumber', 'Communication/SIGMETAddress', 'Communication/AIRMETAddress', 'Layer/FIRBoundary']
 
     options = serial + aftn
     if reportType == 'TAF':
@@ -170,10 +170,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
         self.options = setupOptions(options)
 
-        self.icao.setPlaceholderText('YUSO')
-        self.fir.setPlaceholderText('YUDD SHANLON FIR')
-        self.originatorAddress.setPlaceholderText('YUSOYMYX')
-
         self.setStyleSheet(tabStyle)
 
         self.bindSignal()
@@ -207,7 +203,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.baudrate.setValidator(QIntValidator(self.baudrate))
         self.channelSequenceNumber.setValidator(QIntValidator(self.channelSequenceNumber))
         self.maxSendAddress.setValidator(QIntValidator(self.maxSendAddress))
-        self.warnTafTime.setValidator(QIntValidator(self.warnTafTime))
+        self.delayMinutes.setValidator(QIntValidator(self.delayMinutes))
 
     def checkChannelNumber(self):
         """检查是否是世界时日界，如果是重置流水号"""
@@ -284,10 +280,10 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         ]
 
         closeSenderOptions = [
-            'General/CommunicationLine', 'Communication/Channel', 'Communication/ChannelSequenceNumber', 
+            'General/CommunicationProtocol', 'Communication/Channel', 'Communication/ChannelSequenceNumber', 
             'Communication/ChannelSequenceLength', 'Communication/MaxSendAddress', 'Communication/OriginatorAddress',
-            'Message/ICAO', 'Message/Area', 'Communication/TAFAddress', 'Message/TrendSign', 'Communication/TrendAddress',
-            'Message/FIR', 'Message/Area', 'Communication/SIGMETAddress', 'Communication/AIRMETAddress',
+            'Message/Airport', 'Message/BulletinNumber', 'Communication/TAFAddress', 'Message/TrendIdentifier', 'Communication/TrendAddress',
+            'Message/FIRName', 'Communication/SIGMETAddress', 'Communication/AIRMETAddress',
         ]
 
         for key in closeSenderOptions:

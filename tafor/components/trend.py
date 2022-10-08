@@ -55,7 +55,7 @@ class TrendEditor(BaseEditor):
     def assembleMessage(self):
         message = self.trend.message()
         self.text = message + '='
-        self.heading = conf.value('Message/TrendSign')
+        self.heading = conf.value('Message/TrendIdentifier')
 
     def previewMessage(self):
         message = Trend(heading=self.heading, text=self.text)

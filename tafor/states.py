@@ -459,10 +459,10 @@ class EnvironState(object):
 
     def register(self):
         infos = {}
-        if conf.value('Message/ICAO'):
-            infos['airport'] = conf.value('Message/ICAO')
-        if conf.value('Message/FIR'):
-            infos['fir'] = conf.value('Message/FIR')[:4]
+        if conf.value('Message/Airport'):
+            infos['airport'] = conf.value('Message/Airport')
+        if conf.value('Message/FIRName'):
+            infos['fir'] = conf.value('Message/FIRName')[:4]
 
         return infos
 

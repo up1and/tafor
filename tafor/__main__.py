@@ -17,11 +17,10 @@ def version(ctx, param, value):
     ctx.exit()
 
 @click.group(invoke_without_command=True)
-@click.option('--whysoserious', is_flag=True)
 @click.option('--version', is_flag=True, callback=version,
                 expose_value=False, is_eager=True)
 @click.pass_context
-def cli(ctx, whysoserious):
+def cli(ctx):
     """Tafor is a terminal aerodrome forecast encoding software.
 
     Here you can enable some advanced features via the command line.
@@ -34,8 +33,6 @@ def cli(ctx, whysoserious):
     (c) 2022 up1and.
     """
     if ctx.invoked_subcommand is None:
-        # It's a easter egg, but I haven't decided what to leave.
-        conf.setValue('General/Serious', whysoserious)
         main()
 
 @cli.command(help='Enable or disable SIGMET function.')

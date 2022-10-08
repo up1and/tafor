@@ -195,17 +195,17 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.checkUpgradeThread.done.connect(self.checkUpgrade)
 
     def setupSound(self):
-        self.ringSound = Sound('ring.wav', 'Monitor/RemindTAFVolume')
         self.notificationSound = Sound('notification.wav')
         self.incomingSound = Sound('notification-incoming.wav')
-        self.alarmSound = Sound('alarm.wav', 'Monitor/WarnTAFVolume')
-        self.trendSound = Sound('trend.wav', 'Monitor/RemindTrendVolume')
-        self.sigmetSound = Sound('sigmet.wav', 'Monitor/RemindSIGMETVolume')
+        self.alarmSound = Sound('alarm.wav', 'Monitor/AlarmVolume')
+        self.tafSound = Sound('taf.wav', 'Monitor/TAFVolume')
+        self.trendSound = Sound('trend.wav', 'Monitor/TrendVolume')
+        self.sigmetSound = Sound('sigmet.wav', 'Monitor/SIGMETVolume')
 
-        self.settingDialog.warnTafVolume.valueChanged.connect(lambda vol: self.alarmSound.play(volume=vol, loop=False))
-        self.settingDialog.remindTafVolume.valueChanged.connect(lambda vol: self.ringSound.play(volume=vol, loop=False))
-        self.settingDialog.remindTrendVolume.valueChanged.connect(lambda vol: self.trendSound.play(volume=vol, loop=False))
-        self.settingDialog.remindSigmetVolume.valueChanged.connect(lambda vol: self.sigmetSound.play(volume=vol, loop=False))
+        self.settingDialog.alarmVolume.valueChanged.connect(lambda vol: self.alarmSound.play(volume=vol, loop=False))
+        self.settingDialog.tafVolume.valueChanged.connect(lambda vol: self.tafSound.play(volume=vol, loop=False))
+        self.settingDialog.trendVolume.valueChanged.connect(lambda vol: self.trendSound.play(volume=vol, loop=False))
+        self.settingDialog.sigmetVolume.valueChanged.connect(lambda vol: self.sigmetSound.play(volume=vol, loop=False))
 
     def loadCustomMessage(self):
         if not self.isVisible():
@@ -316,7 +316,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.workThread.start()
 
     def painter(self):
-        if conf.value('Interface/LayerApiURL') and not self.layerThread.isRunning():
+        if conf.value('Interface/LayerURL') and not self.layerThread.isRunning():
             self.layerThread.start()
 
     def notifier(self):
@@ -325,7 +325,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             context.flash.warning(connectionError,
                 QCoreApplication.translate('MainWindow', 'Unable to connect remote message data source, please check the settings or network status.'))
 
-        if conf.value('Interface/LayerApiURL') and not context.layer.currentLayers() and not self.layerThread.isRunning():
+        if conf.value('Interface/LayerURL') and not context.layer.currentLayers() and not self.layerThread.isRunning():
             context.flash.warning(connectionError,
                 QCoreApplication.translate('MainWindow', 'Unable to connect FIR information data source, please check the settings or network status.'))
 
@@ -349,14 +349,14 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         if context.taf.needReminded():
             current = type + period[2:4] + period[7:]
             text = QCoreApplication.translate('MainWindow', 'Time to issue {}').format(current)
-            self.ringSound.play()
+            self.tafSound.play()
             self.remindTafBox.setText(text)
             ret = self.remindTafBox.exec_()
             if ret == QMessageBox.RejectRole:
                 QTimer.singleShot(1000 * 60 * 5, self.remindTaf)
 
             if not self.remindTafBox.isVisible():
-                self.ringSound.stop()
+                self.tafSound.stop()
 
     def remindSigmet(self):
         remindSwitch = boolean(conf.value('Monitor/RemindSIGMET'))

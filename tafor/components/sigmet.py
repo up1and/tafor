@@ -118,8 +118,8 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.customContent.updateText()
 
     def heading(self):
-        area = conf.value('Message/Area') or ''
-        icao = conf.value('Message/ICAO')
+        area = conf.value('Message/BulletinNumber') or ''
+        icao = conf.value('Message/Airport')
         time = datetime.datetime.utcnow().strftime('%d%H%M')
         messages = [self.type + area, icao, time]
         return ' '.join(filter(None, messages))

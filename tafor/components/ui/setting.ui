@@ -52,9 +52,9 @@
            </widget>
           </item>
           <item row="2" column="0">
-           <widget class="QLabel" name="communicationLineLabel">
+           <widget class="QLabel" name="communicationProtocolLabel">
             <property name="text">
-             <string>Priority Communication Line</string>
+             <string>Communication Protocol</string>
             </property>
            </widget>
           </item>
@@ -120,7 +120,7 @@
            </widget>
           </item>
           <item row="2" column="1">
-           <widget class="QComboBox" name="communicationLine">
+           <widget class="QComboBox" name="communicationProtocol">
             <item>
              <property name="text">
               <string notr="true">AFTN</string>
@@ -236,56 +236,62 @@
          </property>
          <layout class="QGridLayout" name="gridLayout_10">
           <item row="0" column="1">
-           <widget class="QLineEdit" name="icao">
+           <widget class="QLineEdit" name="airport">
             <property name="placeholderText">
-             <string notr="true">ZJHK</string>
+             <string notr="true">YUSO</string>
             </property>
            </widget>
           </item>
           <item row="1" column="0">
-           <widget class="QLabel" name="areaLabel">
+           <widget class="QLabel" name="bulletinNumberLabel">
             <property name="text">
-             <string>Intelligence Area</string>
+             <string>Bulletin Number</string>
             </property>
            </widget>
           </item>
           <item row="0" column="0">
-           <widget class="QLabel" name="icaoLabel">
+           <widget class="QLabel" name="airportLabel">
             <property name="text">
              <string>Airport Code</string>
             </property>
            </widget>
           </item>
           <item row="1" column="1">
-           <widget class="QLineEdit" name="area">
+           <widget class="QLineEdit" name="bulletinNumber">
             <property name="placeholderText">
              <string notr="true">CI35</string>
             </property>
            </widget>
           </item>
           <item row="2" column="1">
-           <widget class="QLineEdit" name="fir">
+           <widget class="QLineEdit" name="firName">
             <property name="placeholderText">
-             <string notr="true">ZJSA SANYA FIR</string>
+             <string notr="true">YUDD SHANLON FIR</string>
             </property>
            </widget>
           </item>
           <item row="3" column="1">
-           <widget class="QLineEdit" name="trendSign">
+           <widget class="QLineEdit" name="trendIdentifier">
             <property name="placeholderText">
              <string notr="true">TRENDING</string>
             </property>
            </widget>
           </item>
           <item row="2" column="0">
-           <widget class="QLabel" name="firLabel">
+           <widget class="QLabel" name="firNameLabel">
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="text">
-             <string>FIR Area</string>
+             <string>FIR Name</string>
             </property>
            </widget>
           </item>
           <item row="3" column="0">
-           <widget class="QLabel" name="trendSignLabel">
+           <widget class="QLabel" name="trendIdentifierLabel">
             <property name="text">
              <string>Trend Identifier</string>
             </property>
@@ -595,7 +601,7 @@
             <item row="4" column="1" colspan="2">
              <widget class="QLineEdit" name="originatorAddress">
               <property name="placeholderText">
-               <string notr="true">ZJHKYMYX</string>
+               <string notr="true">YUSOYMYX</string>
               </property>
              </widget>
             </item>
@@ -655,7 +661,7 @@
           <item>
            <widget class="QLineEdit" name="ftpHost">
             <property name="placeholderText">
-             <string notr="true">ftp://user:passwd@hostname:port/path</string>
+             <string notr="true">ftp://user:password@hostname:port/path</string>
             </property>
            </widget>
           </item>
@@ -812,31 +818,28 @@
          </property>
          <layout class="QGridLayout" name="gridLayout_6">
           <item row="1" column="1">
-           <widget class="QLineEdit" name="layerApiURL">
-            <property name="text">
-             <string/>
-            </property>
+           <widget class="QLineEdit" name="layerURL">
             <property name="placeholderText">
-             <string>URL</string>
+             <string notr="true">http://hostname:port/layers</string>
             </property>
            </widget>
           </item>
           <item row="0" column="1">
-           <widget class="QLineEdit" name="webApiURL">
+           <widget class="QLineEdit" name="messageURL">
             <property name="placeholderText">
-             <string>URL</string>
+             <string notr="true">http://hostname:port/messages/:airport</string>
             </property>
            </widget>
           </item>
           <item row="1" column="0">
-           <widget class="QLabel" name="layerApiLabel">
+           <widget class="QLabel" name="layerURLLabel">
             <property name="text">
              <string>Layer URL</string>
             </property>
            </widget>
           </item>
           <item row="0" column="0">
-           <widget class="QLabel" name="webApiLabel">
+           <widget class="QLabel" name="messageURLLabel">
             <property name="minimumSize">
              <size>
               <width>100</width>
@@ -944,13 +947,13 @@
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_10">
        <item>
-        <widget class="QGroupBox" name="warnGroup">
+        <widget class="QGroupBox" name="alarmGroup">
          <property name="title">
           <string>Late Monitoring</string>
          </property>
          <layout class="QGridLayout" name="gridLayout_8">
           <item row="0" column="0">
-           <widget class="QLabel" name="warnTafTimeLabel">
+           <widget class="QLabel" name="delayMinutesLabel">
             <property name="minimumSize">
              <size>
               <width>100</width>
@@ -958,12 +961,12 @@
              </size>
             </property>
             <property name="text">
-             <string>Alarm Time</string>
+             <string>Delay Minutes</string>
             </property>
            </widget>
           </item>
           <item row="0" column="1">
-           <widget class="QLineEdit" name="warnTafTime">
+           <widget class="QLineEdit" name="delayMinutes">
             <property name="maximumSize">
              <size>
               <width>120</width>
@@ -979,7 +982,7 @@
            </widget>
           </item>
           <item row="1" column="0">
-           <widget class="QLabel" name="warnTafVolumeLabel">
+           <widget class="QLabel" name="alarmVolumeLabel">
             <property name="minimumSize">
              <size>
               <width>100</width>
@@ -987,12 +990,12 @@
              </size>
             </property>
             <property name="text">
-             <string>Alarm Sound</string>
+             <string>Alarm Volume</string>
             </property>
            </widget>
           </item>
           <item row="1" column="1">
-           <widget class="QSlider" name="warnTafVolume">
+           <widget class="QSlider" name="alarmVolume">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
@@ -1002,7 +1005,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QGroupBox" name="remindGroup">
+        <widget class="QGroupBox" name="reminderGroup">
          <property name="title">
           <string>Sound Reminder and Volume</string>
          </property>
@@ -1021,7 +1024,7 @@
            </widget>
           </item>
           <item row="0" column="1">
-           <widget class="QSlider" name="remindTafVolume">
+           <widget class="QSlider" name="tafVolume">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
@@ -1041,7 +1044,7 @@
            </widget>
           </item>
           <item row="1" column="1">
-           <widget class="QSlider" name="remindTrendVolume">
+           <widget class="QSlider" name="trendVolume">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
@@ -1061,7 +1064,7 @@
            </widget>
           </item>
           <item row="2" column="1">
-           <widget class="QSlider" name="remindSigmetVolume">
+           <widget class="QSlider" name="sigmetVolume">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
@@ -1186,10 +1189,10 @@
   </layout>
  </widget>
  <tabstops>
-  <tabstop>icao</tabstop>
-  <tabstop>area</tabstop>
-  <tabstop>fir</tabstop>
-  <tabstop>trendSign</tabstop>
+  <tabstop>airport</tabstop>
+  <tabstop>bulletinNumber</tabstop>
+  <tabstop>firName</tabstop>
+  <tabstop>trendIdentifier</tabstop>
   <tabstop>weather</tabstop>
   <tabstop>addWeatherButton</tabstop>
   <tabstop>delWeatherButton</tabstop>

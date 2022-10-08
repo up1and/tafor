@@ -74,15 +74,15 @@ def repoRelease(url):
 class WorkThread(QThread):
 
     def run(self):
-        if conf.value('Interface/WebApiURL'):
-            url = conf.value('Interface/WebApiURL') or 'http://127.0.0.1:6575'
+        if conf.value('Interface/MessageURL'):
+            url = conf.value('Interface/MessageURL') or 'http://127.0.0.1:6575'
             context.message.setMessage(fetchMessage(url))
 
 
 class LayerThread(QThread):
 
     def run(self):
-        url = conf.value('Interface/LayerApiURL')
+        url = conf.value('Interface/LayerURL')
         context.layer.setLayer(layerInfo(url))
 
 

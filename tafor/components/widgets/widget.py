@@ -385,7 +385,7 @@ class LicenseEditor(QDialog, Ui_main_license.Ui_Editor):
             QMessageBox.critical(self, 'Tafor', text)
 
     def enter(self):
-        if not conf.value('Message/ICAO'):
+        if not conf.value('Message/Airport'):
             text = QCoreApplication.translate('Editor', 'Please fill in the airport information or flight information region in the settings first')
             QMessageBox.information(self, 'Tafor', text)
         else:

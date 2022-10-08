@@ -100,7 +100,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.updateProtocolIcon()
 
     def protocol(self):
-        text = conf.value('General/CommunicationLine')
+        text = conf.value('General/CommunicationProtocol')
         return text.lower() if text else 'aftn'
 
     def channel(self):

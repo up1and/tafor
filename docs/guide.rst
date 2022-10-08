@@ -102,7 +102,7 @@
 .. code-block:: json
 
     {
-      "Message/ICAO":"ZJHK",
+      "Message/Airport":"ZJHK",
       "Monitor/WebApiURL":"https://tafor.herokuapp.com/remote/latest/zjhk.json",
       "Communication/SerialPort":"COM1",
       "Message/WeatherWithIntensity":"[\"RA\", \"SHRA\", \"TSRA\", \"SHGRRA\"]",

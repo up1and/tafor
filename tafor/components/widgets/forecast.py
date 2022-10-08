@@ -762,7 +762,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         super(TafPrimarySegment, self).message()
         amd = 'AMD' if self.amd.isChecked() or self.cnl.isChecked() else ''
         cor = 'COR' if self.cor.isChecked() else ''
-        icao = conf.value('Message/ICAO')
+        icao = conf.value('Message/Airport')
         timez = self.date.text() + 'Z'
         period = self.period.text()
         temperatures = [t.text() for t in self.sortedTemperatures()]
@@ -776,8 +776,8 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         return self.text
 
     def heading(self):
-        area = conf.value('Message/Area') or ''
-        icao = conf.value('Message/ICAO')
+        area = conf.value('Message/BulletinNumber') or ''
+        icao = conf.value('Message/Airport')
         time = self.date.text()
         tt = context.taf.spec[:2].upper()
         sequence = self.sequence.text() if not self.normal.isChecked() else ''
