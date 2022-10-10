@@ -473,7 +473,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         else:
             metar = db.query(Metar).filter(Metar.created > recent).order_by(Metar.created.desc()).first()
 
-        queryset = list(filter(None, [metar, taf, trend] + sigmets))
+        queryset = list(filter(None, [metar, trend, taf] + sigmets))
         uuids = [q.uuid for q in queryset]
         for widget in self.recentWidget():
             if widget.uuid() not in uuids:
