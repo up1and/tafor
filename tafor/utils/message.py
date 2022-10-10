@@ -120,7 +120,7 @@ class FileMessageGenerator(object):
 
     def generate(self):
         """生成文件类型的报文"""
-        self.number = number % (10 ** self.sequenceLength)
+        self.number = self.number % (10 ** self.sequenceLength)
         ending = 'NNNN'
         heading = ' '.join(['ZCZC', str(self.number).zfill(self.sequenceLength)])
         lines = [heading] + self.texts + [''] * 3 + [ending]
