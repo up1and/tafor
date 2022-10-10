@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>713</width>
+    <width>700</width>
     <height>532</height>
    </rect>
   </property>
@@ -96,12 +96,12 @@
         </property>
         <layout class="QGridLayout" name="gridLayout_2">
          <item row="0" column="0">
-          <widget class="QLabel" name="phenomenaLabel">
+          <widget class="QLabel" name="phenomenonLabel">
            <property name="text">
-            <string>Phenomena</string>
+            <string>Phenomenon</string>
            </property>
            <property name="buddy">
-            <cstring>phenomena</cstring>
+            <cstring>phenomenon</cstring>
            </property>
           </widget>
          </item>
@@ -119,7 +119,7 @@
           <widget class="QLineEdit" name="name"/>
          </item>
          <item row="1" column="0">
-          <widget class="QComboBox" name="phenomena"/>
+          <widget class="QComboBox" name="phenomenon"/>
          </item>
          <item row="1" column="2">
           <spacer name="horizontalSpacer">
@@ -188,34 +188,34 @@
       <item>
        <widget class="QGroupBox" name="obsFcstGroup">
         <property name="title">
-         <string>Observation / Forecast</string>
+         <string>Observed / Forecast</string>
         </property>
         <layout class="QGridLayout" name="gridLayout_4">
          <item row="0" column="1">
-          <widget class="QLabel" name="observationTimeLabel">
+          <widget class="QLabel" name="observedTimeLabel">
            <property name="text">
-            <string>Observation Time</string>
+            <string>Observed Time</string>
            </property>
            <property name="buddy">
-            <cstring>observationTime</cstring>
+            <cstring>observedTime</cstring>
            </property>
           </widget>
          </item>
          <item row="0" column="0">
-          <widget class="QLabel" name="observationLabel">
+          <widget class="QLabel" name="comeFromLabel">
            <property name="text">
-            <string>Observation</string>
+            <string>From</string>
            </property>
            <property name="buddy">
-            <cstring>observation</cstring>
+            <cstring>comeFrom</cstring>
            </property>
           </widget>
          </item>
          <item row="1" column="1">
-          <widget class="QLineEdit" name="observationTime"/>
+          <widget class="QLineEdit" name="observedTime"/>
          </item>
          <item row="1" column="0">
-          <widget class="QComboBox" name="observation"/>
+          <widget class="QComboBox" name="comeFrom"/>
          </item>
          <item row="0" column="2">
           <widget class="QLabel" name="forecastTimeLabel">
@@ -568,7 +568,11 @@
         </property>
         <layout class="QVBoxLayout" name="verticalLayout">
          <item>
-          <widget class="QTextEdit" name="text"/>
+          <widget class="QTextEdit" name="text">
+           <property name="placeholderText">
+            <string>Type advisory message here...</string>
+           </property>
+          </widget>
          </item>
         </layout>
        </widget>
@@ -582,12 +586,12 @@
   <tabstop>beginningTime</tabstop>
   <tabstop>endingTime</tabstop>
   <tabstop>sequence</tabstop>
-  <tabstop>phenomena</tabstop>
+  <tabstop>phenomenon</tabstop>
   <tabstop>name</tabstop>
   <tabstop>currentLatitude</tabstop>
   <tabstop>currentLongitude</tabstop>
-  <tabstop>observation</tabstop>
-  <tabstop>observationTime</tabstop>
+  <tabstop>comeFrom</tabstop>
+  <tabstop>observedTime</tabstop>
   <tabstop>forecastTime</tabstop>
   <tabstop>radius</tabstop>
   <tabstop>top</tabstop>

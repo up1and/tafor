@@ -326,36 +326,38 @@ class ObservationMixin(object):
 
     def bindSignal(self):
         super().bindSignal()
-        self.observation.currentTextChanged.connect(self.updateObservationTime)
-        self.beginningTime.textChanged.connect(self.updateObservationTime)
-        self.observationTime.textChanged.connect(lambda: self.coloredText(self.observationTime))
+        self.comeFrom.currentTextChanged.connect(self.updateObservation)
+        self.beginningTime.textChanged.connect(self.updateObservation)
+        self.observedTime.textChanged.connect(lambda: self.coloredText(self.observedTime))
 
     def setupValidator(self):
         super(ObservationMixin, self).setupValidator()
         time = QRegExpValidator(QRegExp(self.rules.time))
-        self.observationTime.setValidator(time)
+        self.observedTime.setValidator(time)
 
-    def updateObservationTime(self):
-        observation = self.observation.currentText()
-        if observation == 'OBS':
-            self.observationTime.setText(self.beginningTime.text()[2:])
+    def updateObservation(self):
+        text = self.comeFrom.currentText()
+        if text == 'OBS':
+            self.observedTime.setText(self.beginningTime.text()[2:])
+            self.observedTimeLabel.setText(QCoreApplication.translate('Editor', 'Observed Time'))
         else:
-            if self.beginningTime.text()[2:] == self.observationTime.text():
-                self.observationTime.clear()
+            self.observedTimeLabel.setText(QCoreApplication.translate('Editor', 'Forecast Time'))
+            if self.beginningTime.text()[2:] == self.observedTime.text():
+                self.observedTime.clear()
 
     def observationText(self):
-        if self.observation.currentText() == 'OBS':
-            text = 'OBS AT {}Z'.format(self.observationTime.text()) if self.observationTime.hasAcceptableInput() else ''
+        if self.comeFrom.currentText() == 'OBS':
+            text = 'OBS AT {}Z'.format(self.observedTime.text()) if self.observedTime.hasAcceptableInput() else ''
         else:
-            text = '{} AT {}Z'.format(self.observation.currentText(), 
-                self.observationTime.text()) if self.observationTime.hasAcceptableInput() else self.observation.currentText()
+            text = '{} AT {}Z'.format(self.comeFrom.currentText(), 
+                self.observedTime.text()) if self.observedTime.hasAcceptableInput() else self.comeFrom.currentText()
 
         return text
 
     def clear(self):
         super().clear()
-        self.observationTime.clear()
-        self.observation.setCurrentIndex(0)
+        self.observedTime.clear()
+        self.comeFrom.setCurrentIndex(0)
 
 
 class ForecastMixin(object):
@@ -378,7 +380,7 @@ class ForecastMixin(object):
 
     def setOverlapMode(self, mode):
         if mode == 'final':
-            self.observation.setCurrentIndex(self.observation.findText('OBS'))
+            self.comeFrom.setCurrentIndex(self.comeFrom.findText('OBS'))
             self.forecastTime.setEnabled(True)
             self.forecastTimeLabel.setEnabled(True)
             self.setForecastTime()
@@ -418,7 +420,6 @@ class AdvisoryMixin(object):
         self.groupNames = cycle(['main', 'advisory'])
         self.switchGroup()
         self.upperTextEdit()
-        self.text.setPlaceholderText(QCoreApplication.translate('Editor', 'Type advisory message here...'))
 
     def bindSignal(self):
         super().bindSignal()
@@ -473,15 +474,15 @@ class AdvisoryMixin(object):
 
         initial = self.initial.currentText()
         if 'OBS' in initial:
-            self.observation.setCurrentIndex(self.observation.findText('OBS'))
+            self.comeFrom.setCurrentIndex(self.comeFrom.findText('OBS'))
 
         if 'FCST' in initial:
-            self.observation.setCurrentIndex(self.observation.findText('FCST'))
+            self.comeFrom.setCurrentIndex(self.comeFrom.findText('FCST'))
 
         features = self.parser.location(initial)
         if features and 'time' in features['properties']:
             time = features['properties']['time']
-            self.observationTime.setText(time.strftime('%H%M'))
+            self.observedTime.setText(time.strftime('%H%M'))
             # self.beginningTime.setText(initialTime.strftime('%d%H%M'))
 
         features = self.parser.location(self.final.currentText())
@@ -626,7 +627,7 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
     def bindSignal(self):
         super().bindSignal()
         self.description.currentTextChanged.connect(self.setPhenomena)
-        self.phenomena.currentTextChanged.connect(self.setFlightLevelFormat)
+        self.phenomenon.currentTextChanged.connect(self.setFlightLevelFormat)
 
     def setPhenomenaDescription(self):
         descriptions = ['OBSC', 'EMBD', 'FRQ', 'SQL', 'SEV', 'HVY', 'RDOACT']
@@ -634,22 +635,22 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
         self.description.setCurrentIndex(1)
 
     def setPhenomena(self, text='OBSC'):
-        self.phenomena.clear()
+        self.phenomenon.clear()
 
         if text == 'SEV':
-            phenomenas = ['TURB', 'ICE', 'ICE (FZRA)', 'MTW']
+            phenomena = ['TURB', 'ICE', 'ICE (FZRA)', 'MTW']
         elif text == 'HVY':
-            phenomenas = ['DS', 'SS']
+            phenomena = ['DS', 'SS']
         elif text == 'RDOACT':
-            phenomenas = ['CLD']
+            phenomena = ['CLD']
         else:
-            phenomenas = ['TS', 'TSGR']
+            phenomena = ['TS', 'TSGR']
 
-        self.phenomena.addItems(phenomenas)
+        self.phenomenon.addItems(phenomena)
 
     def setFcstOrObs(self):
         observations = ['FCST', 'OBS']
-        self.observation.addItems(observations)
+        self.comeFrom.addItems(observations)
 
     def setFlightLevelFormat(self, text):
         self.format.clear()
@@ -670,8 +671,8 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
             self.sequence.hasAcceptableInput(),
         ]
 
-        if self.observation.currentText() == 'OBS':
-            mustRequired.append(self.observationTime.hasAcceptableInput())
+        if self.comeFrom.currentText() == 'OBS':
+            mustRequired.append(self.observedTime.hasAcceptableInput())
 
         if self.base.isEnabled() and self.top.isEnabled():
             mustRequired.append(self.base.hasAcceptableInput() and self.top.hasAcceptableInput())
@@ -689,20 +690,20 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
 
         return all(mustRequired)
 
-    def phenomenon(self):
-        items = [self.description.currentText(), self.phenomena.currentText()]
+    def hazard(self):
+        items = [self.description.currentText(), self.phenomenon.currentText()]
         text = ' '.join(items) if all(items) else ''
         return text
 
     def message(self):
         fir = conf.value('Message/FIRName')
-        phenomena = self.phenomenon()
+        hazard = self.hazard()
         observation = self.observationText()
         flightLevel = self.flightLevel()
         moveState = self.moveState()
         intensityChange = self.intensityChange.currentText()
 
-        items = [fir, phenomena, observation, '{location}', flightLevel]
+        items = [fir, hazard, observation, '{location}', flightLevel]
 
         if self.hasForecastMode():
             forecast = self.forecastText()
@@ -771,7 +772,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         self.direction.currentTextChanged.connect(self.updateForecastPosition)
         self.forecastTime.textChanged.connect(self.updateForecastPosition)
         self.beginningTime.textEdited.connect(self.updateForecastPosition)
-        self.observationTime.textEdited.connect(self.updateForecastPosition)
+        self.observedTime.textEdited.connect(self.updateForecastPosition)
         self.endingTime.textChanged.connect(self.setForecastTime)
 
         self.currentLatitude.textEdited.connect(lambda: self.upperText(self.currentLatitude))
@@ -807,11 +808,11 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         self.radius.setMaxLength(3)
 
     def setPhenomena(self, text='TC'):
-        self.phenomena.addItems(['TC'])
+        self.phenomenon.addItems(['TC'])
 
     def setFcstOrObs(self):
         observations = ['OBS', 'FCST']
-        self.observation.addItems(observations)
+        self.comeFrom.addItems(observations)
 
     def setTyphoonLocation(self, collections):
         if not collections['features']:
@@ -850,7 +851,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         ]
 
         anyRequired = [
-            self.observationTime.hasAcceptableInput(),
+            self.observedTime.hasAcceptableInput(),
             self.beginningTime.hasAcceptableInput(),
         ]
 
@@ -882,11 +883,11 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
             'NW': 315,
             'NNW': 337.5
         }
-        observationTime = self.observationTime.text() if self.observationTime.hasAcceptableInput() else ''
+        observedTime = self.observedTime.text() if self.observedTime.hasAcceptableInput() else ''
         beginningTime = self.beginningTime.text()[2:] if self.beginningTime.hasAcceptableInput() else ''
         fcstTime = self.forecastTime.text()
 
-        time = self.moveTime(observationTime or beginningTime, fcstTime).seconds
+        time = self.moveTime(observedTime or beginningTime, fcstTime).seconds
         degree = directions[movement]
         speed = self.speed.text()
         latitude = self.currentLatitude.text()
@@ -926,8 +927,8 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
                     collections['features'].append(final)
             self.circleChanged.emit(collections)
 
-    def phenomenon(self):
-        items = [self.phenomena.currentText(), self.name.text()]
+    def hazard(self):
+        items = [self.phenomenon.currentText(), self.name.text()]
         text = ' '.join(items) if all(items) else ''
         return text
 
@@ -983,7 +984,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
 
     def message(self):
         fir = conf.value('Message/FIRName')
-        phenomena = self.phenomenon()
+        hazard = self.hazard()
         position = 'PSN {latitude} {Longitude} CB {observation}'.format(
             latitude=self.currentLatitude.text(),
             Longitude=self.currentLongitude.text(),
@@ -1002,7 +1003,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         else:
             location = '{location}'
 
-        items = [fir, phenomena, position, location, flightLevel]
+        items = [fir, hazard, position, location, flightLevel]
 
         if forecastPosition:
             items += [intensityChange, forecastPosition]
@@ -1031,8 +1032,8 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
             self.speed.hasAcceptableInput()
         ]
 
-        if self.observation.currentText() == 'OBS':
-            mustRequired.append(self.observationTime.hasAcceptableInput())
+        if self.comeFrom.currentText() == 'OBS':
+            mustRequired.append(self.observedTime.hasAcceptableInput())
 
         return all(mustRequired) and any(anyRequired)
 
@@ -1094,7 +1095,7 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         self.currentLatitude.textEdited.connect(lambda: self.coloredText(self.currentLatitude))
         self.currentLongitude.textEdited.connect(lambda: self.coloredText(self.currentLongitude))
 
-        self.phenomena.currentTextChanged.connect(self.setEruptionOrCloud)
+        self.phenomenon.currentTextChanged.connect(self.setEruptionOrCloud)
 
     def setupValidator(self):
         super(SigmetAsh, self).setupValidator()
@@ -1108,11 +1109,11 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         self.speed.setMaxLength(3)
 
     def setPhenomena(self, text='ERUPTION'):
-        self.phenomena.addItems(['ERUPTION', 'CLD'])
+        self.phenomenon.addItems(['ERUPTION', 'CLD'])
 
     def setFcstOrObs(self):
         observations = ['FCST', 'OBS']
-        self.observation.addItems(observations)
+        self.comeFrom.addItems(observations)
 
     def setEruptionOrCloud(self, text='ERUPTION'):
         enbaled = text == 'ERUPTION'
@@ -1145,8 +1146,8 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
             if m:
                 self.top.setText(m.group())
 
-    def phenomenon(self):
-        items = ['VA', self.phenomena.currentText()]
+    def hazard(self):
+        items = ['VA', self.phenomenon.currentText()]
         if self.name.isEnabled() and self.name.text():
             items += ['MT', self.name.text()]
         text = ' '.join(items) if all(items) else ''
@@ -1159,8 +1160,8 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
             self.sequence.hasAcceptableInput(),
         ]
 
-        if self.observationTime.isEnabled():
-            mustRequired.append(self.observationTime.hasAcceptableInput())
+        if self.observedTime.isEnabled():
+            mustRequired.append(self.observedTime.hasAcceptableInput())
 
         if self.base.isEnabled():
             mustRequired.append(self.base.hasAcceptableInput())
@@ -1181,7 +1182,7 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
 
     def message(self):
         fir = conf.value('Message/FIRName')
-        phenomena = self.phenomenon()
+        hazard = self.hazard()
         observation = self.observationText()
         flightLevel = self.flightLevel()
         moveState = self.moveState()
@@ -1196,7 +1197,7 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         else:
             position = self.observationText()
 
-        items = [fir, phenomena, position, '{location}', flightLevel]
+        items = [fir, hazard, position, '{location}', flightLevel]
         if self.hasForecastMode():
             forecast = self.forecastText()
             items += [forecast, '{forecastLocation}']
@@ -1213,7 +1214,7 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
     def clear(self):
         super().clear()
         self.name.clear()
-        self.phenomena.setCurrentIndex(0)
+        self.phenomenon.setCurrentIndex(0)
         self.format.setCurrentIndex(-1)
         self.intensityChange.setCurrentIndex(0)
         self.currentLatitude.clear()
@@ -1227,16 +1228,16 @@ class AirmetGeneral(SigmetGeneral):
         self.description.addItems(descriptions)
 
     def setPhenomena(self, text='ISOL'):
-        self.phenomena.clear()
+        self.phenomenon.clear()
 
         if text == 'MOD':
-            phenomenas = ['TURB', 'ICE', 'MTW']
+            phenomena = ['TURB', 'ICE', 'MTW']
         elif text == 'FRQ':
-            phenomenas = ['CB', 'TCU']
+            phenomena = ['CB', 'TCU']
         else:
-            phenomenas = ['CB', 'TCU', 'TS', 'TSGR']
+            phenomena = ['CB', 'TCU', 'TS', 'TSGR']
 
-        self.phenomena.addItems(phenomenas)
+        self.phenomenon.addItems(phenomena)
 
     def setupValidator(self):
         super(AirmetGeneral, self).setupValidator()

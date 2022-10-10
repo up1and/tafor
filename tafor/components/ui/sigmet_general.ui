@@ -81,12 +81,12 @@
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
       <item row="0" column="1">
-       <widget class="QLabel" name="phenomenaLabel">
+       <widget class="QLabel" name="phenomenonLabel">
         <property name="text">
-         <string>Phenomena</string>
+         <string>Phenomenon</string>
         </property>
         <property name="buddy">
-         <cstring>phenomena</cstring>
+         <cstring>phenomenon</cstring>
         </property>
        </widget>
       </item>
@@ -104,7 +104,7 @@
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="QComboBox" name="phenomena"/>
+       <widget class="QComboBox" name="phenomenon"/>
       </item>
       <item row="1" column="2">
        <spacer name="horizontalSpacer">
@@ -125,16 +125,16 @@
    <item>
     <widget class="QGroupBox" name="obsFcstGroup">
      <property name="title">
-      <string>Observation / Forecast</string>
+      <string>Observed / Forecast</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_3">
       <item row="0" column="0">
-       <widget class="QLabel" name="observationLabel">
+       <widget class="QLabel" name="comeFromLabel">
         <property name="text">
-         <string>Observation</string>
+         <string>From</string>
         </property>
         <property name="buddy">
-         <cstring>observation</cstring>
+         <cstring>comeFrom</cstring>
         </property>
        </widget>
       </item>
@@ -152,12 +152,12 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QLabel" name="observationTimeLabel">
+       <widget class="QLabel" name="observedTimeLabel">
         <property name="text">
-         <string>Observation Time</string>
+         <string>Observed Time</string>
         </property>
         <property name="buddy">
-         <cstring>observationTime</cstring>
+         <cstring>observedTime</cstring>
         </property>
        </widget>
       </item>
@@ -169,10 +169,10 @@
        </widget>
       </item>
       <item row="1" column="0">
-       <widget class="QComboBox" name="observation"/>
+       <widget class="QComboBox" name="comeFrom"/>
       </item>
       <item row="1" column="1">
-       <widget class="QLineEdit" name="observationTime"/>
+       <widget class="QLineEdit" name="observedTime"/>
       </item>
      </layout>
     </widget>
@@ -395,9 +395,9 @@
   <tabstop>endingTime</tabstop>
   <tabstop>sequence</tabstop>
   <tabstop>description</tabstop>
-  <tabstop>phenomena</tabstop>
-  <tabstop>observation</tabstop>
-  <tabstop>observationTime</tabstop>
+  <tabstop>phenomenon</tabstop>
+  <tabstop>comeFrom</tabstop>
+  <tabstop>observedTime</tabstop>
   <tabstop>forecastTime</tabstop>
   <tabstop>format</tabstop>
   <tabstop>base</tabstop>

@@ -1732,7 +1732,7 @@ class AdvisoryParser(object):
                 
                 return int(speed)
 
-    def observationTime(self):
+    def observedTime(self):
         raise NotImplementedError
 
     def availableLocations(self):
@@ -1749,7 +1749,7 @@ class AdvisoryParser(object):
             return
 
         match = re.search(r'\d+', key)
-        obstime = self.observationTime()
+        obstime = self.observedTime()
         if match and obstime:
             hour = int(match.group())
             time = obstime + datetime.timedelta(hours=hour)
@@ -1772,7 +1772,7 @@ class TyphoonAdvisoryParser(AdvisoryParser):
         'locations': 'PSN'
     }
 
-    def observationTime(self):
+    def observedTime(self):
         return self.time
 
     def location(self, key):
@@ -1868,7 +1868,7 @@ class AshAdvisoryParser(AdvisoryParser):
         'locations': 'VA CLD'
     }
 
-    def observationTime(self):
+    def observedTime(self):
         if self.time and 'OBS VA DTG' in self.tokens:
             text = self.tokens['OBS VA DTG']
             match = self.grammar.time.search(text)
