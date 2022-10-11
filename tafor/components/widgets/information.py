@@ -292,6 +292,7 @@ class MovementMixin(object):
         if text == 'STNR':
             self.speed.setEnabled(False)
             self.speedLabel.setEnabled(False)
+            self.speed.clear()
         else:
             self.speed.setEnabled(True)
             self.speedLabel.setEnabled(True)
@@ -674,14 +675,11 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
         if self.comeFrom.currentText() == 'OBS':
             mustRequired.append(self.observedTime.hasAcceptableInput())
 
-        if self.base.isEnabled() and self.top.isEnabled():
-            mustRequired.append(self.base.hasAcceptableInput() and self.top.hasAcceptableInput())
-        else:
-            if self.base.isEnabled():
-                mustRequired.append(self.base.hasAcceptableInput())
+        if self.base.isEnabled():
+            mustRequired.append(self.base.hasAcceptableInput())
 
-            if self.top.isEnabled():
-                mustRequired.append(self.top.hasAcceptableInput())
+        if self.top.isEnabled():
+            mustRequired.append(self.top.hasAcceptableInput())
 
         if self.hasForecastMode():
             mustRequired.append(self.forecastTime.hasAcceptableInput())
@@ -1027,15 +1025,15 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         if self.mode == 'circle':
             mustRequired.append(self.radius.hasAcceptableInput())
 
-        anyRequired = [
-            self.forecastTime.hasAcceptableInput() and self.forecastLatitude.hasAcceptableInput() and self.forecastLongitude.hasAcceptableInput(),
-            self.speed.hasAcceptableInput()
-        ]
+        if self.hasForecastMode():
+            mustRequired.append(self.forecastTime.hasAcceptableInput() and self.forecastLatitude.hasAcceptableInput() and self.forecastLongitude.hasAcceptableInput())
+        else:
+            mustRequired.append(self.moveState())
 
         if self.comeFrom.currentText() == 'OBS':
             mustRequired.append(self.observedTime.hasAcceptableInput())
 
-        return all(mustRequired) and any(anyRequired)
+        return all(mustRequired)
 
     def clear(self):
         super().clear()
@@ -1160,7 +1158,7 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
             self.sequence.hasAcceptableInput(),
         ]
 
-        if self.observedTime.isEnabled():
+        if self.comeFrom.currentText() == 'OBS':
             mustRequired.append(self.observedTime.hasAcceptableInput())
 
         if self.base.isEnabled():
@@ -1171,8 +1169,8 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
 
         if self.hasForecastMode():
             mustRequired.append(self.forecastTime.hasAcceptableInput())
-        elif self.speed.isEnabled():
-            mustRequired.append(self.speed.hasAcceptableInput())
+        else:
+            mustRequired.append(self.moveState())
 
         if self.currentLongitude.isEnabled() and self.currentLatitude.isEnabled():
             mustRequired.append(self.currentLongitude.hasAcceptableInput())
