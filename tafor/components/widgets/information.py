@@ -805,6 +805,10 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         self.radius.setValidator(QIntValidator(1, 999, self.radius))
         self.radius.setMaxLength(3)
 
+        name = QRegExpValidator(QRegExp(r'[A-Za-z0-9-]+'))
+        self.name.setValidator(name)
+        self.name.setMaxLength(20)
+
     def setPhenomena(self, text='TC'):
         self.phenomenon.addItems(['TC'])
 
@@ -1105,6 +1109,10 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
 
         self.speed.setValidator(QIntValidator(1, 200, self.speed))
         self.speed.setMaxLength(3)
+
+        name = QRegExpValidator(QRegExp(r'[A-Za-z0-9-]+'))
+        self.name.setValidator(name)
+        self.name.setMaxLength(20)
 
     def setPhenomena(self, text='ERUPTION'):
         self.phenomenon.addItems(['ERUPTION', 'CLD'])
