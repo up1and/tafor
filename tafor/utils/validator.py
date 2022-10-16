@@ -93,6 +93,7 @@ class SigmetGrammar(object):
     valid = re.compile(r'(\d{6})/(\d{6})')
     width = re.compile(r'(\d{1,3})NM')
 
+    airmansFlightLevel = re.compile(r'(FL\d{3}/\d{3})|(FL\d{3})|(\d{4,5}FT)|(\d{4,5}M)|(SFC/FL\d{3})')
     wind = re.compile(r'(0[1-9]0|[12][0-9]0|3[0-6]0)/(1[5-9]|[2-4][0-9]|P49)(MPS|KT)')
     vis = re.compile(r'(9999|5000|[01234][0-9]00|0[0-7]50)(M|FT)')
     cloud = re.compile(r'((?:\d{3,4}|SFC)/(?:ABV)?\d{3,5}(?:M|FT))')
@@ -1240,7 +1241,7 @@ class SigmetLexer(object):
 
     defaultRules = ['latitude', 'longitude', 'flightLevel', 'speed', 'obsTime', 'typhoonRange', 'sequence', 'valid', 'width']
 
-    airmetRules = ['wind', 'vis', 'cloud']
+    airmetRules = ['airmansFlightLevel', 'wind', 'vis', 'cloud']
 
     def __init__(self, part, firCode=None, airportCode=None, grammar=None, keywords=None, rules=None, isAirmet=False,**kwargs):
         super(SigmetLexer, self).__init__()
