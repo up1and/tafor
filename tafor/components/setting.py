@@ -158,12 +158,12 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             options = baseOptions + sigmetOptions
         else:
             options = baseOptions
-            self.fir.hide()
-            self.firLabel.hide()
-            self.layerApiURL.hide()
-            self.layerApiLabel.hide()
+            self.firName.hide()
+            self.firNameLabel.hide()
+            self.layerURL.hide()
+            self.layerURLLabel.hide()
             self.remindSigmet.hide()
-            self.remindSigmetVolume.hide()
+            self.sigmetVolume.hide()
             self.addressTab.removeTab(2)
             self.addressTab.removeTab(2)
             self.settingTab.removeTab(6)
