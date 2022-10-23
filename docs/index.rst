@@ -8,7 +8,7 @@
 
 版本 v\ |version|
 
-本软件用于民航气象部门智能发布预报报文、趋势报文、重要气象情报，监控预报报文，以声音或电话的方式返回告警。
+Tafor 用于发布民航气象报文，包括机场预报报文、趋势报文和重要气象情报。
 
 内容
 ----------
@@ -25,10 +25,10 @@
 
 参考
 ----------
-- `TAF Decode <https://www.aviationweather.gov/static/help/taf-decode.php>`_
-- `AIRMET/SIGMET <https://www.aviationweather.gov/sigmet>`_
-
+- `TAF Introduction <http://www.bom.gov.au/aviation/data/education/taf.pdf>`_
+- `ASIA/PACIFIC REGIONAL SIGMET GUIDE NINTH EDITION <https://www.icao.int/APAC/Documents/edocs/APAC-Regional-SIGMET-Guide_9th-Ed.pdf>`_
+- `民用航空气象 第2部分：预报 MH/T 4016.2-2007 (Deprecated) <http://www.caac.gov.cn/XXGK/XXGK/BZGF/HYBZ/201511/P020170804581829592552.pdf>`_
 
 感谢
 ----------
-软件 TAF 报文编辑界面参考了湛江空管站张永华先生所写的湛江预报发报软件，感谢张永华先生的支持与理解。
+感谢我的同事在使用过程中给我的建议和帮助，甘愿成为小黄鸭帮助我找错误，以及香港天文台在我对 SIGMET 编报规则有疑问的解惑，还有曹正和张永华前辈的启发和帮助。

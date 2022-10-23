@@ -5,17 +5,19 @@
 
 请求
 ----------
-程序会定时对外请求的接口，报文接口请求间隔 1 分钟，情报区接口请求间隔 5 分钟，电话服务接口依据条件触发。
+Tafor 会定时对外轮询数据，报文接口请求间隔为 1 分钟，情报区接口请求间隔为 2 分钟。
 
-各类请求地址可以在 设置 -> 数据源 中更改，详情请参考 :ref:`guide`。
+各类请求地址可以在 设置 -> 接口 中更改，详情请参考 :ref:`guide`。
+
+请求接口使用 Vercel 创建样例，这里以 https://tafor-script.vercel.app 为例，实际地址以当前生产环境为准。
 
 报文接口
 ^^^^^^^^^^^^^^^^^^^^
 .. code-block:: http
 
-    GET <latest_message_url> HTTP/1.1
+    GET https://tafor-script.vercel.app/messages/<airport> HTTP/1.1
 
-**latest_message_url** 当前机场最新的报文数据接口
+**airport** 机场的 ICAO 四字代码
 
 需返回以下数据：
 
@@ -31,239 +33,82 @@
       ]
     }
 
-.. note:: 如果需要查询 SIGMET 或 AIRMET 报文，要以列表形式返回有效期内此类型所有的报文，类型键值可选 ``WS WC WV WA``。
+.. note:: SIGMET 或 AIRMET 报文，会以列表形式返回有效期内此类型所有的报文，类型键值可选 ``WS WC WV WA``。
 
-情报区信息接口
+图层接口
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: http
 
-    GET <fir_information_url> HTTP/1.1
+    GET https://tafor-script.vercel.app/layers HTTP/1.1
 
-**fir_information_url** 当前情报区的信息接口
-
-需返回以下数据：
+需返回以下结构的数据：
 
 .. code-block:: json
 
-    {
-      "boundaries": [], 
-      "layers": [
+    [
         {
-        "coordinates": [
-            [
-            105, 
-            25
-            ], 
-            [
-            120, 
-            10
-            ]
-        ], 
-        "image": "https://tafor.herokuapp.com/static/cloud.jpg", 
-        "name": "Himawari 8", 
-        "rect": [
-            15, 
-            50, 
-            260, 
-            260
-        ], 
-        "size": [
-            376, 
-            376
-        ], 
-        "updated": "Mon, 30 Jul 2018 21:33:00 GMT"
+            "extent": [
+                98,
+                0,
+                137,
+                30
+            ],
+            "image": "https://tafor-script.vercel.app/static/clouds/ir_clouds.webp",
+            "name": "Himawari IR Clouds",
+            "overlay": "standalone",
+            "proj": "+proj=longlat +ellps=WGS84",
+            "updated": "Sun, 16 Oct 2022 06:53:52 GMT"
+        },
+        {
+            "extent": [
+                98,
+                0,
+                137,
+                30
+            ],
+            "image": "https://tafor-script.vercel.app/static/clouds/true_color.webp",
+            "name": "Himawari True Color",
+            "overlay": "standalone",
+            "proj": "+proj=longlat +ellps=WGS84",
+            "updated": "Sun, 16 Oct 2022 06:53:52 GMT"
+        },
+        {
+            "extent": [
+                104.355556,
+                14.159722,
+                115.215833,
+                24.128611
+            ],
+            "image": "https://tafor-script.vercel.app/static/echos/sanya_fir_mosaic.png",
+            "name": "Sanya FIR Mosaic",
+            "overlay": "mixed",
+            "proj": "+proj=longlat +ellps=WGS84",
+            "updated": "Sun, 16 Oct 2022 06:53:52 GMT"
         }
-      ]
-    }
+    ]
 
 
-- **boundaries** 情报区的边界，用一组点表示，顺时针排列
-- **layers** 由数组组成的图层信息，每层都需要包含以下内容
-    - **coordinates** 卫星云图的经纬度坐标范围，标记左上角到右下角两个点，用十进制经度，纬度表示
-    - **image** 当前时刻最新的卫星云图地址
-    - **name** 图层名称
-    - **rect** SIGMET 编辑区域显示的区域大小和位置，前两个参数表示区域的起始点 x、y，后两个参数表示区域的宽和高，单位像素
-    - **size** 卫星云图的宽和高，单位像素
-    - **updated** 卫星云图更新的时间，世界时
+图层信息由一组或多组数据成，每层都需要包含以下结构：
 
-.. note:: 无法获取最新的底图时，``image`` 和 ``updated`` 的值要标记为 ``null``，这样程序才会继续启用画布功能，并绘制一个灰色纯色底图。
+- **extent** 图层的坐标范围，使用经纬度表示，`minx, miny, maxx, maxy`
+- **image** 图层的地址
+- **name** 图层名称
+- **overlay** 参数两个选项，`standalone` 和 `mixed`，`mixed` 表示图层可以和其他图层叠加，`standalone` 只能单独存在。
+- **proj** 图层投影信息，需要和设置的一致，才能正确加载
+- **updated** 图层更新的时间，世界时
 
+.. note:: 无法获取最新的底图时，``image`` 和 ``updated`` 的值标记为 ``null``。
 
-电话服务接口
-^^^^^^^^^^^^^^^^^^^^^
-
-.. code-block:: http
-
-    POST <call_service_url> HTTP/1.1
-    Authorization: Basic <auth>
-
-**call_service_url** 请求电话拨号服务的地址
-
-**auth** 用于认证用户身份的密钥，生成方式为 ``base64('api':token)``
-
-参数：
-
-- **mobile** 所要呼叫的手机号
-
-.. note:: 认证 token 需要电话服务网站注册账号后生成，可以在 设置 -> 电话服务 中更改相关设置。
 
 响应
 ----------
-程序内建了一个 RESTful API 服务，默认启动端口 9407， 可用于验证 TAF、SIGMET、趋势报文的准确性，以及告知程序正在编辑的观测报文。
+程序内建了一个 RESTful API 服务，默认启动端口 9407， 用于接收外部程序发送的报文，支持接收观测报文和 SIGMET。
 
-TAF 报文验证
-^^^^^^^^^^^^^^^^^^^^
-
-.. code-block:: http
-
-    GET /api/validate HTTP/1.1
-
-参数：
-
-- **message** 报文内容
-
-示例：
-
-.. code-block:: text
-
-    message=TAF ZJHK 040701Z 0406/0506 06004MPS 6000 TSRA BKN010 FEW023CB BKN033 TX28/0505Z TN24/0418Z BECMG 0407/0408 -SHRA BECMG 0415/0416 BKN030 TEMPO 0410/0414 SHRA=
-
-返回数据：
-
-.. code-block:: json
-
-    {
-        "pass": false,
-        "tips": [
-            "阵性降水应包含 CB"
-        ],
-        "html": "TAF ZJHK 040701Z 0406/0506 06004MPS 6000 TSRA BKN010 FEW023CB BKN033 TX28/0505Z TN24/0418Z<br/>BECMG 0407/0408 -SHRA<br/>BECMG 0415/0416 <span style=\"color: red\">BKN030</span><br/>TEMPO 0410/0414 SHRA=",
-        "tokens": [
-            [
-                "TAF",
-                true
-            ],
-            [
-                "ZJHK",
-                true
-            ],
-            [
-                "040701Z",
-                true
-            ],
-            [
-                "0406/0506",
-                true
-            ],
-            [
-                "06004MPS",
-                true
-            ],
-            [
-                "6000",
-                true
-            ],
-            [
-                "TSRA",
-                true
-            ],
-            [
-                "BKN010 FEW023CB BKN033",
-                true
-            ],
-            [
-                "TX28/0505Z TN24/0418Z",
-                true
-            ],
-            [
-                "BECMG",
-                true
-            ],
-            [
-                "0407/0408",
-                true
-            ],
-            [
-                "-SHRA",
-                true
-            ],
-            [
-                "BECMG",
-                true
-            ],
-            [
-                "0415/0416",
-                true
-            ],
-            [
-                "BKN030",
-                false
-            ],
-            [
-                "TEMPO",
-                true
-            ],
-            [
-                "0410/0414",
-                true
-            ],
-            [
-                "SHRA",
-                true
-            ]
-        ]
-    }
-
-.. note:: 校验的阈值如云高是否有 450 米或能见度是否有 5000 米可以在 设置 -> 校验 中更改，趋势校验也是如此，详情请参考 :ref:`guide`。
-
-趋势报文验证
-^^^^^^^^^^^^^^^^^^^^
-
-.. code-block:: http
-
-    GET /api/validate HTTP/1.1
-
-参数：
-
-- **message** 报文内容
-
-示例：
-
-.. code-block:: text
-
-    message=METAR ZJHK 221100Z 29002MPS 160V330 9999 -TSRA FEW020CB SCT023 24/23 Q1008 RESHRA BECMG TL1230 -SHRA=
-
-返回数据：
-
-.. code-block:: json
-
-    {
-        "html": "METAR ZJHK 221100Z 29002MPS 160V330 9999 -TSRA FEW020CB SCT023 24/23 Q1008 RESHRA<br/>BECMG TL1230 -SHRA=",
-        "tips": [],
-        "pass": true,
-        "tokens": [
-            [
-                "BECMG",
-                true
-            ],
-            [
-                "TL1230",
-                true
-            ],
-            [
-                "-SHRA",
-                true
-            ]
-        ]
-    }
-
-SIGMET & AIRMET 报文验证
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-SIGMET/AIRMET 报文验证类似，不再做举例。
+以下示例使用的 Bearer Token 为 ``VGhlIFZveWFnZSBvZiB0aGUgTW9vbg==``。
 
 
-显示观测报文
+显示观测报文和校验
 ^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: http
@@ -274,12 +119,13 @@ SIGMET/AIRMET 报文验证类似，不再做举例。
 参数：
 
 - **message** 报文内容
+- **validation** 是否启用验证，可选项，默认不启用
 
-示例：
+通知示例：
 
 .. code-block:: text
 
-    message=METAR ZJHK 210600Z 26002MPS 200V300 9999 BKN030 36/27 Q1004 NOSIG=
+    message=METAR%20ZJHK%20210600Z%2026002MPS%20200V300%209999%20BKN030%2036%2F27%20Q1004%20NOSIG%3D
 
 返回数据：
 
@@ -290,6 +136,61 @@ SIGMET/AIRMET 报文验证类似，不再做举例。
         "created": "Fri, 21 Jun 2019 05:57:34 GMT"
     }
 
+创建成功返回 HTTP Created 201 状态码，数据里面会有一个接口接收通知的时间。 
+
+此时接口用于通知预报软件未来要发的观测报文。
+
+通知和验证示例:
+
+.. code-block:: text
+
+    message=METAR%20ZJHK%20221100Z%2029002MPS%20160V330%209999%20-TSRA%20FEW020CB%20SCT023%2024%2F23%20Q1008%20RESHRA%20BECMG%20TL1230%20-SHRA%3D&validation=on
+
+返回数据：
+
+.. code-block:: json
+
+    {
+        "message": "METAR ZJHK 221100Z 29002MPS 160V330 9999 -TSRA FEW020CB SCT023 24/23 Q1008 RESHRA BECMG TL1230 -SHRA=",
+        "created": "Fri, 21 Jun 2019 05:58:34 GMT",
+        "validations":{
+            "html": "METAR ZJHK 221100Z 29002MPS 160V330 9999 -TSRA FEW020CB SCT023 24/23 Q1008 RESHRA<br/>BECMG TL1230 -SHRA=",
+            "tips": [],
+            "pass": true,
+            "tokens": [
+                [
+                    "BECMG",
+                    true
+                ],
+                [
+                    "TL1230",
+                    true
+                ],
+                [
+                    "-SHRA",
+                    true
+                ]
+            ]
+        }
+    }
+
+参数 validation 支持以下字符
+
+.. code-block:: python
+
+    TRUE_STRINGS = ('true', 'True', 't', 'yes', 'y', '1', 'on')
+    FALSE_STRINGS = ('false', 'False', 'f', 'no', 'n', '0', 'off')
+
+开启验证后，返回数据会多一个 validations 字段，其中:
+
+- **html** 报文的 html 版本，趋势预报有错的位置会高亮显示
+- **tips** 列表，文字提示信息，无错不显示
+- **pass** 趋势预报是否校验通过
+- **tokens** 趋势项单独拆解，并标注出错项
+
+观测软件趋势验证可以参考如下逻辑，点击编报按钮后，观测软件会请求访问这个接口，如果接口告知观测软件趋势校验通过，不做任何改变。 如果没有通过，自动把趋势改为 NOSIG=。
+
+.. note:: 在传递 message 参数时，如果是通过 query params 传递时，一定要 encode uri，因为 +TSRA 中的 + 符号会被转义为空格，如果是用 JSON 附加在请求 body 上，则不需要。
 
 显示 SIGMET/AIRMET 报文
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -307,7 +208,7 @@ SIGMET/AIRMET 报文验证类似，不再做举例。
 
 .. code-block:: text
 
-    message=ZJSA SIGMET 1 VALID 300755/301155 ZJHK- ZJSA SANYA FIR EMBD TS OBS AT 0115Z WI N1906 E11150 - N1731 E10815 - N1904 E10702 - N2030 E10802 - N2030 E11130 - N1930 E11130 - N1906 E11150 TOP FL300 MOV N 20KMH NC=
+    message=ZJSA%20SIGMET%201%20VALID%20300755%2F301155%20ZJHK-%20ZJSA%20SANYA%20FIR%20EMBD%20TS%20OBS%20AT%200115Z%20WI%20N1906%20E11150%20-%20N1731%20E10815%20-%20N1904%20E10702%20-%20N2030%20E10802%20-%20N2030%20E11130%20-%20N1930%20E11130%20-%20N1906%20E11150%20TOP%20FL300%20MOV%20N%2020KMH%20NC%3D
 
 返回数据：
 
@@ -318,5 +219,3 @@ SIGMET/AIRMET 报文验证类似，不再做举例。
         "created": "Sun, 30 Jun 2019 07:49:37 GMT"
     }
 
-
-.. note:: Bearer Token 默认值为 `VGhlIFZveWFnZSBvZiB0aGUgTW9vbg==`，可在 关于 -> 令牌 中查看，程序运行目录命令行下输入 ``tafor token --generate`` 可用于重新生成令牌，建议在初次设置后重新生成令牌。

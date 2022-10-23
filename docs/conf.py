@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-#
 # tafor documentation build configuration file, created by
 # sphinx-quickstart on Sun Mar 18 14:53:59 2018.
 #
@@ -48,7 +45,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Tafor'
-copyright = '2019, up1and'
+copyright = '2022, up1and'
 author = 'up1and'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -169,8 +166,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     (master_doc, 'tafor', 'Tafor Documentation',
-     author, 'tafor', 'One line description of project.',
-     'Miscellaneous'),
+     author, 'tafor', 'A Terminal Aerodrome Forecast Encoding Software'),
 ]
 
 

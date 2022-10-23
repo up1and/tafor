@@ -3,11 +3,5 @@
 
 .. module:: tafor.utils.check
 
-.. autoclass:: CheckTaf
-    :members:
-
-.. autoclass:: CheckMetar
-    :members:
-
-.. autoclass:: Listen
+.. autoclass:: CurrentTaf
     :members:
