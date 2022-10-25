@@ -362,6 +362,11 @@ def circle(center, radius):
 def decode(boundaries, locations, mode, trim=True):
     from tafor.utils.convert import degreeToDecimal
     boundary = Polygon(boundaries)
+    hasBoundary = boundary.is_valid and not boundary.is_empty
+    if not hasBoundary:
+        trim = False
+        if mode in ['line', 'rectangular', 'entire']:
+            return Polygon()
 
     if mode == 'polygon':
         points = [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in locations]

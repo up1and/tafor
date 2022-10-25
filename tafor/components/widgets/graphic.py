@@ -613,6 +613,9 @@ class BaseCanvas(QGraphicsView):
         self.sigmetsGroup = self.scene.createItemGroup(self.sigmets)
         self.sigmetsGroup.setZValue(0)
 
+        if not context.layer.boundaries():
+            self.centerOn(self.sigmetsGroup.boundingRect().center())
+
     def toGeographicalCoordinates(self, x, y):
         px, py = (x - self.offset[0]) / self.ratio, (self.offset[1] - y) / self.ratio
         return self.projection(px, py, inverse=True)
@@ -952,8 +955,7 @@ class GraphicsViewer(QWidget):
 
         self.geometries = []
         self.canvas.setExtent(self.extent())
-        self.canvas.drawCoastline()
-        self.canvas.drawBoundaries()
+        self.canvas.redraw()
 
     def extent(self):
         boundary = shapely.geometry.Polygon(context.layer.boundaries())

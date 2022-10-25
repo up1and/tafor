@@ -1,4 +1,3 @@
-from turtle import shape
 import shapely
 
 from PyQt5.QtGui import QPen, QColor, QBrush, QPolygonF, QPainterPath, QPixmap, QFont, QPainter
@@ -312,6 +311,9 @@ class SigmetBackground(QWidget, ColorMixin):
             for polygon in polygons:
                 geom = shapely.geometry.Polygon(polygon)
                 box = box.union(geom)
+
+        if box.is_empty:
+            return
 
         rect = box.envelope
         self.centroid = rect.centroid

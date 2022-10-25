@@ -4,6 +4,8 @@ import json
 import secrets
 import datetime
 
+import shapely
+
 from PyQt5.QtGui import QIcon, QIntValidator, QTextCursor
 from PyQt5.QtCore import QCoreApplication, QStandardPaths, QSettings, QTimer, Qt, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QFileDialog, QMessageBox, QApplication
@@ -299,28 +301,18 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.load()
 
     def hasValueChanged(self, key):
-        if key not in self.options:
-            return False
-
         prev = self.prevConf[key]
-        category = self.options[key]['type']
-        option = getattr(self, self.options[key]['object'])
-        value = self.loadValueFromWidget(option, category)
-
-        if category == 'bool':
-            prev = boolean(prev)
-
+        value = conf.value(key)
         return prev != value
 
     def hasValidFirBoundary(self):
         text = self.firBoundary.toPlainText()
         try:
-            boundary = json.loads(text)
-            if not isinstance(boundary, list):
-                return False
+            boundaries = json.loads(text)
+            boundary = shapely.geometry.Polygon(boundaries)
+            return boundary.is_valid and not boundary.is_empty
         except ValueError as e:
             return False
-        return True
 
     def cachePrevConf(self):
         self.prevConf = {}
@@ -335,11 +327,10 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             self.restarted.emit()
 
     def applyChange(self):
-        if not self.hasValidFirBoundary():
+        if boolean(conf.value('General/Sigmet')) and not self.hasValidFirBoundary():
             title = QCoreApplication.translate('Settings', 'Format Error')
             text = QCoreApplication.translate('Settings', 'FIR boundary format is invalid, please check it')
             QMessageBox.warning(self, title, text)
-            return
 
         self.save()
         self.onConfigChanged()
@@ -353,6 +344,8 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
         self.cachePrevConf()
         for key, value in self.options.items():
+            if key == 'Layer/FIRBoundary' and not self.hasValidFirBoundary():
+                continue
             self.setValue(key, value['object'], value['type'])
 
     def load(self):
