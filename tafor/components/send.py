@@ -48,7 +48,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
 
     closed = pyqtSignal()
     backed = pyqtSignal()
-    succeeded = pyqtSignal()
+    succeeded = pyqtSignal(bool)
 
     def __init__(self, parent=None):
         super(BaseSender, self).__init__(parent)
@@ -109,6 +109,13 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         else:
             return AFTNChannel
 
+    def groupState(self):
+        if not self.message:
+            return
+
+        if self.message.rawText():
+            return 'raw'
+
     def updateMode(self):
         """
         this method only update when receive message object
@@ -145,14 +152,13 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
                 # enable resend button
                 self.resendButton.show()
 
-            if text:
-                self.group = 'raw'
-
         if self.mode == 'send':
             self.setWindowTitle(QCoreApplication.translate('Sender', 'Send Message'))
             self.rawGroup.setTitle(self.channel().successText())
 
     def updateVisibility(self):
+        self.group = self.groupState()
+
         if self.group == 'raw':
             self.rawGroup.show()
             self.printButton.show()
@@ -170,6 +176,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.parse()
         self.updateMode()
         self.updateContent()
+        self.updateVisibility()
 
     def parse(self):
         visHas5000 = boolean(conf.value('Validation/VisHas5000'))
@@ -294,7 +301,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
 
         db.add(self.message)
         db.commit()
-        self.succeeded.emit()
+        self.succeeded.emit(True)
 
     def print(self):
         printer = QPrinter()
@@ -415,7 +422,7 @@ class SigmetSender(BaseSender):
         self.reportType = 'SIGMET'
         self.graphic = GraphicsViewer(self)
         self.canvasLayout.addWidget(self.graphic)
-        self.switchButton.clicked.connect(self.switchGroup)
+        self.switchButton.clicked.connect(self.updateVisibility)
         self.groupNames = cycle(['canvas', 'raw'])
         self.succeeded.connect(self.updateReminder)
 
@@ -444,23 +451,26 @@ class SigmetSender(BaseSender):
             logger.exception(e)
             self.graphic.clear()
 
-        self.switchGroup()
+    def groupState(self, succeeded):
+        if not self.message:
+            return
 
-    def switchGroup(self):
-        self.group = next(self.groupNames)
+        group = next(self.groupNames)
 
-        if self.message.isCnl() and self.group == 'canvas':
-            self.group = next(self.groupNames)
+        if (self.message.isCnl() or succeeded) and group == 'canvas':
+            group = next(self.groupNames)
 
-        if not self.message.raw and self.group == 'raw':
-            self.group = next(self.groupNames)
+        if not self.message.raw and group == 'raw':
+            group = next(self.groupNames)
 
         if not self.message.raw and self.message.isCnl():
-            self.group = None
+            group = None
 
-        self.updateVisibility()
+        return group
         
-    def updateVisibility(self):
+    def updateVisibility(self, succeeded=False):
+        self.group = self.groupState(succeeded)
+
         if self.group is None:
             self.rawGroup.hide()
             self.canvasGroup.hide()
