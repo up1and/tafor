@@ -303,7 +303,7 @@
        <item>
         <widget class="QGroupBox" name="weatherGroup">
          <property name="title">
-          <string>Weather Phenomenon</string>
+          <string>Weather Phenomena</string>
          </property>
          <layout class="QGridLayout" name="gridLayout">
           <item row="0" column="1">

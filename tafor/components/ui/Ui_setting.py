@@ -595,7 +595,7 @@ class Ui_Settings(object):
         self.airportLabel.setText(_translate("Settings", "Airport Code"))
         self.firNameLabel.setText(_translate("Settings", "FIR Name"))
         self.trendIdentifierLabel.setText(_translate("Settings", "Trend Identifier"))
-        self.weatherGroup.setTitle(_translate("Settings", "Weather Phenomenon"))
+        self.weatherGroup.setTitle(_translate("Settings", "Weather Phenomena"))
         self.weather.setPlaceholderText(_translate("Settings", "Weather without intensity"))
         self.weatherWithIntensity.setPlaceholderText(_translate("Settings", "Weather with intensity"))
         self.settingTab.setTabText(self.settingTab.indexOf(self.messagePage), _translate("Settings", "Message"))
