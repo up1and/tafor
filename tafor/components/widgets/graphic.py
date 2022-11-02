@@ -118,6 +118,7 @@ class SketchManager(object):
         self.graphics.append(sticker)
         
         self.graphicsGroup = self.canvas.scene.createItemGroup(self.graphics)
+        self.graphicsGroup.setZValue(3)
 
     def merge(self, geometries):
         collections = {
@@ -599,6 +600,7 @@ class BaseCanvas(QGraphicsView):
         p.addTo(self, self.firs)
 
         self.firsGroup = self.scene.createItemGroup(self.firs)
+        self.firsGroup.setZValue(1)
         self.centerOn(self.firsGroup.boundingRect().center())
 
     def drawSigmets(self, geos):
@@ -611,7 +613,7 @@ class BaseCanvas(QGraphicsView):
             p.addTo(self, self.sigmets)
         
         self.sigmetsGroup = self.scene.createItemGroup(self.sigmets)
-        self.sigmetsGroup.setZValue(0)
+        self.sigmetsGroup.setZValue(2)
 
         if not context.layer.boundaries():
             self.centerOn(self.sigmetsGroup.boundingRect().center())

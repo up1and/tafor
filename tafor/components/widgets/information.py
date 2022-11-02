@@ -281,7 +281,7 @@ class MovementMixin(object):
     def bindSignal(self):
         super().bindSignal()
         self.direction.currentTextChanged.connect(self.setSpeed)
-        self.speed.textEdited.connect(lambda: self.coloredText(self.speed))
+        self.speed.textChanged.connect(lambda: self.coloredText(self.speed))
 
     def setupValidator(self):
         super(MovementMixin, self).setupValidator()
@@ -417,6 +417,7 @@ class AdvisoryMixin(object):
         self.switchButton.move(233, 12)
         self.switchButton.show()
         self.advisory.hide()
+        self.text.setAcceptRichText(False)
 
         self.groupNames = cycle(['main', 'advisory'])
         self.switchGroup()
@@ -426,9 +427,9 @@ class AdvisoryMixin(object):
         super().bindSignal()
         self.switchButton.clicked.connect(self.switchGroup)
         self.text.textChanged.connect(self.parseText)
-        self.initial.currentTextChanged.connect(self.updateFinalLocation)
-        self.initial.currentTextChanged.connect(self.handleLocationChange)
-        self.final.currentTextChanged.connect(self.handleLocationChange)
+        self.initial.currentTextChanged.connect(self.updateFinalOption)
+        self.initial.currentTextChanged.connect(self.updateLocation)
+        self.final.currentTextChanged.connect(self.updateLocation)
 
     def switchGroup(self):
         self.group = next(self.groupNames)
@@ -467,12 +468,6 @@ class AdvisoryMixin(object):
         if name:
             self.name.setText(name)
 
-        position = self.parser.position()
-        if position:
-            lat, lon = position
-            self.currentLatitude.setText(lat)
-            self.currentLongitude.setText(lon)
-
         initial = self.initial.currentText()
         if 'OBS' in initial:
             self.comeFrom.setCurrentIndex(self.comeFrom.findText('OBS'))
@@ -484,28 +479,29 @@ class AdvisoryMixin(object):
         if features and 'time' in features['properties']:
             time = features['properties']['time']
             self.observedTime.setText(time.strftime('%H%M'))
-            # self.beginningTime.setText(initialTime.strftime('%d%H%M'))
 
         features = self.parser.location(self.final.currentText())
         if features and 'time' in features['properties']:
             time = features['properties']['time']
             self.forecastTime.setText(time.strftime('%H%M'))
-            # self.endingTime.setText(finalTime.strftime('%d%H%M'))
             self.forecastTime.setEnabled(True)
             self.forecastTimeLabel.setEnabled(True)
         else:
             self.forecastTime.setEnabled(False)
             self.forecastTimeLabel.setEnabled(False)
 
+        final = self.final.currentText()
         movement = self.parser.movement()
         if movement:
             self.direction.setCurrentIndex(self.direction.findText(movement))
 
-            if movement != 'STNR':
+            if not final and movement != 'STNR':
                 speed = str(self.parser.speed())
                 self.speed.setText(speed)
+            else:
+                self.speed.clear()
 
-    def updateFinalLocation(self):
+    def updateFinalOption(self):
         index = self.initial.currentIndex()
         rests = ['']
         if index + 1 < self.initial.count():
@@ -522,69 +518,7 @@ class AdvisoryMixin(object):
             self.advisory.show()
             self.main.hide()
 
-    def handleLocationChange(self):
-        collections = {
-            'type': 'FeatureCollection',
-            'features': []
-        }
-        locations = []
-
-        # when in polygon mode, there is no final position, and the initial geometry is a polygon
-        if not (self.parser.type == 'TC ADVISORY' and self.mode == 'polygon'):
-            initial = self.initial.currentText()
-            if initial:
-                feature = self.parser.location(initial)
-                if 'geometry' in feature:
-                    feature['properties']['location'] = 'initial'
-                    feature['properties']['type'] = 'sketch'
-                    locations.append(feature)
-
-            final = self.final.currentText()
-            if initial and final:
-                feature = self.parser.location(final)
-                if 'geometry' in feature:
-                    feature['properties']['location'] = 'final'
-                    feature['properties']['type'] = 'sketch'
-                    locations.append(feature)
-
-        if self.parser.type == 'TC ADVISORY':
-            for feature in locations:
-                if self.radius.hasAcceptableInput():
-                    radius = int(self.radius.text())
-                else:
-                    radius = 0
-                feature['properties']['radius'] = radius
-
-            properties = {
-                'type': 'exterior',
-                'location': 'initial'
-            }
-
-            route = self.parser.route()
-            if route:
-                features = {
-                    'geometry': route,
-                    'properties': properties
-                }
-                locations.append(features)
-
-            polygon = self.parser.polygon()
-            if polygon:
-                if self.mode == 'polygon':
-                    properties = {
-                        'type': 'sketch',
-                        'location': 'initial'
-                    }
-
-                features = {
-                    'geometry': polygon,
-                    'properties': properties
-                }
-                locations.append(features)
-
-        collections['features'] = locations
-        self.locationChanged.emit(collections)
-
+    def updateLocation(self):
         try:
             self.autoFill()
         except Exception as e:
@@ -915,6 +849,93 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         if radius:
             self.radius.setText(str(radius))
 
+        features = self.parser.location(self.initial.currentText())
+        if features and 'geometry' in features:
+            center = features['geometry']['coordinates']
+            if center:
+                lon, lat = center
+                lon, lat = decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)
+                self.currentLongitude.setText(lon)
+                self.currentLatitude.setText(lat)
+
+        features = self.parser.location(self.final.currentText())
+        if features and 'geometry' in features:
+            center = features['geometry']['coordinates']
+            if center:
+                lon, lat = center
+                lon, lat = decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)
+                self.forecastLongitude.setText(lon)
+                self.forecastLatitude.setText(lat)
+                self.finalPositionGroup.setEnabled(True)
+            else:
+                self.forecastLongitude.clear()
+                self.forecastLatitude.clear()
+                self.finalPositionGroup.setEnabled(False)
+
+        self.handleLocationChange()
+
+    def handleLocationChange(self):
+        collections = {
+            'type': 'FeatureCollection',
+            'features': []
+        }
+        locations = []
+
+        # when in polygon mode, there is no final position, and the initial geometry is a polygon
+        if not self.mode == 'polygon':
+            initial = self.initial.currentText()
+            if initial:
+                feature = self.parser.location(initial)
+                if 'geometry' in feature:
+                    feature['properties']['location'] = 'initial'
+                    feature['properties']['type'] = 'sketch'
+                    locations.append(feature)
+
+            final = self.final.currentText()
+            if initial and final:
+                feature = self.parser.location(final)
+                if 'geometry' in feature:
+                    feature['properties']['location'] = 'final'
+                    feature['properties']['type'] = 'sketch'
+                    locations.append(feature)
+
+        for feature in locations:
+            if self.radius.hasAcceptableInput():
+                radius = int(self.radius.text())
+            else:
+                radius = 0
+            feature['properties']['radius'] = radius
+
+        properties = {
+            'type': 'exterior',
+            'location': 'initial'
+        }
+
+        route = self.parser.route()
+        if route:
+            features = {
+                'geometry': route,
+                'properties': properties
+            }
+            locations.append(features)
+
+        polygon = self.parser.polygon()
+        if polygon:
+            if self.mode == 'polygon':
+                properties = {
+                    'type': 'sketch',
+                    'location': 'initial'
+                }
+
+            features = {
+                'geometry': polygon,
+                'properties': properties
+            }
+            locations.append(features)
+
+        collections['features'] = locations
+        self.locationChanged.emit(collections)
+
     def handleCircleChange(self):
         if self.mode == 'circle':
             collections = {
@@ -1133,6 +1154,12 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
 
     def autoFill(self):
         super().autoFill()
+        position = self.parser.position()
+        if position:
+            lat, lon = position
+            self.currentLatitude.setText(lat)
+            self.currentLongitude.setText(lon)
+
         initial = self.initial.currentText()
         features = self.parser.location(initial)
         if features and 'flightLevel' in features['properties']:
@@ -1151,6 +1178,34 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
             m = pattern.search(top)
             if m:
                 self.top.setText(m.group())
+
+        self.handleLocationChange()
+
+    def handleLocationChange(self):
+        collections = {
+            'type': 'FeatureCollection',
+            'features': []
+        }
+        locations = []
+
+        initial = self.initial.currentText()
+        if initial:
+            feature = self.parser.location(initial)
+            if 'geometry' in feature:
+                feature['properties']['location'] = 'initial'
+                feature['properties']['type'] = 'sketch'
+                locations.append(feature)
+
+        final = self.final.currentText()
+        if initial and final:
+            feature = self.parser.location(final)
+            if 'geometry' in feature:
+                feature['properties']['location'] = 'final'
+                feature['properties']['type'] = 'sketch'
+                locations.append(feature)
+
+        collections['features'] = locations
+        self.locationChanged.emit(collections)
 
     def hazard(self):
         items = ['VA', self.phenomenon.currentText()]
