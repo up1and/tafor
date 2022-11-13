@@ -229,6 +229,7 @@ class Sketch(QObject):
         if self.canvas.mode in ['rectangular']:
             self.coordinates = []
             self.done = False
+            self.finished.emit()
             self.redraw()
 
         if self.stickers:
