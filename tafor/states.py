@@ -28,7 +28,7 @@ class MessageState(QObject):
             types = ['WS', 'WC', 'WV']
 
         if airsigmet == 'AIRMET':
-            types = ['WV']
+            types = ['WA']
 
         if isinstance(type, str):
             types = [type]
