@@ -480,7 +480,7 @@ class Sketch(QObject):
                     unit = 'KM'
                     coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
                     line = ' - '.join(coordinates)
-                    message = 'APRX {}{} WID LINE BTN {}'.format(round(self.radius / 1000), unit, line)
+                    message = 'APRX {}{} WID LINE BTN {}'.format(round(self.radius * 2 / 1000), unit, line)
                 else:
                     coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
                     message = ' - '.join(coordinates)

@@ -410,7 +410,7 @@ def decode(boundaries, locations, mode, trim=True):
         points, (radius, unit) = locations
         lines = [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in points]
         width = int(radius) * 1.852 if unit == 'NM' else int(radius)
-        return buffer(lines, width * 1000)
+        return buffer(lines, width * 1000 / 2)
 
     if mode == 'entire':
         return boundary
