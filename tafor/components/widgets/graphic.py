@@ -824,6 +824,11 @@ class Canvas(BaseCanvas):
             self.sketch.append(event.pos())
             self.sketch.clip()
 
+        # if user is not holding down ctrl button, then release mouse, the rubberband should hide.
+        if not self.lock and self.rubberBand.isVisible():
+            self.rubberBand.hide()
+            self.sketch.clear()
+
         super().mouseReleaseEvent(event)
 
     def wheelEvent(self, event):
