@@ -332,6 +332,7 @@ class SigmetBackground(QWidget, ColorMixin):
     def paintEvent(self, event):
         super().paintEvent(event)
         painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
 
         for geo in self.geometries:
             hazard = geo.properties['hazard']

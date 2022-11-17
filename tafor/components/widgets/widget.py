@@ -124,6 +124,10 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         self.validations = None
         self.mode = 'review'
 
+        self.toolsWidget.setAttribute(Qt.WA_TranslucentBackground)
+        self.timeLabel.setAttribute(Qt.WA_TranslucentBackground)
+        self.text.setAttribute(Qt.WA_TranslucentBackground)
+
         if hasattr(item, 'validations'):
             self.validations = item.validations
             self.mode = 'notification'
@@ -149,30 +153,25 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         self.tip.setContentsMargins(0, 9, 0, 0)
         self.tip.hide()
 
-        self.updateText()
-        self.updateButton()
-        self.bindSignal()
-
-        if self.item.type in ['WS', 'WC', 'WV', 'WA'] and not self.item.isCnl():
-            parser = self.item.parser()
-            geos = parser.geo(context.layer.boundaries(), trim=True)
-            if geos['features']:
-                height = self.group.sizeHint().height() - 30
-                size = (int(height / 0.6), height)
-                try:
-                    self.background = SigmetBackground(geos, size=size, parent=self)
-                    self.background.setAttribute(Qt.WA_TransparentForMouseEvents)
-
-                except Exception as e:
-                    logger.exception(e)
-
         if index:
             layout.insertWidget(index, self)
         else:
             layout.addWidget(self)
 
+        self.bindSignal()
+        self.updateText()
+        self.updateButton()
+
     def uuid(self):
         return self.item.uuid
+
+    def timeStamp(self):
+        if self.mode == 'notification':
+            ago = timeAgo(self.item.created, datetime.datetime.utcnow())
+            text = ago.capitalize()
+        else:
+            text = self.item.created.strftime('%Y-%m-%d %H:%M:%S')
+        return text
 
     def countdown(self):
         created = self.item.created
@@ -183,8 +182,7 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
             self.timer.stop()
             context.notification.metar.clear()
 
-        ago = timeAgo(created, now)
-        self.timeLabel.setText(ago.capitalize())
+        self.timeLabel.setText(self.timeStamp())
 
     def reviewMode(self):
         self.replyButton.hide()
@@ -242,7 +240,8 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
 
     def updateText(self):
         self.group.setTitle(self.item.type)
-        self.timeLabel.setText(self.item.created.strftime('%Y-%m-%d %H:%M:%S'))
+        self.timeLabel.setText(self.timeStamp())
+
         if self.validations:
             self.text.setText(self.validations['html'])
             if self.validations['tips']:
@@ -251,6 +250,23 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
                 self.tip.show()
         else:
             self.text.setText(self.item.report)
+
+        if self.item.type in ['WS', 'WC', 'WV', 'WA'] and not self.item.isCnl():
+            QTimer.singleShot(0, self.updateBackground)
+
+    def updateBackground(self):
+        parser = self.item.parser()
+        geos = parser.geo(context.layer.boundaries(), trim=True)
+        if geos['features']:
+            height = self.text.height() + 60
+            size = (int(height / 0.6), height)
+            try:
+                self.background = SigmetBackground(geos, size=size, parent=self)
+                self.background.setAttribute(Qt.WA_TransparentForMouseEvents)
+                self.background.move(self.width() - self.background.width() - 100, 16)
+                self.background.show()
+            except Exception as e:
+                logger.exception(e)
 
     def updateReminderButton(self):
         if self.remind:
