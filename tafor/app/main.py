@@ -432,8 +432,11 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         context.taf.setState(status)
 
     def updateSigmet(self):
-        sigmets = currentSigmet()
-        context.message.setSigmet(sigmets)
+        try:
+            sigmets = currentSigmet()
+            context.message.setSigmet(sigmets)
+        except Exception as e:
+            logger.error(e)
 
     def updateGui(self):
         self.updateTaf()

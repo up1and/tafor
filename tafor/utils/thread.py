@@ -21,7 +21,18 @@ def fetchMessage(url):
     try:
         r = requests.get(url, headers=_headers, timeout=30)
         if r.status_code == 200:
-            return r.json()
+            data = r.json()
+            if not isinstance(data, dict):
+                raise ValueError('The message data type is incorrect, please pass in data of dictionary type')
+
+            messages = {}
+            for key, value in data.items():
+                if key in ['WS', 'WC', 'WV', 'WV'] and isinstance(value, list):
+                    messages[key] = value
+                if key in ['SA', 'SP', 'FC', 'FT'] and isinstance(value, str):
+                    messages[key] = value
+
+            return messages
         else:
             logger.warn('GET {} 404 Not Found'.format(url))
 
@@ -38,9 +49,12 @@ def layerInfo(url):
         r = requests.get(url, headers=_headers, timeout=30)
         if r.status_code == 200:
             data = r.json()
+            if not isinstance(data, list):
+                raise ValueError('The layer data type is incorrect, please pass in data of list type')
+
             for layer in data:
-                imageUrl = layer['image']
                 try:
+                    imageUrl = layer['image']
                     req = requests.get(imageUrl)
                     layer['image'] = req.content
                 except Exception as e:

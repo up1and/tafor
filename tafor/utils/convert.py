@@ -365,7 +365,7 @@ class Layer(object):
             layers = {}
 
         self.image = layers.get('image', None)
-        self.name = layers.get('name', '')
+        self.name = layers.get('name', 'Untititled')
         self.extent = layers.get('extent', [])
         self.proj = layers.get('proj', '')
         self.overlay = layers.get('overlay', 'standalone')

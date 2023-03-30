@@ -1499,7 +1499,9 @@ class SigmetParser(object):
 
     def valids(self):
         pattern = self.grammar.valid
-        return pattern.search(self.message).groups()
+        m = pattern.search(self.message)
+        if m:
+            return m.groups()
 
     def location(self, mode='object'):
         patterns = {
