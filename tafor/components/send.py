@@ -535,10 +535,12 @@ class CustomSender(BaseSender):
         return 'aftn'
 
     def load(self):
+        self.clear()
         state = context.other.state()
         rawText = self.generateRawText()
         self.message = Other(uuid=state['uuid'], text=state['message'], source='api')
         self.setRawGroup(rawText)
+        self.rawGroup.show()
         self.protocolSign.show()
         self.sendButton.show()
         self.printButton.hide()
