@@ -292,12 +292,12 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             self.message.raw = self.generator.toJson()
             self.message.protocol = self.protocol()
             self.message.created = datetime.datetime.utcnow()
-            logger.debug('Resend ' + self.message.text)
+            logger.debug('Resend {}'.format(self.message.text))
         else:
             # create the message
             self.message.raw = self.generator.toJson()
             self.message.protocol = self.protocol()
-            logger.debug('Send ' + self.message.text)
+            logger.debug('Send {}'.format(self.message.text))
 
         db.add(self.message)
         db.commit()
@@ -448,8 +448,8 @@ class SigmetSender(BaseSender):
                 self.graphic.setSigmet(geo)
 
         except Exception as e:
-            logger.exception(e)
             self.graphic.clear()
+            logger.error('Sender parse SIGMET failed, {}, {}'.format(self.message.text, e))
 
     def groupState(self, succeeded):
         if not self.message:

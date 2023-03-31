@@ -461,7 +461,7 @@ class AdvisoryMixin(object):
         except Exception as e:
             context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'Advisory message can not be decoded'))
             self.text.setStyleSheet('color: grey')
-            logger.error('Advisory message can not be decoded\n"{}"\nError {}'.format(text, e), exc_info=True)
+            logger.error('Advisory message can not be decoded, {}, {}'.format(text, e))
 
     def autoFill(self):
         name = self.parser.name()
@@ -522,7 +522,7 @@ class AdvisoryMixin(object):
         try:
             self.autoFill()
         except Exception as e:
-            logger.error(e, exc_info=True)
+            logger.error('Auto fill location from advisory message failed, {}'.format(e))
 
     def setLocationMode(self, mode):
         super().setLocationMode(mode)

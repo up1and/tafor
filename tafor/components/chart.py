@@ -249,16 +249,15 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         try:
             self.drawChart()
         except Exception as e:
-            logger.exception(e)
+            start, end = self.dateRange
+            logger.error('Failed to draw chart, date range {} - {}, {}'.format(start, end, e))
 
     def queryset(self):
         start, end = self.dateRange
         query = db.query(Metar).filter(Metar.created >= start, Metar.created < end + datetime.timedelta(minutes=20)) \
             .order_by(Metar.created.desc()).all()
-        # query = db.query(Metar).order_by(Metar.created.desc()).limit(25).all()
 
         query.reverse()
-
         return query
 
     def showEvent(self, event):

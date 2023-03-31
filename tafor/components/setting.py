@@ -264,7 +264,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         except Exception as e:
             text = QCoreApplication.translate('Settings', 'Retry')
             self.testLoginButton.setText(text)
-            logger.error(e)
+            logger.error('Failed to test login FTP server, {}'.format(e))
         else:
             text = QCoreApplication.translate('Settings', 'Done')
             self.testLoginButton.setText(text)
@@ -431,7 +431,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             saveConf(filename, self.options)
 
         except Exception as e:
-            logger.error(e)
+            logger.error('Export configuration file failed, {}'.format(e))
 
         else:
             context.flash.statusbar(QCoreApplication.translate('Settings', 'Configuration has been exported'), 5000)
@@ -443,7 +443,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             loadConf(filename, self.options)
 
         except Exception as e:
-            logger.error(e)
+            logger.error('Import configuration file failed, {}'.format(e))
 
         else:
             self.load()

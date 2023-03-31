@@ -70,4 +70,4 @@ def verifyToken(token, key):
         data = jwt.decode(token, key, algorithms='RS256')
         return data
     except Exception as e:
-        logger.error(e)
+        logger.error('Failed to verify token, {}'.format(e))

@@ -40,7 +40,7 @@ def fetchMessage(url):
         logger.warn('GET {} 408 Request Timeout'.format(url))
 
     except Exception as e:
-        logger.error(e)
+        logger.error('Failed to fetch message from {}, {}'.format(url, e))
 
     return {}
 
@@ -67,7 +67,7 @@ def layerInfo(url):
         logger.warn('GET {} 408 Request Timeout'.format(url))
 
     except Exception as e:
-        logger.error(e)
+        logger.error('Failed to fetch cloud layer from {}, {}'.format(url, e))
 
     return []
 
@@ -80,7 +80,7 @@ def repoRelease(url):
             logger.info('GET {} 408 Request Timeout'.format(url))
 
     except Exception as e:
-        logger.error(e)
+        logger.error('Failed to get the latest version information from {}, {}'.format(url, e))
 
     return {}
 
@@ -143,7 +143,7 @@ class SerialThread(QThread):
             error = ''
         except Exception as e:
             error = str(e)
-            logger.error(e)
+            logger.error('Failed to send data through serial port, {}'.format(e))
         finally:
             context.serial.release()
             self.done.emit(error)
@@ -168,7 +168,7 @@ class FtpThread(QThread):
             error = ''
         except Exception as e:
             error = str(e)
-            logger.error(e)
+            logger.error('Failed to send data through FTP, {}'.format(e))
         finally:
             self.done.emit(error)
 

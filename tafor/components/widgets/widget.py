@@ -255,18 +255,18 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
             QTimer.singleShot(0, self.updateBackground)
 
     def updateBackground(self):
-        parser = self.item.parser()
-        geos = parser.geo(context.layer.boundaries(), trim=True)
-        if geos['features']:
-            height = self.text.height() + 60
-            size = (int(height / 0.6), height)
-            try:
+        try:
+            parser = self.item.parser()
+            geos = parser.geo(context.layer.boundaries(), trim=True)
+            if geos['features']:
+                height = self.text.height() + 60
+                size = (int(height / 0.6), height)
                 self.background = SigmetBackground(geos, size=size, parent=self)
                 self.background.setAttribute(Qt.WA_TransparentForMouseEvents)
                 self.background.move(self.width() - self.background.width() - 100, 16)
                 self.background.show()
-            except Exception as e:
-                logger.exception(e)
+        except Exception as e:
+            logger.error('Failed to draw SIGMET graphic area in recent module, {}, {}'.format(self.item.text, e))
 
     def updateReminderButton(self):
         if self.remind:

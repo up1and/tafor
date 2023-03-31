@@ -735,7 +735,7 @@ class TafParser(object):
             self.failed = True
             self.errors.append('报文无法被正确解析')
             self._forceError()
-            logger.exception(e)
+            logger.error('message cannot be parsed correctly, {}, {}'.format(self.message, e))
 
         self.errors = list(set(self.errors))
 

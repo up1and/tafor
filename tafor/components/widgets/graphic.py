@@ -502,7 +502,7 @@ class Sketch(QObject):
                     message = 'ENTIRE FIR'
 
         except Exception as e:
-            logger.error(e)
+            logger.error('Generate SIGMET location text error, {}'.format(e))
 
         return message
 
@@ -1377,7 +1377,7 @@ class GraphicsWindow(QWidget):
                 geo = parser.geo(context.layer.boundaries(), context.layer.trimShapes)
                 geos.append(geo)
             except Exception as e:
-                logger.error('Sigmet area can not be decoded, "{}" Error {}'.format(sig.text, e))
+                logger.error('Decode SIGMET graphic area error, {}, {}'.format(sig.text, e))
 
         self.canvas.drawSigmets(geos)
 

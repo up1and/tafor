@@ -408,9 +408,9 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         for item in items:
             if item.id:
-                logger.info('Auto confirm {} {}'.format(item.type, item.text))
+                logger.info('Confirm {} {}'.format(item.type, item.text))
             else:
-                logger.info('Auto Save {} {}'.format(item.type, item.text))
+                logger.info('Save {} {}'.format(item.type, item.text))
 
             if item.type in ['SA', 'SP']:
                 context.notification.metar.clear()
@@ -436,7 +436,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             sigmets = currentSigmet()
             context.message.setSigmet(sigmets)
         except Exception as e:
-            logger.error(e)
+            logger.error('Sigmet cannot be updated, {}'.format(e))
 
     def updateGui(self):
         self.updateTaf()
@@ -637,7 +637,7 @@ def main():
         code = app.exec_()
         sys.exit(code)
     except Exception as e:
-        logger.error(e, exc_info=True)
+        logger.exception('On startup {}'.format(e))
     finally:
         socket.close()
         localServer.close()
