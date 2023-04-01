@@ -334,8 +334,10 @@ def decodeLine(boundary, lines):
                 polyline = Polygon(points)
                 if polyline.intersects(part):
                     other = part.difference(polyline)
-                    center = other.representative_point()
+                    if not other.is_empty:
+                        center = other.representative_point()
 
+            center = (center.x, center.y)
             if side == whichSide(refLine, center):
                 shapes.append(part)
 
@@ -452,10 +454,14 @@ def findLines(boundaries, polygons):
 
     # find the lines that not overlap with the boundary based on the polygon
     lines = []
+    boundary = LinearRing(boundaries)
     for points in polygons:
-        geoms = findNonOverlappingLines(boundaries, points)
-        for line in geoms:
-            lines.append(line)
+        polyline = Polygon(points)
+        # lines must intersect with boundary
+        if boundary.intersects(polyline):
+            geoms = findNonOverlappingLines(boundaries, points)
+            for line in geoms:
+                lines.append(line)
     
     # find the same slope line
     slopes = [slope(line) for line in lines]
