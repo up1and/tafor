@@ -3,7 +3,7 @@ import datetime
 from itertools import cycle
 
 from PyQt5.QtGui import QFontMetrics, QFont, QPixmap, QIcon
-from PyQt5.QtCore import QCoreApplication, QTimer, QSize, Qt, pyqtSignal
+from PyQt5.QtCore import QCoreApplication, QSize, Qt, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QMessageBox, QTextEdit, QLabel, QToolButton
 from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
 
@@ -183,7 +183,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         cloudHeightHas450 = boolean(conf.value('Validation/CloudHeightHas450'))
         weakPrecipitationVerification = boolean(conf.value('Validation/WeakPrecipitationVerification'))
 
-        self.parser = TafParser(self.message.text,
+        self.parser = TafParser(self.message.text, created=self.message.created,
             visHas5000=visHas5000, cloudHeightHas450=cloudHeightHas450, weakPrecipitationVerification=weakPrecipitationVerification)
         self.parser.validate()
 
@@ -277,7 +277,10 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
 
         if context.environ.hasPermission(self.reportType):
             thread = self.channel().thread
-            self.thread = thread(rawText)
+            if self.protocol() == 'ftp':
+                self.thread = thread(rawText, valids=self.parser.valids)
+            else:
+                self.thread = thread(rawText)
             self.thread.done.connect(lambda error: self.setRawGroup(rawText, error))
             self.thread.finished.connect(self.save)
             self.thread.start()
@@ -433,7 +436,7 @@ class SigmetSender(BaseSender):
             self.reportType = 'SIGMET'
 
         try:
-            self.parser = SigmetParser(self.message.text)
+            self.parser = SigmetParser(self.message.text, created=self.message.created)
             html = self.parser.renderer(style='html')
             if self.message.heading is None:
                 html = '<p>{}</p>'.format(html)
@@ -506,7 +509,7 @@ class SigmetSender(BaseSender):
             states = context.sigmet.state().copy()
             for uuid, value in states.items():
                 parser = value['text']
-                sequence = parser.sequence(), '/'.join(parser.valids())
+                sequence = parser.sequence(), parser.validTime()
                 if cancelSequence == sequence:
                     context.sigmet.remove(uuid=uuid)
         else:

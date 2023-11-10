@@ -28,13 +28,13 @@ def currentSigmet():
     cancelSequences = [s.parser().cancelSequence() for s in cancels]
     for sig in sigmets:
         parser = sig.parser()
-        sequence = parser.sequence(), '/'.join(parser.valids())
+        sequence = parser.sequence(), parser.validTime()
         if sequence not in cancelSequences:
             currents.append(sig)
 
     # add cancel sigmet that not match any current sigmet
     cnls = copy.copy(cancels)
-    sequences = [(s.parser().sequence(), '/'.join(s.parser().valids())) for s in sigmets]
+    sequences = [(s.parser().sequence(), s.parser().validTime()) for s in sigmets]
     for cnl in cancels:
         if cnl.parser().cancelSequence() in sequences:
             cnls.remove(cnl)

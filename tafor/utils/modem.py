@@ -51,9 +51,10 @@ def serialComm(message, port, baudrate=9600, bytesize='8', parity='NONE', stopbi
         if lenth != sentLenth:
             raise serial.SerialException('Send data is incomplete')
 
-def ftpComm(message, url, filename):
+def ftpComm(message, url, filename, tempsuffix='part'):
     parser = urlparse(url)
     port = parser.port or 0
+    tempname = filename + '.' + tempsuffix
     with FTP() as ftp:
         ftp.connect(host=parser.hostname, port=port)
         ftp.login(user=parser.username, passwd=parser.password)
@@ -64,7 +65,8 @@ def ftpComm(message, url, filename):
         if not isinstance(message, bytes):
             message = message.encode()
 
-        ftp.storbinary('STOR %s' % filename, BytesIO(message))
+        ftp.storbinary('STOR %s' % tempname, BytesIO(message))
+        ftp.rename(tempname, filename)
 
 
 if __name__ == '__main__':

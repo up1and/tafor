@@ -1380,7 +1380,7 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
         for sig in sigmets:
             parser = sig.parser()
-            sequence = parser.sequence(), parser.valids()
+            sequence = parser.sequence(), parser.validTime()
             self.prevs.append(sequence)
 
         sequences = [s[0] for s in self.prevs]
@@ -1388,25 +1388,26 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
         self.cancelSequence.addItems(sequences)
 
     def setValids(self, sequence):
-        valids = self.findValids(sequence)
-        if valids:
-            self.cancelBeginningTime.setText(valids[0])
-            self.cancelEndingTime.setText(valids[1])
+        valid = self.findValid(sequence)
+        if valid:
+            begin, end = valid.split('/')
+            self.cancelBeginningTime.setText(begin)
+            self.cancelEndingTime.setText(end)
             self.syncValidsTime()
         else:
             self.cancelBeginningTime.clear()
             self.cancelEndingTime.clear()
 
-    def findValids(self, sequence):
+    def findValid(self, sequence):
         if isinstance(sequence, int):
             try:
                 return self.prevs[sequence][1]
             except:
                 pass
         else:
-            for seq, valids in self.prevs:
+            for seq, valid in self.prevs:
                 if seq == sequence:
-                    return valids
+                    return valid
 
 
 class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):

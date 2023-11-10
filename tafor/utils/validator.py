@@ -473,7 +473,7 @@ class TafLexer(object):
         self.grammar = grammar
         self.part = part.strip()
         self.tokens = OrderedDict()
-        self.period = None
+        self.periods = None
         self.order = 0
 
         self.parse(part)
@@ -595,7 +595,7 @@ class TafParser(object):
 
     splitPattern = re.compile(r'(BECMG|(?:FM(?:\d{4}|\d{6}))|TEMPO|PROB[34]0\sTEMPO)')
 
-    def __init__(self, message, parse=None, validator=None, **kwargs):
+    def __init__(self, message, created=None, parse=None, validator=None, **kwargs):
         message = message.strip()
         if not message.endswith('='):
             message = message + '='
@@ -607,13 +607,16 @@ class TafParser(object):
 
         self.reference = None
 
+        self.valids = None
+        self.created = created
+
         if not parse:
             self.parse = self.lexerClass
 
         if not validator:
             self.validator = self.validatorClass(**kwargs)
 
-        self._split()
+        self._analyse()
 
     def __eq__(self, other):
         """判断两份报文是否相等"""
@@ -624,7 +627,7 @@ class TafParser(object):
     def __repr__(self):
         return '<{} {!r}>'.format(self.__class__.__name__, self.renderer())
 
-    def _split(self):
+    def _analyse(self):
         """拆分主报文和变化组"""
         message = self.message.replace('=', '')
         elements = self.splitPattern.split(message)
@@ -660,21 +663,24 @@ class TafParser(object):
         if len(self.primary.tokens['period']['text']) not in [6, 9]:
             raise 
 
-        time = parseTimez(self.primary.tokens['timez']['text'])
-        self.primary.period = parsePeriod(self.primary.tokens['period']['text'], time)
-        basetime = self.primary.period[0]
+        if self.created is None:
+            self.created = parseTimez(self.primary.tokens['timez']['text'])
+
+        self.primary.periods = parsePeriod(self.primary.tokens['period']['text'], self.created)
+        self.valids = self.primary.periods
+        basetime = self.primary.periods[0]
 
         for e in self.elements[1:]:
             if e.tokens['sign']['text'].startswith('FM'):
                 time = parseTime(e.tokens['sign']['text'][2:], basetime)
-                e.period = (time, time)
+                e.periods = (time, time)
             else:
-                e.period = parsePeriod(e.tokens['period']['text'], basetime)
+                e.periods = parsePeriod(e.tokens['period']['text'], basetime)
 
     def _regroup(self):
         """根据报文的时序重新分组 TEMPO BECMG"""
-        self.becmgs.sort(key=lambda x: x.period[1])
-        self.tempos.sort(key=lambda x: x.period[0])
+        self.becmgs.sort(key=lambda x: x.periods[1])
+        self.tempos.sort(key=lambda x: x.periods[0])
 
         def nextBecmg(groups, tempo):
             index = groups.index(tempo)
@@ -687,12 +693,12 @@ class TafParser(object):
 
         def group(becmgs, tempos):
             groups = becmgs + tempos
-            groups.sort(key=lambda x: x.period[0] if x.sign == 'TEMPO' else x.period[1])
+            groups.sort(key=lambda x: x.periods[0] if x.sign == 'TEMPO' else x.periods[1])
 
             for tempo in tempos:
                 items = nextBecmg(groups, tempo)
                 for becmg in items:
-                    if becmg.period[1] < tempo.period[1]:
+                    if becmg.periods[1] < tempo.periods[1]:
                         index = groups.index(becmg)
                         groups.insert(index + 1, tempo)
 
@@ -1072,8 +1078,8 @@ class MetarParser(TafParser):
         else:
             self.metar = self
 
-    def _split(self):
-        super()._split()
+    def _analyse(self):
+        super()._analyse()
         if 'NOSIG' in self.message:
             metar = self.primary.part.replace('NOSIG', '').strip()
             self.primary = self.parse(metar)
@@ -1085,8 +1091,8 @@ class MetarParser(TafParser):
     def _parsePeriod(self):
         """解析主报文和变化组的时间顺序"""
         time = parseTimez(self.primary.tokens['timez']['text'])
-        self.primary.period = (time, time + datetime.timedelta(hours=2))
-        basetime = self.primary.period[0]
+        self.primary.periods = (time, time + datetime.timedelta(hours=2))
+        basetime = self.primary.periods[0]
 
         for e in self.elements[1:]:
             if 'fmtl' in e.tokens:
@@ -1096,18 +1102,18 @@ class MetarParser(TafParser):
                     end = parseTime(periods[1][2:], basetime)
                     if start > end:
                         end += datetime.timedelta(days=1)
-                    e.period = (start, end)
+                    e.periods = (start, end)
                 else:
                     text = periods[0]
                     if text.startswith('FM'):
-                        e.period = (parseTime(text[2:], basetime), self.primary.period[1])
+                        e.periods = (parseTime(text[2:], basetime), self.primary.period[1])
                     if text.startswith('TL'):
-                        e.period = (basetime, parseTime(text[2:], basetime))
+                        e.periods = (basetime, parseTime(text[2:], basetime))
                     if text.startswith('AT'):
                         time = parseTime(text[2:], basetime)
-                        e.period = (time, time)
+                        e.periods = (time, time)
             else:
-                e.period = self.primary.period
+                e.periods = self.primary.periods
 
     def _validateFormat(self):
         for e in self.elements[1:]:
@@ -1116,9 +1122,9 @@ class MetarParser(TafParser):
                 periods = text.split()
                 for period in periods:
                     conditions = [
-                        'AT' in period and not (self.primary.period[0] < e.period[0] < self.primary.period[1]),
-                        'FM' in period and not (self.primary.period[0] < e.period[0] < self.primary.period[1] and e.period[0] < e.period[1]),
-                        'TL' in period and not (self.primary.period[0] < e.period[1] < self.primary.period[1] and e.period[0] < e.period[1])
+                        'AT' in period and not (self.primary.periods[0] < e.periods[0] < self.primary.periods[1]),
+                        'FM' in period and not (self.primary.periods[0] < e.periods[0] < self.primary.periods[1] and e.periods[0] < e.periods[1]),
+                        'TL' in period and not (self.primary.periods[0] < e.periods[1] < self.primary.periods[1] and e.periods[0] < e.periods[1])
                     ]
                     
                     if any(conditions):
@@ -1391,7 +1397,7 @@ class SigmetParser(object):
 
     lexerClass = SigmetLexer
 
-    def __init__(self, message, parse=None, grammar=None, **kwargs):
+    def __init__(self, message, created=None, parse=None, grammar=None, **kwargs):
         self.message = message.strip()
         self.isAirmet = True if self.reportType() == 'AIRMET' else False
 
@@ -1406,18 +1412,37 @@ class SigmetParser(object):
         self.firCode = self.fir()
         self.airportCode = self.airport()
 
-        self._split()
+        self.valids = None
+        self.created = created
 
-    def _split(self):
+        self._analyse()
+
+    def _analyse(self):
         """拆分报头和报文内容"""
         self.heading = None
         message = self.message.replace('=', '')
-        headingPattern = re.compile(r'(\w{4}\d{2}\s\w{4}\s\d{6}(?:\s\w{3})?)\b')
+        headingPattern = re.compile(r'\w{4}\d{2}\s\w{4}\s(\d{6})')
         splitPattern = re.compile(r'([A-Z]{4}-)')
-        m = headingPattern.match(message)
-        if m:
-            self.heading = m.group()
+        validPattern = self.grammar.valid
+        
+        time = None
+        valids = None
+        heading = headingPattern.match(message)
+        valid = validPattern.search(self.message)
+        if valid:
+            valids = valid.groups()
+            time = valid[0]
+
+        if heading:
+            self.heading = heading.group()
             message = headingPattern.sub('', message).strip()
+            time = heading.group(1)
+
+        if self.created is None:
+            self.created = parseTimez(time) if time else datetime.datetime.utcnow()
+
+        if valids:
+            self.valids = parseTime(valids[0], self.created), parseTime(valids[1], self.created)
 
         *lines, text = splitPattern.split(message)
         self.firstline = ' '.join(e.strip() for e in lines)
@@ -1497,11 +1522,11 @@ class SigmetParser(object):
         if m:
             return m.group(2), m.group(3)
 
-    def valids(self):
+    def validTime(self):
         pattern = self.grammar.valid
         m = pattern.search(self.message)
         if m:
-            return m.groups()
+            return '/'.join(m.groups())
 
     def location(self, mode='object'):
         patterns = {
@@ -1587,7 +1612,7 @@ class SigmetParser(object):
         }
 
         sequence = self.sequence()
-        valids = self.valids()
+        valid = self.validTime()
         hazard = self.hazard()
 
         locations = self.location()
@@ -1601,7 +1626,7 @@ class SigmetParser(object):
                 },
                 'properties': {
                     'sequence': sequence,
-                    'valids': valids,
+                    'valids': valid.split('/'),
                     'hazard': hazard,
                     'location': 'initial'
                 }

@@ -45,9 +45,9 @@ class Taf(Base):
         parts = [self.heading, parser.renderer()]
         return '\n'.join(filter(None, parts))
 
-    def parser(self):
+    def parser(self, **kwargs):
         from tafor.utils import TafParser
-        return TafParser(self.text)
+        return TafParser(self.text, created=self.created, **kwargs)
 
     def rawText(self):
         if not self.raw:
@@ -141,9 +141,9 @@ class Sigmet(Base):
         parts = [self.heading, self.text]
         return '\n'.join(filter(None, parts))
 
-    def parser(self):
+    def parser(self, **kwargs):
         from tafor.utils import SigmetParser
-        return SigmetParser(self.report)
+        return SigmetParser(self.report, created=self.created, **kwargs)
 
     def rawText(self):
         if not self.raw:
@@ -156,10 +156,9 @@ class Sigmet(Base):
         return self.raw
 
     def expired(self):
-        from tafor.utils.convert import parseTime
         parser = self.parser()
-        _, ending = parser.valids()
-        return parseTime(ending, self.created)
+        ending = parser.valids[1]
+        return ending
 
     def isCnl(self):
         items = self.text.split()

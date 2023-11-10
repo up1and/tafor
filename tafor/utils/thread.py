@@ -153,15 +153,25 @@ class FtpThread(QThread):
 
     done = pyqtSignal(str)
 
-    def __init__(self, message):
+    def __init__(self, message, valids=None):
         super(FtpThread, self).__init__()
         self.message = message
+        if valids is None:
+            valids = (datetime.datetime.utcnow(), datetime.datetime.utcnow())
+        self.valids = valids
 
     def run(self):
         url = conf.value('Communication/FTPHost')
+        number = conf.value('Communication/FileSequenceNumber') or 1
+        format = '%Y%m%d%H%M%S'
         time = datetime.datetime.utcnow()
-        filename = time.strftime('%Y%m%d%H%M%S%f')
-        filename = 'M1{}.TXT'.format(filename[:-3])
+        filename = '9_OTHE_C_{airport}_{created}_STUB-WTMG-MULT-{validfrom}-{validto}-XXX-1,{number}.txt'.format(
+            airport = conf.value('Message/Airport'),
+            created = time.strftime(format),
+            validfrom = self.valids[0].strftime(format),
+            validto = self.valids[1].strftime(format),
+            number = str(number).zfill(5)
+        )
 
         try:
             ftpComm(self.message, url, filename)
