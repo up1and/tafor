@@ -1,7 +1,6 @@
 from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLayout
 
-from tafor import conf
 from tafor.states import context
 from tafor.models import Trend
 from tafor.components.setting import isConfigured
@@ -49,16 +48,12 @@ class TrendEditor(BaseEditor):
             self.trend.validatePeriod()
 
         if self.hasAcceptableInput():
-            self.assembleMessage()
             self.previewMessage()
 
-    def assembleMessage(self):
+    def previewMessage(self):
         message = self.trend.message()
         self.text = message + '='
-        self.heading = conf.value('Message/TrendIdentifier')
-
-    def previewMessage(self):
-        message = Trend(heading=self.heading, text=self.text)
+        message = Trend(text=self.text)
         self.finished.emit(message)
 
     def autoFill(self):

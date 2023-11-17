@@ -8,12 +8,14 @@ from tafor.components.widgets.editor import BaseEditor
 from tafor.components.widgets import TafPrimarySegment, TafFmSegment, TafBecmgSegment, TafTempoSegment
 
 
-class BaseTafEditor(BaseEditor):
+class TafEditor(BaseEditor):
 
     def __init__(self, parent=None, sender=None):
-        super(BaseTafEditor, self).__init__(parent, sender)
+        super(TafEditor, self).__init__(parent, sender)
         self.initUI()
         self.bindSignal()
+        self.setWindowTitle(QCoreApplication.translate('Editor', 'Encoding Terminal Aerodrome Forecast'))
+        self.primary.date.setEnabled(False)
 
     def initUI(self):
         window = QWidget(self)
@@ -109,7 +111,7 @@ class BaseTafEditor(BaseEditor):
         # TEMPO
         manipulate(tempoCheckboxs, tempoGroups)
 
-    def assembleMessage(self):
+    def previewMessage(self):
 
         def sortedGroup(groups):
             groups = [e for e in groups if e.isVisible() and e.durations is not None]
@@ -121,6 +123,8 @@ class BaseTafEditor(BaseEditor):
         messages = [self.primary.message()] + groupsMessage
         self.text = '\n'.join(filter(None, messages)) + '='
         self.heading = self.primary.heading()
+        message = Taf(type=self.heading[0:2], heading=self.heading, text=self.text)
+        self.finished.emit(message)
 
     def beforeNext(self):
         if not self.primary.cnl.isChecked():
@@ -148,7 +152,6 @@ class BaseTafEditor(BaseEditor):
             self.tempo3.validate()
 
         if self.hasAcceptableInput():
-            self.assembleMessage()
             self.previewMessage()
 
     def hasAcceptableInput(self):
@@ -191,7 +194,7 @@ class BaseTafEditor(BaseEditor):
         self.tempo3.clear()
 
     def closeEvent(self, event):
-        super(BaseTafEditor, self).closeEvent(event)
+        super(TafEditor, self).closeEvent(event)
         self.clear()
         self.primary.clearType()
 
@@ -202,15 +205,3 @@ class BaseTafEditor(BaseEditor):
                 self.primary.updateMessageType()
         else:
             QTimer.singleShot(0, self.showConfigError)
-
-
-class TafEditor(BaseTafEditor):
-
-    def __init__(self, parent=None, sender=None):
-        super(TafEditor, self).__init__(parent, sender)
-        self.setWindowTitle(QCoreApplication.translate('Editor', 'Encoding Terminal Aerodrome Forecast'))
-        self.primary.date.setEnabled(False)
-
-    def previewMessage(self):
-        message = Taf(type=self.heading[0:2], heading=self.heading, text=self.text)
-        self.finished.emit(message)

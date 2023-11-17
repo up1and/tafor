@@ -66,9 +66,6 @@ class BaseEditor(QDialog):
             self.notificationArea.setText(message)
             QTimer.singleShot(10 * 1000, self.notificationArea.clear)
 
-    def assembleMessage(self):
-        raise NotImplementedError
-
     def previewMessage(self):
         raise NotImplementedError
 

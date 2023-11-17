@@ -8,7 +8,7 @@ from sqlalchemy import Column, Integer, String, Text, DateTime, create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-from tafor import root
+from tafor import conf, root
 
 if os.environ.get('TAFOR_ENV') == 'TEST':
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
@@ -88,7 +88,6 @@ class Trend(Base):
 
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36), default=uniqueid)
-    heading = Column(String(36))
     text = Column(Text, nullable=False)
     raw = Column(Text)
     protocol = Column(Text)
@@ -97,6 +96,10 @@ class Trend(Base):
 
     def __repr__(self):
         return '<Trend %r>' % (self.text)
+    
+    @property
+    def heading(self):
+        return conf.value('Message/TrendIdentifier')
 
     @property
     def type(self):
