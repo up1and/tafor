@@ -183,7 +183,7 @@ def availableSigmet(type, messages):
         parser = SigmetParser(message)
 
         if parser not in [sig.parser() for sig in sigmets]:
-            item = Sigmet(type=type, heading=parser.heading, text=parser.text, source='api', confirmed=time)
+            item = Sigmet(type=type, heading=parser.heading, text=parser.text + '=', source='api', confirmed=time)
             availables.append(item)
 
         for sig in sigmets:
