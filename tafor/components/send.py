@@ -11,14 +11,14 @@ from tafor import conf, logger
 from tafor.states import context
 from tafor.models import db, Other
 from tafor.utils import boolean, TafParser, MetarParser, SigmetParser, AFTNMessageGenerator, FileMessageGenerator, AFTNDecoder
-from tafor.utils.thread import SerialThread, FtpThread
+from tafor.utils.thread import SerialWorker, FtpWorker, threadManager
 from tafor.components.widgets.graphic import GraphicsViewer
 from tafor.components.ui import Ui_send, main_rc
 
 
 class AFTNChannel(object):
     generator = AFTNMessageGenerator
-    thread = SerialThread
+    worker = SerialWorker
     sequenceConfigPath = 'Communication/ChannelSequenceNumber'
 
     @staticmethod
@@ -32,7 +32,7 @@ class AFTNChannel(object):
 
 class FtpChannel(object):
     generator = FileMessageGenerator
-    thread = FtpThread
+    worker = FtpWorker
     sequenceConfigPath = 'Communication/FileSequenceNumber'
 
     @staticmethod
@@ -276,14 +276,18 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         rawText = self.generateRawText()
 
         if context.environ.hasPermission(self.reportType):
-            thread = self.channel().thread
+            # Use new worker-based approach
+            workerId = f"{self.reportType}_sender_{id(self)}"
+            workerClass = self.channel().worker
+
             if self.protocol() == 'ftp':
-                self.thread = thread(rawText, valids=self.parser.valids)
+                worker, thread = threadManager.createWorker(workerClass, workerId, rawText, valids=self.parser.valids)
             else:
-                self.thread = thread(rawText)
-            self.thread.done.connect(lambda error: self.setRawGroup(rawText, error))
-            self.thread.finished.connect(self.save)
-            self.thread.start()
+                worker, thread = threadManager.createWorker(workerClass, workerId, rawText)
+
+            worker.done.connect(lambda error: self.setRawGroup(rawText, error))
+            worker.finished.connect(self.save)
+            threadManager.startWorker(workerId)
         else:
             error = QCoreApplication.translate('Sender', 'Limited functionality, please check the license information')
             self.setRawGroup(rawText, error=error)
@@ -470,7 +474,7 @@ class SigmetSender(BaseSender):
             group = None
 
         return group
-        
+
     def updateVisibility(self, succeeded=False):
         self.group = self.groupState(succeeded)
 
@@ -493,7 +497,7 @@ class SigmetSender(BaseSender):
                 icon = ':/words.png'
             else:
                 icon = ':/map.png'
-            
+
             self.switchButton.setIcon(QIcon(icon))
             self.switchButton.show()
 

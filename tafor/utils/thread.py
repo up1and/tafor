@@ -3,7 +3,7 @@ import datetime
 
 import requests
 
-from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import QThread, QObject, pyqtSignal
 
 from tafor import conf, logger
 from tafor.rpc import server
@@ -17,6 +17,74 @@ _headers = {
 }
 
 
+class ThreadManager:
+    """Simple thread manager for managing worker threads"""
+
+    def __init__(self):
+        self._threads = {}
+        self._workers = {}
+
+    def createWorker(self, workerClass, workerId=None, *args, **kwargs):
+        """Create a worker and move it to a new thread"""
+        if workerId is None:
+            workerId = f"{workerClass.__name__}_{id(workerClass)}"
+
+        # Create thread and worker
+        thread = QThread()
+        worker = workerClass(*args, **kwargs)
+
+        # Move worker to thread
+        worker.moveToThread(thread)
+
+        # Store references
+        self._threads[workerId] = thread
+        self._workers[workerId] = worker
+
+        # Connect signals
+        thread.started.connect(worker.run)
+        worker.finished.connect(thread.quit)
+
+        return worker, thread
+
+    def startWorker(self, workerId):
+        """Start a worker thread"""
+        if workerId in self._threads:
+            thread = self._threads[workerId]
+            if not thread.isRunning():
+                thread.start()
+
+    def stopWorker(self, workerId):
+        """Stop a worker thread immediately"""
+        if workerId in self._threads:
+            thread = self._threads[workerId]
+            if thread.isRunning():
+                # Special handling for RpcWorker
+                if workerId == 'rpc' and workerId in self._workers:
+                    worker = self._workers[workerId]
+                    if hasattr(worker, 'stop'):
+                        worker.stop()
+
+                thread.terminate()
+                thread.wait(500)  # Brief wait to ensure termination
+
+    def isWorkerRunning(self, workerId):
+        """Check if worker thread is currently running"""
+        if workerId in self._threads:
+            return self._threads[workerId].isRunning()
+        return False
+
+    def cleanup(self):
+        """Clean up all threads immediately or gracefully"""
+        for workerId in list(self._threads.keys()):
+            self.stopWorker(workerId)
+        self._threads.clear()
+        self._workers.clear()
+
+
+# Global thread manager instance
+threadManager = ThreadManager()
+
+
 def fetchMessage(url):
     try:
         r = requests.get(url, headers=_headers, timeout=30)
@@ -27,7 +95,7 @@ def fetchMessage(url):
 
             messages = {}
             for key, value in data.items():
-                if key in ['WS', 'WC', 'WV', 'WV'] and isinstance(value, list):
+                if key in ['WS', 'WC', 'WV', 'WA'] and isinstance(value, list):
                     messages[key] = value
                 if key in ['SA', 'SP', 'FC', 'FT'] and isinstance(value, str):
                     messages[key] = value
@@ -85,44 +153,60 @@ def repoRelease(url):
     return {}
 
 
-class WorkThread(QThread):
+class MessageWorker(QObject):
+    """Worker for fetching message data"""
+    finished = pyqtSignal()
 
     def run(self):
-        if conf.value('Interface/MessageURL'):
-            url = conf.value('Interface/MessageURL') or 'http://127.0.0.1:6575'
-            context.message.setMessage(fetchMessage(url))
+        try:
+            if conf.value('Interface/MessageURL'):
+                url = conf.value('Interface/MessageURL') or 'http://127.0.0.1:6575'
+                context.message.setMessage(fetchMessage(url))
+        finally:
+            self.finished.emit()
 
 
-class LayerThread(QThread):
+class LayerWorker(QObject):
+    """Worker for fetching layer information"""
+    finished = pyqtSignal()
 
     def run(self):
-        url = conf.value('Interface/LayerURL')
-        context.layer.setLayer(layerInfo(url))
+        try:
+            url = conf.value('Interface/LayerURL')
+            context.layer.setLayer(layerInfo(url))
+        finally:
+            self.finished.emit()
 
 
-class ExportRecordThread(QThread):
+class ExportRecordWorker(QObject):
+    """Worker for exporting records to CSV"""
+    finished = pyqtSignal()
 
     def __init__(self, filename, data, headers=None):
-        super(ExportRecordThread, self).__init__()
+        super(ExportRecordWorker, self).__init__()
         self.data = data
         self.headers = headers
         self.filename = filename
 
     def run(self):
-        with open(self.filename, 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile)
-            if self.headers:
-                writer.writerow(self.headers)
-            for row in self.data:
-                writer.writerow(row)
+        try:
+            with open(self.filename, 'w', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                if self.headers:
+                    writer.writerow(self.headers)
+                for row in self.data:
+                    writer.writerow(row)
+        finally:
+            self.finished.emit()
 
 
-class SerialThread(QThread):
-
+class SerialWorker(QObject):
+    """Worker for serial communication"""
     done = pyqtSignal(str)
+    finished = pyqtSignal()
 
     def __init__(self, message):
-        super(SerialThread, self).__init__()
+        super(SerialWorker, self).__init__()
         self.message = message
 
     def run(self):
@@ -147,14 +231,16 @@ class SerialThread(QThread):
         finally:
             context.serial.release()
             self.done.emit(error)
+            self.finished.emit()
 
 
-class FtpThread(QThread):
-
+class FtpWorker(QObject):
+    """Worker for FTP communication"""
     done = pyqtSignal(str)
+    finished = pyqtSignal()
 
     def __init__(self, message, valids=None):
-        super(FtpThread, self).__init__()
+        super(FtpWorker, self).__init__()
         self.message = message
         if valids is None:
             valids = (datetime.datetime.utcnow(), datetime.datetime.utcnow())
@@ -181,28 +267,50 @@ class FtpThread(QThread):
             logger.error('Failed to send data through FTP, {}'.format(e))
         finally:
             self.done.emit(error)
+            self.finished.emit()
 
 
-class CheckUpgradeThread(QThread):
-
+class CheckUpgradeWorker(QObject):
+    """Worker for checking software updates"""
     done = pyqtSignal(dict)
+    finished = pyqtSignal()
 
     def run(self):
-        url = 'https://api.github.com/repos/up1and/tafor/releases/latest'
-        data = repoRelease(url)
-        self.done.emit(data)
+        try:
+            url = 'https://api.github.com/repos/up1and/tafor/releases/latest'
+            data = repoRelease(url)
+            self.done.emit(data)
+        finally:
+            self.finished.emit()
 
 
-class RpcThread(QThread):
+class RpcWorker(QObject):
+    """Worker for RPC server"""
+    finished = pyqtSignal()
 
     def __init__(self, port=9407):
-        super(RpcThread, self).__init__()
+        super(RpcWorker, self).__init__()
         self.app = server
         self.port = port
-
-    def __del__(self):
-        self.wait()
+        self._server = None
 
     def run(self):
-        from waitress import serve
-        serve(self.app, port=self.port)
+        try:
+            from waitress import serve
+            # Store server reference for potential shutdown
+            self._server = serve(self.app, port=self.port, _quiet=True)
+        except Exception as e:
+            logger.error(f"RPC server failed to start: {e}")
+        finally:
+            self.finished.emit()
+
+    def stop(self):
+        """Stop the RPC server"""
+        if self._server:
+            try:
+                self._server.close()
+            except:
+                pass
+
+
+

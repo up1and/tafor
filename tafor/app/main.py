@@ -15,7 +15,7 @@ from tafor import root, conf, logger, __version__
 from tafor.models import db, Metar, Taf, Trend
 from tafor.states import context
 from tafor.utils import boolean, checkVersion, latestMetar, currentSigmet, findAvailables, createTafStatus
-from tafor.utils.thread import WorkThread, LayerThread, CheckUpgradeThread, RpcThread
+from tafor.utils.thread import (MessageWorker, LayerWorker, CheckUpgradeWorker, RpcWorker, threadManager)
 
 from tafor.components.ui import Ui_main, main_rc
 from tafor.components.taf import TafEditor
@@ -185,14 +185,15 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.tray.setToolTip(message)
 
     def setupThread(self):
-        self.workThread = WorkThread()
-        self.workThread.finished.connect(self.updateMessage)
-        self.workThread.finished.connect(self.notifier)
+        # Create workers using the new thread manager
+        self.messageWorker, self.messageThread = threadManager.createWorker(MessageWorker, 'message')
+        self.messageWorker.finished.connect(self.updateMessage)
+        self.messageWorker.finished.connect(self.notifier)
 
-        self.layerThread = LayerThread()
+        self.layerWorker, self.layerThread = threadManager.createWorker(LayerWorker, 'layer')
 
-        self.checkUpgradeThread = CheckUpgradeThread()
-        self.checkUpgradeThread.done.connect(self.checkUpgrade)
+        self.checkUpgradeWorker, self.checkUpgradeThread = threadManager.createWorker(CheckUpgradeWorker, 'upgrade')
+        self.checkUpgradeWorker.done.connect(self.checkUpgrade)
 
     def setupSound(self):
         self.notificationSound = Sound('notification.wav')
@@ -269,6 +270,11 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             event.ignore()
             self.hide()
         else:
+            # Stop all timers first
+            self.clockTimer.stop()
+            self.workerTimer.stop()
+            self.painterTimer.stop()
+
             self.tafSender.setAttribute(Qt.WA_DeleteOnClose)
             self.trendSender.setAttribute(Qt.WA_DeleteOnClose)
             self.sigmetSender.setAttribute(Qt.WA_DeleteOnClose)
@@ -293,6 +299,10 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.remindSigmetBox.close()
 
             self.tray.hide()
+
+            # Clean up thread manager
+            threadManager.cleanup()
+
             event.accept()
 
     def singer(self):
@@ -313,11 +323,11 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.alarmSound.stop()
 
     def worker(self):
-        self.workThread.start()
+        threadManager.startWorker('message')
 
     def painter(self):
-        if conf.value('Interface/LayerURL') and not self.layerThread.isRunning():
-            self.layerThread.start()
+        if conf.value('Interface/LayerURL') and not threadManager.isWorkerRunning('layer'):
+            threadManager.startWorker('layer')
 
     def notifier(self):
         connectionError = QCoreApplication.translate('MainWindow', 'Connection Error')
@@ -325,7 +335,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             context.flash.warning(connectionError,
                 QCoreApplication.translate('MainWindow', 'Unable to connect remote message data source, please check the settings or network status.'))
 
-        if conf.value('Interface/LayerURL') and not context.layer.currentLayers() and not self.layerThread.isRunning():
+        if conf.value('Interface/LayerURL') and not context.layer.currentLayers() and not threadManager.isWorkerRunning('layer'):
             context.flash.warning(connectionError,
                 QCoreApplication.translate('MainWindow', 'Unable to connect FIR information data source, please check the settings or network status.'))
 
@@ -624,9 +634,9 @@ def main():
     localServer.listen(serverName)
 
     if boolean(conf.value('Interface/RPC')):
-        rpc = RpcThread()
-        rpc.start()
-        app.aboutToQuit.connect(rpc.terminate)
+        rpcWorker, rpcThread = threadManager.createWorker(RpcWorker, 'rpc')
+        threadManager.startWorker('rpc')
+        app.aboutToQuit.connect(lambda: threadManager.stopWorker('rpc'))
 
     versions = context.environ.environment()
     logger.info('Version {version}+{revision}, Python {python} {bitness}, Qt {qt} on {system} {release}'.format(**versions))

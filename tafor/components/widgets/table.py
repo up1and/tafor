@@ -3,7 +3,7 @@ import datetime
 
 from PyQt5.QtGui import QIcon, QRegExpValidator, QColor, QPixmap, QCursor
 from PyQt5.QtCore import QCoreApplication, QStandardPaths, QRegExp, QDate, Qt, pyqtSignal
-from PyQt5.QtWidgets import (QDialog, QFileDialog, QWidget, QDialogButtonBox, QTableWidgetItem, QHeaderView, QLabel, QCalendarWidget, 
+from PyQt5.QtWidgets import (QDialog, QFileDialog, QWidget, QDialogButtonBox, QTableWidgetItem, QHeaderView, QLabel, QCalendarWidget,
     QVBoxLayout, QFormLayout, QLabel, QDateEdit, QLayout, QApplication)
 
 from sqlalchemy import and_
@@ -12,7 +12,7 @@ from tafor.states import context
 from tafor.styles import calendarStyle, dateEditHiddenStyle, buttonHoverStyle
 from tafor.models import db, Taf, Metar, Sigmet
 from tafor.utils import paginate
-from tafor.utils.thread import ExportRecordThread
+from tafor.utils.thread import ExportRecordWorker, threadManager
 from tafor.components.ui import Ui_main_table, main_rc
 
 
@@ -126,9 +126,11 @@ class ExportDialog(QDialog):
         headers = ('type', 'text', 'created')
         data = [(e.type, e.text, e.created) for e in self.queryset()]
 
-        self.thread = ExportRecordThread(filename, data, headers=headers)
-        self.thread.finished.connect(self.close)
-        self.thread.start()
+        # Use new worker-based approach
+        workerId = f"export_{id(self)}"
+        worker, thread = threadManager.createWorker(ExportRecordWorker, workerId, filename, data, headers=headers)
+        worker.finished.connect(self.close)
+        threadManager.startWorker(workerId)
 
 
 class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
