@@ -46,6 +46,7 @@ docs/_build
 webui/
 tests/fixtures/backup.json
 auth.json
+diff.txt
 _environ.py
 _eric6project/
 .eric6project/
@@ -55,3 +56,4 @@ _eric6project/
 .qt_for_python
 .python-version
 .version
+.pdm-python

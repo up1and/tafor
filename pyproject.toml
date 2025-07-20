@@ -1,0 +1,41 @@
+[project]
+name = "tafor"
+version = "3.0.dev"
+description = "A Terminal Aerodrome Forecast Encoding Software"
+authors = [
+    {name = "up1and", email = "piratecb@gmail.com"},
+]
+dependencies = [
+    "click",
+    "falcon",
+    "pyserial",
+    "python-dateutil",
+    "pyjwt",
+    "pyjwt[crypto]",
+    "pyshp",
+    "pyproj",
+    "waitress",
+    "requests",
+    "SQLAlchemy",
+    "Shapely==1.8.5.post1",
+    "PyQt5==5.15.2",
+    "PyQtChart==5.15.2",
+]
+requires-python = ">=3.7, <3.10"
+readme = "README.md"
+license = {text = "GPL-2.0"}
+
+
+[tool.pdm]
+distribution = false
+
+[tool.pdm.dev-dependencies]
+test = [
+    "pytest",
+    "pytest-qt",
+    "pytest-cov",
+    "pytest-env",
+]
+
+[tool.pdm.scripts]
+tafor = "python -m tafor"
