@@ -146,11 +146,16 @@ class BaseSigmet(SegmentMixin, QWidget):
     def updateSquence(self):
         time = datetime.datetime.utcnow()
         begin = datetime.datetime(time.year, time.month, time.day)
-        query = db.query(Sigmet).filter(Sigmet.created > begin)
-        if self.type() == 'WA':
-            query = query.filter(Sigmet.type == 'WA')
-        else:
-            query = query.filter(Sigmet.type != 'WA')
+
+        with db.session() as session:
+            query = session.query(Sigmet).filter(Sigmet.created > begin)
+
+            if self.type() == 'WA':
+                query = query.filter(Sigmet.type == 'WA')
+            else:
+                query = query.filter(Sigmet.type != 'WA')
+
+            sigmets = query.all()
 
         def isYesterday(text):
             if text:
@@ -162,7 +167,7 @@ class BaseSigmet(SegmentMixin, QWidget):
 
             return False
 
-        sigmets = [sig for sig in query.all() if not isYesterday(sig.heading)]
+        sigmets = [sig for sig in sigmets if not isYesterday(sig.heading)]
         count = len(sigmets) + 1
         self.sequence.setText(str(count))
 
@@ -1479,7 +1484,9 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         self.text.setPlaceholderText(tip)
 
     def loadLocalDatabase(self):
-        last = db.query(Sigmet).filter(Sigmet.type == self.type(), ~Sigmet.text.contains('CNL')).order_by(Sigmet.created.desc()).first()
+        with db.session() as session:
+            last = session.query(Sigmet).filter(Sigmet.type == self.type(), ~Sigmet.text.contains('CNL')).order_by(Sigmet.created.desc()).first()
+
         if last:
             parser = last.parser()
             return 'database', parser.content()

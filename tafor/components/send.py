@@ -306,8 +306,9 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             self.message.protocol = self.protocol()
             logger.debug('Send {}'.format(self.message.text))
 
-        db.add(self.message)
-        db.commit()
+        with db.session() as session:
+            session.add(self.message)
+
         self.succeeded.emit(True)
 
     def print(self):

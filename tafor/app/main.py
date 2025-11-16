@@ -416,20 +416,19 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         items = findAvailables(messages, wishlist=wishlist)
         needPlaySound = False
 
-        for item in items:
-            if item.id:
-                logger.info('Confirm {} {}'.format(item.type, item.text))
-            else:
-                logger.info('Save {} {}'.format(item.type, item.text))
+        with db.session() as session:
+            for item in items:
+                if item.id:
+                    logger.info('Confirm {} {}'.format(item.type, item.text))
+                else:
+                    logger.info('Save {} {}'.format(item.type, item.text))
 
-            if item.type in ['SA', 'SP']:
-                context.notification.metar.clear()
-            else:
-                needPlaySound = True
+                if item.type in ['SA', 'SP']:
+                    context.notification.metar.clear()
+                else:
+                    needPlaySound = True
 
-            db.add(item)
-
-        db.commit()
+                session.add(item)
 
         if needPlaySound:
             self.notificationSound.play(loop=False)
@@ -460,34 +459,36 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
         spec = context.taf.spec[:2].upper()
-        taf = db.query(Taf).filter(Taf.created > recent, Taf.type == spec).order_by(Taf.created.desc()).first()
-        if boolean(conf.value('General/Sigmet')):
-            sigmets = context.message.sigmets(show='all')
-        else:
-            sigmets = []
 
-        trend = db.query(Trend).order_by(Trend.created.desc()).first()
-        if trend and trend.isNosig():
-            trend = None
+        with db.session() as session:
+            taf = session.query(Taf).filter(Taf.created > recent, Taf.type == spec).order_by(Taf.created.desc()).first()
+            if boolean(conf.value('General/Sigmet')):
+                sigmets = context.message.sigmets(show='all')
+            else:
+                sigmets = []
 
-        parser = context.notification.metar.parser()
-        if parser:
-            uuid = str(uuid4())
-            created = context.notification.metar.created()
-            validation = context.notification.metar.validation()
-            metar = Metar(uuid=uuid, text=parser.message, created=created)
-            parser.validate()
-            metar.validations = {
-                'html': parser.renderer(style='html', showDiff=True),
-                'tips': parser.tips,
-                'pass': parser.isValid(),
-                'validation': validation
-            }
-        else:
-            metar = db.query(Metar).filter(Metar.created > recent).order_by(Metar.created.desc()).first()
+            trend = session.query(Trend).order_by(Trend.created.desc()).first()
+            if trend and trend.isNosig():
+                trend = None
 
-        queryset = list(filter(None, [metar, trend, taf] + sigmets))
-        uuids = [q.uuid for q in queryset]
+            parser = context.notification.metar.parser()
+            if parser:
+                uuid = str(uuid4())
+                created = context.notification.metar.created()
+                validation = context.notification.metar.validation()
+                metar = Metar(uuid=uuid, text=parser.message, created=created)
+                parser.validate()
+                metar.validations = {
+                    'html': parser.renderer(style='html', showDiff=True),
+                    'tips': parser.tips,
+                    'pass': parser.isValid(),
+                    'validation': validation
+                }
+            else:
+                metar = session.query(Metar).filter(Metar.created > recent).order_by(Metar.created.desc()).first()
+
+        messages = list(filter(None, [metar, trend, taf] + sigmets))
+        uuids = [message.uuid for message in messages]
         for widget in self.recentWidget():
             if widget.uuid() not in uuids:
                 widget.deleteLater()
@@ -495,9 +496,9 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
                 widget.updateGui()
 
         widgetUuids = [widget.uuid() for widget in self.recentWidget()]
-        for i, query in enumerate(queryset):
-            if query.uuid not in widgetUuids:
-                RecentMessage(self, self.scrollLayout, query, index=i+1)
+        for i, message in enumerate(messages):
+            if message.uuid not in widgetUuids:
+                RecentMessage(self, self.scrollLayout, message, index=i+1)
 
     def updateTable(self):
         self.tafTable.updateGui()

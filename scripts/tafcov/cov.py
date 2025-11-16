@@ -27,7 +27,9 @@ def render_template(template_name, **kwargs):
 def main():
     passed = []
     failed = []
-    tafs = db.query(Taf).order_by(Taf.created.desc()).all()
+    with db.session() as session:
+        tafs = session.query(Taf).order_by(Taf.created.desc()).all()
+
     for taf in tafs:
         parser = taf.parser()
         parser.validate()

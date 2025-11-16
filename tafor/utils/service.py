@@ -1,22 +1,23 @@
 import copy
 import datetime
 
-from tafor import logger
 from tafor.models import db, Metar, Sigmet
 
 
 def latestMetar():
     recent = datetime.datetime.utcnow() - datetime.timedelta(hours=2)
-    queryset = db.query(Metar).filter(Metar.created > recent).order_by(Metar.created.desc())
-    return queryset.first()
+    with db.session() as session:
+        metar = session.query(Metar).filter(Metar.created > recent).order_by(Metar.created.desc()).first()
+        return metar
 
 def currentSigmet():
     recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-    queryset = db.query(Sigmet).filter(Sigmet.created > recent).order_by(Sigmet.created.asc())
+    with db.session() as session:
+        records = session.query(Sigmet).filter(Sigmet.created > recent).order_by(Sigmet.created.asc()).all()
 
     sigmets = []
     cancels = []
-    for sig in queryset.all():
+    for sig in records:
         if not sig.isExpired():
             if sig.isCnl():
                 cancels.append(sig)

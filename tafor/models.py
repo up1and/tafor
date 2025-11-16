@@ -3,9 +3,10 @@ import json
 import datetime
 
 from uuid import uuid4
+from contextlib import contextmanager
 
 from sqlalchemy import Column, Integer, String, Text, DateTime, create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.ext.declarative import declarative_base
 
 from tafor import conf, root
@@ -203,8 +204,26 @@ class Other(Base):
         return self.raw
 
 
-engine = create_engine(SQLALCHEMY_DATABASE_URI, echo=False)
-Session = sessionmaker(bind=engine)
-db = Session()
+class Database(object):
 
+    def __init__(self, engine):
+        self.engine = engine
+        # allow attribute access after session close
+        self.sessionFactory = scoped_session(sessionmaker(bind=self.engine, expire_on_commit=False))
+    
+    @contextmanager
+    def session(self):
+        session = self.sessionFactory()
+        try:
+            yield session
+            session.commit()
+        except:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+engine = create_engine(SQLALCHEMY_DATABASE_URI, echo=False)
 Base.metadata.create_all(engine)
+
+db = Database(engine)

@@ -1,10 +1,8 @@
 import datetime
 
-from sqlalchemy import or_
-
 from tafor import conf
 from tafor.models import db, Taf, Metar, Sigmet
-from tafor.utils.validator import TafParser, SigmetParser
+from tafor.utils.validator import SigmetParser
 
 
 class SpecFC(object):
@@ -150,13 +148,16 @@ class CurrentTaf(object):
 
 
 def availableMetar(type, message):
-    last = db.query(Metar).filter_by(type=type).order_by(Metar.created.desc()).first()
+    with db.session() as session:
+        last = session.query(Metar).filter_by(type=type).order_by(Metar.created.desc()).first()
+
     if last is None or last.text != message:
         return Metar(type=type, text=message)
 
 def availableTaf(type, message):
     recent = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
-    tafs = db.query(Taf).filter(type==type, Taf.created > recent).all()
+    with db.session() as session:
+        tafs = session.query(Taf).filter(type==type, Taf.created > recent).all()
 
     def _match(objects, message):
         for taf in objects:
@@ -173,11 +174,12 @@ def availableTaf(type, message):
 
 def availableSigmet(type, messages):
     recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-    sigmets = db.query(Sigmet).filter(Sigmet.created > recent).all()
     time = datetime.datetime.utcnow()
 
-    availables = []
+    with db.session() as session:
+        sigmets = session.query(Sigmet).filter(Sigmet.created > recent).all()
 
+    availables = []
     for message in messages:
         message = ' '.join(message.split())
         parser = SigmetParser(message)
@@ -226,7 +228,9 @@ def createTafStatus(spec):
 
     # Ignore AMD COR message
     expired = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
-    recent = db.query(Taf).filter(Taf.text.contains(period),  ~Taf.text.contains('AMD'),
+
+    with db.session() as session:
+        recent = session.query(Taf).filter(Taf.text.contains(period),  ~Taf.text.contains('AMD'),
         ~Taf.text.contains('COR'), Taf.created > expired).order_by(Taf.created.desc()).first()
 
     if currentTaf.hasExpired():
@@ -237,7 +241,9 @@ def createTafStatus(spec):
             hasExpired = True
 
     # The alarm clock no longer rings after the cancel message is issued
-    latest = db.query(Taf).filter_by(type=currentTaf.spec.type).order_by(Taf.created.desc()).first()
+    with db.session() as session:
+        latest = session.query(Taf).filter_by(type=currentTaf.spec.type).order_by(Taf.created.desc()).first()
+
     if latest and latest.isCnl():
         hasExpired = False
         clockRemind = False

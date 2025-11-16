@@ -4,8 +4,6 @@ import datetime
 
 from dateutil import relativedelta
 
-from tafor import logger
-
 
 def isOverlap(basetime, reftime):
     """判断时间是否有重叠

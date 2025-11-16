@@ -648,7 +648,8 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
     def setNormalPeriod(self, taf, strict=False):
         period = taf.period(strict=strict)
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
-        recent = db.query(Taf).filter(Taf.text.contains(period), Taf.created > expired).order_by(Taf.created.desc()).first()
+        with db.session() as session:
+            recent = session.query(Taf).filter(Taf.text.contains(period), Taf.created > expired).order_by(Taf.created.desc()).first()
 
         if period and recent or not self.date.hasAcceptableInput():
             self.period.clear()
@@ -684,15 +685,17 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
     def amendNumber(self, sort):
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        query = db.query(Taf).filter(Taf.text.contains(self.amdPeriod), Taf.created > expired)
-        if sort == 'COR':
-            items = query.filter(Taf.text.contains('COR')).all()
-            order = chr(ord('A') + len(items))
-            return 'CC' + order
-        else:
-            items = query.filter(Taf.text.contains('AMD')).all()
-            order = chr(ord('A') + len(items))
-            return 'AA' + order
+        with db.session() as session:
+            query = session.query(Taf).filter(Taf.text.contains(self.amdPeriod), Taf.created > expired)
+
+            if sort == 'COR':
+                count = query.filter(Taf.text.contains('COR')).count()
+                order = chr(ord('A') + count)
+                return 'CC' + order
+            else:
+                items = query.filter(Taf.text.contains('AMD')).count()
+                order = chr(ord('A') + count)
+                return 'AA' + order
 
     def findTemperature(self, oneself):
         temps = [t.temperature for t in self.temperatures if t.temperature is not None and t is not oneself]

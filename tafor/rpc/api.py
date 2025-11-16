@@ -135,13 +135,13 @@ class SQLAlchemySessionComponent(object):
 
     def __init__(self, db_engine):
         self.engine = db_engine
-        self.session_factory = sessionmaker(bind=db_engine)
+        self.session_factory = scoped_session(sessionmaker(bind=db_engine))
 
     def process_resource(self, req, resp, resource, params):
         if req.method == 'OPTIONS':
             return
 
-        req.context['session'] = scoped_session(self.session_factory)
+        req.context['session'] = self.session_factory()
 
     def process_response(self, req, resp, resource, req_succeeded):
         if req.method == 'OPTIONS':

@@ -2,16 +2,14 @@ import os
 import random
 import datetime
 
-from PyQt5.QtGui import QPainter, QColor, QImage, QBrush, QPixmap, QPolygonF
+from PyQt5.QtGui import QPainter, QColor, QBrush, QPixmap, QPolygonF
 from PyQt5.QtCore import QCoreApplication, QStandardPaths, QDate, QPointF, Qt
 from PyQt5.QtWidgets import QDialog, QFileDialog, QDialogButtonBox, QCalendarWidget, QGraphicsRectItem, QGraphicsPolygonItem, QGraphicsTextItem
-from PyQt5.QtChart import (QChart, QChartView, QSplineSeries, QLineSeries, QScatterSeries, QAreaSeries,
-    QDateTimeAxis, QLogValueAxis, QValueAxis, QCategoryAxis)
+from PyQt5.QtChart import (QChart, QChartView, QSplineSeries, QScatterSeries, QDateTimeAxis, QCategoryAxis)
 
 from tafor import logger
 from tafor.styles import calendarStyle
 from tafor.models import db, Metar
-from tafor.utils import MetarParser
 from tafor.components.ui import Ui_chart, main_rc
 
 
@@ -252,14 +250,6 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
             start, end = self.dateRange
             logger.error('Failed to draw chart, date range {} - {}, {}'.format(start, end, e))
 
-    def queryset(self):
-        start, end = self.dateRange
-        query = db.query(Metar).filter(Metar.created >= start, Metar.created < end + datetime.timedelta(minutes=20)) \
-            .order_by(Metar.created.desc()).all()
-
-        query.reverse()
-        return query
-
     def showEvent(self, event):
         self.updateDateRange()
 
@@ -316,15 +306,15 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         for s in series:
             s.attachAxis(axisY)
 
-    def addWindDirectionAxis(self, chart, queryset):
+    def addWindDirectionAxis(self, chart, records):
         series = chart.series()
         if not series:
             return
 
-        def findIndex(queryset, timestamp):
+        def findIndex(records, timestamp):
             deltas = []
-            for q in queryset:
-                delta = abs(q.created.timestamp() - timestamp)
+            for record in records:
+                delta = abs(record.created.timestamp() - timestamp)
                 deltas.append(delta)
 
             return deltas.index(min(deltas))
@@ -339,7 +329,7 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         for i in range(tickCount):
             tickCountTime = minx + i * step
             timestamp = tickCountTime / 1000
-            index = findIndex(queryset, timestamp)
+            index = findIndex(records, timestamp)
             metar = chart.metars[index]
             label = '<span class="label-{}">{}</span>'.format(i, metar.windDirection('arrow'))
             axisX.append(label, minx + i * step)
@@ -491,13 +481,18 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         return series
 
     def drawChart(self):
-        queries = self.queryset()
+        start, end = self.dateRange
+        with db.session() as session:
+            results = session.query(Metar).filter(
+                Metar.created >= start, 
+                Metar.created < end + datetime.timedelta(minutes=20)
+            ).order_by(Metar.created.asc()).all()
 
-        if not queries:
+        if not results:
             return
 
-        xmin = queries[0].created
-        xmax = queries[-1].created
+        xmin = results[0].created
+        xmax = results[-1].created
 
         winds = QSplineSeries()
         winds.setName('Wind')
@@ -532,9 +527,9 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
 
         metars = []
 
-        for q in queries:
-            metar = q.parser().primary
-            timestamp = round(q.created.timestamp() * 1000)
+        for m in results:
+            metar = m.parser().primary
+            timestamp = round(m.created.timestamp() * 1000)
 
             metars.append(metar)
 
@@ -565,7 +560,7 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
             self.windChart.addSeries(gusts)
         self.addAxisY(self.windChart)
         self.addAxisX(self.windChart, xmin, xmax)
-        self.addWindDirectionAxis(self.windChart, queries)
+        self.addWindDirectionAxis(self.windChart, results)
 
         self.visChart.addSeries(visibilities)
         if rvrs.count():

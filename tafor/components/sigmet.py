@@ -1,7 +1,6 @@
 import datetime
 
-from PyQt5.QtCore import QCoreApplication, QTimer, Qt
-from PyQt5.QtWidgets import QRadioButton
+from PyQt5.QtCore import QCoreApplication, QTimer
 
 from tafor import conf
 from tafor.states import context

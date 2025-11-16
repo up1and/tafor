@@ -9,34 +9,31 @@ from tafor.models import db, Taf, Trend, Sigmet, Other
 
 
 def addProtocol(model):
-    items = db.query(model).filter(model.protocol == None).all()
-    for item in items:
-        if item.raw:
-            item.protocol = 'aftn'
-            db.add(item)
-
-    db.commit()
+    with db.session() as session:
+        items = session.query(model).filter(model.protocol == None).all()
+        for item in items:
+            if item.raw:
+                item.protocol = 'aftn'
+                session.add(item)
 
 def addSource(model):
-    items = db.query(model).filter(model.source == None).all()
-    for item in items:
-        if item.raw:
-            item.source = 'self'
-        else:
-            item.source = 'api'
-        
-        db.add(item)
-
-    db.commit()
+    with db.session() as session:
+        items = session.query(model).filter(model.source == None).all()
+        for item in items:
+            if item.raw:
+                item.source = 'self'
+            else:
+                item.source = 'api'
+            
+            session.add(item)
 
 def addUuid(model):
-    items = db.query(model).filter(model.uuid == None).all()
-    for item in items:
-        item.uuid = str(uuid4())
-        
-        db.add(item)
-
-    db.commit()
+    with db.session() as session:
+        items = session.query(model).filter(model.uuid == None).all()
+        for item in items:
+            item.uuid = str(uuid4())
+            
+            session.add(item)
 
 def main():
     for model in [Taf, Trend, Sigmet, Other]:
