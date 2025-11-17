@@ -5,11 +5,9 @@ import logging
 from logging.handlers import RotatingFileHandler
 
 
-def createLogger(debug=False, name=None):
+def setupLogging(debug=False, name='tafor'):
     logLevel = logging.DEBUG if debug else logging.INFO
-    name = name if name else __name__
-
-    _format = '[%(asctime)s] %(levelname)s %(message)s'
+    _format = '[%(asctime)s] %(levelname)s [%(name)s] %(message)s'
     formatter = logging.Formatter(_format)
 
     ch = logging.StreamHandler(sys.stdout)
@@ -25,8 +23,6 @@ def createLogger(debug=False, name=None):
     logger.addHandler(ch)
     logger.addHandler(fh)
 
-    return logger
-
 
 class AppGlobals(object):
 
@@ -35,7 +31,7 @@ class AppGlobals(object):
         boolean = lambda value: value if isinstance(value, bool) else value == 'true'
         self._conf = QSettings('Up1and', 'Tafor')
         self._debug = boolean(self._conf.value('General/Debug'))
-        self._logger = createLogger(self._debug, name='tafor')
+        setupLogging(self._debug)
 
     @property
     def basedir(self):
@@ -55,13 +51,8 @@ class AppGlobals(object):
         else:
             return self._conf
 
-    @property
-    def logger(self):
-        return self._logger
-
 
 _globals = AppGlobals()
 
 root = _globals.basedir
 conf = _globals.conf
-logger = _globals.logger

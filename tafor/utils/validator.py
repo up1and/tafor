@@ -1,11 +1,13 @@
 import re
 import copy
+import logging
 import datetime
 
 from collections import OrderedDict
 
-from tafor import logger
 from tafor.utils.convert import parseTimez, parsePeriod, parseTime, degreeToDecimal
+
+logger = logging.getLogger('tafor.validator')
 
 
 weather = [

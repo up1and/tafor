@@ -12,4 +12,4 @@ __version__ = '3.0.dev'
 __author__ = 'up1and'
 
 
-from tafor.globals import root, conf, logger
+from tafor.globals import root, conf

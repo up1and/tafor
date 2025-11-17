@@ -1,5 +1,6 @@
 import os
 import random
+import logging
 import datetime
 
 from PyQt5.QtGui import QPainter, QColor, QBrush, QPixmap, QPolygonF
@@ -7,10 +8,11 @@ from PyQt5.QtCore import QCoreApplication, QStandardPaths, QDate, QPointF, Qt
 from PyQt5.QtWidgets import QDialog, QFileDialog, QDialogButtonBox, QCalendarWidget, QGraphicsRectItem, QGraphicsPolygonItem, QGraphicsTextItem
 from PyQt5.QtChart import (QChart, QChartView, QSplineSeries, QScatterSeries, QDateTimeAxis, QCategoryAxis)
 
-from tafor import logger
 from tafor.styles import calendarStyle
 from tafor.models import db, Metar
 from tafor.components.ui import Ui_chart, main_rc
+
+logger = logging.getLogger('tafor.chart')
 
 
 class MarkerGraphicsItem(QGraphicsRectItem):

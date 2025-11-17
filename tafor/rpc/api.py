@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 
 import falcon
 
@@ -7,10 +8,12 @@ from uuid import uuid4
 
 from sqlalchemy.orm import sessionmaker, scoped_session
 
-from tafor import root, conf, logger
+from tafor import root, conf
 from tafor.models import engine, Taf, Metar, Sigmet, Other
 from tafor.states import context
 from tafor.utils import boolean, paginate, TafParser, SigmetParser, MetarParser, AFTNMessageGenerator
+
+logger = logging.getLogger('tafor.rpc')
 
 
 def as_bool(body, name):

@@ -1,16 +1,20 @@
 import math
+import logging
 import datetime
 
 from PyQt5.QtGui import QPixmap, QIcon, QBrush, QPen, QFont, QFontMetrics, QPainterPath, QPainter
 from PyQt5.QtCore import QCoreApplication, QTimer, QSize, Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QLabel, QHBoxLayout
 
-from tafor import conf, logger
+from tafor import conf
 from tafor.utils import CurrentTaf, timeAgo
+
 from tafor.styles import buttonHoverStyle
 from tafor.states import context
 from tafor.components.widgets.geometry import SigmetBackground
 from tafor.components.ui import main_rc, Ui_main_recent, Ui_main_license
+
+logger = logging.getLogger('tafor.widgets')
 
 
 class OutlinedLabel(QLabel):

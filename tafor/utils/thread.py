@@ -1,15 +1,18 @@
 import csv
 import datetime
+import logging
 
 import requests
 
 from PyQt5.QtCore import QThread, QObject, pyqtSignal
 
-from tafor import conf, logger
+from tafor import conf
 from tafor.rpc import server
 from tafor.states import context
 from tafor.utils import serialComm, ftpComm
 from tafor.utils.baudot import encode, ITA2_STANDARD
+
+logger = logging.getLogger('tafor.thread')
 
 
 _headers = {

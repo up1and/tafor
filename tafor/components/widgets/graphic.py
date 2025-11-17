@@ -1,5 +1,6 @@
 import os
 import math
+import logging
 
 import shapefile
 import shapely.geometry
@@ -13,13 +14,13 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView, Q
 from PyQt5.QtGui import QIcon, QPainter
 from PyQt5.QtCore import QCoreApplication, QObject, Qt, QRect, QRectF, QSize, pyqtSignal
 
-from tafor import logger
 from tafor.states import context
 from tafor.utils.convert import decimalToDegree
 from tafor.utils.algorithm import encode, depth, buffer, circle, flattenLine, clipLine, clipPolygon, simplifyPolygon
 from tafor.components.widgets.geometry import BackgroundImage, Coastline, Fir, Sigmet, SketchGraphic, StickerGraphic
 from tafor.components.widgets.widget import OutlinedLabel
 
+logger = logging.getLogger('tafor.sigmet.graphic')
 
 wgs84 = Geod(ellps='WGS84')
 

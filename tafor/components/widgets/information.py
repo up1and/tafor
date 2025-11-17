@@ -1,4 +1,5 @@
 import re
+import logging
 import datetime
 
 from itertools import cycle
@@ -7,14 +8,17 @@ from PyQt5.QtGui import QRegExpValidator, QIntValidator, QTextCharFormat, QTextC
 from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QToolButton
 
-from tafor import conf, logger
+from tafor import conf
 from tafor.states import context
+
 from tafor.utils import Pattern
 from tafor.utils.convert import parseTime, ceilTime, roundTime, calcPosition, decimalToDegree, degreeToDecimal
 from tafor.utils.validator import AshAdvisoryParser, TyphoonAdvisoryParser
 from tafor.models import db, Sigmet
 from tafor.components.widgets.forecast import SegmentMixin
 from tafor.components.ui import Ui_sigmet_general, Ui_sigmet_typhoon, Ui_sigmet_ash, Ui_sigmet_cancel, Ui_sigmet_custom, main_rc
+
+logger = logging.getLogger('tafor.sigmet.information')
 
 
 class BaseSigmet(SegmentMixin, QWidget):

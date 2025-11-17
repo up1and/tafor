@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import secrets
+import logging
 import datetime
 
 import shapely
@@ -10,11 +11,13 @@ from PyQt5.QtGui import QIcon, QIntValidator, QTextCursor
 from PyQt5.QtCore import QCoreApplication, QStandardPaths, QSettings, QTimer, Qt, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QFileDialog, QMessageBox, QApplication
 
-from tafor import conf, logger
+from tafor import conf
 from tafor.states import context
 from tafor.utils import boolean, ftpComm, ipAddress
 from tafor.styles import tabStyle
 from tafor.components.ui import Ui_setting, main_rc
+
+logger = logging.getLogger('tafor.setting')
 
 
 baseOptions = [

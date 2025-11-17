@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import logging
 import datetime
 
 from uuid import uuid4
@@ -11,7 +12,7 @@ from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy
         QSystemTrayIcon, QMenu, QMessageBox, QStyleFactory)
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 
-from tafor import root, conf, logger, __version__
+from tafor import root, conf, __version__
 from tafor.models import db, Metar, Taf, Trend
 from tafor.states import context
 from tafor.utils import boolean, checkVersion, latestMetar, currentSigmet, findAvailables, createTafStatus
@@ -28,6 +29,8 @@ from tafor.components.chart import ChartViewer
 from tafor.components.widgets.table import TafTable, MetarTable, SigmetTable, AirmetTable
 from tafor.components.widgets.widget import Clock, TafBoard, RecentMessage, RemindMessageBox, LicenseEditor
 from tafor.components.widgets.sound import Sound
+
+logger = logging.getLogger('tafor.main')
 
 
 class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):

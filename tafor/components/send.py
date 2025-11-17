@@ -1,3 +1,4 @@
+import logging
 import datetime
 
 from itertools import cycle
@@ -7,13 +8,15 @@ from PyQt5.QtCore import QCoreApplication, QSize, Qt, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QMessageBox, QTextEdit, QLabel, QToolButton
 from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
 
-from tafor import conf, logger
+from tafor import conf
 from tafor.states import context
 from tafor.models import db, Other
 from tafor.utils import boolean, TafParser, MetarParser, SigmetParser, AFTNMessageGenerator, FileMessageGenerator, AFTNDecoder
 from tafor.utils.thread import SerialWorker, FtpWorker, threadManager
 from tafor.components.widgets.graphic import GraphicsViewer
 from tafor.components.ui import Ui_send, main_rc
+
+logger = logging.getLogger('tafor.send')
 
 
 class AFTNChannel(object):
