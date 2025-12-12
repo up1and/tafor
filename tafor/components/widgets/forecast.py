@@ -205,7 +205,7 @@ class BaseSegment(SegmentMixin, QWidget):
         self.cloud3.setValidator(cloud)
         self.cb.setValidator(cloud)
 
-        weather = conf.value('Message/Weather')
+        weather = conf.weatherList
         weathers = [''] + json.loads(weather) if weather else ['']
         if self.identifier == 'PRIMARY':
             weathers = [w for w in weathers if w != 'NSW']
@@ -213,7 +213,7 @@ class BaseSegment(SegmentMixin, QWidget):
         weather = QRegExpValidator(QRegExp(r'{}'.format('|'.join(weathers)), Qt.CaseInsensitive))
         self.weather.setValidator(weather)
 
-        weatherWithIntensity = conf.value('Message/WeatherWithIntensity')
+        weatherWithIntensity = conf.weatherWithIntensityList
         intensityWeathers = ['']
         if weatherWithIntensity:
             weathers = json.loads(weatherWithIntensity)
@@ -765,7 +765,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         super(TafPrimarySegment, self).message()
         amd = 'AMD' if self.amd.isChecked() or self.cnl.isChecked() else ''
         cor = 'COR' if self.cor.isChecked() else ''
-        icao = conf.value('Message/Airport')
+        icao = conf.airport
         timez = self.date.text() + 'Z'
         period = self.period.text()
         temperatures = [t.text() for t in self.sortedTemperatures()]
@@ -779,8 +779,8 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         return self.text
 
     def heading(self):
-        area = conf.value('Message/BulletinNumber') or ''
-        icao = conf.value('Message/Airport')
+        area = conf.bulletinNumber or ''
+        icao = conf.airport
         time = self.date.text()
         tt = context.taf.spec[:2].upper()
         sequence = self.sequence.text() if not self.normal.isChecked() else ''
@@ -850,7 +850,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.period.setPlaceholderText('{:02d}'.format(time.day))
 
     def fillPeriod(self):
-        autoComletionGroupTime = boolean(conf.value('General/AutoComletionGroupTime'))
+        autoComletionGroupTime = boolean(conf.autoCompletionGroupTime)
         if autoComletionGroupTime:
             self.autoFillPeriod()
         else:

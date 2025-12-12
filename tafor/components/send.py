@@ -103,7 +103,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.updateProtocolIcon()
 
     def protocol(self):
-        text = conf.value('General/CommunicationProtocol')
+        text = conf.communicationProtocol
         return text.lower() if text else 'aftn'
 
     def channel(self):
@@ -172,7 +172,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
 
     def updateSequenceNumber(self):
         if not self.error:
-            conf.setValue(self.channel().sequenceConfigPath, str(self.generator.number))
+            conf[self.channel().sequenceConfigPath] = str(self.generator.number)
 
     def receive(self, message):
         self.message = message
@@ -182,9 +182,9 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.updateVisibility()
 
     def parse(self):
-        visHas5000 = boolean(conf.value('Validation/VisHas5000'))
-        cloudHeightHas450 = boolean(conf.value('Validation/CloudHeightHas450'))
-        weakPrecipitationVerification = boolean(conf.value('Validation/WeakPrecipitationVerification'))
+        visHas5000 = boolean(conf.visHas5000)
+        cloudHeightHas450 = boolean(conf.cloudHeightHas450)
+        weakPrecipitationVerification = boolean(conf.weakPrecipitationVerification)
 
         self.parser = TafParser(self.message.text, created=self.message.created,
             visHas5000=visHas5000, cloudHeightHas450=cloudHeightHas450, weakPrecipitationVerification=weakPrecipitationVerification)
@@ -229,14 +229,14 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
     def parameters(self):
         spacer = ' ' if self.reportType == 'Trend' else '\n'
         message = spacer.join([self.message.heading, self.message.text])
-        channel = conf.value('Communication/Channel') or ''
-        number = conf.value(self.channel().sequenceConfigPath) or 1
+        channel = conf.channel or ''
+        number = conf[self.channel().sequenceConfigPath] or 1
         priority = 'FF' if self.reportType in ['SIGMET', 'AIRMET'] or \
             self.message.text.startswith('TAF AMD') else 'GG'
-        address = conf.value('Communication/{}Address'.format(self.reportType)) or ''
-        originator = conf.value('Communication/OriginatorAddress') or ''
-        sequenceLength = conf.value('Communication/ChannelSequenceLength') or 4
-        maxSendAddress = conf.value('Communication/MaxSendAddress') or 21
+        address = conf[f'Communication/{self.reportType}Address'] or ''
+        originator = conf.originatorAddress or ''
+        sequenceLength = conf.channelSequenceLength or 4
+        maxSendAddress = conf.maxSendAddress or 21
 
         return message, channel, number, priority, address, originator, sequenceLength, maxSendAddress
 
@@ -405,9 +405,9 @@ class TrendSender(BaseSender):
         parser = context.notification.metar.parser()
         if parser and parser.hasMetar():
             metar = parser.primary.part
-            visHas5000 = boolean(conf.value('Validation/VisHas5000'))
-            cloudHeightHas450 = boolean(conf.value('Validation/CloudHeightHas450'))
-            weakPrecipitationVerification = boolean(conf.value('Validation/WeakPrecipitationVerification'))
+            visHas5000 = boolean(conf.visHas5000)
+            cloudHeightHas450 = boolean(conf.cloudHeightHas450)
+            weakPrecipitationVerification = boolean(conf.weakPrecipitationVerification)
 
             self.parser = MetarParser(' '.join([metar, self.message.text]), ignoreMetar=True,
                 visHas5000=visHas5000, cloudHeightHas450=cloudHeightHas450, weakPrecipitationVerification=weakPrecipitationVerification)
@@ -562,10 +562,10 @@ class CustomSender(BaseSender):
         message = state['message']
         priority = state['priority']
         address = state['address']
-        channel = conf.value('Communication/Channel') or ''
-        originator = conf.value('Communication/OriginatorAddress') or ''
-        number = conf.value(self.channel().sequenceConfigPath) or 1
-        sequenceLength = conf.value('Communication/ChannelSequenceLength') or 4
-        maxSendAddress = conf.value('Communication/MaxSendAddress') or 21
+        channel = conf.channel or ''
+        originator = conf.originatorAddress or ''
+        number = conf[self.channel().sequenceConfigPath] or 1
+        sequenceLength = conf.channelSequenceLength or 4
+        maxSendAddress = conf.maxSendAddress or 21
 
         return message, channel, number, priority, address, originator, sequenceLength, maxSendAddress

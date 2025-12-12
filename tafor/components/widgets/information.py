@@ -185,13 +185,13 @@ class BaseSigmet(SegmentMixin, QWidget):
         return self.parent.type
 
     def firstLine(self):
-        fir = conf.value('Message/FIRName')
+        fir = conf.firName
         area = fir.split()[0] if fir else ''
         sign = self.parent.reportType()
         sequence = self.sequence.text()
         beginningTime = self.beginningTime.text()
         endingTime = self.endingTime.text()
-        icao = conf.value('Message/Airport')
+        icao = conf.airport
 
         text = '{} {} {} VALID {}/{} {}-'.format(area, sign, sequence, beginningTime, endingTime, icao)
         return text
@@ -637,7 +637,7 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
         return text
 
     def message(self):
-        fir = conf.value('Message/FIRName')
+        fir = conf.firName
         hazard = self.hazard()
         observation = self.observationText()
         flightLevel = self.flightLevel()
@@ -1015,7 +1015,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         return 'TOP FL{}'.format(self.top.text())
 
     def message(self):
-        fir = conf.value('Message/FIRName')
+        fir = conf.firName
         hazard = self.hazard()
         position = 'PSN {latitude} {Longitude} CB {observation}'.format(
             latitude=self.currentLatitude.text(),
@@ -1251,7 +1251,7 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         return all(mustRequired)
 
     def message(self):
-        fir = conf.value('Message/FIRName')
+        fir = conf.firName
         hazard = self.hazard()
         observation = self.observationText()
         flightLevel = self.flightLevel()
@@ -1354,7 +1354,7 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
         return all(mustRequired)
 
     def message(self):
-        fir = conf.value('Message/FIRName')
+        fir = conf.firName
         cancel = 'CNL {} {} {}/{}'.format(
             self.parent.reportType(),
             self.cancelSequence.currentText().strip(),
@@ -1458,7 +1458,7 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         return all(mustRequired)
 
     def message(self):
-        fir = conf.value('Message/FIRName')
+        fir = conf.firName
         items = [fir, self.text.toPlainText().strip()]
         content = ' '.join(filter(None, items))
         return '\n'.join([self.firstLine(), content])
@@ -1504,7 +1504,7 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         rv = self.loadNotification() or self.loadLocalDatabase()
         if rv:
             source, message = rv
-            fir = conf.value('Message/FIRName') or ''
+            fir = conf.firName or ''
             text = message.replace(fir, '').replace('=', '').strip()
             self.setText(text)
 

@@ -38,12 +38,11 @@ def cli(ctx):
 @cli.command(help='Enable or disable SIGMET function.')
 @click.option('--enable/--disable')
 def sigmet(enable):
-    path = 'General/Sigmet'
     if enable:
-        conf.setValue(path, True)
+        conf['General/Sigmet'] = True
         click.echo('SIGMET function enabled')
     else:
-        conf.setValue(path, False)
+        conf['General/Sigmet'] = False
         click.echo('SIGMET function disabled')
 
 @cli.command(help='Show or generate RPC token.')
@@ -52,7 +51,7 @@ def token(generate):
     from tafor.states import context
     if generate:
         authToken = secrets.token_urlsafe(24)
-        conf.setValue('Interface/AuthToken', authToken)
+        conf['Interface/AuthToken'] = authToken
         click.echo(authToken)
     else:
         authToken = context.environ.token()

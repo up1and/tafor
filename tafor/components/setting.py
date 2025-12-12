@@ -114,7 +114,7 @@ def isConfigured(reportType='TAF'):
     if reportType == 'SIGMET':
         options += sigmet
 
-    values = [conf.value(path) for path in options]
+    values = [conf[path] for path in options]
     return all(values)
 
 def loadConf(filename, options):
@@ -123,10 +123,10 @@ def loadConf(filename, options):
 
     for path, val in data.items():
         if path in options:
-            conf.setValue(path, val)
+            conf[path] = val
 
 def saveConf(filename, options):
-    data = {path: conf.value(path) for path in options}
+    data = {path: conf[path] for path in options}
     with open(filename, 'w') as file:
         json.dump(data, file)
 
@@ -159,7 +159,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.buttonBox.button(QDialogButtonBox.Apply).setText(QCoreApplication.translate('Settings', 'Apply'))
         self.buttonBox.button(QDialogButtonBox.Cancel).setText(QCoreApplication.translate('Settings', 'Cancel'))
 
-        if boolean(conf.value('General/Sigmet')):
+        if boolean(conf['General/Sigmet']):
             options = baseOptions + sigmetOptions
         else:
             options = baseOptions
@@ -218,8 +218,8 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
     def resetChannelNumber(self):
         """重置流水号"""
-        conf.setValue('Communication/ChannelSequenceNumber', '1')
-        conf.setValue('Communication/FileSequenceNumber', '1')
+        conf.channelSequenceNumber = '1'
+        conf['Communication/FileSequenceNumber'] = '1'
         self.channelSequenceNumber.setText('1')
         logger.info('Reset channel sequence number to one')
 
@@ -230,7 +230,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         ret = QMessageBox.information(self, title, text, QMessageBox.Yes | QMessageBox.No)
         if ret == QMessageBox.Yes:
             authToken = secrets.token_urlsafe(24)
-            conf.setValue('Interface/AuthToken', authToken)
+            conf['Interface/AuthToken'] = authToken
             self.loadAuthToken()
 
     def copyAuthToken(self):
@@ -305,7 +305,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
     def hasValueChanged(self, key):
         prev = self.prevConf[key]
-        value = conf.value(key)
+        value = conf[key]
         return prev != value
 
     def hasValidFirBoundary(self):
@@ -320,7 +320,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
     def cachePrevConf(self):
         self.prevConf = {}
         for path in self.options:
-            self.prevConf[path] = conf.value(path)
+            self.prevConf[path] = conf[path]
 
     def promptRestartRequired(self):
         title = QCoreApplication.translate('Settings', 'Restart Required')
@@ -330,7 +330,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             self.restarted.emit()
 
     def applyChange(self):
-        if boolean(conf.value('General/Sigmet')) and not self.hasValidFirBoundary():
+        if boolean(conf['General/Sigmet']) and not self.hasValidFirBoundary():
             title = QCoreApplication.translate('Settings', 'Format Error')
             text = QCoreApplication.translate('Settings', 'FIR boundary format is invalid, please check it')
             QMessageBox.warning(self, title, text)
@@ -363,7 +363,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.loadAuthToken()
 
     def loadValue(self, path, option, category='text'):
-        val = conf.value(path)
+        val = conf[path]
         option = getattr(self, option)
 
         if val is None:
@@ -426,7 +426,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
     def setValue(self, path, option, category='text'):
         option = getattr(self, option)
         val = self.loadValueFromWidget(option, category)
-        conf.setValue(path, val)
+        conf[path] = val
 
     def exportConf(self):
         filename = self.exportPath.text()

@@ -61,5 +61,5 @@ conf = MockConfig()
 
 if __name__ == '__main__':
     import json
-    item = conf.value('Message/Weather')
+    item = conf.weatherList
     print(json.loads(item))

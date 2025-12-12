@@ -405,15 +405,15 @@ class LicenseEditor(QDialog, Ui_main_license.Ui_Editor):
             QMessageBox.critical(self, 'Tafor', text)
 
     def enter(self):
-        if not conf.value('Message/Airport'):
+        if not conf.airport:
             text = QCoreApplication.translate('Editor', 'Please fill in the airport information or flight information region in the settings first')
             QMessageBox.information(self, 'Tafor', text)
         else:
             self.show()
 
     def setLicense(self, text):
-        prev = conf.value('License')
-        conf.setValue('License', text)
+        prev = conf['License']
+        conf['License'] = text
 
         if prev != text:
             self.licenseChanged.emit()

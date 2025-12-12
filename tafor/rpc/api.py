@@ -174,19 +174,19 @@ class StateResource(object):
     def on_get(self, req, resp):
         data = {
             'aftn': {
-                'channel': conf.value('Communication/Channel'),
-                'number': conf.value('Communication/ChannelSequenceNumber'),
-                'length': conf.value('Communication/ChannelSequenceLength'),
+                'channel': conf.channel,
+                'number': conf.channelSequenceNumber,
+                'length': conf.channelSequenceLength,
             },
             'address': {
-                'taf': conf.value('Communication/TAFAddress'),
-                'trend': conf.value('Communication/TrendAddress'),
-                'sigmet': conf.value('Communication/SIGMETAddress'),
-                'airmet': conf.value('Communication/AIRMETAddress'),
+                'taf': conf.tafAddress,
+                'trend': conf.trendAddress,
+                'sigmet': conf.sigmetAddress,
+                'airmet': conf.airmetAddress,
             },
-            'originator': conf.value('Communication/OriginatorAddress'),
+            'originator': conf.originatorAddress,
             'file': {
-                'number': conf.value('Communication/FileSequenceNumber'),
+                'number': conf['Communication/FileSequenceNumber'],
             },
             'busy': context.serial.busy(),
             'time': falcon.http_now()
@@ -222,9 +222,9 @@ class NotificationResource(object):
 
             if validation:
                 kwargs = {
-                    'visHas5000': boolean(conf.value('Validation/VisHas5000')),
-                    'cloudHeightHas450': boolean(conf.value('Validation/CloudHeightHas450')),
-                    'weakPrecipitationVerification': boolean(conf.value('Validation/WeakPrecipitationVerification')),
+                    'visHas5000': boolean(conf.visHas5000),
+                    'cloudHeightHas450': boolean(conf.cloudHeightHas450),
+                    'weakPrecipitationVerification': boolean(conf.weakPrecipitationVerification),
                 }
                 media['validations'] = parse_metar(message, kwargs)
 
@@ -377,11 +377,11 @@ class OthersResource(ResourceCollection):
             'message': message,
         })
 
-        channel = conf.value('Communication/Channel') or ''
-        originator = conf.value('Communication/OriginatorAddress') or ''
-        number = conf.value('Communication/ChannelSequenceNumber') or 1
-        sequenceLength = conf.value('Communication/ChannelSequenceLength') or 4
-        maxSendAddress = conf.value('Communication/MaxSendAddress') or 21
+        channel = conf.channel or ''
+        originator = conf.originatorAddress or ''
+        number = conf.channelSequenceNumber or 1
+        sequenceLength = conf.channelSequenceLength or 4
+        maxSendAddress = conf.maxSendAddress or 21
 
         generator = AFTNMessageGenerator(message, channel=channel, number=number, priority=priority, address=address,
                     originator=originator, sequenceLength=sequenceLength, maxSendAddress=maxSendAddress)

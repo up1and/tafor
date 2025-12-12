@@ -75,10 +75,10 @@ class LayerState(QObject):
         from pyproj import Proj
 
         try:
-            proj = Proj(conf.value('Layer/Projection'))
+            proj = Proj(conf.projection)
 
         except Exception as e:
-            conf.setValue('Layer/Projection', '+proj=webmerc +datum=WGS84')
+            conf.projection = '+proj=webmerc +datum=WGS84'
             proj = Proj('+proj=webmerc +datum=WGS84')
 
         return proj
@@ -155,7 +155,7 @@ class LayerState(QObject):
 
     def boundaries(self):
         try:
-            boundary = json.loads(conf.value('Layer/FIRBoundary'))
+            boundary = json.loads(conf.firBoundary)
             if not isinstance(boundary, list):
                 return []
         except Exception as e:
@@ -207,7 +207,7 @@ class TafState(QObject):
 
     @property
     def spec(self):
-        index = conf.value('General/TAFSpec') or 0
+        index = conf.tafSpec or 0
         specification = 'fc'
         if int(index) == 1:
             specification = 'ft24'
@@ -369,9 +369,9 @@ class NotificationMessageState(QObject):
             return SigmetParser(self.message())
 
         if self.type() in ['METAR', 'SPECI']:
-            visHas5000 = boolean(conf.value('Validation/VisHas5000'))
-            cloudHeightHas450 = boolean(conf.value('Validation/CloudHeightHas450'))
-            weakPrecipitationVerification = boolean(conf.value('Validation/WeakPrecipitationVerification'))
+            visHas5000 = boolean(conf.visHas5000)
+            cloudHeightHas450 = boolean(conf.cloudHeightHas450)
+            weakPrecipitationVerification = boolean(conf.weakPrecipitationVerification)
             return MetarParser(self.message(), ignoreMetar=True, previous=self.previous,
                 visHas5000=visHas5000, cloudHeightHas450=cloudHeightHas450, weakPrecipitationVerification=weakPrecipitationVerification)
 
@@ -429,15 +429,15 @@ class EnvironState(object):
 
     def unit(self):
         from tafor.utils import boolean
-        spec = boolean(conf.value('General/ImperialUnit'))
+        spec = boolean(conf['General/ImperialUnit'])
         return 'imperial' if spec else 'metric'
 
     def token(self):
-        return conf.value('Interface/AuthToken') or self.authToken
+        return conf['Interface/AuthToken'] or self.authToken
 
     def license(self, token=None):
         from tafor.utils import verifyToken
-        token = token or conf.value('License')
+        token = token or conf['License']
         if not token:
             return {}
 
@@ -459,10 +459,10 @@ class EnvironState(object):
 
     def register(self):
         infos = {}
-        if conf.value('Message/Airport'):
-            infos['airport'] = conf.value('Message/Airport')
-        if conf.value('Message/FIRName'):
-            infos['fir'] = conf.value('Message/FIRName')[:4]
+        if conf.airport:
+            infos['airport'] = conf.airport
+        if conf.firName:
+            infos['fir'] = conf.firName[:4]
 
         return infos
 

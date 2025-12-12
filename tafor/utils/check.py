@@ -82,7 +82,7 @@ class CurrentTaf(object):
 
         :param offset: 过期时间，单位分钟
         """
-        offset = offset or conf.value('Monitor/DelayMinutes')
+        offset = offset or conf.delayMinutes
         offset = int(offset) if offset else 30
         hours = self.spec.delay // datetime.timedelta(hours=1)
         delta = datetime.timedelta(hours=hours, minutes=offset)

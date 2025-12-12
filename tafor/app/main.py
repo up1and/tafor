@@ -84,7 +84,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.chartViewer = ChartViewer(self)
 
-        if not boolean(conf.value('General/Sigmet')):
+        if not boolean(conf['General/Sigmet']):
             self.sigmetAction.setVisible(False)
             self.mainTab.removeTab(3)
             self.mainTab.removeTab(3)
@@ -201,10 +201,10 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def setupSound(self):
         self.notificationSound = Sound('notification.wav')
         self.incomingSound = Sound('notification-incoming.wav')
-        self.alarmSound = Sound('alarm.wav', 'Monitor/AlarmVolume')
-        self.tafSound = Sound('taf.wav', 'Monitor/TAFVolume')
-        self.trendSound = Sound('trend.wav', 'Monitor/TrendVolume')
-        self.sigmetSound = Sound('sigmet.wav', 'Monitor/SIGMETVolume')
+        self.alarmSound = Sound('alarm.wav', volumeKey='alarmVolume')
+        self.tafSound = Sound('taf.wav', volumeKey='tafVolume')
+        self.trendSound = Sound('trend.wav', volumeKey='trendVolume')
+        self.sigmetSound = Sound('sigmet.wav', volumeKey='sigmetVolume')
 
         self.settingDialog.alarmVolume.valueChanged.connect(lambda vol: self.alarmSound.play(volume=vol, loop=False))
         self.settingDialog.tafVolume.valueChanged.connect(lambda vol: self.tafSound.play(volume=vol, loop=False))
@@ -310,7 +310,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def singer(self):
         warnSwitch = self.warnTafAction.isChecked()
-        trendSwitch = boolean(conf.value('Monitor/RemindTrend'))
+        trendSwitch = boolean(conf.remindTrend)
 
         # 管理趋势声音
         utc = datetime.datetime.utcnow()
@@ -329,7 +329,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         threadManager.startWorker('message')
 
     def painter(self):
-        if conf.value('Interface/LayerURL') and not threadManager.isWorkerRunning('layer'):
+        if conf.layerUrl and not threadManager.isWorkerRunning('layer'):
             threadManager.startWorker('layer')
 
     def notifier(self):
@@ -338,7 +338,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             context.flash.warning(connectionError,
                 QCoreApplication.translate('MainWindow', 'Unable to connect remote message data source, please check the settings or network status.'))
 
-        if conf.value('Interface/LayerURL') and not context.layer.currentLayers() and not threadManager.isWorkerRunning('layer'):
+        if conf.layerUrl and not context.layer.currentLayers() and not threadManager.isWorkerRunning('layer'):
             context.flash.warning(connectionError,
                 QCoreApplication.translate('MainWindow', 'Unable to connect FIR information data source, please check the settings or network status.'))
 
@@ -352,7 +352,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         return recents
 
     def remindTaf(self):
-        remindSwitch = boolean(conf.value('Monitor/RemindTAF'))
+        remindSwitch = boolean(conf.remindTaf)
         if not remindSwitch or self.remindTafBox.isVisible():
             return None
 
@@ -372,7 +372,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
                 self.tafSound.stop()
 
     def remindSigmet(self):
-        remindSwitch = boolean(conf.value('Monitor/RemindSIGMET'))
+        remindSwitch = boolean(conf.remindSigmet)
         if not remindSwitch or self.remindSigmetBox.isVisible():
             return None
 
@@ -407,12 +407,12 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def updateMessage(self):
         wishlist = ['SA', 'SP']
-        if conf.value('General/TAFSpec'):
+        if conf.tafSpec:
             wishlist.append('FT')
         else:
             wishlist.append('FC')
 
-        if boolean(conf.value('General/Sigmet')):
+        if boolean(conf['General/Sigmet']):
             wishlist.extend(['WS', 'WC', 'WV', 'WA'])
 
         messages = context.message.message()
@@ -465,7 +465,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         with db.session() as session:
             taf = session.query(Taf).filter(Taf.created > recent, Taf.type == spec).order_by(Taf.created.desc()).first()
-            if boolean(conf.value('General/Sigmet')):
+            if boolean(conf['General/Sigmet']):
                 sigmets = context.message.sigmets(show='all')
             else:
                 sigmets = []
@@ -608,7 +608,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
 
 def main():
-    scale = conf.value('General/InterfaceScaling') or 0
+    scale = conf.interfaceScaling or 0
     os.environ['QT_SCALE_FACTOR'] = str(int(scale) * 0.25 + 1)
     os.environ['TAFOR_ARGS'] = json.dumps(sys.argv[1:])
 
@@ -624,7 +624,7 @@ def main():
     if translator.load(translateFile):
         app.installTranslator(translator)
 
-    if conf.value('General/WindowsStyle') == 'Fusion':
+    if conf.windowsStyle == 'Fusion':
         app.setStyle(QStyleFactory.create('Fusion'))
 
     serverName = 'Tafor'
@@ -637,7 +637,7 @@ def main():
     localServer = QLocalServer()
     localServer.listen(serverName)
 
-    if boolean(conf.value('Interface/RPC')):
+    if boolean(conf.rpc):
         rpcWorker, rpcThread = threadManager.createWorker(RpcWorker, 'rpc')
         threadManager.startWorker('rpc')
         app.aboutToQuit.connect(lambda: threadManager.stopWorker('rpc'))

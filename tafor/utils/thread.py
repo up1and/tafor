@@ -162,8 +162,8 @@ class MessageWorker(QObject):
 
     def run(self):
         try:
-            if conf.value('Interface/MessageURL'):
-                url = conf.value('Interface/MessageURL') or 'http://127.0.0.1:6575'
+            if conf.messageUrl:
+                url = conf.messageUrl or 'http://127.0.0.1:6575'
                 context.message.setMessage(fetchMessage(url))
         finally:
             self.finished.emit()
@@ -175,7 +175,7 @@ class LayerWorker(QObject):
 
     def run(self):
         try:
-            url = conf.value('Interface/LayerURL')
+            url = conf.layerUrl
             context.layer.setLayer(layerInfo(url))
         finally:
             self.finished.emit()
@@ -213,12 +213,12 @@ class SerialWorker(QObject):
         self.message = message
 
     def run(self):
-        port = conf.value('Communication/SerialPort')
-        baudrate = int(conf.value('Communication/SerialBaudrate'))
-        bytesize = conf.value('Communication/SerialBytesize')
-        parity = conf.value('Communication/SerialParity')
-        stopbits = conf.value('Communication/SerialStopbits')
-        codec = conf.value('Communication/Codec')
+        port = conf.port
+        baudrate = int(conf.baudrate)
+        bytesize = conf.bytesize
+        parity = conf.parity
+        stopbits = conf.stopbits
+        codec = conf['Communication/Codec']
 
         try:
             context.serial.lock()
@@ -250,12 +250,12 @@ class FtpWorker(QObject):
         self.valids = valids
 
     def run(self):
-        url = conf.value('Communication/FTPHost')
-        number = conf.value('Communication/FileSequenceNumber') or 1
+        url = conf.ftpHost
+        number = conf['Communication/FileSequenceNumber'] or 1
         format = '%Y%m%d%H%M%S'
         time = datetime.datetime.utcnow()
         filename = '9_OTHE_C_{airport}_{created}_STUB-WTMG-MULT-{validfrom}-{validto}-XXX-1,{number}.txt'.format(
-            airport = conf.value('Message/Airport'),
+            airport = conf.airport,
             created = time.strftime(format),
             validfrom = self.valids[0].strftime(format),
             validto = self.valids[1].strftime(format),

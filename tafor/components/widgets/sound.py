@@ -8,10 +8,10 @@ from tafor import root, conf
 
 class Sound(object):
 
-    def __init__(self, filename, config=None):
+    def __init__(self, filename, volumeKey=None, config=None):
         super(Sound, self).__init__()
         file = os.path.join(root, 'sounds', filename)
-        self.config = config
+        self.volumeKey = volumeKey
         self.effect = QSoundEffect()
         self.effect.setSource(QUrl.fromLocalFile(file))
 
@@ -31,10 +31,11 @@ class Sound(object):
         self.effect.stop()
 
     def volume(self):
-        if self.config:
-            volume = conf.value(self.config) or 100
-        else:
-            volume = 100
-
-        return volume
+        if not self.volumeKey:
+            return 100
+        
+        try:
+            return getattr(conf, self.volumeKey, 100)
+        except (AttributeError, ValueError, TypeError):
+            return 100
 

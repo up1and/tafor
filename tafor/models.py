@@ -100,7 +100,7 @@ class Trend(Base):
     
     @property
     def heading(self):
-        return conf.value('Message/TrendIdentifier')
+        return conf.trendIdentifier
 
     @property
     def type(self):

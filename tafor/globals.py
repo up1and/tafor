@@ -4,6 +4,7 @@ import logging
 
 from logging.handlers import RotatingFileHandler
 
+from tafor.config import ConfigManager, ConfigRegistry
 
 def setupLogging(debug=False, name='tafor'):
     logLevel = logging.DEBUG if debug else logging.INFO
@@ -23,36 +24,17 @@ def setupLogging(debug=False, name='tafor'):
     logger.addHandler(ch)
     logger.addHandler(fh)
 
+def basedir():
+    sysdir = os.path.abspath(os.path.dirname(sys.argv[0]))
+    filedir = os.path.abspath(os.path.dirname(__file__))
 
-class AppGlobals(object):
+    if os.path.exists(os.path.join(filedir, 'sounds')):
+        return filedir
 
-    def __init__(self):
-        from PyQt5.QtCore import QSettings
-        boolean = lambda value: value if isinstance(value, bool) else value == 'true'
-        self._conf = QSettings('Up1and', 'Tafor')
-        self._debug = boolean(self._conf.value('General/Debug'))
-        setupLogging(self._debug)
+    return sysdir
 
-    @property
-    def basedir(self):
-        sysdir = os.path.abspath(os.path.dirname(sys.argv[0]))
-        filedir = os.path.abspath(os.path.dirname(__file__))
+root = basedir()
+manager = ConfigManager('Up1and', 'Tafor')
+conf = ConfigRegistry(manager)
 
-        if os.path.exists(os.path.join(filedir, 'sounds')):
-            return filedir
-
-        return sysdir
-
-    @property
-    def conf(self):
-        if os.environ.get('TAFOR_ENV') == 'TEST':
-            from tests import conf
-            return conf
-        else:
-            return self._conf
-
-
-_globals = AppGlobals()
-
-root = _globals.basedir
-conf = _globals.conf
+setupLogging(debug=conf.debugMode)
