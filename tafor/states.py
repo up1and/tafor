@@ -395,7 +395,6 @@ class EnvironState(object):
         '2TKLicLL6vcidL4QkXdhRaZTJyd8pYI6Su+FUK7mcaBDpEaUl9xWupJnjsfKx1bf\n'
         'WQIDAQAB\n'
         '-----END PUBLIC KEY-----')
-    authToken = 'VGhlIFZveWFnZSBvZiB0aGUgTW9vbg=='
     exp = 0
 
     def environment(self):
@@ -432,12 +431,9 @@ class EnvironState(object):
         spec = boolean(conf['General/ImperialUnit'])
         return 'imperial' if spec else 'metric'
 
-    def token(self):
-        return conf['Interface/AuthToken'] or self.authToken
-
     def license(self, token=None):
         from tafor.utils import verifyToken
-        token = token or conf['License']
+        token = token or conf.license
         if not token:
             return {}
 

@@ -412,10 +412,8 @@ class LicenseEditor(QDialog, Ui_main_license.Ui_Editor):
             self.show()
 
     def setLicense(self, text):
-        prev = conf['License']
-        conf['License'] = text
-
-        if prev != text:
+        if conf.license != text:
+            conf.license = text
             self.licenseChanged.emit()
 
     def removeLicense(self):

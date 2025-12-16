@@ -205,18 +205,16 @@ class BaseSegment(SegmentMixin, QWidget):
         self.cloud3.setValidator(cloud)
         self.cb.setValidator(cloud)
 
-        weather = conf.weatherList
-        weathers = [''] + json.loads(weather) if weather else ['']
+        weathers = conf.weatherList
         if self.identifier == 'PRIMARY':
             weathers = [w for w in weathers if w != 'NSW']
         self.weather.addItems(weathers)
         weather = QRegExpValidator(QRegExp(r'{}'.format('|'.join(weathers)), Qt.CaseInsensitive))
         self.weather.setValidator(weather)
 
-        weatherWithIntensity = conf.weatherWithIntensityList
+        weathers = conf.weatherWithIntensityList
         intensityWeathers = ['']
-        if weatherWithIntensity:
-            weathers = json.loads(weatherWithIntensity)
+        if weathers:
             for w in weathers:
                 intensityWeathers.append('-{}'.format(w))
             for w in weathers:
