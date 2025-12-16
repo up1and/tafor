@@ -315,7 +315,7 @@ class MovementMixin(object):
             return
 
         movement = self.direction.currentText()
-        unit = 'KT' if context.environ.unit() == 'imperial' else 'KMH'
+        unit = 'KT' if conf.unit == 'imperial' else 'KMH'
         speed = int(self.speed.text()) if self.speed.text() else ''
 
         text = 'MOV {movement} {speed}{unit}'.format(
@@ -1476,8 +1476,8 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         self.apiSign.hide()
 
     def setupPlaceholder(self):
-        speedUnit = 'KT' if context.environ.unit() == 'imperial' else 'KMH'
-        lengthUnit = 'NM' if context.environ.unit() == 'imperial' else 'KM'
+        speedUnit = 'KT' if conf.unit == 'imperial' else 'KMH'
+        lengthUnit = 'NM' if conf.unit == 'imperial' else 'KM'
         tips = {
             'WS': 'EMBD TS FCST N OF N2000 TOP FL360 MOV N 25{} NC'.format(speedUnit),
             'WC': 'TC YAGI PSN N2706 W07306 CB OBS AT 1600Z WI 300{} OF TC CENTRE TOP FL420 NC\nFCST AT 2200Z TC CENTRE N2740 W07345'.format(lengthUnit),

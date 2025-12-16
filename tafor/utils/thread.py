@@ -218,7 +218,7 @@ class SerialWorker(QObject):
         bytesize = conf.bytesize
         parity = conf.parity
         stopbits = conf.stopbits
-        codec = conf['Communication/Codec']
+        codec = conf.codec
 
         try:
             context.serial.lock()
@@ -251,7 +251,7 @@ class FtpWorker(QObject):
 
     def run(self):
         url = conf.ftpHost
-        number = conf['Communication/FileSequenceNumber'] or 1
+        number = conf.fileSequenceNumber
         format = '%Y%m%d%H%M%S'
         time = datetime.datetime.utcnow()
         filename = '9_OTHE_C_{airport}_{created}_STUB-WTMG-MULT-{validfrom}-{validto}-XXX-1,{number}.txt'.format(

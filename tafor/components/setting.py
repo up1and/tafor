@@ -8,8 +8,9 @@ import datetime
 import shapely
 
 from PyQt5.QtGui import QIcon, QIntValidator, QTextCursor
-from PyQt5.QtCore import QCoreApplication, QStandardPaths, QSettings, QTimer, Qt, pyqtSignal
-from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QFileDialog, QMessageBox, QApplication, QCheckBox, QLineEdit, QComboBox, QPlainTextEdit, QSlider, QListWidget
+from PyQt5.QtCore import QCoreApplication, QStandardPaths, QSettings, QTimer, Qt
+from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QFileDialog, QMessageBox, QApplication, QCheckBox, 
+                             QLineEdit, QComboBox, QPlainTextEdit, QSlider, QListWidget, QGroupBox)
 
 from tafor import conf
 from tafor.states import context
@@ -40,8 +41,7 @@ def isConfigured(reportType='TAF'):
     if reportType == 'SIGMET':
         options += sigmet
 
-    values = [conf[path] for path in options]
-    return all(values)
+    return True
 
 def loadConf(filename, options):
     with open(filename) as file:
@@ -59,9 +59,6 @@ def saveConf(filename, options):
 
 class SettingDialog(QDialog, Ui_setting.Ui_Settings):
     """设置窗口"""
-
-    restarted = pyqtSignal()
-    settingChanged = pyqtSignal()
 
     def __init__(self, parent=None):
         super(SettingDialog, self).__init__(parent)
@@ -142,9 +139,9 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
     def resetChannelNumber(self):
         """重置流水号"""
         conf.channelSequenceNumber = '1'
-        conf['Communication/FileSequenceNumber'] = '1'
+        conf.fileSequenceNumber = '1'
         self.channelSequenceNumber.setText('1')
-        logger.info('Reset channel sequence number to one')
+        logger.info('Reset sequence number to one')
 
     def regenerateAuthToken(self):
         title = QCoreApplication.translate('Settings', 'Regenerate Auth Token')
@@ -200,13 +197,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         except ValueError as e:
             return False
 
-    def promptRestartRequired(self):
-        title = QCoreApplication.translate('Settings', 'Restart Required')
-        text = QCoreApplication.translate('Settings', 'Program need to restart to apply the configuration, do you wish to restart now?')
-        ret = QMessageBox.information(self, title, text, QMessageBox.Yes | QMessageBox.No)
-        if ret == QMessageBox.Yes:
-            self.restarted.emit()
-
     def applyChange(self):
         if conf.sigmetEnabled and not self.hasValidFirBoundary():
             title = QCoreApplication.translate('Settings', 'Format Error')
@@ -222,9 +212,11 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         else:
             self.autoRun.remove('Tafor')
 
-        for config in conf:
+        for attr, config in conf:
             value = self.getValue(config.default, config.bindProperty)
-            conf[config.key] = value
+            conf.set(attr, value)
+
+        conf.emit()
 
     def load(self):
         """载入设置"""
@@ -232,7 +224,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
         self.serviceHost.setText('http://{}:9407'.format(ipAddress()))
 
-        for config in conf:
+        for attr, config in conf:
             self.bindValue(config.value, config.bindProperty)
 
     def bindValue(self, value, bindProperty):
@@ -241,7 +233,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         if isinstance(control, QLineEdit):
             control.setText(value)
 
-        if isinstance(control, QCheckBox):
+        if isinstance(control, (QCheckBox, QGroupBox)):
             control.setChecked(value)
 
         if isinstance(control, QPlainTextEdit):
@@ -265,7 +257,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         if isinstance(control, QLineEdit):
             return control.text()
 
-        if isinstance(control, QCheckBox):
+        if isinstance(control, (QCheckBox, QGroupBox)):
             return control.isChecked()
 
         if isinstance(control, QPlainTextEdit):

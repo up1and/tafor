@@ -1,15 +1,28 @@
 import json
+import logging
 
-from PyQt5.QtCore import QSettings
+from PyQt5.QtCore import QSettings, QObject, pyqtSignal
 
+logger = logging.getLogger('tafor.config')
+
+def validateFirBoundary(value):
+    import shapely
+    try:
+        boundaries = json.loads(value)
+        boundary = shapely.geometry.Polygon(boundaries)
+        return boundary.is_valid and not boundary.is_empty
+    except ValueError:
+        return False
 
 class ConfigItem:
     """Descriptor for configuration items"""
     
-    def __init__(self, key, default=None, bindProperty=None):
+    def __init__(self, key, default='', scope='immediate', bindProperty=None, validator=None):
         self.key = key
         self.default = default
+        self.scope = scope
         self.bindProperty = bindProperty  # UI control binding name
+        self.validator = validator
         self.value = None
         
     def __get__(self, instance, owner=None):
@@ -18,7 +31,18 @@ class ConfigItem:
         return instance.manager.get(self.key, self.default)
     
     def __set__(self, instance, value):
+        if self.validator and not self.validator(value):
+            raise ValueError(f'Invalid value for {self.key}: {value}')
+
+        currentValue = instance.manager.get(self.key, self.default)
         instance.manager.set(self.key, value)
+
+        if isinstance(currentValue, (list, dict)):
+            value = json.loads(value)
+
+        if currentValue != value:
+            instance.manager.forwardChange(self.key, value, self.scope)
+            logger.debug(f'{self.key} changed: {currentValue!r} -> {value!r}')
 
     def __repr__(self):
         return f'Config<{self.key}>'
@@ -35,76 +59,275 @@ class AppConfig:
         self.manager = manager
     
     # General settings
-    windowsStyle = ConfigItem('General/WindowsStyle', default='System', bindProperty='windowsStyle')
-    communicationProtocol = ConfigItem('General/CommunicationProtocol', default='AFTN', bindProperty='communicationProtocol')
-    interfaceScaling = ConfigItem('General/InterfaceScaling', default=0, bindProperty='interfaceScaling')
-    tafSpec = ConfigItem('General/TAFSpec', default=0, bindProperty='tafSpecification')
-    closeToMinimize = ConfigItem('General/CloseToMinimize', default=True, bindProperty='closeToMinimize')
-    debugMode = ConfigItem('General/Debug', default=False, bindProperty='debugMode')
-    autoCompletionGroupTime = ConfigItem('General/AutoComletionGroupTime', default=True, bindProperty='autoComletionGroupTime')
+    windowsStyle = ConfigItem(
+        'General/WindowsStyle',
+        default='System',
+        scope='restart',
+        bindProperty='windowsStyle'
+    )
+    communicationProtocol = ConfigItem(
+        'General/CommunicationProtocol',
+        default='AFTN',
+        scope='reload',
+        bindProperty='communicationProtocol'
+    )
+    interfaceScaling = ConfigItem(
+        'General/InterfaceScaling',
+        default=0,
+        scope='restart',
+        bindProperty='interfaceScaling'
+    )
+    tafSpec = ConfigItem(
+        'General/TAFSpec',
+        default=0,
+        scope='restart',
+        bindProperty='tafSpecification'
+    )
+    closeToMinimize = ConfigItem(
+        'General/CloseToMinimize',
+        default=True,
+        bindProperty='closeToMinimize'
+    )
+    debugMode = ConfigItem(
+        'General/Debug',
+        default=False,
+        scope='restart',
+        bindProperty='debugMode'
+    )
+    autoCompletionGroupTime = ConfigItem(
+        'General/AutoComletionGroupTime',
+        default=True,
+        bindProperty='autoComletionGroupTime'
+    )
     
     # Validation options
-    visHas5000 = ConfigItem('Validation/VisHas5000', default=False, bindProperty='visHas5000')
-    cloudHeightHas450 = ConfigItem('Validation/CloudHeightHas450', default=False, bindProperty='cloudHeightHas450')
-    weakPrecipitationVerification = ConfigItem('Validation/WeakPrecipitationVerification', default=False, bindProperty='weakPrecipitationVerification')
+    visHas5000 = ConfigItem(
+        'Validation/VisHas5000',
+        default=False,
+        bindProperty='visHas5000'
+    )
+    cloudHeightHas450 = ConfigItem(
+        'Validation/CloudHeightHas450',
+        default=False,
+        bindProperty='cloudHeightHas450'
+    )
+    weakPrecipitationVerification = ConfigItem(
+        'Validation/WeakPrecipitationVerification',
+        default=False,
+        bindProperty='weakPrecipitationVerification'
+    )
     
     # Message configuration
-    airport = ConfigItem('Message/Airport', default='YUSO', bindProperty='airport')
-    bulletinNumber = ConfigItem('Message/BulletinNumber', default='', bindProperty='bulletinNumber')
-    trendIdentifier = ConfigItem('Message/TrendIdentifier', default='TRENDING', bindProperty='trendIdentifier')
-    weatherList = ConfigItem('Message/Weather', default=[], bindProperty='weatherList')
-    weatherWithIntensityList = ConfigItem('Message/WeatherWithIntensity', default=[], bindProperty='weatherWithIntensityList')
-    firName = ConfigItem('Message/FIRName', default='SHANLON FIR', bindProperty='firName')
+    airport = ConfigItem(
+        'Message/Airport',
+        default='YUSO',
+        scope='reload',
+        bindProperty='airport'
+    )
+    bulletinNumber = ConfigItem(
+        'Message/BulletinNumber',
+        scope='reload',
+        bindProperty='bulletinNumber'
+    )
+    trendIdentifier = ConfigItem(
+        'Message/TrendIdentifier',
+        default='TRENDING',
+        scope='reload',
+        bindProperty='trendIdentifier'
+    )
+    weatherList = ConfigItem(
+        'Message/Weather',
+        default=[],
+        scope='restart',
+        bindProperty='weatherList'
+    )
+    weatherWithIntensityList = ConfigItem(
+        'Message/WeatherWithIntensity',
+        default=[],
+        scope='restart',
+        bindProperty='weatherWithIntensityList'
+    )
+    firName = ConfigItem(
+        'Message/FIRName',
+        default='SHANLON FIR',
+        scope='reload',
+        bindProperty='firName'
+    )
     
     # Communication configuration - Serial port settings
-    port = ConfigItem('Communication/SerialPort', default='COM1', bindProperty='port')
-    baudrate = ConfigItem('Communication/SerialBaudrate', default='9600', bindProperty='baudrate')
-    parity = ConfigItem('Communication/SerialParity', default='NONE', bindProperty='parity')
-    bytesize = ConfigItem('Communication/SerialBytesize', default='8', bindProperty='bytesize')
-    stopbits = ConfigItem('Communication/SerialStopbits', default='1', bindProperty='stopbits')
+    port = ConfigItem(
+        'Communication/SerialPort',
+        default='COM1',
+        bindProperty='port'
+    )
+    baudrate = ConfigItem(
+        'Communication/SerialBaudrate',
+        default='9600',
+        bindProperty='baudrate'
+    )
+    parity = ConfigItem(
+        'Communication/SerialParity',
+        default='NONE',
+        bindProperty='parity'
+    )
+    bytesize = ConfigItem(
+        'Communication/SerialBytesize',
+        default='8',
+        bindProperty='bytesize'
+    )
+    stopbits = ConfigItem(
+        'Communication/SerialStopbits',
+        default='1',
+        bindProperty='stopbits'
+    )
     
     # Communication configuration - AFTN settings
-    channel = ConfigItem('Communication/Channel', default='', bindProperty='channel')
-    channelSequenceNumber = ConfigItem('Communication/ChannelSequenceNumber', default='1', bindProperty='channelSequenceNumber')
-    channelSequenceLength = ConfigItem('Communication/ChannelSequenceLength', default='4', bindProperty='channelSequenceLength')
-    maxSendAddress = ConfigItem('Communication/MaxSendAddress', default='10', bindProperty='maxSendAddress')
-    originatorAddress = ConfigItem('Communication/OriginatorAddress', default='', bindProperty='originatorAddress')
-    tafAddress = ConfigItem('Communication/TAFAddress', default='', bindProperty='tafAddress')
-    trendAddress = ConfigItem('Communication/TrendAddress', default='', bindProperty='trendAddress')
-    airmetAddress = ConfigItem('Communication/AIRMETAddress', default='', bindProperty='airmetAddress')
-    sigmetAddress = ConfigItem('Communication/SIGMETAddress', default='', bindProperty='sigmetAddress')
+    channel = ConfigItem(
+        'Communication/Channel',
+        scope='reload',
+        bindProperty='channel'
+    )
+    channelSequenceNumber = ConfigItem(
+        'Communication/ChannelSequenceNumber',
+        default='1',
+        scope='reload',
+        bindProperty='channelSequenceNumber'
+    )
+    channelSequenceLength = ConfigItem(
+        'Communication/ChannelSequenceLength',
+        default='4',
+        scope='reload',
+        bindProperty='channelSequenceLength'
+    )
+    maxSendAddress = ConfigItem(
+        'Communication/MaxSendAddress',
+        default='10',
+        scope='reload',
+        bindProperty='maxSendAddress'
+    )
+    originatorAddress = ConfigItem(
+        'Communication/OriginatorAddress',
+        scope='reload',
+        bindProperty='originatorAddress'
+    )
+    tafAddress = ConfigItem(
+        'Communication/TAFAddress',
+        scope='reload',
+        bindProperty='tafAddress'
+    )
+    trendAddress = ConfigItem(
+        'Communication/TrendAddress',
+        scope='reload',
+        bindProperty='trendAddress'
+    )
+    airmetAddress = ConfigItem(
+        'Communication/AIRMETAddress',
+        scope='reload',
+        bindProperty='airmetAddress'
+    )
+    sigmetAddress = ConfigItem(
+        'Communication/SIGMETAddress',
+        scope='reload',
+        bindProperty='sigmetAddress'
+    )
     
     # Communication configuration - FTP settings
-    ftpHost = ConfigItem('Communication/FTPHost', default='', bindProperty='ftpHost')
-    
+    ftpHost = ConfigItem(
+        'Communication/FTPHost',
+        bindProperty='ftpHost'
+    )
+
     # Interface configuration
-    rpc = ConfigItem('Interface/RPC', default=False, bindProperty='serviceGroup')
-    messageUrl = ConfigItem('Interface/MessageURL', default='', bindProperty='messageURL')
-    layerUrl = ConfigItem('Interface/LayerURL', default='', bindProperty='layerURL')
-    authToken = ConfigItem('Interface/AuthToken', default='VGhlIFZveWFnZSBvZiB0aGUgTW9vbg==', bindProperty='token')
+    rpc = ConfigItem(
+        'Interface/RPC',
+        default=False,
+        scope='restart',
+        bindProperty='serviceGroup'
+    )
+    messageUrl = ConfigItem(
+        'Interface/MessageURL',
+        bindProperty='messageURL'
+    )
+    layerUrl = ConfigItem(
+        'Interface/LayerURL',
+        bindProperty='layerURL'
+    )
+    authToken = ConfigItem(
+        'Interface/AuthToken',
+        default='VGhlIFZveWFnZSBvZiB0aGUgTW9vbg==',
+        bindProperty='token'
+    )
     
     # Monitoring configuration
-    delayMinutes = ConfigItem('Monitor/DelayMinutes', default='5', bindProperty='delayMinutes')
-    alarmVolume = ConfigItem('Monitor/AlarmVolume', default=30, bindProperty='alarmVolume')
-    remindTaf = ConfigItem('Monitor/RemindTAF', default=True, bindProperty='remindTaf')
-    tafVolume = ConfigItem('Monitor/TAFVolume', default=100, bindProperty='tafVolume')
-    remindTrend = ConfigItem('Monitor/RemindTrend', default=True, bindProperty='remindTrend')
-    trendVolume = ConfigItem('Monitor/TrendVolume', default=100, bindProperty='trendVolume')
-    remindSigmet = ConfigItem('Monitor/RemindSIGMET', default=True, bindProperty='remindSigmet')
-    sigmetVolume = ConfigItem('Monitor/SIGMETVolume', default=100, bindProperty='sigmetVolume')
+    delayMinutes = ConfigItem(
+        'Monitor/DelayMinutes',
+        default='5',
+        bindProperty='delayMinutes'
+    )
+    alarmVolume = ConfigItem(
+        'Monitor/AlarmVolume',
+        default=30,
+        bindProperty='alarmVolume'
+    )
+    remindTaf = ConfigItem(
+        'Monitor/RemindTAF',
+        default=True,
+        bindProperty='remindTaf'
+    )
+    tafVolume = ConfigItem(
+        'Monitor/TAFVolume',
+        default=100,
+        bindProperty='tafVolume'
+    )
+    remindTrend = ConfigItem(
+        'Monitor/RemindTrend',
+        default=True,
+        bindProperty='remindTrend'
+    )
+    trendVolume = ConfigItem(
+        'Monitor/TrendVolume',
+        default=100,
+        bindProperty='trendVolume'
+    )
+    remindSigmet = ConfigItem(
+        'Monitor/RemindSIGMET',
+        default=True,
+        bindProperty='remindSigmet'
+    )
+    sigmetVolume = ConfigItem(
+        'Monitor/SIGMETVolume',
+        default=100,
+        bindProperty='sigmetVolume'
+    )
     
     # Layer configuration
-    projection = ConfigItem('Layer/Projection', default='+proj=webmerc +datum=WGS84', bindProperty='projection')
-    firBoundary = ConfigItem('Layer/FIRBoundary', default='[]', bindProperty='firBoundary')
+    projection = ConfigItem(
+        'Layer/Projection',
+        default='+proj=webmerc +datum=WGS84',
+        scope='restart',
+        bindProperty='projection'
+    )
+    firBoundary = ConfigItem(
+        'Layer/FIRBoundary',
+        default='[]',
+        scope='restart',
+        bindProperty='firBoundary',
+        validator=validateFirBoundary
+    )
 
     sigmetEnabled = ConfigItem('General/Sigmet', default=False)
-    license = ConfigItem('License', default='')
+    license = ConfigItem('License')
+    unit = ConfigItem('General/Unit', default='metric')
+    codec = ConfigItem('Communication/Codec', default='ASCII')
+    fileSequenceNumber = ConfigItem('Communication/FileSequenceNumber', default='1', scope='reload')
 
-
-class ConfigManager:
+class ConfigManager(QObject):
     """Configuration manager"""
+
+    configChanged = pyqtSignal(str, object, str)  # (key, value, scope)
     
     def __init__(self, organization, application):
+        super().__init__()
         self.settings = QSettings(organization, application)
         
     def get(self, key, default=None):
@@ -121,6 +344,9 @@ class ConfigManager:
             if isinstance(default, int):
                 return int(value)
             
+            if isinstance(default, str):
+                return str(value)
+            
             if isinstance(default, (list, dict)):
                 try:
                     return json.loads(value)
@@ -133,17 +359,25 @@ class ConfigManager:
         """Set configuration value"""
         self.settings.setValue(key, value)
 
+    def forwardChange(self, key, value, scope):
+        """Receive notification from ConfigItem and forward via signal"""
+        self.configChanged.emit(key, value, scope)
 
-class ConfigRegistry:
+
+class ConfigRegistry(QObject):
     """Configuration registry with composition pattern"""
+
+    reloadRequired = pyqtSignal()
+    restartRequired = pyqtSignal()
     
     def __init__(self, manager, cls=AppConfig):
+        super().__init__()
         self._manager = manager
         self._config = cls(manager)
+        # List to store pending changes as (key, value, scope) tuples
+        self._pending = []
 
-    @property
-    def app(self):
-        return self._config
+        self._manager.configChanged.connect(self.handleChange)
 
     def __getattr__(self, name):
         if hasattr(self._config, name):
@@ -158,16 +392,35 @@ class ConfigRegistry:
             setattr(self._config, name, value)
         else:
             raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+
+    def get(self, name):
+        return getattr(self._config, name)
     
-    def __getitem__(self, key):
-        return self._manager.get(key)
-    
-    def __setitem__(self, key, value):
-        self._manager.set(key, value)
+    def set(self, name, value):
+        setattr(self._config, name, value)
     
     def __iter__(self):
-        for attrName in dir(self._config.__class__):
-            attr = getattr(self._config.__class__, attrName)
-            if isinstance(attr, ConfigItem) and attr.bindProperty:
-                attr.value = getattr(self._config, attrName)
-                yield attr
+        for attr in dir(self._config.__class__):
+            item = getattr(self._config.__class__, attr)
+            if isinstance(item, ConfigItem) and item.bindProperty:
+                item.value = getattr(self._config, attr)
+                yield attr, item
+
+    def handleChange(self, key, value, scope):
+        """Store configuration changes"""
+        if scope in ('reload', 'restart'):
+            self._pending.append((key, value, scope))
+
+    def emit(self):
+        """Emit signals for all pending changes and clear the list"""
+        hasReload = any(scope == 'reload' for _, _, scope in self._pending)
+        hasRestart = any(scope == 'restart' for _, _, scope in self._pending)
+        
+        # Emit signals if needed
+        if hasReload:
+            self.reloadRequired.emit()
+        
+        if hasRestart:
+            self.restartRequired.emit()
+
+        self._pending.clear()

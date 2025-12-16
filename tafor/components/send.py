@@ -22,7 +22,7 @@ logger = logging.getLogger('tafor.send')
 class AFTNChannel(object):
     generator = AFTNMessageGenerator
     worker = SerialWorker
-    sequenceConfigPath = 'Communication/ChannelSequenceNumber'
+    configName = 'channelSequenceNumber'
 
     @staticmethod
     def successText():
@@ -36,7 +36,7 @@ class AFTNChannel(object):
 class FtpChannel(object):
     generator = FileMessageGenerator
     worker = FtpWorker
-    sequenceConfigPath = 'Communication/FileSequenceNumber'
+    configName = 'fileSequenceNumber'
 
     @staticmethod
     def successText():
@@ -172,7 +172,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
 
     def updateSequenceNumber(self):
         if not self.error:
-            conf[self.channel().sequenceConfigPath] = str(self.generator.number)
+            conf.set(self.channel().configName, str(self.generator.number))
 
     def receive(self, message):
         self.message = message
@@ -229,12 +229,12 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
     def parameters(self):
         spacer = ' ' if self.reportType == 'Trend' else '\n'
         message = spacer.join([self.message.heading, self.message.text])
-        channel = conf.channel or ''
-        number = conf[self.channel().sequenceConfigPath] or 1
+        channel = conf.channel
+        number = conf.get(self.channel().configName)
         priority = 'FF' if self.reportType in ['SIGMET', 'AIRMET'] or \
             self.message.text.startswith('TAF AMD') else 'GG'
-        address = conf[f'Communication/{self.reportType}Address'] or ''
-        originator = conf.originatorAddress or ''
+        address = conf.get(f'{self.reportType.lower()}Address')
+        originator = conf.originatorAddress
         sequenceLength = conf.channelSequenceLength or 4
         maxSendAddress = conf.maxSendAddress or 21
 
@@ -562,10 +562,10 @@ class CustomSender(BaseSender):
         message = state['message']
         priority = state['priority']
         address = state['address']
-        channel = conf.channel or ''
-        originator = conf.originatorAddress or ''
-        number = conf[self.channel().sequenceConfigPath] or 1
-        sequenceLength = conf.channelSequenceLength or 4
-        maxSendAddress = conf.maxSendAddress or 21
+        channel = conf.channel
+        originator = conf.originatorAddress
+        number = conf.get(self.channel().configName)
+        sequenceLength = conf.channelSequenceLength
+        maxSendAddress = conf.maxSendAddress
 
         return message, channel, number, priority, address, originator, sequenceLength, maxSendAddress

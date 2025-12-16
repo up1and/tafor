@@ -84,7 +84,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.chartViewer = ChartViewer(self)
 
-        if not boolean(conf['General/Sigmet']):
+        if not conf.sigmetEnabled:
             self.sigmetAction.setVisible(False)
             self.mainTab.removeTab(3)
             self.mainTab.removeTab(3)
@@ -104,6 +104,9 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         context.layer.refreshed.connect(self.painter)
         context.flash.systemMessageChanged.connect(self.showSystemNotification)
         context.flash.statusbarMessageChanged.connect(self.showStatusbarNotification)
+
+        conf.restartRequired.connect(self.restart)
+        conf.reloadRequired.connect(self.closeSender)
 
         # 连接菜单信号
         self.tafAction.triggered.connect(self.tafEditor.show)
@@ -131,9 +134,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.tafSender.succeeded.connect(self.updateGui)
         self.trendSender.succeeded.connect(self.updateGui)
         self.sigmetSender.succeeded.connect(self.updateGui)
-
-        self.settingDialog.restarted.connect(self.restart)
-        self.settingDialog.settingChanged.connect(self.closeSender)
 
         self.licenseEditor.licenseChanged.connect(self.updateRegisterMenu)
 
@@ -412,7 +412,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         else:
             wishlist.append('FC')
 
-        if boolean(conf['General/Sigmet']):
+        if conf.sigmetEnabled:
             wishlist.extend(['WS', 'WC', 'WV', 'WA'])
 
         messages = context.message.message()
@@ -465,7 +465,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         with db.session() as session:
             taf = session.query(Taf).filter(Taf.created > recent, Taf.type == spec).order_by(Taf.created.desc()).first()
-            if boolean(conf['General/Sigmet']):
+            if conf.sigmetEnabled:
                 sigmets = context.message.sigmets(show='all')
             else:
                 sigmets = []
@@ -528,7 +528,12 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.settingDialog.exec_()
 
     def restart(self):
-        self.close()
+        title = QCoreApplication.translate('Settings', 'Restart Required')
+        text = QCoreApplication.translate('Settings', 'Program need to restart to apply the configuration, do you wish to restart now?')
+        ret = QMessageBox.information(self, title, text, QMessageBox.Yes | QMessageBox.No)
+        if ret == QMessageBox.No:
+            return
+
         program = sys.executable
         args = []
         if not hasattr(sys, '_MEIPASS'):

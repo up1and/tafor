@@ -186,7 +186,7 @@ class StateResource(object):
             },
             'originator': conf.originatorAddress,
             'file': {
-                'number': conf['Communication/FileSequenceNumber'],
+                'number': conf.fileSequenceNumber,
             },
             'busy': context.serial.busy(),
             'time': falcon.http_now()
@@ -377,11 +377,11 @@ class OthersResource(ResourceCollection):
             'message': message,
         })
 
-        channel = conf.channel or ''
-        originator = conf.originatorAddress or ''
-        number = conf.channelSequenceNumber or 1
-        sequenceLength = conf.channelSequenceLength or 4
-        maxSendAddress = conf.maxSendAddress or 21
+        channel = conf.channel
+        originator = conf.originatorAddress
+        number = conf.channelSequenceNumber
+        sequenceLength = conf.channelSequenceLength
+        maxSendAddress = conf.maxSendAddress
 
         generator = AFTNMessageGenerator(message, channel=channel, number=number, priority=priority, address=address,
                     originator=originator, sequenceLength=sequenceLength, maxSendAddress=maxSendAddress)

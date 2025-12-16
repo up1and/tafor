@@ -426,11 +426,6 @@ class EnvironState(object):
             from tafor.utils import gitRevisionHash
             return gitRevisionHash()
 
-    def unit(self):
-        from tafor.utils import boolean
-        spec = boolean(conf['General/ImperialUnit'])
-        return 'imperial' if spec else 'metric'
-
     def license(self, token=None):
         from tafor.utils import verifyToken
         token = token or conf.license

@@ -313,7 +313,7 @@ class BaseSegment(SegmentMixin, QWidget):
     def message(self):
         wind = self.wind.text() if self.wind.hasAcceptableInput() else None
         gust = self.gust.text() if self.gust.hasAcceptableInput() else None
-        unit = 'KT' if context.environ.unit() == 'imperial' else 'MPS'
+        unit = 'KT' if conf.unit == 'imperial' else 'MPS'
 
         if wind:
             winds = ''.join([wind, 'G', gust, unit]) if gust else ''.join([wind, unit])
