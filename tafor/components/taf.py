@@ -1,9 +1,9 @@
 from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLayout
 
+from tafor import conf
 from tafor.states import context
 from tafor.models import Taf
-from tafor.components.setting import isConfigured
 from tafor.components.widgets.editor import BaseEditor
 from tafor.components.widgets import TafPrimarySegment, TafFmSegment, TafBecmgSegment, TafTempoSegment
 
@@ -200,8 +200,9 @@ class TafEditor(BaseEditor):
 
     def showEvent(self, event):
         # 检查必要配置是否完成
-        if isConfigured('TAF'):
-            if not self.isStaged:
-                self.primary.updateMessageType()
-        else:
+        if not conf.checkCompleteness('taf'):
             QTimer.singleShot(0, self.showConfigError)
+            return
+        
+        if not self.isStaged:
+            self.primary.updateMessageType()

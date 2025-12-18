@@ -5,15 +5,9 @@ import pytest
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMessageBox, QFileDialog
 
-from tafor.components.setting import SettingDialog, isConfigured
+from tafor.components.setting import SettingDialog
 
 from tests.mocks import conf
-
-
-def test_is_configured():
-    assert isConfigured('TAF')
-    assert isConfigured('Trend')
-    assert isConfigured('SIGMET')
 
 
 class TestSetting(object):

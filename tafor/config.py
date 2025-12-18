@@ -17,13 +17,14 @@ def validateFirBoundary(value):
 class ConfigItem:
     """Descriptor for configuration items"""
     
-    def __init__(self, key, default='', scope='immediate', bindProperty=None, validator=None):
+    def __init__(self, key, default='', scope='immediate', bindProperty=None, group=None, validator=None):
         self.key = key
         self.default = default
         self.scope = scope
         self.bindProperty = bindProperty  # UI control binding name
         self.validator = validator
         self.value = None
+        self.group = group or []
         
     def __get__(self, instance, owner=None):
         if instance is None:
@@ -37,7 +38,7 @@ class ConfigItem:
         currentValue = instance.manager.get(self.key, self.default)
         instance.manager.set(self.key, value)
 
-        if isinstance(currentValue, (list, dict)):
+        if type(value) != type(currentValue) and isinstance(currentValue, (list, dict)):
             value = json.loads(value)
 
         if currentValue != value:
@@ -122,18 +123,21 @@ class AppConfig:
         'Message/Airport',
         default='YUSO',
         scope='reload',
-        bindProperty='airport'
+        bindProperty='airport',
+        group=['taf', 'sigmet']
     )
     bulletinNumber = ConfigItem(
         'Message/BulletinNumber',
         scope='reload',
-        bindProperty='bulletinNumber'
+        bindProperty='bulletinNumber',
+        group=['taf', 'sigmet']
     )
     trendIdentifier = ConfigItem(
         'Message/TrendIdentifier',
         default='TRENDING',
         scope='reload',
-        bindProperty='trendIdentifier'
+        bindProperty='trendIdentifier',
+        group=['trend']
     )
     weatherList = ConfigItem(
         'Message/Weather',
@@ -151,84 +155,105 @@ class AppConfig:
         'Message/FIRName',
         default='SHANLON FIR',
         scope='reload',
-        bindProperty='firName'
+        bindProperty='firName',
+        group=['sigmet']
     )
     
     # Communication configuration - Serial port settings
     port = ConfigItem(
         'Communication/SerialPort',
         default='COM1',
-        bindProperty='port'
+        bindProperty='port',
+        group=['core']
     )
     baudrate = ConfigItem(
         'Communication/SerialBaudrate',
         default='9600',
-        bindProperty='baudrate'
+        bindProperty='baudrate',
+        group=['core']
     )
     parity = ConfigItem(
         'Communication/SerialParity',
         default='NONE',
-        bindProperty='parity'
+        bindProperty='parity',
+        group=['core']
     )
     bytesize = ConfigItem(
         'Communication/SerialBytesize',
         default='8',
-        bindProperty='bytesize'
+        bindProperty='bytesize',
+        group=['core']
     )
     stopbits = ConfigItem(
         'Communication/SerialStopbits',
         default='1',
-        bindProperty='stopbits'
+        bindProperty='stopbits',
+        group=['core']
     )
     
     # Communication configuration - AFTN settings
     channel = ConfigItem(
         'Communication/Channel',
         scope='reload',
-        bindProperty='channel'
+        bindProperty='channel',
+        group=['core']
     )
     channelSequenceNumber = ConfigItem(
         'Communication/ChannelSequenceNumber',
         default='1',
         scope='reload',
-        bindProperty='channelSequenceNumber'
+        bindProperty='channelSequenceNumber',
+        group=['core']
     )
     channelSequenceLength = ConfigItem(
         'Communication/ChannelSequenceLength',
         default='4',
         scope='reload',
-        bindProperty='channelSequenceLength'
+        bindProperty='channelSequenceLength',
+        group=['core']
+    )
+    fileSequenceNumber = ConfigItem(
+        'Communication/FileSequenceNumber',
+        default='1',
+        scope='reload',
+        group=['core']
     )
     maxSendAddress = ConfigItem(
         'Communication/MaxSendAddress',
         default='10',
         scope='reload',
-        bindProperty='maxSendAddress'
+        bindProperty='maxSendAddress',
+        group=['core']
     )
     originatorAddress = ConfigItem(
         'Communication/OriginatorAddress',
         scope='reload',
-        bindProperty='originatorAddress'
+        bindProperty='originatorAddress',
+        group=['core']
     )
     tafAddress = ConfigItem(
         'Communication/TAFAddress',
         scope='reload',
-        bindProperty='tafAddress'
+        bindProperty='tafAddress',
+        group=['taf']
     )
     trendAddress = ConfigItem(
         'Communication/TrendAddress',
         scope='reload',
-        bindProperty='trendAddress'
+        bindProperty='trendAddress',
+        group=['trend']
     )
     airmetAddress = ConfigItem(
         'Communication/AIRMETAddress',
         scope='reload',
-        bindProperty='airmetAddress'
+        bindProperty='airmetAddress',
+        group=['sigmet']
     )
     sigmetAddress = ConfigItem(
         'Communication/SIGMETAddress',
         scope='reload',
-        bindProperty='sigmetAddress'
+        bindProperty='sigmetAddress',
+        group=['sigmet']
     )
     
     # Communication configuration - FTP settings
@@ -312,14 +337,14 @@ class AppConfig:
         default='[]',
         scope='restart',
         bindProperty='firBoundary',
-        validator=validateFirBoundary
+        validator=validateFirBoundary,
+        group=['sigmet']
     )
 
     sigmetEnabled = ConfigItem('General/Sigmet', default=False)
     license = ConfigItem('License')
     unit = ConfigItem('General/Unit', default='metric')
     codec = ConfigItem('Communication/Codec', default='ASCII')
-    fileSequenceNumber = ConfigItem('Communication/FileSequenceNumber', default='1', scope='reload')
 
 class ConfigManager(QObject):
     """Configuration manager"""
@@ -337,7 +362,7 @@ class ConfigManager(QObject):
             return default
         
         # Convert the value to the type of the default value
-        if default is not None:
+        if default is not None and type(default) != type(value):
             if isinstance(default, bool):
                 return str(value).lower() in ('true', 't', 'yes', 'y', '1', 'on')
             
@@ -424,3 +449,15 @@ class ConfigRegistry(QObject):
             self.restartRequired.emit()
 
         self._pending.clear()
+
+    def checkCompleteness(self, name):
+        """Check if required configuration items are set"""
+        groupsToCheck = {name}
+        if name in ['taf', 'sigmet', 'trend']:
+            groupsToCheck = {'core', name}
+
+        for _, item in self:
+            groups = set(item.group)
+            if groups.intersection(groupsToCheck) and not item.value:
+                return False
+        return True

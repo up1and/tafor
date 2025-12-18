@@ -1,9 +1,9 @@
 from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLayout
 
+from tafor import conf
 from tafor.states import context
 from tafor.models import Trend
-from tafor.components.setting import isConfigured
 from tafor.components.widgets.editor import BaseEditor
 from tafor.components.widgets import TrendSegment
 
@@ -75,6 +75,6 @@ class TrendEditor(BaseEditor):
         self.clear()
 
     def showEvent(self, event):
-        if not isConfigured('Trend'):
+        if not conf.checkCompleteness('trend'):
             QTimer.singleShot(0, self.showConfigError)
 

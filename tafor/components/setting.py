@@ -21,42 +21,6 @@ from tafor.components.ui import Ui_setting, main_rc
 logger = logging.getLogger('tafor.setting')
 
 
-def isConfigured(reportType='TAF'):
-    """检查发布不同类型报文基础配置是否完成"""
-    serial = ['Communication/SerialPort', 'Communication/SerialBaudrate', 'Communication/SerialParity',
-            'Communication/SerialBytesize', 'Communication/SerialStopbits']
-    aftn = ['Communication/Channel', 'Communication/ChannelSequenceNumber', 'Communication/ChannelSequenceLength',
-            'Communication/MaxSendAddress', 'Communication/OriginatorAddress']
-    taf = ['Message/Airport', 'Message/BulletinNumber', 'Communication/TAFAddress']
-    trend = ['Message/TrendIdentifier', 'Communication/TrendAddress']
-    sigmet = ['Message/Airport', 'Message/FIRName', 'Message/BulletinNumber', 'Communication/SIGMETAddress', 'Communication/AIRMETAddress', 'Layer/FIRBoundary']
-
-    options = serial + aftn
-    if reportType == 'TAF':
-        options += taf
-
-    if reportType == 'Trend':
-        options += trend
-
-    if reportType == 'SIGMET':
-        options += sigmet
-
-    return True
-
-def loadConf(filename, options):
-    with open(filename) as file:
-        data = json.load(file)
-
-    for path, val in data.items():
-        if path in options:
-            conf[path] = val
-
-def saveConf(filename, options):
-    data = {path: conf[path] for path in options}
-    with open(filename, 'w') as file:
-        json.dump(data, file)
-
-
 class SettingDialog(QDialog, Ui_setting.Ui_Settings):
     """设置窗口"""
 
@@ -279,26 +243,28 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
     def exportConf(self):
         filename = self.exportPath.text()
         try:
-            pass
+            data = {attr: config.value for attr, config in conf}
+            with open(filename, 'w') as file:
+                json.dump(data, file)
 
+            context.flash.statusbar(QCoreApplication.translate('Settings', 'Configuration has been exported'), 5000)
         except Exception as e:
             logger.error('Export configuration file failed, {}'.format(e))
-
-        else:
-            context.flash.statusbar(QCoreApplication.translate('Settings', 'Configuration has been exported'), 5000)
 
     def importConf(self):
         filename = self.importPath.text()
         try:
-            pass
+            with open(filename) as file:
+                data = json.load(file)
 
-        except Exception as e:
-            logger.error('Import configuration file failed, {}'.format(e))
+            for attr, value in data.items():
+                conf.set(attr, value)
 
-        else:
+            conf.emit()
             self.load()
-            self.onConfigChanged()
             context.flash.statusbar(QCoreApplication.translate('Settings', 'Configuration has been imported'), 5000)
+        except Exception as e:
+            logger.error('Import configuration file failed, {}'.format(e), exc_info=True)
 
     def openFile(self):
         title = QCoreApplication.translate('Settings', 'Open Configuration File')

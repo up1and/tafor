@@ -5,7 +5,6 @@ from PyQt5.QtCore import QCoreApplication, QTimer
 from tafor import conf
 from tafor.states import context
 from tafor.models import Sigmet
-from tafor.components.setting import isConfigured
 from tafor.components.widgets import SigmetGeneral, SigmetTyphoon, SigmetAsh, AirmetGeneral, SigmetCancel, SigmetCustom
 from tafor.components.widgets.graphic import GraphicsWindow
 from tafor.components.widgets.editor import BaseEditor
@@ -228,9 +227,10 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.clear()
 
     def showEvent(self, event):
-        # 检查必要配置是否完成
-        if isConfigured('SIGMET'):
-            if not self.isStaged:
-                self.updateState()
-        else:
+        # 检查必要配置是否完成 
+        if not conf.checkCompleteness('sigmet'):
             QTimer.singleShot(0, self.showConfigError)
+            return
+        
+        if not self.isStaged:
+            self.updateState()
