@@ -99,7 +99,7 @@ def authorize(req, resp, resource, params):
         raise falcon.HTTPUnauthorized('Bearer Token Required', description, challenges=challenges)
 
     authType, token = req.auth.split(None, 1)
-    if authType == 'Bearer' and token == context.environ.token():
+    if authType == 'Bearer' and token == conf.license:
         req.context.user = 'webapi'
     else:
         description = ('The provided auth token is not valid. Please request a new token and try again.')
@@ -188,7 +188,7 @@ class StateResource(object):
             'file': {
                 'number': conf.fileSequenceNumber,
             },
-            'busy': context.serial.busy(),
+            'busy': context.serial.isBusy,
             'time': falcon.http_now()
         }
         resp.media = data

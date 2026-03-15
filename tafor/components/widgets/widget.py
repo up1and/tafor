@@ -199,7 +199,7 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
 
         if self.item.type in ['WS', 'WC', 'WV', 'WA']:
             self.reviewer = self.parent.sigmetSender
-            if self.item.uuid in context.sigmet.state():
+            if self.item.uuid in context.sigmet.entries:
                 self.remind = True
             else:
                 self.remind = False
@@ -346,7 +346,7 @@ class TafBoard(QWidget):
 
     def current(self):
         taf = CurrentTaf(context.taf.spec)
-        if context.taf.message():
+        if context.taf.message:
             text = ''
         else:
             text = taf.spec.type + taf.period(strict=False, withDay=False)

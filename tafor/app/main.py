@@ -96,14 +96,13 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.setupSound()
 
     def bindSignal(self):
-        context.taf.reminded.connect(self.remindTaf)
-        context.other.messageChanged.connect(self.loadCustomMessage)
-        context.notification.metar.messageChanged.connect(self.loadMetar)
-        context.notification.sigmet.messageChanged.connect(self.loadSigmetNotification)
-        context.message.sigmetChanged.connect(self.sigmetEditor.updateGraphicCanvas)
-        context.layer.refreshed.connect(self.painter)
-        context.flash.systemMessageChanged.connect(self.showSystemNotification)
-        context.flash.statusbarMessageChanged.connect(self.showStatusbarNotification)
+        context.event.tafReminded.connect(self.remindTaf)
+        context.event.otherMessageChanged.connect(self.loadCustomMessage)
+        context.event.notificationStateChanged.connect(self.handleNotificationChange)
+        context.event.sigmetDataChanged.connect(self.sigmetEditor.updateGraphicCanvas)
+        context.event.layerRefreshed.connect(self.painter)
+        context.event.systemMessage.connect(self.showSystemNotification)
+        context.event.statusbarMessage.connect(self.showStatusbarNotification)
 
         conf.restartRequired.connect(self.restart)
         conf.reloadRequired.connect(self.closeSender)
@@ -221,6 +220,13 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         context.flash.info(QCoreApplication.translate('MainWindow', 'Message Received'),
                 QCoreApplication.translate('MainWindow', 'Received a custom message.'))
+        
+    def handleNotificationChange(self, notificationType):
+        if notificationType == 'metar':
+            self.loadMetar()
+
+        if notificationType == 'sigmet':
+            self.loadSigmetNotification()
 
     def loadMetar(self):
         parser = context.notification.metar.parser()
@@ -256,7 +262,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         if message:
             self.incomingSound.play(loop=False)
             context.flash.info(QCoreApplication.translate('MainWindow', 'Message Received'),
-                QCoreApplication.translate('MainWindow', 'Received a {} message').format(context.notification.sigmet.type()))
+                QCoreApplication.translate('MainWindow', 'Received a {} message').format(context.notification.sigmet.getMessageType()))
 
     def event(self, event):
         if event.type() == QEvent.WindowStateChange and self.isMinimized():
@@ -446,7 +452,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def updateSigmet(self):
         try:
             sigmets = currentSigmet()
-            context.message.setSigmet(sigmets)
+            context.message.setSigmets(sigmets)
         except Exception as e:
             logger.error('Sigmet cannot be updated, {}'.format(e))
 

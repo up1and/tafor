@@ -39,3 +39,6 @@ test = [
 
 [tool.pdm.scripts]
 tafor = "python -m tafor"
+
+[tool.ruff.format]
+quote-style = "single"

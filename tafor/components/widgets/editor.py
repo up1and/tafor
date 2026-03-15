@@ -28,7 +28,7 @@ class BaseEditor(QDialog):
         self.sender.backed.connect(self.showEditor)
         self.sender.closed.connect(self.close)
 
-        context.flash.editorMessageChanged.connect(self.showNotification)
+        context.event.editorMessage.connect(self.showNotification)
 
     def showEditor(self):
         self.isStaged = True

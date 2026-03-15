@@ -164,7 +164,7 @@ class MessageWorker(QObject):
         try:
             if conf.messageUrl:
                 url = conf.messageUrl or 'http://127.0.0.1:6575'
-                context.message.setMessage(fetchMessage(url))
+                context.message.setRemoteMessage(fetchMessage(url))
         finally:
             self.finished.emit()
 

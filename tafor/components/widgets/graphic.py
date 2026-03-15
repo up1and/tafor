@@ -1070,7 +1070,7 @@ class GraphicsWindow(QWidget):
         self.modeButton.clicked.connect(self.nextMode)
         self.modeButton.clicked.connect(self.updateOverlapButton)
         self.overlapButton.toggled.connect(self.handleOverlap)
-        self.refreshButton.clicked.connect(context.layer.refresh)
+        self.refreshButton.clicked.connect(context.layer.refreshLayers)
         self.canvas.mouseMoved.connect(self.updatePositionLabel)
 
         for sketch in self.canvas.sketchManager:
@@ -1084,8 +1084,8 @@ class GraphicsWindow(QWidget):
         self.backgroundLayerActionGroup.triggered.connect(self.changeLayer)
         self.mixedBackgroundLayerActionGroup.triggered.connect(self.changeLayer)
         self.opacitySilder.valueChanged.connect(self.updateMixedBackgroundOpacity)
-        context.layer.changed.connect(self.setLayerSelectMenu)
-        context.layer.changed.connect(self.updateLayer)
+        context.event.layerStateChanged.connect(self.setLayerSelectMenu)
+        context.event.layerStateChanged.connect(self.updateLayer)
 
     def handleSketchChange(self):
         self.sketchChanged.emit(self.formattedCoordinates())
@@ -1233,11 +1233,11 @@ class GraphicsWindow(QWidget):
 
         default = self.backgroundLayerActionGroup.actions()[0] or self.mixedBackgroundLayerActionGroup.actions()[0]
         default.setChecked(True)
-        context.layer.selected = [default.text()]
+        context.layer.setState({'selected': [default.text()]})
 
     def changeSigmetDisplayMode(self, action, attr):
         checked = action.isChecked()
-        setattr(context.layer, attr, checked)
+        context.layer.setState({attr: checked})
         self.updateSigmetGraphic()
 
     def changeLayer(self, action):
@@ -1245,8 +1245,7 @@ class GraphicsWindow(QWidget):
         if stackable:
             selected = [action.text() for action in self.backgroundLayerActionGroup.actions() + self.mixedBackgroundLayerActionGroup.actions() if action.isChecked()]
             if selected != context.layer.selected:
-                context.layer.selected = selected
-                self.updateLayer()
+                context.layer.setState({'selected': selected})
         else:
             action.setChecked(False)
 

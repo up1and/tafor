@@ -514,7 +514,7 @@ class SigmetSender(BaseSender):
         sig = self.message.parser()
         if self.message.isCnl():
             cancelSequence = sig.cancelSequence()
-            states = context.sigmet.state().copy()
+            states = context.sigmet.entries
             for uuid, value in states.items():
                 parser = value['text']
                 sequence = parser.sequence(), parser.validTime()
@@ -547,9 +547,8 @@ class CustomSender(BaseSender):
 
     def load(self):
         self.clear()
-        state = context.other.state()
         rawText = self.generateRawText()
-        self.message = Other(uuid=state['uuid'], text=state['message'], source='api')
+        self.message = Other(uuid=context.other.uuid, text=context.other.message, source='api')
         self.setRawGroup(rawText)
         self.rawGroup.show()
         self.protocolSign.show()
@@ -558,10 +557,9 @@ class CustomSender(BaseSender):
         self.rawGroup.setTitle(QCoreApplication.translate('Sender', 'Received Messages'))
 
     def parameters(self):
-        state = context.other.state()
-        message = state['message']
-        priority = state['priority']
-        address = state['address']
+        message = context.other.message
+        priority = context.other.priority
+        address = context.other.address
         channel = conf.channel
         originator = conf.originatorAddress
         number = conf.get(self.channel().configName)
