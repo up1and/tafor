@@ -77,7 +77,7 @@ class CurrentTaf(object):
         end = start + self.spec.duration
         return start, end
 
-    def hasExpired(self, offset=None):
+    def isExpired(self, offset=None):
         """当前时段报文是否过了有效发报时间
 
         :param offset: 过期时间，单位分钟
@@ -223,8 +223,8 @@ def createTafStatus(spec):
     currentTaf = CurrentTaf(spec)
     period = currentTaf.period(strict=False)
 
-    clockRemind = currentTaf.hasExpired(offset=5)
-    hasExpired = False
+    shouldRemind = currentTaf.isExpired(offset=5)
+    isExpired = False
 
     # Ignore AMD COR message
     expired = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
@@ -233,25 +233,25 @@ def createTafStatus(spec):
         recent = session.query(Taf).filter(Taf.text.contains(period),  ~Taf.text.contains('AMD'),
         ~Taf.text.contains('COR'), Taf.created > expired).order_by(Taf.created.desc()).first()
 
-    if currentTaf.hasExpired():
+    if currentTaf.isExpired():
         if recent:
             if not recent.confirmed:
-                hasExpired = True
+                isExpired = True
         else:
-            hasExpired = True
+            isExpired = True
 
     # The alarm clock no longer rings after the cancel message is issued
     with db.session() as session:
         latest = session.query(Taf).filter_by(type=currentTaf.spec.type).order_by(Taf.created.desc()).first()
 
     if latest and latest.isCnl():
-        hasExpired = False
-        clockRemind = False
+        isExpired = False
+        shouldRemind = False
 
     return {
             'period': period,
             'message': recent,
-            'hasExpired': hasExpired,
-            'clockRemind': clockRemind,
+            'isExpired': isExpired,
+            'shouldRemind': shouldRemind,
         }
 

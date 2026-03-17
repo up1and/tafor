@@ -10,7 +10,7 @@ class RemoteMessageState:
         self.messages = {}
 
 
-class MessageSigmetState:
+class CurrentSigmetState:
     def __init__(self):
         self.sigmets = []
 
@@ -24,15 +24,15 @@ class LayerState:
         self.selected = []
 
 
-class TafState:
+class TafMonitorState:
     def __init__(self):
         self.period = ''
         self.message = None
-        self.hasExpired = False
-        self.clockRemind = False
+        self.isExpired = False
+        self.shouldRemind = False
 
 
-class SigmetState:
+class SigmetMonitorState:
     def __init__(self):
         self.entries = {}
         self.aheadMinutes = 20
@@ -106,7 +106,7 @@ class RemoteMessageService(QObject):
         self.event.remoteMessageStateChanged.emit(self.state)
 
 
-class MessageSigmetService(QObject):
+class CurrentSigmetService(QObject):
     def __init__(self, state, event):
         super().__init__()
         self.state = state
@@ -267,7 +267,7 @@ class LayerService(QObject, StateProxyMixin):
         self.event.layerRefreshed.emit()
 
 
-class TafService(QObject, StateProxyMixin):
+class TafMonitorService(QObject, StateProxyMixin):
     fields = ['message']
 
     def __init__(self, state, event):
@@ -276,12 +276,12 @@ class TafService(QObject, StateProxyMixin):
         self.event = event
 
     def setState(self, values):
-        oldClockRemind = self.state.clockRemind
+        oldShouldRemind = self.state.shouldRemind
         for key, value in values.items():
             if hasattr(self.state, key):
                 setattr(self.state, key, value)
 
-        if self.state.clockRemind and not oldClockRemind:
+        if self.state.shouldRemind and not oldShouldRemind:
             self.event.tafReminded.emit()
 
         self.event.tafStateChanged.emit(self.state)
@@ -297,17 +297,17 @@ class TafService(QObject, StateProxyMixin):
             return 'ft30'
         return 'fc'
 
-    def needReminded(self):
-        return self.state.clockRemind and self.state.message is None
+    def shouldRemind(self):
+        return self.state.shouldRemind and self.state.message is None
 
-    def hasExpired(self):
-        return self.state.hasExpired
+    def isExpired(self):
+        return self.state.isExpired
 
     def period(self):
         return self.state.period
 
 
-class SigmetService(QObject, StateProxyMixin):
+class SigmetMonitorService(QObject, StateProxyMixin):
     fields = ['entries']
 
     def __init__(self, state, event):
@@ -596,10 +596,10 @@ class AppContext:
 
         # Create states
         remoteMessageState = RemoteMessageState()
-        messageSigmetState = MessageSigmetState()
+        currentSigmetState = CurrentSigmetState()
         layerState = LayerState()
-        tafState = TafState()
-        sigmetState = SigmetState()
+        tafMonitorState = TafMonitorState()
+        sigmetMonitorState = SigmetMonitorState()
         otherState = OtherState()
         notificationStates = {
             'metar': NotificationState(expireMinutes=10),
@@ -608,10 +608,10 @@ class AppContext:
 
         # Create services with injected state and event
         self.message = RemoteMessageService(remoteMessageState, self.event)
-        self.messageSigmet = MessageSigmetService(messageSigmetState, self.event)
+        self.current = CurrentSigmetService(currentSigmetState, self.event)
         self.layer = LayerService(layerState, self.event)
-        self.taf = TafService(tafState, self.event)
-        self.sigmet = SigmetService(sigmetState, self.event)
+        self.taf = TafMonitorService(tafMonitorState, self.event)
+        self.sigmet = SigmetMonitorService(sigmetMonitorState, self.event)
         self.other = OtherService(otherState, self.event)
         self.notification = NotificationManager(notificationStates, self.event)
         self.flash = FlashService(self.event)

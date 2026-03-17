@@ -87,9 +87,9 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
             return
 
         if self.category == 'cancel':
-            sigmets = context.messageSigmet.filterSigmets(SigmetFilter(typeCode=self.type))
+            sigmets = context.current.filterSigmets(SigmetFilter(typeCode=self.type))
         else:
-            sigmets = context.messageSigmet.filterSigmets(SigmetFilter(reportType=self.reportType()))
+            sigmets = context.current.filterSigmets(SigmetFilter(reportType=self.reportType()))
 
         self.graphic.setCachedSigmet(sigmets)
 

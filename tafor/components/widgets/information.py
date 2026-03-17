@@ -1385,7 +1385,7 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
     def componentUpdate(self):
         self.prevs = []
-        sigmets = context.messageSigmet.filterSigmets(SigmetFilter(typeCode=self.type()))
+        sigmets = context.current.filterSigmets(SigmetFilter(typeCode=self.type()))
 
         for sig in sigmets:
             parser = sig.parser()

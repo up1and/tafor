@@ -326,7 +326,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.trendSound.stop()
 
         # 管理报文告警声音
-        if warnSwitch and context.taf.hasExpired():
+        if warnSwitch and context.taf.isExpired():
             self.alarmSound.play()
         else:
             self.alarmSound.stop()
@@ -365,7 +365,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         type = context.taf.spec[:2].upper()
         period = context.taf.period()
 
-        if context.taf.needReminded():
+        if context.taf.shouldRemind():
             current = type + period[2:4] + period[7:]
             text = QCoreApplication.translate('MainWindow', 'Time to issue {}').format(current)
             self.tafSound.play()
@@ -452,7 +452,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def updateSigmet(self):
         try:
             sigmets = currentSigmet()
-            context.messageSigmet.setState(sigmets)
+            context.current.setState(sigmets)
         except Exception as e:
             logger.error('Sigmet cannot be updated, {}'.format(e))
 
@@ -472,7 +472,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         with db.session() as session:
             taf = session.query(Taf).filter(Taf.created > recent, Taf.type == spec).order_by(Taf.created.desc()).first()
             if conf.sigmetEnabled:
-                sigmets = context.messageSigmet.filterSigmets(SigmetFilter(includeCancelled=True))
+                sigmets = context.current.filterSigmets(SigmetFilter(includeCancelled=True))
             else:
                 sigmets = []
 
