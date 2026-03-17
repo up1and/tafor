@@ -16,7 +16,7 @@ logger = logging.getLogger('tafor.thread')
 
 
 _headers = {
-    'User-Agent': 'Tafor/{version}+{revision} ({system} {release}; {bitness})'.format(**context.environ.environment())
+    'User-Agent': 'Tafor/{version}+{revision} ({system} {release}; {machine})'.format(**context.info.environment())
 }
 
 

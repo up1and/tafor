@@ -95,7 +95,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.resendButton.hide()
         self.switchButton.hide()
 
-        font = context.environ.fixedFont()
+        font = context.resource.fixedFont()
         font.setPointSize(11)
         self.text.setFont(font)
         self.raw.setFont(font)
@@ -218,7 +218,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             self.error = error
             self.rawGroup.setTitle(QCoreApplication.translate('Sender', 'Send Failed'))
 
-            if context.environ.hasPermission(self.reportType):
+            if context.license.hasPermission(self.reportType):
                 self.resendButton.setEnabled(True)
                 self.resendButton.setText(QCoreApplication.translate('Sender', 'Resend'))
                 self.resendButton.show()
@@ -278,7 +278,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
 
         rawText = self.generateRawText()
 
-        if context.environ.hasPermission(self.reportType):
+        if context.license.hasPermission(self.reportType):
             # Use new worker-based approach
             workerId = f"{self.reportType}_sender_{id(self)}"
             workerClass = self.channel().worker

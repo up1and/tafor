@@ -156,7 +156,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
         self.exportDialog = ExportDialog(self)
 
-        font = context.environ.fixedFont()
+        font = context.resource.fixedFont()
         font.setPointSize(10)
         self.table.setFont(font)
 

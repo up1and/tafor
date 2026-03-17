@@ -1,5 +1,6 @@
 import os
 import sys
+import platform
 import datetime
 
 from setuptools import setup, Command
@@ -137,8 +138,8 @@ class PyInstallerCommand(Command):
     def package(self):
         import zipfile
 
-        bitness = 'amd64' if sys.maxsize > 2**32 else 'win32'
-        filename = 'tafor-{version}-{bitness}.zip'.format(version=__version__, bitness=bitness)
+        machine = platform.machine().lower()
+        filename = 'tafor-{version}-{machine}.zip'.format(version=__version__, machine=machine)
         output = os.path.abspath(os.path.join('dist', filename))
 
         def zipdir(path, package, extension=None):

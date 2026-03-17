@@ -1,5 +1,3 @@
-import os
-import sys
 import datetime
 
 from PyQt5.QtCore import QObject, pyqtSignal
@@ -115,7 +113,7 @@ class CurrentSigmetService(QObject):
             self.event.currentSigmetChanged.emit()
 
     def filterSigmets(self, sigmetFilter=None):
-        from tafor.utils.service import SigmetFilter
+        from tafor.utils.query import SigmetFilter
 
         sigmetFilter = sigmetFilter or SigmetFilter()
 
@@ -451,127 +449,10 @@ class FlashService(QObject):
         self.showEditorMessage(title, text)
 
 
-class SerialLock:
-    def __init__(self):
-        self._locked = False
-
-    @property
-    def isBusy(self):
-        return self._locked
-
-    def lock(self):
-        self._locked = True
-
-    def release(self):
-        self._locked = False
-
-
-class EnvironManager:
-    key = (
-        '-----BEGIN PUBLIC KEY-----\n'
-        'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2AZZfefXdgpvnWcV9xMf\n'
-        'qlBqTS/8XZXq9BwFRpe0thoS3fER8s5fGKDWiOzO2I2PEwvahXyPny4hxHll7vF+\n'
-        'lgd3dl0Z5BRslDGzSUe3/S2vqu4jAiyFmF3z8HZ9Jcr7BXi8yYUOr/LUfOP2gWK3\n'
-        'GnORnWhBTb/llaGjN72yoJKJpKEbJYlrBJdsOyBrAeXbg1QNktOuqPf5toP/72qU\n'
-        '2a/RRvpK9koSHMvhqd6ex5h+MHvcQZ759Fi1wxj5ChkB6BGgsHGR+7f49c92Gd4o\n'
-        '2TKLicLL6vcidL4QkXdhRaZTJyd8pYI6Su+FUK7mcaBDpEaUl9xWupJnjsfKx1bf\n'
-        'WQIDAQAB\n'
-        '-----END PUBLIC KEY-----'
-    )
-
-    def __init__(self):
-        self.exp = 0
-
-    def environment(self):
-        import platform
-        from PyQt5.QtCore import QT_VERSION_STR
-        from tafor import __version__
-
-        if sys.platform != 'darwin':
-            system = platform.system()
-        else:
-            system = 'Darwin'
-
-        return {
-            'version': __version__,
-            'python': platform.python_version(),
-            'bitness': 'amd64' if sys.maxsize > 2**32 else 'win32',
-            'qt': QT_VERSION_STR,
-            'system': system,
-            'release': platform.release(),
-            'revision': self.ghash(),
-        }
-
-    def ghash(self):
-        if hasattr(sys, '_MEIPASS'):
-            from tafor._environ import ghash
-
-            return ghash
-        else:
-            from tafor.utils import gitRevisionHash
-
-            return gitRevisionHash()
-
-    def license(self, token=None):
-        from tafor import conf
-        from tafor.utils import verifyToken
-
-        token = token or conf.license
-        if not token:
-            return {}
-
-        payload = verifyToken(token, self.key)
-        if payload is None:
-            return {}
-
-        if 'exp' in payload:
-            exp = datetime.datetime.fromtimestamp(payload['exp'])
-            now = datetime.datetime.utcnow()
-            self.exp = (exp - now).days
-
-        data = {}
-        for k, info in self.register().items():
-            if k in payload and info == payload[k]:
-                data[k] = info
-
-        return data
-
-    def register(self):
-        from tafor import conf
-
-        infos = {}
-        if conf.airport:
-            infos['airport'] = conf.airport
-        if conf.firName:
-            infos['fir'] = conf.firName[:4]
-        return infos
-
-    def hasPermission(self, reportType):
-        if reportType == 'Trend':
-            return True
-        if reportType in ['TAF', 'Custom']:
-            return 'airport' in self.license()
-        if reportType in ['SIGMET', 'AIRMET']:
-            return 'fir' in self.license()
-        return False
-
-    def bundlePath(self, relativePath):
-        from tafor import root
-
-        if hasattr(sys, '_MEIPASS'):
-            base = sys._MEIPASS
-        else:
-            base = root
-        return os.path.join(base, relativePath)
-
-    def fixedFont(self):
-        from PyQt5.QtGui import QFontDatabase
-
-        return QFontDatabase.systemFont(QFontDatabase.FixedFont)
-
-
 class AppContext:
     def __init__(self):
+        from tafor.services import AppInfoService, LicenseService, ResourceService, SerialLock
+
         # Shared event bus
         self.event = Event()
 
@@ -599,7 +480,9 @@ class AppContext:
 
         # Utilities
         self.serial = SerialLock()
-        self.environ = EnvironManager()
+        self.info = AppInfoService()
+        self.license = LicenseService()
+        self.resource = ResourceService()
 
 
 # Global singleton

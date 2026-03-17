@@ -403,7 +403,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.sigmetSound.stop()
 
     def updateRegisterMenu(self):
-        registered = context.environ.license()
+        registered = context.license.license()
         if registered:
             self.enterLicenseAction.setVisible(False)
             self.removeLicenseAction.setVisible(True)
@@ -556,7 +556,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def about(self):
         title = QCoreApplication.translate('MainWindow', 'About')
         register = QCoreApplication.translate('MainWindow', '{} days remaining').format(
-            context.environ.exp) if context.environ.license() else QCoreApplication.translate('MainWindow', 'Unregistered')
+            context.license.exp) if context.license.license() else QCoreApplication.translate('MainWindow', 'Unregistered')
         html = """
         <div style="text-align:center">
         <img src=":/logo.png">
@@ -566,7 +566,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         <p style="margin:5px 0;color:#444">{}</p>
         <p style="margin-top:25px;color:#444">Copyright © 2022 <a href="mailto:piratecb@gmail.com" style="text-decoration:none;color:#444">up1and</a></p>
         </div>
-        """.format(QCoreApplication.translate('MainWindow', 'Version'), __version__, context.environ.ghash(), register)
+        """.format(QCoreApplication.translate('MainWindow', 'Version'), __version__, context.info.ghash(), register)
 
         aboutBox = QMessageBox(self)
         aboutBox.setText(html)
@@ -657,8 +657,8 @@ def main():
         threadManager.startWorker('rpc')
         app.aboutToQuit.connect(lambda: threadManager.stopWorker('rpc'))
 
-    versions = context.environ.environment()
-    logger.info('Version {version}+{revision}, Python {python} {bitness}, Qt {qt} on {system} {release}'.format(**versions))
+    versions = context.info.environment()
+    logger.info('Version {version}+{revision}, Python {python} {machine}, Qt {qt} on {system} {release}'.format(**versions))
 
     try:
         window = MainWindow()

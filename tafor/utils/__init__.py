@@ -5,4 +5,4 @@ from tafor.utils.modem import serialComm, ftpComm
 from tafor.utils.pagination import paginate
 from tafor.utils.common import boolean, checkVersion, gitRevisionHash, verifyToken, ipAddress
 from tafor.utils.convert import timeAgo
-from tafor.utils.service import latestMetar, currentSigmet, SigmetFilter
+from tafor.utils.query import latestMetar, currentSigmet, SigmetFilter

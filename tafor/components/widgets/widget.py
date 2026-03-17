@@ -145,7 +145,7 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         else:
             self.reviewMode()
 
-        font = context.environ.fixedFont()
+        font = context.resource.fixedFont()
         self.setFont(font)
         self.timeLabel.setFont(font)
         font.setPointSize(12)
@@ -336,7 +336,7 @@ class TafBoard(QWidget):
         self.setLayout(layout)
 
         self.board = QLabel()
-        self.board.setFont(context.environ.fixedFont())
+        self.board.setFont(context.resource.fixedFont())
         layout.addWidget(self.board)
 
         container.addWidget(self)
@@ -363,10 +363,10 @@ class Clock(QWidget):
         self.setLayout(layout)
 
         self.zone = QLabel('UTC')
-        self.zone.setFont(context.environ.fixedFont())
+        self.zone.setFont(context.resource.fixedFont())
         self.zone.setStyleSheet('QLabel {color: grey;}')
         self.label = QLabel()
-        self.label.setFont(context.environ.fixedFont())
+        self.label.setFont(context.resource.fixedFont())
         layout.addWidget(self.zone)
         layout.addWidget(self.label)
 
@@ -397,7 +397,7 @@ class LicenseEditor(QDialog, Ui_main_license.Ui_Editor):
     def save(self):
         license = self.textarea.toPlainText().strip()
         license = ''.join(license.split())
-        if context.environ.license(license):
+        if context.license.license(license):
             self.setLicense(license)
             self.textarea.clear()
         else:

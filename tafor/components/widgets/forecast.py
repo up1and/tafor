@@ -42,7 +42,7 @@ class SegmentMixin(object):
             checkbox.clicked.connect(lambda: self.contentChanged.emit())
 
     def setupFont(self):
-        fixedFont = context.environ.fixedFont()
+        fixedFont = context.resource.fixedFont()
         for line in self.findChildren(QLineEdit):
             line.setFont(fixedFont)
 
@@ -832,7 +832,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
     def setupFont(self):
         super(TafGroupSegment, self).setupFont()
-        self.name.setFont(context.environ.fixedFont())
+        self.name.setFont(context.resource.fixedFont())
 
     def setupValidator(self):
         super(TafGroupSegment, self).setupValidator()
@@ -1132,7 +1132,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
     def setupFont(self):
         super(TrendSegment, self).setupFont()
-        font = context.environ.fixedFont()
+        font = context.resource.fixedFont()
         self.becmg.setFont(font)
         self.tempo.setFont(font)
 

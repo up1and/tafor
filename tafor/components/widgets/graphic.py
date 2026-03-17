@@ -563,7 +563,7 @@ class BaseCanvas(QGraphicsView):
             self.coastlines = []
             self.scene.removeItem(self.coastlinesGroup)
 
-        filename = os.path.join(context.environ.bundlePath('shapes'), 'coastline.shp')
+        filename = os.path.join(context.resource.bundlePath('shapes'), 'coastline.shp')
         sf = shapefile.Reader(filename)
         shapes = sf.shapes()
 
@@ -906,7 +906,7 @@ class LocationWidget(QWidget):
         self.location.setWordWrap(True)
         self.location.setStyleSheet('QLabel { color: #fff; background-color: rgba(0, 0, 0, 0.35); border-radius: 3px; padding: 5px; }')
 
-        font = context.environ.fixedFont()
+        font = context.resource.fixedFont()
         font.setPointSize(10)
         self.location.setFont(font)
 
