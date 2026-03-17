@@ -96,11 +96,12 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.setupSound()
 
     def bindSignal(self):
-        context.event.tafReminded.connect(self.remindTaf)
-        context.event.otherMessageChanged.connect(self.loadCustomMessage)
-        context.event.notificationStateChanged.connect(self.handleNotificationChange)
-        context.event.sigmetDataChanged.connect(self.sigmetEditor.updateGraphicCanvas)
-        context.event.layerRefreshed.connect(self.painter)
+        context.event.remoteMessageChanged.connect(self.updateMessage)
+        context.event.tafReminderTriggered.connect(self.remindTaf)
+        context.event.otherMessageReceived.connect(self.loadCustomMessage)
+        context.event.notificationChanged.connect(self.handleNotificationChange)
+        context.event.currentSigmetChanged.connect(self.sigmetEditor.updateGraphicCanvas)
+        context.event.layerRefreshRequested.connect(self.painter)
         context.event.systemMessage.connect(self.showSystemNotification)
         context.event.statusbarMessage.connect(self.showStatusbarNotification)
 
@@ -189,7 +190,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def setupThread(self):
         # Create workers using the new thread manager
         self.messageWorker, self.messageThread = threadManager.createWorker(MessageWorker, 'message')
-        self.messageWorker.finished.connect(self.updateMessage)
         self.messageWorker.finished.connect(self.notifier)
 
         self.layerWorker, self.layerThread = threadManager.createWorker(LayerWorker, 'layer')
@@ -443,7 +443,11 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.notificationSound.play(loop=False)
             self.remindTafBox.close()
 
-        self.updateGui()
+        self.updateTaf()
+        self.updateSigmet()
+        self.updateTable()
+        self.updateRecent()
+        self.remindSigmet()
 
     def updateTaf(self):
         status = createTafStatus(context.taf.spec)

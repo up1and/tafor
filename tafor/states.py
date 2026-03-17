@@ -57,24 +57,21 @@ class OtherState:
 
 
 class Event(QObject):
-    # State change events
-    remoteMessageStateChanged = pyqtSignal(object)
-    layerStateChanged = pyqtSignal(object)
-    tafStateChanged = pyqtSignal(object)
-    sigmetStateChanged = pyqtSignal(object)
-    notificationStateChanged = pyqtSignal(str)
-    otherMessageChanged = pyqtSignal()
+    # Data changes
+    layerChanged = pyqtSignal(object)
+    remoteMessageChanged = pyqtSignal()
+    currentSigmetChanged = pyqtSignal()
+    notificationChanged = pyqtSignal(str)
 
-    # UI events
+    # Triggers
+    tafReminderTriggered = pyqtSignal()
+    layerRefreshRequested = pyqtSignal()
+    otherMessageReceived = pyqtSignal()
+
+    # UI messages
     systemMessage = pyqtSignal(str, str, str)
     statusbarMessage = pyqtSignal(str, int)
     editorMessage = pyqtSignal(str, str)
-
-    # Business events
-    sigmetDataChanged = pyqtSignal()
-    layerRefreshed = pyqtSignal()
-    layerDataChanged = pyqtSignal()
-    tafReminded = pyqtSignal()
 
 
 class StateProxyMixin:
@@ -98,12 +95,9 @@ class RemoteMessageService(QObject):
         return self.state.messages
 
     def setState(self, values):
-        if self.state.messages == values:
-            return
-
-        self.state.messages = dict(values)
-
-        self.event.remoteMessageStateChanged.emit(self.state)
+        if self.state.messages != values:
+            self.state.messages = dict(values)
+            self.event.remoteMessageChanged.emit()
 
 
 class CurrentSigmetService(QObject):
@@ -116,11 +110,9 @@ class CurrentSigmetService(QObject):
         oldSigmets = [s.text for s in self.state.sigmets]
         newSigmets = [s.text for s in values]
 
-        if set(oldSigmets) == set(newSigmets):
-            return
-
-        self.state.sigmets = list(values)
-        self.event.sigmetDataChanged.emit()
+        if set(oldSigmets) != set(newSigmets):
+            self.state.sigmets = list(values)
+            self.event.currentSigmetChanged.emit()
 
     def filterSigmets(self, sigmetFilter=None):
         from tafor.utils.service import SigmetFilter
@@ -155,10 +147,8 @@ class LayerService(QObject, StateProxyMixin):
         newNames = [l.name for l in layers]
 
         self.state.layers = layers
-        self.event.layerStateChanged.emit(self.state)
-
         if oldNames != newNames:
-            self.event.layerDataChanged.emit()
+            self.event.layerChanged.emit(self.state)
 
     def setState(self, values):
         normalized = {}
@@ -168,18 +158,14 @@ class LayerService(QObject, StateProxyMixin):
             if key in ['showSigmet', 'trimShapes']:
                 normalized[key] = bool(value)
 
-        changed = any(
+        if any(
             getattr(self.state, key) != value
             for key, value in normalized.items()
-        )
+        ):
+            for key, value in normalized.items():
+                setattr(self.state, key, value)
 
-        if not changed:
-            return
-
-        for key, value in normalized.items():
-            setattr(self.state, key, value)
-
-        self.event.layerStateChanged.emit(self.state)
+            self.event.layerChanged.emit(self.state)
 
     def getLayers(self):
         return self.state.layers
@@ -264,7 +250,7 @@ class LayerService(QObject, StateProxyMixin):
         return proj
 
     def refreshLayers(self):
-        self.event.layerRefreshed.emit()
+        self.event.layerRefreshRequested.emit()
 
 
 class TafMonitorService(QObject, StateProxyMixin):
@@ -282,9 +268,7 @@ class TafMonitorService(QObject, StateProxyMixin):
                 setattr(self.state, key, value)
 
         if self.state.shouldRemind and not oldShouldRemind:
-            self.event.tafReminded.emit()
-
-        self.event.tafStateChanged.emit(self.state)
+            self.event.tafReminderTriggered.emit()
 
     @property
     def spec(self):
@@ -317,16 +301,13 @@ class SigmetMonitorService(QObject, StateProxyMixin):
 
     def add(self, uuid, text, time):
         self.state.entries[uuid] = {'text': text, 'time': time}
-        self.event.sigmetStateChanged.emit(self.state)
 
     def update(self, uuid, time):
         if uuid in self.state.entries:
             self.state.entries[uuid]['time'] = time
-            self.event.sigmetStateChanged.emit(self.state)
 
     def remove(self, uuid):
         self.state.entries.pop(uuid, None)
-        self.event.sigmetStateChanged.emit(self.state)
 
     def outdate(self):
         now = datetime.datetime.utcnow()
@@ -358,7 +339,7 @@ class NotificationService(QObject):
 
         if oldMessage != self.state.message or oldValidation != self.state.validation:
             self.state.created = datetime.datetime.utcnow()
-            self.event.notificationStateChanged.emit(self.getMessageType())
+            self.event.notificationChanged.emit(self.getMessageType())
 
     def clear(self):
         self.setState({'message': None})
@@ -440,7 +421,7 @@ class OtherService(QObject, StateProxyMixin):
             if hasattr(self.state, key):
                 setattr(self.state, key, value)
         self.state.created = datetime.datetime.utcnow()
-        self.event.otherMessageChanged.emit()
+        self.event.otherMessageReceived.emit()
 
 
 class FlashService(QObject):
