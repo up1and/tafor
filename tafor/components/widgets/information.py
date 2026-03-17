@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QToolButton
 from tafor import conf
 from tafor.states import context
 
-from tafor.utils import Pattern
+from tafor.utils import Pattern, SigmetFilter
 from tafor.utils.convert import parseTime, ceilTime, roundTime, calcPosition, decimalToDegree, degreeToDecimal
 from tafor.utils.validator import AshAdvisoryParser, TyphoonAdvisoryParser
 from tafor.models import db, Sigmet
@@ -1385,7 +1385,7 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
     def componentUpdate(self):
         self.prevs = []
-        sigmets = context.message.sigmets(type=self.type())
+        sigmets = context.messageSigmet.filterSigmets(SigmetFilter(typeCode=self.type()))
 
         for sig in sigmets:
             parser = sig.parser()

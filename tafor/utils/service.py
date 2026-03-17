@@ -4,6 +4,24 @@ import datetime
 from tafor.models import db, Metar, Sigmet
 
 
+class SigmetFilter:
+    def __init__(self, reportType=None, typeCode=None, includeCancelled=False):
+        self.reportType = reportType
+        self.typeCode = typeCode
+        self.includeCancelled = includeCancelled
+
+    def typeCodes(self):
+        if self.typeCode:
+            return [self.typeCode]
+
+        if self.reportType == 'SIGMET':
+            return ['WS', 'WC', 'WV']
+
+        if self.reportType == 'AIRMET':
+            return ['WA']
+
+        return []
+
 def latestMetar():
     recent = datetime.datetime.utcnow() - datetime.timedelta(hours=2)
     with db.session() as session:

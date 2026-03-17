@@ -5,9 +5,13 @@ import datetime
 from PyQt5.QtCore import QObject, pyqtSignal
 
 
-class MessageState:
+class RemoteMessageState:
     def __init__(self):
-        self.remote = {}
+        self.messages = {}
+
+
+class MessageSigmetState:
+    def __init__(self):
         self.sigmets = []
 
 
@@ -54,7 +58,7 @@ class OtherState:
 
 class Event(QObject):
     # State change events
-    messageStateChanged = pyqtSignal(object)
+    remoteMessageStateChanged = pyqtSignal(object)
     layerStateChanged = pyqtSignal(object)
     tafStateChanged = pyqtSignal(object)
     sigmetStateChanged = pyqtSignal(object)
@@ -84,50 +88,55 @@ class StateProxyMixin:
             setattr(cls, field, property(getter))
 
 
-class MessageService(QObject):
+class RemoteMessageService(QObject):
     def __init__(self, state, event):
         super().__init__()
         self.state = state
         self.event = event
 
     def message(self):
-        return self.state.remote
+        return self.state.messages
 
-    def setRemoteMessage(self, values):
-        self.state.remote = values
-        self.event.messageStateChanged.emit(self.state)
+    def setState(self, values):
+        if self.state.messages == values:
+            return
 
-    def setSigmets(self, sigmets):
+        self.state.messages = dict(values)
+
+        self.event.remoteMessageStateChanged.emit(self.state)
+
+
+class MessageSigmetService(QObject):
+    def __init__(self, state, event):
+        super().__init__()
+        self.state = state
+        self.event = event
+
+    def setState(self, values):
         oldSigmets = [s.text for s in self.state.sigmets]
-        newSigmets = [s.text for s in sigmets]
+        newSigmets = [s.text for s in values]
 
-        self.state.sigmets = sigmets
-        self.event.messageStateChanged.emit(self.state)
+        if set(oldSigmets) == set(newSigmets):
+            return
 
-        if set(oldSigmets) != set(newSigmets):
-            self.event.sigmetDataChanged.emit()
+        self.state.sigmets = list(values)
+        self.event.sigmetDataChanged.emit()
 
-    def sigmets(self, type=None, airsigmet=None, show='nocnl'):
-        types = []
+    def filterSigmets(self, sigmetFilter=None):
+        from tafor.utils.service import SigmetFilter
 
-        if airsigmet == 'SIGMET':
-            types = ['WS', 'WC', 'WV']
+        sigmetFilter = sigmetFilter or SigmetFilter()
 
-        if airsigmet == 'AIRMET':
-            types = ['WA']
-
-        if isinstance(type, str):
-            types = [type]
-
-        if show == 'all':
-            sigmets = self.state.sigmets
+        if sigmetFilter.includeCancelled:
+            candidates = self.state.sigmets
         else:
-            sigmets = [s for s in self.state.sigmets if not s.isCnl()]
+            candidates = [s for s in self.state.sigmets if not s.isCnl()]
 
-        if types:
-            return [s for s in sigmets if s.type in types]
+        typeCodes = sigmetFilter.typeCodes()
+        if typeCodes:
+            candidates = [s for s in candidates if s.type in typeCodes]
 
-        return sigmets
+        return candidates
 
 
 class LayerService(QObject, StateProxyMixin):
@@ -152,25 +161,25 @@ class LayerService(QObject, StateProxyMixin):
             self.event.layerDataChanged.emit()
 
     def setState(self, values):
-        changed = False
+        normalized = {}
         for key, value in values.items():
             if key == 'selected':
-                value = list(value)
-            elif key in ['showSigmet', 'trimShapes']:
-                value = bool(value)
-            else:
-                raise AttributeError('Unknown layer state field: {}'.format(key))
+                normalized[key] = list(value)
+            if key in ['showSigmet', 'trimShapes']:
+                normalized[key] = bool(value)
 
-            if getattr(self.state, key) == value:
-                continue
+        changed = any(
+            getattr(self.state, key) != value
+            for key, value in normalized.items()
+        )
 
+        if not changed:
+            return
+
+        for key, value in normalized.items():
             setattr(self.state, key, value)
-            changed = True
 
-        if changed:
-            self.event.layerStateChanged.emit(self.state)
-
-        return changed
+        self.event.layerStateChanged.emit(self.state)
 
     def getLayers(self):
         return self.state.layers
@@ -586,7 +595,8 @@ class AppContext:
         self.event = Event()
 
         # Create states
-        messageState = MessageState()
+        remoteMessageState = RemoteMessageState()
+        messageSigmetState = MessageSigmetState()
         layerState = LayerState()
         tafState = TafState()
         sigmetState = SigmetState()
@@ -597,7 +607,8 @@ class AppContext:
         }
 
         # Create services with injected state and event
-        self.message = MessageService(messageState, self.event)
+        self.message = RemoteMessageService(remoteMessageState, self.event)
+        self.messageSigmet = MessageSigmetService(messageSigmetState, self.event)
         self.layer = LayerService(layerState, self.event)
         self.taf = TafService(tafState, self.event)
         self.sigmet = SigmetService(sigmetState, self.event)

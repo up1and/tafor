@@ -15,7 +15,7 @@ from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 from tafor import root, conf, __version__
 from tafor.models import db, Metar, Taf, Trend
 from tafor.states import context
-from tafor.utils import boolean, checkVersion, latestMetar, currentSigmet, findAvailables, createTafStatus
+from tafor.utils import boolean, checkVersion, latestMetar, currentSigmet, findAvailables, createTafStatus, SigmetFilter
 from tafor.utils.thread import (MessageWorker, LayerWorker, CheckUpgradeWorker, RpcWorker, threadManager)
 
 from tafor.components.ui import Ui_main, main_rc
@@ -452,7 +452,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def updateSigmet(self):
         try:
             sigmets = currentSigmet()
-            context.message.setSigmets(sigmets)
+            context.messageSigmet.setState(sigmets)
         except Exception as e:
             logger.error('Sigmet cannot be updated, {}'.format(e))
 
@@ -472,7 +472,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         with db.session() as session:
             taf = session.query(Taf).filter(Taf.created > recent, Taf.type == spec).order_by(Taf.created.desc()).first()
             if conf.sigmetEnabled:
-                sigmets = context.message.sigmets(show='all')
+                sigmets = context.messageSigmet.filterSigmets(SigmetFilter(includeCancelled=True))
             else:
                 sigmets = []
 
