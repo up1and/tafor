@@ -128,10 +128,9 @@ class ExportDialog(QDialog):
         data = [(e.type, e.text, e.created) for e in self.filteredReport()]
 
         # Use new worker-based approach
-        workerId = f"export_{id(self)}"
-        worker, thread = threadManager.createWorker(ExportRecordWorker, workerId, filename, data, headers=headers)
+        worker, thread = threadManager.createWorker(ExportRecordWorker, filename, data, headers=headers)
         worker.finished.connect(self.close)
-        threadManager.startWorker(workerId)
+        thread.start()
 
 
 class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):

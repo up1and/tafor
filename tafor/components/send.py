@@ -280,17 +280,16 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
 
         if context.license.hasPermission(self.reportType):
             # Use new worker-based approach
-            workerId = f"{self.reportType}_sender_{id(self)}"
             workerClass = self.channel().worker
 
             if self.protocol() == 'ftp':
-                worker, thread = threadManager.createWorker(workerClass, workerId, rawText, valids=self.parser.valids)
+                worker, thread = threadManager.createWorker(workerClass, rawText, valids=self.parser.valids)
             else:
-                worker, thread = threadManager.createWorker(workerClass, workerId, rawText)
+                worker, thread = threadManager.createWorker(workerClass, rawText)
 
             worker.done.connect(lambda error: self.setRawGroup(rawText, error))
             worker.finished.connect(self.save)
-            threadManager.startWorker(workerId)
+            thread.start()
         else:
             error = QCoreApplication.translate('Sender', 'Limited functionality, please check the license information')
             self.setRawGroup(rawText, error=error)

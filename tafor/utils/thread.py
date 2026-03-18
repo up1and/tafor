@@ -1,6 +1,7 @@
 import csv
 import datetime
 import logging
+from uuid import uuid4
 
 import requests
 
@@ -21,16 +22,19 @@ _headers = {
 
 
 class ThreadManager:
-    """Simple thread manager for managing worker threads"""
+    """Thread manager for managing worker threads"""
 
     def __init__(self):
         self._threads = {}
         self._workers = {}
 
-    def createWorker(self, workerClass, workerId=None, *args, **kwargs):
+    def createWorker(self, workerClass, *args, workerId=None, reusable=False, **kwargs):
         """Create a worker and move it to a new thread"""
         if workerId is None:
-            workerId = f"{workerClass.__name__}_{id(workerClass)}"
+            workerId = str(uuid4())
+
+        if workerId in self._threads and workerId in self._workers:
+            return self._workers[workerId], self._threads[workerId]
 
         # Create thread and worker
         thread = QThread()
@@ -47,41 +51,63 @@ class ThreadManager:
         thread.started.connect(worker.run)
         worker.finished.connect(thread.quit)
 
+        if not reusable:
+            thread.finished.connect(worker.deleteLater)
+            thread.finished.connect(thread.deleteLater)
+            thread.finished.connect(lambda wid=workerId: self.unregister(wid))
+
         return worker, thread
 
+    def unregister(self, workerId):
+        """Unregister worker references."""
+        self._threads.pop(workerId, None)
+        self._workers.pop(workerId, None)
+
     def startWorker(self, workerId):
-        """Start a worker thread"""
+        """Starts the execution of a previously created worker thread."""
         if workerId in self._threads:
             thread = self._threads[workerId]
             if not thread.isRunning():
                 thread.start()
 
-    def stopWorker(self, workerId):
-        """Stop a worker thread immediately"""
-        if workerId in self._threads:
-            thread = self._threads[workerId]
-            if thread.isRunning():
-                # Special handling for RpcWorker
-                if workerId == 'rpc' and workerId in self._workers:
-                    worker = self._workers[workerId]
-                    if hasattr(worker, 'stop'):
-                        worker.stop()
+    def removeWorker(self, workerId):
+        """Gracefully stops a worker, waits for the thread to exit, and clears all references."""
+        thread = self._threads.get(workerId)
+        worker = self._workers.get(workerId)
 
-                thread.terminate()
-                thread.wait(500)  # Brief wait to ensure termination
+        if not thread and not worker:
+            return
+
+        if thread is not None:
+            thread.finished.connect(thread.deleteLater)
+            if worker is not None:
+                thread.finished.connect(worker.deleteLater)
+
+        if thread and thread.isRunning():
+            if worker and hasattr(worker, 'stop'):
+                worker.stop()
+
+            # Signal the event loop to stop
+            thread.quit()
+
+            # Blocking wait to ensure thread resources are released before disposal
+            thread.wait(1000)
+
+        self.unregister(workerId)
 
     def isWorkerRunning(self, workerId):
-        """Check if worker thread is currently running"""
+        """Returns True if the worker exists and its thread is currently active."""
         if workerId in self._threads:
             return self._threads[workerId].isRunning()
         return False
 
     def cleanup(self):
-        """Clean up all threads immediately or gracefully"""
+        """
+        Synchronously shuts down all managed threads. 
+        Usually called when the main application is closing.
+        """
         for workerId in list(self._threads.keys()):
-            self.stopWorker(workerId)
-        self._threads.clear()
-        self._workers.clear()
+            self.removeWorker(workerId)
 
 
 # Global thread manager instance
@@ -314,6 +340,3 @@ class RpcWorker(QObject):
                 self._server.close()
             except:
                 pass
-
-
-

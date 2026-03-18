@@ -189,12 +189,12 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def setupThread(self):
         # Create workers using the new thread manager
-        self.messageWorker, self.messageThread = threadManager.createWorker(MessageWorker, 'message')
+        self.messageWorker, self.messageThread = threadManager.createWorker(MessageWorker, workerId='message', reusable=True)
         self.messageWorker.finished.connect(self.notifier)
 
-        self.layerWorker, self.layerThread = threadManager.createWorker(LayerWorker, 'layer')
+        self.layerWorker, self.layerThread = threadManager.createWorker(LayerWorker, workerId='layer', reusable=True)
 
-        self.checkUpgradeWorker, self.checkUpgradeThread = threadManager.createWorker(CheckUpgradeWorker, 'upgrade')
+        self.checkUpgradeWorker, self.checkUpgradeThread = threadManager.createWorker(CheckUpgradeWorker, workerId='upgrade', reusable=True)
         self.checkUpgradeWorker.done.connect(self.checkUpgrade)
 
     def setupSound(self):
@@ -308,9 +308,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.remindSigmetBox.close()
 
             self.tray.hide()
-
-            # Clean up thread manager
-            threadManager.cleanup()
 
             event.accept()
 
@@ -653,9 +650,10 @@ def main():
     localServer.listen(serverName)
 
     if boolean(conf.rpc):
-        rpcWorker, rpcThread = threadManager.createWorker(RpcWorker, 'rpc')
+        rpcWorker, rpcThread = threadManager.createWorker(RpcWorker, workerId='rpc', reusable=True)
         threadManager.startWorker('rpc')
-        app.aboutToQuit.connect(lambda: threadManager.stopWorker('rpc'))
+    
+    app.aboutToQuit.connect(threadManager.cleanup)
 
     versions = context.info.environment()
     logger.info('Version {version}+{revision}, Python {python} {machine}, Qt {qt} on {system} {release}'.format(**versions))
