@@ -185,6 +185,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         visHas5000 = boolean(conf.visHas5000)
         cloudHeightHas450 = boolean(conf.cloudHeightHas450)
         weakPrecipitationVerification = boolean(conf.weakPrecipitationVerification)
+        uiFamily = context.resource.uiFont().family()
 
         self.parser = TafParser(self.message.text, created=self.message.created,
             visHas5000=visHas5000, cloudHeightHas450=cloudHeightHas450, weakPrecipitationVerification=weakPrecipitationVerification)
@@ -199,7 +200,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         else:
             html = '<p>{}<br/>{}</p>'.format(self.message.heading, html)
         if self.parser.tips:
-            html += '<p style="color: grey; font-family: Microsoft YaHei; font-size: 10pt;"># {}</p>'.format('<br/># '.join(self.parser.tips))
+            html += '<p style="color: grey; font-family: \'{}\'; font-size: 10pt;"># {}</p>'.format(uiFamily, '<br/># '.join(self.parser.tips))
 
         self.text.setHtml(html)
         self.resizeText()
@@ -336,7 +337,8 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             text = '<p><b>{}</b><br>{}</p>'.format(title, content)
             elements.append(text)
 
-        font = QFont('Courier', 10)
+        font = context.resource.fixedFont()
+        font.setPointSize(10)
         editor.setFont(font)
         editor.setHtml(''.join(elements))
         editor.print(printer)
@@ -401,6 +403,7 @@ class TrendSender(BaseSender):
 
     def parse(self):
         html = self.message.text
+        uiFamily = context.resource.uiFont().family()
         parser = context.notification.metar.parser()
         if parser and parser.hasMetar():
             metar = parser.primary.part
@@ -415,7 +418,7 @@ class TrendSender(BaseSender):
             if not self.parser.failed:
                 html = '<p>{}</p>'.format(self.parser.renderer(style='html', emphasizeNosig=True))
                 if self.parser.tips:
-                    html += '<p style="color: grey; font-family: Microsoft YaHei; font-size: 10pt;"># {}</p>'.format('<br/># '.join(self.parser.tips))
+                    html += '<p style="color: grey; font-family: \'{}\'; font-size: 10pt;"># {}</p>'.format(uiFamily, '<br/># '.join(self.parser.tips))
 
         self.text.setHtml(html)
         self.resizeText()
