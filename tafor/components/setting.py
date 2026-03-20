@@ -5,8 +5,6 @@ import secrets
 import logging
 import datetime
 
-import shapely
-
 from PyQt5.QtGui import QIcon, QIntValidator, QTextCursor
 from PyQt5.QtCore import QCoreApplication, QStandardPaths, QSettings, QTimer, Qt
 from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QFileDialog, QMessageBox, QApplication, QCheckBox, 
@@ -84,8 +82,8 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.importButton.clicked.connect(self.importConf)
         self.exportButton.clicked.connect(self.exportConf)
 
-        self.buttonBox.accepted.connect(self.applyChange)
-        self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.applyChange)
+        self.buttonBox.accepted.connect(self.save)
+        self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.save)
 
     def setupValidator(self):
         """设置验证器"""
@@ -152,23 +150,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.testLoginButton.setText(text)
         self.testLoginButton.setEnabled(True)
 
-    def hasValidFirBoundary(self):
-        text = self.firBoundary.toPlainText()
-        try:
-            boundaries = json.loads(text)
-            boundary = shapely.geometry.Polygon(boundaries)
-            return boundary.is_valid and not boundary.is_empty
-        except ValueError as e:
-            return False
-
-    def applyChange(self):
-        if conf.sigmetEnabled and not self.hasValidFirBoundary():
-            title = QCoreApplication.translate('Settings', 'Format Error')
-            text = QCoreApplication.translate('Settings', 'FIR boundary format is invalid, please check it')
-            QMessageBox.warning(self, title, text)
-
-        self.save()
-
     def save(self):
         """保存设置"""
         if self.runOnStart.isChecked():
@@ -176,11 +157,29 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         else:
             self.autoRun.remove('Tafor')
 
+        errors = []
         for attr, config in conf:
             value = self.getValue(config.default, config.bindProperty)
-            conf.set(attr, value)
+            try:
+                conf.set(attr, value)
+            except ValueError as e:
+                logger.warning('Failed to save setting: %s', e)
+                if attr == 'firBoundary':
+                    text = QCoreApplication.translate(
+                        'Settings',
+                        'FIR boundary format is invalid. Please enter JSON coordinates like [[lon, lat], [lon, lat], ...], and make sure they form a valid polygon.'
+                    )
+                else:
+                    text = str(e)
+
+                if text not in errors:
+                    errors.append(text)
 
         conf.emit()
+
+        if errors:
+            title = QCoreApplication.translate('Settings', 'Format Error')
+            QMessageBox.warning(self, title, '\n\n'.join(errors))
 
     def load(self):
         """载入设置"""
