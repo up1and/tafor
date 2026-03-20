@@ -6,7 +6,6 @@ authors = [
     {name = "up1and", email = "piratecb@gmail.com"},
 ]
 dependencies = [
-    "click",
     "falcon",
     "pyserial",
     "python-dateutil",
