@@ -6,7 +6,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from tafor import __version__, conf
-from tafor.app.main import main
+from tafor.ui import main
 
 
 EPILOG = """Examples:

@@ -5,7 +5,7 @@ import pytest
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMessageBox, QFileDialog
 
-from tafor.components.setting import SettingDialog
+from tafor.ui.components.setting import SettingDialog
 
 from tests.mocks import conf
 

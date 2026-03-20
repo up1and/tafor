@@ -3,7 +3,7 @@ import re
 
 import pytest
 
-from tafor.utils import TafParser, TafValidator, SigmetParser
+from tafor.core.parsers import SigmetParser, TafParser, TafValidator
 
 root = os.path.dirname(__file__)
 
@@ -128,7 +128,7 @@ def test_extra():
     assert not s.hasMessageChanged()
 
 def test_pure_pattern():
-    from tafor.utils.validator import _purePattern
+    from tafor.core.parsers.base import _purePattern
     pattern = r'^(0|[1-9][0-9]*)$'
     regex = re.compile(pattern)
     assert _purePattern(regex) == pattern[1:]

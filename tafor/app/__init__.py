@@ -1,1 +1,0 @@
-from tafor.app.main import MainWindow

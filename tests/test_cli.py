@@ -4,7 +4,7 @@ import tafor.__main__ as cli
 def test_no_command_launches_app(monkeypatch):
     launched = []
 
-    monkeypatch.setattr('tafor.app.main.main', lambda: launched.append(True))
+    monkeypatch.setattr(cli, 'main', lambda: launched.append(True))
 
     cli.cli([])
 

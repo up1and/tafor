@@ -1,0 +1,42 @@
+<!DOCTYPE RCC><RCC version="1.0">
+    <qresource>
+        <file alias="logo.png">../../resources/icons/logo.png</file>
+        <file alias="logo-light.png">../../resources/icons/logo-light.png</file>
+        <file alias="logo-dark.png">../../resources/icons/logo-dark.png</file>
+        <file alias="setting.png">../../resources/icons/setting.png</file>
+        <file alias="checkmark.png">../../resources/icons/checkmark.png</file>
+        <file alias="questionmark.png">../../resources/icons/questionmark.png</file>
+        <file alias="time.png">../../resources/icons/time.png</file>
+        <file alias="info.png">../../resources/icons/info.png</file>
+        <file alias="export.png">../../resources/icons/export.png</file>
+        <file alias="chart.png">../../resources/icons/chart.png</file>
+        <file alias="search.png">../../resources/icons/search.png</file>
+        <file alias="calendar.png">../../resources/icons/calendar.png</file>
+        <file alias="next.png">../../resources/icons/next.png</file>
+        <file alias="prev.png">../../resources/icons/prev.png</file>
+        <file alias="back.png">../../resources/icons/back.png</file>
+        <file alias="forward.png">../../resources/icons/forward.png</file>
+        <file alias="reset.png">../../resources/icons/reset.png</file>
+        <file alias="synchronize.png">../../resources/icons/synchronize.png</file>
+        <file alias="line.png">../../resources/icons/line.png</file>
+        <file alias="polygon.png">../../resources/icons/polygon.png</file>
+        <file alias="rectangular.png">../../resources/icons/rectangular.png</file>
+        <file alias="circle.png">../../resources/icons/circle.png</file>
+        <file alias="corridor.png">../../resources/icons/corridor.png</file>
+        <file alias="filled-polygon.png">../../resources/icons/filled-polygon.png</file>
+        <file alias="overlap.png">../../resources/icons/overlap.png</file>
+        <file alias="layers.png">../../resources/icons/layers.png</file>
+        <file alias="cold.png">../../resources/icons/cold.png</file>
+        <file alias="warm.png">../../resources/icons/warm.png</file>
+        <file alias="aftn.png">../../resources/icons/aftn.png</file>
+        <file alias="ftp.png">../../resources/icons/ftp.png</file>
+        <file alias="api.png">../../resources/icons/api.png</file>
+        <file alias="words.png">../../resources/icons/words.png</file>
+        <file alias="map.png">../../resources/icons/map.png</file>
+        <file alias="protect.png">../../resources/icons/protect.png</file>
+        <file alias="warning-shield.png">../../resources/icons/warning-shield.png</file>
+        <file alias="reply-arrow.png">../../resources/icons/reply-arrow.png</file>
+        <file alias="reminder.png">../../resources/icons/reminder.png</file>
+        <file alias="no-reminder.png">../../resources/icons/no-reminder.png</file>
+    </qresource>
+</RCC>

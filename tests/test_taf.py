@@ -3,8 +3,8 @@ import pytest
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMessageBox
 
-from tafor.components.taf import TafEditor
-from tafor.components.send import TafSender
+from tafor.ui.components.send import TafSender
+from tafor.ui.components.taf import TafEditor
 
 
 class TestTrend(object):

@@ -2,9 +2,9 @@ import datetime
 
 import pytest
 
-from tafor.utils import checkVersion
-from tafor.utils.pagination import Pagination
-from tafor.utils.convert import parsePeriod, parseTime, parseTimez, ceilTime
+from tafor.core.utils.common import checkVersion
+from tafor.core.utils.pagination import Pagination
+from tafor.core.utils.time import ceilTime, parsePeriod, parseTime, parseTimez
 
 
 def test_check_version():
