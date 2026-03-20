@@ -28,9 +28,9 @@ class SegmentMixin(object):
 
     def defaultSignal(self):
         for line in self.findChildren(QLineEdit):
-            line.textChanged.connect(lambda: self.contentChanged.emit())
-            # line.textEdited.connect(lambda: self.upperText(line))
-            # line.textEdited.connect(lambda: self.coloredText(line))
+            line.textChanged.connect(self.contentChanged.emit)
+            line.textEdited.connect(lambda _, current=line: self.upperText(current))
+            line.textChanged.connect(lambda _, current=line: self.coloredText(current))
 
         for combox in self.findChildren(QComboBox):
             combox.currentTextChanged.connect(lambda: self.contentChanged.emit())
@@ -56,7 +56,6 @@ class SegmentMixin(object):
             text.setFont(fixedFont)
 
     def clear(self):
-        # 部分组件不能用
         for line in self.findChildren(QLineEdit):
             line.clear()
 
@@ -94,25 +93,6 @@ class BaseSegment(SegmentMixin, QWidget):
         self.cloud2.editingFinished.connect(lambda: self.validateCloud(self.cloud2))
         self.cloud3.editingFinished.connect(lambda: self.validateCloud(self.cloud3))
         self.cb.editingFinished.connect(lambda: self.validateCloud(self.cb))
-
-        self.wind.textEdited.connect(lambda: self.upperText(self.wind))
-        self.gust.textEdited.connect(lambda: self.upperText(self.gust))
-        self.weather.lineEdit().textChanged.connect(lambda: self.upperText(self.weather.lineEdit()))
-        self.weatherWithIntensity.lineEdit().textChanged.connect(lambda: self.upperText(self.weatherWithIntensity.lineEdit()))
-        self.cloud1.textEdited.connect(lambda: self.upperText(self.cloud1))
-        self.cloud2.textEdited.connect(lambda: self.upperText(self.cloud2))
-        self.cloud3.textEdited.connect(lambda: self.upperText(self.cloud3))
-        self.cb.textEdited.connect(lambda: self.upperText(self.cb))
-
-        self.wind.textEdited.connect(lambda: self.coloredText(self.wind))
-        self.gust.textEdited.connect(lambda: self.coloredText(self.gust))
-        self.weather.lineEdit().textChanged.connect(lambda: self.coloredText(self.weather.lineEdit()))
-        self.weatherWithIntensity.lineEdit().textChanged.connect(lambda: self.coloredText(self.weatherWithIntensity.lineEdit()))
-        self.vis.textEdited.connect(lambda: self.coloredText(self.vis))
-        self.cloud1.textEdited.connect(lambda: self.coloredText(self.cloud1))
-        self.cloud2.textEdited.connect(lambda: self.coloredText(self.cloud2))
-        self.cloud3.textEdited.connect(lambda: self.coloredText(self.cloud3))
-        self.cb.textEdited.connect(lambda: self.coloredText(self.cb))
 
         self.defaultSignal()
 
@@ -405,15 +385,11 @@ class TemperatureGroup(SegmentMixin, QWidget):
         if self.canSwitch:
             self.switchButton.clicked.connect(self.switchMode)
 
-        self.temp.textEdited.connect(lambda: self.upperText(self.temp))
-        self.temp.textEdited.connect(lambda: self.coloredText(self.temp))
-        self.tempTime.textEdited.connect(lambda: self.coloredText(self.tempTime))
+        self.temp.textChanged.connect(self.temperatureChanged.emit)
+        self.tempTime.textChanged.connect(self.temperatureChanged.emit)
 
         self.tempTime.editingFinished.connect(self.validateTemperatureTime)
         self.temp.editingFinished.connect(self.validateTemperature)
-
-        self.temp.textChanged.connect(lambda : self.temperatureChanged.emit())
-        self.tempTime.textChanged.connect(lambda : self.temperatureChanged.emit())
 
     def setupValidator(self):
         temperature = QRegExpValidator(QRegExp(self.parent.rules.temperature, Qt.CaseInsensitive))
@@ -584,11 +560,6 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.cnl.clicked.connect(self.updateMessageType)
         self.prevButton.clicked.connect(lambda: self.setCurrentPeriod('prev'))
         self.resetButton.clicked.connect(lambda: self.setCurrentPeriod('reset'))
-
-        self.sequence.textEdited.connect(lambda: self.upperText(self.sequence))
-
-        self.date.textEdited.connect(lambda: self.coloredText(self.date))
-        self.sequence.textEdited.connect(lambda: self.coloredText(self.sequence))
 
         for t in self.temperatures:
             t.temperatureChanged.connect(lambda: self.contentChanged.emit())
@@ -828,7 +799,6 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.period.textChanged.connect(self.updateDurations)
         self.period.editingFinished.connect(self.validatePeriod)
         self.period.editingFinished.connect(self.validateGroupsPeriod)
-        self.period.textChanged.connect(lambda: self.coloredText(self.period))
 
     def setupFont(self):
         super(TafGroupSegment, self).setupFont()
@@ -1127,8 +1097,6 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
         self.period.textEdited.connect(self.autoFillPeriodSlash)
         self.period.editingFinished.connect(self.validatePeriod)
-
-        self.period.textChanged.connect(lambda: self.coloredText(self.period))
 
     def setupFont(self):
         super(TrendSegment, self).setupFont()

@@ -69,12 +69,6 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.beginningTime.editingFinished.connect(self.validatePeriod)
         self.endingTime.editingFinished.connect(self.validatePeriod)
 
-        self.sequence.textEdited.connect(lambda: self.upperText(self.sequence))
-
-        self.beginningTime.textEdited.connect(lambda: self.coloredText(self.beginningTime))
-        self.endingTime.textEdited.connect(lambda: self.coloredText(self.endingTime))
-        self.sequence.textEdited.connect(lambda: self.coloredText(self.sequence))
-
         self.defaultSignal()
 
     def componentUpdate(self):
@@ -210,8 +204,6 @@ class FlightLevelMixin(object):
         self.format.currentTextChanged.connect(self.setFlightLevel)
         self.base.editingFinished.connect(lambda: self.validateBaseTop(self.base))
         self.top.editingFinished.connect(lambda: self.validateBaseTop(self.top))
-        self.base.textEdited.connect(lambda: self.coloredText(self.base))
-        self.top.textEdited.connect(lambda: self.coloredText(self.top))
 
     def setupValidator(self):
         super(FlightLevelMixin, self).setupValidator()
@@ -290,7 +282,6 @@ class MovementMixin(object):
     def bindSignal(self):
         super().bindSignal()
         self.direction.currentTextChanged.connect(self.setSpeed)
-        self.speed.textChanged.connect(lambda: self.coloredText(self.speed))
 
     def setupValidator(self):
         super(MovementMixin, self).setupValidator()
@@ -338,7 +329,6 @@ class ObservationMixin(object):
         super().bindSignal()
         self.comeFrom.currentTextChanged.connect(self.updateObservation)
         self.beginningTime.textChanged.connect(self.updateObservation)
-        self.observedTime.textChanged.connect(lambda: self.coloredText(self.observedTime))
 
     def setupValidator(self):
         super(ObservationMixin, self).setupValidator()
@@ -374,7 +364,6 @@ class ForecastMixin(object):
 
     def bindSignal(self):
         super().bindSignal()
-        self.forecastTime.textChanged.connect(lambda: self.coloredText(self.forecastTime))
 
     def setupValidator(self):
         super(ForecastMixin, self).setupValidator()
@@ -715,19 +704,6 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         self.beginningTime.textEdited.connect(self.updateForecastPosition)
         self.observedTime.textEdited.connect(self.updateForecastPosition)
         self.endingTime.textChanged.connect(self.setForecastTime)
-
-        self.currentLatitude.textEdited.connect(lambda: self.upperText(self.currentLatitude))
-        self.currentLongitude.textEdited.connect(lambda: self.upperText(self.currentLongitude))
-        self.forecastLatitude.textEdited.connect(lambda: self.upperText(self.forecastLatitude))
-        self.forecastLongitude.textEdited.connect(lambda: self.upperText(self.forecastLongitude))
-        self.name.textEdited.connect(lambda: self.upperText(self.name))
-
-        self.currentLatitude.textChanged.connect(lambda: self.coloredText(self.currentLatitude))
-        self.currentLongitude.textChanged.connect(lambda: self.coloredText(self.currentLongitude))
-        self.radius.textEdited.connect(lambda: self.coloredText(self.radius))
-        self.top.textEdited.connect(lambda: self.coloredText(self.top))
-        self.forecastLatitude.textChanged.connect(lambda: self.coloredText(self.forecastLatitude))
-        self.forecastLongitude.textChanged.connect(lambda: self.coloredText(self.forecastLongitude))
 
     def setupValidator(self):
         super(SigmetTyphoon, self).setupValidator()
@@ -1120,13 +1096,6 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
 
     def bindSignal(self):
         super().bindSignal()
-        self.currentLatitude.textEdited.connect(lambda: self.upperText(self.currentLatitude))
-        self.currentLongitude.textEdited.connect(lambda: self.upperText(self.currentLongitude))
-        self.name.textEdited.connect(lambda: self.upperText(self.name))
-
-        self.currentLatitude.textEdited.connect(lambda: self.coloredText(self.currentLatitude))
-        self.currentLongitude.textEdited.connect(lambda: self.coloredText(self.currentLongitude))
-
         self.phenomenon.currentTextChanged.connect(self.setEruptionOrCloud)
 
     def setupValidator(self):
@@ -1321,12 +1290,6 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
     def bindSignal(self):
         super().bindSignal()
-        self.cancelSequence.lineEdit().textEdited.connect(lambda: self.upperText(self.cancelSequence.lineEdit()))
-
-        self.cancelSequence.lineEdit().textChanged.connect(lambda: self.coloredText(self.cancelSequence.lineEdit()))
-        self.cancelBeginningTime.textChanged.connect(lambda: self.coloredText(self.cancelBeginningTime))
-        self.cancelEndingTime.textChanged.connect(lambda: self.coloredText(self.cancelEndingTime))
-
         self.cancelBeginningTime.textChanged.connect(self.syncValidsTime)
         self.cancelEndingTime.textChanged.connect(self.syncValidsTime)
         self.cancelSequence.currentTextChanged.connect(self.setValids)
