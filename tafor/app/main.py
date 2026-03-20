@@ -329,11 +329,12 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.alarmSound.stop()
 
     def worker(self):
-        threadManager.startWorker('message')
+        if not self.messageThread.isRunning():
+            self.messageThread.start()
 
     def painter(self):
-        if conf.layerUrl and not threadManager.isWorkerRunning('layer'):
-            threadManager.startWorker('layer')
+        if conf.layerUrl and not self.layerThread.isRunning():
+            self.layerThread.start()
 
     def notifier(self):
         connectionError = QCoreApplication.translate('MainWindow', 'Connection Error')
@@ -341,7 +342,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             context.flash.warning(connectionError,
                 QCoreApplication.translate('MainWindow', 'Unable to connect remote message data source, please check the settings or network status.'))
 
-        if conf.layerUrl and not context.layer.currentLayers() and not threadManager.isWorkerRunning('layer'):
+        if conf.layerUrl and not context.layer.currentLayers() and not self.layerThread.isRunning():
             context.flash.warning(connectionError,
                 QCoreApplication.translate('MainWindow', 'Unable to connect FIR information data source, please check the settings or network status.'))
 
@@ -650,7 +651,7 @@ def main():
 
     if boolean(conf.rpc):
         rpcWorker, rpcThread = threadManager.createWorker(RpcWorker, workerId='rpc', reusable=True)
-        threadManager.startWorker('rpc')
+        rpcThread.start()
     
     app.aboutToQuit.connect(threadManager.cleanup)
 

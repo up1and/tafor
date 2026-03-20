@@ -63,13 +63,6 @@ class ThreadManager:
         self._threads.pop(workerId, None)
         self._workers.pop(workerId, None)
 
-    def startWorker(self, workerId):
-        """Starts the execution of a previously created worker thread."""
-        if workerId in self._threads:
-            thread = self._threads[workerId]
-            if not thread.isRunning():
-                thread.start()
-
     def removeWorker(self, workerId):
         """Gracefully stops a worker, waits for the thread to exit, and clears all references."""
         thread = self._threads.get(workerId)
@@ -94,13 +87,6 @@ class ThreadManager:
             thread.wait(1000)
 
         self.unregister(workerId)
-
-    def isWorkerRunning(self, workerId):
-        """Returns True if the worker exists and its thread is currently active."""
-        if workerId in self._threads:
-            return self._threads[workerId].isRunning()
-        return False
-
     def cleanup(self):
         """
         Synchronously shuts down all managed threads. 
