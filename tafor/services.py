@@ -91,12 +91,10 @@ class LicenseService:
 
 class ResourceService:
     def bundlePath(self, relativePath):
-        from tafor import root
-
         if hasattr(sys, '_MEIPASS'):
             base = sys._MEIPASS
         else:
-            base = root
+            base = os.path.dirname(os.path.abspath(__file__))
         return os.path.join(base, relativePath)
 
     def uiFont(self, pointSize=9):

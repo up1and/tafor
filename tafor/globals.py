@@ -25,13 +25,10 @@ def setupLogging(debug=False, name='tafor'):
     logger.addHandler(fh)
 
 def basedir():
-    sysdir = os.path.abspath(os.path.dirname(sys.argv[0]))
-    filedir = os.path.abspath(os.path.dirname(__file__))
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.abspath(os.path.dirname(sys.argv[0]))
 
-    if os.path.exists(os.path.join(filedir, 'sounds')):
-        return filedir
-
-    return sysdir
+    return os.path.dirname(os.path.abspath(__file__))
 
 root = basedir()
 manager = ConfigManager('Up1and', 'Tafor')
