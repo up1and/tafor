@@ -6,7 +6,7 @@ import datetime
 
 from uuid import uuid4
 
-from PyQt5.QtGui import QIcon, QDesktopServices
+from PyQt5.QtGui import QIcon, QDesktopServices, QGuiApplication
 from PyQt5.QtCore import QCoreApplication, QTranslator, QLocale, QEvent, QTimer, Qt, QUrl, QSysInfo, QProcess
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy,
         QSystemTrayIcon, QMenu, QMessageBox, QStyleFactory)
@@ -627,8 +627,21 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
 
 def main():
+    os.environ['QT_ENABLE_HIGHDPI_SCALING'] = '1'
+    os.environ['QT_SCALE_FACTOR_ROUNDING_POLICY'] = 'PassThrough'
+
     scale = conf.interfaceScaling or 0
-    os.environ['QT_SCALE_FACTOR'] = str(int(scale) * 0.25 + 1)
+    if scale:
+        os.environ['QT_SCALE_FACTOR'] = str(int(scale) * 0.25 + 1)
+
+    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+    QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+
+    if hasattr(QGuiApplication, 'setHighDpiScaleFactorRoundingPolicy'):
+        QGuiApplication.setHighDpiScaleFactorRoundingPolicy(
+            Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
+        )
+
     os.environ['TAFOR_ARGS'] = json.dumps(sys.argv[1:])
 
     app = QApplication(sys.argv)
