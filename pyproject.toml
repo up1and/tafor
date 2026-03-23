@@ -28,7 +28,7 @@ license = {text = "GPL-2.0"}
 [tool.pdm]
 distribution = false
 
-[tool.pdm.dev-dependencies]
+[project.optional-dependencies]
 test = [
     "pytest",
     "pytest-qt",

@@ -12,4 +12,4 @@ __version__ = '3.0.dev'
 __author__ = 'up1and'
 
 
-from tafor.core import conf, root
+from tafor.core import conf, root, context
