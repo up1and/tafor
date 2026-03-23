@@ -6,8 +6,7 @@ from PyQt5.QtGui import QPixmap, QIcon, QBrush, QPen, QFont, QFontMetrics, QPain
 from PyQt5.QtCore import QCoreApplication, QTimer, QSize, Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QLabel, QHBoxLayout
 
-from tafor import conf
-from tafor.core.states import context
+from tafor import conf, context
 from tafor.core.utils.check import CurrentTaf
 from tafor.core.utils.time import timeAgo
 from tafor.ui.qt import Ui_main_license, Ui_main_recent, main_rc
@@ -117,16 +116,21 @@ class RemindMessageBox(QMessageBox):
 
 class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
 
-    def __init__(self, parent, layout, item, index=None):
+    reminderToggled = pyqtSignal(object, bool)
+    reviewRequested = pyqtSignal(object)
+    replyRequested = pyqtSignal()
+
+    def __init__(self, parent, layout, item, fixedFont, layerBoundaries=None,
+            clearNotification=None, reminderEnabled=False, index=None):
         super(RecentMessage, self).__init__(parent)
         self.setupUi(self)
         self.item = item
-        self.parent = parent
-        self.reviewer = None
-        self.remind = False
+        self.remind = reminderEnabled
         self.background = None
         self.validations = None
         self.mode = 'review'
+        self.layerBoundaries = layerBoundaries
+        self.clearNotification = clearNotification
 
         self.toolsWidget.setAttribute(Qt.WA_TranslucentBackground)
         self.timeLabel.setAttribute(Qt.WA_TranslucentBackground)
@@ -145,11 +149,12 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         else:
             self.reviewMode()
 
-        font = context.resource.fixedFont()
+        font = QFont(fixedFont)
         self.setFont(font)
-        self.timeLabel.setFont(font)
-        font.setPointSize(12)
-        self.text.setFont(font)
+        self.timeLabel.setFont(QFont(font))
+        textFont = QFont(font)
+        textFont.setPointSize(12)
+        self.text.setFont(textFont)
 
         font = QFont()
         font.setPointSize(11)
@@ -184,7 +189,8 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
 
         if now - created > datetime.timedelta(minutes=expire):
             self.timer.stop()
-            context.notification.metar.clear()
+            if self.clearNotification:
+                self.clearNotification()
 
         self.timeLabel.setText(self.timeStamp())
 
@@ -194,17 +200,8 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         self.reminderButton.hide()
         self.updateMarkButton()
 
-        if self.item.type in ['FC', 'FT']:
-            self.reviewer = self.parent.tafSender
-
         if self.item.type in ['WS', 'WC', 'WV', 'WA']:
-            self.reviewer = self.parent.sigmetSender
-            if self.item.uuid in context.sigmet.entries:
-                self.remind = True
-            else:
-                self.remind = False
-
-            self.updateReminderButton()
+            self.setReminderEnabled(self.remind)
             self.reminderButton.show()
 
     def notificationMode(self):
@@ -232,9 +229,9 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         self.setStyleSheet(style)
 
     def bindSignal(self):
-        self.markButton.clicked.connect(self.review)
-        self.replyButton.clicked.connect(self.parent.trendEditor.quote)
-        self.reminderButton.clicked.connect(self.updateRemindState)
+        self.markButton.clicked.connect(lambda: self.reviewRequested.emit(self.item))
+        self.replyButton.clicked.connect(lambda: self.replyRequested.emit())
+        self.reminderButton.clicked.connect(self.toggleReminder)
 
     def updateButton(self):
         self.replyButton.setIcon(QIcon(':/reply-arrow.png'))
@@ -261,7 +258,10 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
     def updateBackground(self):
         try:
             parser = self.item.parser()
-            geos = parser.geo(context.layer.boundaries(), trim=True)
+            if not self.layerBoundaries:
+                return
+
+            geos = parser.geo(self.layerBoundaries, trim=True)
             if geos['features']:
                 height = self.text.height() + 60
                 size = (int(height / 0.6), height)
@@ -298,33 +298,17 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
             self.updateMarkButton()
             self.updateReminderButton()
 
-    def updateRemindState(self):
-        if self.remind:
-            self.removeRemind()
-        else:
-            self.addRemind()
+    def toggleReminder(self):
+        self.reminderToggled.emit(self.item, not self.remind)
 
-    def removeRemind(self):
-        self.remind = False
-        context.sigmet.remove(self.item.uuid)
-        self.updateReminderButton()
-
-    def addRemind(self):
-        self.remind = True
-        time = self.item.expired()
-        sig = self.item.parser()
-        context.sigmet.add(self.item.uuid, sig, time)
+    def setReminderEnabled(self, enabled):
+        self.remind = enabled
         self.updateReminderButton()
 
     def resizeEvent(self, event):
         if self.background:
             self.background.move(self.width() - self.background.width() - 100, 16)
         super(RecentMessage, self).resizeEvent(event)
-
-    def review(self):
-        self.reviewer.receive(self.item)
-        self.reviewer.show()
-
 
 class TafBoard(QWidget):
 

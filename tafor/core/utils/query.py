@@ -1,7 +1,7 @@
 import copy
 import datetime
 
-from tafor.core.models import Metar, Sigmet, db
+from tafor.core.models import Metar, Sigmet, Taf, Trend, db
 
 
 class SigmetFilter:
@@ -62,3 +62,22 @@ def currentSigmet():
     currents.sort(key=lambda x: x.created)
 
     return currents
+
+
+def recentMessages(spec, since, includeSigmet=False, currentSigmets=None):
+    with db.session() as session:
+        taf = session.query(Taf).filter(Taf.created > since, Taf.type == spec).order_by(Taf.created.desc()).first()
+        trend = session.query(Trend).order_by(Trend.created.desc()).first()
+        metar = session.query(Metar).filter(Metar.created > since).order_by(Metar.created.desc()).first()
+
+    if trend and trend.isNosig():
+        trend = None
+
+    sigmets = currentSigmets if includeSigmet and currentSigmets else []
+
+    return {
+        'taf': taf,
+        'trend': trend,
+        'metar': metar,
+        'sigmets': sigmets,
+    }
