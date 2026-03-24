@@ -63,6 +63,7 @@ class Event(QObject):
 
     # Triggers
     tafReminderTriggered = pyqtSignal()
+    trendReloadRequested = pyqtSignal()
     layerRefreshRequested = pyqtSignal()
     otherMessageReceived = pyqtSignal()
 

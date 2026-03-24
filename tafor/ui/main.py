@@ -103,7 +103,7 @@ class MainPresenter(QObject):
                 self.context.flash.warning(title, description)
 
         self.updateRecent()
-        self.view.trendSender.reload()
+        self.context.event.trendReloadRequested.emit()
 
     def updateMessage(self):
         wishlist = ['SA', 'SP']
@@ -293,7 +293,7 @@ class MainPresenter(QObject):
     def loadCustomMessage(self):
         self.view.ensureVisible()
         self.view.incomingSound.play(loop=False)
-        self.view.customSender.load()
+        self.view.customSender.presenter.load()
         self.view.customSender.show()
 
         self.context.flash.info(
@@ -433,10 +433,10 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         # 初始化窗口
         self.settingDialog = SettingDialog(self)
 
-        self.tafSender = TafSender(self)
-        self.trendSender = TrendSender(self)
-        self.sigmetSender = SigmetSender(self)
-        self.customSender = CustomSender(self)
+        self.tafSender = TafSender(self, self.context, self.conf)
+        self.trendSender = TrendSender(self, self.context, self.conf)
+        self.sigmetSender = SigmetSender(self, self.context, self.conf)
+        self.customSender = CustomSender(self, self.context, self.conf)
 
         self.tafEditor = TafEditor(self, self.tafSender)
         self.trendEditor = TrendEditor(self, self.trendSender)
