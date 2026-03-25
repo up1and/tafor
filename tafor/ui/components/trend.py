@@ -1,17 +1,17 @@
 from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLayout
 
-from tafor import conf
 from tafor.core.models import Trend
-from tafor.core.states import context
 from tafor.ui.widgets import TrendSegment
 from tafor.ui.widgets.editor import BaseEditor
 
 
 class TrendEditor(BaseEditor):
 
-    def __init__(self, parent=None, sender=None):
+    def __init__(self, parent=None, sender=None, conf=None, context=None):
         super(TrendEditor, self).__init__(parent, sender)
+        self.conf = conf
+        self.context = context
 
         self.initUI()
         self.bindSignal()
@@ -23,7 +23,7 @@ class TrendEditor(BaseEditor):
         layout = QVBoxLayout(window)
         layout.setSizeConstraint(QLayout.SetFixedSize)
         layout.setSpacing(18)
-        self.trend = TrendSegment(parent=self)
+        self.trend = TrendSegment(parent=self, conf=self.conf, context=self.context)
         layout.addWidget(self.trend)
         self.addBottomBox(layout)
         self.setLayout(layout)
@@ -57,7 +57,7 @@ class TrendEditor(BaseEditor):
         self.finished.emit(message)
 
     def autoFill(self):
-        parser = context.notification.metar.parser()
+        parser = self.context.notification.metar.parser()
         for i, part in enumerate(parser.trends):
             if i == 0:
                 self.trend.autoFill(part.tokens)
@@ -75,6 +75,5 @@ class TrendEditor(BaseEditor):
         self.clear()
 
     def showEvent(self, event):
-        if not conf.checkCompleteness('trend'):
+        if not self.conf.checkCompleteness('trend'):
             QTimer.singleShot(0, self.showConfigError)
-

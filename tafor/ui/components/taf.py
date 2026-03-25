@@ -1,17 +1,17 @@
 from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLayout
 
-from tafor import conf
 from tafor.core.models import Taf
-from tafor.core.states import context
 from tafor.ui.widgets import TafBecmgSegment, TafFmSegment, TafPrimarySegment, TafTempoSegment
 from tafor.ui.widgets.editor import BaseEditor
 
 
 class TafEditor(BaseEditor):
 
-    def __init__(self, parent=None, sender=None):
+    def __init__(self, parent=None, sender=None, conf=None, context=None):
         super(TafEditor, self).__init__(parent, sender)
+        self.conf = conf
+        self.context = context
         self.initUI()
         self.bindSignal()
         self.setWindowTitle(QCoreApplication.translate('Editor', 'Encoding Terminal Aerodrome Forecast'))
@@ -22,10 +22,14 @@ class TafEditor(BaseEditor):
         layout = QVBoxLayout(window)
         layout.setSizeConstraint(QLayout.SetFixedSize)
         layout.setSpacing(18)
-        self.primary = TafPrimarySegment(parent=self)
-        self.fm = TafFmSegment('FM', self)
-        self.becmg1, self.becmg2, self.becmg3 = TafBecmgSegment('BECMG1', self), TafBecmgSegment('BECMG2', self), TafBecmgSegment('BECMG3', self)
-        self.tempo1, self.tempo2, self.tempo3 = TafTempoSegment('TEMPO1', self), TafTempoSegment('TEMPO2', self), TafTempoSegment('TEMPO3', self)
+        self.primary = TafPrimarySegment(parent=self, conf=self.conf, context=self.context)
+        self.fm = TafFmSegment('FM', self, conf=self.conf, context=self.context)
+        self.becmg1 = TafBecmgSegment('BECMG1', self, conf=self.conf, context=self.context)
+        self.becmg2 = TafBecmgSegment('BECMG2', self, conf=self.conf, context=self.context)
+        self.becmg3 = TafBecmgSegment('BECMG3', self, conf=self.conf, context=self.context)
+        self.tempo1 = TafTempoSegment('TEMPO1', self, conf=self.conf, context=self.context)
+        self.tempo2 = TafTempoSegment('TEMPO2', self, conf=self.conf, context=self.context)
+        self.tempo3 = TafTempoSegment('TEMPO3', self, conf=self.conf, context=self.context)
         self.becmgs = [self.fm, self.becmg1, self.becmg2, self.becmg3]
         self.tempos = [self.tempo1, self.tempo2, self.tempo3]
         layout.addWidget(self.primary)
@@ -82,7 +86,7 @@ class TafEditor(BaseEditor):
         checks = [c for c in fmCheckboxs + becmgCheckboxs + tempoCheckboxs if c.isChecked()]
         if len(checks) > 5:
             clickedbox.setChecked(False)
-            context.flash.editor('taf', QCoreApplication.translate('Editor', 'Change groups cannot be more than 5'))
+            self.context.flash.editor('taf', QCoreApplication.translate('Editor', 'Change groups cannot be more than 5'))
             return
 
         def manipulate(checkboxs, groups):
@@ -200,7 +204,7 @@ class TafEditor(BaseEditor):
 
     def showEvent(self, event):
         # 检查必要配置是否完成
-        if not conf.checkCompleteness('taf'):
+        if not self.conf.checkCompleteness('taf'):
             QTimer.singleShot(0, self.showConfigError)
             return
         

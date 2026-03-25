@@ -18,6 +18,8 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         super(SigmetEditor, self).__init__(parent, sender)
         self.setupUi(self)
         self.parent = parent
+        self.conf = conf
+        self.context = context
 
         self.type = 'WS'
         self.category = 'template'

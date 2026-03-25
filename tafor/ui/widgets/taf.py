@@ -4,14 +4,210 @@ from PyQt5.QtGui import QIcon, QRegExpValidator
 from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QComboBox, QRadioButton, QToolButton, QCheckBox, QTextEdit, QMessageBox, QHBoxLayout, QVBoxLayout
 
-from tafor import conf
 from tafor.core.models import Taf, db
 from tafor.core.parsers.base import Pattern
-from tafor.core.states import context
 from tafor.core.utils.check import CurrentTaf
 from tafor.core.utils.common import boolean
 from tafor.core.utils.time import isOverlap, parseDayHour, parsePeriod, parseTime
 from tafor.ui.qt import Ui_taf_group, Ui_taf_primary, Ui_trend, main_rc
+
+
+def parseTemperature(value):
+    return -int(value[1:]) if 'M' in value else int(value)
+
+
+def normalizeTemperatureTime(time, primary):
+    if time.hour != 0:
+        return None
+
+    if time == primary[1]:
+        normalizedTime = time - datetime.timedelta(hours=1)
+        return '{}24'.format(str(normalizedTime.day).zfill(2))
+
+    return '{}{}'.format(str(time.day).zfill(2), str(time.hour).zfill(2))
+
+
+class TafValidator(object):
+
+    @staticmethod
+    def checkWeather(weather, weatherWithIntensity):
+        if not weather or not weatherWithIntensity:
+            return None
+
+        if 'TS' in weather and ('TS' in weatherWithIntensity or 'RA' in weatherWithIntensity):
+            return QCoreApplication.translate('Editor', 'Weather phenomena conflict')
+
+        return None
+
+    @staticmethod
+    def checkGust(wind, gust):
+        if not wind or not gust or gust == 'P49':
+            return None
+
+        windSpeed = wind[-2:]
+        if int(windSpeed) == 0 or int(gust) - int(windSpeed) < 5:
+            return QCoreApplication.translate('Editor', 'Gust speed must be greater than wind speed by at least 5')
+
+        return None
+
+    @staticmethod
+    def checkCloud(line, clouds, cb=None):
+        if not line:
+            return None
+
+        height = line[3:]
+        cloudHeights = [cloud[3:6] for cloud in clouds]
+        if cloudHeights.count(height) > 1:
+            return QCoreApplication.translate(
+                'Editor',
+                'Cloud cover with different oktas should not at the same height'
+            )
+
+        cloudCover = {'FEW': 1, 'SCT': 3, 'BKN': 5, 'OVC': 8}
+        if cb:
+            cbCover = cloudCover[cb[:3]]
+            cbHeight = cb[3:6]
+            for cloud in clouds:
+                cover = cloudCover[cloud[:3]]
+                if cbHeight == cloud[3:6] and cbCover + cover > 8:
+                    return QCoreApplication.translate(
+                        'Editor',
+                        'Cloud cover cannot be more than 8 oktas at the same height'
+                    )
+
+        orderedClouds = sorted(filter(None, clouds + ([cb] if cb else [])), key=lambda cloud: int(cloud[3:6]))
+        covers = [cloud[:3] for cloud in orderedClouds]
+        if 'OVC' in covers:
+            index = covers.index('OVC')
+            if index + 1 < len(covers):
+                return QCoreApplication.translate('Editor', 'No clouds should above overcast clouds')
+
+        return None
+
+    @staticmethod
+    def checkGroupPeriod(period, primary, span, isBecmg=False):
+        if period is None:
+            return None
+
+        start, end = period
+        if end - start > datetime.timedelta(hours=span):
+            return QCoreApplication.translate('Editor', 'Change group time more than {} hours').format(span)
+
+        if primary is None:
+            return None
+
+        primaryStart, primaryEnd = primary
+        if start < primaryStart or primaryEnd < start:
+            return QCoreApplication.translate('Editor', 'Start time of change group is not corret')
+
+        if end < primaryStart or primaryEnd < end or (isBecmg and end == primaryEnd):
+            return QCoreApplication.translate('Editor', 'End time of change group is not corret')
+
+        return None
+
+    @staticmethod
+    def checkGroupOverlap(period, siblings):
+        if period is None:
+            return None
+
+        for sibling in siblings:
+            if isOverlap(period, sibling):
+                return QCoreApplication.translate('Editor', 'Change group time is overlap')
+
+        return None
+
+    @staticmethod
+    def checkFmPeriod(period, primary):
+        if period is None or primary is None:
+            return None
+
+        start, _ = period
+        primaryStart, primaryEnd = primary
+        if start < primaryStart or primaryEnd <= start:
+            return QCoreApplication.translate('Editor', 'Time of change group is not corret')
+
+        return None
+
+    @staticmethod
+    def checkFmOverlap(period, siblings):
+        if period is None:
+            return None
+
+        time = period[0]
+        for sibling in siblings:
+            if sibling[0] <= time <= sibling[1]:
+                return QCoreApplication.translate('Editor', 'Change group time is overlap')
+
+        return None
+
+    @staticmethod
+    def checkTemperatureTime(value, primary, siblings=None, sameTypeSiblings=None):
+        if not value:
+            return None
+
+        text = QCoreApplication.translate('Editor', 'The time of temperature is not corret')
+        if primary is None:
+            return text
+
+        try:
+            time = parseDayHour(value[:2], value[2:], primary[0], delta='month')
+        except Exception:
+            return text
+
+        siblings = siblings or []
+        sameTypeSiblings = sameTypeSiblings or []
+        valid = primary[0] <= time <= primary[1] and time not in siblings
+
+        for sibling in sameTypeSiblings:
+            if sibling.day == time.day:
+                valid = False
+
+        if not valid:
+            return text
+
+        return None
+
+    @staticmethod
+    def checkTemperature(mode, value, reference):
+        if not value:
+            return None
+
+        temperature = parseTemperature(value)
+        if mode == 'max':
+            if reference is not None and temperature <= reference:
+                return QCoreApplication.translate('Editor', 'The maximum temperature needs to be greater than the minimum temperature')
+        elif mode == 'min':
+            if reference is not None and reference <= temperature:
+                return QCoreApplication.translate('Editor', 'The minimum temperature needs to be less than the maximum temperature')
+
+        return None
+
+class TrendValidator(object):
+
+    @staticmethod
+    def checkPeriod(value, now=None):
+        if not value:
+            return None
+
+        if now is None:
+            now = datetime.datetime.utcnow()
+
+        delta = datetime.timedelta(hours=2, minutes=30)
+        periods = [parseTime(text) for text in value.split('/')]
+        errorInfo = QCoreApplication.translate('Editor', 'Trend valid time is not corret')
+
+        if len(periods) == 2:
+            if periods[1] <= periods[0]:
+                periods[1] = periods[1] + datetime.timedelta(days=1)
+
+            if periods[1] - periods[0] > datetime.timedelta(hours=2):
+                return errorInfo
+
+        for time in periods:
+            if (time - delta) > now:
+                return errorInfo
+
+        return None
 
 
 class SegmentMixin(object):
@@ -43,7 +239,7 @@ class SegmentMixin(object):
             checkbox.clicked.connect(lambda: self.contentChanged.emit())
 
     def setupFont(self):
-        fixedFont = context.resource.fixedFont()
+        fixedFont = self.context.resource.fixedFont()
         for line in self.findChildren(QLineEdit):
             line.setFont(fixedFont)
 
@@ -71,10 +267,12 @@ class BaseSegment(SegmentMixin, QWidget):
 
     contentChanged = pyqtSignal()
 
-    def __init__(self, name=None, parent=None):
+    def __init__(self, name=None, parent=None, conf=None, context=None):
         super(BaseSegment, self).__init__()
         self.rules = Pattern()
         self.parent = parent
+        self.conf = conf
+        self.context = context
         self.identifier = ''.join(c for c in name if c.isalpha())
         self.durations = None
         self.periodText = ''
@@ -186,14 +384,14 @@ class BaseSegment(SegmentMixin, QWidget):
         self.cloud3.setValidator(cloud)
         self.cb.setValidator(cloud)
 
-        weathers = conf.weatherList
+        weathers = self.conf.weatherList
         if self.identifier == 'PRIMARY':
             weathers = [w for w in weathers if w != 'NSW']
         self.weather.addItems(weathers)
         weather = QRegExpValidator(QRegExp(r'{}'.format('|'.join(weathers)), Qt.CaseInsensitive))
         self.weather.setValidator(weather)
 
-        weathers = conf.weatherWithIntensityList
+        weathers = self.conf.weatherWithIntensityList
         intensityWeathers = ['']
         if weathers:
             for w in weathers:
@@ -219,26 +417,23 @@ class BaseSegment(SegmentMixin, QWidget):
     def validateWeather(self, line):
         if self.weather.lineEdit().hasAcceptableInput() and self.weather.currentText() and \
             self.weatherWithIntensity.lineEdit().hasAcceptableInput() and self.weatherWithIntensity.currentText():
-            weather = self.weather.currentText()
-            weatherWithIntensity = self.weatherWithIntensity.currentText()
-
-            if 'TS' in weather and ('TS' in weatherWithIntensity or 'RA' in weatherWithIntensity):
+            error = TafValidator.checkWeather(
+                self.weather.currentText(),
+                self.weatherWithIntensity.currentText(),
+            )
+            if error:
                 line.setCurrentIndex(-1)
-                context.flash.editor(self.editorname(), QCoreApplication.translate('Editor', 'Weather phenomena conflict'))
+                self.context.flash.editor(self.editorname(), error)
 
     def validateGust(self):
         if not self.gust.hasAcceptableInput() or not self.wind.hasAcceptableInput():
             self.gust.clear()
             return
 
-        windSpeed = self.wind.text()[-2:]
-        gust = self.gust.text()
-
-        if gust == 'P49':
-            return
-
-        if int(windSpeed) == 0 or int(gust) - int(windSpeed) < 5:
+        error = TafValidator.checkGust(self.wind.text(), self.gust.text())
+        if error:
             self.gust.clear()
+            self.context.flash.editor(self.editorname(), error)
 
     def validateCloud(self, line):
         if not line.hasAcceptableInput():
@@ -249,36 +444,11 @@ class BaseSegment(SegmentMixin, QWidget):
         cloud3 = self.cloud3.text() if self.cloud3.hasAcceptableInput() else None
         cb = self.cb.text() if self.cb.hasAcceptableInput() else None
         clouds = sorted(filter(None, [cloud1, cloud2, cloud3]), key=lambda cloud: int(cloud[3:6]))
-
-        # 不同量的云不能同高度
-        height = line.text()[3:]
-        cloudHeights = [c[3:6] for c in clouds]
-        if cloudHeights.count(height) > 1:
-            context.flash.editor(self.editorname(), QCoreApplication.translate('Editor', 'Cloud cover with different oktas should not at the same height'))
+        error = TafValidator.checkCloud(line.text(), clouds, cb)
+        if error:
+            self.context.flash.editor(self.editorname(), error)
             line.clear()
             return
-
-        # 同一层云量之和不能超过 8 个量
-        cloudCover = {'FEW': 1, 'SCT': 3, 'BKN': 5, 'OVC': 8}
-        coverHeight = lambda cloud: (cloudCover[cloud[:3]], cloud[3:6])
-        if cb:
-            cbCover, cbHeight = coverHeight(cb)
-            for cloud in clouds:
-                cover, height = coverHeight(cloud)
-                if cbHeight == height and cbCover + cover > 8:
-                    context.flash.editor(self.editorname(), QCoreApplication.translate('Editor', 'Cloud cover cannot be more than 8 oktas at the same height'))
-                    line.clear()
-                    return
-
-        # 满天云以上不能有云
-        clouds = sorted(filter(None, [cloud1, cloud2, cloud3, cb]), key=lambda cloud: int(cloud[3:6]))
-        covers = [c[:3] for c in clouds]
-        if 'OVC' in covers:
-            index = covers.index('OVC')
-            if index + 1 < len(covers):
-                context.flash.editor(self.editorname(), QCoreApplication.translate('Editor', 'No clouds should above overcast clouds'))
-                line.clear()
-                return
 
     def validate(self):
         self.validateGust()
@@ -294,7 +464,7 @@ class BaseSegment(SegmentMixin, QWidget):
     def message(self):
         wind = self.wind.text() if self.wind.hasAcceptableInput() else None
         gust = self.gust.text() if self.gust.hasAcceptableInput() else None
-        unit = 'KT' if conf.unit == 'imperial' else 'MPS'
+        unit = 'KT' if self.conf.unit == 'imperial' else 'MPS'
 
         if wind:
             winds = ''.join([wind, 'G', gust, unit]) if gust else ''.join([wind, unit])
@@ -350,6 +520,7 @@ class TemperatureGroup(SegmentMixin, QWidget):
         self.mode = mode
         self.canSwitch = canSwitch
         self.parent = parent
+        self.context = parent.context
         self.temperature = None
         self.time = None
 
@@ -414,63 +585,40 @@ class TemperatureGroup(SegmentMixin, QWidget):
         if not self.parent.period.text() or not self.tempTime.hasAcceptableInput():
             return
 
-        durations = self.parent.durations
-        text = QCoreApplication.translate('Editor', 'The time of temperature is not corret')
-        try:
-            tempTime = self.tempTime.text()
-            time = parseDayHour(tempTime[:2], tempTime[2:], durations[0], delta='month')
-        except Exception:
+        value = self.tempTime.text()
+        error = TafValidator.checkTemperatureTime(
+            value,
+            self.parent.durations,
+            siblings=self.parent.findTemperatureTime(self),
+            sameTypeSiblings=self.parent.findTemperatureTime(self, sameType=True),
+        )
+        if error:
             self.time = None
             self.tempTime.clear()
-            context.flash.editor('taf', text)
+            self.context.flash.editor('taf', error)
             return
 
-        valid = durations[0] <= time <= durations[1] and time not in self.parent.findTemperatureTime(self)
-
-        refTimes = self.parent.findTemperatureTime(self, sameType=True)
-        for t in refTimes:
-            if t.day == time.day:
-                valid = False
-
-        if valid:
-            self.time = time
-            if time.hour == 0:
-                if time == durations[1]:
-                    time -= datetime.timedelta(hours=1)
-                    timeText = '{}24'.format(str(time.day).zfill(2))
-                else:
-                    timeText = '{}{}'.format(str(time.day).zfill(2), str(time.hour).zfill(2))
-
-                self.tempTime.setText(timeText)
-        else:
-            self.time = None
-            self.tempTime.clear()
-            context.flash.editor('taf', text)
+        self.time = parseDayHour(value[:2], value[2:], self.parent.durations[0], delta='month')
+        normalized = normalizeTemperatureTime(self.time, self.parent.durations)
+        if normalized:
+            self.tempTime.setText(normalized)
 
     def validateTemperature(self):
         if not self.temp.hasAcceptableInput():
             return
 
-        temp = self.temp.text()
-        temperature = -int(temp[1:]) if 'M' in temp else int(temp)
+        error = TafValidator.checkTemperature(
+            self.mode,
+            self.temp.text(),
+            self.parent.findTemperature(self),
+        )
+        if error:
+            self.temperature = None
+            self.temp.clear()
+            self.context.flash.editor('taf', error)
+            return
 
-        if self.mode == 'max':
-            minTemperature = self.parent.findTemperature(self)
-            if minTemperature and temperature <= minTemperature:
-                self.temperature = None
-                self.temp.clear()
-                context.flash.editor('taf', QCoreApplication.translate('Editor', 'The maximum temperature needs to be greater than the minimum temperature'))
-            else:
-                self.temperature = temperature
-
-        if self.mode == 'min':
-            maxTemperature = self.parent.findTemperature(self)
-            if maxTemperature and maxTemperature <= temperature:
-                self.temperature = None
-                self.temp.clear()
-                context.flash.editor('taf', QCoreApplication.translate('Editor', 'The minimum temperature needs to be less than the maximum temperature'))
-            else:
-                self.temperature = temperature
+        self.temperature = parseTemperature(self.temp.text())
 
     def switchMode(self):
         self.mode = 'min' if self.mode == 'max' else 'max'
@@ -501,8 +649,8 @@ class TemperatureGroup(SegmentMixin, QWidget):
 
 class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
-    def __init__(self, name='PRIMARY', parent=None):
-        super(TafPrimarySegment, self).__init__(name, parent)
+    def __init__(self, name='PRIMARY', parent=None, conf=None, context=None):
+        super(TafPrimarySegment, self).__init__(name, parent, conf, context)
         self.setupUi(self)
 
         self.setupValidator()
@@ -521,7 +669,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.temperatureLayout.addWidget(self.tmin)
         self.temperatures = [self.tmax, self.tmin]
 
-        if context.taf.spec == 'ft30':
+        if self.context.taf.spec == 'ft30':
             self.temp = TemperatureGroup(canSwitch=True, parent=self)
             self.temperatureLayout.addWidget(self.temp)
             self.temperatures.append(self.temp)
@@ -576,7 +724,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             t.validateTemperature()
 
     def initMessageSpec(self):
-        if 'ft' in context.taf.spec:
+        if 'ft' in self.context.taf.spec:
             self.tempo3Checkbox.show()
         else:
             self.tempo3Checkbox.hide()
@@ -586,7 +734,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         if not self.date.hasAcceptableInput():
             return
 
-        self.taf = CurrentTaf(context.taf.spec, time=datetime.datetime.utcnow(), offset=self.offset)
+        self.taf = CurrentTaf(self.context.taf.spec, time=datetime.datetime.utcnow(), offset=self.offset)
         if self.normal.isChecked():
             self.setNormalPeriod(self.taf)
             self.sequence.clear()
@@ -735,7 +883,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         super(TafPrimarySegment, self).message()
         amd = 'AMD' if self.amd.isChecked() or self.cnl.isChecked() else ''
         cor = 'COR' if self.cor.isChecked() else ''
-        icao = conf.airport
+        icao = self.conf.airport
         timez = self.date.text() + 'Z'
         period = self.period.text()
         temperatures = [t.text() for t in self.sortedTemperatures()]
@@ -749,10 +897,10 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         return self.text
 
     def heading(self):
-        area = conf.bulletinNumber or ''
-        icao = conf.airport
+        area = self.conf.bulletinNumber or ''
+        icao = self.conf.airport
         time = self.date.text()
-        tt = context.taf.spec[:2].upper()
+        tt = self.context.taf.spec[:2].upper()
         sequence = self.sequence.text() if not self.normal.isChecked() else ''
         messages = [tt + area, icao, time, sequence]
         return ' '.join(filter(None, messages))
@@ -786,8 +934,8 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
 class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
-    def __init__(self, name='TEMPO', parent=None):
-        super(TafGroupSegment, self).__init__(name, parent)
+    def __init__(self, name='TEMPO', parent=None, conf=None, context=None):
+        super(TafGroupSegment, self).__init__(name, parent, conf, context)
         self.setupUi(self)
         self.name.setText(name)
         self.setupFont()
@@ -803,7 +951,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
     def setupFont(self):
         super(TafGroupSegment, self).setupFont()
-        self.name.setFont(context.resource.fixedFont())
+        self.name.setFont(self.context.resource.fixedFont())
 
     def setupValidator(self):
         super(TafGroupSegment, self).setupValidator()
@@ -819,7 +967,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.period.setPlaceholderText('{:02d}'.format(time.day))
 
     def fillPeriod(self):
-        autoComletionGroupTime = boolean(conf.autoCompletionGroupTime)
+        autoComletionGroupTime = boolean(self.conf.autoCompletionGroupTime)
         if autoComletionGroupTime:
             self.autoFillPeriod()
         else:
@@ -863,7 +1011,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
     def span(self):
         if self.identifier.startswith('TEMPO'):
-            if 'ft' in context.taf.spec:
+            if 'ft' in self.context.taf.spec:
                 duration = 6
             else:
                 duration = 4
@@ -891,43 +1039,23 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.validateGroupsPeriod()
 
     def validatePeriod(self):
-        if self.durations is None:
-            return
-
-        start, end = self.durations
-
-        if end - start > datetime.timedelta(hours=self.span()):
+        error = TafValidator.checkGroupPeriod(
+            self.durations,
+            self.parent.primary.durations,
+            self.span(),
+            isBecmg=self.identifier.startswith('BECMG'),
+        )
+        if error:
             self.period.clear()
-            context.flash.editor('taf', QCoreApplication.translate('Editor', 'Change group time more than {} hours').format(self.span()))
-            return
-
-        if self.parent.primary.durations is None:
-            return
-
-        durations = self.parent.primary.durations
-        
-        if start < durations[0] or durations[1] < start:
-            self.period.clear()
-            context.flash.editor('taf', QCoreApplication.translate('Editor', 'Start time of change group is not corret'))
-            return
-
-        if end < durations[0] or durations[1] < end or (self.identifier.startswith('BECMG') and end == durations[1]):
-            self.period.clear()
-            context.flash.editor('taf', QCoreApplication.translate('Editor', 'End time of change group is not corret'))
-            return
+            self.context.flash.editor('taf', error)
 
     def validateGroupsPeriod(self):
-
-        def isPeriodOverlay(period, periods):
-            for p in periods:
-                if period and isOverlap(period, p):
-                    return True
-
         groups = self.parent.tempos if self.identifier.startswith('TEMPO') else self.parent.becmgs
-        periods = [g.durations for g in groups if g.isVisible() and g.durations and self != g]
-        if isPeriodOverlay(self.durations, periods):
+        siblings = [g.durations for g in groups if g.isVisible() and g.durations and self != g]
+        error = TafValidator.checkGroupOverlap(self.durations, siblings)
+        if error:
             self.period.clear()
-            context.flash.editor('taf', QCoreApplication.translate('Editor', 'Change group time is overlap'))
+            self.context.flash.editor('taf', error)
 
     def hasAcceptableInput(self):
         oneRequired = (
@@ -957,8 +1085,8 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
 class TafFmSegment(TafGroupSegment):
 
-    def __init__(self, name='FM', parent=None):
-        super(TafFmSegment, self).__init__(name, parent)
+    def __init__(self, name='FM', parent=None, conf=None, context=None):
+        super(TafFmSegment, self).__init__(name, parent, conf, context)
 
     def bindSignal(self):
         super(TafFmSegment, self).bindSignal()
@@ -979,31 +1107,17 @@ class TafFmSegment(TafGroupSegment):
             self.durations = None
 
     def validatePeriod(self):
-        if self.durations is None or self.parent.primary.durations is None:
-            return
-
-        durations = self.parent.primary.durations
-        start, end = self.durations
-        if start < durations[0] or durations[1] <= start:
+        error = TafValidator.checkFmPeriod(self.durations, self.parent.primary.durations)
+        if error:
             self.period.clear()
-            context.flash.editor('taf', QCoreApplication.translate('Editor', 'Time of change group is not corret'))
-            return
+            self.context.flash.editor('taf', error)
 
     def validateGroupsPeriod(self):
-
-        def inPeriod(time, periods):
-            for p in periods:
-                if p[0] <= time <= p[1]:
-                    return True
-
-        if self.durations is None:
-            return
-
-        groups = self.parent.becmgs
-        periods = [g.durations for g in groups if g.isVisible() and g.durations and self != g]
-        if inPeriod(self.durations[0], periods):
+        siblings = [g.durations for g in self.parent.becmgs if g.isVisible() and g.durations and self != g]
+        error = TafValidator.checkFmOverlap(self.durations, siblings)
+        if error:
             self.period.clear()
-            context.flash.editor('taf', QCoreApplication.translate('Editor', 'Change group time is overlap'))
+            self.context.flash.editor('taf', error)
 
     def hasAcceptableInput(self):
         acceptable = False
@@ -1045,8 +1159,8 @@ class TafFmSegment(TafGroupSegment):
 
 class TafBecmgSegment(TafGroupSegment):
 
-    def __init__(self, name='BECMG', parent=None):
-        super(TafBecmgSegment, self).__init__(name, parent)
+    def __init__(self, name='BECMG', parent=None, conf=None, context=None):
+        super(TafBecmgSegment, self).__init__(name, parent, conf, context)
 
     def message(self):
         super(TafBecmgSegment, self).message()
@@ -1064,8 +1178,8 @@ class TafBecmgSegment(TafGroupSegment):
 
 class TafTempoSegment(TafGroupSegment):
 
-    def __init__(self, name='TEMPO', parent=None):
-        super(TafTempoSegment, self).__init__(name, parent)
+    def __init__(self, name='TEMPO', parent=None, conf=None, context=None):
+        super(TafTempoSegment, self).__init__(name, parent, conf, context)
         self.cavok.hide()
         self.nsc.hide()
 
@@ -1079,8 +1193,8 @@ class TafTempoSegment(TafGroupSegment):
 
 class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
-    def __init__(self, name='TREND', parent=None):
-        super(TrendSegment, self).__init__(name, parent)
+    def __init__(self, name='TREND', parent=None, conf=None, context=None):
+        super(TrendSegment, self).__init__(name, parent, conf, context)
         self.setupUi(self)
         self.setupFont()
         self.setupValidator()
@@ -1101,7 +1215,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
     def setupFont(self):
         super(TrendSegment, self).setupFont()
-        font = context.resource.fixedFont()
+        font = self.context.resource.fixedFont()
         self.becmg.setFont(font)
         self.tempo.setFont(font)
 
@@ -1251,24 +1365,10 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
     def validatePeriod(self):
         self.formatPeriod()
-        period = self.period.text()
-        utc = datetime.datetime.utcnow()
-        delta = datetime.timedelta(hours=2, minutes=30)
-        periods = [parseTime(text) for text in period.split('/')]
-        errorInfo = QCoreApplication.translate('Editor', 'Trend valid time is not corret')
-
-        if len(periods) == 2:
-            if periods[1] <= periods[0]:
-                periods[1] = periods[1] + datetime.timedelta(days=1)
-
-            if periods[1] - periods[0] > datetime.timedelta(hours=2):
-                self.period.clear()
-                context.flash.editor('trend', errorInfo)
-
-        for time in periods:
-            if (time - delta) > utc:
-                self.period.clear()
-                context.flash.editor('trend', errorInfo)
+        error = TrendValidator.checkPeriod(self.period.text(), now=datetime.datetime.utcnow())
+        if error:
+            self.period.clear()
+            self.context.flash.editor('trend', error)
 
     def updateAtStatus(self):
         if self.tempo.isChecked():
@@ -1359,4 +1459,3 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         self.period.setEnabled(False)
         self.period.clear()
         self.period.setPlaceholderText('')
-
