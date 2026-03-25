@@ -9,7 +9,6 @@ from PyQt5.QtWidgets import (QDialog, QFileDialog, QWidget, QDialogButtonBox, QT
 from sqlalchemy import and_
 
 from tafor.core.models import Metar, Sigmet, Taf, db
-from tafor.core.states import context
 from tafor.core.utils.pagination import paginate
 from tafor.core.utils.thread import ExportRecordWorker, threadManager
 from tafor.ui.qt import Ui_main_table, main_rc
@@ -137,8 +136,11 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
     chartClicked = pyqtSignal()
 
-    def __init__(self, parent, layout):
-        super(BaseDataTable, self).__init__()
+    def __init__(self, parent, layout, conf=None, context=None):
+        super(BaseDataTable, self).__init__(parent)
+        self.parentWidget = parent
+        self.conf = conf
+        self.context = context
         self.setupUi(self)
         self.setupStyle()
         self.setupValidator()
@@ -147,7 +149,6 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.reportType = ''
         self.date = None
         self.keywords = []
-        self.parent = parent
         self.color = QColor(200, 20, 40)
 
         self.calendar.calendarWidget().setSelectedDate(QDate.currentDate())
@@ -155,7 +156,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
         self.exportDialog = ExportDialog(self)
 
-        font = context.resource.fixedFont()
+        font = self.context.resource.fixedFont()
         font.setPointSize(10)
         self.table.setFont(font)
 
@@ -287,7 +288,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
     def copySelected(self, item):
         QApplication.clipboard().setText(item.text())
-        context.flash.statusbar(QCoreApplication.translate('MainWindow', 'Selected message has been copied'), 5000)
+        self.context.flash.statusbar(QCoreApplication.translate('MainWindow', 'Selected message has been copied'), 5000)
 
     def view(self):
         message = self.selected
@@ -309,11 +310,11 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
 class TafTable(BaseDataTable):
 
-    def __init__(self, parent, layout):
-        super(TafTable, self).__init__(parent, layout)
+    def __init__(self, parent, layout, reviewer=None, conf=None, context=None):
+        super(TafTable, self).__init__(parent, layout, conf=conf, context=context)
         self.reportType = 'TAF'
         self.model = Taf
-        self.reviewer = self.parent.tafSender
+        self.reviewer = reviewer
 
     def updateTable(self):
         with db.session() as session:
@@ -349,8 +350,8 @@ class TafTable(BaseDataTable):
 
 class MetarTable(BaseDataTable):
 
-    def __init__(self, parent, layout):
-        super(MetarTable, self).__init__(parent, layout)
+    def __init__(self, parent, layout, conf=None, context=None):
+        super(MetarTable, self).__init__(parent, layout, conf=conf, context=context)
         self.reportType = 'METAR'
         self.model = Metar
         self.chartButton.show()
@@ -392,11 +393,11 @@ class MetarTable(BaseDataTable):
 
 class SigmetTable(BaseDataTable):
 
-    def __init__(self, parent, layout):
-        super(SigmetTable, self).__init__(parent, layout)
+    def __init__(self, parent, layout, reviewer=None, conf=None, context=None):
+        super(SigmetTable, self).__init__(parent, layout, conf=conf, context=context)
         self.reportType = 'SIGMET'
         self.model = Sigmet
-        self.reviewer = self.parent.sigmetSender
+        self.reviewer = reviewer
 
     def updateTable(self):
         with db.session() as session:
@@ -427,6 +428,6 @@ class SigmetTable(BaseDataTable):
 
 class AirmetTable(SigmetTable):
 
-    def __init__(self, parent, layout):
-        super(AirmetTable, self).__init__(parent, layout)
+    def __init__(self, parent, layout, reviewer=None, conf=None, context=None):
+        super(AirmetTable, self).__init__(parent, layout, reviewer=reviewer, conf=conf, context=context)
         self.reportType = 'AIRMET'

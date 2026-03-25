@@ -7,7 +7,6 @@ from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QComboBox, QRadioButton,
 from tafor.core.models import Taf, db
 from tafor.core.parsers.base import Pattern
 from tafor.core.utils.check import CurrentTaf
-from tafor.core.utils.common import boolean
 from tafor.core.utils.time import isOverlap, parseDayHour, parsePeriod, parseTime
 from tafor.ui.qt import Ui_taf_group, Ui_taf_primary, Ui_trend, main_rc
 
@@ -515,12 +514,12 @@ class TemperatureGroup(SegmentMixin, QWidget):
 
     temperatureChanged = pyqtSignal()
 
-    def __init__(self, mode='max', canSwitch=False, parent=None):
+    def __init__(self, mode='max', canSwitch=False, parent=None, context=None):
         super(TemperatureGroup, self).__init__(parent)
         self.mode = mode
         self.canSwitch = canSwitch
         self.parent = parent
-        self.context = parent.context
+        self.context = context
         self.temperature = None
         self.time = None
 
@@ -663,14 +662,14 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             self.tempo1Checkbox, self.tempo2Checkbox, self.tempo3Checkbox,
         ]
 
-        self.tmax = TemperatureGroup(mode='max', parent=self)
-        self.tmin = TemperatureGroup(mode='min', parent=self)
+        self.tmax = TemperatureGroup(mode='max', parent=self, context=self.context)
+        self.tmin = TemperatureGroup(mode='min', parent=self, context=self.context)
         self.temperatureLayout.addWidget(self.tmax)
         self.temperatureLayout.addWidget(self.tmin)
         self.temperatures = [self.tmax, self.tmin]
 
         if self.context.taf.spec == 'ft30':
-            self.temp = TemperatureGroup(canSwitch=True, parent=self)
+            self.temp = TemperatureGroup(canSwitch=True, parent=self, context=self.context)
             self.temperatureLayout.addWidget(self.temp)
             self.temperatures.append(self.temp)
             self.becmg3Checkbox.setStyleSheet('QCheckBox {margin-top: 4px;}')
@@ -967,8 +966,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.period.setPlaceholderText('{:02d}'.format(time.day))
 
     def fillPeriod(self):
-        autoComletionGroupTime = boolean(self.conf.autoCompletionGroupTime)
-        if autoComletionGroupTime:
+        if self.conf.autoCompletionGroupTime:
             self.autoFillPeriod()
         else:
             self.autoFillSlash()

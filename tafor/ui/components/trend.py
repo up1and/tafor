@@ -9,9 +9,7 @@ from tafor.ui.widgets.editor import BaseEditor
 class TrendEditor(BaseEditor):
 
     def __init__(self, parent=None, sender=None, conf=None, context=None):
-        super(TrendEditor, self).__init__(parent, sender)
-        self.conf = conf
-        self.context = context
+        super(TrendEditor, self).__init__(parent, sender, conf, context)
 
         self.initUI()
         self.bindSignal()

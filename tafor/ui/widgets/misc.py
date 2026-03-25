@@ -6,7 +6,6 @@ from PyQt5.QtGui import QPixmap, QIcon, QBrush, QPen, QFont, QFontMetrics, QPain
 from PyQt5.QtCore import QCoreApplication, QTimer, QSize, Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QLabel, QHBoxLayout
 
-from tafor import conf, context
 from tafor.core.utils.check import CurrentTaf
 from tafor.core.utils.time import timeAgo
 from tafor.ui.qt import Ui_main_license, Ui_main_recent, main_rc
@@ -121,9 +120,10 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
     replyRequested = pyqtSignal()
 
     def __init__(self, parent, layout, item, fixedFont, layerBoundaries=None,
-            clearNotification=None, reminderEnabled=False, index=None):
+            clearNotification=None, reminderEnabled=False, index=None, conf=None):
         super(RecentMessage, self).__init__(parent)
         self.setupUi(self)
+        self.conf = conf
         self.item = item
         self.remind = reminderEnabled
         self.background = None
@@ -234,10 +234,11 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         self.reminderButton.clicked.connect(self.toggleReminder)
 
     def updateButton(self):
+        hoverStyle = buttonHoverStyle
         self.replyButton.setIcon(QIcon(':/reply-arrow.png'))
-        self.replyButton.setStyleSheet(buttonHoverStyle)
-        self.markButton.setStyleSheet(buttonHoverStyle)
-        self.reminderButton.setStyleSheet(buttonHoverStyle)
+        self.replyButton.setStyleSheet(hoverStyle)
+        self.markButton.setStyleSheet(hoverStyle)
+        self.reminderButton.setStyleSheet(hoverStyle)
 
     def updateText(self):
         self.group.setTitle(self.item.type)
@@ -312,15 +313,17 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
 
 class TafBoard(QWidget):
 
-    def __init__(self, parent, container):
+    def __init__(self, parent, container, conf=None, context=None):
         super(TafBoard, self).__init__(parent)
+        self.conf = conf
+        self.context = context
 
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
 
         self.board = QLabel()
-        self.board.setFont(context.resource.fixedFont())
+        self.board.setFont(self.context.resource.fixedFont())
         layout.addWidget(self.board)
 
         container.addWidget(self)
@@ -329,8 +332,8 @@ class TafBoard(QWidget):
         self.board.setText(self.current())
 
     def current(self):
-        taf = CurrentTaf(context.taf.spec)
-        if context.taf.message:
+        taf = CurrentTaf(self.context.taf.spec)
+        if self.context.taf.message:
             text = ''
         else:
             text = taf.spec.type + taf.period(strict=False, withDay=False)
@@ -339,18 +342,19 @@ class TafBoard(QWidget):
 
 class Clock(QWidget):
 
-    def __init__(self, parent, container):
+    def __init__(self, parent, container, context=None):
         super(Clock, self).__init__(parent)
+        self.context = context
 
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 5)
         self.setLayout(layout)
 
         self.zone = QLabel('UTC')
-        self.zone.setFont(context.resource.fixedFont())
+        self.zone.setFont(self.context.resource.fixedFont())
         self.zone.setStyleSheet('QLabel {color: grey;}')
         self.label = QLabel()
-        self.label.setFont(context.resource.fixedFont())
+        self.label.setFont(self.context.resource.fixedFont())
         layout.addWidget(self.zone)
         layout.addWidget(self.label)
 
@@ -371,17 +375,19 @@ class LicenseEditor(QDialog, Ui_main_license.Ui_Editor):
 
     licenseChanged = pyqtSignal()
 
-    def __init__(self, parent):
+    def __init__(self, parent, conf=None, context=None):
         super(LicenseEditor, self).__init__(parent)
         self.setupUi(self)
         self.parent = parent
+        self.conf = conf
+        self.context = context
         self.buttonBox.accepted.connect(self.save)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
     def save(self):
         license = self.textarea.toPlainText().strip()
         license = ''.join(license.split())
-        if context.license.license(license):
+        if self.context.license.license(license):
             self.setLicense(license)
             self.textarea.clear()
         else:
@@ -389,15 +395,15 @@ class LicenseEditor(QDialog, Ui_main_license.Ui_Editor):
             QMessageBox.critical(self, 'Tafor', text)
 
     def enter(self):
-        if not conf.airport:
+        if not self.conf.airport:
             text = QCoreApplication.translate('Editor', 'Please fill in the airport information or flight information region in the settings first')
             QMessageBox.information(self, 'Tafor', text)
         else:
             self.show()
 
     def setLicense(self, text):
-        if conf.license != text:
-            conf.license = text
+        if self.conf.license != text:
+            self.conf.license = text
             self.licenseChanged.emit()
 
     def removeLicense(self):

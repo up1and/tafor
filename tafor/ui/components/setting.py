@@ -10,8 +10,6 @@ from PyQt5.QtCore import QCoreApplication, QStandardPaths, QSettings, QTimer, Qt
 from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QFileDialog, QMessageBox, QApplication, QCheckBox, 
                              QLineEdit, QComboBox, QPlainTextEdit, QSlider, QListWidget, QGroupBox)
 
-from tafor import conf
-from tafor.core.states import context
 from tafor.core.telegram.transport import ftpComm
 from tafor.core.utils.common import ipAddress
 from tafor.ui.qt import Ui_setting, main_rc
@@ -23,9 +21,11 @@ logger = logging.getLogger('tafor.setting')
 class SettingDialog(QDialog, Ui_setting.Ui_Settings):
     """设置窗口"""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, conf=None, context=None):
         super(SettingDialog, self).__init__(parent)
         self.parent = parent
+        self.conf = conf
+        self.context = context
         self.setupUi(self)
         self.setWindowIcon(QIcon(':/setting.png'))
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
@@ -45,7 +45,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.buttonBox.button(QDialogButtonBox.Apply).setText(QCoreApplication.translate('Settings', 'Apply'))
         self.buttonBox.button(QDialogButtonBox.Cancel).setText(QCoreApplication.translate('Settings', 'Cancel'))
 
-        if conf.sigmetEnabled:
+        if self.conf.sigmetEnabled:
             pass
         else:
             self.firName.hide()
@@ -101,8 +101,8 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
     def resetChannelNumber(self):
         """重置流水号"""
-        conf.channelSequenceNumber = '1'
-        conf.fileSequenceNumber = '1'
+        self.conf.channelSequenceNumber = '1'
+        self.conf.fileSequenceNumber = '1'
         self.channelSequenceNumber.setText('1')
         logger.info('Reset sequence number to one')
 
@@ -112,11 +112,11 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         'Regenerating the token will cause the existing service to be unavailable due to authentication failure, are you sure you want to do this?')
         ret = QMessageBox.information(self, title, text, QMessageBox.Yes | QMessageBox.No)
         if ret == QMessageBox.Yes:
-            conf.authToken = secrets.token_urlsafe(24)
-            self.bindValue(conf.authToken, 'token')
+            self.conf.authToken = secrets.token_urlsafe(24)
+            self.bindValue(self.conf.authToken, 'token')
 
     def copyAuthToken(self):
-        QApplication.clipboard().setText(conf.authToken)
+        QApplication.clipboard().setText(self.conf.authToken)
 
     def addWeather(self, weather):
         """添加天气现象"""
@@ -131,7 +131,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         option.takeItem(option.currentRow())
 
     def showEvent(self, event):
-        self.bindValue(conf.channelSequenceNumber, 'channelSequenceNumber')
+        self.bindValue(self.conf.channelSequenceNumber, 'channelSequenceNumber')
 
     def testFtpLogin(self):
         url = self.ftpHost.text()
@@ -159,10 +159,10 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             self.autoRun.remove('Tafor')
 
         errors = []
-        for attr, config in conf:
+        for attr, config in self.conf:
             value = self.getValue(config.default, config.bindProperty)
             try:
-                conf.set(attr, value)
+                self.conf.set(attr, value)
             except ValueError as e:
                 logger.warning('Failed to save setting: %s', e)
                 if attr == 'firBoundary':
@@ -176,7 +176,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
                 if text not in errors:
                     errors.append(text)
 
-        conf.emit()
+        self.conf.emit()
 
         if errors:
             title = QCoreApplication.translate('Settings', 'Format Error')
@@ -188,7 +188,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
         self.serviceHost.setText('http://{}:9407'.format(ipAddress()))
 
-        for attr, config in conf:
+        for attr, config in self.conf:
             self.bindValue(config.value, config.bindProperty)
 
     def bindValue(self, value, bindProperty):
@@ -243,11 +243,11 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
     def exportConf(self):
         filename = self.exportPath.text()
         try:
-            data = {attr: config.value for attr, config in conf}
+            data = {attr: config.value for attr, config in self.conf}
             with open(filename, 'w') as file:
                 json.dump(data, file)
 
-            context.flash.statusbar(QCoreApplication.translate('Settings', 'Configuration has been exported'), 5000)
+            self.context.flash.statusbar(QCoreApplication.translate('Settings', 'Configuration has been exported'), 5000)
         except Exception as e:
             logger.error('Export configuration file failed, {}'.format(e))
 
@@ -258,11 +258,11 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
                 data = json.load(file)
 
             for attr, value in data.items():
-                conf.set(attr, value)
+                self.conf.set(attr, value)
 
-            conf.emit()
+            self.conf.emit()
             self.load()
-            context.flash.statusbar(QCoreApplication.translate('Settings', 'Configuration has been imported'), 5000)
+            self.context.flash.statusbar(QCoreApplication.translate('Settings', 'Configuration has been imported'), 5000)
         except Exception as e:
             logger.error('Import configuration file failed, {}'.format(e), exc_info=True)
 

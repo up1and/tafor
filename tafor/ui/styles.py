@@ -2,7 +2,6 @@ from PyQt5.QtCore import QSysInfo
 
 from tafor import conf
 
-
 if QSysInfo.prettyProductName().startswith('Windows 10') and conf.windowsStyle == 'System':
     buttonHoverStyle = 'QToolButton:hover, QDateEdit:hover { background: #e5f3ff; border: 1px solid #cce8ff;} QToolButton {padding: 2px;}'
 else:

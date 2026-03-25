@@ -2,9 +2,7 @@ import datetime
 
 from PyQt5.QtCore import QCoreApplication, QTimer
 
-from tafor import conf
 from tafor.core.models import Sigmet
-from tafor.core.states import context
 from tafor.core.utils.query import SigmetFilter
 from tafor.ui.qt import Ui_sigmet
 from tafor.ui.widgets import AirmetGeneral, SigmetAsh, SigmetCancel, SigmetCustom, SigmetGeneral, SigmetTyphoon
@@ -14,12 +12,10 @@ from tafor.ui.widgets.graphic import GraphicsWindow
 
 class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
-    def __init__(self, parent=None, sender=None):
-        super(SigmetEditor, self).__init__(parent, sender)
+    def __init__(self, parent=None, sender=None, conf=None, context=None):
+        super(SigmetEditor, self).__init__(parent, sender, conf, context)
         self.setupUi(self)
         self.parent = parent
-        self.conf = conf
-        self.context = context
 
         self.type = 'WS'
         self.category = 'template'
@@ -31,13 +27,13 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px;}')
 
     def initUI(self):
-        self.graphic = GraphicsWindow(self)
-        self.generalContent = SigmetGeneral(self)
-        self.typhoonContent = SigmetTyphoon(self)
-        self.ashContent = SigmetAsh(self)
-        self.airmetContent = AirmetGeneral(self)
-        self.cancelContent = SigmetCancel(self)
-        self.customContent = SigmetCustom(self)
+        self.graphic = GraphicsWindow(self, context=self.context)
+        self.generalContent = SigmetGeneral(self, conf=self.conf, context=self.context)
+        self.typhoonContent = SigmetTyphoon(self, conf=self.conf, context=self.context)
+        self.ashContent = SigmetAsh(self, conf=self.conf, context=self.context)
+        self.airmetContent = AirmetGeneral(self, conf=self.conf, context=self.context)
+        self.cancelContent = SigmetCancel(self, conf=self.conf, context=self.context)
+        self.customContent = SigmetCustom(self, conf=self.conf, context=self.context)
 
         self.contents = []
         self.contents.append(self.generalContent)
@@ -89,9 +85,9 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
             return
 
         if self.category == 'cancel':
-            sigmets = context.current.filterSigmets(SigmetFilter(typeCode=self.type))
+            sigmets = self.context.current.filterSigmets(SigmetFilter(typeCode=self.type))
         else:
-            sigmets = context.current.filterSigmets(SigmetFilter(reportType=self.reportType()))
+            sigmets = self.context.current.filterSigmets(SigmetFilter(reportType=self.reportType()))
 
         self.graphic.setCachedSigmet(sigmets)
 
@@ -118,8 +114,8 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.customContent.updateText()
 
     def heading(self):
-        area = conf.bulletinNumber or ''
-        icao = conf.airport
+        area = self.conf.bulletinNumber or ''
+        icao = self.conf.airport
         time = datetime.datetime.utcnow().strftime('%d%H%M')
         messages = [self.type + area, icao, time]
         return ' '.join(filter(None, messages))
@@ -225,12 +221,12 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
     def closeEvent(self, event):
         super(SigmetEditor, self).closeEvent(event)
-        context.notification.sigmet.clear()
+        self.context.notification.sigmet.clear()
         self.clear()
 
     def showEvent(self, event):
         # 检查必要配置是否完成 
-        if not conf.checkCompleteness('sigmet'):
+        if not self.conf.checkCompleteness('sigmet'):
             QTimer.singleShot(0, self.showConfigError)
             return
         

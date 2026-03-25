@@ -431,7 +431,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.remindSigmetBox = RemindMessageBox(self)
 
         # 初始化窗口
-        self.settingDialog = SettingDialog(self)
+        self.settingDialog = SettingDialog(self, self.conf, self.context)
 
         self.tafSender = TafSender(self, self.context, self.conf)
         self.trendSender = TrendSender(self, self.context, self.conf)
@@ -440,8 +440,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.tafEditor = TafEditor(self, self.tafSender, self.conf, self.context)
         self.trendEditor = TrendEditor(self, self.trendSender, self.conf, self.context)
-        self.sigmetEditor = SigmetEditor(self, self.sigmetSender)
-        self.licenseEditor = LicenseEditor(self)
+        self.sigmetEditor = SigmetEditor(self, self.sigmetSender, self.conf, self.context)
+        self.licenseEditor = LicenseEditor(self, conf=self.conf, context=self.context)
 
         self.chartViewer = ChartViewer(self)
 
@@ -511,16 +511,16 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.tray.setIcon(icon)
 
     def setupRecent(self):
-        self.clock = Clock(self, self.tipsLayout)
+        self.clock = Clock(self, self.tipsLayout, context=self.context)
         self.tipsLayout.addSpacerItem(QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        self.tafBoard = TafBoard(self, self.tipsLayout)
+        self.tafBoard = TafBoard(self, self.tipsLayout, conf=self.conf, context=self.context)
         self.scrollLayout.setAlignment(Qt.AlignTop)
 
     def setupTable(self):
-        self.tafTable = TafTable(self, self.tafLayout)
-        self.metarTable = MetarTable(self, self.metarLayout)
-        self.sigmetTable = SigmetTable(self, self.sigmetLayout)
-        self.airmetTable = AirmetTable(self, self.airmetLayout)
+        self.tafTable = TafTable(self, self.tafLayout, reviewer=self.tafSender, conf=self.conf, context=self.context)
+        self.metarTable = MetarTable(self, self.metarLayout, conf=self.conf, context=self.context)
+        self.sigmetTable = SigmetTable(self, self.sigmetLayout, reviewer=self.sigmetSender, conf=self.conf, context=self.context)
+        self.airmetTable = AirmetTable(self, self.airmetLayout, reviewer=self.sigmetSender, conf=self.conf, context=self.context)
 
     def setupSysTray(self):
         self.tray = QSystemTrayIcon(self)
@@ -545,12 +545,12 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.tray.setToolTip(message)
 
     def setupSound(self):
-        self.notificationSound = Sound('notification.wav')
-        self.incomingSound = Sound('notification-incoming.wav')
-        self.alarmSound = Sound('alarm.wav', volumeKey='alarmVolume')
-        self.tafSound = Sound('taf.wav', volumeKey='tafVolume')
-        self.trendSound = Sound('trend.wav', volumeKey='trendVolume')
-        self.sigmetSound = Sound('sigmet.wav', volumeKey='sigmetVolume')
+        self.notificationSound = Sound('notification.wav', config=self.conf)
+        self.incomingSound = Sound('notification-incoming.wav', config=self.conf)
+        self.alarmSound = Sound('alarm.wav', volumeKey='alarmVolume', config=self.conf)
+        self.tafSound = Sound('taf.wav', volumeKey='tafVolume', config=self.conf)
+        self.trendSound = Sound('trend.wav', volumeKey='trendVolume', config=self.conf)
+        self.sigmetSound = Sound('sigmet.wav', volumeKey='sigmetVolume', config=self.conf)
 
         self.settingDialog.alarmVolume.valueChanged.connect(lambda vol: self.alarmSound.play(volume=vol, loop=False))
         self.settingDialog.tafVolume.valueChanged.connect(lambda vol: self.tafSound.play(volume=vol, loop=False))
@@ -611,6 +611,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
                     clearNotification=self.context.notification.metar.clear,
                     reminderEnabled=reminderStates.get(message.uuid, False),
                     index=i+1,
+                    conf=self.conf,
                 )
                 widget.reviewRequested.connect(self.reviewRecentMessage)
                 widget.replyRequested.connect(self.trendEditor.quote)

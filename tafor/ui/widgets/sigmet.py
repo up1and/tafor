@@ -8,11 +8,9 @@ from PyQt5.QtGui import QRegExpValidator, QIntValidator, QTextCharFormat, QTextC
 from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QToolButton
 
-from tafor import conf
 from tafor.core.models import Sigmet, db
 from tafor.core.parsers.base import Pattern
 from tafor.core.parsers.sigmet import AshAdvisoryParser, TyphoonAdvisoryParser
-from tafor.core.states import context
 from tafor.core.utils.geo import calcPosition, decimalToDegree, degreeToDecimal
 from tafor.core.utils.query import SigmetFilter
 from tafor.core.utils.time import ceilTime, parseTime, roundTime
@@ -26,12 +24,14 @@ class BaseSigmet(SegmentMixin, QWidget):
 
     contentChanged = pyqtSignal()
 
-    def __init__(self, parent):
+    def __init__(self, parent, conf=None, context=None):
         super().__init__()
         self.complete = False
         self.durations = None
         self.rules = Pattern()
         self.parent = parent
+        self.conf = conf
+        self.context = context
         self.span = 4
         self.forecastMode = False
         self.mode = 'polygon'
@@ -106,17 +106,17 @@ class BaseSigmet(SegmentMixin, QWidget):
 
         if start - time > datetime.timedelta(hours=24):
             self.beginningTime.clear()
-            context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'Start time cannot be less than the current time'))
+            self.context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'Start time cannot be less than the current time'))
             return
 
         if end <= start:
             self.endingTime.clear()
-            context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'Ending time must be greater than the beginning time'))
+            self.context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'Ending time must be greater than the beginning time'))
             return
 
         if end - start > datetime.timedelta(hours=self.span):
             self.endingTime.clear()
-            context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'Valid period more than {} hours').format(self.span))
+            self.context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'Valid period more than {} hours').format(self.span))
             return
 
     def validate(self):
@@ -180,13 +180,13 @@ class BaseSigmet(SegmentMixin, QWidget):
         return self.parent.type
 
     def firstLine(self):
-        fir = conf.firName
+        fir = self.conf.firName
         area = fir.split()[0] if fir else ''
         sign = self.parent.reportType()
         sequence = self.sequence.text()
         beginningTime = self.beginningTime.text()
         endingTime = self.endingTime.text()
-        icao = conf.airport
+        icao = self.conf.airport
 
         text = '{} {} {} VALID {}/{} {}-'.format(area, sign, sequence, beginningTime, endingTime, icao)
         return text
@@ -241,7 +241,7 @@ class FlightLevelMixin(object):
         if base and top:
             if int(top) <= int(base):
                 line.clear()
-                context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'The top flight level needs to be greater than the base flight level'))
+                self.context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'The top flight level needs to be greater than the base flight level'))
 
     def flightLevel(self):
         format = self.format.currentText()
@@ -307,7 +307,7 @@ class MovementMixin(object):
             return
 
         movement = self.direction.currentText()
-        unit = 'KT' if conf.unit == 'imperial' else 'KMH'
+        unit = 'KT' if self.conf.unit == 'imperial' else 'KMH'
         speed = int(self.speed.text()) if self.speed.text() else ''
 
         text = 'MOV {movement} {speed}{unit}'.format(
@@ -408,8 +408,8 @@ class AdvisoryMixin(object):
 
     locationChanged = pyqtSignal(dict)
 
-    def __init__(self, parent):
-        super().__init__(parent)
+    def __init__(self, parent, conf=None, context=None):
+        super().__init__(parent, conf=conf, context=context)
         self.switchButton.setText('Switch')
         self.switchButton.setFixedSize(26, 26)
         self.switchButton.setAutoRaise(True)
@@ -458,7 +458,7 @@ class AdvisoryMixin(object):
             self.autoFill()
             self.text.setStyleSheet('color: black')
         except Exception as e:
-            context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'Advisory message can not be decoded'))
+            self.context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'Advisory message can not be decoded'))
             self.text.setStyleSheet('color: grey')
             logger.error('Advisory message can not be decoded, {}, {}'.format(text, e))
 
@@ -551,8 +551,8 @@ class AdvisoryMixin(object):
 
 class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin, BaseSigmet, Ui_sigmet_general.Ui_Editor):
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, parent=None, conf=None, context=None):
+        super().__init__(parent, conf=conf, context=context)
         self.setPhenomenaDescription()
         self.setPhenomena()
         self.setFcstOrObs()
@@ -627,7 +627,7 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
         return text
 
     def message(self):
-        fir = conf.firName
+        fir = self.conf.firName
         hazard = self.hazard()
         observation = self.observationText()
         flightLevel = self.flightLevel()
@@ -658,8 +658,8 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
 
     circleChanged = pyqtSignal(dict)
 
-    def __init__(self, parent):
-        super().__init__(parent)
+    def __init__(self, parent, conf=None, context=None):
+        super().__init__(parent, conf=conf, context=context)
         self.setPhenomena()
         self.setFcstOrObs()
         self.advisoryParser = TyphoonAdvisoryParser
@@ -992,7 +992,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         return 'TOP FL{}'.format(self.top.text())
 
     def message(self):
-        fir = conf.firName
+        fir = self.conf.firName
         hazard = self.hazard()
         position = 'PSN {latitude} {Longitude} CB {observation}'.format(
             latitude=self.currentLatitude.text(),
@@ -1058,8 +1058,8 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
 
 class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin, AdvisoryMixin, BaseSigmet, Ui_sigmet_ash.Ui_Editor):
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, parent=None, conf=None, context=None):
+        super().__init__(parent, conf=conf, context=context)
         self.setPhenomena()
         self.setFcstOrObs()
         self.advisoryParser = AshAdvisoryParser
@@ -1221,7 +1221,7 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         return all(mustRequired)
 
     def message(self):
-        fir = conf.firName
+        fir = self.conf.firName
         hazard = self.hazard()
         observation = self.observationText()
         flightLevel = self.flightLevel()
@@ -1318,7 +1318,7 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
         return all(mustRequired)
 
     def message(self):
-        fir = conf.firName
+        fir = self.conf.firName
         cancel = 'CNL {} {} {}/{}'.format(
             self.parent.reportType(),
             self.cancelSequence.currentText().strip(),
@@ -1349,7 +1349,7 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
     def componentUpdate(self):
         self.prevs = []
-        sigmets = context.current.filterSigmets(SigmetFilter(typeCode=self.type()))
+        sigmets = self.context.current.filterSigmets(SigmetFilter(typeCode=self.type()))
 
         for sig in sigmets:
             parser = sig.parser()
@@ -1385,8 +1385,8 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
 class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
 
-    def __init__(self, parent):
-        super().__init__(parent)
+    def __init__(self, parent, conf=None, context=None):
+        super().__init__(parent, conf=conf, context=context)
         self.setupApiSign()
         self.upperTextEdit()
 
@@ -1422,7 +1422,7 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         return all(mustRequired)
 
     def message(self):
-        fir = conf.firName
+        fir = self.conf.firName
         items = [fir, self.text.toPlainText().strip()]
         content = ' '.join(filter(None, items))
         return '\n'.join([self.firstLine(), content])
@@ -1440,8 +1440,8 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         self.apiSign.hide()
 
     def setupPlaceholder(self):
-        speedUnit = 'KT' if conf.unit == 'imperial' else 'KMH'
-        lengthUnit = 'NM' if conf.unit == 'imperial' else 'KM'
+        speedUnit = 'KT' if self.conf.unit == 'imperial' else 'KMH'
+        lengthUnit = 'NM' if self.conf.unit == 'imperial' else 'KM'
         tips = {
             'WS': 'EMBD TS FCST N OF N2000 TOP FL360 MOV N 25{} NC'.format(speedUnit),
             'WC': 'TC YAGI PSN N2706 W07306 CB OBS AT 1600Z WI 300{} OF TC CENTRE TOP FL420 NC\nFCST AT 2200Z TC CENTRE N2740 W07345'.format(lengthUnit),
@@ -1460,7 +1460,7 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
             return 'database', parser.content()
 
     def loadNotification(self):
-        parser = context.notification.sigmet.parser()
+        parser = self.context.notification.sigmet.parser()
         if parser and self.type() == parser.type():
             return 'notification', parser.content()
 
@@ -1468,7 +1468,7 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         rv = self.loadNotification() or self.loadLocalDatabase()
         if rv:
             source, message = rv
-            fir = conf.firName or ''
+            fir = self.conf.firName or ''
             text = message.replace(fir, '').replace('=', '').strip()
             self.setText(text)
 

@@ -1,17 +1,17 @@
 from PyQt5.QtCore import QCoreApplication, QTimer, Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QHBoxLayout, QLabel, QPushButton
 
-from tafor.core.states import context
-
 
 class BaseEditor(QDialog):
 
     finished = pyqtSignal(object)
 
-    def __init__(self, parent=None, sender=None):
+    def __init__(self, parent=None, sender=None, conf=None, context=None):
         super(BaseEditor, self).__init__(parent)
         self.parent = parent
         self.sender = sender
+        self.conf = conf
+        self.context = context
         self.isStaged = False
 
         self.defaultAction()
@@ -28,7 +28,7 @@ class BaseEditor(QDialog):
         self.sender.backed.connect(self.showEditor)
         self.sender.closed.connect(self.close)
 
-        context.event.editorMessage.connect(self.showNotification)
+        self.context.event.editorMessage.connect(self.showNotification)
 
     def showEditor(self):
         self.isStaged = True

@@ -3,7 +3,7 @@ import os
 from PyQt5.QtCore import QUrl
 from PyQt5.QtMultimedia import QSoundEffect
 
-from tafor import root, conf
+from tafor import root
 
 
 class Sound(object):
@@ -11,6 +11,7 @@ class Sound(object):
     def __init__(self, filename, volumeKey=None, config=None):
         super(Sound, self).__init__()
         file = os.path.join(root, 'resources', 'sounds', filename)
+        self.config = config
         self.volumeKey = volumeKey
         self.effect = QSoundEffect()
         self.effect.setSource(QUrl.fromLocalFile(file))
@@ -35,7 +36,6 @@ class Sound(object):
             return 100
         
         try:
-            return getattr(conf, self.volumeKey, 100)
+            return getattr(self.config, self.volumeKey, 100)
         except (AttributeError, ValueError, TypeError):
             return 100
-

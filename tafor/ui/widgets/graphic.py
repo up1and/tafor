@@ -14,7 +14,6 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView, Q
 from PyQt5.QtGui import QIcon, QPainter
 from PyQt5.QtCore import QCoreApplication, QObject, Qt, QRect, QRectF, QSize, pyqtSignal
 
-from tafor.core.states import context
 from tafor.core.utils.algorithm import buffer, circle, clipLine, clipPolygon, depth, encode, flattenLine, simplifyPolygon
 from tafor.core.utils.geo import decimalToDegree
 from tafor.ui.widgets.geometry import BackgroundImage, Coastline, Fir, Sigmet, SketchGraphic, StickerGraphic
@@ -169,7 +168,7 @@ class Sketch(QObject):
 
     @property
     def boundaries(self):
-        return context.layer.boundaries()
+        return self.canvas.context.layer.boundaries()
 
     def append(self, point):
         if self.done:
@@ -433,7 +432,7 @@ class Sketch(QObject):
                     self.done = True if len(self.coordinates) > 2 else False
 
                 if self.done:
-                    area = encode(context.layer.boundaries(), self.coordinates, mode='rectangular')
+                    area = encode(self.boundaries, self.coordinates, mode='rectangular')
 
                     lines = []
                     for identifier, *points in area:
@@ -448,7 +447,7 @@ class Sketch(QObject):
 
             if self.canvas.mode == 'line':
                 if self.done:
-                    area = encode(context.layer.boundaries(), self.coordinates, mode='line')
+                    area = encode(self.boundaries, self.coordinates, mode='line')
 
                     lines = []
                     for identifier, *points in area:
@@ -523,15 +522,16 @@ class Sketch(QObject):
 
 class BaseCanvas(QGraphicsView):
 
-    def __init__(self):
+    def __init__(self, context):
         super(BaseCanvas, self).__init__()
+        self.context = context
         self.extent = []
 
         self.coastlines = []
         self.firs = []
         self.sigmets = []
 
-        self.projection = context.layer.projection()
+        self.projection = self.context.layer.projection()
         if self.projection.crs.is_geographic:
             self.ratio = 100
         else:
@@ -563,12 +563,12 @@ class BaseCanvas(QGraphicsView):
             self.coastlines = []
             self.scene.removeItem(self.coastlinesGroup)
 
-        filename = os.path.join(context.resource.bundlePath('shapes'), 'coastline.shp')
+        filename = os.path.join(self.context.resource.bundlePath('shapes'), 'coastline.shp')
         sf = shapefile.Reader(filename)
         shapes = sf.shapes()
 
         if not self.extent:
-            self.setExtent(context.layer.maxExtent())
+            self.setExtent(self.context.layer.maxExtent())
 
         bound = self.bbox()
         for polygons in shapes:
@@ -596,7 +596,7 @@ class BaseCanvas(QGraphicsView):
     def drawBoundaries(self):
         geometry = {
             'type': 'Polygon',
-            'coordinates': context.layer.boundaries()
+            'coordinates': self.context.layer.boundaries()
         }
         p = Fir(geometry)
         p.addTo(self, self.firs)
@@ -617,7 +617,7 @@ class BaseCanvas(QGraphicsView):
         self.sigmetsGroup = self.scene.createItemGroup(self.sigmets)
         self.sigmetsGroup.setZValue(2)
 
-        if not context.layer.boundaries():
+        if not self.context.layer.boundaries():
             self.centerOn(self.sigmetsGroup.boundingRect().center())
 
     def toGeographicalCoordinates(self, x, y):
@@ -635,8 +635,8 @@ class BaseCanvas(QGraphicsView):
 
 class Viewer(BaseCanvas):
 
-    def __init__(self):
-        super(Viewer, self).__init__()
+    def __init__(self, context):
+        super(Viewer, self).__init__(context)
         self.scale(0.4096, 0.4096)
 
     def mousePressEvent(self, event):
@@ -681,8 +681,8 @@ class Canvas(BaseCanvas):
 
     mouseMoved = pyqtSignal(tuple)
 
-    def __init__(self):
-        super(Canvas, self).__init__()
+    def __init__(self, context):
+        super(Canvas, self).__init__(context)
         self.backgrounds = []
 
         self.mode = 'polygon'
@@ -690,7 +690,7 @@ class Canvas(BaseCanvas):
         self.maxPoint = 7
         
         self.backgroundOpacity = 0.5
-        self.maxLayerExtent = context.layer.maxExtent()
+        self.maxLayerExtent = self.context.layer.maxExtent()
 
         self.setMouseTracking(True)
 
@@ -708,7 +708,7 @@ class Canvas(BaseCanvas):
         return minx, miny, maxx, maxy
 
     def maxZoomFactor(self):
-        extent = context.layer.maxExtent()
+        extent = self.context.layer.maxExtent()
         if not extent:
             return 0
 
@@ -871,7 +871,7 @@ class Canvas(BaseCanvas):
                 bg.setOpacity(opacity)
 
     def drawLayer(self):
-        layers = [layer for layer in context.layer.currentLayers() if layer]
+        layers = [layer for layer in self.context.layer.currentLayers() if layer]
         if layers:
             if self.backgrounds:
                 self.backgrounds = []
@@ -889,7 +889,7 @@ class Canvas(BaseCanvas):
         self.sketchManager.clear()
 
     def showEvent(self, event):
-        extent = context.layer.maxExtent()
+        extent = self.context.layer.maxExtent()
         if extent != self.maxLayerExtent:
             self.maxLayerExtent = extent
             self.drawCoastline()
@@ -897,8 +897,9 @@ class Canvas(BaseCanvas):
 
 class LocationWidget(QWidget):
 
-    def __init__(self, parent=None):
+    def __init__(self, context, parent=None):
         super(LocationWidget, self).__init__(parent)
+        self.context = context
         self.setAttribute(Qt.WA_TransparentForMouseEvents)
         self.setFixedSize(600, 200)
 
@@ -906,7 +907,7 @@ class LocationWidget(QWidget):
         self.location.setWordWrap(True)
         self.location.setStyleSheet('QLabel { color: #fff; background-color: rgba(0, 0, 0, 0.35); border-radius: 3px; padding: 5px; }')
 
-        font = context.resource.fixedFont()
+        font = self.context.resource.fixedFont()
         font.setPointSize(10)
         self.location.setFont(font)
 
@@ -954,9 +955,10 @@ class LayerInfoWidget(QWidget):
 
 class GraphicsViewer(QWidget):
 
-    def __init__(self, parent=None):
-        super(GraphicsViewer, self).__init__()
-        self.canvas = Viewer()
+    def __init__(self, parent=None, context=None):
+        super(GraphicsViewer, self).__init__(parent)
+        self.context = context
+        self.canvas = Viewer(self.context)
         self.verticalLayout = QVBoxLayout(self)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout.addWidget(self.canvas)
@@ -967,7 +969,7 @@ class GraphicsViewer(QWidget):
         self.canvas.redraw()
 
     def extent(self):
-        boundary = shapely.geometry.Polygon(context.layer.boundaries())
+        boundary = shapely.geometry.Polygon(self.context.layer.boundaries())
         bbox = boundary.envelope
         bbox = shapely.affinity.scale(bbox, xfact=4, yfact=2)
         return list(bbox.bounds)
@@ -991,12 +993,13 @@ class GraphicsWindow(QWidget):
     overlapChanged = pyqtSignal(str)
     modeChanged = pyqtSignal(str)
 
-    def __init__(self, parent=None):
-        super(GraphicsWindow, self).__init__()
+    def __init__(self, parent=None, context=None):
+        super(GraphicsWindow, self).__init__(parent)
         self.parent = parent
+        self.context = context
         self.type = ''
         self.quietly = False
-        self.canvas = Canvas()
+        self.canvas = Canvas(self.context)
         self.verticalLayout = QVBoxLayout(self)
         self.verticalLayout.setContentsMargins(0, 8, 0, 0)
         self.verticalLayout.addWidget(self.canvas)
@@ -1057,7 +1060,7 @@ class GraphicsWindow(QWidget):
         self.positionLabel.setAlignment(Qt.AlignRight | Qt.AlignBottom)
 
         self.layerInfoWidget = LayerInfoWidget(self)
-        self.locationWidget = LocationWidget(self)
+        self.locationWidget = LocationWidget(self.context, self)
 
         self.setLayerMenu()
         self.setButton()
@@ -1070,7 +1073,7 @@ class GraphicsWindow(QWidget):
         self.modeButton.clicked.connect(self.nextMode)
         self.modeButton.clicked.connect(self.updateOverlapButton)
         self.overlapButton.toggled.connect(self.handleOverlap)
-        self.refreshButton.clicked.connect(context.layer.refreshLayers)
+        self.refreshButton.clicked.connect(self.context.layer.refreshLayers)
         self.canvas.mouseMoved.connect(self.updatePositionLabel)
 
         for sketch in self.canvas.sketchManager:
@@ -1084,8 +1087,8 @@ class GraphicsWindow(QWidget):
         self.backgroundLayerActionGroup.triggered.connect(self.changeLayer)
         self.mixedBackgroundLayerActionGroup.triggered.connect(self.changeLayer)
         self.opacitySilder.valueChanged.connect(self.updateMixedBackgroundOpacity)
-        context.event.layerChanged.connect(self.setLayerSelectMenu)
-        context.event.layerChanged.connect(self.updateLayer)
+        self.context.event.layerChanged.connect(self.setLayerSelectMenu)
+        self.context.event.layerChanged.connect(self.updateLayer)
 
     def handleSketchChange(self):
         self.sketchChanged.emit(self.formattedCoordinates())
@@ -1211,7 +1214,7 @@ class GraphicsWindow(QWidget):
         self.layerButton.setStyleSheet('QToolButton::menu-indicator {image: none;}')
 
     def setLayerSelectMenu(self):
-        layers = context.layer.groupLayers()
+        layers = self.context.layer.groupLayers()
         if not layers or self.backgroundLayerActionGroup.actions() or self.mixedBackgroundLayerActionGroup.actions():
             return
 
@@ -1233,19 +1236,19 @@ class GraphicsWindow(QWidget):
 
         default = self.backgroundLayerActionGroup.actions()[0] or self.mixedBackgroundLayerActionGroup.actions()[0]
         default.setChecked(True)
-        context.layer.setState({'selected': [default.text()]})
+        self.context.layer.setState({'selected': [default.text()]})
 
     def changeSigmetDisplayMode(self, action, attr):
         checked = action.isChecked()
-        context.layer.setState({attr: checked})
+        self.context.layer.setState({attr: checked})
         self.updateSigmetGraphic()
 
     def changeLayer(self, action):
-        stackable = context.layer.canStack(action.text())
+        stackable = self.context.layer.canStack(action.text())
         if stackable:
             selected = [action.text() for action in self.backgroundLayerActionGroup.actions() + self.mixedBackgroundLayerActionGroup.actions() if action.isChecked()]
-            if selected != context.layer.selected:
-                context.layer.setState({'selected': selected})
+            if selected != self.context.layer.selected:
+                self.context.layer.setState({'selected': selected})
         else:
             action.setChecked(False)
 
@@ -1258,7 +1261,7 @@ class GraphicsWindow(QWidget):
             self.positionLabel.clear()
 
     def updateLayerInfoLabel(self):
-        layers = context.layer.currentLayers()
+        layers = self.context.layer.currentLayers()
         words = []
         for layer in layers:
             updated = layer.updatedTime()
@@ -1362,11 +1365,11 @@ class GraphicsWindow(QWidget):
         self.updateOverlapButton()
 
     def updateSigmetGraphic(self):
-        if not context.layer.boundaries():
+        if not self.context.layer.boundaries():
             return
 
         sigmets = []
-        if context.layer.showSigmet:
+        if self.context.layer.showSigmet:
             sigmets = self.cachedSigmets
 
         geos = []
@@ -1374,7 +1377,7 @@ class GraphicsWindow(QWidget):
             parser = sig.parser()
 
             try:
-                geo = parser.geo(context.layer.boundaries(), context.layer.trimShapes)
+                geo = parser.geo(self.context.layer.boundaries(), self.context.layer.trimShapes)
                 geos.append(geo)
             except Exception as e:
                 logger.error('Decode SIGMET graphic area error, {}, {}'.format(sig.text, e))

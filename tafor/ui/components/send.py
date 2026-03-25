@@ -695,7 +695,7 @@ class SigmetSender(BaseSender):
 
     def __init__(self, parent=None, context=None, conf=None):
         super(SigmetSender, self).__init__(parent, context, conf)
-        self.graphic = GraphicsViewer(self)
+        self.graphic = GraphicsViewer(self, context=self.context)
         self.canvasLayout.addWidget(self.graphic)
         self.switchButton.clicked.connect(self.presenter.updateVisibility)
 
