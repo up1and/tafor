@@ -15,7 +15,6 @@ from tafor.core.parsers.sigmet import SigmetParser
 from tafor.core.parsers.taf import TafParser
 from tafor.core.states import context
 from tafor.core.telegram.generator import AFTNMessageGenerator
-from tafor.core.utils.common import boolean
 from tafor.core.utils.pagination import paginate
 
 logger = logging.getLogger('tafor.rpc')
@@ -227,9 +226,9 @@ class NotificationResource(object):
 
             if validation:
                 kwargs = {
-                    'visHas5000': boolean(conf.visHas5000),
-                    'cloudHeightHas450': boolean(conf.cloudHeightHas450),
-                    'weakPrecipitationVerification': boolean(conf.weakPrecipitationVerification),
+                    'visHas5000': conf.visHas5000,
+                    'cloudHeightHas450': conf.cloudHeightHas450,
+                    'weakPrecipitationVerification': conf.weakPrecipitationVerification,
                 }
                 media['validations'] = parse_metar(message, kwargs)
 

@@ -2,10 +2,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
-def boolean(value):
-    return value if isinstance(value, bool) else value == 'true'
-
 def ipAddress():
     import socket
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

@@ -364,7 +364,6 @@ class NotificationService(QObject):
         from tafor.core.globals import conf
         from tafor.core.parsers.metar import MetarParser
         from tafor.core.parsers.sigmet import SigmetParser
-        from tafor.core.utils.common import boolean
 
         message = self.state.message
 
@@ -377,16 +376,13 @@ class NotificationService(QObject):
             return SigmetParser(message)
 
         if msgType in ['METAR', 'SPECI']:
-            visHas5000 = boolean(conf.visHas5000)
-            cloudHeightHas450 = boolean(conf.cloudHeightHas450)
-            weakPrecipitationVerification = boolean(conf.weakPrecipitationVerification)
             return MetarParser(
                 message,
                 ignoreMetar=True,
                 previous=self.state.previous,
-                visHas5000=visHas5000,
-                cloudHeightHas450=cloudHeightHas450,
-                weakPrecipitationVerification=weakPrecipitationVerification,
+                visHas5000=conf.visHas5000,
+                cloudHeightHas450=conf.cloudHeightHas450,
+                weakPrecipitationVerification=conf.weakPrecipitationVerification,
             )
 
         return None
