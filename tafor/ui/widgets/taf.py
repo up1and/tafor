@@ -810,7 +810,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
                 order = chr(ord('A') + count)
                 return 'CC' + order
             else:
-                items = query.filter(Taf.text.contains('AMD')).count()
+                count = query.filter(Taf.text.contains('AMD')).count()
                 order = chr(ord('A') + count)
                 return 'AA' + order
 
