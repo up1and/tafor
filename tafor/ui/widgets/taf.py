@@ -26,10 +26,243 @@ def normalizeTemperatureTime(time, primary):
     return '{}{}'.format(str(time.day).zfill(2), str(time.hour).zfill(2))
 
 
+class TemperatureState:
+    def __init__(self, mode="max"):
+        self.mode = mode
+        self.value = ""
+        self.time = ""
+
+    def isAcceptable(self):
+        return bool(self.value and self.time)
+
+    def composeMessage(self):
+        if not self.isAcceptable():
+            return ""
+        prefix = "TX" if self.mode == "max" else "TN"
+        return f"{prefix}{self.value}/{self.time}Z"
+
+    def clear(self):
+        self.value = ""
+        self.time = ""
+
+
+class SegmentState:
+    def __init__(self, unit="KT"):
+        self.unit = unit
+        self.wind = ""
+        self.gust = ""
+        self.visibility = ""
+        self.weather = ""
+        self.weatherWithIntensity = ""
+        self.clouds = []  # e.g., ["FEW030", "SCT040"]
+        self.cb = ""      # e.g., "BKN030CB"
+        self.isCavok = False
+        self.isNsc = False
+
+    def composeWeather(self):
+        """Public helper to compose core meteorological elements common to all segments."""
+        if self.wind:
+            winds = f"{self.wind}G{self.gust}{self.unit}" if self.gust else f"{self.wind}{self.unit}"
+        else:
+            winds = None
+
+        allClouds = list(filter(None, self.clouds + ([self.cb] if self.cb else [])))
+        # Sort clouds by height
+        sortedClouds = sorted(allClouds, key=lambda c: int(c[3:6]) if len(c) >= 6 and c[3:6].isdigit() else 0)
+
+        if self.isCavok:
+            elements = [winds, "CAVOK"]
+        elif self.isNsc:
+            if any([self.weather, self.weatherWithIntensity]) or (self.visibility and self.visibility != '9999'):
+                elements = [winds, self.visibility, self.weatherWithIntensity, self.weather, "NSC"]
+            else:
+                elements = [winds, "CAVOK"]
+        else:
+            elements = [winds, self.visibility, self.weatherWithIntensity, self.weather] + sortedClouds
+        
+        return " ".join(filter(None, elements))
+
+    def clear(self):
+        self.wind = ""
+        self.gust = ""
+        self.visibility = ""
+        self.weather = ""
+        self.weatherWithIntensity = ""
+        self.clouds = []
+        self.cb = ""
+        self.isCavok = False
+        self.isNsc = False
+
+
+class PrimaryState(SegmentState):
+    def __init__(self, icao="", unit="KT", bulletinNumber="", spec="fc"):
+        super().__init__(unit)
+        self.icao = icao
+        self.bulletinNumber = bulletinNumber
+        self.spec = spec
+        self.date = ""
+        self.period = ""
+        self.durations = None  # (start, end) datetime tuple
+        self.type = "NORMAL"  # NORMAL, AMD, COR, CNL
+        self.sequence = ""
+        self.temperatures = []  # List of TemperatureState
+
+    def isAcceptable(self):
+        """Independent check for Primary segment requirements."""
+        if self.type == "CNL":
+            return bool(self.icao and self.date and self.period and self.sequence)
+        
+        # Mandatory primary header fields
+        headerOk = bool(self.icao and self.date and self.period)
+        
+        # Core weather elements: Primary MUST have wind
+        # and either CAVOK/NSC or both Visibility and some Cloud/Vertical visibility
+        hasWind = bool(self.wind)
+        hasClouds = any([bool(c) for c in self.clouds] + [bool(self.cb)])
+        weatherOk = hasWind and (self.isCavok or self.isNsc or (bool(self.visibility) and hasClouds))
+            
+        # Temperatures: if any part is filled, it must be complete
+        tempsOk = all(t.isAcceptable() for t in self.temperatures if t.value or t.time)
+        
+        # Sequence is mandatory for AMD/COR
+        sequenceOk = bool(self.sequence) if self.type in ["AMD", "COR"] else True
+            
+        return headerOk and weatherOk and sequenceOk and tempsOk
+
+    def composeHeader(self):
+        tt = self.spec[:2].upper() if self.spec else "FC"
+        area = self.bulletinNumber or ""
+        messages = [tt + area, self.icao, self.date, self.sequence]
+        return " ".join(filter(None, messages))
+
+    def composeMessage(self):
+        if self.type == "CNL":
+            amd = "AMD"
+            messages = ["TAF", amd, self.icao, self.date + "Z" if self.date else "", self.period, "CNL"]
+            return " ".join(filter(None, messages))
+            
+        # Use common weather element helper
+        weatherPart = self.composeWeather()
+        
+        amd = "AMD" if self.type == "AMD" else ""
+        cor = "COR" if self.type == "COR" else ""
+        timez = self.date + "Z" if self.date else ""
+        
+        # Sort temperatures: TX first, TN second, then by time
+        validTemps = [t for t in self.temperatures if t.isAcceptable()]
+        sortedTemps = sorted(validTemps, key=lambda t: (0 if t.mode == "max" else 1, t.time))
+        tempTexts = [t.composeMessage() for t in sortedTemps]
+        
+        messages = ["TAF", amd, cor, self.icao, timez, self.period, weatherPart] + tempTexts
+        return " ".join(filter(None, messages))
+
+    def clear(self):
+        super().clear()
+        self.date = ""
+        self.period = ""
+        self.durations = None
+        self.type = "NORMAL"
+        self.sequence = ""
+        for t in self.temperatures:
+            t.clear()
+
+
+class GroupState(SegmentState):
+    def __init__(self, indicator="TEMPO", unit="KT"):
+        super().__init__(unit)
+        self.indicator = indicator  # FM, BECMG, TEMPO
+        self.period = ""
+        self.durations = None  # (start, end) datetime tuple
+
+    def isAcceptable(self):
+        """Independent check for Group segment requirements."""
+        # At least one weather element is required along with period
+        oneRequired = any([self.isNsc, self.isCavok, self.wind, self.visibility, self.weather, self.weatherWithIntensity]
+            + [bool(c) for c in self.clouds] + [bool(self.cb)])
+        return bool(self.period) and oneRequired
+
+    def composeMessage(self):
+        # Use common weather element helper
+        weatherPart = self.composeWeather()
+        
+        if self.indicator == "FM":
+            return f"FM{self.period} {weatherPart}".strip()
+        else:
+            return f"{self.indicator} {self.period} {weatherPart}".strip()
+
+    def clear(self):
+        super().clear()
+        self.period = ""
+
+
+class TrendState(SegmentState):
+    def __init__(self, unit="KT"):
+        super().__init__(unit)
+        self.isNosig = False
+        self.type = "BECMG"  # BECMG or TEMPO
+        self.atChecked = False
+        self.fmChecked = False
+        self.tlChecked = False
+        self.period = ""
+
+    def isAcceptable(self):
+        """Independent check for Trend segment requirements."""
+        if self.isNosig:
+            return True
+        
+        # At least one weather element must be present/modified
+        weatherOk = any([
+            self.isNsc, self.isCavok, bool(self.wind), bool(self.visibility),
+            bool(self.weather), bool(self.weatherWithIntensity),
+            any(bool(c) for c in self.clouds), bool(self.cb)
+        ])
+        
+        # If temporal prefix (AT/FM/TL) is used, period is mandatory
+        if any([self.atChecked, self.fmChecked, self.tlChecked]):
+            return bool(self.period) and weatherOk
+        
+        return weatherOk
+
+    def composeMessage(self):
+        if self.isNosig:
+            return "NOSIG"
+        
+        # Use common weather element helper
+        weatherPart = self.composeWeather()
+        
+        messages = [self.type]
+        if self.atChecked or self.fmChecked or self.tlChecked:
+            if self.fmChecked and self.tlChecked:
+                # Range period: FMHHMM TLHHMM
+                parts = self.period.split('/')
+                if len(parts) == 2:
+                    messages.append(f"FM{parts[0]} TL{parts[1]}")
+            else:
+                # Single prefix: AT, FM, or TL
+                prefix = ""
+                if self.atChecked: prefix = "AT"
+                elif self.fmChecked: prefix = "FM"
+                elif self.tlChecked: prefix = "TL"
+                messages.append(f"{prefix}{self.period}")
+        
+        messages.append(weatherPart)
+        return " ".join(filter(None, messages))
+
+    def clear(self):
+        super().clear()
+        self.isNosig = False
+        self.atChecked = False
+        self.fmChecked = False
+        self.tlChecked = False
+        self.period = ""
+
+
 class TafValidator(object):
 
     @staticmethod
-    def checkWeather(weather, weatherWithIntensity):
+    def checkWeather(state):
+        weather = state.weather
+        weatherWithIntensity = state.weatherWithIntensity
         if not weather or not weatherWithIntensity:
             return None
 
@@ -39,7 +272,9 @@ class TafValidator(object):
         return None
 
     @staticmethod
-    def checkGust(wind, gust):
+    def checkGust(state):
+        wind = state.wind
+        gust = state.gust
         if not wind or not gust or gust == 'P49':
             return None
 
@@ -50,31 +285,35 @@ class TafValidator(object):
         return None
 
     @staticmethod
-    def checkCloud(line, clouds, cb=None):
-        if not line:
+    def checkCloud(state, lineValue):
+        if not lineValue:
             return None
 
-        height = line[3:]
-        cloudHeights = [cloud[3:6] for cloud in clouds]
-        if cloudHeights.count(height) > 1:
+        height = lineValue[3:]
+        allClouds = list(filter(None, state.clouds + ([state.cb] if state.cb else [])))
+        # Filter out the current line value from the comparison list to avoid self-conflict
+        otherClouds = [c for c in allClouds if c != lineValue]
+        cloudHeights = [cloud[3:6] for cloud in otherClouds]
+        
+        if cloudHeights.count(height) > 0:
             return QCoreApplication.translate(
                 'Editor',
                 'Cloud cover with different oktas should not at the same height'
             )
 
         cloudCover = {'FEW': 1, 'SCT': 3, 'BKN': 5, 'OVC': 8}
-        if cb:
-            cbCover = cloudCover[cb[:3]]
-            cbHeight = cb[3:6]
-            for cloud in clouds:
-                cover = cloudCover[cloud[:3]]
+        if state.cb:
+            cbCover = cloudCover.get(state.cb[:3], 0)
+            cbHeight = state.cb[3:6]
+            for cloud in otherClouds:
+                cover = cloudCover.get(cloud[:3], 0)
                 if cbHeight == cloud[3:6] and cbCover + cover > 8:
                     return QCoreApplication.translate(
                         'Editor',
                         'Cloud cover cannot be more than 8 oktas at the same height'
                     )
 
-        orderedClouds = sorted(filter(None, clouds + ([cb] if cb else [])), key=lambda cloud: int(cloud[3:6]))
+        orderedClouds = sorted(allClouds, key=lambda cloud: int(cloud[3:6]) if cloud[3:6].isdigit() else 0)
         covers = [cloud[:3] for cloud in orderedClouds]
         if 'OVC' in covers:
             index = covers.index('OVC')
@@ -84,18 +323,16 @@ class TafValidator(object):
         return None
 
     @staticmethod
-    def checkGroupPeriod(period, primary, span, isBecmg=False):
-        if period is None:
+    def checkGroupPeriod(groupState, primaryState, span, isBecmg=False):
+        if not groupState.period or not primaryState.period:
             return None
 
-        start, end = period
+        start, end = groupState.durations
+        primaryStart, primaryEnd = primaryState.durations
+
         if end - start > datetime.timedelta(hours=span):
             return QCoreApplication.translate('Editor', 'Change group time more than {} hours').format(span)
 
-        if primary is None:
-            return None
-
-        primaryStart, primaryEnd = primary
         if start < primaryStart or primaryEnd < start:
             return QCoreApplication.translate('Editor', 'Start time of change group is not corret')
 
@@ -105,57 +342,59 @@ class TafValidator(object):
         return None
 
     @staticmethod
-    def checkGroupOverlap(period, siblings):
-        if period is None:
+    def checkGroupOverlap(groupState, siblings):
+        if groupState.durations is None:
             return None
 
         for sibling in siblings:
-            if isOverlap(period, sibling):
+            if sibling.durations and isOverlap(groupState.durations, sibling.durations):
                 return QCoreApplication.translate('Editor', 'Change group time is overlap')
 
         return None
 
     @staticmethod
-    def checkFmPeriod(period, primary):
-        if period is None or primary is None:
+    def checkFmPeriod(groupState, primaryState):
+        if groupState.durations is None or primaryState.durations is None:
             return None
 
-        start, _ = period
-        primaryStart, primaryEnd = primary
+        start, _ = groupState.durations
+        primaryStart, primaryEnd = primaryState.durations
+
         if start < primaryStart or primaryEnd <= start:
             return QCoreApplication.translate('Editor', 'Time of change group is not corret')
 
         return None
 
     @staticmethod
-    def checkFmOverlap(period, siblings):
-        if period is None:
+    def checkFmOverlap(groupState, siblings):
+        if groupState.durations is None:
             return None
 
-        time = period[0]
+        time = groupState.durations[0]
         for sibling in siblings:
-            if sibling[0] <= time <= sibling[1]:
+            if sibling.durations and sibling.durations[0] <= time <= sibling.durations[1]:
                 return QCoreApplication.translate('Editor', 'Change group time is overlap')
 
         return None
 
     @staticmethod
-    def checkTemperatureTime(value, primary, siblings=None, sameTypeSiblings=None):
-        if not value:
+    def checkTemperatureTime(tempState, primaryDurations, siblings=None, sameTypeSiblings=None):
+        if not tempState.time:
             return None
 
         text = QCoreApplication.translate('Editor', 'The time of temperature is not corret')
-        if primary is None:
+        if primaryDurations is None:
             return text
 
         try:
-            time = parseDayHour(value[:2], value[2:], primary[0], delta='month')
+            # Re-calculating time from tempState.time (DDHH)
+            time = parseDayHour(tempState.time[:2], tempState.time[2:], primaryDurations[0], delta='month')
         except Exception:
             return text
 
         siblings = siblings or []
         sameTypeSiblings = sameTypeSiblings or []
-        valid = primary[0] <= time <= primary[1] and time not in siblings
+        valid = primaryDurations[0] <= time <= primaryDurations[1] and time not in siblings
 
         for sibling in sameTypeSiblings:
             if sibling.day == time.day:
@@ -167,16 +406,16 @@ class TafValidator(object):
         return None
 
     @staticmethod
-    def checkTemperature(mode, value, reference):
-        if not value:
+    def checkTemperature(tempState, referenceValue):
+        if not tempState.value:
             return None
 
-        temperature = parseTemperature(value)
-        if mode == 'max':
-            if reference is not None and temperature <= reference:
+        temperature = parseTemperature(tempState.value)
+        if tempState.mode == 'max':
+            if referenceValue is not None and temperature <= referenceValue:
                 return QCoreApplication.translate('Editor', 'The maximum temperature needs to be greater than the minimum temperature')
-        elif mode == 'min':
-            if reference is not None and reference <= temperature:
+        elif tempState.mode == 'min':
+            if referenceValue is not None and referenceValue <= temperature:
                 return QCoreApplication.translate('Editor', 'The minimum temperature needs to be less than the maximum temperature')
 
         return None
@@ -273,8 +512,18 @@ class BaseSegment(SegmentMixin, QWidget):
         self.conf = conf
         self.context = context
         self.identifier = ''.join(c for c in name if c.isalpha())
-        self.durations = None
         self.periodText = ''
+        
+        # Initialize specific state based on the type of widget
+        unit = 'KT' if self.conf.unit == 'imperial' else 'MPS'
+        if self.identifier == 'PRIMARY':
+            self.state = PrimaryState(icao=self.conf.airport, bulletinNumber=self.conf.bulletinNumber, unit=unit, spec=self.context.taf.spec)
+        elif self.identifier in ['TEMPO', 'BECMG', 'FM']:
+            self.state = GroupState(indicator=self.identifier, unit=unit)
+        elif self.identifier == 'TREND':
+            self.state = TrendState(unit=unit)
+        else:
+            self.state = SegmentState(unit=unit)
 
     def bindSignal(self):
         if hasattr(self, 'cavok'):
@@ -292,7 +541,32 @@ class BaseSegment(SegmentMixin, QWidget):
         self.cloud3.editingFinished.connect(lambda: self.validateCloud(self.cloud3))
         self.cb.editingFinished.connect(lambda: self.validateCloud(self.cb))
 
+        for line in self.findChildren(QLineEdit):
+            line.textChanged.connect(self.syncToState)
+        for combo in self.findChildren(QComboBox):
+            combo.currentTextChanged.connect(self.syncToState)
+        for check in self.findChildren(QCheckBox):
+            check.toggled.connect(self.syncToState)
+
         self.defaultSignal()
+
+    def syncToState(self):
+        self.state.wind = self.wind.text() if self.wind.hasAcceptableInput() else ""
+        self.state.gust = self.gust.text() if self.gust.hasAcceptableInput() else ""
+        self.state.visibility = self.vis.text() if self.vis.hasAcceptableInput() else ""
+        self.state.weather = self.weather.currentText() if self.weather.lineEdit().hasAcceptableInput() else ""
+        self.state.weatherWithIntensity = self.weatherWithIntensity.currentText() if self.weatherWithIntensity.lineEdit().hasAcceptableInput() else ""
+        
+        clouds = []
+        if self.cloud1.hasAcceptableInput(): clouds.append(self.cloud1.text())
+        if self.cloud2.hasAcceptableInput(): clouds.append(self.cloud2.text())
+        if self.cloud3.hasAcceptableInput(): clouds.append(self.cloud3.text())
+        self.state.clouds = clouds
+        self.state.cb = self.cb.text() + 'CB' if self.cb.hasAcceptableInput() else ""
+        
+        if hasattr(self, 'cavok'):
+            self.state.isCavok = self.cavok.isChecked()
+            self.state.isNsc = self.nsc.isChecked()
 
     def setupPeriodPlaceholder(self):
         raise NotImplementedError
@@ -386,7 +660,7 @@ class BaseSegment(SegmentMixin, QWidget):
         weathers = self.conf.weatherList
         if self.identifier == 'PRIMARY':
             weathers = [w for w in weathers if w != 'NSW']
-        self.weather.addItems(weathers)
+        self.weather.addItems([''] + weathers)
         weather = QRegExpValidator(QRegExp(r'{}'.format('|'.join(weathers)), Qt.CaseInsensitive))
         self.weather.setValidator(weather)
 
@@ -403,47 +677,20 @@ class BaseSegment(SegmentMixin, QWidget):
         intensityWeather = QRegExpValidator(QRegExp(r'[-+]?({})'.format('|'.join(weathers)), Qt.CaseInsensitive))
         self.weatherWithIntensity.setValidator(intensityWeather)
 
-    def autoFillSlash(self):
-        text = self.period.text()
-        if len(text) > len(self.periodText):
-            if len(text) == 4:
-                text += '/'
-
-            self.period.setText(text)
-
-        self.periodText = text
-
     def validateWeather(self, line):
-        if self.weather.lineEdit().hasAcceptableInput() and self.weather.currentText() and \
-            self.weatherWithIntensity.lineEdit().hasAcceptableInput() and self.weatherWithIntensity.currentText():
-            error = TafValidator.checkWeather(
-                self.weather.currentText(),
-                self.weatherWithIntensity.currentText(),
-            )
-            if error:
-                line.setCurrentIndex(-1)
-                self.context.flash.editor(self.editorname(), error)
+        error = TafValidator.checkWeather(self.state)
+        if error:
+            line.setCurrentIndex(-1)
+            self.context.flash.editor(self.editorname(), error)
 
     def validateGust(self):
-        if not self.gust.hasAcceptableInput() or not self.wind.hasAcceptableInput():
-            self.gust.clear()
-            return
-
-        error = TafValidator.checkGust(self.wind.text(), self.gust.text())
+        error = TafValidator.checkGust(self.state)
         if error:
             self.gust.clear()
             self.context.flash.editor(self.editorname(), error)
 
     def validateCloud(self, line):
-        if not line.hasAcceptableInput():
-            return
-
-        cloud1 = self.cloud1.text() if self.cloud1.hasAcceptableInput() else None
-        cloud2 = self.cloud2.text() if self.cloud2.hasAcceptableInput() else None
-        cloud3 = self.cloud3.text() if self.cloud3.hasAcceptableInput() else None
-        cb = self.cb.text() if self.cb.hasAcceptableInput() else None
-        clouds = sorted(filter(None, [cloud1, cloud2, cloud3]), key=lambda cloud: int(cloud[3:6]))
-        error = TafValidator.checkCloud(line.text(), clouds, cb)
+        error = TafValidator.checkCloud(self.state, line.text())
         if error:
             self.context.flash.editor(self.editorname(), error)
             line.clear()
@@ -461,53 +708,23 @@ class BaseSegment(SegmentMixin, QWidget):
         return 'trend' if 'trend' in self.__class__.__name__.lower() else 'taf'
 
     def message(self):
-        wind = self.wind.text() if self.wind.hasAcceptableInput() else None
-        gust = self.gust.text() if self.gust.hasAcceptableInput() else None
-        unit = 'KT' if self.conf.unit == 'imperial' else 'MPS'
-
-        if wind:
-            winds = ''.join([wind, 'G', gust, unit]) if gust else ''.join([wind, unit])
-        else:
-            winds = None
-
-        vis = self.vis.text() if self.vis.hasAcceptableInput() else None
-        weather = self.weather.currentText() if self.weather.lineEdit().hasAcceptableInput() else None
-        weatherWithIntensity = self.weatherWithIntensity.currentText() if self.weatherWithIntensity.lineEdit().hasAcceptableInput() else None
-        cloud1 = self.cloud1.text() if self.cloud1.hasAcceptableInput() else None
-        cloud2 = self.cloud2.text() if self.cloud2.hasAcceptableInput() else None
-        cloud3 = self.cloud3.text() if self.cloud3.hasAcceptableInput() else None
-        cb = self.cb.text() + 'CB' if self.cb.hasAcceptableInput() else None
-
-        clouds = sorted(filter(None, [cloud1, cloud2, cloud3, cb]), key=lambda cloud: int(cloud[3:6]))
-
-        if hasattr(self, 'cavok'):
-            if self.cavok.isChecked():
-                messages = [winds, 'CAVOK']
-            elif self.nsc.isChecked():
-                if any([weather, weatherWithIntensity]) or vis != '9999':
-                    messages = [winds, vis, weatherWithIntensity, weather, 'NSC']
-                else:
-                    messages = [winds, 'CAVOK']
-            else:
-                messages = [winds, vis, weatherWithIntensity, weather] + clouds
-        else:
-            messages = [winds, vis, weatherWithIntensity, weather] + clouds
-        self.text = ' '.join(filter(None, messages))
+        return self.state.composeMessage()
 
     def hasAcceptableInput(self):
-        raise NotImplementedError
+        return self.state.isAcceptable()
 
     def clear(self):
-        self.wind.clear()
-        self.gust.clear()
-        self.vis.clear()
-        self.weather.setCurrentIndex(-1)
-        self.weatherWithIntensity.setCurrentIndex(-1)
-        self.cloud1.clear()
-        self.cloud2.clear()
-        self.cloud3.clear()
-        self.cb.clear()
-        self.durations = None
+        self.state.clear()
+
+        for line in self.findChildren(QLineEdit):
+            if line.objectName() not in ('date', 'period'):
+                line.clear()
+
+        for combox in self.findChildren(QComboBox):
+            combox.setCurrentIndex(0)
+
+        for checkbox in self.findChildren(QCheckBox):
+            checkbox.setChecked(False)
 
 
 class TemperatureGroup(SegmentMixin, QWidget):
@@ -516,12 +733,10 @@ class TemperatureGroup(SegmentMixin, QWidget):
 
     def __init__(self, mode='max', canSwitch=False, parent=None, context=None):
         super(TemperatureGroup, self).__init__(parent)
-        self.mode = mode
+        self.state = TemperatureState(mode)
         self.canSwitch = canSwitch
         self.parent = parent
         self.context = context
-        self.temperature = None
-        self.time = None
 
         self.setupUi()
         self.setupValidator()
@@ -556,11 +771,17 @@ class TemperatureGroup(SegmentMixin, QWidget):
         if self.canSwitch:
             self.switchButton.clicked.connect(self.switchMode)
 
+        self.temp.textChanged.connect(self.syncToState)
+        self.tempTime.textChanged.connect(self.syncToState)
         self.temp.textChanged.connect(self.temperatureChanged.emit)
         self.tempTime.textChanged.connect(self.temperatureChanged.emit)
 
         self.tempTime.editingFinished.connect(self.validateTemperatureTime)
         self.temp.editingFinished.connect(self.validateTemperature)
+
+    def syncToState(self):
+        self.state.value = self.temp.text() if self.temp.hasAcceptableInput() else ""
+        self.state.time = self.tempTime.text() if self.tempTime.hasAcceptableInput() else ""
 
     def setupValidator(self):
         temperature = QRegExpValidator(QRegExp(self.parent.rules.temperature, Qt.CaseInsensitive))
@@ -570,7 +791,7 @@ class TemperatureGroup(SegmentMixin, QWidget):
         self.tempTime.setValidator(dayHour)
 
     def setLabel(self):
-        if self.mode == 'max':
+        if self.state.mode == 'max':
             text = QCoreApplication.translate('Editor', 'Max Temperature')
             icon = 'warm'
         else:
@@ -584,21 +805,21 @@ class TemperatureGroup(SegmentMixin, QWidget):
         if not self.parent.period.text() or not self.tempTime.hasAcceptableInput():
             return
 
-        value = self.tempTime.text()
         error = TafValidator.checkTemperatureTime(
-            value,
+            self.state,
             self.parent.durations,
             siblings=self.parent.findTemperatureTime(self),
             sameTypeSiblings=self.parent.findTemperatureTime(self, sameType=True),
         )
         if error:
-            self.time = None
+            self.state.time = ""
             self.tempTime.clear()
             self.context.flash.editor('taf', error)
             return
 
-        self.time = parseDayHour(value[:2], value[2:], self.parent.durations[0], delta='month')
-        normalized = normalizeTemperatureTime(self.time, self.parent.durations)
+        # Time normalization can stay in UI or move to state, keep here for now as it affects UI text
+        time = parseDayHour(self.state.time[:2], self.state.time[2:], self.parent.durations[0], delta='month')
+        normalized = normalizeTemperatureTime(time, self.parent.durations)
         if normalized:
             self.tempTime.setText(normalized)
 
@@ -607,31 +828,26 @@ class TemperatureGroup(SegmentMixin, QWidget):
             return
 
         error = TafValidator.checkTemperature(
-            self.mode,
-            self.temp.text(),
+            self.state,
             self.parent.findTemperature(self),
         )
         if error:
-            self.temperature = None
+            self.state.value = ""
             self.temp.clear()
             self.context.flash.editor('taf', error)
             return
 
-        self.temperature = parseTemperature(self.temp.text())
-
     def switchMode(self):
-        self.mode = 'min' if self.mode == 'max' else 'max'
+        self.state.mode = 'min' if self.state.mode == 'max' else 'max'
         self.setLabel()
         self.validateTemperature()
         self.validateTemperatureTime()
 
     def hasAcceptableInput(self):
-        return self.temp.hasAcceptableInput() and self.tempTime.hasAcceptableInput()
+        return self.state.isAcceptable()
 
-    def text(self):
-        sign = 'TX' if self.mode == 'max' else 'TN'
-        text = '{}{}/{}Z'.format(sign, self.temp.text(), self.tempTime.text())
-        return text
+    def composeMessage(self):
+        return self.state.composeMessage()
 
     def widgets(self):
         if self.canSwitch:
@@ -640,10 +856,9 @@ class TemperatureGroup(SegmentMixin, QWidget):
         return [self.temp, self.tempTime]
 
     def clear(self):
+        self.state.clear()
         self.temp.clear()
         self.tempTime.clear()
-        self.time = None
-        self.temperature = None
 
 
 class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
@@ -675,6 +890,9 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             self.becmg3Checkbox.setStyleSheet('QCheckBox {margin-top: 4px;}')
             self.tempo3Checkbox.setStyleSheet('QCheckBox {margin-top: 4px;}')
 
+        # Link temperature states to primary state
+        self.state.temperatures = [t.state for t in self.temperatures]
+
         self.prevButton.setIcon(QIcon(':/back.png'))
         self.resetButton.setIcon(QIcon(':/reset.png'))
 
@@ -684,6 +902,17 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.bindSignal()
         self.initMessageSpec()
         self.setOrder()
+
+    def syncToState(self):
+        super(TafPrimarySegment, self).syncToState()
+        self.state.date = self.date.text()
+        self.state.period = self.period.text()
+        self.state.sequence = self.sequence.text()
+        
+        if self.normal.isChecked(): self.state.type = 'NORMAL'
+        elif self.cor.isChecked(): self.state.type = 'COR'
+        elif self.amd.isChecked(): self.state.type = 'AMD'
+        elif self.cnl.isChecked(): self.state.type = 'CNL'
 
     def setOrder(self):
         orders = [self.nsc]
@@ -711,6 +940,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
         for t in self.temperatures:
             t.temperatureChanged.connect(lambda: self.contentChanged.emit())
+            t.temperatureChanged.connect(self.syncToState)
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.setDate)
@@ -770,15 +1000,16 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
         if period and recent or not self.date.hasAcceptableInput():
             self.period.clear()
-            self.durations = None
+            self.state.durations = None
+            self.state.period = ""
         else:
             self.period.setText(period)
-            self.durations = taf.durations()
+            self.state.durations = taf.durations()
 
     def setAmendPeriod(self, taf):
         self.amdPeriod = taf.period(strict=False)
         self.period.setText(self.amdPeriod)
-        self.durations = taf.durations()
+        self.state.durations = taf.durations()
 
     def setCurrentPeriod(self, action):
         if action == 'reset':
@@ -815,9 +1046,10 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
                 return 'AA' + order
 
     def findTemperature(self, oneself):
-        temps = [t.temperature for t in self.temperatures if t.temperature is not None and t is not oneself]
+        temps = [t.state.value for t in self.temperatures if t.state.value and t is not oneself]
         if temps:
-            if oneself.mode == 'max':
+            temps = [parseTemperature(t) for t in temps]
+            if oneself.state.mode == 'max':
                 return min(temps)
             else:
                 return max(temps)
@@ -827,82 +1059,21 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
     def findTemperatureTime(self, oneself, sameType=False):
         times = []
         for t in self.temperatures:
-            condition = oneself.mode == t.mode if sameType else True
-            if t.time is not None and t is not oneself and condition:
-                times.append(t.time)
+            condition = oneself.state.mode == t.state.mode if sameType else True
+            if t.state.time and t is not oneself and condition:
+                try:
+                    time = parseDayHour(t.state.time[:2], t.state.time[2:], self.state.durations[0], delta='month')
+                    times.append(time)
+                except:
+                    pass
 
         return times
 
-    def sortedTemperatures(self):
-        temperatures = [t for t in self.temperatures if t.hasAcceptableInput()]
-        priority = lambda x: 0 if x == 'max' else 1
-        temperatures = sorted(temperatures, key=lambda e: (priority(e.mode), e.time))
-        return temperatures
-
-    def hasAcceptableInput(self):
-        acceptable = False
-        tempRequired = [t.hasAcceptableInput() for t in self.temperatures]
-        mustRequired = [
-            self.date.hasAcceptableInput(),
-            self.period.text(),
-            self.wind.hasAcceptableInput(),
-        ] + tempRequired
-        oneRequired = [
-            self.nsc.isChecked(),
-            self.cloud1.hasAcceptableInput(),
-            self.cloud2.hasAcceptableInput(),
-            self.cloud3.hasAcceptableInput(),
-            self.cb.hasAcceptableInput()
-        ]
-
-        if all(mustRequired):
-            if self.cavok.isChecked():
-                acceptable = True
-            elif self.vis.hasAcceptableInput() and any(oneRequired):
-                acceptable = True
-
-        if self.cor.isChecked() and not self.sequence.hasAcceptableInput():
-            acceptable = False
-
-        if self.amd.isChecked() and not self.sequence.hasAcceptableInput():
-            acceptable = False
-
-        if self.cnl.isChecked():
-            mustRequired = [
-                self.date.hasAcceptableInput(),
-                self.period.text(),
-                self.sequence.hasAcceptableInput(),
-            ]
-            if all(mustRequired):
-                acceptable = True
-
-        return acceptable
-
     def message(self):
-        super(TafPrimarySegment, self).message()
-        amd = 'AMD' if self.amd.isChecked() or self.cnl.isChecked() else ''
-        cor = 'COR' if self.cor.isChecked() else ''
-        icao = self.conf.airport
-        timez = self.date.text() + 'Z'
-        period = self.period.text()
-        temperatures = [t.text() for t in self.sortedTemperatures()]
-
-        if self.cnl.isChecked():
-            messages = ['TAF', amd, icao, timez, period, 'CNL']
-        else:
-            messages = ['TAF', amd, cor, icao, timez, period, self.text] + temperatures
-
-        self.text = ' '.join(filter(None, messages))
-        return self.text
+        return self.state.composeMessage()
 
     def heading(self):
-        area = self.conf.bulletinNumber or ''
-        icao = self.conf.airport
-        time = self.date.text()
-        tt = self.context.taf.spec[:2].upper()
-        sequence = self.sequence.text() if not self.normal.isChecked() else ''
-        messages = [tt + area, icao, time, sequence]
-        return ' '.join(filter(None, messages))
+        return self.state.composeHeader()
 
     def setDate(self):
         time = datetime.datetime.utcnow()
@@ -941,6 +1112,10 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.setupValidator()
         self.bindSignal()
 
+    def syncToState(self):
+        super(TafGroupSegment, self).syncToState()
+        self.state.period = self.period.text()
+
     def bindSignal(self):
         super(TafGroupSegment, self).bindSignal()
         self.period.textEdited.connect(self.fillPeriod)
@@ -958,11 +1133,11 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.period.setValidator(period)
 
     def setupPeriodPlaceholder(self):
-        if self.parent.primary.durations is None:
+        if self.parent.primary.state.durations is None:
             self.period.setPlaceholderText('')
             return
 
-        time = self.parent.primary.durations[0]
+        time = self.parent.primary.state.durations[0]
         self.period.setPlaceholderText('{:02d}'.format(time.day))
 
     def fillPeriod(self):
@@ -972,13 +1147,13 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
             self.autoFillSlash()
 
     def autoFillPeriod(self):
-        if self.parent.primary.durations is None or not self.parent.primary.period.text():
+        if self.parent.primary.state.durations is None or not self.parent.primary.period.text():
             return
 
         text = self.period.text()
         if len(text) > len(self.periodText):
             if len(text) == 4:
-                durations = self.parent.primary.durations
+                durations = self.parent.primary.state.durations
                 try:
                     start = parseDayHour(text[:2], text[2:], durations[0], delta='month')
                 except Exception:
@@ -1021,15 +1196,16 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
     def updateDurations(self):
         if self.period.hasAcceptableInput() and self.parent.primary.period.text():
             period = self.period.text()
-            basetime = self.parent.primary.durations[0]
-            self.durations = start, end = parsePeriod(period, basetime)
+            basetime = self.parent.primary.state.durations[0]
+            start, end = parsePeriod(period, basetime)
+            self.state.durations = (start, end)
 
             if end.hour == 0 and not period.endswith('24'):
                 end -= datetime.timedelta(minutes=1)
                 text = '{:02d}{:02d}/{:02d}24'.format(start.day, start.hour, end.day)
                 self.period.setText(text)
         else:
-            self.durations = None
+            self.state.durations = None
 
     def validate(self):
         super(TafGroupSegment, self).validate()
@@ -1038,8 +1214,8 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
     def validatePeriod(self):
         error = TafValidator.checkGroupPeriod(
-            self.durations,
-            self.parent.primary.durations,
+            self.state,
+            self.parent.primary.state,
             self.span(),
             isBecmg=self.identifier.startswith('BECMG'),
         )
@@ -1049,27 +1225,14 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
     def validateGroupsPeriod(self):
         groups = self.parent.tempos if self.identifier.startswith('TEMPO') else self.parent.becmgs
-        siblings = [g.durations for g in groups if g.isVisible() and g.durations and self != g]
-        error = TafValidator.checkGroupOverlap(self.durations, siblings)
+        siblings = [g.state for g in groups if g.isVisible() and g.state and self != g]
+        error = TafValidator.checkGroupOverlap(self.state, siblings)
         if error:
             self.period.clear()
             self.context.flash.editor('taf', error)
 
     def hasAcceptableInput(self):
-        oneRequired = (
-            self.nsc.isChecked(),
-            self.cavok.isChecked(),
-            self.wind.hasAcceptableInput(),
-            self.vis.hasAcceptableInput(),
-            self.weather.lineEdit().hasAcceptableInput() and self.weather.currentText(),
-            self.weatherWithIntensity.lineEdit().hasAcceptableInput() and self.weatherWithIntensity.currentText(),
-            self.cloud1.hasAcceptableInput(),
-            self.cloud2.hasAcceptableInput(),
-            self.cloud3.hasAcceptableInput(),
-            self.cb.hasAcceptableInput()
-        )
-
-        return self.period.hasAcceptableInput() and any(oneRequired)
+        return self.state.isAcceptable()
 
     def showEvent(self, event):
         self.setupPeriodPlaceholder()
@@ -1098,55 +1261,28 @@ class TafFmSegment(TafGroupSegment):
     def updateDurations(self):
         if self.period.hasAcceptableInput() and self.parent.primary.period.text():
             period = self.period.text()
-            basetime = self.parent.primary.durations[0]
+            basetime = self.parent.primary.state.durations[0]
             time = parseTime(period, basetime)
-            self.durations = (time, time)
+            self.state.durations = (time, time)
         else:
-            self.durations = None
+            self.state.durations = None
 
     def validatePeriod(self):
-        error = TafValidator.checkFmPeriod(self.durations, self.parent.primary.durations)
+        # Using states for validation where possible
+        error = TafValidator.checkFmPeriod(self.state, self.parent.primary.state)
         if error:
             self.period.clear()
             self.context.flash.editor('taf', error)
 
     def validateGroupsPeriod(self):
-        siblings = [g.durations for g in self.parent.becmgs if g.isVisible() and g.durations and self != g]
-        error = TafValidator.checkFmOverlap(self.durations, siblings)
+        siblings = [g.state for g in self.parent.becmgs if g.isVisible() and g.state and self != g]
+        error = TafValidator.checkFmOverlap(self.state, siblings)
         if error:
             self.period.clear()
             self.context.flash.editor('taf', error)
 
-    def hasAcceptableInput(self):
-        acceptable = False
-        hasWeather = self.weather.lineEdit().hasAcceptableInput() and self.weather.currentText() \
-            or self.weatherWithIntensity.lineEdit().hasAcceptableInput() and self.weatherWithIntensity.currentText()
-        mustRequired = [
-            self.period.hasAcceptableInput(),
-            self.wind.hasAcceptableInput()
-        ]
-        oneRequired = [
-            self.nsc.isChecked(),
-            self.cloud1.hasAcceptableInput(),
-            self.cloud2.hasAcceptableInput(),
-            self.cloud3.hasAcceptableInput(),
-            self.cb.hasAcceptableInput()
-        ]
-
-        if all(mustRequired):
-            if self.cavok.isChecked():
-                acceptable = True
-            elif self.vis.hasAcceptableInput() and hasWeather and any(oneRequired):
-                acceptable = True
-
-        return acceptable
-
     def message(self):
-        super(TafFmSegment, self).message()
-        period = 'FM{}'.format(self.period.text())
-        messages = [period, self.text]
-        self.text = ' '.join(messages)
-        return self.text
+        return self.state.composeMessage()
 
     def clear(self):
         super(TafFmSegment, self).clear()
@@ -1161,11 +1297,7 @@ class TafBecmgSegment(TafGroupSegment):
         super(TafBecmgSegment, self).__init__(name, parent, conf, context)
 
     def message(self):
-        super(TafBecmgSegment, self).message()
-        period = self.period.text()
-        messages = ['BECMG', period, self.text]
-        self.text = ' '.join(messages)
-        return self.text
+        return self.state.composeMessage()
 
     def clear(self):
         super(TafBecmgSegment, self).clear()
@@ -1182,11 +1314,7 @@ class TafTempoSegment(TafGroupSegment):
         self.nsc.hide()
 
     def message(self):
-        super(TafTempoSegment, self).message()
-        period = self.period.text()
-        messages = ['TEMPO', period, self.text]
-        self.text = ' '.join(messages)
-        return self.text
+        return self.state.composeMessage()
 
 
 class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
@@ -1197,6 +1325,15 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         self.setupFont()
         self.setupValidator()
         self.bindSignal()
+
+    def syncToState(self):
+        super(TrendSegment, self).syncToState()
+        self.state.isNosig = self.nosig.isChecked()
+        self.state.type = "BECMG" if self.becmg.isChecked() else "TEMPO"
+        self.state.atChecked = self.at.isChecked()
+        self.state.fmChecked = self.fm.isChecked()
+        self.state.tlChecked = self.tl.isChecked()
+        self.state.period = self.period.text()
 
     def bindSignal(self):
         super(TrendSegment, self).bindSignal()
@@ -1210,6 +1347,14 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
         self.period.textEdited.connect(self.autoFillPeriodSlash)
         self.period.editingFinished.connect(self.validatePeriod)
+
+        # Sync state on UI toggle/click
+        self.nosig.toggled.connect(self.syncToState)
+        self.at.toggled.connect(self.syncToState)
+        self.fm.toggled.connect(self.syncToState)
+        self.tl.toggled.connect(self.syncToState)
+        self.becmg.clicked.connect(self.syncToState)
+        self.tempo.clicked.connect(self.syncToState)
 
     def setupFont(self):
         super(TrendSegment, self).setupFont()
@@ -1376,76 +1521,13 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
             self.at.setEnabled(True)
 
     def hasAcceptableInput(self):
-        acceptable = False
-        oneRequired = (
-            self.nsc.isChecked(),
-            self.cavok.isChecked(),
-            self.wind.hasAcceptableInput(),
-            self.vis.hasAcceptableInput(),
-            self.weather.lineEdit().hasAcceptableInput() and self.weather.currentText() ,
-            self.weatherWithIntensity.lineEdit().hasAcceptableInput() and self.weatherWithIntensity.currentText(),
-            self.cloud1.hasAcceptableInput(),
-            self.cloud2.hasAcceptableInput(),
-            self.cloud3.hasAcceptableInput(),
-            self.cb.hasAcceptableInput()
-        )
-
-        prefixChecked = (
-            self.at.isChecked(),
-            self.fm.isChecked(),
-            self.tl.isChecked()
-        )
-
-        if self.nosig.isChecked():
-            acceptable = True
-
-        if any(oneRequired):
-            if any(prefixChecked):
-                if self.period.hasAcceptableInput():
-                    acceptable = True
-            else:
-                acceptable = True
-
-        return acceptable
+        return self.state.isAcceptable()
 
     def message(self):
-        super(TrendSegment, self).message()
-
-        if self.nosig.isChecked():
-            self.text = 'NOSIG'
-        else:
-            messages = []
-
-            if self.becmg.isChecked():
-                trendType = 'BECMG'
-            if self.tempo.isChecked():
-                trendType = 'TEMPO'
-
-            messages.append(trendType)
-
-            if self.at.isChecked() or self.fm.isChecked() or self.tl.isChecked():
-                if self.fm.isChecked() and self.tl.isChecked():
-                    periodText = 'FM{} TL{}'.format(*self.period.text().split('/'))
-                else:
-                    if self.at.isChecked():
-                        trendPrefix = 'AT'
-                    if self.fm.isChecked():
-                        trendPrefix = 'FM'
-                    if self.tl.isChecked():
-                        trendPrefix = 'TL'
-
-                    periodText = trendPrefix + self.period.text()
-
-                messages.append(periodText)
-
-            messages.append(self.text)
-            self.text = ' '.join(messages)
-
-        return self.text
+        return self.state.composeMessage()
 
     def clear(self):
         super(TrendSegment, self).clear()
-
         self.at.setChecked(False)
         self.fm.setChecked(False)
         self.tl.setChecked(False)

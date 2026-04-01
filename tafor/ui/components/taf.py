@@ -54,15 +54,7 @@ class TafEditor(BaseEditor):
     def bindSignal(self):
         for c in self.primary.groupCheckboxs:
             c.stateChanged.connect(self.enbaleNextButton)
-
-        # This is a weird bug, when I loop and connect the slot, the lambda function always pass the last value to the slot.
-        self.primary.fmCheckbox.toggled.connect(lambda: self.addGroup(self.primary.fmCheckbox))
-        self.primary.becmg1Checkbox.toggled.connect(lambda: self.addGroup(self.primary.becmg1Checkbox))
-        self.primary.becmg2Checkbox.toggled.connect(lambda: self.addGroup(self.primary.becmg2Checkbox))
-        self.primary.becmg3Checkbox.toggled.connect(lambda: self.addGroup(self.primary.becmg3Checkbox))
-        self.primary.tempo1Checkbox.toggled.connect(lambda: self.addGroup(self.primary.tempo1Checkbox))
-        self.primary.tempo2Checkbox.toggled.connect(lambda: self.addGroup(self.primary.tempo2Checkbox))
-        self.primary.tempo3Checkbox.toggled.connect(lambda: self.addGroup(self.primary.tempo3Checkbox))
+            c.toggled.connect(lambda checked, c=c: self.addGroup(c))
 
         self.primary.contentChanged.connect(self.enbaleNextButton)
         for segment in self.becmgs + self.tempos:
