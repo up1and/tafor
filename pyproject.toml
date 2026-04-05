@@ -17,27 +17,30 @@ dependencies = [
     "requests",
     "SQLAlchemy",
     "Shapely==1.8.5.post1",
-    "PyQt5==5.15.2",
-    "PyQtChart==5.15.2",
+    "PyQt5==5.15.11",
+    "PyQtChart==5.15.7",
 ]
-requires-python = ">=3.7, <3.10"
+
+requires-python = ">=3.10, <3.12"
+
 readme = "README.md"
+
 license = {text = "GPL-2.0"}
 
-
-[tool.pdm]
-distribution = false
-
-[project.optional-dependencies]
-test = [
+[dependency-groups]
+dev = [
     "pytest",
     "pytest-qt",
     "pytest-cov",
     "pytest-env",
 ]
 
-[tool.pdm.scripts]
-tafor = "python -m tafor"
+[tool.uv]
+constraint-dependencies = [
+    "greenlet<3.2",
+    "PyQt5-Qt5==5.15.2",
+    "PyQtChart-Qt5==5.15.2",
+]
 
 [tool.ruff.format]
 quote-style = "single"
