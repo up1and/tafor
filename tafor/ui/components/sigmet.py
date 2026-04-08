@@ -61,8 +61,8 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.custom.clicked.connect(self.changeContent)
         self.cancel.clicked.connect(self.changeContent)
 
-        self.graphic.sketchChanged.connect(self.enbaleNextButton)
-        self.graphic.overlapChanged.connect(self.enbaleNextButton)
+        self.graphic.sketchChanged.connect(self.enableNextButton)
+        self.graphic.overlapChanged.connect(self.enableNextButton)
         self.graphic.overlapChanged.connect(self.setOverlapMode)
         self.graphic.modeChanged.connect(self.setLocationMode)
 
@@ -73,11 +73,11 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.typhoonContent.locationChanged.connect(self.graphic.setAdvisoryGraphic)
 
         for c in self.contents:
-            c.contentChanged.connect(self.enbaleNextButton)
+            c.contentChanged.connect(self.enableNextButton)
 
         self.nextButton.clicked.connect(self.beforeNext)
 
-        # change content self.enbaleNextButton()
+        # change content self.enableNextButton()
         self.sender.succeeded.connect(self.updateState)
 
     def updateGraphicCanvas(self):
@@ -104,7 +104,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         message = Sigmet(type=self.type, heading=self.heading(), text=self.message())
         self.finished.emit(message)
 
-    def enbaleNextButton(self):
+    def enableNextButton(self):
         self.nextButton.setEnabled(self.hasAcceptableInput())
 
     def updateState(self):

@@ -20,6 +20,7 @@ class Ui_Editor(object):
         self.gridLayout.setContentsMargins(0, 0, 0, 0)
         self.gridLayout.setObjectName("gridLayout")
         self.date = QtWidgets.QLineEdit(Editor)
+        self.date.setEnabled(False)
         self.date.setObjectName("date")
         self.gridLayout.addWidget(self.date, 2, 0, 1, 1)
         self.cbLabel = QtWidgets.QLabel(Editor)

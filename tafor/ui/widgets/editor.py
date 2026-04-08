@@ -69,7 +69,7 @@ class BaseEditor(QDialog):
     def previewMessage(self):
         raise NotImplementedError
 
-    def enbaleNextButton(self):
+    def enableNextButton(self):
         raise NotImplementedError
 
     def keyPressEvent(self, event):

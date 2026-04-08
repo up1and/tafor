@@ -4,22 +4,94 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLayout
 from tafor.core.models import Taf
 from tafor.ui.widgets import TafBecmgSegment, TafFmSegment, TafPrimarySegment, TafTempoSegment
 from tafor.ui.widgets.editor import BaseEditor
+    
+
+def composeHeading(spec, area, icao, date, sequence):
+    tt = spec[:2].upper() if spec else "FC"
+    messages = [tt + area, icao, date, sequence]
+    return " ".join(filter(None, messages))
+
+
+class TafPresenter:
+    def __init__(self, view, context, conf):
+        self.view = view
+        self.context = context
+        self.conf = conf
+
+    def initialize(self):
+        self.bindSignal()
+
+    def bindSignal(self):
+        for c in self.view.getGroupCheckboxes():
+            c.stateChanged.connect(self.enableNextButton)
+            c.toggled.connect(lambda _, c=c: self.view.updateGroupsVisibility(c))
+
+        for s in self.view.segments():
+            s.contentChanged.connect(self.enableNextButton)
+
+        self.view.primary.period.textChanged.connect(self.clear)
+        self.view.nextButton.clicked.connect(self.beforeNext)
+
+    def previewMessage(self):        
+        def sortKey(s):
+            if s.identifier == 'PRIMARY':
+                return (0, 0, 0)
+
+            # Sort by segment identifier priority
+            orders = ['FM', 'BECMG', 'TEMPO']
+            priority = orders.index(s.identifier) if s.identifier in orders else 99
+            # Use start duration for groups to maintain chronological order
+            return (1, s.state.durations[0], priority)
+
+        # Retrieve and sort active segments
+        activeSegments = sorted(self.view.segments(activeOnly=True), key=sortKey)
+        
+        messages = [s.state.composeMessage() for s in activeSegments]
+        text = '\n'.join(filter(None, messages)) + '='
+
+        # Composing Heading from primary state
+        primary = self.view.primary
+        state = primary.state
+        heading = composeHeading(state.spec, self.conf.bulletinNumber, state.icao, state.date, state.sequence)
+        
+        message = Taf(type=heading[0:2], heading=heading, text=text)
+        self.view.finished.emit(message)
+
+    def beforeNext(self):
+        # Validate all active segments before proceeding
+        if not self.view.isCancelMode():
+            for s in self.view.segments(activeOnly=True):
+                s.validate()
+
+        if self.hasAcceptableInput():
+            self.previewMessage()
+
+    def hasAcceptableInput(self):
+        # Check if input is acceptable for all active segments
+        return all(s.hasAcceptableInput() for s in self.view.segments(activeOnly=True))
+
+    def enableNextButton(self):
+        self.view.setNextEnabled(self.hasAcceptableInput())
+
+    def clear(self):
+        self.view.clear()
 
 
 class TafEditor(BaseEditor):
 
     def __init__(self, parent=None, sender=None, conf=None, context=None):
         super(TafEditor, self).__init__(parent, sender, conf, context)
+        self.presenter = TafPresenter(self, context, conf)
         self.initUI()
-        self.bindSignal()
+        self.presenter.initialize()
         self.setWindowTitle(QCoreApplication.translate('Editor', 'Encoding Terminal Aerodrome Forecast'))
-        self.primary.date.setEnabled(False)
 
     def initUI(self):
         window = QWidget(self)
         layout = QVBoxLayout(window)
         layout.setSizeConstraint(QLayout.SetFixedSize)
         layout.setSpacing(18)
+        
         self.primary = TafPrimarySegment(parent=self, conf=self.conf, context=self.context)
         self.fm = TafFmSegment('FM', self, conf=self.conf, context=self.context)
         self.becmg1 = TafBecmgSegment('BECMG1', self, conf=self.conf, context=self.context)
@@ -28,44 +100,42 @@ class TafEditor(BaseEditor):
         self.tempo1 = TafTempoSegment('TEMPO1', self, conf=self.conf, context=self.context)
         self.tempo2 = TafTempoSegment('TEMPO2', self, conf=self.conf, context=self.context)
         self.tempo3 = TafTempoSegment('TEMPO3', self, conf=self.conf, context=self.context)
+        
         self.becmgs = [self.fm, self.becmg1, self.becmg2, self.becmg3]
         self.tempos = [self.tempo1, self.tempo2, self.tempo3]
+        
         layout.addWidget(self.primary)
-        layout.addWidget(self.fm)
-        layout.addWidget(self.becmg1)
-        layout.addWidget(self.becmg2)
-        layout.addWidget(self.becmg3)
-        layout.addWidget(self.tempo1)
-        layout.addWidget(self.tempo2)
-        layout.addWidget(self.tempo3)
+        for segment in self.becmgs + self.tempos:
+            layout.addWidget(segment)
+            segment.hide()
+            
         self.addBottomBox(layout)
         self.setLayout(layout)
-
         self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px;}')
 
-        self.fm.hide()
-        self.becmg1.hide()
-        self.becmg2.hide()
-        self.becmg3.hide()
-        self.tempo1.hide()
-        self.tempo2.hide()
-        self.tempo3.hide()
+    def segments(self, activeOnly=False):
+        """Return segments, optionally filtering for active ones."""
+        allSegments = [self.primary] + self.becmgs + self.tempos
+        if activeOnly:
+            return [s for s in allSegments if s == self.primary or s.isVisible()]
+        return allSegments
 
-    def bindSignal(self):
-        for c in self.primary.groupCheckboxs:
-            c.stateChanged.connect(self.enbaleNextButton)
-            c.toggled.connect(lambda checked, c=c: self.addGroup(c))
+    def getGroupCheckboxes(self):
+        return self.primary.groupCheckboxs
 
-        self.primary.contentChanged.connect(self.enbaleNextButton)
-        for segment in self.becmgs + self.tempos:
-            segment.contentChanged.connect(self.enbaleNextButton)
+    def isCancelMode(self):
+        return self.primary.isCancelMode()
 
-        self.primary.period.textChanged.connect(self.clear)
+    def setNextEnabled(self, enabled):
+        self.nextButton.setEnabled(enabled)
 
-        # 下一步
-        self.nextButton.clicked.connect(self.beforeNext)
+    def clear(self):
+        """Clear all segment data."""
+        for s in self.segments():
+            s.clear()
 
-    def addGroup(self, clickedbox):
+    def updateGroupsVisibility(self, clickedbox):
+        """Handle visibility logic for change groups."""
         fmCheckboxs = [self.primary.fmCheckbox]
         becmgCheckboxs = [self.primary.becmg1Checkbox, self.primary.becmg2Checkbox, self.primary.becmg3Checkbox]
         tempoCheckboxs = [self.primary.tempo1Checkbox, self.primary.tempo2Checkbox, self.primary.tempo3Checkbox]
@@ -84,9 +154,7 @@ class TafEditor(BaseEditor):
                 return
 
             index = checkboxs.index(clickedbox)
-            checked = clickedbox.isChecked()
-
-            if checked:
+            if clickedbox.isChecked():
                 if index != 0 and not checkboxs[index-1].isChecked():
                     clickedbox.setChecked(False)
             else:
@@ -95,105 +163,18 @@ class TafEditor(BaseEditor):
                         checkbox.setChecked(False)
 
             for i, group in enumerate(groups):
-                isVisible = checkboxs[i].isChecked()
-                group.setVisible(isVisible)
+                group.setVisible(checkboxs[i].isChecked())
 
-        # FM
         manipulate(fmCheckboxs, fmGroups)
-        # BECMG
         manipulate(becmgCheckboxs, becmgGroups)
-        # TEMPO
         manipulate(tempoCheckboxs, tempoGroups)
-
-    def previewMessage(self):
-
-        def sortedGroup(groups):
-            groups = [e for e in groups if e.isVisible() and e.durations is not None]
-            orders = ['FM', 'BECMG', 'TEMPO']
-            priority = lambda x: orders.index(x) if x in orders else -1
-            return sorted(groups, key=lambda x: (x.durations[0], priority(x.identifier)))
-
-        groupsMessage = [e.message() for e in sortedGroup(self.becmgs + self.tempos)]
-        messages = [self.primary.message()] + groupsMessage
-        self.text = '\n'.join(filter(None, messages)) + '='
-        self.heading = self.primary.heading()
-        message = Taf(type=self.heading[0:2], heading=self.heading, text=self.text)
-        self.finished.emit(message)
-
-    def beforeNext(self):
-        if not self.primary.cnl.isChecked():
-            self.primary.validate()
-
-        if self.primary.fmCheckbox.isChecked():
-            self.fm.validate()
-
-        if self.primary.becmg1Checkbox.isChecked():
-            self.becmg1.validate()
-
-        if self.primary.becmg2Checkbox.isChecked():
-            self.becmg2.validate()
-
-        if self.primary.becmg3Checkbox.isChecked():
-            self.becmg3.validate()
-
-        if self.primary.tempo1Checkbox.isChecked():
-            self.tempo1.validate()
-
-        if self.primary.tempo2Checkbox.isChecked():
-            self.tempo2.validate()
-
-        if self.primary.tempo3Checkbox.isChecked():
-            self.tempo3.validate()
-
-        if self.hasAcceptableInput():
-            self.previewMessage()
-
-    def hasAcceptableInput(self):
-        acceptables = [self.primary.hasAcceptableInput()]
-
-        if self.primary.fmCheckbox.isChecked():
-            acceptables.append(self.fm.hasAcceptableInput())
-
-        if self.primary.becmg1Checkbox.isChecked():
-            acceptables.append(self.becmg1.hasAcceptableInput())
-
-        if self.primary.becmg2Checkbox.isChecked():
-            acceptables.append(self.becmg2.hasAcceptableInput())
-
-        if self.primary.becmg3Checkbox.isChecked():
-            acceptables.append(self.becmg3.hasAcceptableInput())
-
-        if self.primary.tempo1Checkbox.isChecked():
-            acceptables.append(self.tempo1.hasAcceptableInput())
-
-        if self.primary.tempo2Checkbox.isChecked():
-            acceptables.append(self.tempo2.hasAcceptableInput())
-
-        if self.primary.tempo3Checkbox.isChecked():
-            acceptables.append(self.tempo3.hasAcceptableInput())
-
-        return all(acceptables)
-
-    def enbaleNextButton(self):
-        self.nextButton.setEnabled(self.hasAcceptableInput())
-
-    def clear(self):
-        self.primary.clear()
-        self.fm.clear()
-        self.becmg1.clear()
-        self.becmg2.clear()
-        self.becmg3.clear()
-        self.tempo1.clear()
-        self.tempo2.clear()
-        self.tempo3.clear()
 
     def closeEvent(self, event):
         super(TafEditor, self).closeEvent(event)
-        self.clear()
+        self.presenter.clear()
         self.primary.clearType()
 
     def showEvent(self, event):
-        # 检查必要配置是否完成
         if not self.conf.checkCompleteness('taf'):
             QTimer.singleShot(0, self.showConfigError)
             return

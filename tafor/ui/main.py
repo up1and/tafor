@@ -614,7 +614,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
                     conf=self.conf,
                 )
                 widget.reviewRequested.connect(self.reviewRecentMessage)
-                widget.replyRequested.connect(self.trendEditor.quote)
+                widget.replyRequested.connect(self.trendEditor.edit)
                 widget.reminderToggled.connect(self.presenter.setSigmetReminder)
 
     def isReminderVisible(self, box):

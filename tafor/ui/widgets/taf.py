@@ -95,10 +95,9 @@ class SegmentState:
 
 
 class PrimaryState(SegmentState):
-    def __init__(self, icao="", unit="KT", bulletinNumber="", spec="fc"):
+    def __init__(self, icao="", unit="KT", spec="fc"):
         super().__init__(unit)
         self.icao = icao
-        self.bulletinNumber = bulletinNumber
         self.spec = spec
         self.date = ""
         self.period = ""
@@ -128,12 +127,6 @@ class PrimaryState(SegmentState):
         sequenceOk = bool(self.sequence) if self.type in ["AMD", "COR"] else True
             
         return headerOk and weatherOk and sequenceOk and tempsOk
-
-    def composeHeader(self):
-        tt = self.spec[:2].upper() if self.spec else "FC"
-        area = self.bulletinNumber or ""
-        messages = [tt + area, self.icao, self.date, self.sequence]
-        return " ".join(filter(None, messages))
 
     def composeMessage(self):
         if self.type == "CNL":
@@ -517,7 +510,7 @@ class BaseSegment(SegmentMixin, QWidget):
         # Initialize specific state based on the type of widget
         unit = 'KT' if self.conf.unit == 'imperial' else 'MPS'
         if self.identifier == 'PRIMARY':
-            self.state = PrimaryState(icao=self.conf.airport, bulletinNumber=self.conf.bulletinNumber, unit=unit, spec=self.context.taf.spec)
+            self.state = PrimaryState(icao=self.conf.airport, unit=unit, spec=self.context.taf.spec)
         elif self.identifier in ['TEMPO', 'BECMG', 'FM']:
             self.state = GroupState(indicator=self.identifier, unit=unit)
         elif self.identifier == 'TREND':
@@ -807,7 +800,7 @@ class TemperatureGroup(SegmentMixin, QWidget):
 
         error = TafValidator.checkTemperatureTime(
             self.state,
-            self.parent.durations,
+            self.parent.state.durations,
             siblings=self.parent.findTemperatureTime(self),
             sameTypeSiblings=self.parent.findTemperatureTime(self, sameType=True),
         )
@@ -818,8 +811,8 @@ class TemperatureGroup(SegmentMixin, QWidget):
             return
 
         # Time normalization can stay in UI or move to state, keep here for now as it affects UI text
-        time = parseDayHour(self.state.time[:2], self.state.time[2:], self.parent.durations[0], delta='month')
-        normalized = normalizeTemperatureTime(time, self.parent.durations)
+        time = parseDayHour(self.state.time[:2], self.state.time[2:], self.parent.state.durations[0], delta='month')
+        normalized = normalizeTemperatureTime(time, self.parent.state.durations)
         if normalized:
             self.tempTime.setText(normalized)
 
@@ -1069,12 +1062,6 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
         return times
 
-    def message(self):
-        return self.state.composeMessage()
-
-    def heading(self):
-        return self.state.composeHeader()
-
     def setDate(self):
         time = datetime.datetime.utcnow()
         self.date.setText(time.strftime('%d%H%M'))
@@ -1088,6 +1075,9 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.resetButton.setEnabled(False)
         self.prevButton.setEnabled(True)
         self.offset = 0
+
+    def isCancelMode(self):
+        return self.cnl.isChecked()
 
     def clear(self):
         super(TafPrimarySegment, self).clear()
@@ -1133,11 +1123,11 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.period.setValidator(period)
 
     def setupPeriodPlaceholder(self):
-        if self.parent.primary.state.durations is None:
+        if self.parent.state.durations is None:
             self.period.setPlaceholderText('')
             return
 
-        time = self.parent.primary.state.durations[0]
+        time = self.parent.state.durations[0]
         self.period.setPlaceholderText('{:02d}'.format(time.day))
 
     def fillPeriod(self):
@@ -1147,13 +1137,13 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
             self.autoFillSlash()
 
     def autoFillPeriod(self):
-        if self.parent.primary.state.durations is None or not self.parent.primary.period.text():
+        if self.parent.state.durations is None or not self.parent.period.text():
             return
 
         text = self.period.text()
         if len(text) > len(self.periodText):
             if len(text) == 4:
-                durations = self.parent.primary.state.durations
+                durations = self.parent.state.durations
                 try:
                     start = parseDayHour(text[:2], text[2:], durations[0], delta='month')
                 except Exception:
@@ -1166,7 +1156,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
                     delta = datetime.timedelta(hours=self.span())
                     end = start + delta
                     if durations[1] <= end:
-                        text = '{:02d}{:02d}/{}'.format(start.day, start.hour, self.parent.primary.period.text()[5:])
+                        text = '{:02d}{:02d}/{}'.format(start.day, start.hour, self.parent.period.text()[5:])
                     else:
                         text = '{:02d}{:02d}/{:02d}{:02d}'.format(start.day, start.hour, end.day, end.hour)
 
@@ -1194,9 +1184,9 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         return duration
 
     def updateDurations(self):
-        if self.period.hasAcceptableInput() and self.parent.primary.period.text():
+        if self.period.hasAcceptableInput() and self.parent.period.text():
             period = self.period.text()
-            basetime = self.parent.primary.state.durations[0]
+            basetime = self.parent.state.durations[0]
             start, end = parsePeriod(period, basetime)
             self.state.durations = (start, end)
 
@@ -1215,7 +1205,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
     def validatePeriod(self):
         error = TafValidator.checkGroupPeriod(
             self.state,
-            self.parent.primary.state,
+            self.parent.state,
             self.span(),
             isBecmg=self.identifier.startswith('BECMG'),
         )
@@ -1224,7 +1214,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
             self.context.flash.editor('taf', error)
 
     def validateGroupsPeriod(self):
-        groups = self.parent.tempos if self.identifier.startswith('TEMPO') else self.parent.becmgs
+        groups = self.parent.parent.tempos if self.identifier.startswith('TEMPO') else self.parent.parent.becmgs
         siblings = [g.state for g in groups if g.isVisible() and g.state and self != g]
         error = TafValidator.checkGroupOverlap(self.state, siblings)
         if error:
@@ -1259,9 +1249,9 @@ class TafFmSegment(TafGroupSegment):
         self.period.setValidator(period)
 
     def updateDurations(self):
-        if self.period.hasAcceptableInput() and self.parent.primary.period.text():
+        if self.period.hasAcceptableInput() and self.parent.period.text():
             period = self.period.text()
-            basetime = self.parent.primary.state.durations[0]
+            basetime = self.parent.state.durations[0]
             time = parseTime(period, basetime)
             self.state.durations = (time, time)
         else:
@@ -1269,13 +1259,13 @@ class TafFmSegment(TafGroupSegment):
 
     def validatePeriod(self):
         # Using states for validation where possible
-        error = TafValidator.checkFmPeriod(self.state, self.parent.primary.state)
+        error = TafValidator.checkFmPeriod(self.state, self.parent.state)
         if error:
             self.period.clear()
             self.context.flash.editor('taf', error)
 
     def validateGroupsPeriod(self):
-        siblings = [g.state for g in self.parent.becmgs if g.isVisible() and g.state and self != g]
+        siblings = [g.state for g in self.parent.parent.becmgs if g.isVisible() and g.state and self != g]
         error = TafValidator.checkFmOverlap(self.state, siblings)
         if error:
             self.period.clear()
@@ -1519,6 +1509,9 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
             self.at.setChecked(False)
         else:
             self.at.setEnabled(True)
+
+    def isPeriodActive(self):
+        return self.period.isEnabled()
 
     def hasAcceptableInput(self):
         return self.state.isAcceptable()
