@@ -40,11 +40,11 @@ class TrendPresenter:
         message = Trend(text=self.view.text)
         self.view.finished.emit(message)
 
-    def autoFill(self):
+    def loadFromMetar(self):
         parser = self.context.notification.metar.parser()
         for i, part in enumerate(parser.trends):
             if i == 0:
-                self.view.trend.autoFill(part.tokens)
+                self.view.trend.populateFromTokens(part.tokens)
 
     def clear(self):
         self.view.trend.clear()
@@ -74,7 +74,7 @@ class TrendEditor(BaseEditor):
         self.trend.metar.setStyleSheet('QLabel {color: grey;}')
 
     def edit(self):
-        self.presenter.autoFill()
+        self.presenter.loadFromMetar()
         self.show()
 
     def isPeriodActive(self):

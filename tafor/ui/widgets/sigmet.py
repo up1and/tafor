@@ -455,14 +455,14 @@ class AdvisoryMixin(object):
             options = self.parser.availableLocations()
             self.initial.clear()
             self.initial.addItems(options)
-            self.autoFill()
+            self.applyAdvisoryData()
             self.text.setStyleSheet('color: black')
         except Exception as e:
             self.context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'Advisory message can not be decoded'))
             self.text.setStyleSheet('color: grey')
             logger.error('Advisory message can not be decoded, {}, {}'.format(text, e))
 
-    def autoFill(self):
+    def applyAdvisoryData(self):
         name = self.parser.name()
         if name:
             self.name.setText(name)
@@ -519,7 +519,7 @@ class AdvisoryMixin(object):
 
     def updateLocation(self):
         try:
-            self.autoFill()
+            self.applyAdvisoryData()
         except Exception as e:
             logger.error('Auto fill location from advisory message failed, {}'.format(e))
 
@@ -821,8 +821,8 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
 
         self.handleCircleChange()
 
-    def autoFill(self):
-        super().autoFill()
+    def applyAdvisoryData(self):
+        super().applyAdvisoryData()
         height = self.parser.height()
         if height:
             self.top.setText(height)
@@ -1131,8 +1131,8 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         self.currentLongitudeLabel.setEnabled(enbaled)
         self.contentChanged.emit()
 
-    def autoFill(self):
-        super().autoFill()
+    def applyAdvisoryData(self):
+        super().applyAdvisoryData()
         position = self.parser.position()
         if position:
             lat, lon = position

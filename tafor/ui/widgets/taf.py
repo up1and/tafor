@@ -505,7 +505,6 @@ class BaseSegment(SegmentMixin, QWidget):
         self.conf = conf
         self.context = context
         self.identifier = ''.join(c for c in name if c.isalpha())
-        self.periodText = ''
         
         # Initialize specific state based on the type of widget
         unit = 'KT' if self.conf.unit == 'imperial' else 'MPS'
@@ -1101,6 +1100,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.setupFont()
         self.setupValidator()
         self.bindSignal()
+        self.periodText = ''
 
     def syncToState(self):
         super(TafGroupSegment, self).syncToState()
@@ -1132,11 +1132,19 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
     def fillPeriod(self):
         if self.conf.autoCompletionGroupTime:
-            self.autoFillPeriod()
+            self.autoCompletePeriod()
         else:
-            self.autoFillSlash()
+            self.formatSeparator()
 
-    def autoFillPeriod(self):
+    def formatSeparator(self):
+        text = self.period.text()
+        if len(text) > len(self.periodText):
+            if len(text) == 4:
+                text += '/'
+            self.period.setText(text)
+        self.periodText = text
+
+    def autoCompletePeriod(self):
         if self.parent.state.durations is None or not self.parent.period.text():
             return
 
@@ -1315,6 +1323,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         self.setupFont()
         self.setupValidator()
         self.bindSignal()
+        self.periodText = ''
 
     def syncToState(self):
         super(TrendSegment, self).syncToState()
@@ -1335,7 +1344,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         self.becmg.clicked.connect(self.updateAtStatus)
         self.tempo.clicked.connect(self.updateAtStatus)
 
-        self.period.textEdited.connect(self.autoFillPeriodSlash)
+        self.period.textEdited.connect(self.autoFormatPeriod)
         self.period.editingFinished.connect(self.validatePeriod)
 
         # Sync state on UI toggle/click
@@ -1352,9 +1361,17 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         self.becmg.setFont(font)
         self.tempo.setFont(font)
 
-    def autoFillPeriodSlash(self):
+    def autoFormatPeriod(self):
         if self.fm.isChecked() and self.tl.isChecked():   
-            self.autoFillSlash()
+            self.formatSeparator()
+
+    def formatSeparator(self):
+        text = self.period.text()
+        if len(text) > len(self.periodText):
+            if len(text) == 4:
+                text += '/'
+            self.period.setText(text)
+        self.periodText = text
 
     def setupValidator(self):
         super(TrendSegment, self).setupValidator()
@@ -1428,7 +1445,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         self.period.clear()
         self.setupPeriodValidator()
 
-    def autoFill(self, tokens):
+    def populateFromTokens(self, tokens):
         if 'sign' in tokens:
             sign = tokens['sign']['text']
             if sign == 'BECMG':
