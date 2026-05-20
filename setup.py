@@ -1,5 +1,4 @@
 import os
-import sys
 import platform
 import datetime
 
@@ -169,7 +168,7 @@ setup(
     author_email='piratecb@gmail.com',
     description='A Terminal Aerodrome Forecast Encoding Software',
     long_description=fread('README.md'),
-    license='GPLv2',
+    license='GPL-3.0-or-later',
     keywords = 'aviation taf sigmet',
     tests_require=['pytest'],
     cmdclass ={'test': PyTest, 'docs': SphinxCommand, 'build': PyInstallerCommand},
@@ -178,7 +177,7 @@ setup(
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Intended Audience :: Other Audience',
-        'License :: OSI Approved :: GNU General Public License v2 (GPLv2)',
+        'License :: OSI Approved :: GNU General Public License v3 or Later (GPLv3+)',
         'Operating System :: MacOS',
         'Operating System :: Microsoft :: Windows',
         'Operating System :: POSIX :: Linux',
