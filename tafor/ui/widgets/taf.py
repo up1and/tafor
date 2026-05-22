@@ -6,439 +6,46 @@ from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QComboBox, QRadioButton,
 
 from tafor.core.models import Taf, db
 from tafor.core.parsers.base import Pattern
+from tafor.core.taf import (GroupState, PrimaryState, SegmentState, TemperatureState, TrendState,
+    TafValidator, TrendValidator, normalizeTemperatureTime, parseTemperature)
+from tafor.core.taf.validator import TafValidator, TrendValidator
 from tafor.core.utils.check import CurrentTaf
-from tafor.core.utils.time import isOverlap, parseDayHour, parsePeriod, parseTime
+from tafor.core.utils.time import parseDayHour, parsePeriod, parseTime
 from tafor.ui.qt import Ui_taf_group, Ui_taf_primary, Ui_trend, main_rc
 
 
-def parseTemperature(value):
-    return -int(value[1:]) if 'M' in value else int(value)
-
-
-def normalizeTemperatureTime(time, primary):
-    if time.hour != 0:
-        return None
-
-    if time == primary[1]:
-        normalizedTime = time - datetime.timedelta(hours=1)
-        return '{}24'.format(str(normalizedTime.day).zfill(2))
-
-    return '{}{}'.format(str(time.day).zfill(2), str(time.hour).zfill(2))
-
-
-class TemperatureState:
-    def __init__(self, mode="max"):
-        self.mode = mode
-        self.value = ""
-        self.time = ""
-
-    def isAcceptable(self):
-        return bool(self.value and self.time)
-
-    def composeMessage(self):
-        if not self.isAcceptable():
-            return ""
-        prefix = "TX" if self.mode == "max" else "TN"
-        return f"{prefix}{self.value}/{self.time}Z"
-
-    def clear(self):
-        self.value = ""
-        self.time = ""
-
-
-class SegmentState:
-    def __init__(self, unit="KT"):
-        self.unit = unit
-        self.wind = ""
-        self.gust = ""
-        self.visibility = ""
-        self.weather = ""
-        self.weatherWithIntensity = ""
-        self.clouds = []  # e.g., ["FEW030", "SCT040"]
-        self.cb = ""      # e.g., "BKN030CB"
-        self.isCavok = False
-        self.isNsc = False
-
-    def composeWeather(self):
-        """Public helper to compose core meteorological elements common to all segments."""
-        if self.wind:
-            winds = f"{self.wind}G{self.gust}{self.unit}" if self.gust else f"{self.wind}{self.unit}"
-        else:
-            winds = None
-
-        allClouds = list(filter(None, self.clouds + ([self.cb] if self.cb else [])))
-        # Sort clouds by height
-        sortedClouds = sorted(allClouds, key=lambda c: int(c[3:6]) if len(c) >= 6 and c[3:6].isdigit() else 0)
-
-        if self.isCavok:
-            elements = [winds, "CAVOK"]
-        elif self.isNsc:
-            if any([self.weather, self.weatherWithIntensity]) or (self.visibility and self.visibility != '9999'):
-                elements = [winds, self.visibility, self.weatherWithIntensity, self.weather, "NSC"]
-            else:
-                elements = [winds, "CAVOK"]
-        else:
-            elements = [winds, self.visibility, self.weatherWithIntensity, self.weather] + sortedClouds
-        
-        return " ".join(filter(None, elements))
-
-    def clear(self):
-        self.wind = ""
-        self.gust = ""
-        self.visibility = ""
-        self.weather = ""
-        self.weatherWithIntensity = ""
-        self.clouds = []
-        self.cb = ""
-        self.isCavok = False
-        self.isNsc = False
-
-
-class PrimaryState(SegmentState):
-    def __init__(self, icao="", unit="KT", spec="fc"):
-        super().__init__(unit)
-        self.icao = icao
-        self.spec = spec
-        self.date = ""
-        self.period = ""
-        self.durations = None  # (start, end) datetime tuple
-        self.type = "NORMAL"  # NORMAL, AMD, COR, CNL
-        self.sequence = ""
-        self.temperatures = []  # List of TemperatureState
-
-    def isAcceptable(self):
-        """Independent check for Primary segment requirements."""
-        if self.type == "CNL":
-            return bool(self.icao and self.date and self.period and self.sequence)
-        
-        # Mandatory primary header fields
-        headerOk = bool(self.icao and self.date and self.period)
-        
-        # Core weather elements: Primary MUST have wind
-        # and either CAVOK/NSC or both Visibility and some Cloud/Vertical visibility
-        hasWind = bool(self.wind)
-        hasClouds = any([bool(c) for c in self.clouds] + [bool(self.cb)])
-        weatherOk = hasWind and (self.isCavok or self.isNsc or (bool(self.visibility) and hasClouds))
-            
-        # Temperatures: if any part is filled, it must be complete
-        tempsOk = all(t.isAcceptable() for t in self.temperatures if t.value or t.time)
-        
-        # Sequence is mandatory for AMD/COR
-        sequenceOk = bool(self.sequence) if self.type in ["AMD", "COR"] else True
-            
-        return headerOk and weatherOk and sequenceOk and tempsOk
-
-    def composeMessage(self):
-        if self.type == "CNL":
-            amd = "AMD"
-            messages = ["TAF", amd, self.icao, self.date + "Z" if self.date else "", self.period, "CNL"]
-            return " ".join(filter(None, messages))
-            
-        # Use common weather element helper
-        weatherPart = self.composeWeather()
-        
-        amd = "AMD" if self.type == "AMD" else ""
-        cor = "COR" if self.type == "COR" else ""
-        timez = self.date + "Z" if self.date else ""
-        
-        # Sort temperatures: TX first, TN second, then by time
-        validTemps = [t for t in self.temperatures if t.isAcceptable()]
-        sortedTemps = sorted(validTemps, key=lambda t: (0 if t.mode == "max" else 1, t.time))
-        tempTexts = [t.composeMessage() for t in sortedTemps]
-        
-        messages = ["TAF", amd, cor, self.icao, timez, self.period, weatherPart] + tempTexts
-        return " ".join(filter(None, messages))
-
-    def clear(self):
-        super().clear()
-        self.date = ""
-        self.period = ""
-        self.durations = None
-        self.type = "NORMAL"
-        self.sequence = ""
-        for t in self.temperatures:
-            t.clear()
-
-
-class GroupState(SegmentState):
-    def __init__(self, indicator="TEMPO", unit="KT"):
-        super().__init__(unit)
-        self.indicator = indicator  # FM, BECMG, TEMPO
-        self.period = ""
-        self.durations = None  # (start, end) datetime tuple
-
-    def isAcceptable(self):
-        """Independent check for Group segment requirements."""
-        # At least one weather element is required along with period
-        oneRequired = any([self.isNsc, self.isCavok, self.wind, self.visibility, self.weather, self.weatherWithIntensity]
-            + [bool(c) for c in self.clouds] + [bool(self.cb)])
-        return bool(self.period) and oneRequired
-
-    def composeMessage(self):
-        # Use common weather element helper
-        weatherPart = self.composeWeather()
-        
-        if self.indicator == "FM":
-            return f"FM{self.period} {weatherPart}".strip()
-        else:
-            return f"{self.indicator} {self.period} {weatherPart}".strip()
-
-    def clear(self):
-        super().clear()
-        self.period = ""
-
-
-class TrendState(SegmentState):
-    def __init__(self, unit="KT"):
-        super().__init__(unit)
-        self.isNosig = False
-        self.type = "BECMG"  # BECMG or TEMPO
-        self.atChecked = False
-        self.fmChecked = False
-        self.tlChecked = False
-        self.period = ""
-
-    def isAcceptable(self):
-        """Independent check for Trend segment requirements."""
-        if self.isNosig:
-            return True
-        
-        # At least one weather element must be present/modified
-        weatherOk = any([
-            self.isNsc, self.isCavok, bool(self.wind), bool(self.visibility),
-            bool(self.weather), bool(self.weatherWithIntensity),
-            any(bool(c) for c in self.clouds), bool(self.cb)
-        ])
-        
-        # If temporal prefix (AT/FM/TL) is used, period is mandatory
-        if any([self.atChecked, self.fmChecked, self.tlChecked]):
-            return bool(self.period) and weatherOk
-        
-        return weatherOk
-
-    def composeMessage(self):
-        if self.isNosig:
-            return "NOSIG"
-        
-        # Use common weather element helper
-        weatherPart = self.composeWeather()
-        
-        messages = [self.type]
-        if self.atChecked or self.fmChecked or self.tlChecked:
-            if self.fmChecked and self.tlChecked:
-                # Range period: FMHHMM TLHHMM
-                parts = self.period.split('/')
-                if len(parts) == 2:
-                    messages.append(f"FM{parts[0]} TL{parts[1]}")
-            else:
-                # Single prefix: AT, FM, or TL
-                prefix = ""
-                if self.atChecked: prefix = "AT"
-                elif self.fmChecked: prefix = "FM"
-                elif self.tlChecked: prefix = "TL"
-                messages.append(f"{prefix}{self.period}")
-        
-        messages.append(weatherPart)
-        return " ".join(filter(None, messages))
-
-    def clear(self):
-        super().clear()
-        self.isNosig = False
-        self.atChecked = False
-        self.fmChecked = False
-        self.tlChecked = False
-        self.period = ""
-
-
-class TafValidator(object):
-
-    @staticmethod
-    def checkWeather(state):
-        weather = state.weather
-        weatherWithIntensity = state.weatherWithIntensity
-        if not weather or not weatherWithIntensity:
-            return None
-
-        if 'TS' in weather and ('TS' in weatherWithIntensity or 'RA' in weatherWithIntensity):
-            return QCoreApplication.translate('Editor', 'Weather phenomena conflict')
-
-        return None
-
-    @staticmethod
-    def checkGust(state):
-        wind = state.wind
-        gust = state.gust
-        if not wind or not gust or gust == 'P49':
-            return None
-
-        windSpeed = wind[-2:]
-        if int(windSpeed) == 0 or int(gust) - int(windSpeed) < 5:
-            return QCoreApplication.translate('Editor', 'Gust speed must be greater than wind speed by at least 5')
-
-        return None
-
-    @staticmethod
-    def checkCloud(state, lineValue):
-        if not lineValue:
-            return None
-
-        height = lineValue[3:]
-        allClouds = list(filter(None, state.clouds + ([state.cb] if state.cb else [])))
-        # Filter out the current line value from the comparison list to avoid self-conflict
-        otherClouds = [c for c in allClouds if c != lineValue]
-        cloudHeights = [cloud[3:6] for cloud in otherClouds]
-        
-        if cloudHeights.count(height) > 0:
-            return QCoreApplication.translate(
-                'Editor',
-                'Cloud cover with different oktas should not at the same height'
-            )
-
-        cloudCover = {'FEW': 1, 'SCT': 3, 'BKN': 5, 'OVC': 8}
-        if state.cb:
-            cbCover = cloudCover.get(state.cb[:3], 0)
-            cbHeight = state.cb[3:6]
-            for cloud in otherClouds:
-                cover = cloudCover.get(cloud[:3], 0)
-                if cbHeight == cloud[3:6] and cbCover + cover > 8:
-                    return QCoreApplication.translate(
-                        'Editor',
-                        'Cloud cover cannot be more than 8 oktas at the same height'
-                    )
-
-        orderedClouds = sorted(allClouds, key=lambda cloud: int(cloud[3:6]) if cloud[3:6].isdigit() else 0)
-        covers = [cloud[:3] for cloud in orderedClouds]
-        if 'OVC' in covers:
-            index = covers.index('OVC')
-            if index + 1 < len(covers):
-                return QCoreApplication.translate('Editor', 'No clouds should above overcast clouds')
-
-        return None
-
-    @staticmethod
-    def checkGroupPeriod(groupState, primaryState, span, isBecmg=False):
-        if not groupState.period or not primaryState.period:
-            return None
-
-        start, end = groupState.durations
-        primaryStart, primaryEnd = primaryState.durations
-
-        if end - start > datetime.timedelta(hours=span):
-            return QCoreApplication.translate('Editor', 'Change group time more than {} hours').format(span)
-
-        if start < primaryStart or primaryEnd < start:
-            return QCoreApplication.translate('Editor', 'Start time of change group is not corret')
-
-        if end < primaryStart or primaryEnd < end or (isBecmg and end == primaryEnd):
-            return QCoreApplication.translate('Editor', 'End time of change group is not corret')
-
-        return None
-
-    @staticmethod
-    def checkGroupOverlap(groupState, siblings):
-        if groupState.durations is None:
-            return None
-
-        for sibling in siblings:
-            if sibling.durations and isOverlap(groupState.durations, sibling.durations):
-                return QCoreApplication.translate('Editor', 'Change group time is overlap')
-
-        return None
-
-    @staticmethod
-    def checkFmPeriod(groupState, primaryState):
-        if groupState.durations is None or primaryState.durations is None:
-            return None
-
-        start, _ = groupState.durations
-        primaryStart, primaryEnd = primaryState.durations
-
-        if start < primaryStart or primaryEnd <= start:
-            return QCoreApplication.translate('Editor', 'Time of change group is not corret')
-
-        return None
-
-    @staticmethod
-    def checkFmOverlap(groupState, siblings):
-        if groupState.durations is None:
-            return None
-
-        time = groupState.durations[0]
-        for sibling in siblings:
-            if sibling.durations and sibling.durations[0] <= time <= sibling.durations[1]:
-                return QCoreApplication.translate('Editor', 'Change group time is overlap')
-
-        return None
-
-    @staticmethod
-    def checkTemperatureTime(tempState, primaryDurations, siblings=None, sameTypeSiblings=None):
-        if not tempState.time:
-            return None
-
-        text = QCoreApplication.translate('Editor', 'The time of temperature is not corret')
-        if primaryDurations is None:
-            return text
-
-        try:
-            # Re-calculating time from tempState.time (DDHH)
-            time = parseDayHour(tempState.time[:2], tempState.time[2:], primaryDurations[0], delta='month')
-        except Exception:
-            return text
-
-        siblings = siblings or []
-        sameTypeSiblings = sameTypeSiblings or []
-        valid = primaryDurations[0] <= time <= primaryDurations[1] and time not in siblings
-
-        for sibling in sameTypeSiblings:
-            if sibling.day == time.day:
-                valid = False
-
-        if not valid:
-            return text
-
-        return None
-
-    @staticmethod
-    def checkTemperature(tempState, referenceValue):
-        if not tempState.value:
-            return None
-
-        temperature = parseTemperature(tempState.value)
-        if tempState.mode == 'max':
-            if referenceValue is not None and temperature <= referenceValue:
-                return QCoreApplication.translate('Editor', 'The maximum temperature needs to be greater than the minimum temperature')
-        elif tempState.mode == 'min':
-            if referenceValue is not None and referenceValue <= temperature:
-                return QCoreApplication.translate('Editor', 'The minimum temperature needs to be less than the maximum temperature')
-
-        return None
-
-class TrendValidator(object):
-
-    @staticmethod
-    def checkPeriod(value, now=None):
-        if not value:
-            return None
-
-        if now is None:
-            now = datetime.datetime.utcnow()
-
-        delta = datetime.timedelta(hours=2, minutes=30)
-        periods = [parseTime(text) for text in value.split('/')]
-        errorInfo = QCoreApplication.translate('Editor', 'Trend valid time is not corret')
-
-        if len(periods) == 2:
-            if periods[1] <= periods[0]:
-                periods[1] = periods[1] + datetime.timedelta(days=1)
-
-            if periods[1] - periods[0] > datetime.timedelta(hours=2):
-                return errorInfo
-
-        for time in periods:
-            if (time - delta) > now:
-                return errorInfo
-
-        return None
+def _translate(code, **kwargs):
+    messages = {
+        TafValidator.WEATHER_CONFLICT: QCoreApplication.translate(
+            'Editor', 'Weather phenomena conflict'),
+        TafValidator.GUST_SPEED_INSUFFICIENT: QCoreApplication.translate(
+            'Editor', 'Gust speed must be greater than wind speed by at least 5'),
+        TafValidator.CLOUD_HEIGHT_CONFLICT: QCoreApplication.translate(
+            'Editor', 'Cloud cover with different oktas should not at the same height'),
+        TafValidator.CLOUD_OKTAS_EXCEED: QCoreApplication.translate(
+            'Editor', 'Cloud cover cannot be more than 8 oktas at the same height'),
+        TafValidator.CLOUD_ABOVE_OVC: QCoreApplication.translate(
+            'Editor', 'No clouds should above overcast clouds'),
+        TafValidator.GROUP_PERIOD_EXCEED: QCoreApplication.translate(
+            'Editor', 'Change group time more than {span} hours').format(kwargs.get('span', '')),
+        TafValidator.GROUP_START_INVALID: QCoreApplication.translate(
+            'Editor', 'Start time of change group is not corret'),
+        TafValidator.GROUP_END_INVALID: QCoreApplication.translate(
+            'Editor', 'End time of change group is not corret'),
+        TafValidator.GROUP_OVERLAP: QCoreApplication.translate(
+            'Editor', 'Change group time is overlap'),
+        TafValidator.FM_TIME_INVALID: QCoreApplication.translate(
+            'Editor', 'Time of change group is not corret'),
+        TafValidator.TEMP_TIME_INVALID: QCoreApplication.translate(
+            'Editor', 'The time of temperature is not corret'),
+        TafValidator.TEMP_MAX_LESS_MIN: QCoreApplication.translate(
+            'Editor', 'The maximum temperature needs to be greater than the minimum temperature'),
+        TafValidator.TEMP_MIN_GREATER_MAX: QCoreApplication.translate(
+            'Editor', 'The minimum temperature needs to be less than the maximum temperature'),
+        TrendValidator.TREND_TIME_INVALID: QCoreApplication.translate(
+            'Editor', 'Trend valid time is not corret'),
+    }
+    return messages.get(code, code)
 
 
 class SegmentMixin(object):
@@ -673,18 +280,18 @@ class BaseSegment(SegmentMixin, QWidget):
         error = TafValidator.checkWeather(self.state)
         if error:
             line.setCurrentIndex(-1)
-            self.context.flash.editor(self.editorname(), error)
+            self.context.flash.editor(self.editorname(), _translate(error))
 
     def validateGust(self):
         error = TafValidator.checkGust(self.state)
         if error:
             self.gust.clear()
-            self.context.flash.editor(self.editorname(), error)
+            self.context.flash.editor(self.editorname(), _translate(error))
 
     def validateCloud(self, line):
         error = TafValidator.checkCloud(self.state, line.text())
         if error:
-            self.context.flash.editor(self.editorname(), error)
+            self.context.flash.editor(self.editorname(), _translate(error))
             line.clear()
             return
 
@@ -806,7 +413,7 @@ class TemperatureGroup(SegmentMixin, QWidget):
         if error:
             self.state.time = ""
             self.tempTime.clear()
-            self.context.flash.editor('taf', error)
+            self.context.flash.editor('taf', _translate(error))
             return
 
         # Time normalization can stay in UI or move to state, keep here for now as it affects UI text
@@ -826,7 +433,7 @@ class TemperatureGroup(SegmentMixin, QWidget):
         if error:
             self.state.value = ""
             self.temp.clear()
-            self.context.flash.editor('taf', error)
+            self.context.flash.editor('taf', _translate(error))
             return
 
     def switchMode(self):
@@ -1219,7 +826,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         )
         if error:
             self.period.clear()
-            self.context.flash.editor('taf', error)
+            self.context.flash.editor('taf', _translate(error, span=self.span()))
 
     def validateGroupsPeriod(self):
         groups = self.parent.parent.tempos if self.identifier.startswith('TEMPO') else self.parent.parent.becmgs
@@ -1227,7 +834,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         error = TafValidator.checkGroupOverlap(self.state, siblings)
         if error:
             self.period.clear()
-            self.context.flash.editor('taf', error)
+            self.context.flash.editor('taf', _translate(error))
 
     def hasAcceptableInput(self):
         return self.state.isAcceptable()
@@ -1270,14 +877,14 @@ class TafFmSegment(TafGroupSegment):
         error = TafValidator.checkFmPeriod(self.state, self.parent.state)
         if error:
             self.period.clear()
-            self.context.flash.editor('taf', error)
+            self.context.flash.editor('taf', _translate(error))
 
     def validateGroupsPeriod(self):
         siblings = [g.state for g in self.parent.parent.becmgs if g.isVisible() and g.state and self != g]
         error = TafValidator.checkFmOverlap(self.state, siblings)
         if error:
             self.period.clear()
-            self.context.flash.editor('taf', error)
+            self.context.flash.editor('taf', _translate(error))
 
     def message(self):
         return self.state.composeMessage()
@@ -1518,7 +1125,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         error = TrendValidator.checkPeriod(self.period.text(), now=datetime.datetime.utcnow())
         if error:
             self.period.clear()
-            self.context.flash.editor('trend', error)
+            self.context.flash.editor('trend', _translate(error))
 
     def updateAtStatus(self):
         if self.tempo.isChecked():
