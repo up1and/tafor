@@ -11,13 +11,29 @@ from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QToolButton
 from tafor.core.models import Sigmet, db
 from tafor.core.parsers.base import Pattern
 from tafor.core.parsers.sigmet import AshAdvisoryParser, TyphoonAdvisoryParser
-from tafor.core.utils.geo import calcPosition, decimalToDegree, degreeToDecimal
+from tafor.core.sigmet import (SigmetAshState, SigmetCancelState, SigmetCustomState, SigmetGeneralState,
+    SigmetTyphoonState, SigmetValidator)
+from tafor.core.utils.geo import decimalToDegree
 from tafor.core.utils.query import SigmetFilter
 from tafor.core.utils.time import ceilTime, parseTime, roundTime
 from tafor.ui.qt import Ui_sigmet_ash, Ui_sigmet_cancel, Ui_sigmet_custom, Ui_sigmet_general, Ui_sigmet_typhoon, main_rc
 from tafor.ui.widgets.taf import SegmentMixin
 
 logger = logging.getLogger('tafor.sigmet.information')
+
+
+def _translate(code, **kwargs):
+    messages = {
+        SigmetValidator.START_TOO_FAR: QCoreApplication.translate(
+            'Editor', 'Start time cannot be less than the current time'),
+        SigmetValidator.END_NOT_GREATER: QCoreApplication.translate(
+            'Editor', 'Ending time must be greater than the beginning time'),
+        SigmetValidator.PERIOD_TOO_LONG: QCoreApplication.translate(
+            'Editor', 'Valid period more than {} hours').format(kwargs.get('hours', '')),
+        SigmetValidator.FLIGHT_LEVEL_INVALID: QCoreApplication.translate(
+            'Editor', 'The top flight level needs to be greater than the base flight level'),
+    }
+    return messages.get(code, code)
 
 
 class BaseSigmet(SegmentMixin, QWidget):
@@ -35,6 +51,7 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.span = 4
         self.forecastMode = False
         self.mode = 'polygon'
+        self.state = None
 
         self.setupUi(self)
         self.switchButton = QToolButton(self)
@@ -98,26 +115,22 @@ class BaseSigmet(SegmentMixin, QWidget):
         return start, end
 
     def validatePeriod(self):
-        if self.durations is None:
-            return
+        error = SigmetValidator.validatePeriod(self.durations, self.span)
+        if error:
+            code = error[0] if isinstance(error, tuple) else error
+            if code == SigmetValidator.START_TOO_FAR:
+                self.beginningTime.clear()
+            elif code in (SigmetValidator.END_NOT_GREATER, SigmetValidator.PERIOD_TOO_LONG):
+                self.endingTime.clear()
+            self.context.flash.editor('sigmet', _translate(error))
 
-        start, end = self.durations
-        time = datetime.datetime.utcnow()
-
-        if start - time > datetime.timedelta(hours=24):
-            self.beginningTime.clear()
-            self.context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'Start time cannot be less than the current time'))
-            return
-
-        if end <= start:
-            self.endingTime.clear()
-            self.context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'Ending time must be greater than the beginning time'))
-            return
-
-        if end - start > datetime.timedelta(hours=self.span):
-            self.endingTime.clear()
-            self.context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'Valid period more than {} hours').format(self.span))
-            return
+    def syncToState(self):
+        self.state.header.area = self.conf.firName.split()[0] if self.conf.firName else ''
+        self.state.header.sign = self.parent.reportType()
+        self.state.header.sequence = self.sequence.text()
+        self.state.header.beginningTime = self.beginningTime.text()
+        self.state.header.endingTime = self.endingTime.text()
+        self.state.header.icao = self.conf.airport
 
     def validate(self):
         self.validatePeriod()
@@ -128,6 +141,7 @@ class BaseSigmet(SegmentMixin, QWidget):
 
     def setLocationMode(self, mode):
         self.mode = mode
+        self.state.mode = mode
 
     def setupValidator(self):
         date = QRegExpValidator(QRegExp(self.rules.date))
@@ -171,7 +185,7 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.sequence.setText(str(count))
 
     def hasAcceptableInput(self):
-        raise NotImplementedError
+        return self.state.isAcceptable()
 
     def hasForecastMode(self):
         return self.forecastMode
@@ -180,19 +194,11 @@ class BaseSigmet(SegmentMixin, QWidget):
         return self.parent.type
 
     def firstLine(self):
-        fir = self.conf.firName
-        area = fir.split()[0] if fir else ''
-        sign = self.parent.reportType()
-        sequence = self.sequence.text()
-        beginningTime = self.beginningTime.text()
-        endingTime = self.endingTime.text()
-        icao = self.conf.airport
-
-        text = '{} {} {} VALID {}/{} {}-'.format(area, sign, sequence, beginningTime, endingTime, icao)
-        return text
+        return self.state.header.compose()
 
     def clear(self):
         self.durations = None
+        self.state.clear()
         self.beginningTime.clear()
         self.endingTime.clear()
         self.sequence.clear()
@@ -203,8 +209,17 @@ class FlightLevelMixin(object):
     def bindSignal(self):
         super().bindSignal()
         self.format.currentTextChanged.connect(self.setFlightLevel)
+        self.format.currentTextChanged.connect(self.syncToState)
+        self.base.textChanged.connect(self.syncToState)
+        self.top.textChanged.connect(self.syncToState)
         self.base.editingFinished.connect(lambda: self.validateBaseTop(self.base))
         self.top.editingFinished.connect(lambda: self.validateBaseTop(self.top))
+
+    def syncToState(self):
+        super().syncToState()
+        self.state.flightLevelFormat = self.format.currentText()
+        self.state.flightLevelBase = self.base.text()
+        self.state.flightLevelTop = self.top.text()
 
     def setupValidator(self):
         super(FlightLevelMixin, self).setupValidator()
@@ -236,41 +251,10 @@ class FlightLevelMixin(object):
         if not (self.base.isEnabled() and self.top.isEnabled()):
             return
 
-        base = self.base.text()
-        top = self.top.text()
-        if base and top:
-            if int(top) <= int(base):
-                line.clear()
-                self.context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'The top flight level needs to be greater than the base flight level'))
-
-    def flightLevel(self):
-        format = self.format.currentText()
-        base = self.base.text()
-        top = self.top.text()
-
-        if base:
-            base = str(int(base)).zfill(3)
-
-        if top:
-            top = str(int(top)).zfill(3)
-
-        if not format:
-            if base and top:
-                text = 'FL{}/{}'.format(base, top) if all([top, base]) else ''
-            else:
-                text = base if base else top
-                text = 'FL{}'.format(text) if text else ''
-
-        if format in ['TOP', 'TOP ABV', 'BLW']:
-            text = '{} FL{}'.format(format, top) if top else ''
-
-        if format == 'ABV':
-            text = 'ABV FL{}'.format(base) if base else ''
-
-        if format == 'SFC':
-            text = 'SFC/FL{}'.format(top) if top else ''
-
-        return text
+        error = SigmetValidator.validateFlightLevel(self.base.text(), self.top.text())
+        if error:
+            line.clear()
+            self.context.flash.editor('sigmet', _translate(error))
 
     def clear(self):
         super().clear()
@@ -283,6 +267,14 @@ class MovementMixin(object):
     def bindSignal(self):
         super().bindSignal()
         self.direction.currentTextChanged.connect(self.setSpeed)
+        self.direction.currentTextChanged.connect(self.syncToState)
+        self.speed.textChanged.connect(self.syncToState)
+
+    def syncToState(self):
+        super().syncToState()
+        self.state.direction = self.direction.currentText()
+        self.state.unit = 'KT' if self.conf.unit == 'imperial' else 'KMH'
+        self.state.speed = self.speed.text() if self.speed.hasAcceptableInput() else ''
 
     def setupValidator(self):
         super(MovementMixin, self).setupValidator()
@@ -298,26 +290,6 @@ class MovementMixin(object):
             self.speed.setEnabled(True)
             self.speedLabel.setEnabled(True)
 
-    def moveState(self):
-        movement = self.direction.currentText()
-        if movement == 'STNR':
-            return movement
-
-        if not self.speed.hasAcceptableInput():
-            return
-
-        movement = self.direction.currentText()
-        unit = 'KT' if self.conf.unit == 'imperial' else 'KMH'
-        speed = int(self.speed.text()) if self.speed.text() else ''
-
-        text = 'MOV {movement} {speed}{unit}'.format(
-                movement=movement,
-                speed=speed,
-                unit=unit
-            )
-
-        return text
-
     def clear(self):
         super().clear()
         self.direction.setCurrentIndex(0)
@@ -330,6 +302,13 @@ class ObservationMixin(object):
         super().bindSignal()
         self.comeFrom.currentTextChanged.connect(self.updateObservation)
         self.beginningTime.textChanged.connect(self.updateObservation)
+        self.comeFrom.currentTextChanged.connect(self.syncToState)
+        self.observedTime.textChanged.connect(self.syncToState)
+
+    def syncToState(self):
+        super().syncToState()
+        self.state.comeFrom = self.comeFrom.currentText()
+        self.state.observedTime = self.observedTime.text() if self.observedTime.hasAcceptableInput() else ''
 
     def setupValidator(self):
         super(ObservationMixin, self).setupValidator()
@@ -346,15 +325,6 @@ class ObservationMixin(object):
             if self.beginningTime.text()[2:] == self.observedTime.text():
                 self.observedTime.clear()
 
-    def observationText(self):
-        if self.comeFrom.currentText() == 'OBS':
-            text = 'OBS AT {}Z'.format(self.observedTime.text()) if self.observedTime.hasAcceptableInput() else ''
-        else:
-            text = '{} AT {}Z'.format(self.comeFrom.currentText(), 
-                self.observedTime.text()) if self.observedTime.hasAcceptableInput() else self.comeFrom.currentText()
-
-        return text
-
     def clear(self):
         super().clear()
         self.observedTime.clear()
@@ -365,6 +335,11 @@ class ForecastMixin(object):
 
     def bindSignal(self):
         super().bindSignal()
+        self.forecastTime.textChanged.connect(self.syncToState)
+
+    def syncToState(self):
+        super().syncToState()
+        self.state.forecastTime = self.forecastTime.text()
 
     def setupValidator(self):
         super(ForecastMixin, self).setupValidator()
@@ -394,10 +369,7 @@ class ForecastMixin(object):
             self.forecastMode = False
             if hasattr(self, 'finalPositionGroup'):
                 self.finalPositionGroup.setEnabled(False)
-
-    def forecastText(self):
-        text = 'FCST AT {}Z'.format(self.forecastTime.text())
-        return text
+        self.state.forecastMode = self.forecastMode
 
     def clear(self):
         super().clear()
@@ -553,6 +525,7 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
 
     def __init__(self, parent=None, conf=None, context=None):
         super().__init__(parent, conf=conf, context=context)
+        self.state = SigmetGeneralState()
         self.setPhenomenaDescription()
         self.setPhenomena()
         self.setFcstOrObs()
@@ -562,6 +535,15 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
         super().bindSignal()
         self.description.currentTextChanged.connect(self.setPhenomena)
         self.phenomenon.currentTextChanged.connect(self.setFlightLevelFormat)
+        self.description.currentTextChanged.connect(self.syncToState)
+        self.phenomenon.currentTextChanged.connect(self.syncToState)
+        self.intensityChange.currentTextChanged.connect(self.syncToState)
+
+    def syncToState(self):
+        super().syncToState()
+        self.state.description = self.description.currentText()
+        self.state.phenomenon = self.phenomenon.currentText()
+        self.state.intensityChange = self.intensityChange.currentText()
 
     def setPhenomenaDescription(self):
         descriptions = ['OBSC', 'EMBD', 'FRQ', 'SQL', 'SEV', 'HVY', 'RDOACT']
@@ -598,52 +580,8 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
             self.format.addItems(formats)
             self.format.setCurrentIndex(-1)
 
-    def hasAcceptableInput(self):
-        mustRequired = [
-            self.beginningTime.hasAcceptableInput(),
-            self.endingTime.hasAcceptableInput(),
-            self.sequence.hasAcceptableInput(),
-        ]
-
-        if self.comeFrom.currentText() == 'OBS':
-            mustRequired.append(self.observedTime.hasAcceptableInput())
-
-        if self.base.isEnabled():
-            mustRequired.append(self.base.hasAcceptableInput())
-
-        if self.top.isEnabled():
-            mustRequired.append(self.top.hasAcceptableInput())
-
-        if self.hasForecastMode():
-            mustRequired.append(self.forecastTime.hasAcceptableInput())
-        else:
-            mustRequired.append(self.moveState())
-
-        return all(mustRequired)
-
-    def hazard(self):
-        items = [self.description.currentText(), self.phenomenon.currentText()]
-        text = ' '.join(items) if all(items) else ''
-        return text
-
     def message(self):
-        fir = self.conf.firName
-        hazard = self.hazard()
-        observation = self.observationText()
-        flightLevel = self.flightLevel()
-        moveState = self.moveState()
-        intensityChange = self.intensityChange.currentText()
-
-        items = [fir, hazard, observation, '{location}', flightLevel]
-
-        if self.hasForecastMode():
-            forecast = self.forecastText()
-            items += [intensityChange, forecast, '{forecastLocation}']
-        else:
-            items += [moveState, intensityChange]
-
-        content = ' '.join(filter(None, items))
-        return '\n'.join([self.firstLine(), content])
+        return self.state.composeMessage(self.conf.firName)
 
     def clear(self):
         super().clear()
@@ -660,6 +598,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
 
     def __init__(self, parent, conf=None, context=None):
         super().__init__(parent, conf=conf, context=context)
+        self.state = SigmetTyphoonState()
         self.setPhenomena()
         self.setFcstOrObs()
         self.advisoryParser = TyphoonAdvisoryParser
@@ -705,6 +644,29 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         self.beginningTime.textEdited.connect(self.updateForecastPosition)
         self.observedTime.textEdited.connect(self.updateForecastPosition)
         self.endingTime.textChanged.connect(self.setForecastTime)
+
+        self.phenomenon.currentTextChanged.connect(self.syncToState)
+        self.name.textChanged.connect(self.syncToState)
+        self.currentLatitude.textChanged.connect(self.syncToState)
+        self.currentLongitude.textChanged.connect(self.syncToState)
+        self.forecastLatitude.textChanged.connect(self.syncToState)
+        self.forecastLongitude.textChanged.connect(self.syncToState)
+        self.radius.textChanged.connect(self.syncToState)
+        self.top.textChanged.connect(self.syncToState)
+        self.intensityChange.currentTextChanged.connect(self.syncToState)
+
+    def syncToState(self):
+        super().syncToState()
+        self.state.phenomenon = self.phenomenon.currentText()
+        self.state.name = self.name.text()
+        self.state.currentLatitude = self.currentLatitude.text() if self.currentLatitude.hasAcceptableInput() else ''
+        self.state.currentLongitude = self.currentLongitude.text() if self.currentLongitude.hasAcceptableInput() else ''
+        self.state.forecastLatitude = self.forecastLatitude.text() if self.forecastLatitude.hasAcceptableInput() else ''
+        self.state.forecastLongitude = self.forecastLongitude.text() if self.forecastLongitude.hasAcceptableInput() else ''
+        self.state.radius = self.radius.text() if self.radius.hasAcceptableInput() else ''
+        self.state.top = self.top.text() if self.top.hasAcceptableInput() else ''
+        self.state.intensityChange = self.intensityChange.currentText()
+        self.state.mode = self.mode
 
     def setupValidator(self):
         super(SigmetTyphoon, self).setupValidator()
@@ -765,60 +727,14 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
             self.radius.clear()
 
     def updateForecastPosition(self):
-        mustRequired = [
-            self.currentLatitude.hasAcceptableInput(),
-            self.currentLongitude.hasAcceptableInput(),
-            self.speed.hasAcceptableInput(),
-            self.forecastTime.hasAcceptableInput(),
-        ]
-
-        anyRequired = [
-            self.observedTime.hasAcceptableInput(),
-            self.beginningTime.hasAcceptableInput(),
-        ]
-
-        if not (all(mustRequired) and any(anyRequired)):
-            return
-
-        movement = self.direction.currentText()
-
-        if movement == 'STNR':
+        positons = self.state.calcForecastPosition()
+        if positons:
+            forecastLatitude, forecastLongitude = positons
+            self.forecastLatitude.setText(forecastLatitude)
+            self.forecastLongitude.setText(forecastLongitude)
+        else:
             self.forecastLatitude.clear()
             self.forecastLongitude.clear()
-            return
-
-        directions = {
-            'N': 0,
-            'NNE': 22.5,
-            'NE': 45,
-            'ENE': 67.5,
-            'E': 90,
-            'ESE': 112.5,
-            'SE': 135,
-            'SSE': 157.5,
-            'S': 180,
-            'SSW': 202.5,
-            'SW': 225,
-            'WSW': 247.5,
-            'W': 270,
-            'WNW': 292.5,
-            'NW': 315,
-            'NNW': 337.5
-        }
-        observedTime = self.observedTime.text() if self.observedTime.hasAcceptableInput() else ''
-        beginningTime = self.beginningTime.text()[2:] if self.beginningTime.hasAcceptableInput() else ''
-        fcstTime = self.forecastTime.text()
-
-        time = self.moveTime(observedTime or beginningTime, fcstTime).seconds
-        degree = directions[movement]
-        speed = self.speed.text()
-        latitude = self.currentLatitude.text()
-        longitude = self.currentLongitude.text()
-
-        forecastLatitude, forecastLongitude = calcPosition(latitude, longitude, speed, time, degree)
-        self.forecastLatitude.setText(forecastLatitude)
-        self.forecastLongitude.setText(forecastLongitude)
-
         self.handleCircleChange()
 
     def applyAdvisoryData(self):
@@ -936,115 +852,12 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
                     collections['features'].append(final)
             self.circleChanged.emit(collections)
 
-    def hazard(self):
-        items = [self.phenomenon.currentText(), self.name.text()]
-        text = ' '.join(items) if all(items) else ''
-        return text
-
     def circle(self, location):
-        feature = {
-            'type': 'Feature',
-            'properties': {
-                'location': location
-            }
-        }
-        geometry = {}
-        if location == 'initial':
-            if self.currentLatitude.hasAcceptableInput() and self.currentLongitude.hasAcceptableInput():
-                geometry = {
-                    'type': 'Point',
-                    'coordinates': (degreeToDecimal(self.currentLongitude.text()), degreeToDecimal(self.currentLatitude.text()))
-                }
-        else:
-            if self.forecastLatitude.hasAcceptableInput() and self.forecastLongitude.hasAcceptableInput():
-                geometry = {
-                    'type': 'Point',
-                    'coordinates': (degreeToDecimal(self.forecastLongitude.text()), degreeToDecimal(self.forecastLatitude.text()))
-                }
-
-        if geometry and self.radius.hasAcceptableInput():
-            feature['geometry'] = geometry
-            feature['properties']['radius'] = int(self.radius.text())
-        else:
-            feature = {}
-        
-        return feature
-
-    def moveTime(self, start, end):
-        return parseTime(end) - parseTime(start)
-
-    def forecastPosition(self):
-        required = self.forecastTime.hasAcceptableInput() and self.forecastLatitude.hasAcceptableInput() \
-            and self.forecastLongitude.hasAcceptableInput()
-
-        if not required:
-            return
-
-        text = 'FCST AT {forecastTime}Z TC CENTRE PSN {forecastLatitude} {forecastLongitude}'.format(
-                forecastTime=self.forecastTime.text(),
-                forecastLatitude=self.forecastLatitude.text(),
-                forecastLongitude=self.forecastLongitude.text()
-            )
-
-        return text
-
-    def flightLevel(self):
-        return 'TOP FL{}'.format(self.top.text())
+        return self.state.circleFeature(location)
 
     def message(self):
-        fir = self.conf.firName
-        hazard = self.hazard()
-        position = 'PSN {latitude} {Longitude} CB {observation}'.format(
-            latitude=self.currentLatitude.text(),
-            Longitude=self.currentLongitude.text(),
-            observation=self.observationText()
-        )
-        flightLevel = self.flightLevel()
-        moveState = self.moveState()
-        intensityChange = self.intensityChange.currentText()
-        forecastPosition = self.forecastPosition()
-
-        if self.mode == 'circle':
-            location = 'WI {radius}{unit} OF TC CENTRE'.format(
-                radius=int(self.radius.text()),
-                unit='KM'
-            )
-        else:
-            location = '{location}'
-
-        items = [fir, hazard, position, location, flightLevel]
-
-        if forecastPosition:
-            items += [intensityChange, forecastPosition]
-        else:
-            items += [moveState, intensityChange]
-
-        content = ' '.join(filter(None, items))
-        return '\n'.join([self.firstLine(), content])
-
-    def hasAcceptableInput(self):
-        mustRequired = [
-            self.beginningTime.hasAcceptableInput(),
-            self.endingTime.hasAcceptableInput(),
-            self.sequence.hasAcceptableInput(),
-            self.name.text(),
-            self.currentLatitude.hasAcceptableInput(),
-            self.currentLongitude.hasAcceptableInput(),
-            self.top.hasAcceptableInput()
-        ]
-
-        if self.mode == 'circle':
-            mustRequired.append(self.radius.hasAcceptableInput())
-
-        if self.hasForecastMode():
-            mustRequired.append(self.forecastTime.hasAcceptableInput() and self.forecastLatitude.hasAcceptableInput() and self.forecastLongitude.hasAcceptableInput())
-        else:
-            mustRequired.append(self.moveState())
-
-        if self.comeFrom.currentText() == 'OBS':
-            mustRequired.append(self.observedTime.hasAcceptableInput())
-
-        return all(mustRequired)
+        self.state.forecastMode = self.hasForecastMode()
+        return self.state.composeMessage(self.conf.firName)
 
     def clear(self):
         super().clear()
@@ -1060,6 +873,7 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
 
     def __init__(self, parent=None, conf=None, context=None):
         super().__init__(parent, conf=conf, context=context)
+        self.state = SigmetAshState()
         self.setPhenomena()
         self.setFcstOrObs()
         self.advisoryParser = AshAdvisoryParser
@@ -1098,6 +912,20 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
     def bindSignal(self):
         super().bindSignal()
         self.phenomenon.currentTextChanged.connect(self.setEruptionOrCloud)
+        self.phenomenon.currentTextChanged.connect(self.syncToState)
+        self.name.textChanged.connect(self.syncToState)
+        self.currentLatitude.textChanged.connect(self.syncToState)
+        self.currentLongitude.textChanged.connect(self.syncToState)
+        self.intensityChange.currentTextChanged.connect(self.syncToState)
+
+    def syncToState(self):
+        super().syncToState()
+        self.state.phenomenon = self.phenomenon.currentText()
+        self.state.name = self.name.text()
+        self.state.currentLatitude = self.currentLatitude.text() if self.currentLatitude.hasAcceptableInput() else ''
+        self.state.currentLongitude = self.currentLongitude.text() if self.currentLongitude.hasAcceptableInput() else ''
+        self.state.intensityChange = self.intensityChange.currentText()
+        self.state.isEruption = self.name.isEnabled()
 
     def setupValidator(self):
         super(SigmetAsh, self).setupValidator()
@@ -1186,70 +1014,10 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         collections['features'] = locations
         self.locationChanged.emit(collections)
 
-    def hazard(self):
-        items = ['VA', self.phenomenon.currentText()]
-        if self.name.isEnabled() and self.name.text():
-            items += ['MT', self.name.text()]
-        text = ' '.join(items) if all(items) else ''
-        return text
-
-    def hasAcceptableInput(self):
-        mustRequired = [
-            self.beginningTime.hasAcceptableInput(),
-            self.endingTime.hasAcceptableInput(),
-            self.sequence.hasAcceptableInput(),
-        ]
-
-        if self.comeFrom.currentText() == 'OBS':
-            mustRequired.append(self.observedTime.hasAcceptableInput())
-
-        if self.base.isEnabled():
-            mustRequired.append(self.base.hasAcceptableInput())
-
-        if self.top.isEnabled():
-            mustRequired.append(self.top.hasAcceptableInput())
-
-        if self.hasForecastMode():
-            mustRequired.append(self.forecastTime.hasAcceptableInput())
-        else:
-            mustRequired.append(self.moveState())
-
-        if self.currentLongitude.isEnabled() and self.currentLatitude.isEnabled():
-            mustRequired.append(self.currentLongitude.hasAcceptableInput())
-            mustRequired.append(self.currentLatitude.hasAcceptableInput())
-
-        return all(mustRequired)
-
     def message(self):
-        fir = self.conf.firName
-        hazard = self.hazard()
-        observation = self.observationText()
-        flightLevel = self.flightLevel()
-        moveState = self.moveState()
-        intensityChange = self.intensityChange.currentText()
-
-        if self.currentLongitude.isEnabled() and self.currentLatitude.isEnabled():
-            position = 'PSN {latitude} {Longitude} VA CLD {observation}'.format(
-                    latitude=self.currentLatitude.text(),
-                    Longitude=self.currentLongitude.text(),
-                    observation=observation,
-                )
-        else:
-            position = self.observationText()
-
-        items = [fir, hazard, position, '{location}', flightLevel]
-        if self.hasForecastMode():
-            forecast = self.forecastText()
-            items += [forecast, '{forecastLocation}']
-
-        if self.hasForecastMode():
-            forecast = self.forecastText()
-            items += [intensityChange, forecast, '{forecastLocation}']
-        else:
-            items += [moveState, intensityChange]
-
-        content = ' '.join(filter(None, items))
-        return '\n'.join([self.firstLine(), content])
+        self.state.isEruption = self.name.isEnabled()
+        self.state.forecastMode = self.hasForecastMode()
+        return self.state.composeMessage(self.conf.firName)
 
     def clear(self):
         super().clear()
@@ -1289,12 +1057,25 @@ class AirmetGeneral(SigmetGeneral):
 
 class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
+    def __init__(self, parent, conf=None, context=None):
+        super().__init__(parent, conf=conf, context=context)
+        self.state = SigmetCancelState()
+
     def bindSignal(self):
         super().bindSignal()
         self.cancelBeginningTime.textChanged.connect(self.syncValidsTime)
         self.cancelEndingTime.textChanged.connect(self.syncValidsTime)
         self.cancelSequence.currentTextChanged.connect(self.setValids)
         self.cancelSequence.currentIndexChanged.connect(self.setValids)
+        self.cancelSequence.currentTextChanged.connect(self.syncToState)
+        self.cancelBeginningTime.textChanged.connect(self.syncToState)
+        self.cancelEndingTime.textChanged.connect(self.syncToState)
+
+    def syncToState(self):
+        super().syncToState()
+        self.state.cancelSequence = self.cancelSequence.currentText().strip()
+        self.state.cancelBeginningTime = self.cancelBeginningTime.text()
+        self.state.cancelEndingTime = self.cancelEndingTime.text()
 
     def setupValidator(self):
         super(SigmetCancel, self).setupValidator()
@@ -1305,29 +1086,8 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
         self.cancelBeginningTime.setValidator(date)
         self.cancelEndingTime.setValidator(date)
 
-    def hasAcceptableInput(self):
-        mustRequired = [
-            self.beginningTime.hasAcceptableInput(),
-            self.endingTime.hasAcceptableInput(),
-            self.sequence.hasAcceptableInput(),
-            self.cancelBeginningTime.hasAcceptableInput(),
-            self.cancelEndingTime.hasAcceptableInput(),
-            self.cancelSequence.lineEdit().hasAcceptableInput()
-        ]
-
-        return all(mustRequired)
-
     def message(self):
-        fir = self.conf.firName
-        cancel = 'CNL {} {} {}/{}'.format(
-            self.parent.reportType(),
-            self.cancelSequence.currentText().strip(),
-            self.cancelBeginningTime.text(),
-            self.cancelEndingTime.text()
-        )
-        items = [fir, cancel]
-        content = ' '.join(filter(None, items))
-        return '\n'.join([self.firstLine(), content])
+        return self.state.composeMessage(self.conf.firName)
 
     def syncValidsTime(self):
         if self.cancelEndingTime.hasAcceptableInput():
@@ -1387,6 +1147,7 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
 
     def __init__(self, parent, conf=None, context=None):
         super().__init__(parent, conf=conf, context=context)
+        self.state = SigmetCustomState()
         self.setupApiSign()
         self.upperTextEdit()
 
@@ -1394,6 +1155,11 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         super().bindSignal()
         self.text.textChanged.connect(self.filterText)
         self.text.textChanged.connect(lambda: self.contentChanged.emit())
+        self.text.textChanged.connect(self.syncToState)
+
+    def syncToState(self):
+        super().syncToState()
+        self.state.text = self.text.toPlainText().strip()
 
     def filterText(self):
         origin = self.text.toPlainText()
@@ -1411,21 +1177,8 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         upper.setFontCapitalization(QFont.AllUppercase)
         self.text.setCurrentCharFormat(upper)
 
-    def hasAcceptableInput(self):
-        mustRequired = [
-            self.beginningTime.hasAcceptableInput(),
-            self.endingTime.hasAcceptableInput(),
-            self.sequence.hasAcceptableInput(),
-            self.text.toPlainText().strip()
-        ]
-
-        return all(mustRequired)
-
     def message(self):
-        fir = self.conf.firName
-        items = [fir, self.text.toPlainText().strip()]
-        content = ' '.join(filter(None, items))
-        return '\n'.join([self.firstLine(), content])
+        return self.state.composeMessage(self.conf.firName)
 
     def componentUpdate(self):
         self.setupPlaceholder()
