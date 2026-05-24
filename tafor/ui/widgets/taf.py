@@ -8,7 +8,6 @@ from tafor.core.models import Taf, db
 from tafor.core.parsers.base import Pattern
 from tafor.core.taf import (GroupState, PrimaryState, SegmentState, TemperatureState, TrendState,
     TafValidator, TrendValidator, normalizeTemperatureTime, parseTemperature)
-from tafor.core.taf.validator import TafValidator, TrendValidator
 from tafor.core.utils.check import CurrentTaf
 from tafor.core.utils.time import parseDayHour, parsePeriod, parseTime
 from tafor.ui.qt import Ui_taf_group, Ui_taf_primary, Ui_trend, main_rc

@@ -38,48 +38,62 @@ from tafor.ui.widgets.table import AirmetTable, MetarTable, SigmetTable, TafTabl
 logger = logging.getLogger('tafor.main')
 
 
-class MainPresenter(QObject):
+class RemindService:
 
     def __init__(self, view, context, conf):
-        super(MainPresenter, self).__init__(view)
         self.view = view
         self.context = context
         self.conf = conf
-        self.setupTimers()
-        self.setupThreads()
 
-    def initialize(self):
-        self.worker()
-        self.painter()
-        self.updateSigmet()
-        self.updateTable()
-        self.updateRecent()
-        self.updateRegisterMenu()
+    def remindTaf(self):
+        remindSwitch = self.conf.remindTaf
+        if not remindSwitch or self.view.isReminderVisible(self.view.remindTafBox):
+            return None
 
-    def setupTimers(self):
-        self.clockTimer = QTimer(self)
-        self.clockTimer.timeout.connect(self.singer)
-        self.clockTimer.start(1 * 1000)
+        type = self.context.taf.spec[:2].upper()
+        period = self.context.taf.period()
 
-        self.workerTimer = QTimer(self)
-        self.workerTimer.timeout.connect(self.worker)
-        self.workerTimer.start(60 * 1000)
+        if self.context.taf.shouldRemind():
+            current = type + period[2:4] + period[7:]
+            text = QCoreApplication.translate('MainWindow', 'Time to issue {}').format(current)
+            ret = self.view.showReminder(self.view.remindTafBox, self.view.tafSound, text)
+            if ret == QMessageBox.RejectRole:
+                QTimer.singleShot(1000 * 60 * 5, self.remindTaf)
 
-        self.painterTimer = QTimer(self)
-        self.painterTimer.timeout.connect(self.painter)
-        self.painterTimer.start(2 * 60 * 1000)
+    def remindSigmet(self):
+        remindSwitch = self.conf.remindSigmet
+        if not remindSwitch or self.view.isReminderVisible(self.view.remindSigmetBox):
+            return None
 
-    def setupThreads(self):
-        self.messageWorker, self.messageThread = threadManager.createWorker(MessageWorker, workerId='message', reusable=True)
-        self.messageWorker.finished.connect(self.notifier)
+        outdates = self.context.sigmet.outdate()
+        for item in outdates:
+            sig = item['text']
+            mark = '{} {}'.format(sig.reportType(), sig.sequence())
+            text = QCoreApplication.translate('MainWindow', 'Time to update {}').format(mark)
+            ret = self.view.showReminder(self.view.remindSigmetBox, self.view.sigmetSound, text)
+            if ret == QMessageBox.AcceptRole:
+                self.setSigmetReminder(sig, False)
+            else:
+                time = item['time'] + datetime.timedelta(minutes=5)
+                self.context.sigmet.update(item['uuid'], time)
 
-        self.layerWorker, self.layerThread = threadManager.createWorker(LayerWorker, workerId='layer', reusable=True)
-        self.layerThread.finished.connect(self.updateLayer)
+    def setSigmetReminder(self, message, enabled):
+        if enabled:
+            time = message.expired()
+            sig = message.parser()
+            self.context.sigmet.add(message.uuid, sig, time)
+        else:
+            self.context.sigmet.remove(message.uuid)
 
-        self.checkUpgradeWorker, self.checkUpgradeThread = threadManager.createWorker(
-            CheckUpgradeWorker, workerId='upgrade', reusable=True
-        )
-        self.checkUpgradeWorker.done.connect(self.checkUpgrade)
+        self.view.setRecentMessageReminder(message.uuid, enabled)
+
+
+class DataService:
+
+    def __init__(self, view, context, conf):
+        self.view = view
+        self.context = context
+        self.conf = conf
 
     def loadMetar(self):
         parser = self.context.notification.metar.parser()
@@ -137,7 +151,7 @@ class MainPresenter(QObject):
             self.view.notificationSound.play(loop=False)
             self.view.remindTafBox.close()
 
-        self.updateGui()
+        self.refresh()
 
     def updateTaf(self):
         status = createTafStatus(self.context.taf.spec)
@@ -150,12 +164,11 @@ class MainPresenter(QObject):
         except Exception as e:
             logger.error('Sigmet cannot be updated, {}'.format(e))
 
-    def updateGui(self):
+    def refresh(self):
         self.updateTaf()
         self.updateSigmet()
         self.updateTable()
         self.updateRecent()
-        self.remindSigmet()
 
     def updateRecent(self):
         self.view.tafBoard.updateGui()
@@ -203,54 +216,58 @@ class MainPresenter(QObject):
         self.view.sigmetTable.updateGui()
         self.view.airmetTable.updateGui()
 
-    def remindTaf(self):
-        remindSwitch = self.conf.remindTaf
-        if not remindSwitch or self.view.isReminderVisible(self.view.remindTafBox):
-            return None
 
-        type = self.context.taf.spec[:2].upper()
-        period = self.context.taf.period()
+class MainPresenter(QObject):
 
-        if self.context.taf.shouldRemind():
-            current = type + period[2:4] + period[7:]
-            text = QCoreApplication.translate('MainWindow', 'Time to issue {}').format(current)
-            ret = self.view.showReminder(self.view.remindTafBox, self.view.tafSound, text)
-            if ret == QMessageBox.RejectRole:
-                QTimer.singleShot(1000 * 60 * 5, self.remindTaf)
+    def __init__(self, view, context, conf, dataService=None, remindService=None):
+        super(MainPresenter, self).__init__(view)
+        self.view = view
+        self.context = context
+        self.conf = conf
 
-    def remindSigmet(self):
-        remindSwitch = self.conf.remindSigmet
-        if not remindSwitch or self.view.isReminderVisible(self.view.remindSigmetBox):
-            return None
+        # The presenter delegates data loading to DataService
+        # and reminder logic to RemindService.
+        self.dataService = dataService or DataService(view, context, conf)
+        self.remindService = remindService or RemindService(view, context, conf)
 
-        outdates = self.context.sigmet.outdate()
-        for item in outdates:
-            sig = item['text']
-            mark = '{} {}'.format(sig.reportType(), sig.sequence())
-            text = QCoreApplication.translate('MainWindow', 'Time to update {}').format(mark)
-            ret = self.view.showReminder(self.view.remindSigmetBox, self.view.sigmetSound, text)
-            if ret == QMessageBox.AcceptRole:
-                self.setSigmetReminder(sig, False)
-            else:
-                time = item['time'] + datetime.timedelta(minutes=5)
-                self.context.sigmet.update(item['uuid'], time)
+        self.setupTimers()
+        self.setupThreads()
 
-    def setSigmetReminder(self, message, enabled):
-        if enabled:
-            time = message.expired()
-            sig = message.parser()
-            self.context.sigmet.add(message.uuid, sig, time)
-        else:
-            self.context.sigmet.remove(message.uuid)
+    def initialize(self):
+        self.worker()
+        self.painter()
+        self.dataService.updateSigmet()
+        self.dataService.updateTable()
+        self.dataService.updateRecent()
+        self.updateRegisterMenu()
 
-        self.view.setRecentMessageReminder(message.uuid, enabled)
+    def setupTimers(self):
+        self.clockTimer = QTimer(self)
+        self.clockTimer.timeout.connect(self.singer)
+        self.clockTimer.start(1 * 1000)
 
-    def updateRegisterMenu(self):
-        registered = True if self.context.license.license() else False
-        self.view.enterLicenseAction.setVisible(not registered)
-        self.view.removeLicenseAction.setVisible(registered)
+        self.workerTimer = QTimer(self)
+        self.workerTimer.timeout.connect(self.worker)
+        self.workerTimer.start(60 * 1000)
+
+        self.painterTimer = QTimer(self)
+        self.painterTimer.timeout.connect(self.painter)
+        self.painterTimer.start(2 * 60 * 1000)
+
+    def setupThreads(self):
+        self.messageWorker, self.messageThread = threadManager.createWorker(MessageWorker, workerId='message', reusable=True)
+        self.messageWorker.finished.connect(self.notifier)
+
+        self.layerWorker, self.layerThread = threadManager.createWorker(LayerWorker, workerId='layer', reusable=True)
+        self.layerThread.finished.connect(self.updateLayer)
+
+        self.checkUpgradeWorker, self.checkUpgradeThread = threadManager.createWorker(
+            CheckUpgradeWorker, workerId='upgrade', reusable=True
+        )
+        self.checkUpgradeWorker.done.connect(self.checkUpgrade)
 
     def singer(self):
+        """Fires every second to update alarm and trend notification sounds."""
         warnSwitch = self.view.warnTafAction.isChecked()
         trendSwitch = self.conf.remindTrend
 
@@ -287,8 +304,42 @@ class MainPresenter(QObject):
                 QCoreApplication.translate('MainWindow', 'Unable to connect FIR information data source, please check the settings or network status.')
             )
 
+    def updateGui(self):
+        """Refresh all data panels and check for overdue reminders."""
+        self.dataService.refresh()
+        self.remindService.remindSigmet()
+
+    def updateMessage(self):
+        self.dataService.updateMessage()
+
+    def loadMetar(self):
+        self.dataService.loadMetar()
+
+    def updateTaf(self):
+        self.dataService.updateTaf()
+
+    def updateSigmet(self):
+        self.dataService.updateSigmet()
+
+    def updateRecent(self):
+        self.dataService.updateRecent()
+
+    def updateTable(self):
+        self.dataService.updateTable()
+
+    def remindTaf(self):
+        self.remindService.remindTaf()
+
+    def setSigmetReminder(self, message, enabled):
+        self.remindService.setSigmetReminder(message, enabled)
+
     def updateLayer(self):
         self.view.sigmetEditor.updateLayer()
+
+    def updateRegisterMenu(self):
+        registered = True if self.context.license.license() else False
+        self.view.enterLicenseAction.setVisible(not registered)
+        self.view.removeLicenseAction.setVisible(registered)
 
     def loadCustomMessage(self):
         self.view.ensureVisible()
@@ -303,7 +354,7 @@ class MainPresenter(QObject):
 
     def handleNotificationChange(self, notificationType):
         if notificationType == 'metar':
-            self.loadMetar()
+            self.dataService.loadMetar()
 
         if notificationType == 'sigmet':
             self.view.sigmetEditor.updateCustomText()
