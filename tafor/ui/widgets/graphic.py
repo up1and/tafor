@@ -10,484 +10,134 @@ from itertools import cycle
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView, QGraphicsScene, QRubberBand,
     QStyleOptionGraphicsItem, QPushButton, QToolButton, QLabel, QMenu, QActionGroup, QAction, QWidgetAction, QSlider, QSpacerItem, QSizePolicy)
 from PyQt5.QtGui import QIcon, QPainter
-from PyQt5.QtCore import QCoreApplication, QObject, Qt, QRect, QRectF, QSize, pyqtSignal
+from PyQt5.QtCore import QCoreApplication, Qt, QRect, QRectF, QSize, pyqtSignal
 
-from tafor.core.geometry.algorithm import (buffer, circle, clipLine, clipPolygon, depth,
-                                           encode, flattenLine, simplifyPolygon, wgs84, geodesicDistance)
-from tafor.core.geometry.coordinate import decimalToDegree, degTodms
-from tafor.ui.widgets.geometry import BackgroundImage, Coastline, Fir, Sigmet, SketchGraphic, StickerGraphic
+from tafor.core.geometry.coordinate import degTodms
+from tafor.ui.widgets.sketch import SketchManager
+from tafor.ui.widgets.geometry import BackgroundImage, Coastline, Fir, Sigmet
 from tafor.ui.widgets.misc import OutlinedLabel
 
 logger = logging.getLogger('tafor.sigmet.graphic')
 
 
-class SketchManager(object):
+class SketchTool(object):
 
-    def __init__(self, canvas, sketchNames=None):
+    def __init__(self, canvas, manager):
         self.canvas = canvas
-        self.graphics = []
-        self.sketchs = []
-        self.index = 0
-
-        if sketchNames is None:
-            sketchNames = []
-
-        for name in sketchNames:
-            sketch = Sketch(canvas, name)
-            self.addSketch(sketch)
-
-    def __iter__(self):
-        for s in self.sketchs:
-            yield s
-
-    def get(self, name):
-        for sketch in self.sketchs:
-            if name == sketch.name:
-                return sketch
-
-    def addSketch(self, sketch):
-        self.sketchs.append(sketch)
-        sketch.changed.connect(self.update)
-
-    def currentSketch(self):
-        return self.sketchs[self.index]
-
-    def next(self):
-        self.index += 1
-        if self.index >= len(self.sketchs):
-            self.index = 0
-            self.last().clear()
-
-    def first(self):
-        return self.sketchs[0]
-
-    def last(self):
-        return self.sketchs[-1]
-
-    def update(self):
-        if self.graphics:
-            self.graphics = []
-            self.canvas.scene.removeItem(self.graphicsGroup)
-
-        sketchGeometries = []
-        stickerGeometries = []
-        for sketch in self.sketchs:
-            collections = sketch.geo()
-            sketchGeometries += collections['geometries']
-            stickerGeometries += sketch.stickers
-
-        sketchCollections = self.merge(sketchGeometries)
-        stickerCollections = self.merge(stickerGeometries)
-
-        graphic = SketchGraphic()
-        graphic.updateGeometry(sketchCollections, self.canvas)
-        self.graphics.append(graphic)
-
-        sticker = StickerGraphic()
-        sticker.updateGeometry(stickerCollections, self.canvas)
-        self.graphics.append(sticker)
-        
-        self.graphicsGroup = self.canvas.scene.createItemGroup(self.graphics)
-        self.graphicsGroup.setZValue(3)
-
-    def merge(self, geometries):
-        collections = {
-            'type': 'GeometryCollection',
-            'geometries': []
-        }
-        for geometry in geometries:
-            if geometry:
-                collections['geometries'].append(geometry)
-
-        return collections
-
-    def clear(self):
-        for s in self.sketchs:
-            s.clear()
-
-        self.index = 0
-
-
-class Sketch(QObject):
-
-    finished = pyqtSignal()
-    changed = pyqtSignal()
-
-    def __init__(self, canvas, name):
-        super(Sketch, self).__init__()
-        self.canvas = canvas
-        self.name = name
-        self.done = False
-        self.elements = None
-        self.coordinates = []
-        self.stickers = []
-        self.radius = 0
-
-    def __repr__(self):
-        return '<Sketch %s %r>' % (self.name, self.canvas.mode)
-
-    def __bool__(self):
-        return bool(self.coordinates)
+        self.manager = manager
 
     @property
-    def maxPoint(self):
-        if self.canvas.mode == 'corridor':
-            return 4
-        else:
-            return 7
+    def sketch(self):
+        return self.manager.currentSketch()
 
-    @property
-    def boundaries(self):
-        return self.canvas.context.layer.boundaries()
+    def mousePress(self, event):
+        pass
 
-    def append(self, point):
-        if self.done:
-            return
+    def mouseMove(self, event):
+        pass
 
+    def mouseRelease(self, event):
+        pass
+
+    def wheelEvent(self, event):
+        pass
+
+    def keyPress(self, event):
+        pass
+
+    def keyRelease(self, event):
+        pass
+
+    def toLonLat(self, point):
         pos = self.canvas.mapToScene(point)
-        lonlat = self.canvas.toGeographicalCoordinates(pos.x(), pos.y())
+        return self.canvas.toGeographicalCoordinates(pos.x(), pos.y())
 
-        if self.canvas.mode in ['polygon', 'line', 'corridor']:
-            if len(self.coordinates) < self.maxPoint:
-                self.coordinates.append(lonlat)
-                self.redraw()
 
-        if self.canvas.mode in ['rectangular', 'circle']:
-            self.coordinates.append(lonlat)
+class PolygonTool(SketchTool):
 
-            if len(self.coordinates) == 2:
-                self.done = True
-                self.finished.emit()
+    def mousePress(self, event):
+        if event.button() == Qt.LeftButton:
+            if len(self.sketch.coordinates) > 2:
+                deviation = 12
+                canvasPoint = self.canvas.toCanvasCoordinates(*self.sketch.coordinates[0])
+                initPoint = self.canvas.mapFromScene(*canvasPoint)
+                dx = abs(event.pos().x() - initPoint.x())
+                dy = abs(event.pos().y() - initPoint.y())
+                if dx < deviation and dy < deviation:
+                    self.sketch.clip(self.canvas.context.layer.boundaries())
+                    return
 
-            if self.canvas.mode == 'circle':
-                if self.done:
-                    # make sure the radius always multiple of 5
-                    radius = geodesicDistance(self.coordinates[0], self.coordinates[1])
-                    self.radius = round(radius / 5000) * 5000
-                    lon, lat, _ = wgs84.fwd(self.coordinates[0][0], self.coordinates[0][1], 0, self.radius)
-                    self.coordinates[-1] = lon, lat
+            if not self.sketch.done and len(self.sketch.coordinates) < self.sketch.maxPoint:
+                self.sketch.addPoint(self.toLonLat(event.pos()))
 
-                if self.radius and len(self.coordinates) == 1:
-                    lon, lat, _ = wgs84.fwd(self.coordinates[0][0], self.coordinates[0][1], 0, self.radius)
-                    self.coordinates.append((lon, lat))
-                    self.done = True
+        if event.button() == Qt.RightButton:
+            self.sketch.removePoint()
 
-            self.redraw()
 
-    def pop(self):
-        if self.canvas.mode in ['polygon', 'line', 'corridor', 'circle']:
-            if self.done:
-                if self.canvas.mode == 'corridor':
-                    self.radius = 0
-                elif self.canvas.mode == 'circle':
-                    self.coordinates.pop()
-                    self.radius = 0
-                else:
-                    if self.canvas.mode == 'line' and depth(self.coordinates) > 1:
-                        self.coordinates = self.coordinates[0]
+class LineTool(PolygonTool):
+    pass
 
-                    if len(self.coordinates) > self.maxPoint:
-                        self.coordinates = self.coordinates[:7]
 
-                self.done = False
-                self.redraw()
+class CircleTool(SketchTool):
 
-            elif self.coordinates:
-                self.coordinates.pop()
-                self.redraw()
+    def mousePress(self, event):
+        if event.button() == Qt.LeftButton:
+            self.sketch.addPoint(self.toLonLat(event.pos()))
+        if event.button() == Qt.RightButton:
+            self.sketch.removePoint()
 
-        if self.canvas.mode in ['rectangular']:
-            self.coordinates = []
-            self.done = False
-            self.finished.emit()
-            self.redraw()
+    def wheelEvent(self, event):
+        ratio = 1 if event.angleDelta().y() > 0 else -1
+        self.sketch.resize(ratio)
 
-        if self.stickers:
-            self.stickers = []
-            self.redraw()
 
-    def resize(self, ratio):
-        if self.canvas.mode == 'circle':
-            deviation = 5000
-            if self.done:
-                if ratio > 0 or self.radius > deviation * 4:
-                    self.radius += deviation * ratio
-                    lon, lat, _ = wgs84.fwd(self.coordinates[0][0], self.coordinates[0][1], 0, self.radius)
-                    self.coordinates[-1] = [lon, lat]
-                    self.redraw()
+class CorridorTool(SketchTool):
 
-        if self.canvas.mode == 'corridor':
-            deviation = 5000
-            if self.done:
-                polygon = buffer(self.coordinates, self.radius + deviation * ratio)
-                if ratio > 0 and len(self.coordinates) * 2 + 1 == len(polygon.exterior.coords):
-                    self.radius += deviation * ratio
+    def mousePress(self, event):
+        if event.button() == Qt.LeftButton:
+            self.sketch.addPoint(self.toLonLat(event.pos()))
+        if event.button() == Qt.RightButton:
+            self.sketch.removePoint()
 
-                if ratio < 0 and self.radius > deviation:
-                    self.radius += deviation * ratio
-            else:
-                if len(self.coordinates) > 1:
-                    self.coordinates = clipLine(self.boundaries, self.coordinates)
-                    if len(self.coordinates) > 1:
-                        self.radius = deviation
-                        self.done = True
-                    else:
-                        self.radius = 0
-                        self.done = False
-                    self.finished.emit()
+    def wheelEvent(self, event):
+        ratio = 1 if event.angleDelta().y() > 0 else -1
+        self.sketch.clip(self.canvas.context.layer.boundaries())
+        self.sketch.resize(ratio)
 
-            self.redraw()
 
-    def filled(self, mode=None, **kwargs):
-        if mode == 'entire':
-            self.coordinates = self.boundaries
-            self.done = True
-            self.finished.emit()
-            self.redraw()
+class RectangularTool(SketchTool):
 
-        if mode in ['polygon', 'line']:
-            self.coordinates = kwargs.get('coordinates')
-            self.clip()
+    def __init__(self, canvas, manager):
+        super(RectangularTool, self).__init__(canvas, manager)
+        self.origin = None
 
-        if mode == 'circle':
-            radius = kwargs.get('radius')
-            center = kwargs.get('center')
-            self.done = False
+    def mousePress(self, event):
+        if event.button() == Qt.LeftButton:
+            self.origin = event.pos()
+            if not self.sketch:
+                self.canvas.rubberBand.setGeometry(QRect(self.origin, QSize()))
+                self.canvas.rubberBand.show()
+                self.sketch.addPoint(self.toLonLat(event.pos()))
+        if event.button() == Qt.RightButton:
+            self.sketch.removePoint()
 
-            if center:
-                self.coordinates = [center]
-            else:
-                self.coordinates = []
+    def mouseMove(self, event):
+        if event.buttons() == Qt.LeftButton and self.origin:
+            self.canvas.rubberBand.setGeometry(QRect(self.origin, event.pos()).normalized())
 
-            if radius:
-                self.radius = int(radius) * 1000
-            else:
-                self.radius = 0
+    def mouseRelease(self, event):
+        if event.button() == Qt.LeftButton and self.origin:
+            self.canvas.rubberBand.hide()
+            self.sketch.addPoint(self.toLonLat(event.pos()))
+            self.sketch.clip(self.canvas.context.layer.boundaries())
+            self.origin = None
 
-            if center and radius:
-                lon, lat, _ = wgs84.fwd(center[0], center[1], 0, self.radius)
-                self.coordinates.append((lon, lat))
-                self.done = True
 
-            self.finished.emit()
-            self.redraw()
+class EntireTool(SketchTool):
 
-    def clip(self):
-        # clip the polygon with boundaries
-        if self.canvas.mode in ['polygon', 'line']:
-            mode = 'single' if self.canvas.mode == 'polygon' else 'multi'
-            self.coordinates = clipPolygon(self.boundaries, self.coordinates, mode=mode)
-
-            if self.canvas.mode == 'polygon':
-                self.coordinates = simplifyPolygon(self.coordinates, maxPoint=self.maxPoint, extend=True)
-                # make the points clockwise
-                self.coordinates.reverse()
-                self.done = True if len(self.coordinates) > 2 else False
-
-        if self.canvas.mode == 'rectangular':
-            if len(self.coordinates) == 2:
-                topLeft, bottomRight = self.coordinates
-                topRight, bottomLeft = [bottomRight[0], topLeft[1]], [topLeft[0], bottomRight[1]]
-                polygon = [topLeft, topRight, bottomRight, bottomLeft]
-                self.coordinates = clipPolygon(self.boundaries, polygon, mode='multi')
-                self.done = True
-
-        if self.canvas.mode in ['line', 'rectangular']:
-            if depth(self.coordinates) > 1:
-                self.done = True
-            else:
-                self.done = True if len(self.coordinates) > 2 else False
-
-        self.finished.emit()
-        self.redraw()
-
-    def pin(self, geometries):
-        self.stickers = geometries
-        self.redraw()
-
-    def empty(self):
-        """
-        clear sketch, but do not emit signal
-        """
-        self.done = False
-        self.radius = 0
-        self.coordinates = []
-        self.stickers = []
-
-    def clear(self):
-        self.empty()
-        self.finished.emit()
-        self.redraw()
-
-    def geo(self):
-        geometries = []
-        if self.canvas.mode in ['polygon', 'line', 'corridor']:
-            if not self.done:
-                if len(self.coordinates) == 1:
-                    geometries = [{
-                        'type': 'Point',
-                        'coordinates': self.coordinates[0]
-                    }]
-
-                if len(self.coordinates) > 1:
-                    geometries = [{
-                        'type': 'LineString',
-                        'coordinates': self.coordinates
-                    }]
-
-        if self.canvas.mode in ['polygon', 'entire']:
-            if self.done:
-                geometries = [{
-                    'type': 'Polygon',
-                    'coordinates': self.coordinates
-                }]
-
-        if self.canvas.mode in ['line', 'rectangular']:
-            if self.done:
-                if depth(self.coordinates) > 1:
-                    shapeType = 'MultiPolygon'
-                else:
-                    shapeType = 'Polygon'
-
-                geometries = [{
-                    'type': shapeType,
-                    'coordinates': self.coordinates
-                }]
-
-        if self.canvas.mode == 'circle':
-            if self.done:
-                polygon = circle(self.coordinates[0], self.radius)
-                geometries = [
-                    {
-                        'type': 'Polygon',
-                        'coordinates': list(polygon.exterior.coords)
-                    },
-                    {
-                        'type': 'Point',
-                        'coordinates': self.coordinates[0]
-                    }
-                ]
-            else:
-                if self.coordinates:
-                    geometries = [{
-                        'type': 'Point',
-                        'coordinates': self.coordinates[0]
-                    }]
-
-        if self.canvas.mode == 'corridor':
-            if self.done:
-                polygon = buffer(self.coordinates, self.radius)
-                geometries = [{
-                    'type': 'Polygon',
-                    'coordinates': list(polygon.exterior.coords)
-                }]
-
-        return {
-            'type': 'GeometryCollection',
-            'geometries': geometries
-        }
-
-    def redraw(self):
-        self.changed.emit()
-
-    def text(self):
-        message = ''
-        try:
-            if self.canvas.mode == 'rectangular':
-
-                # bug, the sketch changed signal emitted before the clipping
-                if depth(self.coordinates) > 1:
-                    self.done = True
-                else:
-                    self.done = True if len(self.coordinates) > 2 else False
-
-                if self.done:
-                    area = encode(self.boundaries, self.coordinates, mode='rectangular')
-
-                    lines = []
-                    for identifier, *points in area:
-                        points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in points]
-                        lonlat = flattenLine(points)
-
-                        if lonlat:
-                            line = '{} OF {}'.format(identifier, lonlat)
-                            lines.append(line)
-
-                    message = ' AND '.join(lines)
-
-            if self.canvas.mode == 'line':
-                if self.done:
-                    area = encode(self.boundaries, self.coordinates, mode='line')
-
-                    lines = []
-                    for identifier, *points in area:
-                        points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in points]
-                        coordinates = []
-                        for lon, lat in points:
-                            coordinates.append('{} {}'.format(lat, lon))
-
-                        line = '{} OF LINE {}'.format(identifier, ' - '.join(coordinates))
-                        lines.append(line)
-
-                    message = ' AND '.join(lines)
-                else:
-                    points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in self.coordinates]
-                    coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
-                    message = ' - '.join(coordinates)
-
-            if self.canvas.mode == 'polygon':
-                points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in self.coordinates]
-                if self.done:
-                    coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
-                    message = 'WI ' + ' - '.join(coordinates)
-                else:
-                    coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
-                    message = ' - '.join(coordinates)
-
-            if self.canvas.mode == 'corridor':
-                points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in self.coordinates]
-                if self.done:
-                    unit = 'KM'
-                    coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
-                    line = ' - '.join(coordinates)
-                    message = 'APRX {}{} WID LINE BTN {}'.format(round(self.radius * 2 / 1000), unit, line)
-                else:
-                    coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
-                    message = ' - '.join(coordinates)
-
-            if self.canvas.mode == 'circle':
-                points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)) for lon, lat in self.coordinates]
-                if self.done:
-                    center = points[0]
-                    message = 'PSN {} {}'.format(center[1], center[0])
-                    if self.name == 'initial':
-                        unit = 'KM'
-                        message += ' / WI {}{} OF CENTRE'.format(round(self.radius / 1000), unit)
-                else:
-                    coordinates = ['{} {}'.format(p[1], p[0]) for p in points]
-                    message = ' - '.join(coordinates)
-
-            if self.canvas.mode == 'entire':
-                if self.done:
-                    message = 'ENTIRE FIR'
-
-        except Exception as e:
-            logger.error('Generate SIGMET location text error, {}'.format(e))
-
-        return message
-
-    def circle(self):
-        return {
-            'type': 'Feature',
-            'geometry': {
-                'type': 'Point',
-                'coordinates': self.coordinates[0] if self.coordinates else ()
-            },
-            'properties': {
-                'radius': round(self.radius / 1000),
-                'location': self.name
-            }
-        }
+    def mousePress(self, event):
+        boundaries = list(self.canvas.context.layer.boundaries())
+        self.sketch.restore(boundaries=boundaries)
 
 
 class BaseCanvas(QGraphicsView):
@@ -658,7 +308,7 @@ class Canvas(BaseCanvas):
         self.mode = 'polygon'
         self.lock = False
         self.maxPoint = 7
-        
+
         self.backgroundOpacity = 0.5
         self.maxLayerExtent = self.context.layer.maxExtent()
 
@@ -666,10 +316,21 @@ class Canvas(BaseCanvas):
 
         self.rubberBand = QRubberBand(QRubberBand.Rectangle, self)
         self.sketchManager = SketchManager(self, sketchNames=['initial', 'final'])
+        self.tools = {
+            'polygon': PolygonTool(self, self.sketchManager),
+            'line': LineTool(self, self.sketchManager),
+            'circle': CircleTool(self, self.sketchManager),
+            'corridor': CorridorTool(self, self.sketchManager),
+            'rectangular': RectangularTool(self, self.sketchManager),
+            'entire': EntireTool(self, self.sketchManager)
+        }
 
     @property
     def sketch(self):
         return self.sketchManager.currentSketch()
+
+    def currentTool(self):
+        return self.tools.get(self.mode)
 
     def extentBound(self, extent):
         minlon, minlat, maxlon, maxlat = extent
@@ -715,61 +376,8 @@ class Canvas(BaseCanvas):
             self.setDragMode(QGraphicsView.ScrollHandDrag)
             self.pos = event.pos()
 
-        if self.lock:
-            if self.mode in ['polygon', 'line']:
-                self.polygonMousePressEvent(event)
-
-            if self.mode == 'rectangular':
-                self.rectangularMousePressEvent(event)
-
-            if self.mode == 'circle':
-                self.circleMousePressEvent(event)
-
-            if self.mode == 'corridor':
-                self.corridorMousePressEvent(event)
-
-    def polygonMousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            if len(self.sketch.coordinates) > 2:
-                deviation = 12
-                canvasPoint = self.toCanvasCoordinates(*self.sketch.coordinates[0])
-                initPoint = self.mapFromScene(*canvasPoint)
-                dx = abs(event.pos().x() - initPoint.x())
-                dy = abs(event.pos().y() - initPoint.y())
-
-                if dx < deviation and dy < deviation:
-                    self.sketch.clip()
-
-            if not self.sketch.done and len(self.sketch.coordinates) < self.sketch.maxPoint:
-                self.sketch.append(event.pos())
-
-        if event.button() == Qt.RightButton:
-            self.sketch.pop()
-
-    def rectangularMousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.pos = event.pos()
-            if not self.sketch:
-                self.rubberBand.setGeometry(QRect(self.pos, QSize()))
-                self.rubberBand.show()
-                self.sketch.append(event.pos())
-
-        if event.button() == Qt.RightButton:
-            self.sketch.pop()
-
-    def circleMousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.sketch.append(event.pos())
-
-        if event.button() == Qt.RightButton:
-            self.sketch.pop()
-
-    def corridorMousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-           self.sketch.append(event.pos())
-
-        if event.button() == Qt.RightButton:
-            self.sketch.pop()
+        if self.lock and self.currentTool():
+            self.currentTool().mousePress(event)
 
     def mouseMoveEvent(self, event):
         self.emitMouseMoved(event)
@@ -782,31 +390,26 @@ class Canvas(BaseCanvas):
             self.horizontalScrollBar().setValue(x)
             self.verticalScrollBar().setValue(y)
 
-        if self.lock and self.mode == 'rectangular' and event.buttons() == Qt.LeftButton:
-            self.rubberBand.setGeometry(QRect(self.pos, event.pos()).normalized())
+        if self.lock and self.currentTool():
+            self.currentTool().mouseMove(event)
 
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
         self.setDragMode(QGraphicsView.NoDrag)
 
-        if self.lock and self.mode == 'rectangular' and event.button() == Qt.LeftButton:
-            self.rubberBand.hide()
-            self.sketch.append(event.pos())
-            self.sketch.clip()
+        if self.lock and self.currentTool():
+            self.currentTool().mouseRelease(event)
 
-        # if user is not holding down ctrl button, then release mouse, the rubberband should hide.
         if not self.lock and self.rubberBand.isVisible():
             self.rubberBand.hide()
-            self.sketch.clear()
+            self.sketchManager.currentSketch().clear()
 
         super().mouseReleaseEvent(event)
 
     def wheelEvent(self, event):
-        if self.lock:
-            if self.mode in ['circle', 'corridor']:
-                ratio = 1 if event.angleDelta().y() > 0 else -1
-                self.sketch.resize(ratio)
+        if self.lock and self.currentTool():
+            self.currentTool().wheelEvent(event)
         else:
             if event.angleDelta().y() > 0:
                 self.zoomIn()
@@ -814,6 +417,18 @@ class Canvas(BaseCanvas):
                 self.zoomOut()
 
         self.emitMouseMoved(event)
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Control:
+            self.lock = True
+        if self.lock and self.currentTool():
+            self.currentTool().keyPress(event)
+
+    def keyReleaseEvent(self, event):
+        if event.key() == Qt.Key_Control:
+            self.lock = False
+        if self.lock and self.currentTool():
+            self.currentTool().keyRelease(event)
 
     def emitMouseMoved(self, event):
         pos = self.mapToScene(event.pos())
@@ -825,9 +440,10 @@ class Canvas(BaseCanvas):
 
     def setMode(self, mode):
         self.mode = mode
+        self.sketchManager.setMode(mode)
 
-        if mode == 'entire':
-            self.sketch.filled(mode='entire')
+        if mode == 'entire' and self.currentTool():
+            self.currentTool().mousePress(None)
 
     def setSketch(self, name):
         sketch = self.sketchManager.currentSketch()
@@ -1045,7 +661,6 @@ class GraphicsWindow(QWidget):
         self.overlapButton.toggled.connect(self.handleOverlap)
         self.refreshButton.clicked.connect(self.context.layer.refreshLayers)
         self.canvas.mouseMoved.connect(self.updatePositionLabel)
-
         for sketch in self.canvas.sketchManager:
             sketch.changed.connect(self.handleSketchChange)
             sketch.finished.connect(self.updateOverlapButton)
@@ -1068,8 +683,8 @@ class GraphicsWindow(QWidget):
 
     def formattedCoordinates(self):
         messages = []
-        for s in self.canvas.sketchManager.sketchs:
-            messages.append(s.text())
+        for s in self.canvas.sketchManager.sketches:
+            messages.append(s.text(self.context.layer.boundaries()))
         return messages
 
     def circleCoordinates(self):
@@ -1078,7 +693,7 @@ class GraphicsWindow(QWidget):
             'features': []
         }
         for sketch in self.canvas.sketchManager:
-            collections['features'].append(sketch.circle())
+            collections['features'].append(sketch.feature())
 
         return collections
 
@@ -1086,9 +701,9 @@ class GraphicsWindow(QWidget):
         locations = {}
         names = ['location', 'forecastLocation']
 
-        for i, sketch in enumerate(self.canvas.sketchManager.sketchs):
+        for i, sketch in enumerate(self.canvas.sketchManager.sketches):
             if sketch.done:
-                locations[names[i]] = sketch.text()
+                locations[names[i]] = sketch.text(self.context.layer.boundaries())
 
         return locations
 
@@ -1096,9 +711,10 @@ class GraphicsWindow(QWidget):
         initial = self.canvas.sketchManager.first()
         final = self.canvas.sketchManager.last()
 
-        sketchs = [initial.done and initial.text()]
+        boundaries = self.context.layer.boundaries()
+        sketchs = [initial.done and initial.text(boundaries)]
         if self.canvas.sketchManager.currentSketch() == final:
-            sketchs.append(final.done and final.text())
+            sketchs.append(final.done and final.text(boundaries))
 
         return all(sketchs)
 
@@ -1264,7 +880,7 @@ class GraphicsWindow(QWidget):
             name = feature['properties']['location']
             names.append(name)
             sketch = self.canvas.sketchManager.get(name)
-            sketch.filled(mode='circle',
+            sketch.restore(
                 center=feature['geometry']['coordinates'], radius=feature['properties']['radius'])
 
         for sketch in self.canvas.sketchManager:
@@ -1280,12 +896,14 @@ class GraphicsWindow(QWidget):
         initial = self.canvas.sketchManager.first()
         final = self.canvas.sketchManager.last()
 
-        def _filled(sketch, feature):
+        def restore(sketch, feature):
+            boundaries = self.context.layer.boundaries()
             if feature['geometry']['type'] == 'Polygon':
-                sketch.filled(mode=self.canvas.mode, coordinates=feature['geometry']['coordinates'])
-
+                sketch.restore(coordinates=feature['geometry']['coordinates'])
+                sketch.clip(boundaries)
             if feature['geometry']['type'] == 'Point':
-                sketch.filled(mode=self.canvas.mode, center=feature['geometry']['coordinates'], radius=feature['properties']['radius'])
+                sketch.restore(center=feature['geometry']['coordinates'],
+                               radius=feature['properties']['radius'])
 
         locations = []
         for feature in collections['features']:
@@ -1294,41 +912,28 @@ class GraphicsWindow(QWidget):
             locations.append(location)
             if type == 'sketch':
                 if location == 'initial':
-                    _filled(initial, feature)
-
+                    restore(initial, feature)
                 if location == 'final':
                     if initial.done:
-                        _filled(final, feature)
+                        restore(final, feature)
                         if final.done:
                             self.overlapButton.setChecked(True)
                             self.overlapButton.setEnabled(True)
-
                 feature['properties']['type'] = 'exterior'
 
-        stickers = {
-            'initial': [],
-            'final': []
-        }
+        stickers = {'initial': [], 'final': []}
         for feature in collections['features']:
             location = feature['properties']['location']
-            geometry = feature['geometry']
-            if location == 'initial':
-                stickers['initial'].append(geometry)
-
-            if location == 'final':
-                stickers['final'].append(geometry)
+            if location in stickers:
+                stickers[location].append(feature['geometry'])
 
         for key, geometries in stickers.items():
             if geometries:
-                if key == 'initial':
-                    initial.pin(geometries)
-                else:
-                    final.pin(geometries)
+                sketch = initial if key == 'initial' else final
+                sketch.stickers = geometries
 
-        # if feature is empty, clear the sketch
         if 'initial' not in locations:
             initial.clear()
-        
         if 'final' not in locations:
             final.clear()
 
