@@ -237,7 +237,7 @@ class SigmetTyphoonState(BaseState):
         if self.direction == 'STNR':
             return None
 
-        from tafor.core.utils.geo import calcPosition
+        from tafor.core.geometry.coordinate import calcPosition
 
         directions = {
             'N': 0, 'NNE': 22.5, 'NE': 45, 'ENE': 67.5,
@@ -254,7 +254,7 @@ class SigmetTyphoonState(BaseState):
                            self.speed, time.seconds, degree)
 
     def circleFeature(self, location):
-        from tafor.core.utils.geo import degreeToDecimal
+        from tafor.core.geometry.coordinate import degreeToDecimal
 
         feature = {'type': 'Feature', 'properties': {'location': location}}
 

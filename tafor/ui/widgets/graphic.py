@@ -7,48 +7,18 @@ import shapely.geometry
 
 from itertools import cycle
 
-from pyproj import Geod
-
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView, QGraphicsScene, QRubberBand,
     QStyleOptionGraphicsItem, QPushButton, QToolButton, QLabel, QMenu, QActionGroup, QAction, QWidgetAction, QSlider, QSpacerItem, QSizePolicy)
 from PyQt5.QtGui import QIcon, QPainter
 from PyQt5.QtCore import QCoreApplication, QObject, Qt, QRect, QRectF, QSize, pyqtSignal
 
-from tafor.core.utils.algorithm import buffer, circle, clipLine, clipPolygon, depth, encode, flattenLine, simplifyPolygon
-from tafor.core.utils.geo import decimalToDegree
+from tafor.core.geometry.algorithm import (buffer, circle, clipLine, clipPolygon, depth,
+                                           encode, flattenLine, simplifyPolygon, wgs84, geodesicDistance)
+from tafor.core.geometry.coordinate import decimalToDegree, degTodms
 from tafor.ui.widgets.geometry import BackgroundImage, Coastline, Fir, Sigmet, SketchGraphic, StickerGraphic
 from tafor.ui.widgets.misc import OutlinedLabel
 
 logger = logging.getLogger('tafor.sigmet.graphic')
-
-wgs84 = Geod(ellps='WGS84')
-
-def distance(start, end):
-    *_, dist = wgs84.inv(start[0], start[1], end[0], end[1])
-    return dist
-
-def bearing(origin, point):
-    return math.atan2(origin[1] - point[1], origin[0] - point[0])
-
-def degTodms(deg, pretty=None):
-    """Convert from decimal degrees to degrees, minutes, seconds."""
-
-    m, s = divmod(abs(deg) * 3600, 60)
-    d, m = divmod(m, 60)
-    if deg < 0:
-        d = -d
-    d, m, s = int(d), int(m), int(s)
-
-    if pretty:
-        if pretty=='lat':
-            hemi = 'N' if d>=0 else 'S'
-        elif pretty=='lon':
-            hemi = 'E' if d>=0 else 'W'
-        else:
-            hemi = '?'
-        return '{hemi:1s}{d:02d}°{m:02d}′{s:02d}″'.format(
-                    d=abs(d), m=m, s=s, hemi=hemi)
-    return d, m, s
 
 
 class SketchManager(object):
@@ -192,7 +162,7 @@ class Sketch(QObject):
             if self.canvas.mode == 'circle':
                 if self.done:
                     # make sure the radius always multiple of 5
-                    radius = distance(self.coordinates[0], self.coordinates[1])
+                    radius = geodesicDistance(self.coordinates[0], self.coordinates[1])
                     self.radius = round(radius / 5000) * 5000
                     lon, lat, _ = wgs84.fwd(self.coordinates[0][0], self.coordinates[0][1], 0, self.radius)
                     self.coordinates[-1] = lon, lat

@@ -2,6 +2,7 @@ import math
 
 
 def degreeToDecimal(text):
+    """Convert a DMS string like 'N2748' or 'E03909' to decimal degrees."""
     identifier = text[0]
     value = text[1:]
     if len(value) in [2, 3]:
@@ -17,6 +18,7 @@ def degreeToDecimal(text):
 
 
 def decimalToDegree(degree, fmt='latitude'):
+    """Convert decimal degrees to a DMS string like 'N2748' or 'E03909'."""
     integer = int(abs(degree))
     decimal = int(abs(degree) % 1 * 60) / 100
 
@@ -32,7 +34,11 @@ def decimalToDegree(degree, fmt='latitude'):
 
 
 def calcPosition(latitude, longitude, speed, time, degree):
-    def distance(speed, time, degree):
+    """Calculate a new lat/lon position given speed, time, and direction.
+
+    Returns a tuple of DMS-formatted strings: (latitude, longitude).
+    """
+    def _distance(speed, time, degree):
         dis = int(speed) * int(time) / 3600
         theta = math.radians(int(degree))
         dy = math.cos(theta) * dis
@@ -41,7 +47,7 @@ def calcPosition(latitude, longitude, speed, time, degree):
 
     latitude = degreeToDecimal(latitude)
     longitude = degreeToDecimal(longitude)
-    dx, dy = distance(speed, time, degree)
+    dx, dy = _distance(speed, time, degree)
 
     radius = 6378
     dlong = math.pi * radius * math.cos(latitude * math.pi / 180) / 180
@@ -59,32 +65,25 @@ def calcPosition(latitude, longitude, speed, time, degree):
     return decimalToDegree(newLatitude), decimalToDegree(newLongitude, fmt='longitude')
 
 
-def distanceBetweenPoints(point1, point2):
-    x = point1[0] - point2[0]
-    y = point1[1] - point2[1]
-    return math.sqrt(x ** 2 + y ** 2)
+def degTodms(deg, pretty=None):
+    """Convert from decimal degrees to degrees, minutes, seconds.
 
+    If ``pretty`` is 'lat' or 'lon', return a formatted string with hemisphere
+    indicator (e.g. 'N27°48′09″'). Otherwise return a (d, m, s) tuple.
+    """
+    m, s = divmod(abs(deg) * 3600, 60)
+    d, m = divmod(m, 60)
+    if deg < 0:
+        d = -d
+    d, m, s = int(d), int(m), int(s)
 
-def distanceBetweenLatLongPoints(point1, point2):
-    deg2rad = lambda deg: deg * math.pi / 180
-
-    long1, lat1 = point1
-    long2, lat2 = point2
-
-    radius = 6378
-    dlat = deg2rad(lat2 - lat1)
-    dlong = deg2rad(long2 - long1)
-
-    a = math.sin(dlat / 2) * math.sin(dlat / 2) + math.cos(deg2rad(lat1)) * math.cos(deg2rad(lat2)) * math.sin(dlong / 2) * math.sin(dlong / 2)
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    return radius * c
-
-
-def listToPoint(points):
-    from PyQt5.QtCore import QPoint
-
-    return [QPoint(p[0], p[1]) for p in points]
-
-
-def pointToList(points):
-    return [[p.x(), p.y()] for p in points]
+    if pretty:
+        if pretty == 'lat':
+            hemi = 'N' if d >= 0 else 'S'
+        elif pretty == 'lon':
+            hemi = 'E' if d >= 0 else 'W'
+        else:
+            hemi = '?'
+        return '{hemi:1s}{d:02d}°{m:02d}′{s:02d}″'.format(
+            d=abs(d), m=m, s=s, hemi=hemi)
+    return d, m, s

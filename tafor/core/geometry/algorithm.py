@@ -31,9 +31,15 @@ def bearing(origin, point):
 
     return math.atan2(origin[1] - point[1], origin[0] - point[0])
 
-def distance(p1, p2):
+def euclideanDistance(p1, p2):
+    """Euclidean straight-line distance between two (x, y) points in planar coordinates."""
     length = (p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2
     return math.sqrt(length)
+
+def geodesicDistance(p1, p2):
+    """Geodesic distance in meters between two (lon, lat) points on the WGS84 ellipsoid."""
+    *_, length = wgs84.inv(p1[0], p1[1], p2[0], p2[1])
+    return length
 
 def depth(l):
     if isinstance(l, list):
@@ -72,7 +78,7 @@ def perpendicularVector(line, center):
     for p, q in zip(line, line[1:]):
         point = perpendicularFoot(p, q, center)
         radian = bearing(center, point)
-        scale = distance(p, q)
+        scale = euclideanDistance(p, q)
         vec = (math.cos(radian) * scale, math.sin(radian) * scale)
         vector[0] += vec[0]
         vector[1] += vec[1]
@@ -362,7 +368,7 @@ def circle(center, radius):
     return Polygon(circles)
 
 def decode(boundaries, locations, mode, trim=True):
-    from tafor.core.utils.geo import degreeToDecimal
+    from tafor.core.geometry.coordinate import degreeToDecimal
     boundary = Polygon(boundaries)
     hasBoundary = boundary.is_valid and not boundary.is_empty
     if not hasBoundary:

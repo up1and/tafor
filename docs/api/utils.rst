@@ -18,8 +18,3 @@
 .. autofunction:: decimalToDegree
 
 .. autofunction:: calcPosition
-
-
-.. autofunction:: listToPoint
-
-.. autofunction:: pointToList

@@ -4,7 +4,7 @@ import datetime
 
 from collections import OrderedDict
 
-from tafor.core.utils.geo import degreeToDecimal
+from tafor.core.geometry.coordinate import degreeToDecimal
 from tafor.core.utils.time import parseTime, parseTimez
 
 logger = logging.getLogger('tafor.parser.sigmet')
@@ -395,7 +395,7 @@ class SigmetParser(object):
         return []
 
     def geo(self, boundaries, trim=None):
-        from tafor.core.utils.algorithm import decode
+        from tafor.core.geometry.algorithm import decode
         collections = {
             'type': 'FeatureCollection',
             'features': []
@@ -661,7 +661,7 @@ class TyphoonAdvisoryParser(AdvisoryParser):
         return geometry
 
     def radius(self):
-        from tafor.core.utils.algorithm import wgs84
+        from tafor.core.geometry.algorithm import wgs84
         center = self.position()
         polygon = self.polygon()
         if not center or not polygon:
