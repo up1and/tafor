@@ -28,28 +28,20 @@ def serialComm(message, port, baudrate=9600, bytesize='8', parity='NONE', stopbi
     parity = parityMap.get(parity, serial.PARITY_NONE)
     stopbits = stopbitsMap.get(stopbits, serial.STOPBITS_ONE)
 
-    if baudrate < 300:
-        timeout = 6
-    elif baudrate < 1200:
-        timeout = 3
-    elif baudrate < 9600:
-        timeout = 2
-    else:
-        timeout = 1
-
     if not isinstance(message, bytes):
         message = message.encode()
 
     with serial.Serial(port, baudrate, bytesize=bytesize,
                         parity=parity, stopbits=stopbits) as ser:
         ser.reset_output_buffer()
-        lenth = len(message)
-        sentLenth = ser.write(message)
+        ser.write(message)
         ser.flush()
-        time.sleep(timeout)
-
-        if lenth != sentLenth:
-            raise serial.SerialException('Send data is incomplete')
+        # wait for the UART to shift out the last bytes before the port closes.
+        # one byte on the wire is start(1) + data + parity(0/1) + stop bits. 
+        # add a fixed margin so short messages are not cut off by the close().
+        bitsPerByte = int(bytesize) + float(stopbits) + (1 if parity in ('EVEN', 'ODD') else 0)
+        transmitTime = len(message) * bitsPerByte / baudrate + 0.1
+        time.sleep(transmitTime)
 
 def ftpComm(message, url, filename, tempsuffix='part'):
     parser = urlparse(url)
