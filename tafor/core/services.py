@@ -5,6 +5,7 @@ import datetime
 
 
 class AppInfoService:
+
     def environment(self):
         from PyQt5.QtCore import QT_VERSION_STR
         from tafor import __version__
@@ -15,14 +16,14 @@ class AppInfoService:
             'qt': QT_VERSION_STR,
             'system': platform.system(),
             'release': platform.release(),
-            'revision': self.ghash(),
+            'revision': self.hash(),
         }
 
-    def ghash(self):
+    def hash(self):
         if hasattr(sys, '_MEIPASS'):
-            from tafor._environ import ghash
+            from tafor.revision import hash
 
-            return ghash
+            return hash
 
         from tafor.core.utils.common import gitRevisionHash
 

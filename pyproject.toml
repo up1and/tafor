@@ -27,12 +27,31 @@ readme = "README.md"
 
 license = {text = "GPL-3.0-or-later"}
 
+keywords = ["aviation", "taf", "sigmet"]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Other Audience",
+    "License :: OSI Approved :: GNU General Public License v3 or Later (GPLv3+)",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+]
+
+[project.urls]
+Homepage = "https://github.com/up1and/tafor"
+
 [dependency-groups]
 dev = [
+    "sphinx",
     "pytest",
     "pytest-qt",
     "pytest-cov",
     "pytest-env",
+    "pyinstaller",
 ]
 
 [tool.uv]

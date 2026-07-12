@@ -386,7 +386,7 @@ class MainPresenter(QObject):
         <p style="margin:5px 0;color:#444">{}</p>
         <p style="margin-top:25px;color:#444">Copyright © 2022 <a href="mailto:piratecb@gmail.com" style="text-decoration:none;color:#444">up1and</a></p>
         </div>
-        """.format(QCoreApplication.translate('MainWindow', 'Version'), __version__, self.context.info.ghash(), register)
+        """.format(QCoreApplication.translate('MainWindow', 'Version'), __version__, self.context.info.hash(), register)
 
         aboutBox = QMessageBox(self.view)
         aboutBox.setText(html)

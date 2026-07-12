@@ -55,12 +55,12 @@ def gitRevisionHash():
     import subprocess
 
     try:
-        ghash = subprocess.check_output(['git', 'describe', '--always'])
-        ghash = ghash.decode('utf-8').rstrip()
+        hash = subprocess.check_output(['git', 'describe', '--always'])
+        hash = hash.decode('utf-8').rstrip()
     except Exception:
-        ghash = ''
+        hash = ''
 
-    return ghash
+    return hash
 
 def verifyToken(token, key):
     import jwt
