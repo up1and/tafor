@@ -4,11 +4,10 @@ from PyQt5.QtGui import QIcon, QRegExpValidator
 from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QComboBox, QRadioButton, QToolButton, QCheckBox, QTextEdit, QMessageBox, QHBoxLayout, QVBoxLayout
 
-from tafor.core.models import Taf, db
 from tafor.core.parsers.base import Pattern
-from tafor.core.taf import (GroupState, PrimaryState, SegmentState, TemperatureState, TrendState,
+from tafor.core.repositories import TafRepository
+from tafor.core.taf import (CurrentTaf, GroupState, PrimaryState, SegmentState, TemperatureState, TrendState,
     TafValidator, TrendValidator, normalizeTemperatureTime, parseTemperature)
-from tafor.core.utils.check import CurrentTaf
 from tafor.core.utils.time import parseDayHour, parsePeriod, parseTime
 from tafor.ui.qt import Ui_taf_group, Ui_taf_primary, Ui_trend, main_rc
 
@@ -491,6 +490,8 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         # Link temperature states to primary state
         self.state.temperatures = [t.state for t in self.temperatures]
 
+        self.tafRepository = TafRepository()
+
         self.prevButton.setIcon(QIcon(':/back.png'))
         self.resetButton.setIcon(QIcon(':/reset.png'))
 
@@ -592,11 +593,9 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
     def setNormalPeriod(self, taf, strict=False):
         period = taf.period(strict=strict)
-        expired = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
-        with db.session() as session:
-            recent = session.query(Taf).filter(Taf.text.contains(period), Taf.created > expired).order_by(Taf.created.desc()).first()
+        hasRecent = self.tafRepository.hasRecent(period)
 
-        if period and recent or not self.date.hasAcceptableInput():
+        if period and hasRecent or not self.date.hasAcceptableInput():
             self.period.clear()
             self.state.durations = None
             self.state.period = ""
@@ -630,18 +629,14 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
                     self.prevButton.setEnabled(False)
 
     def amendNumber(self, sort):
-        expired = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        with db.session() as session:
-            query = session.query(Taf).filter(Taf.text.contains(self.amdPeriod), Taf.created > expired)
-
-            if sort == 'COR':
-                count = query.filter(Taf.text.contains('COR')).count()
-                order = chr(ord('A') + count)
-                return 'CC' + order
-            else:
-                count = query.filter(Taf.text.contains('AMD')).count()
-                order = chr(ord('A') + count)
-                return 'AA' + order
+        if sort == 'COR':
+            count = self.tafRepository.amendCount(self.amdPeriod, 'COR')
+            order = chr(ord('A') + count)
+            return 'CC' + order
+        else:
+            count = self.tafRepository.amendCount(self.amdPeriod, 'AMD')
+            order = chr(ord('A') + count)
+            return 'AA' + order
 
     def findTemperature(self, oneself):
         temps = [t.state.value for t in self.temperatures if t.state.value and t is not oneself]

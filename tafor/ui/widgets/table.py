@@ -6,10 +6,8 @@ from PyQt5.QtCore import QCoreApplication, QStandardPaths, QRegExp, QDate, Qt, p
 from PyQt5.QtWidgets import (QDialog, QFileDialog, QWidget, QDialogButtonBox, QTableWidgetItem, QHeaderView, QLabel, QCalendarWidget,
     QVBoxLayout, QFormLayout, QLabel, QDateEdit, QLayout, QApplication)
 
-from sqlalchemy import and_
-
-from tafor.core.models import Metar, Sigmet, Taf, db
-from tafor.core.utils.pagination import paginate
+from tafor.core.models import Metar, Sigmet, Taf
+from tafor.core.repositories import Repository
 from tafor.core.utils.thread import ExportRecordWorker, threadManager
 from tafor.ui.qt import Ui_main_table, main_rc
 from tafor.ui.styles import buttonHoverStyle, calendarStyle, dateEditHiddenStyle
@@ -97,20 +95,8 @@ class ExportDialog(QDialog):
     def filteredReport(self):
         model = self.parent.model
         reportType = self.parent.reportType
-        with db.session() as session:
-            query = session.query(model)
-
-            if reportType == 'SIGMET':
-                query = query.filter(model.type != 'WA')
-
-            if reportType == 'AIRMET':
-                query = query.filter(model.type == 'WA')
-
-            start, end = self.startDate.date().toPyDate(), self.endDate.date().toPyDate()
-            query = query.filter(
-                model.created >= start, model.created < end + datetime.timedelta(hours=24)).order_by(model.created.desc())
-
-            return query.all()
+        start, end = self.startDate.date().toPyDate(), self.endDate.date().toPyDate()
+        return self.parent.repository.filtered(model, reportType=reportType, start=start, end=end)
 
     def exportToCsv(self):
         fmt = '%Y-%m-%d'
@@ -154,6 +140,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.calendar.calendarWidget().setSelectedDate(QDate.currentDate())
         self.calendar.calendarWidget().setHorizontalHeaderFormat(QCalendarWidget.NoHorizontalHeader)
 
+        self.repository = Repository()
         self.exportDialog = ExportDialog(self)
 
         font = self.context.resource.fixedFont()
@@ -203,25 +190,6 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         pattern = r'[a-zA-Z0-9\s\/\-\+]+'
         word = QRegExpValidator(QRegExp(pattern))
         self.search.setValidator(word)
-
-    def queryset(self, session):
-        query = session.query(self.model).order_by(self.model.created.desc())
-
-        if self.reportType == 'SIGMET':
-            query = query.filter(self.model.type != 'WA')
-
-        if self.reportType == 'AIRMET':
-            query = query.filter(self.model.type == 'WA')
-
-        if self.date:
-            delta = datetime.timedelta(days=1)
-            query = query.filter(and_(self.model.created >= self.date, self.model.created < self.date + delta))
-
-        if self.keywords:
-            words = [self.model.text.like('%'+word+'%') for word in self.keywords]
-            query = query.filter(and_(*words))
-
-        return query
 
     def autoSearch(self):
         self.search.setText(self.search.text().upper())
@@ -317,9 +285,8 @@ class TafTable(BaseDataTable):
         self.reviewer = reviewer
 
     def updateTable(self):
-        with db.session() as session:
-            queryset = self.queryset(session)
-            self.pagination = paginate(queryset, self.page, perPage=12)
+        self.pagination = self.repository.paginated(
+            self.model, reportType=self.reportType, date=self.date, keywords=self.keywords, page=self.page, perPage=12)
 
         items = self.pagination.items
         self.table.setRowCount(len(items))
@@ -361,9 +328,8 @@ class MetarTable(BaseDataTable):
         self.table.setColumnHidden(3, True)
 
     def updateTable(self):
-        with db.session() as session:
-            queryset = self.queryset(session)
-            self.pagination = paginate(queryset, self.page, perPage=24)
+        self.pagination = self.repository.paginated(
+            self.model, reportType=self.reportType, date=self.date, keywords=self.keywords, page=self.page, perPage=24)
 
         items = self.pagination.items
         self.table.setRowCount(len(items))
@@ -400,9 +366,8 @@ class SigmetTable(BaseDataTable):
         self.reviewer = reviewer
 
     def updateTable(self):
-        with db.session() as session:
-            queryset = self.queryset(session)
-            self.pagination = paginate(queryset, self.page, perPage=8)
+        self.pagination = self.repository.paginated(
+            self.model, reportType=self.reportType, date=self.date, keywords=self.keywords, page=self.page, perPage=8)
 
         items = self.pagination.items
         self.table.setRowCount(len(items))

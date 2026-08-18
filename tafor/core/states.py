@@ -114,7 +114,7 @@ class CurrentSigmetService(QObject):
             self.event.currentSigmetChanged.emit()
 
     def filterSigmets(self, sigmetFilter=None):
-        from tafor.core.utils.query import SigmetFilter
+        from tafor.core.repositories import SigmetFilter
 
         sigmetFilter = sigmetFilter or SigmetFilter()
 

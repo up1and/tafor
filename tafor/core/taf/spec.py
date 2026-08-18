@@ -1,9 +1,5 @@
 import datetime
 
-from tafor.core.globals import conf
-from tafor.core.models import Metar, Sigmet, Taf, db
-from tafor.core.parsers.sigmet import SigmetParser
-
 
 class SpecFC(object):
     type = 'FC'
@@ -82,6 +78,7 @@ class CurrentTaf(object):
 
         :param offset: 过期时间，单位分钟
         """
+        from tafor.core.globals import conf
         offset = offset or conf.delayMinutes
         offset = int(offset) if offset else 30
         hours = self.spec.delay // datetime.timedelta(hours=1)
@@ -138,120 +135,10 @@ class CurrentTaf(object):
 
         start = self.startTime[period] + self.spec.begin
         end = start + self.spec.duration
-        
+
         if '24' in period:
             end -= datetime.timedelta(minutes=1)
 
         periodWithDay = '{}{}/{}{}'.format(str(start.day).zfill(2), period[:2], str(end.day).zfill(2), period[2:])
 
         return periodWithDay
-
-
-def availableMetar(type, message):
-    with db.session() as session:
-        last = session.query(Metar).filter_by(type=type).order_by(Metar.created.desc()).first()
-
-    if last is None or last.text != message:
-        return Metar(type=type, text=message)
-
-def availableTaf(type, message):
-    recent = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
-    with db.session() as session:
-        tafs = session.query(Taf).filter(type==type, Taf.created > recent).all()
-
-    def _match(objects, message):
-        for taf in objects:
-            if taf.flatternedText() == message:
-                return taf
-
-    matched = _match(tafs, message)
-    if matched:
-        if not matched.confirmed:
-            matched.confirmed = datetime.datetime.utcnow()
-            return matched
-    else:
-        return Taf(type=type, text=message, source='api', confirmed=datetime.datetime.utcnow())
-
-def availableSigmet(type, messages):
-    recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-    time = datetime.datetime.utcnow()
-
-    with db.session() as session:
-        sigmets = session.query(Sigmet).filter(Sigmet.created > recent).all()
-
-    availables = []
-    for message in messages:
-        message = ' '.join(message.split())
-        parser = SigmetParser(message)
-
-        if parser not in [sig.parser() for sig in sigmets]:
-            item = Sigmet(type=type, heading=parser.heading, text=parser.text + '=', source='api', confirmed=time)
-            availables.append(item)
-
-        for sig in sigmets:
-            if not sig.confirmed and sig.parser() == parser:
-                sig.confirmed = time
-                availables.append(sig)
-
-    return availables
-
-
-def findAvailables(messages, wishlist=None):
-    availables = []
-    for key, text in messages.items():
-        if wishlist and key not in wishlist:
-            continue
-
-        if key in ['SA', 'SP']:
-            message = availableMetar(key, text)
-            if message:
-                availables.append(message)
-
-        if key in ['FC', 'FT']:
-            message = availableTaf(key, text)
-            if message:
-                availables.append(message)
-
-        if key in ['WS', 'WC', 'WV', 'WA']:
-            message = availableSigmet(key, text)
-            if message:
-                availables += message
-
-    return availables
-
-def createTafStatus(spec):
-    currentTaf = CurrentTaf(spec)
-    period = currentTaf.period(strict=False)
-
-    shouldRemind = currentTaf.isExpired(offset=5)
-    isExpired = False
-
-    # Ignore AMD COR message
-    expired = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
-
-    with db.session() as session:
-        recent = session.query(Taf).filter(Taf.text.contains(period),  ~Taf.text.contains('AMD'),
-        ~Taf.text.contains('COR'), Taf.created > expired).order_by(Taf.created.desc()).first()
-
-    if currentTaf.isExpired():
-        if recent:
-            if not recent.confirmed:
-                isExpired = True
-        else:
-            isExpired = True
-
-    # The alarm clock no longer rings after the cancel message is issued
-    with db.session() as session:
-        latest = session.query(Taf).filter_by(type=currentTaf.spec.type).order_by(Taf.created.desc()).first()
-
-    if latest and latest.isCnl():
-        isExpired = False
-        shouldRemind = False
-
-    return {
-            'period': period,
-            'message': recent,
-            'isExpired': isExpired,
-            'shouldRemind': shouldRemind,
-        }
-

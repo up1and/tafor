@@ -8,7 +8,7 @@ from PyQt5.QtCore import QCoreApplication, QStandardPaths, QDate, QPointF, Qt
 from PyQt5.QtWidgets import QDialog, QFileDialog, QDialogButtonBox, QCalendarWidget, QGraphicsRectItem, QGraphicsPolygonItem, QGraphicsTextItem
 from PyQt5.QtChart import (QChart, QChartView, QSplineSeries, QScatterSeries, QDateTimeAxis, QCategoryAxis)
 
-from tafor.core.models import Metar, db
+from tafor.core.repositories import MetarRepository
 from tafor.ui.qt import Ui_chart, main_rc
 from tafor.ui.styles import calendarStyle
 
@@ -174,6 +174,7 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
     def __init__(self, parent=None):
         super(ChartViewer, self).__init__(parent)
         self.setupUi(self)
+        self.metarRepository = MetarRepository()
 
         self.saveButton = self.buttonBox.button(QDialogButtonBox.Save)
         self.saveButton.setText(QCoreApplication.translate('Chart', 'Save'))
@@ -484,11 +485,7 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
 
     def drawChart(self):
         start, end = self.dateRange
-        with db.session() as session:
-            results = session.query(Metar).filter(
-                Metar.created >= start, 
-                Metar.created < end + datetime.timedelta(minutes=20)
-            ).order_by(Metar.created.asc()).all()
+        results = self.metarRepository.range(start, end + datetime.timedelta(minutes=20))
 
         if not results:
             return

@@ -6,7 +6,7 @@ from PyQt5.QtGui import QPixmap, QIcon, QBrush, QPen, QFont, QFontMetrics, QPain
 from PyQt5.QtCore import QCoreApplication, QTimer, QSize, Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QLabel, QHBoxLayout
 
-from tafor.core.utils.check import CurrentTaf
+from tafor.core.taf import CurrentTaf
 from tafor.core.utils.time import timeAgo
 from tafor.ui.qt import Ui_main_license, Ui_main_recent, main_rc
 from tafor.ui.styles import buttonHoverStyle

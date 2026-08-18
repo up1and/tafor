@@ -8,10 +8,11 @@ from PyQt5.QtCore import QCoreApplication, QSize, Qt, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QMessageBox, QTextEdit, QLabel, QToolButton
 from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
 
-from tafor.core.models import Other, db
+from tafor.core.models import Other
 from tafor.core.parsers.metar import MetarParser
 from tafor.core.parsers.sigmet import SigmetParser
 from tafor.core.parsers.taf import TafParser
+from tafor.core.repositories import MessageRepository
 from tafor.core.telegram.generator import AFTNDecoder, AFTNMessageGenerator, FileMessageGenerator
 from tafor.core.utils.thread import FtpWorker, SerialWorker, threadManager
 from tafor.ui.qt import Ui_send, main_rc
@@ -275,6 +276,7 @@ class SenderPresenter:
         self.conf = conf
         self.composer = createComposer(view.reportType, conf, context)
         self.transportService = TransportService(conf, context)
+        self.messageRepository = MessageRepository()
         self.resetGroupCycle()
 
     def protocol(self):
@@ -400,8 +402,7 @@ class SenderPresenter:
             self.view.message.protocol = self.protocol()
             logger.debug('Send {}'.format(self.view.message.text))
 
-        with db.session() as session:
-            session.add(self.view.message)
+        self.messageRepository.add(self.view.message)
 
         self.view.succeeded.emit(True)
 

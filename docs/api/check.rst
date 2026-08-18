@@ -1,7 +1,7 @@
 报文检查和存储
 ================
 
-.. module:: tafor.utils.check
+.. module:: tafor.core.taf
 
 .. autoclass:: CurrentTaf
     :members:

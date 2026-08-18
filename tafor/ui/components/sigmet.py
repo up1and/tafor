@@ -3,7 +3,7 @@ import datetime
 from PyQt5.QtCore import QCoreApplication, QTimer
 
 from tafor.core.models import Sigmet
-from tafor.core.utils.query import SigmetFilter
+from tafor.core.repositories import SigmetFilter
 from tafor.ui.qt import Ui_sigmet
 from tafor.ui.widgets import AirmetGeneral, SigmetAsh, SigmetCancel, SigmetCustom, SigmetGeneral, SigmetTyphoon
 from tafor.ui.widgets.editor import BaseEditor

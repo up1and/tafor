@@ -13,10 +13,9 @@ from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 
 from tafor import __version__, conf, root, context
-from tafor.core.models import Metar, db
-from tafor.core.utils.check import createTafStatus, findAvailables
+from tafor.core.models import Metar
+from tafor.core.repositories import MessageRepository, MetarRepository, SigmetFilter, SigmetRepository, TafRepository
 from tafor.core.utils.common import checkVersion
-from tafor.core.utils.query import SigmetFilter, currentSigmet, latestMetar, recentMessages
 from tafor.core.utils.thread import (
     CheckUpgradeWorker,
     LayerWorker,
@@ -94,10 +93,14 @@ class DataService:
         self.view = view
         self.context = context
         self.conf = conf
+        self.tafRepository = TafRepository()
+        self.metarRepository = MetarRepository()
+        self.sigmetRepository = SigmetRepository()
+        self.messageRepository = MessageRepository()
 
     def loadMetar(self):
         parser = self.context.notification.metar.parser()
-        metar = latestMetar()
+        metar = self.metarRepository.latest()
 
         if parser:
             self.view.trendSound.play()
@@ -130,22 +133,21 @@ class DataService:
             wishlist.extend(['WS', 'WC', 'WV', 'WA'])
 
         messages = self.context.message.message()
-        items = findAvailables(messages, wishlist=wishlist)
+        items = self.messageRepository.available(messages, wishlist=wishlist)
         needPlaySound = False
 
-        with db.session() as session:
-            for item in items:
-                if item.id:
-                    logger.info('Confirm {} {}'.format(item.type, item.text))
-                else:
-                    logger.info('Save {} {}'.format(item.type, item.text))
+        for item in items:
+            if item.id:
+                logger.info('Confirm {} {}'.format(item.type, item.text))
+            else:
+                logger.info('Save {} {}'.format(item.type, item.text))
 
-                if item.type in ['SA', 'SP']:
-                    self.context.notification.metar.clear()
-                else:
-                    needPlaySound = True
+            if item.type in ['SA', 'SP']:
+                self.context.notification.metar.clear()
+            else:
+                needPlaySound = True
 
-                session.add(item)
+            self.messageRepository.add(item)
 
         if needPlaySound:
             self.view.notificationSound.play(loop=False)
@@ -154,12 +156,12 @@ class DataService:
         self.refresh()
 
     def updateTaf(self):
-        status = createTafStatus(self.context.taf.spec)
+        status = self.tafRepository.status(self.context.taf.spec)
         self.context.taf.setState(status)
 
     def updateSigmet(self):
         try:
-            sigmets = currentSigmet()
+            sigmets = self.sigmetRepository.current()
             self.context.current.setState(sigmets)
         except Exception as e:
             logger.error('Sigmet cannot be updated, {}'.format(e))
@@ -180,7 +182,7 @@ class DataService:
         if self.conf.sigmetEnabled:
             sigmets = self.context.current.filterSigmets(SigmetFilter(includeCancelled=True))
 
-        messages = recentMessages(spec, recent, includeSigmet=self.conf.sigmetEnabled, currentSigmets=sigmets)
+        messages = self.messageRepository.recent(spec, recent, includeSigmet=self.conf.sigmetEnabled, currentSigmets=sigmets)
         metar = self.notificationMetar()
         if metar:
             messages['metar'] = metar

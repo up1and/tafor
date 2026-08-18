@@ -8,13 +8,12 @@ from PyQt5.QtGui import QRegExpValidator, QIntValidator, QTextCharFormat, QTextC
 from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QToolButton
 
-from tafor.core.models import Sigmet, db
 from tafor.core.parsers.base import Pattern
 from tafor.core.parsers.sigmet import AshAdvisoryParser, TyphoonAdvisoryParser
+from tafor.core.repositories import SigmetFilter, SigmetRepository
 from tafor.core.sigmet import (SigmetAshState, SigmetCancelState, SigmetCustomState, SigmetGeneralState,
     SigmetTyphoonState, SigmetValidator)
 from tafor.core.geometry.coordinate import decimalToDegree
-from tafor.core.utils.query import SigmetFilter
 from tafor.core.utils.time import ceilTime, parseTime, roundTime
 from tafor.ui.qt import Ui_sigmet_ash, Ui_sigmet_cancel, Ui_sigmet_custom, Ui_sigmet_general, Ui_sigmet_typhoon, main_rc
 from tafor.ui.widgets.taf import SegmentMixin
@@ -57,6 +56,7 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.switchButton = QToolButton(self)
         self.switchButton.hide()
         self.headingGroup.setMinimumWidth(77 * 3 + 32)
+        self.sigmetRepository = SigmetRepository()
         self.initState()
         self.setupFont()
         self.setupMainElementWidth()
@@ -158,17 +158,7 @@ class BaseSigmet(SegmentMixin, QWidget):
 
     def updateSquence(self):
         time = datetime.datetime.utcnow()
-        begin = datetime.datetime(time.year, time.month, time.day)
-
-        with db.session() as session:
-            query = session.query(Sigmet).filter(Sigmet.created > begin)
-
-            if self.type() == 'WA':
-                query = query.filter(Sigmet.type == 'WA')
-            else:
-                query = query.filter(Sigmet.type != 'WA')
-
-            sigmets = query.all()
+        sigmets = self.sigmetRepository.countToday(self.type())
 
         def isYesterday(text):
             if text:
@@ -1205,8 +1195,7 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         self.text.setPlaceholderText(tip)
 
     def loadLocalDatabase(self):
-        with db.session() as session:
-            last = session.query(Sigmet).filter(Sigmet.type == self.type(), ~Sigmet.text.contains('CNL')).order_by(Sigmet.created.desc()).first()
+        last = self.sigmetRepository.latest(self.type())
 
         if last:
             parser = last.parser()
