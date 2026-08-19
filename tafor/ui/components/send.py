@@ -14,9 +14,9 @@ from tafor.core.parsers.sigmet import SigmetParser
 from tafor.core.parsers.taf import TafParser
 from tafor.core.repositories import MessageRepository
 from tafor.core.telegram.generator import AFTNDecoder, AFTNMessageGenerator, FileMessageGenerator
-from tafor.core.utils.thread import FtpWorker, SerialWorker, threadManager
 from tafor.ui.qt import Ui_send, main_rc
 from tafor.ui.widgets.graphic import GraphicsViewer
+from tafor.ui.workers import FtpWorker, SerialWorker, threadManager
 
 logger = logging.getLogger('tafor.send')
 

@@ -16,13 +16,6 @@ from tafor import __version__, conf, root, context
 from tafor.core.models import Metar
 from tafor.core.repositories import MessageRepository, MetarRepository, SigmetFilter, SigmetRepository, TafRepository
 from tafor.core.utils.common import checkVersion, setupLogging
-from tafor.core.utils.thread import (
-    CheckUpgradeWorker,
-    LayerWorker,
-    MessageWorker,
-    RpcWorker,
-    threadManager,
-)
 from tafor.ui.components.chart import ChartViewer
 from tafor.ui.components.send import CustomSender, SigmetSender, TafSender, TrendSender
 from tafor.ui.components.setting import SettingDialog
@@ -33,6 +26,13 @@ from tafor.ui.qt import Ui_main, main_rc
 from tafor.ui.widgets.misc import Clock, LicenseEditor, RecentMessage, RemindMessageBox, TafBoard
 from tafor.ui.widgets.sound import Sound
 from tafor.ui.widgets.table import AirmetTable, MetarTable, SigmetTable, TafTable
+from tafor.ui.workers import (
+    CheckUpgradeWorker,
+    LayerWorker,
+    MessageWorker,
+    RpcWorker,
+    threadManager,
+)
 
 logger = logging.getLogger('tafor.main')
 

@@ -8,9 +8,9 @@ from PyQt5.QtWidgets import (QDialog, QFileDialog, QWidget, QDialogButtonBox, QT
 
 from tafor.core.models import Metar, Sigmet, Taf
 from tafor.core.repositories import Repository
-from tafor.core.utils.thread import ExportRecordWorker, threadManager
 from tafor.ui.qt import Ui_main_table, main_rc
 from tafor.ui.styles import buttonHoverStyle, calendarStyle, dateEditHiddenStyle
+from tafor.ui.workers import ExportRecordWorker, threadManager
 
 
 
