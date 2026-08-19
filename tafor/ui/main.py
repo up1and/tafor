@@ -15,7 +15,7 @@ from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 from tafor import __version__, conf, root, context
 from tafor.core.models import Metar
 from tafor.core.repositories import MessageRepository, MetarRepository, SigmetFilter, SigmetRepository, TafRepository
-from tafor.core.utils.common import checkVersion
+from tafor.core.utils.common import checkVersion, setupLogging
 from tafor.core.utils.thread import (
     CheckUpgradeWorker,
     LayerWorker,
@@ -744,6 +744,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         QDesktopServices.openUrl(QUrl('https://github.com/up1and/tafor/issues'))
 
 def main():
+    setupLogging(debug=conf.debugMode)
+
     os.environ['QT_ENABLE_HIGHDPI_SCALING'] = '1'
     os.environ['QT_SCALE_FACTOR_ROUNDING_POLICY'] = 'PassThrough'
 

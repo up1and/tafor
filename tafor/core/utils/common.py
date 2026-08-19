@@ -1,6 +1,31 @@
 import logging
+import sys
+
+from logging.handlers import RotatingFileHandler
 
 logger = logging.getLogger(__name__)
+
+
+def setupLogging(debug=False, name='tafor'):
+    logLevel = logging.DEBUG if debug else logging.INFO
+    _format = '[%(asctime)s] %(levelname)s [%(name)s] %(message)s'
+    formatter = logging.Formatter(_format)
+
+    logger = logging.getLogger(name)
+    if logger.handlers:
+        return
+
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(logging.DEBUG)
+    ch.setFormatter(formatter)
+
+    fh = RotatingFileHandler('{}.log'.format(name), maxBytes=1024*1024, backupCount=5)
+    fh.setLevel(logLevel)
+    fh.setFormatter(formatter)
+
+    logger.setLevel(logLevel)
+    logger.addHandler(ch)
+    logger.addHandler(fh)
 
 def ipAddress():
     import socket
