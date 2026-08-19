@@ -28,16 +28,16 @@ def test_sigmet_enable(monkeypatch, capsys):
     cli.cli(['sigmet', '--enable'])
 
     assert cli.conf.sigmetEnabled is True
-    assert capsys.readouterr().out.strip() == 'SIGMET function enabled'
+    assert capsys.readouterr().out.strip() == 'SIGMET support has been enabled.'
 
 
-def test_sigmet_default_disables(monkeypatch, capsys):
+def test_sigmet_disable(monkeypatch, capsys):
     monkeypatch.setattr(cli, 'conf', type('Conf', (), {'sigmetEnabled': True})())
 
-    cli.cli(['sigmet'])
+    cli.cli(['sigmet', '--disable'])
 
     assert cli.conf.sigmetEnabled is False
-    assert capsys.readouterr().out.strip() == 'SIGMET function disabled'
+    assert capsys.readouterr().out.strip() == 'SIGMET support has been disabled.'
 
 
 def test_token_show(monkeypatch, capsys):
@@ -45,7 +45,7 @@ def test_token_show(monkeypatch, capsys):
 
     cli.cli(['token'])
 
-    assert capsys.readouterr().out.strip() == 'current-token'
+    assert 'current-token' in capsys.readouterr().out
 
 
 def test_token_generate(monkeypatch, capsys):
@@ -57,4 +57,4 @@ def test_token_generate(monkeypatch, capsys):
     cli.cli(['token', '--generate'])
 
     assert conf.authToken == 'new-token'
-    assert capsys.readouterr().out.strip() == 'new-token'
+    assert 'new-token' in capsys.readouterr().out

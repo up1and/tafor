@@ -1,1 +1,1 @@
-from tafor.core.rpc.api import server
+from tafor.core.rpc.api import create_app

@@ -8,7 +8,6 @@ import requests
 from PyQt5.QtCore import QThread, QObject, pyqtSignal
 
 from tafor.core.globals import conf
-from tafor.core.rpc import server
 from tafor.core.states import context
 from tafor.core.telegram.encoder import ITA2_STANDARD, encode
 from tafor.core.telegram.transport import ftpComm, serialComm
@@ -303,17 +302,17 @@ class RpcWorker(QObject):
     """Worker for RPC server"""
     finished = pyqtSignal()
 
-    def __init__(self, port=9407):
+    def __init__(self, app, port=9407):
         super(RpcWorker, self).__init__()
-        self.app = server
+        self.app = app
         self.port = port
-        self._server = None
+        self.server = None
 
     def run(self):
         try:
             from waitress import serve
             # Store server reference for potential shutdown
-            self._server = serve(self.app, port=self.port, _quiet=True)
+            self.server = serve(self.app, port=self.port, _quiet=True)
         except Exception as e:
             logger.error(f"RPC server failed to start: {e}")
         finally:
@@ -321,8 +320,8 @@ class RpcWorker(QObject):
 
     def stop(self):
         """Stop the RPC server"""
-        if self._server:
+        if self.server:
             try:
-                self._server.close()
+                self.server.close()
             except:
                 pass

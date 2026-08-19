@@ -786,7 +786,11 @@ def main():
     localServer.listen(serverName)
 
     if conf.rpc:
-        rpcWorker, rpcThread = threadManager.createWorker(RpcWorker, workerId='rpc', reusable=True)
+        from tafor.core.rpc import create_app
+        from tafor.core.models import db
+
+        server = create_app(context=context, engine=db.engine, conf=conf)
+        rpcWorker, rpcThread = threadManager.createWorker(RpcWorker, server, workerId='rpc', reusable=True)
         rpcThread.start()
     
     app.aboutToQuit.connect(threadManager.cleanup)

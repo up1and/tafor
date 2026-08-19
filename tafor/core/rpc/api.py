@@ -8,12 +8,11 @@ from uuid import uuid4
 
 from sqlalchemy.orm import sessionmaker, scoped_session
 
-from tafor.core.globals import conf, root
-from tafor.core.models import Metar, Other, Sigmet, Taf, engine
+from tafor.core.globals import root
+from tafor.core.models import Metar, Other, Sigmet, Taf
 from tafor.core.parsers.metar import MetarParser
 from tafor.core.parsers.sigmet import SigmetParser
 from tafor.core.parsers.taf import TafParser
-from tafor.core.states import context
 from tafor.core.telegram.generator import AFTNMessageGenerator
 from tafor.core.utils.pagination import paginate
 
@@ -70,10 +69,6 @@ def parse_sigmet(message, kwargs):
     parser = SigmetParser(message, **kwargs)
 
     tokens = []
-    for e in parser.heads:
-        pairs = (e, True)
-        tokens.append(pairs)
-
     for e in parser.elements:
         for token in e.tokens:
             pairs = (token['text'], not token['error'])
@@ -97,17 +92,18 @@ def webui():
 
 def authorize(req, resp, resource, params):
     challenges = ['Bearer Token']
+    conf = resource.conf
 
     if req.auth is None:
         description = ('Please provide an auth token as part of the request.')
-        raise falcon.HTTPUnauthorized('Bearer Token Required', description, challenges=challenges)
+        raise falcon.HTTPUnauthorized(title='Bearer Token Required', description=description, challenges=challenges)
 
     authType, token = req.auth.split(None, 1)
     if authType == 'Bearer' and token == conf.license:
         req.context.user = 'webapi'
     else:
         description = ('The provided auth token is not valid. Please request a new token and try again.')
-        raise falcon.HTTPUnauthorized('Authentication Required', description, challenges=challenges)
+        raise falcon.HTTPUnauthorized(title='Authentication Required', description=description, challenges=challenges)
 
 
 class LoggerComponent(object):
@@ -131,8 +127,8 @@ class JSONComponent(object):
             req.context.body = json.loads(body.decode('utf-8'))
 
         except (ValueError, UnicodeDecodeError):
-            raise falcon.HTTPError(falcon.HTTP_753, 'Malformed JSON',
-                                   'Could not decode the request body. The JSON was incorrect or not encoded as UTF-8.')
+            raise falcon.HTTPError(falcon.HTTP_753, title='Malformed JSON',
+                                   description='Could not decode the request body. The JSON was incorrect or not encoded as UTF-8.')
 
 
 class SQLAlchemySessionComponent(object):
@@ -163,7 +159,7 @@ class SQLAlchemySessionComponent(object):
 class MainResource(object):
 
     def on_get(self, req, resp):
-        resp.body = ('\nAll in the Sea of Sky, my love\n'
+        resp.text = ('\nAll in the Sea of Sky, my love\n'
                      'The moonships sail and fly, my love\n'
                      'Though many are their kind, my love\n'
                      'Though all need but one wind\n'
@@ -174,25 +170,29 @@ class MainResource(object):
 
 class StateResource(object):
 
+    def __init__(self, context, conf):
+        self.context = context
+        self.conf = conf
+
     @falcon.before(authorize)
     def on_get(self, req, resp):
         data = {
             'aftn': {
-                'channel': conf.channel,
-                'number': conf.channelSequenceNumber,
-                'length': conf.channelSequenceLength,
+                'channel': self.conf.channel,
+                'number': self.conf.channelSequenceNumber,
+                'length': self.conf.channelSequenceLength,
             },
             'address': {
-                'taf': conf.tafAddress,
-                'trend': conf.trendAddress,
-                'sigmet': conf.sigmetAddress,
-                'airmet': conf.airmetAddress,
+                'taf': self.conf.tafAddress,
+                'trend': self.conf.trendAddress,
+                'sigmet': self.conf.sigmetAddress,
+                'airmet': self.conf.airmetAddress,
             },
-            'originator': conf.originatorAddress,
+            'originator': self.conf.originatorAddress,
             'file': {
-                'number': conf.fileSequenceNumber,
+                'number': self.conf.fileSequenceNumber,
             },
-            'busy': context.serial.isBusy,
+            'busy': self.context.serial.isBusy,
             'time': falcon.http_now()
         }
         resp.media = data
@@ -200,16 +200,21 @@ class StateResource(object):
 
 class NotificationResource(object):
 
+    def __init__(self, context, conf):
+        self.context = context
+        self.conf = conf
+
     @falcon.before(authorize)
     def on_post(self, req, resp):
         message = req.get_param('message') or req.context.body.get('message')
-        message = message.strip()
+        if message:
+            message = message.strip()
 
         if not message:
-            raise falcon.HTTPBadRequest('Message Required', 'Please provide a notification message.')
+            raise falcon.HTTPBadRequest(title='Message Required', description='Please provide a notification message.')
 
         if not (message.startswith(('METAR', 'SPECI')) or 'SIGMET' in message or 'AIRMET' in message):
-            raise falcon.HTTPBadRequest('Invalid Message', 'Only SIGMET/AIRMET message can be supported.')
+            raise falcon.HTTPBadRequest(title='Invalid Message', description='Only SIGMET/AIRMET message can be supported.')
 
         media = {
             'message': message,
@@ -219,21 +224,21 @@ class NotificationResource(object):
         if message.startswith(('METAR', 'SPECI')):
             validation = req.get_param_as_bool('validation', blank_as_true=False, default=False) or as_bool(req.context.body, 'validation')
 
-            context.notification.metar.setState({
+            self.context.notification.metar.setState({
                 'message': message,
                 'validation': validation
             })
 
             if validation:
                 kwargs = {
-                    'visHas5000': conf.visHas5000,
-                    'cloudHeightHas450': conf.cloudHeightHas450,
-                    'weakPrecipitationVerification': conf.weakPrecipitationVerification,
+                    'visHas5000': self.conf.visHas5000,
+                    'cloudHeightHas450': self.conf.cloudHeightHas450,
+                    'weakPrecipitationVerification': self.conf.weakPrecipitationVerification,
                 }
                 media['validations'] = parse_metar(message, kwargs)
 
         if 'SIGMET' in message or 'AIRMET' in message:
-            context.notification.sigmet.setState({
+            self.context.notification.sigmet.setState({
                 'message': message
             })
 
@@ -242,6 +247,9 @@ class NotificationResource(object):
 
 
 class ResourceCollection(object):
+
+    def __init__(self, conf):
+        self.conf = conf
 
     def args(self, req):
         page = req.get_param('page') or req.context.body.get('page') or '1'
@@ -325,7 +333,7 @@ class SigmetsResource(ResourceCollection):
             try:
                 since = falcon.http_date_to_dt(since)
             except Exception as e:
-                raise falcon.HTTPBadRequest('Invalid Parameter', 'Require RFC 1123 date string.')
+                raise falcon.HTTPBadRequest(title='Invalid Parameter', description='Require RFC 1123 date string.')
 
             queryset = queryset.filter(Sigmet.created > since)
 
@@ -341,6 +349,10 @@ class SigmetsResource(ResourceCollection):
 
 
 class OthersResource(ResourceCollection):
+
+    def __init__(self, context, conf):
+        super(OthersResource, self).__init__(conf)
+        self.context = context
 
     @falcon.before(authorize)
     def on_get(self, req, resp):
@@ -371,21 +383,21 @@ class OthersResource(ResourceCollection):
         message = message.strip()
 
         if not all([priority, address, message]):
-            raise falcon.HTTPBadRequest('Message Required', 'Please provide priority indicator, addresses and message text.')
+            raise falcon.HTTPBadRequest(title='Message Required', description='Please provide priority indicator, addresses and message text.')
 
         uuid = str(uuid4())
-        context.other.setState({
+        self.context.other.setState({
             'uuid': uuid,
             'priority': priority,
             'address': address,
             'message': message,
         })
 
-        channel = conf.channel
-        originator = conf.originatorAddress
-        number = conf.channelSequenceNumber
-        sequenceLength = conf.channelSequenceLength
-        maxSendAddress = conf.maxSendAddress
+        channel = self.conf.channel
+        originator = self.conf.originatorAddress
+        number = self.conf.channelSequenceNumber
+        sequenceLength = self.conf.channelSequenceLength
+        maxSendAddress = self.conf.maxSendAddress
 
         generator = AFTNMessageGenerator(message, channel=channel, number=number, priority=priority, address=address,
                     originator=originator, sequenceLength=sequenceLength, maxSendAddress=maxSendAddress)
@@ -399,27 +411,24 @@ class OthersResource(ResourceCollection):
         }
 
 
-middleware = [JSONComponent(), LoggerComponent(), SQLAlchemySessionComponent(engine)]
-server = falcon.App(middleware=middleware, cors_enable=True)
+def create_app(context, engine, conf):
+    """Build the falcon application with injectable dependencies.
+    """
+    middleware = [JSONComponent(), LoggerComponent(), SQLAlchemySessionComponent(engine)]
+    app = falcon.App(middleware=middleware, cors_enable=True)
 
-main = MainResource()
-state = StateResource()
-metars = MetarsResource()
-tafs = TafsResource()
-others = OthersResource()
-sigmets = SigmetsResource()
-notification = NotificationResource()
+    app.add_route('/api/state', StateResource(context, conf))
+    app.add_route('/api/metars', MetarsResource(conf))
+    app.add_route('/api/tafs', TafsResource(conf))
+    app.add_route('/api/sigmets', SigmetsResource(conf))
+    app.add_route('/api/others', OthersResource(context, conf))
+    app.add_route('/api/notifications', NotificationResource(context, conf))
 
-server.add_route('/api/state', state)
-server.add_route('/api/metars', metars)
-server.add_route('/api/tafs', tafs)
-server.add_route('/api/sigmets', sigmets)
-server.add_route('/api/others', others)
-server.add_route('/api/notifications', notification)
+    static = webui()
+    if static:
+        app.add_static_route('/', static, fallback_filename=os.path.join(static, 'index.html'))
+        app.add_static_route('/static', os.path.join(static, 'static'))
+    else:
+        app.add_route('/', MainResource())
 
-static = webui()
-if static:
-    server.add_static_route('/', static, fallback_filename=os.path.join(static, 'index.html'))
-    server.add_static_route('/static', os.path.join(static, 'static'))
-else:
-    server.add_route('/', main)
+    return app

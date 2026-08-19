@@ -1,5 +1,5 @@
 [run]
-omit = tafor/components/ui/*
+omit = tafor/ui/qt/*
 
 [report]
 # Regexes for lines to exclude from consideration
