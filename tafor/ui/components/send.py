@@ -271,13 +271,13 @@ class TransportService:
 
 
 class SenderPresenter:
-    def __init__(self, view, context, conf):
+    def __init__(self, view, context, conf, database=None):
         self.view = view
         self.context = context
         self.conf = conf
         self.composer = createComposer(view.reportType, conf, context)
         self.transportService = TransportService(conf, context)
-        self.messageRepository = MessageRepository()
+        self.messageRepository = MessageRepository(database)
         self.resetGroupCycle()
 
     def protocol(self):
@@ -489,7 +489,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
     backed = pyqtSignal()
     succeeded = pyqtSignal(bool)
 
-    def __init__(self, parent=None, context=None, conf=None):
+    def __init__(self, parent=None, context=None, conf=None, database=None):
         super(BaseSender, self).__init__(parent)
         self.context = context
         self.conf = conf
@@ -519,7 +519,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.cancelButton.setText(QCoreApplication.translate('Sender', 'Cancel'))
         self.printButton.setText(QCoreApplication.translate('Sender', 'Print'))
 
-        self.presenter = SenderPresenter(self, self.context, self.conf)
+        self.presenter = SenderPresenter(self, self.context, self.conf, database)
 
         self.buttonBox.accepted.connect(self.presenter.send)
         self.printButton.clicked.connect(self.print)
@@ -686,8 +686,8 @@ class TrendSender(BaseSender):
     reportType = 'Trend'
     fixedProtocol = 'aftn'
 
-    def __init__(self, parent=None, context=None, conf=None):
-        super(TrendSender, self).__init__(parent, context, conf)
+    def __init__(self, parent=None, context=None, conf=None, database=None):
+        super(TrendSender, self).__init__(parent, context, conf, database)
         self.context.event.trendReloadRequested.connect(self.presenter.reload)
 
 
@@ -695,8 +695,8 @@ class SigmetSender(BaseSender):
     reportType = 'SIGMET'
     hasCanvasGroup = True
 
-    def __init__(self, parent=None, context=None, conf=None):
-        super(SigmetSender, self).__init__(parent, context, conf)
+    def __init__(self, parent=None, context=None, conf=None, database=None):
+        super(SigmetSender, self).__init__(parent, context, conf, database)
         self.graphic = GraphicsViewer(self, context=self.context)
         self.canvasLayout.addWidget(self.graphic)
         self.switchButton.clicked.connect(self.presenter.updateVisibility)
@@ -743,8 +743,8 @@ class CustomSender(BaseSender):
     reportType = 'Custom'
     fixedProtocol = 'aftn'
 
-    def __init__(self, parent=None, context=None, conf=None):
-        super(CustomSender, self).__init__(parent, context, conf)
+    def __init__(self, parent=None, context=None, conf=None, database=None):
+        super(CustomSender, self).__init__(parent, context, conf, database)
         self.textGroup.hide()
         self.setModal(True)
         self.setWindowTitle(QCoreApplication.translate('Sender', 'Send Custom Message'))

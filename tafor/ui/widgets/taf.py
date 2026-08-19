@@ -461,7 +461,7 @@ class TemperatureGroup(SegmentMixin, QWidget):
 
 class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
-    def __init__(self, name='PRIMARY', parent=None, conf=None, context=None):
+    def __init__(self, name='PRIMARY', parent=None, conf=None, context=None, database=None):
         super(TafPrimarySegment, self).__init__(name, parent, conf, context)
         self.setupUi(self)
 
@@ -491,7 +491,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         # Link temperature states to primary state
         self.state.temperatures = [t.state for t in self.temperatures]
 
-        self.tafRepository = TafRepository()
+        self.tafRepository = TafRepository(database)
 
         self.prevButton.setIcon(QIcon(':/back.png'))
         self.resetButton.setIcon(QIcon(':/reset.png'))

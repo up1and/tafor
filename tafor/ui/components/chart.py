@@ -171,10 +171,10 @@ class ChartView(QChartView):
 
 class ChartViewer(QDialog, Ui_chart.Ui_Chart):
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, database=None):
         super(ChartViewer, self).__init__(parent)
         self.setupUi(self)
-        self.metarRepository = MetarRepository()
+        self.metarRepository = MetarRepository(database)
 
         self.saveButton = self.buttonBox.button(QDialogButtonBox.Save)
         self.saveButton.setText(QCoreApplication.translate('Chart', 'Save'))

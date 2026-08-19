@@ -6,12 +6,13 @@ class BaseEditor(QDialog):
 
     finished = pyqtSignal(object)
 
-    def __init__(self, parent=None, sender=None, conf=None, context=None):
+    def __init__(self, parent=None, sender=None, conf=None, context=None, database=None):
         super(BaseEditor, self).__init__(parent)
         self.parent = parent
         self.sender = sender
         self.conf = conf
         self.context = context
+        self.database = database
         self.isStaged = False
 
         self.defaultAction()

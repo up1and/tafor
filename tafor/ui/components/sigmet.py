@@ -12,8 +12,8 @@ from tafor.ui.widgets.graphic import GraphicsWindow
 
 class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
-    def __init__(self, parent=None, sender=None, conf=None, context=None):
-        super(SigmetEditor, self).__init__(parent, sender, conf, context)
+    def __init__(self, parent=None, sender=None, conf=None, context=None, database=None):
+        super(SigmetEditor, self).__init__(parent, sender, conf, context, database)
         self.setupUi(self)
         self.parent = parent
 
@@ -28,12 +28,12 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
     def initUI(self):
         self.graphic = GraphicsWindow(self, context=self.context)
-        self.generalContent = SigmetGeneral(self, conf=self.conf, context=self.context)
-        self.typhoonContent = SigmetTyphoon(self, conf=self.conf, context=self.context)
-        self.ashContent = SigmetAsh(self, conf=self.conf, context=self.context)
-        self.airmetContent = AirmetGeneral(self, conf=self.conf, context=self.context)
-        self.cancelContent = SigmetCancel(self, conf=self.conf, context=self.context)
-        self.customContent = SigmetCustom(self, conf=self.conf, context=self.context)
+        self.generalContent = SigmetGeneral(self, conf=self.conf, context=self.context, database=self.database)
+        self.typhoonContent = SigmetTyphoon(self, conf=self.conf, context=self.context, database=self.database)
+        self.ashContent = SigmetAsh(self, conf=self.conf, context=self.context, database=self.database)
+        self.airmetContent = AirmetGeneral(self, conf=self.conf, context=self.context, database=self.database)
+        self.cancelContent = SigmetCancel(self, conf=self.conf, context=self.context, database=self.database)
+        self.customContent = SigmetCustom(self, conf=self.conf, context=self.context, database=self.database)
 
         self.contents = []
         self.contents.append(self.generalContent)

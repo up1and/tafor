@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 
 from tafor import __version__, conf, root, context
-from tafor.core.models import Metar
+from tafor.core.models import Metar, createDatabase
 from tafor.core.repositories import MessageRepository, MetarRepository, SigmetFilter, SigmetRepository, TafRepository
 from tafor.core.utils.common import appInfo, checkVersion, revision, setupLogging
 from tafor.ui.components.chart import ChartViewer
@@ -90,14 +90,14 @@ class RemindService:
 
 class DataService:
 
-    def __init__(self, view, context, conf):
+    def __init__(self, view, context, conf, database):
         self.view = view
         self.context = context
         self.conf = conf
-        self.tafRepository = TafRepository()
-        self.metarRepository = MetarRepository()
-        self.sigmetRepository = SigmetRepository()
-        self.messageRepository = MessageRepository()
+        self.tafRepository = TafRepository(database)
+        self.metarRepository = MetarRepository(database)
+        self.sigmetRepository = SigmetRepository(database)
+        self.messageRepository = MessageRepository(database)
 
     def loadMetar(self):
         parser = self.context.notification.metar.parser()
@@ -222,7 +222,7 @@ class DataService:
 
 class MainPresenter(QObject):
 
-    def __init__(self, view, context, conf, dataService=None, remindService=None):
+    def __init__(self, view, context, conf, database, dataService=None, remindService=None):
         super(MainPresenter, self).__init__(view)
         self.view = view
         self.context = context
@@ -230,7 +230,7 @@ class MainPresenter(QObject):
 
         # The presenter delegates data loading to DataService
         # and reminder logic to RemindService.
-        self.dataService = dataService or DataService(view, context, conf)
+        self.dataService = dataService or DataService(view, context, conf, database)
         self.remindService = remindService or RemindService(view, context, conf)
 
         self.setupTimers()
@@ -466,12 +466,13 @@ class MainPresenter(QObject):
 
 class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
-    def __init__(self, conf, context, parent=None):
+    def __init__(self, conf, context, database, parent=None):
         super(MainWindow, self).__init__(parent)
         self.conf = conf
         self.context = context
+        self.database = database
         self.setupUi(self)
-        self.presenter = MainPresenter(self, context, conf)
+        self.presenter = MainPresenter(self, context, conf, database)
         self.sysInfo = QSysInfo.prettyProductName()
 
         self.setup()
@@ -487,17 +488,17 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         # 初始化窗口
         self.settingDialog = SettingDialog(self, self.conf, self.context)
 
-        self.tafSender = TafSender(self, self.context, self.conf)
-        self.trendSender = TrendSender(self, self.context, self.conf)
-        self.sigmetSender = SigmetSender(self, self.context, self.conf)
-        self.customSender = CustomSender(self, self.context, self.conf)
+        self.tafSender = TafSender(self, self.context, self.conf, self.database)
+        self.trendSender = TrendSender(self, self.context, self.conf, self.database)
+        self.sigmetSender = SigmetSender(self, self.context, self.conf, self.database)
+        self.customSender = CustomSender(self, self.context, self.conf, self.database)
 
-        self.tafEditor = TafEditor(self, self.tafSender, self.conf, self.context)
+        self.tafEditor = TafEditor(self, self.tafSender, self.conf, self.context, self.database)
         self.trendEditor = TrendEditor(self, self.trendSender, self.conf, self.context)
-        self.sigmetEditor = SigmetEditor(self, self.sigmetSender, self.conf, self.context)
+        self.sigmetEditor = SigmetEditor(self, self.sigmetSender, self.conf, self.context, self.database)
         self.licenseEditor = LicenseEditor(self, conf=self.conf, context=self.context)
 
-        self.chartViewer = ChartViewer(self)
+        self.chartViewer = ChartViewer(self, self.database)
 
         if not self.conf.sigmetEnabled:
             self.sigmetAction.setVisible(False)
@@ -571,10 +572,10 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.scrollLayout.setAlignment(Qt.AlignTop)
 
     def setupTable(self):
-        self.tafTable = TafTable(self, self.tafLayout, reviewer=self.tafSender, conf=self.conf, context=self.context)
-        self.metarTable = MetarTable(self, self.metarLayout, conf=self.conf, context=self.context)
-        self.sigmetTable = SigmetTable(self, self.sigmetLayout, reviewer=self.sigmetSender, conf=self.conf, context=self.context)
-        self.airmetTable = AirmetTable(self, self.airmetLayout, reviewer=self.sigmetSender, conf=self.conf, context=self.context)
+        self.tafTable = TafTable(self, self.tafLayout, reviewer=self.tafSender, conf=self.conf, context=self.context, database=self.database)
+        self.metarTable = MetarTable(self, self.metarLayout, conf=self.conf, context=self.context, database=self.database)
+        self.sigmetTable = SigmetTable(self, self.sigmetLayout, reviewer=self.sigmetSender, conf=self.conf, context=self.context, database=self.database)
+        self.airmetTable = AirmetTable(self, self.airmetLayout, reviewer=self.sigmetSender, conf=self.conf, context=self.context, database=self.database)
 
     def setupSysTray(self):
         self.tray = QSystemTrayIcon(self)
@@ -788,11 +789,12 @@ def main():
     localServer = QLocalServer()
     localServer.listen(serverName)
 
+    database = createDatabase()
+
     if conf.rpc:
         from tafor.core.rpc import create_app
-        from tafor.core.models import db
 
-        server = create_app(context=context, engine=db.engine, conf=conf)
+        server = create_app(context=context, engine=database.engine, conf=conf)
         rpcWorker, rpcThread = threadManager.createWorker(RpcWorker, server, workerId='rpc', reusable=True)
         rpcThread.start()
     
@@ -802,7 +804,7 @@ def main():
     logger.info('Version {version}+{revision}, Python {python} {machine}, Qt {qt} on {system} {release}'.format(**versions))
 
     try:
-        window = MainWindow(conf, context)
+        window = MainWindow(conf, context, database)
         window.show()
         code = app.exec_()
         sys.exit(code)

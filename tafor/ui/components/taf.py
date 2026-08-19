@@ -79,8 +79,8 @@ class TafPresenter:
 
 class TafEditor(BaseEditor):
 
-    def __init__(self, parent=None, sender=None, conf=None, context=None):
-        super(TafEditor, self).__init__(parent, sender, conf, context)
+    def __init__(self, parent=None, sender=None, conf=None, context=None, database=None):
+        super(TafEditor, self).__init__(parent, sender, conf, context, database)
         self.presenter = TafPresenter(self, context, conf)
         self.initUI()
         self.presenter.initialize()
@@ -92,7 +92,7 @@ class TafEditor(BaseEditor):
         layout.setSizeConstraint(QLayout.SetFixedSize)
         layout.setSpacing(18)
         
-        self.primary = TafPrimarySegment(parent=self, conf=self.conf, context=self.context)
+        self.primary = TafPrimarySegment(parent=self, conf=self.conf, context=self.context, database=self.database)
         self.fm = TafFmSegment('FM', self, conf=self.conf, context=self.context)
         self.becmg1 = TafBecmgSegment('BECMG1', self, conf=self.conf, context=self.context)
         self.becmg2 = TafBecmgSegment('BECMG2', self, conf=self.conf, context=self.context)

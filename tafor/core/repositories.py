@@ -1,11 +1,9 @@
 import copy
 import datetime
 
-from contextlib import contextmanager
-
 from sqlalchemy import and_
 
-from tafor.core.models import Metar, Sigmet, Taf, Trend, db
+from tafor.core.models import Metar, Sigmet, Taf, Trend
 from tafor.core.parsers.sigmet import SigmetParser
 from tafor.core.taf import CurrentTaf
 from tafor.core.utils.pagination import paginate
@@ -33,13 +31,8 @@ class SigmetFilter:
 
 class Repository(object):
 
-    def __init__(self, sessionFactory=None):
-        self.sessionFactory = sessionFactory or db.session
-
-    @contextmanager
-    def session(self):
-        with self.sessionFactory() as session:
-            yield session
+    def __init__(self, database):
+        self.database = database
 
     def queryset(self, session, model, reportType=None, date=None, keywords=None):
         query = session.query(model).order_by(model.created.desc())
@@ -61,12 +54,12 @@ class Repository(object):
         return query
 
     def paginated(self, model, reportType=None, date=None, keywords=None, page=1, perPage=12):
-        with self.session() as session:
+        with self.database.session() as session:
             queryset = self.queryset(session, model, reportType=reportType, date=date, keywords=keywords)
             return paginate(queryset, page, perPage=perPage)
 
     def filtered(self, model, reportType=None, start=None, end=None):
-        with self.session() as session:
+        with self.database.session() as session:
             query = session.query(model)
 
             if reportType == 'SIGMET':
@@ -85,7 +78,7 @@ class TafRepository(Repository):
 
     def available(self, type, message):
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
-        with self.session() as session:
+        with self.database.session() as session:
             tafs = session.query(Taf).filter(type == type, Taf.created > recent).all()
 
         def _match(objects, message):
@@ -103,18 +96,18 @@ class TafRepository(Repository):
 
     def hasRecent(self, period, hours=32):
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=hours)
-        with self.session() as session:
+        with self.database.session() as session:
             return session.query(Taf).filter(
                 Taf.text.contains(period), Taf.created > recent).first()
 
     def amendCount(self, period, kind):
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        with self.session() as session:
+        with self.database.session() as session:
             query = session.query(Taf).filter(Taf.text.contains(period), Taf.created > recent)
             return query.filter(Taf.text.contains(kind)).count()
 
     def latest(self, type):
-        with self.session() as session:
+        with self.database.session() as session:
             return session.query(Taf).filter_by(type=type).order_by(Taf.created.desc()).first()
 
     def status(self, spec):
@@ -127,7 +120,7 @@ class TafRepository(Repository):
         # Ignore AMD COR message
         expired = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
 
-        with self.session() as session:
+        with self.database.session() as session:
             recent = session.query(Taf).filter(Taf.text.contains(period),  ~Taf.text.contains('AMD'),
             ~Taf.text.contains('COR'), Taf.created > expired).order_by(Taf.created.desc()).first()
 
@@ -155,7 +148,7 @@ class TafRepository(Repository):
 class MetarRepository(Repository):
 
     def available(self, type, message):
-        with self.session() as session:
+        with self.database.session() as session:
             last = session.query(Metar).filter_by(type=type).order_by(Metar.created.desc()).first()
 
         if last is None or last.text != message:
@@ -163,11 +156,11 @@ class MetarRepository(Repository):
 
     def latest(self, hours=2):
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=hours)
-        with self.session() as session:
+        with self.database.session() as session:
             return session.query(Metar).filter(Metar.created > recent).order_by(Metar.created.desc()).first()
 
     def range(self, start, end):
-        with self.session() as session:
+        with self.database.session() as session:
             return session.query(Metar).filter(
                 Metar.created >= start, Metar.created < end).order_by(Metar.created.asc()).all()
 
@@ -178,7 +171,7 @@ class SigmetRepository(Repository):
         time = datetime.datetime.utcnow()
         begin = datetime.datetime(time.year, time.month, time.day)
 
-        with self.session() as session:
+        with self.database.session() as session:
             query = session.query(Sigmet).filter(Sigmet.created > begin)
 
             if type == 'WA':
@@ -189,7 +182,7 @@ class SigmetRepository(Repository):
             return query.all()
 
     def latest(self, type, excludeCnl=True):
-        with self.session() as session:
+        with self.database.session() as session:
             query = session.query(Sigmet).filter(Sigmet.type == type)
 
             if excludeCnl:
@@ -199,7 +192,7 @@ class SigmetRepository(Repository):
 
     def current(self, hours=24):
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=hours)
-        with self.session() as session:
+        with self.database.session() as session:
             records = session.query(Sigmet).filter(Sigmet.created > recent).order_by(Sigmet.created.asc()).all()
 
         sigmets = []
@@ -234,7 +227,7 @@ class SigmetRepository(Repository):
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
         time = datetime.datetime.utcnow()
 
-        with self.session() as session:
+        with self.database.session() as session:
             sigmets = session.query(Sigmet).filter(Sigmet.created > recent).all()
 
         availables = []
@@ -256,11 +249,11 @@ class SigmetRepository(Repository):
 
 class MessageRepository(Repository):
 
-    def __init__(self, sessionFactory=None):
-        super().__init__(sessionFactory)
-        self.metar = MetarRepository(sessionFactory)
-        self.taf = TafRepository(sessionFactory)
-        self.sigmet = SigmetRepository(sessionFactory)
+    def __init__(self, database):
+        super().__init__(database)
+        self.metar = MetarRepository(database)
+        self.taf = TafRepository(database)
+        self.sigmet = SigmetRepository(database)
 
     def available(self, messages, wishlist=None):
         availables = []
@@ -286,7 +279,7 @@ class MessageRepository(Repository):
         return availables
 
     def recent(self, spec, since, includeSigmet=False, currentSigmets=None):
-        with self.session() as session:
+        with self.database.session() as session:
             taf = session.query(Taf).filter(Taf.created > since, Taf.type == spec).order_by(Taf.created.desc()).first()
             trend = session.query(Trend).order_by(Trend.created.desc()).first()
             metar = session.query(Metar).filter(Metar.created > since).order_by(Metar.created.desc()).first()
@@ -304,5 +297,5 @@ class MessageRepository(Repository):
         }
 
     def add(self, message):
-        with self.session() as session:
+        with self.database.session() as session:
             session.add(message)

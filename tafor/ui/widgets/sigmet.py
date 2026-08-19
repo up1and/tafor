@@ -39,7 +39,7 @@ class BaseSigmet(SegmentMixin, QWidget):
 
     contentChanged = pyqtSignal()
 
-    def __init__(self, parent, conf=None, context=None):
+    def __init__(self, parent, conf=None, context=None, database=None):
         super().__init__()
         self.complete = False
         self.durations = None
@@ -56,7 +56,7 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.switchButton = QToolButton(self)
         self.switchButton.hide()
         self.headingGroup.setMinimumWidth(77 * 3 + 32)
-        self.sigmetRepository = SigmetRepository()
+        self.sigmetRepository = SigmetRepository(database)
         self.initState()
         self.setupFont()
         self.setupMainElementWidth()
@@ -370,8 +370,8 @@ class AdvisoryMixin(object):
 
     locationChanged = pyqtSignal(dict)
 
-    def __init__(self, parent, conf=None, context=None):
-        super().__init__(parent, conf=conf, context=context)
+    def __init__(self, parent, conf=None, context=None, database=None):
+        super().__init__(parent, conf=conf, context=context, database=database)
         self.switchButton.setText('Switch')
         self.switchButton.setFixedSize(26, 26)
         self.switchButton.setAutoRaise(True)
@@ -513,8 +513,8 @@ class AdvisoryMixin(object):
 
 class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin, BaseSigmet, Ui_sigmet_general.Ui_Editor):
 
-    def __init__(self, parent=None, conf=None, context=None):
-        super().__init__(parent, conf=conf, context=context)
+    def __init__(self, parent=None, conf=None, context=None, database=None):
+        super().__init__(parent, conf=conf, context=context, database=database)
         self.state = SigmetGeneralState()
         self.setPhenomenaDescription()
         self.setPhenomena()
@@ -586,8 +586,8 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
 
     circleChanged = pyqtSignal(dict)
 
-    def __init__(self, parent, conf=None, context=None):
-        super().__init__(parent, conf=conf, context=context)
+    def __init__(self, parent, conf=None, context=None, database=None):
+        super().__init__(parent, conf=conf, context=context, database=database)
         self.state = SigmetTyphoonState()
         self.setPhenomena()
         self.setFcstOrObs()
@@ -861,8 +861,8 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
 
 class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin, AdvisoryMixin, BaseSigmet, Ui_sigmet_ash.Ui_Editor):
 
-    def __init__(self, parent=None, conf=None, context=None):
-        super().__init__(parent, conf=conf, context=context)
+    def __init__(self, parent=None, conf=None, context=None, database=None):
+        super().__init__(parent, conf=conf, context=context, database=database)
         self.state = SigmetAshState()
         self.setPhenomena()
         self.setFcstOrObs()
@@ -1047,8 +1047,8 @@ class AirmetGeneral(SigmetGeneral):
 
 class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
-    def __init__(self, parent, conf=None, context=None):
-        super().__init__(parent, conf=conf, context=context)
+    def __init__(self, parent, conf=None, context=None, database=None):
+        super().__init__(parent, conf=conf, context=context, database=database)
         self.state = SigmetCancelState()
 
     def bindSignal(self):
@@ -1135,8 +1135,8 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
 class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
 
-    def __init__(self, parent, conf=None, context=None):
-        super().__init__(parent, conf=conf, context=context)
+    def __init__(self, parent, conf=None, context=None, database=None):
+        super().__init__(parent, conf=conf, context=context, database=database)
         self.state = SigmetCustomState()
         self.setupApiSign()
         self.upperTextEdit()

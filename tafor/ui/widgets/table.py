@@ -123,7 +123,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
     chartClicked = pyqtSignal()
 
-    def __init__(self, parent, layout, conf=None, context=None):
+    def __init__(self, parent, layout, conf=None, context=None, database=None):
         super(BaseDataTable, self).__init__(parent)
         self.parentWidget = parent
         self.conf = conf
@@ -141,7 +141,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.calendar.calendarWidget().setSelectedDate(QDate.currentDate())
         self.calendar.calendarWidget().setHorizontalHeaderFormat(QCalendarWidget.NoHorizontalHeader)
 
-        self.repository = Repository()
+        self.repository = Repository(database)
         self.exportDialog = ExportDialog(self)
 
         font = fixedFont()
@@ -279,8 +279,8 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
 class TafTable(BaseDataTable):
 
-    def __init__(self, parent, layout, reviewer=None, conf=None, context=None):
-        super(TafTable, self).__init__(parent, layout, conf=conf, context=context)
+    def __init__(self, parent, layout, reviewer=None, conf=None, context=None, database=None):
+        super(TafTable, self).__init__(parent, layout, conf=conf, context=context, database=database)
         self.reportType = 'TAF'
         self.model = Taf
         self.reviewer = reviewer
@@ -318,8 +318,8 @@ class TafTable(BaseDataTable):
 
 class MetarTable(BaseDataTable):
 
-    def __init__(self, parent, layout, conf=None, context=None):
-        super(MetarTable, self).__init__(parent, layout, conf=conf, context=context)
+    def __init__(self, parent, layout, conf=None, context=None, database=None):
+        super(MetarTable, self).__init__(parent, layout, conf=conf, context=context, database=database)
         self.reportType = 'METAR'
         self.model = Metar
         self.chartButton.show()
@@ -360,8 +360,8 @@ class MetarTable(BaseDataTable):
 
 class SigmetTable(BaseDataTable):
 
-    def __init__(self, parent, layout, reviewer=None, conf=None, context=None):
-        super(SigmetTable, self).__init__(parent, layout, conf=conf, context=context)
+    def __init__(self, parent, layout, reviewer=None, conf=None, context=None, database=None):
+        super(SigmetTable, self).__init__(parent, layout, conf=conf, context=context, database=database)
         self.reportType = 'SIGMET'
         self.model = Sigmet
         self.reviewer = reviewer
@@ -394,6 +394,6 @@ class SigmetTable(BaseDataTable):
 
 class AirmetTable(SigmetTable):
 
-    def __init__(self, parent, layout, reviewer=None, conf=None, context=None):
-        super(AirmetTable, self).__init__(parent, layout, reviewer=reviewer, conf=conf, context=context)
+    def __init__(self, parent, layout, reviewer=None, conf=None, context=None, database=None):
+        super(AirmetTable, self).__init__(parent, layout, reviewer=reviewer, conf=conf, context=context, database=database)
         self.reportType = 'AIRMET'

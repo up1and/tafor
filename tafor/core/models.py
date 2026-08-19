@@ -11,10 +11,6 @@ from sqlalchemy.ext.declarative import declarative_base
 
 from tafor.core.globals import conf, root
 
-if os.environ.get('TAFOR_ENV') == 'TEST':
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
-else:
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(root, 'db.sqlite3')
 
 uniqueid = lambda: str(uuid4())
 
@@ -223,7 +219,10 @@ class Database(object):
         finally:
             session.close()
 
-engine = create_engine(SQLALCHEMY_DATABASE_URI, echo=False)
-Base.metadata.create_all(engine)
+def createDatabase(uri=None, engine=None):
+    """Build a Database with a fresh engine or an injected one."""
+    if engine is None:
+        engine = create_engine(uri or 'sqlite:///' + os.path.join(root, 'db.sqlite3'), echo=False)
+        Base.metadata.create_all(engine)
 
-db = Database(engine)
+    return Database(engine)
