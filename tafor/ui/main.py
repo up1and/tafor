@@ -7,7 +7,7 @@ import datetime
 from uuid import uuid4
 
 from PyQt5.QtGui import QIcon, QDesktopServices, QGuiApplication
-from PyQt5.QtCore import QCoreApplication, QTranslator, QLocale, QEvent, QObject, QTimer, Qt, QUrl, QSysInfo, QProcess
+from PyQt5.QtCore import QCoreApplication, QTranslator, QLocale, QEvent, QObject, QTimer, Qt, QUrl, QSysInfo, QProcess, QT_VERSION_STR
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy,
         QSystemTrayIcon, QMenu, QMessageBox, QStyleFactory)
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
@@ -15,13 +15,14 @@ from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 from tafor import __version__, conf, root, context
 from tafor.core.models import Metar
 from tafor.core.repositories import MessageRepository, MetarRepository, SigmetFilter, SigmetRepository, TafRepository
-from tafor.core.utils.common import checkVersion, setupLogging
+from tafor.core.utils.common import appInfo, checkVersion, revision, setupLogging
 from tafor.ui.components.chart import ChartViewer
 from tafor.ui.components.send import CustomSender, SigmetSender, TafSender, TrendSender
 from tafor.ui.components.setting import SettingDialog
 from tafor.ui.components.sigmet import SigmetEditor
 from tafor.ui.components.taf import TafEditor
 from tafor.ui.components.trend import TrendEditor
+from tafor.ui.fonts import fixedFont, uiFont
 from tafor.ui.qt import Ui_main, main_rc
 from tafor.ui.widgets.misc import Clock, LicenseEditor, RecentMessage, RemindMessageBox, TafBoard
 from tafor.ui.widgets.sound import Sound
@@ -388,7 +389,7 @@ class MainPresenter(QObject):
         <p style="margin:5px 0;color:#444">{}</p>
         <p style="margin-top:25px;color:#444">Copyright © 2022 <a href="mailto:piratecb@gmail.com" style="text-decoration:none;color:#444">up1and</a></p>
         </div>
-        """.format(QCoreApplication.translate('MainWindow', 'Version'), __version__, self.context.info.hash(), register)
+        """.format(QCoreApplication.translate('MainWindow', 'Version'), __version__, revision(), register)
 
         aboutBox = QMessageBox(self.view)
         aboutBox.setText(html)
@@ -659,7 +660,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
                     self,
                     self.scrollLayout,
                     message,
-                    fixedFont=self.context.resource.fixedFont(),
+                    fixedFont=fixedFont(),
                     layerBoundaries=layerBoundaries,
                     clearNotification=self.context.notification.metar.clear,
                     reminderEnabled=reminderStates.get(message.uuid, False),
@@ -765,7 +766,7 @@ def main():
 
     app = QApplication(sys.argv)
 
-    font = context.resource.uiFont(pointSize=9)
+    font = uiFont(pointSize=9)
     app.setFont(font)
 
     translator = QTranslator()
@@ -797,7 +798,7 @@ def main():
     
     app.aboutToQuit.connect(threadManager.cleanup)
 
-    versions = context.info.environment()
+    versions = appInfo(qt=QT_VERSION_STR)
     logger.info('Version {version}+{revision}, Python {python} {machine}, Qt {qt} on {system} {release}'.format(**versions))
 
     try:

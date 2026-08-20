@@ -9,6 +9,7 @@ from tafor.core.repositories import TafRepository
 from tafor.core.taf import (CurrentTaf, GroupState, PrimaryState, SegmentState, TemperatureState, TrendState,
     TafValidator, TrendValidator, normalizeTemperatureTime, parseTemperature)
 from tafor.core.utils.time import parseDayHour, parsePeriod, parseTime
+from tafor.ui.fonts import fixedFont
 from tafor.ui.qt import Ui_taf_group, Ui_taf_primary, Ui_trend, main_rc
 
 
@@ -75,18 +76,18 @@ class SegmentMixin(object):
             checkbox.clicked.connect(lambda: self.contentChanged.emit())
 
     def setupFont(self):
-        fixedFont = self.context.resource.fixedFont()
+        font = fixedFont()
         for line in self.findChildren(QLineEdit):
-            line.setFont(fixedFont)
+            line.setFont(font)
 
         for combox in self.findChildren(QComboBox):
-            combox.setFont(fixedFont)
+            combox.setFont(font)
 
         for checkbox in self.findChildren(QCheckBox):
-            checkbox.setFont(fixedFont)
+            checkbox.setFont(font)
 
         for text in self.findChildren(QTextEdit):
-            text.setFont(fixedFont)
+            text.setFont(font)
 
     def clear(self):
         for line in self.findChildren(QLineEdit):
@@ -716,7 +717,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
     def setupFont(self):
         super(TafGroupSegment, self).setupFont()
-        self.name.setFont(self.context.resource.fixedFont())
+        self.name.setFont(fixedFont())
 
     def setupValidator(self):
         super(TafGroupSegment, self).setupValidator()
@@ -958,7 +959,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
     def setupFont(self):
         super(TrendSegment, self).setupFont()
-        font = self.context.resource.fixedFont()
+        font = fixedFont()
         self.becmg.setFont(font)
         self.tempo.setFont(font)
 

@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QLabel, QHBoxLayout
 
 from tafor.core.taf import CurrentTaf
 from tafor.core.utils.time import timeAgo
+from tafor.ui.fonts import fixedFont
 from tafor.ui.qt import Ui_main_license, Ui_main_recent, main_rc
 from tafor.ui.styles import buttonHoverStyle
 from tafor.ui.widgets.geometry import SigmetBackground
@@ -323,7 +324,7 @@ class TafBoard(QWidget):
         self.setLayout(layout)
 
         self.board = QLabel()
-        self.board.setFont(self.context.resource.fixedFont())
+        self.board.setFont(fixedFont())
         layout.addWidget(self.board)
 
         container.addWidget(self)
@@ -351,10 +352,10 @@ class Clock(QWidget):
         self.setLayout(layout)
 
         self.zone = QLabel('UTC')
-        self.zone.setFont(self.context.resource.fixedFont())
+        self.zone.setFont(fixedFont())
         self.zone.setStyleSheet('QLabel {color: grey;}')
         self.label = QLabel()
-        self.label.setFont(self.context.resource.fixedFont())
+        self.label.setFont(fixedFont())
         layout.addWidget(self.zone)
         layout.addWidget(self.label)
 

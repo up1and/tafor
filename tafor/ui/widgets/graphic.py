@@ -13,6 +13,8 @@ from PyQt5.QtGui import QIcon, QPainter
 from PyQt5.QtCore import QCoreApplication, Qt, QRect, QRectF, QSize, pyqtSignal
 
 from tafor.core.geometry.coordinate import degTodms
+from tafor.core.utils.common import bundlePath
+from tafor.ui.fonts import fixedFont
 from tafor.ui.widgets.sketch import SketchManager
 from tafor.ui.widgets.geometry import BackgroundImage, Coastline, Fir, Sigmet
 from tafor.ui.widgets.misc import OutlinedLabel
@@ -183,7 +185,7 @@ class BaseCanvas(QGraphicsView):
             self.coastlines = []
             self.scene.removeItem(self.coastlinesGroup)
 
-        filename = os.path.join(self.context.resource.bundlePath('shapes'), 'coastline.shp')
+        filename = os.path.join(bundlePath('shapes'), 'coastline.shp')
         sf = shapefile.Reader(filename)
         shapes = sf.shapes()
 
@@ -493,7 +495,7 @@ class LocationWidget(QWidget):
         self.location.setWordWrap(True)
         self.location.setStyleSheet('QLabel { color: #fff; background-color: rgba(0, 0, 0, 0.35); border-radius: 3px; padding: 5px; }')
 
-        font = self.context.resource.fixedFont()
+        font = fixedFont()
         font.setPointSize(10)
         self.location.setFont(font)
 

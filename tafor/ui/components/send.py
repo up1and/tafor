@@ -14,6 +14,7 @@ from tafor.core.parsers.sigmet import SigmetParser
 from tafor.core.parsers.taf import TafParser
 from tafor.core.repositories import MessageRepository
 from tafor.core.telegram.generator import AFTNDecoder, AFTNMessageGenerator, FileMessageGenerator
+from tafor.ui.fonts import fixedFont, uiFont
 from tafor.ui.qt import Ui_send, main_rc
 from tafor.ui.widgets.graphic import GraphicsViewer
 from tafor.ui.workers import FtpWorker, SerialWorker, threadManager
@@ -148,7 +149,7 @@ class TafMessageComposer(MessageComposer):
         visHas5000 = self.conf.visHas5000
         cloudHeightHas450 = self.conf.cloudHeightHas450
         weakPrecipitationVerification = self.conf.weakPrecipitationVerification
-        uiFamily = self.context.resource.uiFont().family()
+        uiFamily = uiFont().family()
 
         parser = TafParser(
             message.text,
@@ -180,7 +181,7 @@ class TrendMessageComposer(MessageComposer):
     def compose(self, message):
         html = message.text
         parser = None
-        uiFamily = self.context.resource.uiFont().family()
+        uiFamily = uiFont().family()
         notificationParser = self.context.notification.metar.parser()
 
         if notificationParser and notificationParser.hasMetar():
@@ -531,7 +532,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.resendButton.hide()
         self.switchButton.hide()
 
-        font = self.context.resource.fixedFont()
+        font = fixedFont()
         font.setPointSize(11)
         self.text.setFont(font)
         self.raw.setFont(font)
@@ -629,7 +630,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             text = '<p><b>{}</b><br>{}</p>'.format(title, content)
             elements.append(text)
 
-        font = self.context.resource.fixedFont()
+        font = fixedFont()
         font.setPointSize(10)
         editor.setFont(font)
         editor.setHtml(''.join(elements))

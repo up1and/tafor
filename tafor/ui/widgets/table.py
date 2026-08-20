@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (QDialog, QFileDialog, QWidget, QDialogButtonBox, QT
 from tafor.core.models import Metar, Sigmet, Taf
 from tafor.core.repositories import Repository
 from tafor.ui.qt import Ui_main_table, main_rc
+from tafor.ui.fonts import fixedFont
 from tafor.ui.styles import buttonHoverStyle, calendarStyle, dateEditHiddenStyle
 from tafor.ui.workers import ExportRecordWorker, threadManager
 
@@ -143,7 +144,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.repository = Repository()
         self.exportDialog = ExportDialog(self)
 
-        font = self.context.resource.fixedFont()
+        font = fixedFont()
         font.setPointSize(10)
         self.table.setFont(font)
 

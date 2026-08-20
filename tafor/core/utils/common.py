@@ -1,5 +1,7 @@
-import logging
+import os
 import sys
+import logging
+import platform
 
 from logging.handlers import RotatingFileHandler
 
@@ -94,3 +96,38 @@ def verifyToken(token, key):
         return data
     except Exception as e:
         logger.error('Failed to verify token, {}'.format(e))
+
+def appInfo(qt=''):
+    from tafor import __version__
+
+    return {
+        'version': __version__,
+        'python': platform.python_version(),
+        'machine': platform.machine(),
+        'qt': qt,
+        'system': platform.system(),
+        'release': platform.release(),
+        'revision': revision(),
+    }
+
+def revision():
+    if hasattr(sys, '_MEIPASS'):
+        from tafor.revision import hash
+
+        return hash
+
+    return gitRevisionHash()
+
+def bundlePath(relativePath):
+    if hasattr(sys, '_MEIPASS'):
+        base = sys._MEIPASS
+    else:
+        from tafor.core.globals import root
+
+        base = root
+
+    candidate = os.path.join(base, 'resources', relativePath)
+    if os.path.exists(candidate):
+        return candidate
+
+    return os.path.join(base, relativePath)

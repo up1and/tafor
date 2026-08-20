@@ -1,33 +1,6 @@
-import os
-import sys
-import platform
 import datetime
 
-
-class AppInfoService:
-
-    def environment(self):
-        from PyQt5.QtCore import QT_VERSION_STR
-        from tafor import __version__
-        return {
-            'version': __version__,
-            'python': platform.python_version(),
-            'machine': platform.machine(),
-            'qt': QT_VERSION_STR,
-            'system': platform.system(),
-            'release': platform.release(),
-            'revision': self.hash(),
-        }
-
-    def hash(self):
-        if hasattr(sys, '_MEIPASS'):
-            from tafor.revision import hash
-
-            return hash
-
-        from tafor.core.utils.common import gitRevisionHash
-
-        return gitRevisionHash()
+from tafor.core.utils.common import verifyToken
 
 
 class LicenseService:
@@ -43,14 +16,12 @@ class LicenseService:
         '-----END PUBLIC KEY-----'
     )
 
-    def __init__(self):
+    def __init__(self, conf):
+        self.conf = conf
         self.exp = 0
 
     def license(self, token=None):
-        from tafor.core.globals import conf
-        from tafor.core.utils.common import verifyToken
-
-        token = token or conf.license
+        token = token or self.conf.license
         if not token:
             return {}
 
@@ -71,13 +42,11 @@ class LicenseService:
         return data
 
     def register(self):
-        from tafor.core.globals import conf
-
         infos = {}
-        if conf.airport:
-            infos['airport'] = conf.airport
-        if conf.firName:
-            infos['fir'] = conf.firName[:4]
+        if self.conf.airport:
+            infos['airport'] = self.conf.airport
+        if self.conf.firName:
+            infos['fir'] = self.conf.firName[:4]
         return infos
 
     def hasPermission(self, reportType):
@@ -89,53 +58,6 @@ class LicenseService:
             return 'fir' in self.license()
         return False
 
-
-class ResourceService:
-    def bundlePath(self, relativePath):
-        if hasattr(sys, '_MEIPASS'):
-            base = sys._MEIPASS
-        else:
-            from tafor.core.globals import root
-
-            base = root
-
-        candidate = os.path.join(base, 'resources', relativePath)
-        if os.path.exists(candidate):
-            return candidate
-
-        return os.path.join(base, relativePath)
-
-    def uiFont(self, pointSize=9):
-        from PyQt5.QtGui import QFont, QFontDatabase
-
-        system = platform.system()
-        candidates = {
-            'Windows': ['Microsoft YaHei UI', 'Microsoft YaHei', 'Segoe UI', 'SimSun'],
-            'Darwin': ['PingFang SC', 'Helvetica Neue', '.AppleSystemUIFont'],
-            'Linux': ['Inter', 'Ubuntu', 'Noto Sans SC', 'Noto Sans CJK SC', 'WenQuanYi Micro Hei', 'DejaVu Sans']
-        }
-
-        available = set(QFontDatabase().families())
-        family = None
-        for name in candidates.get(system, []):
-            if name in available:
-                family = name
-                break
-
-        font = QFont()
-        if family:
-            font.setFamily(family)
-
-        font.setPointSize(pointSize)
-        font.setStyleHint(QFont.SansSerif)
-        return font
-
-    def fixedFont(self):
-        from PyQt5.QtGui import QFont, QFontDatabase
-
-        font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
-        font.setStyleHint(QFont.Monospace)
-        return font
 
 class SerialLock:
     def __init__(self):

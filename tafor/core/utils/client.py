@@ -2,13 +2,13 @@ import logging
 
 import requests
 
-from tafor.core.states import context
+from tafor.core.utils.common import appInfo
 
 logger = logging.getLogger('tafor.client')
 
 
 _headers = {
-    'User-Agent': 'Tafor/{version}+{revision} ({system} {release}; {machine})'.format(**context.info.environment())
+    'User-Agent': 'Tafor/{version}+{revision} ({system} {release}; {machine})'.format(**appInfo())
 }
 
 

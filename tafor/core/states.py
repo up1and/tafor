@@ -450,7 +450,8 @@ class FlashService(QObject):
 
 class AppContext:
     def __init__(self):
-        from tafor.core.services import AppInfoService, LicenseService, ResourceService, SerialLock
+        from tafor.core.globals import conf
+        from tafor.core.services import LicenseService, SerialLock
 
         # Shared event bus
         self.event = Event()
@@ -479,9 +480,7 @@ class AppContext:
 
         # Utilities
         self.serial = SerialLock()
-        self.info = AppInfoService()
-        self.license = LicenseService()
-        self.resource = ResourceService()
+        self.license = LicenseService(conf)
 
 
 # Global singleton
