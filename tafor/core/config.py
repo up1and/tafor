@@ -1,7 +1,7 @@
 import json
 import logging
 
-from PyQt5.QtCore import QSettings, QObject, pyqtSignal
+from tafor.core.events import Signal
 
 logger = logging.getLogger('tafor.config')
 
@@ -346,13 +346,11 @@ class AppConfig:
     unit = ConfigItem('General/Unit', default='metric')
     codec = ConfigItem('Communication/Codec', default='ASCII')
 
-class ConfigManager(QObject):
+class ConfigManager:
     """Configuration manager"""
 
-    configChanged = pyqtSignal(str, object, str)  # (key, value, scope)
-
     def __init__(self, settings):
-        super().__init__()
+        self.configChanged = Signal()  # emits (key, value, scope)
         self.settings = settings
         
     def get(self, key, default=None):
@@ -389,14 +387,12 @@ class ConfigManager(QObject):
         self.configChanged.emit(key, value, scope)
 
 
-class ConfigRegistry(QObject):
+class ConfigRegistry:
     """Configuration registry with composition pattern"""
 
-    reloadRequired = pyqtSignal()
-    restartRequired = pyqtSignal()
-    
     def __init__(self, manager, cls=AppConfig):
-        super().__init__()
+        self.reloadRequired = Signal()
+        self.restartRequired = Signal()
         self._manager = manager
         self._config = cls(manager)
         # List to store pending changes as (key, value, scope) tuples
@@ -410,8 +406,8 @@ class ConfigRegistry(QObject):
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
     
     def __setattr__(self, name, value):
-        if name.startswith('_'):
-            # Set private attributes directly
+        if name.startswith('_') or '_config' not in self.__dict__:
+            # Set private attributes and pre-init attributes directly
             super().__setattr__(name, value)
         elif hasattr(self._config, name):
             setattr(self._config, name, value)
@@ -464,8 +460,9 @@ class ConfigRegistry(QObject):
 
 
 def createConfig(settings=None):
-    """Build a ConfigRegistry with default or injected QSettings."""
+    """Build a ConfigRegistry with default or injected settings."""
     if settings is None:
+        from PyQt5.QtCore import QSettings
         settings = QSettings('Up1and', 'Tafor')
     manager = ConfigManager(settings)
     return ConfigRegistry(manager)

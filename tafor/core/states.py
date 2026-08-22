@@ -1,6 +1,6 @@
 import datetime
 
-from PyQt5.QtCore import QObject, pyqtSignal
+from tafor.core.events import Event
 
 
 class RemoteMessageState:
@@ -54,25 +54,6 @@ class OtherState:
         self.created = datetime.datetime.utcnow()
 
 
-class Event(QObject):
-    # Data changes
-    layerChanged = pyqtSignal(object)
-    remoteMessageChanged = pyqtSignal()
-    currentSigmetChanged = pyqtSignal()
-    notificationChanged = pyqtSignal(str)
-
-    # Triggers
-    tafReminderTriggered = pyqtSignal()
-    trendReloadRequested = pyqtSignal()
-    layerRefreshRequested = pyqtSignal()
-    otherMessageReceived = pyqtSignal()
-
-    # UI messages
-    systemMessage = pyqtSignal(str, str, str)
-    statusbarMessage = pyqtSignal(str, int)
-    editorMessage = pyqtSignal(str, str)
-
-
 class StateProxyMixin:
     """Readonly Property Mixin"""
     fields = ['']
@@ -84,9 +65,8 @@ class StateProxyMixin:
             setattr(cls, field, property(getter))
 
 
-class RemoteMessageService(QObject):
+class RemoteMessageService:
     def __init__(self, state, event):
-        super().__init__()
         self.state = state
         self.event = event
 
@@ -99,9 +79,8 @@ class RemoteMessageService(QObject):
             self.event.remoteMessageChanged.emit()
 
 
-class CurrentSigmetService(QObject):
+class CurrentSigmetService:
     def __init__(self, state, event):
-        super().__init__()
         self.state = state
         self.event = event
 
@@ -130,11 +109,10 @@ class CurrentSigmetService(QObject):
         return candidates
 
 
-class LayerService(QObject, StateProxyMixin):
+class LayerService(StateProxyMixin):
     fields = ['selected', 'showSigmet', 'trimShapes']
 
     def __init__(self, state, event, conf):
-        super().__init__()
         self.state = state
         self.event = event
         self.conf = conf
@@ -251,11 +229,10 @@ class LayerService(QObject, StateProxyMixin):
         self.event.layerRefreshRequested.emit()
 
 
-class TafMonitorService(QObject, StateProxyMixin):
+class TafMonitorService(StateProxyMixin):
     fields = ['message']
 
     def __init__(self, state, event, conf):
-        super().__init__()
         self.state = state
         self.event = event
         self.conf = conf
@@ -288,11 +265,10 @@ class TafMonitorService(QObject, StateProxyMixin):
         return self.state.period
 
 
-class SigmetMonitorService(QObject, StateProxyMixin):
+class SigmetMonitorService(StateProxyMixin):
     fields = ['entries']
 
     def __init__(self, state, event):
-        super().__init__()
         self.state = state
         self.event = event
 
@@ -320,9 +296,8 @@ class SigmetMonitorService(QObject, StateProxyMixin):
         return outdates
 
 
-class NotificationService(QObject):
+class NotificationService:
     def __init__(self, state, event, conf):
-        super().__init__()
         self.state = state
         self.event = event
         self.conf = conf
@@ -395,19 +370,17 @@ class NotificationService(QObject):
         return self.state.message
 
 
-class NotificationManager(QObject):
+class NotificationManager:
     def __init__(self, states, event, conf):
-        super().__init__()
         self.event = event
         self.metar = NotificationService(states.get('metar'), event, conf)
         self.sigmet = NotificationService(states.get('sigmet'), event, conf)
 
 
-class OtherService(QObject, StateProxyMixin):
+class OtherService(StateProxyMixin):
     fields = ['uuid', 'priority', 'address', 'message', 'created']
 
     def __init__(self, state, event):
-        super().__init__()
         self.state = state
         self.event = event
 
@@ -419,9 +392,8 @@ class OtherService(QObject, StateProxyMixin):
         self.event.otherMessageReceived.emit()
 
 
-class FlashService(QObject):
+class FlashService:
     def __init__(self, event):
-        super().__init__()
         self.event = event
 
     def showSystemMessage(self, title, text, level='information'):

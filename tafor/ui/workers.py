@@ -4,6 +4,8 @@ import logging
 
 from uuid import uuid4
 
+from types import SimpleNamespace
+
 from PyQt5.QtCore import QThread, QObject, pyqtSignal
 
 from tafor.core.telegram.encoder import ITA2_STANDARD, encode
@@ -95,17 +97,17 @@ threadManager = ThreadManager()
 class MessageWorker(QObject):
     """Worker for fetching message data"""
     finished = pyqtSignal()
+    fetched = pyqtSignal(dict)
 
-    def __init__(self, conf, context):
+    def __init__(self, conf):
         super(MessageWorker, self).__init__()
         self.conf = conf
-        self.context = context
 
     def run(self):
         try:
             if self.conf.messageUrl:
                 url = self.conf.messageUrl or 'http://127.0.0.1:6575'
-                self.context.message.setState(fetchMessage(url))
+                self.fetched.emit(fetchMessage(url))
         finally:
             self.finished.emit()
 
@@ -113,16 +115,16 @@ class MessageWorker(QObject):
 class LayerWorker(QObject):
     """Worker for fetching layer information"""
     finished = pyqtSignal()
+    fetched = pyqtSignal(list)
 
-    def __init__(self, conf, context):
+    def __init__(self, conf):
         super(LayerWorker, self).__init__()
         self.conf = conf
-        self.context = context
 
     def run(self):
         try:
             url = self.conf.layerUrl
-            self.context.layer.setLayer(layerInfo(url))
+            self.fetched.emit(layerInfo(url))
         finally:
             self.finished.emit()
 
@@ -263,3 +265,44 @@ class RpcWorker(QObject):
                 self.server.close()
             except:
                 pass
+
+
+class ContextBridge(QObject):
+    """The single door through which background threads update context state.
+
+    Lives on the GUI thread. Workers connect their fetched signals to the
+    update* slots; the RPC server calls the setState entry points, which
+    emit Qt signals queued back to the GUI thread. The real context
+    services only ever run on the GUI thread.
+    """
+    metarNotification = pyqtSignal(dict)
+    sigmetNotification = pyqtSignal(dict)
+    otherMessage = pyqtSignal(dict)
+
+    def __init__(self, context, parent=None):
+        super(ContextBridge, self).__init__(parent)
+        self.context = context
+        self.serial = context.serial
+        self.metarNotification.connect(self.updateMetar)
+        self.sigmetNotification.connect(self.updateSigmet)
+        self.otherMessage.connect(self.updateOther)
+        self.notification = SimpleNamespace(
+            metar=SimpleNamespace(setState=self.metarNotification.emit),
+            sigmet=SimpleNamespace(setState=self.sigmetNotification.emit),
+        )
+        self.other = SimpleNamespace(setState=self.otherMessage.emit)
+
+    def updateMetar(self, values):
+        self.context.notification.metar.setState(values)
+
+    def updateSigmet(self, values):
+        self.context.notification.sigmet.setState(values)
+
+    def updateOther(self, values):
+        self.context.other.setState(values)
+
+    def updateMessage(self, data):
+        self.context.message.setState(data)
+
+    def updateLayer(self, data):
+        self.context.layer.setLayer(data)

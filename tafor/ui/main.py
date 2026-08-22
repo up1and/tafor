@@ -29,13 +29,7 @@ from tafor.ui.qt import Ui_main, main_rc
 from tafor.ui.widgets.misc import Clock, LicenseEditor, RecentMessage, RemindMessageBox, TafBoard
 from tafor.ui.widgets.sound import Sound
 from tafor.ui.widgets.table import AirmetTable, MetarTable, SigmetTable, TafTable
-from tafor.ui.workers import (
-    CheckUpgradeWorker,
-    LayerWorker,
-    MessageWorker,
-    RpcWorker,
-    threadManager,
-)
+from tafor.ui.workers import CheckUpgradeWorker, ContextBridge, LayerWorker, MessageWorker, RpcWorker, threadManager
 
 logger = logging.getLogger('tafor.main')
 
@@ -224,11 +218,14 @@ class DataService:
 
 class MainPresenter(QObject):
 
-    def __init__(self, view, context, conf, database, dataService=None, remindService=None):
+    def __init__(self, view, context, conf, database, bridge=None, dataService=None, remindService=None):
         super(MainPresenter, self).__init__(view)
         self.view = view
         self.context = context
         self.conf = conf
+
+        # Single door for background threads to update context state
+        self.bridge = bridge or ContextBridge(context)
 
         # The presenter delegates data loading to DataService
         # and reminder logic to RemindService.
@@ -261,13 +258,15 @@ class MainPresenter(QObject):
 
     def setupThreads(self):
         self.messageWorker, self.messageThread = threadManager.createWorker(
-            MessageWorker, self.conf, self.context, workerId='message', reusable=True
+            MessageWorker, self.conf, workerId='message', reusable=True
         )
+        self.messageWorker.fetched.connect(self.bridge.updateMessage)
         self.messageWorker.finished.connect(self.notifier)
 
         self.layerWorker, self.layerThread = threadManager.createWorker(
-            LayerWorker, self.conf, self.context, workerId='layer', reusable=True
+            LayerWorker, self.conf, workerId='layer', reusable=True
         )
+        self.layerWorker.fetched.connect(self.bridge.updateLayer)
         self.layerThread.finished.connect(self.updateLayer)
 
         self.checkUpgradeWorker, self.checkUpgradeThread = threadManager.createWorker(
@@ -472,13 +471,13 @@ class MainPresenter(QObject):
 
 class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
-    def __init__(self, conf, context, database, parent=None):
+    def __init__(self, conf, context, database, bridge=None, parent=None):
         super(MainWindow, self).__init__(parent)
         self.conf = conf
         self.context = context
         self.database = database
         self.setupUi(self)
-        self.presenter = MainPresenter(self, context, conf, database)
+        self.presenter = MainPresenter(self, context, conf, database, bridge=bridge)
         self.sysInfo = QSysInfo.prettyProductName()
 
         self.setup()
@@ -752,10 +751,12 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         QDesktopServices.openUrl(QUrl('https://github.com/up1and/tafor/issues'))
 
 def main():
-    # Composition root: build config, context and database
+    # Composition root: build config, context, database and the
+    # background-to-GUI bridge
     conf = createConfig()
     context = createContext(conf)
     database = createDatabase()
+    bridge = ContextBridge(context)
 
     setupLogging(debug=conf.debugMode)
 
@@ -800,21 +801,22 @@ def main():
     localServer = QLocalServer()
     localServer.listen(serverName)
 
-    if conf.rpc:
-        from tafor.core.rpc import create_app
-
-        server = create_app(context=context, engine=database.engine, conf=conf)
-        rpcWorker, rpcThread = threadManager.createWorker(RpcWorker, server, workerId='rpc', reusable=True)
-        rpcThread.start()
-    
     app.aboutToQuit.connect(threadManager.cleanup)
 
     versions = appInfo(qt=QT_VERSION_STR)
     logger.info('Version {version}+{revision}, Python {python} {machine}, Qt {qt} on {system} {release}'.format(**versions))
 
     try:
-        window = MainWindow(conf, context, database)
+        window = MainWindow(conf, context, database, bridge=bridge)
         window.show()
+
+        if conf.rpc:
+            from tafor.core.rpc import create_app
+
+            server = create_app(context=bridge, engine=database.engine, conf=conf)
+            rpcWorker, rpcThread = threadManager.createWorker(RpcWorker, server, workerId='rpc', reusable=True)
+            rpcThread.start()
+
         code = app.exec_()
         sys.exit(code)
     except Exception as e:
