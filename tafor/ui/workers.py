@@ -6,8 +6,6 @@ from uuid import uuid4
 
 from PyQt5.QtCore import QThread, QObject, pyqtSignal
 
-from tafor.core.globals import conf
-from tafor.core.states import context
 from tafor.core.telegram.encoder import ITA2_STANDARD, encode
 from tafor.core.telegram.transport import ftpComm, serialComm
 from tafor.core.utils.client import fetchMessage, layerInfo, repoRelease
@@ -98,11 +96,16 @@ class MessageWorker(QObject):
     """Worker for fetching message data"""
     finished = pyqtSignal()
 
+    def __init__(self, conf, context):
+        super(MessageWorker, self).__init__()
+        self.conf = conf
+        self.context = context
+
     def run(self):
         try:
-            if conf.messageUrl:
-                url = conf.messageUrl or 'http://127.0.0.1:6575'
-                context.message.setState(fetchMessage(url))
+            if self.conf.messageUrl:
+                url = self.conf.messageUrl or 'http://127.0.0.1:6575'
+                self.context.message.setState(fetchMessage(url))
         finally:
             self.finished.emit()
 
@@ -111,10 +114,15 @@ class LayerWorker(QObject):
     """Worker for fetching layer information"""
     finished = pyqtSignal()
 
+    def __init__(self, conf, context):
+        super(LayerWorker, self).__init__()
+        self.conf = conf
+        self.context = context
+
     def run(self):
         try:
-            url = conf.layerUrl
-            context.layer.setLayer(layerInfo(url))
+            url = self.conf.layerUrl
+            self.context.layer.setLayer(layerInfo(url))
         finally:
             self.finished.emit()
 
@@ -146,20 +154,22 @@ class SerialWorker(QObject):
     done = pyqtSignal(str)
     finished = pyqtSignal()
 
-    def __init__(self, message):
+    def __init__(self, message, conf, context):
         super(SerialWorker, self).__init__()
         self.message = message
+        self.conf = conf
+        self.context = context
 
     def run(self):
-        port = conf.port
-        baudrate = int(conf.baudrate)
-        bytesize = conf.bytesize
-        parity = conf.parity
-        stopbits = conf.stopbits
-        codec = conf.codec
+        port = self.conf.port
+        baudrate = int(self.conf.baudrate)
+        bytesize = self.conf.bytesize
+        parity = self.conf.parity
+        stopbits = self.conf.stopbits
+        codec = self.conf.codec
 
         try:
-            context.serial.lock()
+            self.context.serial.lock()
             if codec == 'ITA2':
                 message = encode(self.message, ITA2_STANDARD)
             else:
@@ -170,7 +180,7 @@ class SerialWorker(QObject):
             error = str(e)
             logger.error('Failed to send data through serial port, {}'.format(e))
         finally:
-            context.serial.release()
+            self.context.serial.release()
             self.done.emit(error)
             self.finished.emit()
 
@@ -180,20 +190,21 @@ class FtpWorker(QObject):
     done = pyqtSignal(str)
     finished = pyqtSignal()
 
-    def __init__(self, message, valids=None):
+    def __init__(self, message, conf, valids=None):
         super(FtpWorker, self).__init__()
         self.message = message
+        self.conf = conf
         if valids is None:
             valids = (datetime.datetime.utcnow(), datetime.datetime.utcnow())
         self.valids = valids
 
     def run(self):
-        url = conf.ftpHost
-        number = conf.fileSequenceNumber
+        url = self.conf.ftpHost
+        number = self.conf.fileSequenceNumber
         format = '%Y%m%d%H%M%S'
         time = datetime.datetime.utcnow()
         filename = '9_OTHE_C_{airport}_{created}_STUB-WTMG-MULT-{validfrom}-{validto}-XXX-1,{number}.txt'.format(
-            airport = conf.airport,
+            airport = self.conf.airport,
             created = time.strftime(format),
             validfrom = self.valids[0].strftime(format),
             validto = self.valids[1].strftime(format),

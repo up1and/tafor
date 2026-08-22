@@ -12,7 +12,9 @@ from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy
         QSystemTrayIcon, QMenu, QMessageBox, QStyleFactory)
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 
-from tafor import __version__, conf, root, context
+from tafor import __version__, root
+from tafor.core.config import createConfig
+from tafor.core.states import createContext
 from tafor.core.models import Metar, createDatabase
 from tafor.core.repositories import MessageRepository, MetarRepository, SigmetFilter, SigmetRepository, TafRepository
 from tafor.core.utils.common import appInfo, checkVersion, revision, setupLogging
@@ -157,7 +159,7 @@ class DataService:
         self.refresh()
 
     def updateTaf(self):
-        status = self.tafRepository.status(self.context.taf.spec)
+        status = self.tafRepository.status(self.context.taf.spec, delayMinutes=self.conf.delayMinutes)
         self.context.taf.setState(status)
 
     def updateSigmet(self):
@@ -258,10 +260,14 @@ class MainPresenter(QObject):
         self.painterTimer.start(2 * 60 * 1000)
 
     def setupThreads(self):
-        self.messageWorker, self.messageThread = threadManager.createWorker(MessageWorker, workerId='message', reusable=True)
+        self.messageWorker, self.messageThread = threadManager.createWorker(
+            MessageWorker, self.conf, self.context, workerId='message', reusable=True
+        )
         self.messageWorker.finished.connect(self.notifier)
 
-        self.layerWorker, self.layerThread = threadManager.createWorker(LayerWorker, workerId='layer', reusable=True)
+        self.layerWorker, self.layerThread = threadManager.createWorker(
+            LayerWorker, self.conf, self.context, workerId='layer', reusable=True
+        )
         self.layerThread.finished.connect(self.updateLayer)
 
         self.checkUpgradeWorker, self.checkUpgradeThread = threadManager.createWorker(
@@ -746,6 +752,11 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         QDesktopServices.openUrl(QUrl('https://github.com/up1and/tafor/issues'))
 
 def main():
+    # Composition root: build config, context and database
+    conf = createConfig()
+    context = createContext(conf)
+    database = createDatabase()
+
     setupLogging(debug=conf.debugMode)
 
     os.environ['QT_ENABLE_HIGHDPI_SCALING'] = '1'
@@ -788,8 +799,6 @@ def main():
 
     localServer = QLocalServer()
     localServer.listen(serverName)
-
-    database = createDatabase()
 
     if conf.rpc:
         from tafor.core.rpc import create_app

@@ -7,14 +7,13 @@ from tafor.core.utils.common import appInfo
 logger = logging.getLogger('tafor.client')
 
 
-_headers = {
-    'User-Agent': 'Tafor/{version}+{revision} ({system} {release}; {machine})'.format(**appInfo())
-}
+def headers():
+    return {'User-Agent': 'Tafor/{version}+{revision} ({system} {release}; {machine})'.format(**appInfo())}
 
 
 def fetchMessage(url):
     try:
-        r = requests.get(url, headers=_headers, timeout=30)
+        r = requests.get(url, headers=headers(), timeout=30)
         if r.status_code == 200:
             data = r.json()
             if not isinstance(data, dict):
@@ -41,7 +40,7 @@ def fetchMessage(url):
 
 def layerInfo(url):
     try:
-        r = requests.get(url, headers=_headers, timeout=30)
+        r = requests.get(url, headers=headers(), timeout=30)
         if r.status_code == 200:
             data = r.json()
             if not isinstance(data, list):
@@ -68,7 +67,7 @@ def layerInfo(url):
 
 def repoRelease(url):
     try:
-        r = requests.get(url, headers=_headers, timeout=30)
+        r = requests.get(url, headers=headers(), timeout=30)
         return r.json()
 
     except requests.exceptions.ConnectionError:

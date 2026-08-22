@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from sqlalchemy.orm import sessionmaker, scoped_session
 
-from tafor.core.globals import root
+from tafor.core import root
 from tafor.core.models import Metar, Other, Sigmet, Taf
 from tafor.core.parsers.metar import MetarParser
 from tafor.core.parsers.sigmet import SigmetParser

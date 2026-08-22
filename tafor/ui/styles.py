@@ -1,11 +1,10 @@
 from PyQt5.QtCore import QSysInfo
 
-from tafor import conf
 
-if QSysInfo.prettyProductName().startswith('Windows 10') and conf.windowsStyle == 'System':
-    buttonHoverStyle = 'QToolButton:hover, QDateEdit:hover { background: #e5f3ff; border: 1px solid #cce8ff;} QToolButton {padding: 2px;}'
-else:
-    buttonHoverStyle = 'QToolButton:hover, QDateEdit:hover { background: #f0f0f0; border: 1px solid #999; border-radius: 3px;} QToolButton {padding: 2px;}'
+def buttonHoverStyle(windowsStyle='System'):
+    if QSysInfo.prettyProductName().startswith('Windows 10') and windowsStyle == 'System':
+        return 'QToolButton:hover, QDateEdit:hover { background: #e5f3ff; border: 1px solid #cce8ff;} QToolButton {padding: 2px;}'
+    return 'QToolButton:hover, QDateEdit:hover { background: #f0f0f0; border: 1px solid #999; border-radius: 3px;} QToolButton {padding: 2px;}'
 
 calendarStyle = """
     QCalendarWidget QAbstractItemView:enabled /* date of actual month */{

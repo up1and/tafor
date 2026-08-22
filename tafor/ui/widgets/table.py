@@ -176,7 +176,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         header.setSectionResizeMode(1, QHeaderView.Stretch)
         self.table.setStyleSheet('QTableWidget {border: 0;} QTableWidget::item {padding: 5px 0;}')
 
-        self.calendar.setStyleSheet(calendarStyle + dateEditHiddenStyle + buttonHoverStyle)
+        self.calendar.setStyleSheet(calendarStyle + dateEditHiddenStyle + buttonHoverStyle(self.conf.windowsStyle))
 
         self.prevButton.setIcon(QIcon(':/prev.png'))
         self.nextButton.setIcon(QIcon(':/next.png'))

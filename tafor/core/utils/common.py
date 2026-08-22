@@ -122,7 +122,7 @@ def bundlePath(relativePath):
     if hasattr(sys, '_MEIPASS'):
         base = sys._MEIPASS
     else:
-        from tafor.core.globals import root
+        from tafor.core import root
 
         base = root
 

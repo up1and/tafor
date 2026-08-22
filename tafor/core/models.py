@@ -9,7 +9,7 @@ from sqlalchemy import Column, Integer, String, Text, DateTime, create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.ext.declarative import declarative_base
 
-from tafor.core.globals import conf, root
+from tafor.core import root
 
 
 uniqueid = lambda: str(uuid4())
@@ -93,10 +93,6 @@ class Trend(Base):
 
     def __repr__(self):
         return '<Trend %r>' % (self.text)
-    
-    @property
-    def heading(self):
-        return conf.trendIdentifier
 
     @property
     def type(self):

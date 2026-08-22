@@ -350,10 +350,10 @@ class ConfigManager(QObject):
     """Configuration manager"""
 
     configChanged = pyqtSignal(str, object, str)  # (key, value, scope)
-    
-    def __init__(self, organization, application):
+
+    def __init__(self, settings):
         super().__init__()
-        self.settings = QSettings(organization, application)
+        self.settings = settings
         
     def get(self, key, default=None):
         """Get configuration value"""
@@ -461,3 +461,11 @@ class ConfigRegistry(QObject):
             if groups.intersection(groupsToCheck) and not item.value:
                 return False
         return True
+
+
+def createConfig(settings=None):
+    """Build a ConfigRegistry with default or injected QSettings."""
+    if settings is None:
+        settings = QSettings('Up1and', 'Tafor')
+    manager = ConfigManager(settings)
+    return ConfigRegistry(manager)

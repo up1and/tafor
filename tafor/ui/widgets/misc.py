@@ -235,7 +235,7 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         self.reminderButton.clicked.connect(self.toggleReminder)
 
     def updateButton(self):
-        hoverStyle = buttonHoverStyle
+        hoverStyle = buttonHoverStyle(self.conf.windowsStyle)
         self.replyButton.setIcon(QIcon(':/reply-arrow.png'))
         self.replyButton.setStyleSheet(hoverStyle)
         self.markButton.setStyleSheet(hoverStyle)
@@ -281,7 +281,7 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
             icon = ':/no-reminder.png'
 
         self.reminderButton.setIcon(QIcon(icon))
-        self.reminderButton.setStyleSheet(buttonHoverStyle)
+        self.reminderButton.setStyleSheet(buttonHoverStyle(self.conf.windowsStyle))
 
     def updateMarkButton(self):
         if self.item.type not in ['FC', 'FT', 'WS', 'WC', 'WV', 'WA']:

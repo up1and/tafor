@@ -35,14 +35,15 @@ class BaseChannel(object):
         if reportType == 'Custom':
             return self.context.other.message
 
+        heading = self.conf.trendIdentifier if reportType == 'Trend' else message.heading
         spacer = ' ' if reportType == 'Trend' else '\n'
-        return spacer.join([message.heading, message.text])
+        return spacer.join([heading, message.text])
 
     def buildParams(self, message, reportType):
         raise NotImplementedError
 
     def workerParams(self, parser=None):
-        return {}
+        raise NotImplementedError
 
     def generateRawText(self, message, reportType):
         generator = self.generator(**self.buildParams(message, reportType))
@@ -65,6 +66,12 @@ class AFTNChannel(BaseChannel):
 
     def resendText(self):
         return QCoreApplication.translate('Sender', 'Some part of the AFTN message may be updated, do you still want to resend?')
+
+    def workerParams(self, parser=None):
+        return {
+            'conf': self.conf,
+            'context': self.context,
+        }
 
     def buildParams(self, message, reportType):
         if reportType == 'Custom':
@@ -113,6 +120,7 @@ class FileChannel(BaseChannel):
 
     def workerParams(self, parser=None):
         return {
+            'conf': self.conf,
             'valids': getattr(parser, 'valids', None),
         }
 

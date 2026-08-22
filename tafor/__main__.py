@@ -5,7 +5,8 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from tafor import conf, __version__
+from tafor import __version__
+from tafor.core.config import createConfig
 from tafor.ui import main
 
 
@@ -54,6 +55,8 @@ def cli(argv=None):
 
     if args.command is None:
         return main()
+
+    conf = createConfig()
 
     if args.command == 'sigmet':
         conf.sigmetEnabled = args.enable

@@ -23,25 +23,27 @@ def test_version_prints_and_exits(capsys):
 
 
 def test_sigmet_enable(monkeypatch, capsys):
-    monkeypatch.setattr(cli, 'conf', type('Conf', (), {'sigmetEnabled': False})())
+    conf = type('Conf', (), {'sigmetEnabled': False})()
+    monkeypatch.setattr(cli, 'createConfig', lambda: conf)
 
     cli.cli(['sigmet', '--enable'])
 
-    assert cli.conf.sigmetEnabled is True
+    assert conf.sigmetEnabled is True
     assert capsys.readouterr().out.strip() == 'SIGMET support has been enabled.'
 
 
 def test_sigmet_disable(monkeypatch, capsys):
-    monkeypatch.setattr(cli, 'conf', type('Conf', (), {'sigmetEnabled': True})())
+    conf = type('Conf', (), {'sigmetEnabled': True})()
+    monkeypatch.setattr(cli, 'createConfig', lambda: conf)
 
     cli.cli(['sigmet', '--disable'])
 
-    assert cli.conf.sigmetEnabled is False
+    assert conf.sigmetEnabled is False
     assert capsys.readouterr().out.strip() == 'SIGMET support has been disabled.'
 
 
 def test_token_show(monkeypatch, capsys):
-    monkeypatch.setattr(cli, 'conf', type('Conf', (), {'authToken': 'current-token'})())
+    monkeypatch.setattr(cli, 'createConfig', lambda: type('Conf', (), {'authToken': 'current-token'})())
 
     cli.cli(['token'])
 
@@ -51,7 +53,7 @@ def test_token_show(monkeypatch, capsys):
 def test_token_generate(monkeypatch, capsys):
     conf = type('Conf', (), {'authToken': 'old-token'})()
 
-    monkeypatch.setattr(cli, 'conf', conf)
+    monkeypatch.setattr(cli, 'createConfig', lambda: conf)
     monkeypatch.setattr(cli.secrets, 'token_urlsafe', lambda _: 'new-token')
 
     cli.cli(['token', '--generate'])

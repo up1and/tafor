@@ -1,21 +1,25 @@
-import os
-
 import pytest
 
+from PyQt5.QtCore import QSettings
 
-root = os.path.dirname(__file__)
-
-
-@pytest.fixture(scope='session', autouse=True)
-def initialize():
-    print('start')
-    yield
-    print('end')
+from tafor.core.config import createConfig
+from tafor.core.models import createDatabase
+from tafor.core.states import createContext
 
 
-@pytest.fixture(scope='session', autouse=True)
-def configure_database():
-    from tafor.core.models import createDatabase
+@pytest.fixture(scope='session')
+def conf():
+    settings = QSettings(QSettings.InMemoryFormat, QSettings.UserScope, 'Up1and', 'Tafor')
+    return createConfig(settings=settings)
 
-    createDatabase(uri='sqlite:///:memory:')
-    yield
+
+@pytest.fixture(scope='session')
+def context(conf):
+    return createContext(conf)
+
+
+@pytest.fixture
+def database():
+    database = createDatabase(uri='sqlite:///:memory:')
+    yield database
+    database.engine.dispose()

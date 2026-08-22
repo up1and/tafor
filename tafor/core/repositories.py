@@ -110,7 +110,7 @@ class TafRepository(Repository):
         with self.database.session() as session:
             return session.query(Taf).filter_by(type=type).order_by(Taf.created.desc()).first()
 
-    def status(self, spec):
+    def status(self, spec, delayMinutes=None):
         currentTaf = CurrentTaf(spec)
         period = currentTaf.period(strict=False)
 
@@ -124,7 +124,7 @@ class TafRepository(Repository):
             recent = session.query(Taf).filter(Taf.text.contains(period),  ~Taf.text.contains('AMD'),
             ~Taf.text.contains('COR'), Taf.created > expired).order_by(Taf.created.desc()).first()
 
-        if currentTaf.isExpired():
+        if currentTaf.isExpired(offset=delayMinutes):
             if recent:
                 if not recent.confirmed:
                     isExpired = True

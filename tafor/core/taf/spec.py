@@ -73,13 +73,11 @@ class CurrentTaf(object):
         end = start + self.spec.duration
         return start, end
 
-    def isExpired(self, offset=None):
+    def isExpired(self, offset):
         """当前时段报文是否过了有效发报时间
 
         :param offset: 过期时间，单位分钟
         """
-        from tafor.core.globals import conf
-        offset = offset or conf.delayMinutes
         offset = int(offset) if offset else 30
         hours = self.spec.delay // datetime.timedelta(hours=1)
         delta = datetime.timedelta(hours=hours, minutes=offset)

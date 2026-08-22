@@ -133,10 +133,11 @@ class CurrentSigmetService(QObject):
 class LayerService(QObject, StateProxyMixin):
     fields = ['selected', 'showSigmet', 'trimShapes']
 
-    def __init__(self, state, event):
+    def __init__(self, state, event, conf):
         super().__init__()
         self.state = state
         self.event = event
+        self.conf = conf
 
     def setLayer(self, layerData):
         from tafor.core.utils.time import Layer
@@ -224,10 +225,9 @@ class LayerService(QObject, StateProxyMixin):
 
     def boundaries(self):
         import json
-        from tafor.core.globals import conf
 
         try:
-            boundary = json.loads(conf.firBoundary)
+            boundary = json.loads(self.conf.firBoundary)
             if not isinstance(boundary, list):
                 return []
         except Exception as e:
@@ -237,13 +237,12 @@ class LayerService(QObject, StateProxyMixin):
 
     def projection(self):
         from pyproj import Proj
-        from tafor.core.globals import conf
 
         try:
-            proj = Proj(conf.projection)
+            proj = Proj(self.conf.projection)
 
         except Exception as e:
-            conf.projection = '+proj=webmerc +datum=WGS84'
+            self.conf.projection = '+proj=webmerc +datum=WGS84'
             proj = Proj('+proj=webmerc +datum=WGS84')
 
         return proj
@@ -255,10 +254,11 @@ class LayerService(QObject, StateProxyMixin):
 class TafMonitorService(QObject, StateProxyMixin):
     fields = ['message']
 
-    def __init__(self, state, event):
+    def __init__(self, state, event, conf):
         super().__init__()
         self.state = state
         self.event = event
+        self.conf = conf
 
     def setState(self, values):
         oldShouldRemind = self.state.shouldRemind
@@ -271,9 +271,7 @@ class TafMonitorService(QObject, StateProxyMixin):
 
     @property
     def spec(self):
-        from tafor.core.globals import conf
-
-        index = conf.tafSpec or 0
+        index = self.conf.tafSpec or 0
         if int(index) == 1:
             return 'ft24'
         if int(index) == 2:
@@ -323,10 +321,11 @@ class SigmetMonitorService(QObject, StateProxyMixin):
 
 
 class NotificationService(QObject):
-    def __init__(self, state, event):
+    def __init__(self, state, event, conf):
         super().__init__()
         self.state = state
         self.event = event
+        self.conf = conf
 
     def setState(self, values):
         oldMessage = self.state.message
@@ -361,7 +360,6 @@ class NotificationService(QObject):
         return 'UNKNOWN'
 
     def parser(self):
-        from tafor.core.globals import conf
         from tafor.core.parsers.metar import MetarParser
         from tafor.core.parsers.sigmet import SigmetParser
 
@@ -380,9 +378,9 @@ class NotificationService(QObject):
                 message,
                 ignoreMetar=True,
                 previous=self.state.previous,
-                visHas5000=conf.visHas5000,
-                cloudHeightHas450=conf.cloudHeightHas450,
-                weakPrecipitationVerification=conf.weakPrecipitationVerification,
+                visHas5000=self.conf.visHas5000,
+                cloudHeightHas450=self.conf.cloudHeightHas450,
+                weakPrecipitationVerification=self.conf.weakPrecipitationVerification,
             )
 
         return None
@@ -398,11 +396,11 @@ class NotificationService(QObject):
 
 
 class NotificationManager(QObject):
-    def __init__(self, states, event):
+    def __init__(self, states, event, conf):
         super().__init__()
         self.event = event
-        self.metar = NotificationService(states.get('metar'), event)
-        self.sigmet = NotificationService(states.get('sigmet'), event)
+        self.metar = NotificationService(states.get('metar'), event, conf)
+        self.sigmet = NotificationService(states.get('sigmet'), event, conf)
 
 
 class OtherService(QObject, StateProxyMixin):
@@ -449,8 +447,7 @@ class FlashService(QObject):
 
 
 class AppContext:
-    def __init__(self):
-        from tafor.core.globals import conf
+    def __init__(self, conf):
         from tafor.core.services import LicenseService, SerialLock
 
         # Shared event bus
@@ -468,14 +465,14 @@ class AppContext:
             'sigmet': NotificationState(),
         }
 
-        # Create services with injected state and event
+        # Create services with injected state, event and config
         self.message = RemoteMessageService(remoteMessageState, self.event)
         self.current = CurrentSigmetService(currentSigmetState, self.event)
-        self.layer = LayerService(layerState, self.event)
-        self.taf = TafMonitorService(tafMonitorState, self.event)
+        self.layer = LayerService(layerState, self.event, conf)
+        self.taf = TafMonitorService(tafMonitorState, self.event, conf)
         self.sigmet = SigmetMonitorService(sigmetMonitorState, self.event)
         self.other = OtherService(otherState, self.event)
-        self.notification = NotificationManager(notificationStates, self.event)
+        self.notification = NotificationManager(notificationStates, self.event, conf)
         self.flash = FlashService(self.event)
 
         # Utilities
@@ -483,5 +480,6 @@ class AppContext:
         self.license = LicenseService(conf)
 
 
-# Global singleton
-context = AppContext()
+def createContext(conf):
+    """Build an AppContext over the given config."""
+    return AppContext(conf)
