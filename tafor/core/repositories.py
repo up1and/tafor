@@ -9,6 +9,14 @@ from tafor.core.taf import CurrentTaf
 from tafor.core.utils.pagination import paginate
 
 
+def subscribedTypes(tafSpec, sigmetEnabled):
+    """Telegram types the app subscribes to, derived from the enabled products."""
+    types = ['SA', 'SP', 'FT' if tafSpec else 'FC']
+    if sigmetEnabled:
+        types.extend(['WS', 'WC', 'WV', 'WA'])
+    return types
+
+
 class SigmetFilter:
 
     def __init__(self, reportType=None, typeCode=None, includeCancelled=False):
@@ -105,6 +113,11 @@ class TafRepository(Repository):
         with self.database.session() as session:
             query = session.query(Taf).filter(Taf.text.contains(period), Taf.created > recent)
             return query.filter(Taf.text.contains(kind)).count()
+
+    def amendSequence(self, period, sort):
+        count = self.amendCount(period, sort)
+        prefix = 'CC' if sort == 'COR' else 'AA'
+        return prefix + chr(ord('A') + count)
 
     def latest(self, type):
         with self.database.session() as session:
@@ -255,10 +268,10 @@ class MessageRepository(Repository):
         self.taf = TafRepository(database)
         self.sigmet = SigmetRepository(database)
 
-    def available(self, messages, wishlist=None):
+    def available(self, messages, types=None):
         availables = []
         for key, text in messages.items():
-            if wishlist and key not in wishlist:
+            if types and key not in types:
                 continue
 
             if key in ['SA', 'SP']:

@@ -630,14 +630,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
                     self.prevButton.setEnabled(False)
 
     def amendNumber(self, sort):
-        if sort == 'COR':
-            count = self.tafRepository.amendCount(self.amdPeriod, 'COR')
-            order = chr(ord('A') + count)
-            return 'CC' + order
-        else:
-            count = self.tafRepository.amendCount(self.amdPeriod, 'AMD')
-            order = chr(ord('A') + count)
-            return 'AA' + order
+        return self.tafRepository.amendSequence(self.amdPeriod, sort)
 
     def findTemperature(self, oneself):
         temps = [t.state.value for t in self.temperatures if t.state.value and t is not oneself]

@@ -13,7 +13,7 @@ from tafor.core.parsers.metar import MetarParser
 from tafor.core.parsers.sigmet import SigmetParser
 from tafor.core.parsers.taf import TafParser
 from tafor.core.repositories import MessageRepository
-from tafor.core.telegram.generator import AFTNDecoder, AFTNMessageGenerator, FileMessageGenerator
+from tafor.core.telegram.generator import AFTNDecoder, AFTNMessageGenerator, FileMessageGenerator, aftnPriority, fileMessageName
 from tafor.ui.fonts import fixedFont, uiFont
 from tafor.ui.qt import Ui_send, main_rc
 from tafor.ui.widgets.graphic import GraphicsViewer
@@ -86,7 +86,7 @@ class AFTNChannel(BaseChannel):
                 'maxSendAddress': self.conf.maxSendAddress,
             }
 
-        priority = 'FF' if reportType in ['SIGMET', 'AIRMET'] or message.text.startswith('TAF AMD') else 'GG'
+        priority = aftnPriority(reportType, message.text)
         address = self.conf.get(f'{reportType.lower()}Address')
 
         return {
@@ -119,9 +119,10 @@ class FileChannel(BaseChannel):
         }
 
     def workerParams(self, parser=None):
+        valids = getattr(parser, 'valids', None) or (datetime.datetime.utcnow(), datetime.datetime.utcnow())
         return {
-            'conf': self.conf,
-            'valids': getattr(parser, 'valids', None),
+            'url': self.conf.ftpHost,
+            'filename': fileMessageName(self.conf.airport, valids, self.conf.get(self.configName)),
         }
 
 
@@ -144,9 +145,10 @@ class SenderViewState:
 
 
 class MessageComposer:
-    def __init__(self, conf, context):
+    def __init__(self, conf, context, fontFamily='monospace'):
         self.conf = conf
         self.context = context
+        self.fontFamily = fontFamily
 
     def compose(self, message):
         return ComposedMessage(message)
@@ -157,7 +159,7 @@ class TafMessageComposer(MessageComposer):
         visHas5000 = self.conf.visHas5000
         cloudHeightHas450 = self.conf.cloudHeightHas450
         weakPrecipitationVerification = self.conf.weakPrecipitationVerification
-        uiFamily = uiFont().family()
+        uiFamily = self.fontFamily
 
         parser = TafParser(
             message.text,
@@ -189,7 +191,7 @@ class TrendMessageComposer(MessageComposer):
     def compose(self, message):
         html = message.text
         parser = None
-        uiFamily = uiFont().family()
+        uiFamily = self.fontFamily
         notificationParser = self.context.notification.metar.parser()
 
         if notificationParser and notificationParser.hasMetar():
@@ -243,7 +245,7 @@ class CustomMessageComposer(MessageComposer):
     pass
 
 
-def createComposer(reportType, conf, context):
+def createComposer(reportType, conf, context, fontFamily='monospace'):
     mapping = {
         'TAF': TafMessageComposer,
         'Trend': TrendMessageComposer,
@@ -252,7 +254,7 @@ def createComposer(reportType, conf, context):
         'Custom': CustomMessageComposer,
     }
     try:
-        return mapping[reportType](conf, context)
+        return mapping[reportType](conf, context, fontFamily)
     except KeyError:
         raise ValueError(f'Unsupported report type: {reportType}')
 
@@ -283,7 +285,7 @@ class SenderPresenter:
         self.view = view
         self.context = context
         self.conf = conf
-        self.composer = createComposer(view.reportType, conf, context)
+        self.composer = createComposer(view.reportType, conf, context, fontFamily=uiFont().family())
         self.transportService = TransportService(conf, context)
         self.messageRepository = MessageRepository(database)
         self.resetGroupCycle()

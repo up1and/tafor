@@ -1,5 +1,4 @@
 import csv
-import datetime
 import logging
 
 from uuid import uuid4
@@ -105,9 +104,8 @@ class MessageWorker(QObject):
 
     def run(self):
         try:
-            if self.conf.messageUrl:
-                url = self.conf.messageUrl or 'http://127.0.0.1:6575'
-                self.fetched.emit(fetchMessage(url))
+            url = self.conf.messageUrl or 'http://127.0.0.1:6575'
+            self.fetched.emit(fetchMessage(url))
         finally:
             self.finished.emit()
 
@@ -192,29 +190,15 @@ class FtpWorker(QObject):
     done = pyqtSignal(str)
     finished = pyqtSignal()
 
-    def __init__(self, message, conf, valids=None):
+    def __init__(self, message, url, filename):
         super(FtpWorker, self).__init__()
         self.message = message
-        self.conf = conf
-        if valids is None:
-            valids = (datetime.datetime.utcnow(), datetime.datetime.utcnow())
-        self.valids = valids
+        self.url = url
+        self.filename = filename
 
     def run(self):
-        url = self.conf.ftpHost
-        number = self.conf.fileSequenceNumber
-        format = '%Y%m%d%H%M%S'
-        time = datetime.datetime.utcnow()
-        filename = '9_OTHE_C_{airport}_{created}_STUB-WTMG-MULT-{validfrom}-{validto}-XXX-1,{number}.txt'.format(
-            airport = self.conf.airport,
-            created = time.strftime(format),
-            validfrom = self.valids[0].strftime(format),
-            validto = self.valids[1].strftime(format),
-            number = str(number).zfill(5)
-        )
-
         try:
-            ftpComm(self.message, url, filename)
+            ftpComm(self.message, self.url, self.filename)
             error = ''
         except Exception as e:
             error = str(e)

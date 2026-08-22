@@ -16,7 +16,7 @@ from tafor import __version__, root
 from tafor.core.config import createConfig
 from tafor.core.states import createContext
 from tafor.core.models import Metar, createDatabase
-from tafor.core.repositories import MessageRepository, MetarRepository, SigmetFilter, SigmetRepository, TafRepository
+from tafor.core.repositories import MessageRepository, MetarRepository, SigmetFilter, SigmetRepository, TafRepository, subscribedTypes
 from tafor.core.utils.common import appInfo, checkVersion, revision, setupLogging
 from tafor.ui.components.chart import ChartViewer
 from tafor.ui.components.send import CustomSender, SigmetSender, TafSender, TrendSender
@@ -120,17 +120,10 @@ class DataService:
         self.context.event.trendReloadRequested.emit()
 
     def updateMessage(self):
-        wishlist = ['SA', 'SP']
-        if self.conf.tafSpec:
-            wishlist.append('FT')
-        else:
-            wishlist.append('FC')
-
-        if self.conf.sigmetEnabled:
-            wishlist.extend(['WS', 'WC', 'WV', 'WA'])
+        types = subscribedTypes(self.conf.tafSpec, self.conf.sigmetEnabled)
 
         messages = self.context.message.message()
-        items = self.messageRepository.available(messages, wishlist=wishlist)
+        items = self.messageRepository.available(messages, types=types)
         needPlaySound = False
 
         for item in items:

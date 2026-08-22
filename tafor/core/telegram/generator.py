@@ -20,6 +20,25 @@ def linewrap(lines, maxLineChar):
     return items
 
 
+def aftnPriority(reportType, text):
+    """SIGMET/AIRMET and amended TAF go out with the higher FF priority."""
+    if reportType in ['SIGMET', 'AIRMET'] or text.startswith('TAF AMD'):
+        return 'FF'
+    return 'GG'
+
+
+def fileMessageName(airport, valids, number, created=None):
+    format = '%Y%m%d%H%M%S'
+    created = created or datetime.datetime.utcnow()
+    return '9_OTHE_C_{airport}_{created}_STUB-WTMG-MULT-{validfrom}-{validto}-XXX-1,{number}.txt'.format(
+        airport=airport,
+        created=created.strftime(format),
+        validfrom=valids[0].strftime(format),
+        validto=valids[1].strftime(format),
+        number=str(number).zfill(5)
+    )
+
+
 class AFTNMessageGenerator(object):
     """航空固定电信网络（Aeronautical Fixed Telecommunication Network Message）报文的生成
 

@@ -10,10 +10,10 @@ from PyQt5.QtCore import QCoreApplication, QStandardPaths, QSettings, QTimer, Qt
 from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QFileDialog, QMessageBox, QApplication, QCheckBox, 
                              QLineEdit, QComboBox, QPlainTextEdit, QSlider, QListWidget, QGroupBox)
 
-from tafor.core.telegram.transport import ftpComm
 from tafor.core.utils.common import ipAddress
 from tafor.ui.qt import Ui_setting, main_rc
 from tafor.ui.styles import tabStyle
+from tafor.ui.workers import FtpWorker, threadManager
 
 logger = logging.getLogger('tafor.setting')
 
@@ -134,17 +134,19 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.bindValue(self.conf.channelSequenceNumber, 'channelSequenceNumber')
 
     def testFtpLogin(self):
-        url = self.ftpHost.text()
-        try:
-            ftpComm('', url, 'test')
-        except Exception as e:
+        self.testLoginButton.setEnabled(False)
+        worker, thread = threadManager.createWorker(FtpWorker, '', self.ftpHost.text(), 'test')
+        worker.done.connect(self.handleFtpLoginResult)
+        thread.start()
+
+    def handleFtpLoginResult(self, error):
+        if error:
             text = QCoreApplication.translate('Settings', 'Retry')
             self.testLoginButton.setText(text)
-            logger.error('Failed to test login FTP server, {}'.format(e))
+            self.testLoginButton.setEnabled(True)
         else:
             text = QCoreApplication.translate('Settings', 'Done')
             self.testLoginButton.setText(text)
-            self.testLoginButton.setEnabled(False)
 
     def resetFtpLoginButton(self):
         text = QCoreApplication.translate('Settings', 'Login')
