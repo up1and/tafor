@@ -4,6 +4,7 @@ from PyQt5.QtCore import QCoreApplication
 
 from tafor.core.models import Sigmet
 from tafor.core.repositories import SigmetFilter
+from tafor.core.sigmet.issuance import composeHeading, validDuration
 from tafor.ui.qt import Ui_sigmet
 from tafor.ui.widgets import AirmetGeneral, SigmetAsh, SigmetCancel, SigmetCustom, SigmetGeneral, SigmetTyphoon
 from tafor.ui.widgets.editor import BaseEditor
@@ -134,10 +135,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
     def heading(self):
         area = self.conf.bulletinNumber or ''
-        icao = self.conf.airport
-        time = datetime.datetime.utcnow().strftime('%d%H%M')
-        messages = [self.type + area, icao, time]
-        return ' '.join(filter(None, messages))
+        return composeHeading(self.type, area, self.conf.airport, datetime.datetime.utcnow())
 
     def message(self):
         text = self.currentContent.message()
@@ -158,13 +156,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
     def setType(self, type, category):
         self.type = type
         self.category = category
-        durations = {
-            'WS': 4,
-            'WC': 6,
-            'WV': 6,
-            'WA': 4,
-        }
-        self.currentContent.setSpan(durations[self.type])
+        self.currentContent.setSpan(validDuration(self.type))
         self.graphic.setButton(self.type, category)
         self.updateGraphicCanvas()
 

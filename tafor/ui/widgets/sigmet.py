@@ -13,8 +13,9 @@ from tafor.core.parsers.sigmet import AshAdvisoryParser, TyphoonAdvisoryParser
 from tafor.core.repositories import SigmetFilter, SigmetRepository
 from tafor.core.sigmet import (SigmetAshState, SigmetCancelState, SigmetCustomState, SigmetGeneralState,
     SigmetTyphoonState, SigmetValidator)
+from tafor.core.sigmet.issuance import adjustCancelBeginning, nextSequence, validPeriod
 from tafor.core.geometry.coordinate import decimalToDegree
-from tafor.core.utils.time import ceilTime, parseTime, roundTime
+from tafor.core.utils.time import parseTime
 from tafor.ui.qt import Ui_sigmet_ash, Ui_sigmet_cancel, Ui_sigmet_custom, Ui_sigmet_general, Ui_sigmet_typhoon, main_rc
 from tafor.ui.widgets.taf import SegmentMixin
 
@@ -107,12 +108,7 @@ class BaseSigmet(SegmentMixin, QWidget):
 
     def periodTime(self):
         self.time = datetime.datetime.utcnow()
-        if self.type() == 'WC':
-            start = roundTime(self.time)
-        else:
-            start = ceilTime(self.time, amount=10)
-        end = start + datetime.timedelta(hours=self.span)
-        return start, end
+        return validPeriod(self.type(), self.span, self.time)
 
     def validatePeriod(self):
         error = SigmetValidator.validatePeriod(self.durations, self.span)
@@ -157,21 +153,8 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.endingTime.setText(endingTime.strftime('%d%H%M'))
 
     def updateSquence(self):
-        time = datetime.datetime.utcnow()
         sigmets = self.sigmetRepository.countToday(self.type())
-
-        def isYesterday(text):
-            if text:
-                pattern = re.compile(r'\d{6}')
-                m = pattern.search(text)
-                if m:
-                    issueTime = m.group()
-                    return int(issueTime[:2]) != time.day or issueTime[2:] == '0000'
-
-            return False
-
-        sigmets = [sig for sig in sigmets if not isYesterday(sig.heading)]
-        count = len(sigmets) + 1
+        count = nextSequence([sig.heading for sig in sigmets], datetime.datetime.utcnow())
         self.sequence.setText(str(count))
 
     def hasAcceptableInput(self):
@@ -1085,16 +1068,13 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
             self.endingTime.setText(endingText)
 
         if self.cancelBeginningTime.hasAcceptableInput():
-            beginningText = self.cancelBeginningTime.text()
-            start = parseTime(beginningText)
-            beginning, _ = self.periodTime()
-
-            if beginning < start and start - datetime.datetime.utcnow() < datetime.timedelta(hours=12):
-                beginning = start
-
-            if beginning.strftime('%d%H%M') == self.endingTime.text():
-                beginning = beginning - datetime.timedelta(minutes=10)
-
+            start, _ = self.periodTime()
+            beginning = adjustCancelBeginning(
+                self.cancelBeginningTime.text(),
+                start,
+                self.endingTime.text(),
+                datetime.datetime.utcnow(),
+            )
             self.beginningTime.setText(beginning.strftime('%d%H%M'))
 
     def componentUpdate(self):

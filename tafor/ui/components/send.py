@@ -342,18 +342,7 @@ class SenderPresenter:
         self.updateVisibility(succeeded)
 
     def updateReminder(self):
-        sig = self.view.message.parser()
-        if self.view.message.isCnl():
-            cancelSequence = sig.cancelSequence()
-            states = self.context.sigmet.entries
-            for uuid, value in states.items():
-                parser = value['text']
-                sequence = parser.sequence(), parser.validTime()
-                if cancelSequence == sequence:
-                    self.context.sigmet.remove(uuid=uuid)
-        else:
-            time = self.view.message.expired()
-            self.context.sigmet.add(uuid=self.view.message.uuid, text=sig, time=time)
+        self.context.sigmet.updateReminders(self.view.message)
 
     def reload(self):
         if self.view.isVisible() and self.view.message:

@@ -295,6 +295,20 @@ class SigmetMonitorService(StateProxyMixin):
                 )
         return outdates
 
+    def updateReminders(self, message):
+        """Align reminders with a sent message: a cancel drops the matching
+        reminder, anything else adds one expiring when the message expires."""
+        sig = message.parser()
+        if message.isCnl():
+            cancelSequence = sig.cancelSequence()
+            for uuid, value in list(self.state.entries.items()):
+                parser = value['text']
+                sequence = parser.sequence(), parser.validTime()
+                if cancelSequence == sequence:
+                    self.remove(uuid=uuid)
+        else:
+            self.add(uuid=message.uuid, text=sig, time=message.expired())
+
 
 class NotificationService:
     def __init__(self, state, event, conf):
