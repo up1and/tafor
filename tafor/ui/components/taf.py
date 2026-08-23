@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QCoreApplication, QTimer
+from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLayout
 
 from tafor.core.models import Taf
@@ -30,7 +30,6 @@ class TafPresenter:
             s.contentChanged.connect(self.enableNextButton)
 
         self.view.primary.period.textChanged.connect(self.clear)
-        self.view.nextButton.clicked.connect(self.beforeNext)
 
     def previewMessage(self):        
         def sortKey(s):
@@ -79,6 +78,8 @@ class TafPresenter:
 
 class TafEditor(BaseEditor):
 
+    confGroup = 'taf'
+
     def __init__(self, parent=None, sender=None, conf=None, context=None, database=None):
         super(TafEditor, self).__init__(parent, sender, conf, context, database)
         self.presenter = TafPresenter(self, context, conf)
@@ -111,7 +112,6 @@ class TafEditor(BaseEditor):
             
         self.addBottomBox(layout)
         self.setLayout(layout)
-        self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px;}')
 
     def segments(self, activeOnly=False):
         """Return segments, optionally filtering for active ones."""
@@ -169,15 +169,9 @@ class TafEditor(BaseEditor):
         manipulate(becmgCheckboxs, becmgGroups)
         manipulate(tempoCheckboxs, tempoGroups)
 
-    def closeEvent(self, event):
-        super(TafEditor, self).closeEvent(event)
+    def onFirstShow(self):
+        self.primary.updateMessageType()
+
+    def onClose(self):
         self.presenter.clear()
         self.primary.clearType()
-
-    def showEvent(self, event):
-        if not self.conf.checkCompleteness('taf'):
-            QTimer.singleShot(0, self.showConfigError)
-            return
-        
-        if not self.isStaged:
-            self.primary.updateMessageType()

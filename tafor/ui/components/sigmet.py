@@ -1,6 +1,6 @@
 import datetime
 
-from PyQt5.QtCore import QCoreApplication, QTimer
+from PyQt5.QtCore import QCoreApplication
 
 from tafor.core.models import Sigmet
 from tafor.core.repositories import SigmetFilter
@@ -10,21 +10,81 @@ from tafor.ui.widgets.editor import BaseEditor
 from tafor.ui.widgets.graphic import GraphicsWindow
 
 
+class SigmetPresenter:
+
+    def __init__(self, view, context, conf):
+        self.view = view
+        self.context = context
+        self.conf = conf
+
+    def initialize(self):
+        self.bindSignal()
+
+    def bindSignal(self):
+        self.view.significantWeather.clicked.connect(self.view.changeContent)
+        self.view.tropicalCyclone.clicked.connect(self.view.changeContent)
+        self.view.volcanicAsh.clicked.connect(self.view.changeContent)
+        self.view.airmansWeather.clicked.connect(self.view.changeContent)
+        self.view.template.clicked.connect(self.view.changeContent)
+        self.view.custom.clicked.connect(self.view.changeContent)
+        self.view.cancel.clicked.connect(self.view.changeContent)
+
+        self.view.graphic.sketchChanged.connect(self.enableNextButton)
+        self.view.graphic.overlapChanged.connect(self.enableNextButton)
+        self.view.graphic.overlapChanged.connect(self.view.setOverlapMode)
+        self.view.graphic.modeChanged.connect(self.view.setLocationMode)
+
+        self.view.graphic.circleChanged.connect(self.view.typhoonContent.setTyphoonLocation)
+        self.view.typhoonContent.circleChanged.connect(self.view.graphic.setTyphoonGraphic)
+
+        self.view.ashContent.locationChanged.connect(self.view.graphic.setAdvisoryGraphic)
+        self.view.typhoonContent.locationChanged.connect(self.view.graphic.setAdvisoryGraphic)
+
+        for c in self.view.contents:
+            c.contentChanged.connect(self.enableNextButton)
+
+        self.view.sender.succeeded.connect(self.view.updateState)
+
+    def beforeNext(self):
+        self.view.currentContent.validate()
+
+        if self.hasAcceptableInput():
+            self.previewMessage()
+
+    def previewMessage(self):
+        message = Sigmet(type=self.view.type, heading=self.view.heading(), text=self.view.message())
+        self.view.finished.emit(message)
+
+    def hasAcceptableInput(self):
+        items = [self.view.currentContent.hasAcceptableInput()]
+        if self.view.hasGraphicWindow():
+            items.append(self.view.graphic.hasAcceptableGraphic())
+
+        return all(items)
+
+    def enableNextButton(self):
+        self.view.nextButton.setEnabled(self.hasAcceptableInput())
+
+    def clear(self):
+        self.view.clear()
+
+
 class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
+
+    confGroup = 'sigmet'
 
     def __init__(self, parent=None, sender=None, conf=None, context=None, database=None):
         super(SigmetEditor, self).__init__(parent, sender, conf, context, database)
         self.setupUi(self)
-        self.parent = parent
 
         self.type = 'WS'
         self.category = 'template'
 
+        self.presenter = SigmetPresenter(self, context, conf)
         self.initUI()
-        self.bindSignal()
+        self.presenter.initialize()
 
         self.setWindowTitle(QCoreApplication.translate('Editor', 'Encoding Significant Meteorological Information'))
-        self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px;}')
 
     def initUI(self):
         self.graphic = GraphicsWindow(self, context=self.context)
@@ -52,34 +112,6 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
         self.addBottomBox(self.mainLayout)
 
-    def bindSignal(self):
-        self.significantWeather.clicked.connect(self.changeContent)
-        self.tropicalCyclone.clicked.connect(self.changeContent)
-        self.volcanicAsh.clicked.connect(self.changeContent)
-        self.airmansWeather.clicked.connect(self.changeContent)
-        self.template.clicked.connect(self.changeContent)
-        self.custom.clicked.connect(self.changeContent)
-        self.cancel.clicked.connect(self.changeContent)
-
-        self.graphic.sketchChanged.connect(self.enableNextButton)
-        self.graphic.overlapChanged.connect(self.enableNextButton)
-        self.graphic.overlapChanged.connect(self.setOverlapMode)
-        self.graphic.modeChanged.connect(self.setLocationMode)
-
-        self.graphic.circleChanged.connect(self.typhoonContent.setTyphoonLocation)
-        self.typhoonContent.circleChanged.connect(self.graphic.setTyphoonGraphic)
-
-        self.ashContent.locationChanged.connect(self.graphic.setAdvisoryGraphic)
-        self.typhoonContent.locationChanged.connect(self.graphic.setAdvisoryGraphic)
-
-        for c in self.contents:
-            c.contentChanged.connect(self.enableNextButton)
-
-        self.nextButton.clicked.connect(self.beforeNext)
-
-        # change content self.enableNextButton()
-        self.sender.succeeded.connect(self.updateState)
-
     def updateGraphicCanvas(self):
         if self.category == 'custom':
             return
@@ -93,19 +125,6 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
     def updateLayer(self):
         self.graphic.updateLayer()
-
-    def beforeNext(self):
-        self.currentContent.validate()
-
-        if self.hasAcceptableInput():
-            self.previewMessage()
-
-    def previewMessage(self):
-        message = Sigmet(type=self.type, heading=self.heading(), text=self.message())
-        self.finished.emit(message)
-
-    def enableNextButton(self):
-        self.nextButton.setEnabled(self.hasAcceptableInput())
 
     def updateState(self):
         self.currentContent.initState()
@@ -135,13 +154,6 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
     def hasGraphicWindow(self):
         return self.currentContent not in [self.customContent, self.cancelContent]
-
-    def hasAcceptableInput(self):
-        items = [self.currentContent.hasAcceptableInput()]
-        if self.hasGraphicWindow():
-            items.append(self.graphic.hasAcceptableGraphic())
-
-        return all(items)
 
     def setType(self, type, category):
         self.type = type
@@ -210,25 +222,15 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         
         self.setType(tt, category)
 
-    def showEvent(self, event):
-        self.setTypeButtonText()
-
     def clear(self):
         for c in self.contents:
             c.clear()
 
         self.graphic.clear()
 
-    def closeEvent(self, event):
-        super(SigmetEditor, self).closeEvent(event)
-        self.context.notification.sigmet.clear()
-        self.clear()
+    def onFirstShow(self):
+        self.updateState()
 
-    def showEvent(self, event):
-        # 检查必要配置是否完成 
-        if not self.conf.checkCompleteness('sigmet'):
-            QTimer.singleShot(0, self.showConfigError)
-            return
-        
-        if not self.isStaged:
-            self.updateState()
+    def onClose(self):
+        self.context.notification.sigmet.clear()
+        self.presenter.clear()

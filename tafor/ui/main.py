@@ -492,7 +492,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.customSender = CustomSender(self, self.context, self.conf, self.database)
 
         self.tafEditor = TafEditor(self, self.tafSender, self.conf, self.context, self.database)
-        self.trendEditor = TrendEditor(self, self.trendSender, self.conf, self.context)
+        self.trendEditor = TrendEditor(self, self.trendSender, self.conf, self.context, self.database)
         self.sigmetEditor = SigmetEditor(self, self.sigmetSender, self.conf, self.context, self.database)
         self.licenseEditor = LicenseEditor(self, conf=self.conf, context=self.context)
 

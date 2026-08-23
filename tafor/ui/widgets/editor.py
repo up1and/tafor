@@ -6,6 +6,9 @@ class BaseEditor(QDialog):
 
     finished = pyqtSignal(object)
 
+    # Subclass sets this to the conf group checked before the editor can show
+    confGroup = None
+
     def __init__(self, parent=None, sender=None, conf=None, context=None, database=None):
         super(BaseEditor, self).__init__(parent)
         self.parent = parent
@@ -13,15 +16,14 @@ class BaseEditor(QDialog):
         self.conf = conf
         self.context = context
         self.database = database
+        self.presenter = None
         self.isStaged = False
 
         self.defaultAction()
+        self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px;}')
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
     def initUI(self):
-        raise NotImplementedError
-
-    def bindSignal(self):
         raise NotImplementedError
 
     def defaultAction(self):
@@ -55,6 +57,7 @@ class BaseEditor(QDialog):
         self.nextButton = QPushButton()
         self.nextButton.setEnabled(False)
         self.nextButton.setText(QCoreApplication.translate('Editor', 'Next'))
+        self.nextButton.clicked.connect(self.beforeNext)
         self.notificationArea = QLabel()
         self.notificationArea.setStyleSheet('QLabel {color: grey;}')
         bottomLayout.addWidget(self.notificationArea)
@@ -67,15 +70,28 @@ class BaseEditor(QDialog):
             self.notificationArea.setText(message)
             QTimer.singleShot(10 * 1000, self.notificationArea.clear)
 
-    def previewMessage(self):
-        raise NotImplementedError
+    def beforeNext(self):
+        if self.presenter:
+            self.presenter.beforeNext()
 
-    def enableNextButton(self):
-        raise NotImplementedError
+    def onFirstShow(self):
+        pass
+
+    def onClose(self):
+        pass
 
     def keyPressEvent(self, event):
         if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_Return:
             self.beforeNext()
 
+    def showEvent(self, event):
+        if self.confGroup and not self.conf.checkCompleteness(self.confGroup):
+            QTimer.singleShot(0, self.showConfigError)
+            return
+
+        if not self.isStaged:
+            self.onFirstShow()
+
     def closeEvent(self, event):
         self.isStaged = False
+        self.onClose()

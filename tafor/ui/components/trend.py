@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QCoreApplication, QTimer
+from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLayout
 
 from tafor.core.models import Trend
@@ -17,7 +17,6 @@ class TrendPresenter:
 
     def bindSignal(self):
         self.view.trend.contentChanged.connect(self.enableNextButton)
-        self.view.nextButton.clicked.connect(self.beforeNext)
 
     def hasAcceptableInput(self):
         return self.view.trend.hasAcceptableInput()
@@ -53,8 +52,10 @@ class TrendPresenter:
 
 class TrendEditor(BaseEditor):
 
-    def __init__(self, parent=None, sender=None, conf=None, context=None):
-        super(TrendEditor, self).__init__(parent, sender, conf, context)
+    confGroup = 'trend'
+
+    def __init__(self, parent=None, sender=None, conf=None, context=None, database=None):
+        super(TrendEditor, self).__init__(parent, sender, conf, context, database)
         self.presenter = TrendPresenter(self, context, conf)
         self.initUI()
         self.presenter.initialize()
@@ -70,7 +71,6 @@ class TrendEditor(BaseEditor):
         self.addBottomBox(layout)
         self.setLayout(layout)
 
-        self.setStyleSheet('QLineEdit {width: 50px;} QComboBox {width: 50px;}')
         self.trend.metar.setStyleSheet('QLabel {color: grey;}')
 
     def edit(self):
@@ -80,10 +80,5 @@ class TrendEditor(BaseEditor):
     def isPeriodActive(self):
         return self.trend.isPeriodActive()
 
-    def closeEvent(self, event):
-        super(TrendEditor, self).closeEvent(event)
+    def onClose(self):
         self.presenter.clear()
-
-    def showEvent(self, event):
-        if not self.conf.checkCompleteness('trend'):
-            QTimer.singleShot(0, self.showConfigError)
