@@ -13,117 +13,14 @@ from tafor.core.parsers.metar import MetarParser
 from tafor.core.parsers.sigmet import SigmetParser
 from tafor.core.parsers.taf import TafParser
 from tafor.core.repositories import MessageRepository
-from tafor.core.telegram.generator import AFTNDecoder, AFTNMessageGenerator, FileMessageGenerator, aftnPriority, fileMessageName
+from tafor.core.telegram.channels import canResend, createChannel
+from tafor.core.telegram.generator import AFTNDecoder
 from tafor.ui.fonts import fixedFont, uiFont
 from tafor.ui.qt import Ui_send, main_rc
 from tafor.ui.widgets.graphic import GraphicsViewer
 from tafor.ui.workers import FtpWorker, SerialWorker, threadManager
 
 logger = logging.getLogger('tafor.send')
-
-
-class BaseChannel(object):
-    generator = None
-    worker = None
-    configName = None
-
-    def __init__(self, conf, context):
-        self.conf = conf
-        self.context = context
-
-    def buildText(self, message, reportType):
-        if reportType == 'Custom':
-            return self.context.other.message
-
-        heading = self.conf.trendIdentifier if reportType == 'Trend' else message.heading
-        spacer = ' ' if reportType == 'Trend' else '\n'
-        return spacer.join([heading, message.text])
-
-    def buildParams(self, message, reportType):
-        raise NotImplementedError
-
-    def workerParams(self, parser=None):
-        raise NotImplementedError
-
-    def generateRawText(self, message, reportType):
-        generator = self.generator(**self.buildParams(message, reportType))
-        return generator, generator.toString()
-
-    def successText(self):
-        raise NotImplementedError
-
-    def resendText(self):
-        raise NotImplementedError
-
-
-class AFTNChannel(BaseChannel):
-    generator = AFTNMessageGenerator
-    worker = SerialWorker
-    configName = 'channelSequenceNumber'
-
-    def successText(self):
-        return QCoreApplication.translate('Sender', 'Data has been sent to the serial port')
-
-    def resendText(self):
-        return QCoreApplication.translate('Sender', 'Some part of the AFTN message may be updated, do you still want to resend?')
-
-    def workerParams(self, parser=None):
-        return {
-            'conf': self.conf,
-            'context': self.context,
-        }
-
-    def buildParams(self, message, reportType):
-        if reportType == 'Custom':
-            return {
-                'text': self.context.other.message,
-                'channel': self.conf.channel,
-                'number': self.conf.get(self.configName),
-                'priority': self.context.other.priority,
-                'address': self.context.other.address,
-                'originator': self.conf.originatorAddress,
-                'sequenceLength': self.conf.channelSequenceLength,
-                'maxSendAddress': self.conf.maxSendAddress,
-            }
-
-        priority = aftnPriority(reportType, message.text)
-        address = self.conf.get(f'{reportType.lower()}Address')
-
-        return {
-            'text': self.buildText(message, reportType),
-            'channel': self.conf.channel,
-            'number': self.conf.get(self.configName),
-            'priority': priority,
-            'address': address,
-            'originator': self.conf.originatorAddress,
-            'sequenceLength': self.conf.channelSequenceLength or 4,
-            'maxSendAddress': self.conf.maxSendAddress or 21,
-        }
-
-
-class FileChannel(BaseChannel):
-    generator = FileMessageGenerator
-    worker = FtpWorker
-    configName = 'fileSequenceNumber'
-
-    def successText(self):
-        return QCoreApplication.translate('Sender', 'File has been uploaded to the host')
-
-    def resendText(self):
-        return QCoreApplication.translate('Sender', 'The file will be resent, do you want to continue?')
-
-    def buildParams(self, message, reportType):
-        return {
-            'text': self.buildText(message, reportType),
-            'number': self.conf.get(self.configName),
-        }
-
-    def workerParams(self, parser=None):
-        valids = getattr(parser, 'valids', None) or (datetime.datetime.utcnow(), datetime.datetime.utcnow())
-        return {
-            'url': self.conf.ftpHost,
-            'filename': fileMessageName(self.conf.airport, valids, self.conf.get(self.configName)),
-        }
 
 
 class ComposedMessage:
@@ -265,16 +162,36 @@ class TransportService:
         self.context = context
 
     def channel(self, protocol):
+        return createChannel(protocol, self.conf, self.context)
+
+    def worker(self, protocol):
         if protocol == 'ftp':
-            return FileChannel(self.conf, self.context)
-        return AFTNChannel(self.conf, self.context)
+            return FtpWorker
+        return SerialWorker
+
+    def successText(self, protocol):
+        if protocol == 'ftp':
+            return QCoreApplication.translate('Sender', 'File has been uploaded to the host')
+        return QCoreApplication.translate('Sender', 'Data has been sent to the serial port')
+
+    def resendText(self, protocol):
+        if protocol == 'ftp':
+            return QCoreApplication.translate('Sender', 'The file will be resent, do you want to continue?')
+        return QCoreApplication.translate('Sender', 'Some part of the AFTN message may be updated, do you still want to resend?')
+
+    def workerParams(self, protocol, parser=None):
+        if protocol == 'ftp':
+            return self.channel(protocol).ftpParams(getattr(parser, 'valids', None))
+        return {
+            'conf': self.conf,
+            'context': self.context,
+        }
 
     def generateRawText(self, message, reportType, protocol):
         return self.channel(protocol).generateRawText(message, reportType)
 
     def transmit(self, protocol, parser, rawText, done, finished):
-        channel = self.channel(protocol)
-        worker, thread = threadManager.createWorker(channel.worker, rawText, **channel.workerParams(parser))
+        worker, thread = threadManager.createWorker(self.worker(protocol), rawText, **self.workerParams(protocol, parser))
         worker.done.connect(done)
         worker.finished.connect(finished)
         thread.start()
@@ -319,13 +236,10 @@ class SenderPresenter:
             windowTitle = QCoreApplication.translate('Sender', 'View Message')
             rawGroupTitle = QCoreApplication.translate('Sender', 'Raw Data')
             rawText = self.view.message.rawText()
-            resendVisible = (
-                not self.view.message.confirmed and
-                datetime.datetime.utcnow() - self.view.message.created < datetime.timedelta(hours=2)
-            )
+            resendVisible = canResend(self.view.message, datetime.datetime.utcnow())
         else:
             windowTitle = QCoreApplication.translate('Sender', 'Send Message')
-            rawGroupTitle = self.channel().successText()
+            rawGroupTitle = self.transportService.successText(self.protocol())
 
         return SenderViewState(
             mode=mode,
@@ -371,7 +285,7 @@ class SenderPresenter:
 
         if self.view.mode == 'view':
             title = QCoreApplication.translate('Sender', 'Resend Reminder')
-            ret = QMessageBox.question(self.view, title, self.channel().resendText())
+            ret = QMessageBox.question(self.view, title, self.transportService.resendText(self.protocol()))
             if ret != QMessageBox.Yes:
                 return None
 

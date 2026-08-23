@@ -25,6 +25,9 @@ class FakeConf(object):
     cloudHeightHas450 = True
     weakPrecipitationVerification = False
 
+    def get(self, name):
+        return getattr(self, name)
+
 
 class FakeContext(object):
 
@@ -41,7 +44,7 @@ class FakeContext(object):
 
     class _Other(object):
         def setState(self, values):
-            self.values = values
+            self.__dict__.update(values)
 
     def __init__(self):
         self.serial = self._Serial()

@@ -13,7 +13,7 @@ from tafor.core.models import Metar, Other, Sigmet, Taf
 from tafor.core.parsers.metar import MetarParser
 from tafor.core.parsers.sigmet import SigmetParser
 from tafor.core.parsers.taf import TafParser
-from tafor.core.telegram.generator import AFTNMessageGenerator
+from tafor.core.telegram.channels import createChannel
 from tafor.core.utils.pagination import paginate
 
 logger = logging.getLogger('tafor.rpc')
@@ -393,14 +393,8 @@ class OthersResource(ResourceCollection):
             'message': message,
         })
 
-        channel = self.conf.channel
-        originator = self.conf.originatorAddress
-        number = self.conf.channelSequenceNumber
-        sequenceLength = self.conf.channelSequenceLength
-        maxSendAddress = self.conf.maxSendAddress
-
-        generator = AFTNMessageGenerator(message, channel=channel, number=number, priority=priority, address=address,
-                    originator=originator, sequenceLength=sequenceLength, maxSendAddress=maxSendAddress)
+        channel = createChannel('aftn', self.conf, self.context)
+        generator = channel.generator(**channel.buildParams(None, 'Custom'))
 
         resp.status = falcon.HTTP_CREATED
         resp.media = {
