@@ -6,10 +6,10 @@ from tafor.core.events import Signal
 logger = logging.getLogger('tafor.config')
 
 def validateFirBoundary(value):
-    import shapely
+    from shapely.geometry import Polygon
     try:
         boundaries = json.loads(value)
-        boundary = shapely.geometry.Polygon(boundaries)
+        boundary = Polygon(boundaries)
         return boundary.is_valid and not boundary.is_empty
     except ValueError:
         return False
@@ -23,7 +23,6 @@ class ConfigItem:
         self.scope = scope
         self.bindProperty = bindProperty  # UI control binding name
         self.validator = validator
-        self.value = None
         self.group = group or []
         
     def __get__(self, instance, owner=None):
@@ -49,13 +48,15 @@ class ConfigItem:
         return f'Config<{self.key}>'
 
 
-class AppConfig:
+class Config:
     """
     Application configuration
     Includes general settings, validation options, message configuration, 
     communication configuration, interface configuration, monitoring configuration, and layer configuration
     """
     
+    __slots__ = ('manager',)
+
     def __init__(self, manager):
         self.manager = manager
     
@@ -346,6 +347,7 @@ class AppConfig:
     unit = ConfigItem('General/Unit', default='metric')
     codec = ConfigItem('Communication/Codec', default='ASCII')
 
+
 class ConfigManager:
     """Configuration manager"""
 
@@ -387,44 +389,30 @@ class ConfigManager:
         self.configChanged.emit(key, value, scope)
 
 
-class ConfigRegistry:
-    """Configuration registry with composition pattern"""
+class ConfigRegistry(Config):
+    """Runtime behavior over the config schema: change signals and completeness checks"""
 
-    def __init__(self, manager, cls=AppConfig):
+    __slots__ = ('reloadRequired', 'restartRequired', '_pending')
+
+    def __init__(self, manager):
+        super().__init__(manager)
         self.reloadRequired = Signal()
         self.restartRequired = Signal()
-        self._manager = manager
-        self._config = cls(manager)
         # List to store pending changes as (key, value, scope) tuples
         self._pending = []
 
-        self._manager.configChanged.connect(self.handleChange)
-
-    def __getattr__(self, name):
-        if hasattr(self._config, name):
-            return getattr(self._config, name)
-        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
-    
-    def __setattr__(self, name, value):
-        if name.startswith('_') or '_config' not in self.__dict__:
-            # Set private attributes and pre-init attributes directly
-            super().__setattr__(name, value)
-        elif hasattr(self._config, name):
-            setattr(self._config, name, value)
-        else:
-            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+        manager.configChanged.connect(self.handleChange)
 
     def get(self, name):
-        return getattr(self._config, name)
-    
+        return getattr(self, name)
+
     def set(self, name, value):
-        setattr(self._config, name, value)
-    
+        setattr(self, name, value)
+
     def __iter__(self):
-        for attr in dir(self._config.__class__):
-            item = getattr(self._config.__class__, attr)
+        for attr in dir(type(self)):
+            item = getattr(type(self), attr)
             if isinstance(item, ConfigItem) and item.bindProperty:
-                item.value = getattr(self._config, attr)
                 yield attr, item
 
     def handleChange(self, key, value, scope):
@@ -436,11 +424,11 @@ class ConfigRegistry:
         """Emit signals for all pending changes and clear the list"""
         hasReload = any(scope == 'reload' for _, _, scope in self._pending)
         hasRestart = any(scope == 'restart' for _, _, scope in self._pending)
-        
+
         # Emit signals if needed
         if hasReload:
             self.reloadRequired.emit()
-        
+
         if hasRestart:
             self.restartRequired.emit()
 
@@ -452,9 +440,9 @@ class ConfigRegistry:
         if name in ['taf', 'sigmet', 'trend']:
             groupsToCheck = {'core', name}
 
-        for _, item in self:
+        for attr, item in self:
             groups = set(item.group)
-            if groups.intersection(groupsToCheck) and not item.value:
+            if groups.intersection(groupsToCheck) and not getattr(self, attr):
                 return False
         return True
 

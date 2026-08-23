@@ -1,16 +1,14 @@
 import pytest
 
-from PyQt5.QtCore import QSettings
-
 from tafor.core.config import createConfig
 from tafor.core.models import createDatabase
 from tafor.core.states import createContext
+from tests.mocks import MockConfig
 
 
 @pytest.fixture(scope='session')
 def conf():
-    settings = QSettings(QSettings.InMemoryFormat, QSettings.UserScope, 'Up1and', 'Tafor')
-    return createConfig(settings=settings)
+    return createConfig(settings=MockConfig())
 
 
 @pytest.fixture(scope='session')

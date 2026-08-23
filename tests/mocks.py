@@ -1,6 +1,6 @@
 class MockConfig(object):
 
-    config = {
+    defaults = {
         'General/Sigmet': 'true',
         'General/WindowsStyle': 'System',
         'General/CommunicationProtocol': 'AFTN',
@@ -47,6 +47,9 @@ class MockConfig(object):
         'Layer/Projection': '+proj=webmerc +datum=WGS84',
         'Layer/FIRBoundary': '[\n  [\n    114.000001907,\n    14.500001907\n  ],\n  [\n    112.000001908,\n    14.500001907\n  ],\n  [\n    108.716665268,\n    17.416666031\n  ],\n  [\n    107.683332443,\n    18.333333969\n  ],\n  [\n    107.18972222,\n    19.26777778\n  ],\n  [\n    107.929967,\n    19.9567\n  ],\n  [\n    108.050001145,\n    20.500001907\n  ],\n  [\n    111.500001908,\n    20.500001907\n  ],\n  [\n    111.500001908,\n    19.500001907\n  ],\n  [\n    114.000001907,\n    16.666666031\n  ],\n  [\n    114.000001907,\n    14.500001907\n  ]\n]'
     }
+
+    def __init__(self):
+        self.config = dict(self.defaults)
 
     def value(self, path):
         return self.config.get(path, None)

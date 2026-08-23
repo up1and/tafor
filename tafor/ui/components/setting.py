@@ -191,7 +191,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.serviceHost.setText('http://{}:9407'.format(ipAddress()))
 
         for attr, config in self.conf:
-            self.bindValue(config.value, config.bindProperty)
+            self.bindValue(self.conf.get(attr), config.bindProperty)
 
     def bindValue(self, value, bindProperty):
         control = getattr(self, bindProperty)
@@ -245,7 +245,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
     def exportConf(self):
         filename = self.exportPath.text()
         try:
-            data = {attr: config.value for attr, config in self.conf}
+            data = {attr: self.conf.get(attr) for attr, config in self.conf}
             with open(filename, 'w') as file:
                 json.dump(data, file)
 
