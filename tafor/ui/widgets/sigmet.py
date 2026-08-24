@@ -40,6 +40,9 @@ class BaseSigmet(SegmentMixin, QWidget):
 
     contentChanged = pyqtSignal()
 
+    # Concrete classes declare their field-group parts here
+    parts = ()
+
     def __init__(self, parent, conf=None, context=None, database=None):
         super().__init__()
         self.complete = False
@@ -48,21 +51,28 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.parent = parent
         self.conf = conf
         self.context = context
+        self.database = database
         self.span = 4
         self.forecastMode = False
         self.mode = 'polygon'
         self.state = None
 
-        self.setupUi(self)
+    def initialize(self):
         self.switchButton = QToolButton(self)
         self.switchButton.hide()
         self.headingGroup.setMinimumWidth(77 * 3 + 32)
-        self.sigmetRepository = SigmetRepository(database)
+        self.sigmetRepository = SigmetRepository(self.database)
+        self.parts = [part(self) for part in self.parts]
         self.initState()
         self.setupFont()
         self.setupMainElementWidth()
         self.setupValidator()
         self.bindSignal()
+
+    def part(self, cls):
+        for part in self.parts:
+            if isinstance(part, cls):
+                return part
 
     def setupMainElementWidth(self):
         if hasattr(self, 'main'):
@@ -89,6 +99,9 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.endingTime.editingFinished.connect(self.validatePeriod)
 
         self.defaultSignal()
+
+        for part in self.parts:
+            part.bindSignal()
 
     def componentUpdate(self):
         """
@@ -128,6 +141,9 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.state.header.endingTime = self.endingTime.text()
         self.state.header.icao = self.conf.airport
 
+        for part in self.parts:
+            part.syncToState()
+
     def validate(self):
         self.validatePeriod()
 
@@ -135,9 +151,21 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.span = span
         self.initState()
 
+    def setOverlapMode(self, mode):
+        if mode == 'final':
+            observation = self.part(ObservationPart)
+            if observation:
+                observation.setSource('OBS')
+
+        for part in self.parts:
+            part.setOverlapMode(mode)
+
     def setLocationMode(self, mode):
         self.mode = mode
         self.state.mode = mode
+
+        for part in self.parts:
+            part.setLocationMode(mode)
 
     def setupValidator(self):
         date = QRegExpValidator(QRegExp(self.rules.date))
@@ -146,6 +174,9 @@ class BaseSigmet(SegmentMixin, QWidget):
 
         sequence = QRegExpValidator(QRegExp(self.rules.sequence, Qt.CaseInsensitive))
         self.sequence.setValidator(sequence)
+
+        for part in self.parts:
+            part.setupValidator()
 
     def updatePeriodTime(self):
         beginningTime, endingTime = self.periodTime()
@@ -176,26 +207,69 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.endingTime.clear()
         self.sequence.clear()
 
+        for part in self.parts:
+            part.clear()
 
-class FlightLevelMixin(object):
+
+class SigmetPart:
+    """Field-group controller bound to a SIGMET editor widget.
+
+    Required widget names fail fast at construction; optional widgets
+    default to None and are only probed inside the part.
+    """
+
+    widgets = ()
+    optional = ()
+
+    def __init__(self, widget):
+        missing = [name for name in self.widgets if not hasattr(widget, name)]
+        if missing:
+            raise TypeError('{} requires widgets missing on {}: {}'.format(
+                type(self).__name__, type(widget).__name__, ', '.join(missing)))
+
+        self.widget = widget
+        for name in self.widgets:
+            setattr(self, name, getattr(widget, name))
+        for name in self.optional:
+            setattr(self, name, getattr(widget, name, None))
 
     def bindSignal(self):
-        super().bindSignal()
+        pass
+
+    def syncToState(self):
+        pass
+
+    def setupValidator(self):
+        pass
+
+    def clear(self):
+        pass
+
+    def setOverlapMode(self, mode):
+        pass
+
+    def setLocationMode(self, mode):
+        pass
+
+
+class FlightLevelPart(SigmetPart):
+
+    widgets = ('format', 'base', 'top', 'baseLabel', 'topLabel')
+
+    def bindSignal(self):
         self.format.currentTextChanged.connect(self.setFlightLevel)
-        self.format.currentTextChanged.connect(self.syncToState)
-        self.base.textChanged.connect(self.syncToState)
-        self.top.textChanged.connect(self.syncToState)
+        self.format.currentTextChanged.connect(self.widget.syncToState)
+        self.base.textChanged.connect(self.widget.syncToState)
+        self.top.textChanged.connect(self.widget.syncToState)
         self.base.editingFinished.connect(lambda: self.validateBaseTop(self.base))
         self.top.editingFinished.connect(lambda: self.validateBaseTop(self.top))
 
     def syncToState(self):
-        super().syncToState()
-        self.state.flightLevelFormat = self.format.currentText()
-        self.state.flightLevelBase = self.base.text()
-        self.state.flightLevelTop = self.top.text()
+        self.widget.state.flightLevelFormat = self.format.currentText()
+        self.widget.state.flightLevelBase = self.base.text()
+        self.widget.state.flightLevelTop = self.top.text()
 
     def setupValidator(self):
-        super(FlightLevelMixin, self).setupValidator()
         self.base.setValidator(QIntValidator(1, 999, self.base))
         self.top.setValidator(QIntValidator(100, 999, self.top))
         self.base.setMaxLength(3)
@@ -227,30 +301,37 @@ class FlightLevelMixin(object):
         error = SigmetValidator.validateFlightLevel(self.base.text(), self.top.text())
         if error:
             line.clear()
-            self.context.flash.editor('sigmet', _translate(error))
+            self.widget.context.flash.editor('sigmet', _translate(error))
 
     def clear(self):
-        super().clear()
         self.top.clear()
         self.base.clear()
 
 
-class MovementMixin(object):
-
-    def bindSignal(self):
-        super().bindSignal()
-        self.direction.currentTextChanged.connect(self.setSpeed)
-        self.direction.currentTextChanged.connect(self.syncToState)
-        self.speed.textChanged.connect(self.syncToState)
-
-    def syncToState(self):
-        super().syncToState()
-        self.state.direction = self.direction.currentText()
-        self.state.unit = 'KT' if self.conf.unit == 'imperial' else 'KMH'
-        self.state.speed = self.speed.text() if self.speed.hasAcceptableInput() else ''
+class AirmetFlightLevelPart(FlightLevelPart):
 
     def setupValidator(self):
-        super(MovementMixin, self).setupValidator()
+        self.base.setValidator(QIntValidator(1, 100, self.base))
+        self.top.setValidator(QIntValidator(1, 150, self.top))
+        self.base.setMaxLength(3)
+        self.top.setMaxLength(3)
+
+
+class MovementPart(SigmetPart):
+
+    widgets = ('direction', 'speed', 'speedLabel')
+
+    def bindSignal(self):
+        self.direction.currentTextChanged.connect(self.setSpeed)
+        self.direction.currentTextChanged.connect(self.widget.syncToState)
+        self.speed.textChanged.connect(self.widget.syncToState)
+
+    def syncToState(self):
+        self.widget.state.direction = self.direction.currentText()
+        self.widget.state.unit = 'KT' if self.widget.conf.unit == 'imperial' else 'KMH'
+        self.widget.state.speed = self.speed.text() if self.speed.hasAcceptableInput() else ''
+
+    def setupValidator(self):
         self.speed.setValidator(QIntValidator(1, 99, self.speed))
         self.speed.setMaxLength(2)
 
@@ -264,29 +345,32 @@ class MovementMixin(object):
             self.speedLabel.setEnabled(True)
 
     def clear(self):
-        super().clear()
         self.direction.setCurrentIndex(0)
         self.speed.clear()
 
 
-class ObservationMixin(object):
+class ObservationPart(SigmetPart):
+
+    widgets = ('comeFrom', 'observedTime', 'observedTimeLabel', 'beginningTime')
 
     def bindSignal(self):
-        super().bindSignal()
         self.comeFrom.currentTextChanged.connect(self.updateObservation)
         self.beginningTime.textChanged.connect(self.updateObservation)
-        self.comeFrom.currentTextChanged.connect(self.syncToState)
-        self.observedTime.textChanged.connect(self.syncToState)
+        self.comeFrom.currentTextChanged.connect(self.widget.syncToState)
+        self.observedTime.textChanged.connect(self.widget.syncToState)
 
     def syncToState(self):
-        super().syncToState()
-        self.state.comeFrom = self.comeFrom.currentText()
-        self.state.observedTime = self.observedTime.text() if self.observedTime.hasAcceptableInput() else ''
+        self.widget.state.comeFrom = self.comeFrom.currentText()
+        self.widget.state.observedTime = self.observedTime.text() if self.observedTime.hasAcceptableInput() else ''
 
     def setupValidator(self):
-        super(ObservationMixin, self).setupValidator()
-        time = QRegExpValidator(QRegExp(self.rules.time))
-        self.observedTime.setValidator(time)
+        self.observedTime.setValidator(QRegExpValidator(QRegExp(self.widget.rules.time)))
+
+    def setSource(self, source):
+        """Switch the observation source ('OBS' / 'FCST')."""
+        index = self.comeFrom.findText(source)
+        if index >= 0:
+            self.comeFrom.setCurrentIndex(index)
 
     def updateObservation(self):
         text = self.comeFrom.currentText()
@@ -299,62 +383,61 @@ class ObservationMixin(object):
                 self.observedTime.clear()
 
     def clear(self):
-        super().clear()
         self.observedTime.clear()
         self.comeFrom.setCurrentIndex(0)
 
 
-class ForecastMixin(object):
+class ForecastPart(SigmetPart):
+
+    widgets = ('forecastTime', 'forecastTimeLabel')
+    optional = ('finalPositionGroup',)
 
     def bindSignal(self):
-        super().bindSignal()
-        self.forecastTime.textChanged.connect(self.syncToState)
+        self.forecastTime.textChanged.connect(self.widget.syncToState)
 
     def syncToState(self):
-        super().syncToState()
-        self.state.forecastTime = self.forecastTime.text()
+        self.widget.state.forecastTime = self.forecastTime.text()
 
     def setupValidator(self):
-        super(ForecastMixin, self).setupValidator()
-        time = QRegExpValidator(QRegExp(self.rules.time))
-        self.forecastTime.setValidator(time)
+        self.forecastTime.setValidator(QRegExpValidator(QRegExp(self.widget.rules.time)))
 
     def setForecastTime(self):
-        if self.durations is None or not self.endingTime.text() or not self.forecastTime.isEnabled():
+        if self.widget.durations is None or not self.widget.endingTime.text() or not self.forecastTime.isEnabled():
             return
 
-        text = self.endingTime.text()[2:]
+        text = self.widget.endingTime.text()[2:]
         self.forecastTime.setText(text)
 
     def setOverlapMode(self, mode):
         if mode == 'final':
-            self.comeFrom.setCurrentIndex(self.comeFrom.findText('OBS'))
             self.forecastTime.setEnabled(True)
             self.forecastTimeLabel.setEnabled(True)
             self.setForecastTime()
-            self.forecastMode = True
-            if hasattr(self, 'finalPositionGroup'):
+            self.widget.forecastMode = True
+            if self.finalPositionGroup is not None:
                 self.finalPositionGroup.setEnabled(True)
         else:
             self.forecastTime.setEnabled(False)
             self.forecastTimeLabel.setEnabled(False)
             self.forecastTime.clear()
-            self.forecastMode = False
-            if hasattr(self, 'finalPositionGroup'):
+            self.widget.forecastMode = False
+            if self.finalPositionGroup is not None:
                 self.finalPositionGroup.setEnabled(False)
-        self.state.forecastMode = self.forecastMode
+        self.widget.state.forecastMode = self.widget.forecastMode
 
     def clear(self):
-        super().clear()
         self.forecastTime.clear()
 
 
-class AdvisoryMixin(object):
+class AdvisoryImport(SigmetPart):
+    """Import workflow for advisory messages: parse the text, fill the
+    editor fields and publish sketch geometry via locationChanged."""
 
-    locationChanged = pyqtSignal(dict)
+    widgets = ('switchButton', 'advisory', 'text', 'initial', 'final', 'name', 'main')
 
-    def __init__(self, parent, conf=None, context=None, database=None):
-        super().__init__(parent, conf=conf, context=context, database=database)
+    def __init__(self, widget):
+        super().__init__(widget)
+
         self.switchButton.setText('Switch')
         self.switchButton.setFixedSize(26, 26)
         self.switchButton.setAutoRaise(True)
@@ -368,7 +451,6 @@ class AdvisoryMixin(object):
         self.upperTextEdit()
 
     def bindSignal(self):
-        super().bindSignal()
         self.switchButton.clicked.connect(self.switchGroup)
         self.text.textChanged.connect(self.parseText)
         self.initial.currentTextChanged.connect(self.updateFinalOption)
@@ -396,14 +478,14 @@ class AdvisoryMixin(object):
             return
 
         try:
-            self.parser = self.advisoryParser(text)
+            self.parser = self.widget.advisoryParser(text)
             options = self.parser.availableLocations()
             self.initial.clear()
             self.initial.addItems(options)
             self.applyAdvisoryData()
             self.text.setStyleSheet('color: black')
         except Exception as e:
-            self.context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'Advisory message can not be decoded'))
+            self.widget.context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'Advisory message can not be decoded'))
             self.text.setStyleSheet('color: grey')
             logger.error('Advisory message can not be decoded, {}, {}'.format(text, e))
 
@@ -414,36 +496,62 @@ class AdvisoryMixin(object):
 
         initial = self.initial.currentText()
         if 'OBS' in initial:
-            self.comeFrom.setCurrentIndex(self.comeFrom.findText('OBS'))
+            self.widget.part(ObservationPart).setSource('OBS')
 
         if 'FCST' in initial:
-            self.comeFrom.setCurrentIndex(self.comeFrom.findText('FCST'))
+            self.widget.part(ObservationPart).setSource('FCST')
 
         features = self.parser.location(initial)
         if features and 'time' in features['properties']:
             time = features['properties']['time']
-            self.observedTime.setText(time.strftime('%H%M'))
+            self.widget.observedTime.setText(time.strftime('%H%M'))
 
         features = self.parser.location(self.final.currentText())
         if features and 'time' in features['properties']:
             time = features['properties']['time']
-            self.forecastTime.setText(time.strftime('%H%M'))
-            self.forecastTime.setEnabled(True)
-            self.forecastTimeLabel.setEnabled(True)
+            self.widget.forecastTime.setText(time.strftime('%H%M'))
+            self.widget.forecastTime.setEnabled(True)
+            self.widget.forecastTimeLabel.setEnabled(True)
         else:
-            self.forecastTime.setEnabled(False)
-            self.forecastTimeLabel.setEnabled(False)
+            self.widget.forecastTime.setEnabled(False)
+            self.widget.forecastTimeLabel.setEnabled(False)
 
         final = self.final.currentText()
         movement = self.parser.movement()
         if movement:
-            self.direction.setCurrentIndex(self.direction.findText(movement))
+            self.widget.direction.setCurrentIndex(self.widget.direction.findText(movement))
 
             if not final and movement != 'STNR':
                 speed = str(self.parser.speed())
-                self.speed.setText(speed)
+                self.widget.speed.setText(speed)
             else:
-                self.speed.clear()
+                self.widget.speed.clear()
+
+    def locationFeatures(self, initial, final=None):
+        """Advisory locations tagged for the sketch canvas."""
+        features = []
+        if initial:
+            feature = self.parser.location(initial)
+            if 'geometry' in feature:
+                feature['properties']['location'] = 'initial'
+                feature['properties']['type'] = 'sketch'
+                features.append(feature)
+
+        if initial and final:
+            feature = self.parser.location(final)
+            if 'geometry' in feature:
+                feature['properties']['location'] = 'final'
+                feature['properties']['type'] = 'sketch'
+                features.append(feature)
+
+        return features
+
+    def handleLocationChange(self):
+        collections = {
+            'type': 'FeatureCollection',
+            'features': self.locationFeatures(self.initial.currentText(), self.final.currentText()),
+        }
+        self.widget.locationChanged.emit(collections)
 
     def updateFinalOption(self):
         index = self.initial.currentIndex()
@@ -469,9 +577,7 @@ class AdvisoryMixin(object):
             logger.error('Auto fill location from advisory message failed, {}'.format(e))
 
     def setLocationMode(self, mode):
-        super().setLocationMode(mode)
-
-        if self.mode in ['polygon', 'line', 'circle']:
+        if self.widget.mode in ['polygon', 'line', 'circle']:
             self.switchButton.show()
         else:
             self.switchButton.hide()
@@ -482,7 +588,6 @@ class AdvisoryMixin(object):
         self.updateVisibility()
 
     def clear(self):
-        super().clear()
         if self.group == 'advisory':
             self.group = next(self.groupNames)
             self.advisory.hide()
@@ -494,11 +599,136 @@ class AdvisoryMixin(object):
         self.parser = None
 
 
-class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin, BaseSigmet, Ui_sigmet_general.Ui_Editor):
+class TyphoonAdvisoryImport(AdvisoryImport):
+
+    def applyAdvisoryData(self):
+        super().applyAdvisoryData()
+
+        height = self.parser.height()
+        if height:
+            self.widget.top.setText(height)
+
+        intensity = self.parser.intensity()
+        if intensity:
+            self.widget.intensityChange.setCurrentIndex(self.widget.intensityChange.findText(intensity))
+
+        radius = self.parser.radius()
+        if radius:
+            self.widget.radius.setText(str(radius))
+
+        features = self.parser.location(self.initial.currentText())
+        if features and 'geometry' in features:
+            center = features['geometry']['coordinates']
+            if center:
+                lon, lat = center
+                lon, lat = decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)
+                self.widget.currentLongitude.setText(lon)
+                self.widget.currentLatitude.setText(lat)
+
+        features = self.parser.location(self.final.currentText())
+        if features and 'geometry' in features:
+            center = features['geometry']['coordinates']
+            if center:
+                lon, lat = center
+                lon, lat = decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)
+                self.widget.forecastLongitude.setText(lon)
+                self.widget.forecastLatitude.setText(lat)
+                self.widget.finalPositionGroup.setEnabled(True)
+            else:
+                self.widget.forecastLongitude.clear()
+                self.widget.forecastLatitude.clear()
+                self.widget.finalPositionGroup.setEnabled(False)
+
+        self.handleLocationChange()
+
+    def handleLocationChange(self):
+        locations = []
+
+        # when in polygon mode, there is no final position, and the initial geometry is a polygon
+        if not self.widget.mode == 'polygon':
+            locations += self.locationFeatures(self.initial.currentText(), self.final.currentText())
+
+        for feature in locations:
+            if self.widget.radius.hasAcceptableInput():
+                radius = int(self.widget.radius.text())
+            else:
+                radius = 0
+            feature['properties']['radius'] = radius
+
+        properties = {
+            'type': 'exterior',
+            'location': 'initial'
+        }
+
+        route = self.parser.route()
+        if route:
+            locations.append({
+                'geometry': route,
+                'properties': properties
+            })
+
+        polygon = self.parser.polygon()
+        if polygon:
+            if self.widget.mode == 'polygon':
+                properties = {
+                    'type': 'sketch',
+                    'location': 'initial'
+                }
+
+            locations.append({
+                'geometry': polygon,
+                'properties': properties
+            })
+
+        collections = {
+            'type': 'FeatureCollection',
+            'features': locations
+        }
+        self.widget.locationChanged.emit(collections)
+
+
+class AshAdvisoryImport(AdvisoryImport):
+
+    def applyAdvisoryData(self):
+        super().applyAdvisoryData()
+
+        position = self.parser.position()
+        if position:
+            lat, lon = position
+            self.widget.currentLatitude.setText(lat)
+            self.widget.currentLongitude.setText(lon)
+
+        initial = self.initial.currentText()
+        features = self.parser.location(initial)
+        if features and 'flightLevel' in features['properties']:
+            flightLevel = features['properties']['flightLevel']
+            pattern = re.compile(r'\d+')
+            if '/' in flightLevel:
+                base, top = flightLevel.split('/')
+                m = pattern.search(base)
+                if m:
+                    self.widget.base.setText(m.group())
+                else:
+                    self.widget.format.setCurrentIndex(self.widget.format.findText(base))
+            else:
+                top = flightLevel
+
+            m = pattern.search(top)
+            if m:
+                self.widget.top.setText(m.group())
+
+        self.handleLocationChange()
+
+
+class SigmetGeneral(BaseSigmet, Ui_sigmet_general.Ui_Editor):
+
+    parts = (ObservationPart, ForecastPart, FlightLevelPart, MovementPart)
 
     def __init__(self, parent=None, conf=None, context=None, database=None):
         super().__init__(parent, conf=conf, context=context, database=database)
+        self.setupUi(self)
         self.state = SigmetGeneralState()
+        self.initialize()
         self.setPhenomenaDescription()
         self.setPhenomena()
         self.setFcstOrObs()
@@ -565,13 +795,18 @@ class SigmetGeneral(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementM
         self.forecastTimeLabel.setEnabled(False)
 
 
-class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixin, BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
+class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
 
+    parts = (ObservationPart, ForecastPart, MovementPart, TyphoonAdvisoryImport)
+
+    locationChanged = pyqtSignal(dict)
     circleChanged = pyqtSignal(dict)
 
     def __init__(self, parent, conf=None, context=None, database=None):
         super().__init__(parent, conf=conf, context=context, database=database)
+        self.setupUi(self)
         self.state = SigmetTyphoonState()
+        self.initialize()
         self.setPhenomena()
         self.setFcstOrObs()
         self.advisoryParser = TyphoonAdvisoryParser
@@ -616,7 +851,7 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         self.forecastTime.textChanged.connect(self.updateForecastPosition)
         self.beginningTime.textEdited.connect(self.updateForecastPosition)
         self.observedTime.textEdited.connect(self.updateForecastPosition)
-        self.endingTime.textChanged.connect(self.setForecastTime)
+        self.endingTime.textChanged.connect(self.part(ForecastPart).setForecastTime)
 
         self.phenomenon.currentTextChanged.connect(self.syncToState)
         self.name.textChanged.connect(self.syncToState)
@@ -710,107 +945,6 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
             self.forecastLongitude.clear()
         self.handleCircleChange()
 
-    def applyAdvisoryData(self):
-        super().applyAdvisoryData()
-        height = self.parser.height()
-        if height:
-            self.top.setText(height)
-
-        intensity = self.parser.intensity()
-        if intensity:
-            self.intensityChange.setCurrentIndex(self.intensityChange.findText(intensity))
-
-        radius = self.parser.radius()
-        if radius:
-            self.radius.setText(str(radius))
-
-        features = self.parser.location(self.initial.currentText())
-        if features and 'geometry' in features:
-            center = features['geometry']['coordinates']
-            if center:
-                lon, lat = center
-                lon, lat = decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)
-                self.currentLongitude.setText(lon)
-                self.currentLatitude.setText(lat)
-
-        features = self.parser.location(self.final.currentText())
-        if features and 'geometry' in features:
-            center = features['geometry']['coordinates']
-            if center:
-                lon, lat = center
-                lon, lat = decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)
-                self.forecastLongitude.setText(lon)
-                self.forecastLatitude.setText(lat)
-                self.finalPositionGroup.setEnabled(True)
-            else:
-                self.forecastLongitude.clear()
-                self.forecastLatitude.clear()
-                self.finalPositionGroup.setEnabled(False)
-
-        self.handleLocationChange()
-
-    def handleLocationChange(self):
-        collections = {
-            'type': 'FeatureCollection',
-            'features': []
-        }
-        locations = []
-
-        # when in polygon mode, there is no final position, and the initial geometry is a polygon
-        if not self.mode == 'polygon':
-            initial = self.initial.currentText()
-            if initial:
-                feature = self.parser.location(initial)
-                if 'geometry' in feature:
-                    feature['properties']['location'] = 'initial'
-                    feature['properties']['type'] = 'sketch'
-                    locations.append(feature)
-
-            final = self.final.currentText()
-            if initial and final:
-                feature = self.parser.location(final)
-                if 'geometry' in feature:
-                    feature['properties']['location'] = 'final'
-                    feature['properties']['type'] = 'sketch'
-                    locations.append(feature)
-
-        for feature in locations:
-            if self.radius.hasAcceptableInput():
-                radius = int(self.radius.text())
-            else:
-                radius = 0
-            feature['properties']['radius'] = radius
-
-        properties = {
-            'type': 'exterior',
-            'location': 'initial'
-        }
-
-        route = self.parser.route()
-        if route:
-            features = {
-                'geometry': route,
-                'properties': properties
-            }
-            locations.append(features)
-
-        polygon = self.parser.polygon()
-        if polygon:
-            if self.mode == 'polygon':
-                properties = {
-                    'type': 'sketch',
-                    'location': 'initial'
-                }
-
-            features = {
-                'geometry': polygon,
-                'properties': properties
-            }
-            locations.append(features)
-
-        collections['features'] = locations
-        self.locationChanged.emit(collections)
-
     def handleCircleChange(self):
         if self.mode == 'circle':
             collections = {
@@ -842,11 +976,17 @@ class SigmetTyphoon(ObservationMixin, ForecastMixin, MovementMixin, AdvisoryMixi
         self.intensityChange.setCurrentIndex(0)
 
 
-class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin, AdvisoryMixin, BaseSigmet, Ui_sigmet_ash.Ui_Editor):
+class SigmetAsh(BaseSigmet, Ui_sigmet_ash.Ui_Editor):
+
+    parts = (ObservationPart, ForecastPart, FlightLevelPart, MovementPart, AshAdvisoryImport)
+
+    locationChanged = pyqtSignal(dict)
 
     def __init__(self, parent=None, conf=None, context=None, database=None):
         super().__init__(parent, conf=conf, context=context, database=database)
+        self.setupUi(self)
         self.state = SigmetAshState()
+        self.initialize()
         self.setPhenomena()
         self.setFcstOrObs()
         self.advisoryParser = AshAdvisoryParser
@@ -932,61 +1072,6 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
         self.currentLongitudeLabel.setEnabled(enbaled)
         self.contentChanged.emit()
 
-    def applyAdvisoryData(self):
-        super().applyAdvisoryData()
-        position = self.parser.position()
-        if position:
-            lat, lon = position
-            self.currentLatitude.setText(lat)
-            self.currentLongitude.setText(lon)
-
-        initial = self.initial.currentText()
-        features = self.parser.location(initial)
-        if features and 'flightLevel' in features['properties']:
-            flightLevel = features['properties']['flightLevel']
-            pattern = re.compile(r'\d+')
-            if '/' in flightLevel:
-                base, top = flightLevel.split('/')
-                m = pattern.search(base)
-                if m:
-                    self.base.setText(m.group())
-                else:
-                    self.format.setCurrentIndex(self.format.findText(base))
-            else:
-                top = flightLevel
-
-            m = pattern.search(top)
-            if m:
-                self.top.setText(m.group())
-
-        self.handleLocationChange()
-
-    def handleLocationChange(self):
-        collections = {
-            'type': 'FeatureCollection',
-            'features': []
-        }
-        locations = []
-
-        initial = self.initial.currentText()
-        if initial:
-            feature = self.parser.location(initial)
-            if 'geometry' in feature:
-                feature['properties']['location'] = 'initial'
-                feature['properties']['type'] = 'sketch'
-                locations.append(feature)
-
-        final = self.final.currentText()
-        if initial and final:
-            feature = self.parser.location(final)
-            if 'geometry' in feature:
-                feature['properties']['location'] = 'final'
-                feature['properties']['type'] = 'sketch'
-                locations.append(feature)
-
-        collections['features'] = locations
-        self.locationChanged.emit(collections)
-
     def message(self):
         self.state.isEruption = self.name.isEnabled()
         self.state.forecastMode = self.hasForecastMode()
@@ -1004,6 +1089,8 @@ class SigmetAsh(ObservationMixin, ForecastMixin, FlightLevelMixin, MovementMixin
 
 class AirmetGeneral(SigmetGeneral):
 
+    parts = (ObservationPart, ForecastPart, AirmetFlightLevelPart, MovementPart)
+
     def setPhenomenaDescription(self):
         descriptions = ['ISOL', 'OCNL', 'FRQ', 'MOD']
         self.description.addItems(descriptions)
@@ -1020,19 +1107,14 @@ class AirmetGeneral(SigmetGeneral):
 
         self.phenomenon.addItems(phenomena)
 
-    def setupValidator(self):
-        super(AirmetGeneral, self).setupValidator()
-        self.base.setValidator(QIntValidator(1, 100, self.base))
-        self.top.setValidator(QIntValidator(1, 150, self.top))
-        self.base.setMaxLength(3)
-        self.top.setMaxLength(3)
-
 
 class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
     def __init__(self, parent, conf=None, context=None, database=None):
         super().__init__(parent, conf=conf, context=context, database=database)
+        self.setupUi(self)
         self.state = SigmetCancelState()
+        self.initialize()
 
     def bindSignal(self):
         super().bindSignal()
@@ -1117,7 +1199,9 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
 
     def __init__(self, parent, conf=None, context=None, database=None):
         super().__init__(parent, conf=conf, context=context, database=database)
+        self.setupUi(self)
         self.state = SigmetCustomState()
+        self.initialize()
         self.setupApiSign()
         self.upperTextEdit()
 
