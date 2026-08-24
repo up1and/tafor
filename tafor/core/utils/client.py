@@ -49,7 +49,7 @@ def layerInfo(url):
             for layer in data:
                 try:
                     imageUrl = layer['image']
-                    req = requests.get(imageUrl)
+                    req = requests.get(imageUrl, headers=headers(), timeout=30)
                     layer['image'] = req.content
                 except Exception as e:
                     layer['image'] = None

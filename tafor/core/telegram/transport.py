@@ -48,7 +48,7 @@ def ftpComm(message, url, filename, tempsuffix='part'):
     port = parser.port or 0
     tempname = filename + '.' + tempsuffix
     with FTP() as ftp:
-        ftp.connect(host=parser.hostname, port=port)
+        ftp.connect(host=parser.hostname, port=port, timeout=30)
         ftp.login(user=parser.username, passwd=parser.password)
         ftp.cwd(parser.path)
         if not message:
