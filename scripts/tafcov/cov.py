@@ -5,7 +5,9 @@ from jinja2 import Environment, FileSystemLoader
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from tafor.models import db, Taf
+from tafor.core.models import Taf, createDatabase
+
+db = createDatabase()
 
 def datetimeformat(value, format='%Y-%m-%d %H:%M:%S'):
     return value.strftime(format)

@@ -10,7 +10,7 @@ from alembic import context
 
 root = os.path.abspath(os.path.dirname(sys.argv[0]))
 
-from tafor.models import Base
+from tafor.core.models import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -71,8 +71,32 @@ def run_migrations_online():
     )
 
     with connectable.connect() as connection:
+        def process_revision_directives(context, revision, directives):
+            # SQLite's PRAGMA-based reflection reports legacy columns as
+            # nullable even when they are PRIMARY KEY or NOT NULL in the DDL,
+            # so drop nullable-only diffs that are pure reflection noise.
+            from alembic.operations import ops as alembic_ops
+
+            def clean(batch_ops):
+                kept = []
+                for op in batch_ops:
+                    if isinstance(op, alembic_ops.AlterColumnOp):
+                        has_nullable_change = getattr(op, 'modify_nullable', None) is not None
+                        has_type_change = bool(getattr(op, 'modify_type', None))
+                        if has_nullable_change and not has_type_change:
+                            continue
+                    kept.append(op)
+                batch_ops[:] = kept
+
+            for directive in directives[0]._upgrade_ops:
+                for op in directive.ops:
+                    inner = getattr(op, 'ops', None)
+                    if inner is not None:
+                        clean(inner)
+
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection, target_metadata=target_metadata, render_as_batch=True,
+            process_revision_directives=process_revision_directives,
         )
 
         with context.begin_transaction():

@@ -5,7 +5,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from uuid import uuid4
 
-from tafor.models import db, Taf, Trend, Sigmet, Other
+from tafor.core.models import Taf, Trend, Sigmet, Other, createDatabase
+
+db = createDatabase()
 
 
 def addProtocol(model):
