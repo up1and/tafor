@@ -1,5 +1,6 @@
 import os
 import json
+import hmac
 import logging
 
 import falcon
@@ -91,19 +92,25 @@ def webui():
     return directory
 
 def authorize(req, resp, resource, params):
-    challenges = ['Bearer Token']
+    challenges = ['Bearer']
     conf = resource.conf
 
     if req.auth is None:
         description = ('Please provide an auth token as part of the request.')
         raise falcon.HTTPUnauthorized(title='Bearer Token Required', description=description, challenges=challenges)
 
-    authType, token = req.auth.split(None, 1)
-    if authType == 'Bearer' and token == conf.license:
-        req.context.user = 'webapi'
-    else:
+    parts = req.auth.split(None, 1)
+    if len(parts) != 2 or parts[0].lower() != 'bearer':
+        description = ('The Authorization header must use the Bearer scheme.')
+        raise falcon.HTTPUnauthorized(title='Authentication Required', description=description, challenges=challenges)
+
+    token = parts[1].strip()
+    expected = (conf.authToken or '').encode('utf-8')
+    if not hmac.compare_digest(token.encode('utf-8'), expected):
         description = ('The provided auth token is not valid. Please request a new token and try again.')
         raise falcon.HTTPUnauthorized(title='Authentication Required', description=description, challenges=challenges)
+
+    req.context.user = 'webapi'
 
 
 class LoggerComponent(object):
@@ -127,7 +134,7 @@ class JSONComponent(object):
             req.context.body = json.loads(body.decode('utf-8'))
 
         except (ValueError, UnicodeDecodeError):
-            raise falcon.HTTPError(falcon.HTTP_753, title='Malformed JSON',
+            raise falcon.HTTPBadRequest(title='Malformed JSON',
                                    description='Could not decode the request body. The JSON was incorrect or not encoded as UTF-8.')
 
 

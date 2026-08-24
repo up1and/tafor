@@ -1,3 +1,6 @@
+import base64
+import inspect
+
 import pytest
 
 import falcon
@@ -5,7 +8,7 @@ import falcon.testing
 from sqlalchemy import create_engine
 
 from tafor.core.models import Base
-from tafor.core.rpc.api import create_app
+from tafor.core.rpc.api import authorize, create_app
 
 
 class FakeConf(object):
@@ -20,7 +23,8 @@ class FakeConf(object):
     trendAddress = 'YUSOYMYX'
     sigmetAddress = 'YUSOYMYX'
     airmetAddress = 'YUSOYMYX'
-    license = 'test-token'
+    license = 'test-license'
+    authToken = 'test-token'
     visHas5000 = False
     cloudHeightHas450 = True
     weakPrecipitationVerification = False
@@ -168,3 +172,70 @@ def test_parse_sigmet():
     data = parse_sigmet(SIGMET_MESSAGE, {})
     assert data['pass'] is True
     assert data['html']
+
+
+DEFAULT_TOKEN = 'VGhlIFZveWFnZSBvZiB0aGUgTW9vbg=='  # "The Voyage of the Moon"
+
+
+class PingResource(object):
+
+    def __init__(self, conf=None):
+        self.conf = conf or FakeConf()
+
+    @falcon.before(authorize)
+    def on_get(self, req, resp):
+        resp.media = {'ok': True}
+
+
+@pytest.fixture
+def ping_client():
+    app = falcon.App()
+    app.add_route('/ping', PingResource())
+    return falcon.testing.TestClient(app)
+
+
+def _bearer(ping_client, token):
+    headers = {} if token is None else {'Authorization': token}
+    return ping_client.simulate_get('/ping', headers=headers)
+
+
+def test_authorize_valid_token_passes(ping_client):
+    response = _bearer(ping_client, 'Bearer test-token')
+    assert response.status == falcon.HTTP_200
+    assert response.json == {'ok': True}
+
+
+def test_authorize_case_insensitive_bearer_scheme(ping_client):
+    assert _bearer(ping_client, 'bearer test-token').status == falcon.HTTP_200
+    assert _bearer(ping_client, 'BEARER test-token').status == falcon.HTTP_200
+
+
+def test_authorize_license_string_no_longer_works(ping_client):
+    assert _bearer(ping_client, 'Bearer test-license').status == falcon.HTTP_401
+
+
+def test_authorize_default_easter_egg_token_when_unset():
+    class UnsetConf(FakeConf):
+        authToken = DEFAULT_TOKEN
+
+    app = falcon.App()
+    app.add_route('/ping', PingResource(conf=UnsetConf()))
+    response = falcon.testing.TestClient(app).simulate_get(
+        '/ping', headers={'Authorization': 'Bearer {}'.format(DEFAULT_TOKEN)})
+    assert response.status == falcon.HTTP_200
+
+    # the easter egg decodes to the song title
+    assert b'The Voyage of the Moon' in base64.b64decode(DEFAULT_TOKEN)
+
+
+def test_authorize_malformed_header_is_401_not_500(ping_client):
+    assert _bearer(ping_client, 'Bearer').status == falcon.HTTP_401
+    assert _bearer(ping_client, 'Basic dXNlcjpwYXNz').status == falcon.HTTP_401
+    assert _bearer(ping_client, '').status == falcon.HTTP_401
+    assert _bearer(ping_client, 'Bearer   ').status == falcon.HTTP_401
+
+
+def test_authorize_uses_constant_time_comparison():
+    source = inspect.getsource(authorize)
+    assert 'compare_digest' in source
+    assert '== conf.license' not in source
