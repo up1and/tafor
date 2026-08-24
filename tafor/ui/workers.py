@@ -234,9 +234,11 @@ class RpcWorker(QObject):
 
     def run(self):
         try:
-            from waitress import serve
-            # Store server reference for potential shutdown
-            self.server = serve(self.app, port=self.port, _quiet=True)
+            from waitress.server import create_server
+            # create_server only binds the socket; run() pumps requests until
+            # stop() closes it.
+            self.server = create_server(self.app, port=self.port)
+            self.server.run()
         except Exception as e:
             logger.error(f"RPC server failed to start: {e}")
         finally:
@@ -247,8 +249,8 @@ class RpcWorker(QObject):
         if self.server:
             try:
                 self.server.close()
-            except:
-                pass
+            except Exception:
+                logger.exception('Failed to close the RPC server')
 
 
 class ContextBridge(QObject):

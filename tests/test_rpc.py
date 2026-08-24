@@ -1,5 +1,8 @@
 import base64
 import inspect
+import threading
+import time
+import urllib.request
 
 import pytest
 
@@ -9,6 +12,7 @@ from sqlalchemy import create_engine
 
 from tafor.core.models import Base
 from tafor.core.rpc.api import authorize, create_app
+from tafor.ui.workers import RpcWorker
 
 
 class FakeConf(object):
@@ -239,3 +243,43 @@ def test_authorize_uses_constant_time_comparison():
     source = inspect.getsource(authorize)
     assert 'compare_digest' in source
     assert '== conf.license' not in source
+
+
+RPC_TEST_PORT = 9417
+
+
+def test_rpc_worker_stops_cleanly():
+    engine = create_engine('sqlite://')
+    app = create_app(engine=engine, conf=FakeConf(), context=FakeContext())
+    worker = RpcWorker(app, port=RPC_TEST_PORT)
+
+    # run() blocks; drive it on a plain thread like the QThread would
+    thread = threading.Thread(target=worker.run, daemon=True)
+    thread.start()
+
+    deadline = time.time() + 5
+    while time.time() < deadline:
+        try:
+            request = urllib.request.Request(
+                'http://127.0.0.1:{}/api/state'.format(RPC_TEST_PORT),
+                headers=_auth())
+            response = urllib.request.urlopen(request)
+            assert response.status == 200
+            break
+        except Exception:
+            time.sleep(0.1)
+    else:
+        pytest.fail('RPC server never came up')
+
+    worker.stop()
+    thread.join(timeout=5)
+
+    assert not thread.is_alive(), 'waitress run() did not return after close()'
+
+
+def test_malformed_json_is_400(client):
+    response = client.simulate_post(
+        '/api/notifications',
+        headers={**_auth(), 'Content-Type': 'application/json'},
+        body='{not json')
+    assert response.status == falcon.HTTP_400
