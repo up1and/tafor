@@ -1,9 +1,13 @@
 import math
+import logging
 
 from shapely.ops import split, linemerge
 from shapely.geometry import Polygon, MultiPolygon, LineString, LinearRing, MultiLineString, Point
 
 from pyproj import Geod
+
+
+logger = logging.getLogger('tafor.geometry')
 
 
 wgs84 = Geod(ellps='WGS84')
@@ -192,7 +196,7 @@ def clipPolygon(subj, clip, mode='single'):
             points = list(polygon.exterior.coords)
 
     except Exception as e:
-        print(e)
+        logger.error('Failed to clip polygon, {}'.format(e))
 
     return points
 

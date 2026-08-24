@@ -660,7 +660,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
                 try:
                     time = parseDayHour(t.state.time[:2], t.state.time[2:], self.state.durations[0], delta='month')
                     times.append(time)
-                except:
+                except (ValueError, IndexError):
                     pass
 
         return times

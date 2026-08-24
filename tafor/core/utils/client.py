@@ -28,10 +28,13 @@ def fetchMessage(url):
 
             return messages
         else:
-            logger.warn('GET {} 404 Not Found'.format(url))
+            logger.warning('GET {} returned unexpected status {}'.format(url, r.status_code))
+
+    except requests.exceptions.Timeout:
+        logger.warning('GET {} request timed out'.format(url))
 
     except requests.exceptions.ConnectionError:
-        logger.warn('GET {} 408 Request Timeout'.format(url))
+        logger.warning('GET {} connection failed'.format(url))
 
     except Exception as e:
         logger.error('Failed to fetch message from {}, {}'.format(url, e))
@@ -55,10 +58,13 @@ def layerInfo(url):
                     layer['image'] = None
             return data
         else:
-            logger.warn('GET {} 404 Not Found'.format(url))
+            logger.warning('GET {} returned unexpected status {}'.format(url, r.status_code))
+
+    except requests.exceptions.Timeout:
+        logger.warning('GET {} request timed out'.format(url))
 
     except requests.exceptions.ConnectionError:
-        logger.warn('GET {} 408 Request Timeout'.format(url))
+        logger.warning('GET {} connection failed'.format(url))
 
     except Exception as e:
         logger.error('Failed to fetch cloud layer from {}, {}'.format(url, e))
@@ -70,8 +76,11 @@ def repoRelease(url):
         r = requests.get(url, headers=headers(), timeout=30)
         return r.json()
 
+    except requests.exceptions.Timeout:
+            logger.warning('GET {} request timed out'.format(url))
+
     except requests.exceptions.ConnectionError:
-            logger.info('GET {} 408 Request Timeout'.format(url))
+            logger.warning('GET {} connection failed'.format(url))
 
     except Exception as e:
         logger.error('Failed to get the latest version information from {}, {}'.format(url, e))

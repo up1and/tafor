@@ -1187,7 +1187,7 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
         if isinstance(sequence, int):
             try:
                 return self.prevs[sequence][1]
-            except:
+            except (KeyError, IndexError):
                 pass
         else:
             for seq, valid in self.prevs:
