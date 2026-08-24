@@ -128,6 +128,9 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.parentWidget = parent
         self.conf = conf
         self.context = context
+        self.perPage = 12
+        self.hasCheckmark = False
+        self.extraColumnWidths = {}
         self.setupUi(self)
         self.setupStyle()
         self.setupValidator()
@@ -229,7 +232,39 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.calendar.setMaximumDate(QDate.currentDate())
 
     def updateTable(self):
-        raise NotImplementedError
+        self.pagination = self.repository.paginated(
+            self.model, reportType=self.reportType, date=self.date, keywords=self.keywords,
+            page=self.page, perPage=self.perPage)
+
+        items = self.pagination.items
+        self.table.setRowCount(len(items))
+        self.table.setColumnWidth(0, 50)
+        self.table.setColumnWidth(2, 140)
+        for column, width in self.extraColumnWidths.items():
+            self.table.setColumnWidth(column, width)
+
+        for row, item in enumerate(items):
+            self.table.setItem(row, 0, QTableWidgetItem(item.type))
+            self.table.setItem(row, 1, QTableWidgetItem(self.displayText(item)))
+            if item.created:
+                created = item.created.strftime('%Y-%m-%d %H:%M:%S')
+                self.table.setItem(row, 2, QTableWidgetItem(created))
+
+            if self.hasCheckmark:
+                self.table.setCellWidget(row, 3, self.checkmarkLabel(item))
+
+            self.decorateRow(row, item)
+
+            self.table.item(row, 0).setTextAlignment(Qt.AlignCenter)
+            self.table.item(row, 2).setTextAlignment(Qt.AlignCenter)
+
+        self.table.resizeRowsToContents()
+
+    def displayText(self, item):
+        return item.text
+
+    def decorateRow(self, row, item):
+        pass
 
     def updatePages(self):
         text = '{}/{}'.format(self.page, self.pagination.pages or 1)
@@ -284,36 +319,16 @@ class TafTable(BaseDataTable):
         self.reportType = 'TAF'
         self.model = Taf
         self.reviewer = reviewer
+        self.hasCheckmark = True
+        self.extraColumnWidths = {3: 50}
 
-    def updateTable(self):
-        self.pagination = self.repository.paginated(
-            self.model, reportType=self.reportType, date=self.date, keywords=self.keywords, page=self.page, perPage=12)
+    def displayText(self, item):
+        return item.flatternedText()
 
-        items = self.pagination.items
-        self.table.setRowCount(len(items))
-        self.table.setColumnWidth(0, 50)
-        self.table.setColumnWidth(2, 140)
-        self.table.setColumnWidth(3, 50)
-
-        for row, item in enumerate(items):
-            self.table.setItem(row, 0, QTableWidgetItem(item.type))
-            self.table.setItem(row, 1, QTableWidgetItem(item.flatternedText()))
-            if item.created:
-                created = item.created.strftime('%Y-%m-%d %H:%M:%S')
-                self.table.setItem(row, 2, QTableWidgetItem(created))
-
-            label = self.checkmarkLabel(item)
-            self.table.setCellWidget(row, 3, label)
-
-            if 'COR' in item.text or 'AMD' in item.text:
-                self.table.item(row, 0).setForeground(self.color)
-                self.table.item(row, 1).setForeground(self.color)
-                self.table.item(row, 2).setForeground(self.color)
-
-            self.table.item(row, 0).setTextAlignment(Qt.AlignCenter)
-            self.table.item(row, 2).setTextAlignment(Qt.AlignCenter)
-
-        self.table.resizeRowsToContents()
+    def decorateRow(self, row, item):
+        if 'COR' in item.text or 'AMD' in item.text:
+            for column in (0, 1, 2):
+                self.table.item(row, column).setForeground(self.color)
 
 
 class MetarTable(BaseDataTable):
@@ -322,37 +337,17 @@ class MetarTable(BaseDataTable):
         super(MetarTable, self).__init__(parent, layout, conf=conf, context=context, database=database)
         self.reportType = 'METAR'
         self.model = Metar
+        self.perPage = 24
         self.chartButton.show()
         self.hideColumns()
 
     def hideColumns(self):
         self.table.setColumnHidden(3, True)
 
-    def updateTable(self):
-        self.pagination = self.repository.paginated(
-            self.model, reportType=self.reportType, date=self.date, keywords=self.keywords, page=self.page, perPage=24)
-
-        items = self.pagination.items
-        self.table.setRowCount(len(items))
-        self.table.setColumnWidth(0, 50)
-        self.table.setColumnWidth(2, 140)
-
-        for row, item in enumerate(items):
-            self.table.setItem(row, 0,  QTableWidgetItem(item.type))
-            self.table.setItem(row, 1,  QTableWidgetItem(item.text))
-            if item.created:
-                created = item.created.strftime('%Y-%m-%d %H:%M:%S')
-                self.table.setItem(row, 2, QTableWidgetItem(created))
-
-            if item.type == 'SP':
-                self.table.item(row, 0).setForeground(self.color)
-                self.table.item(row, 1).setForeground(self.color)
-                self.table.item(row, 2).setForeground(self.color)
-
-            self.table.item(row, 0).setTextAlignment(Qt.AlignCenter)
-            self.table.item(row, 2).setTextAlignment(Qt.AlignCenter)
-
-        self.table.resizeRowsToContents()
+    def decorateRow(self, row, item):
+        if item.type == 'SP':
+            for column in (0, 1, 2):
+                self.table.item(row, column).setForeground(self.color)
 
     def updateInfoButton(self):
         self.infoButton.hide()
@@ -365,31 +360,9 @@ class SigmetTable(BaseDataTable):
         self.reportType = 'SIGMET'
         self.model = Sigmet
         self.reviewer = reviewer
-
-    def updateTable(self):
-        self.pagination = self.repository.paginated(
-            self.model, reportType=self.reportType, date=self.date, keywords=self.keywords, page=self.page, perPage=8)
-
-        items = self.pagination.items
-        self.table.setRowCount(len(items))
-        self.table.setColumnWidth(0, 50)
-        self.table.setColumnWidth(2, 140)
-        self.table.setColumnWidth(3, 50)
-
-        for row, item in enumerate(items):
-            self.table.setItem(row, 0, QTableWidgetItem(item.type))
-            self.table.setItem(row, 1, QTableWidgetItem(item.text))
-            if item.created:
-                created = item.created.strftime('%Y-%m-%d %H:%M:%S')
-                self.table.setItem(row, 2, QTableWidgetItem(created))
-
-            label = self.checkmarkLabel(item)
-            self.table.setCellWidget(row, 3, label)
-
-            self.table.item(row, 0).setTextAlignment(Qt.AlignCenter)
-            self.table.item(row, 2).setTextAlignment(Qt.AlignCenter)
-
-        self.table.resizeRowsToContents()
+        self.perPage = 8
+        self.hasCheckmark = True
+        self.extraColumnWidths = {3: 50}
 
 
 class AirmetTable(SigmetTable):
