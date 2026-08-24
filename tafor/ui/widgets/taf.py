@@ -49,6 +49,15 @@ def _translate(code, **kwargs):
 
 class SegmentMixin(object):
 
+    def formatPeriodSeparator(self, line):
+        """Append the '/' separator after the 4-digit day while typing."""
+        text = line.text()
+        if len(text) > len(self.periodText):
+            if len(text) == 4:
+                text += '/'
+            line.setText(text)
+        self.periodText = text
+
     @classmethod
     def upperText(cls, line):
         line.setText(line.text().upper())
@@ -729,15 +738,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         if self.conf.autoCompletionGroupTime:
             self.autoCompletePeriod()
         else:
-            self.formatSeparator()
-
-    def formatSeparator(self):
-        text = self.period.text()
-        if len(text) > len(self.periodText):
-            if len(text) == 4:
-                text += '/'
-            self.period.setText(text)
-        self.periodText = text
+            self.formatPeriodSeparator(self.period)
 
     def autoCompletePeriod(self):
         if self.parent.state.durations is None or not self.parent.period.text():
@@ -958,15 +959,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
     def autoFormatPeriod(self):
         if self.fm.isChecked() and self.tl.isChecked():   
-            self.formatSeparator()
-
-    def formatSeparator(self):
-        text = self.period.text()
-        if len(text) > len(self.periodText):
-            if len(text) == 4:
-                text += '/'
-            self.period.setText(text)
-        self.periodText = text
+            self.formatPeriodSeparator(self.period)
 
     def setupValidator(self):
         super(TrendSegment, self).setupValidator()
