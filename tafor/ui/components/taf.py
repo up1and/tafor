@@ -2,14 +2,9 @@ from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLayout
 
 from tafor.core.models import Taf
+from tafor.core.taf import composeHeading, segmentOrderKey
 from tafor.ui.widgets import TafBecmgSegment, TafFmSegment, TafPrimarySegment, TafTempoSegment
 from tafor.ui.widgets.editor import BaseEditor
-    
-
-def composeHeading(spec, area, icao, date, sequence):
-    tt = spec[:2].upper() if spec else "FC"
-    messages = [tt + area, icao, date, sequence]
-    return " ".join(filter(None, messages))
 
 
 class TafPresenter:
@@ -31,19 +26,12 @@ class TafPresenter:
 
         self.view.primary.period.textChanged.connect(self.clear)
 
-    def previewMessage(self):        
-        def sortKey(s):
-            if s.identifier == 'PRIMARY':
-                return (0, 0, 0)
-
-            # Sort by segment identifier priority
-            orders = ['FM', 'BECMG', 'TEMPO']
-            priority = orders.index(s.identifier) if s.identifier in orders else 99
-            # Use start duration for groups to maintain chronological order
-            return (1, s.state.durations[0], priority)
-
+    def previewMessage(self):
         # Retrieve and sort active segments
-        activeSegments = sorted(self.view.segments(activeOnly=True), key=sortKey)
+        activeSegments = sorted(
+            self.view.segments(activeOnly=True),
+            key=lambda s: segmentOrderKey(s.identifier, s.state.durations[0]),
+        )
         
         messages = [s.state.composeMessage() for s in activeSegments]
         text = '\n'.join(filter(None, messages)) + '='

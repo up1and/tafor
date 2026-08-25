@@ -7,7 +7,8 @@ from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QComboBox, QRadioButton,
 from tafor.core.parsers.base import Pattern
 from tafor.core.repositories import TafRepository
 from tafor.core.taf import (CurrentTaf, GroupState, PrimaryState, SegmentState, TemperatureState, TrendState,
-    TafValidator, TrendValidator, normalizeTemperatureTime, parseTemperature)
+    TafValidator, TrendValidator, completeGroupPeriod, groupSpan, isGroupStartAcceptable,
+    normalizeTemperatureTime, parseTemperature)
 from tafor.core.utils.time import parseDayHour, parsePeriod, parseTime
 from tafor.ui.fonts import fixedFont
 from tafor.ui.qt import Ui_taf_group, Ui_taf_primary, Ui_trend, main_rc
@@ -747,45 +748,24 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         text = self.period.text()
         if len(text) > len(self.periodText):
             if len(text) == 4:
-                durations = self.parent.state.durations
-                try:
-                    start = parseDayHour(text[:2], text[2:], durations[0], delta='month')
-                except Exception:
+                if not isGroupStartAcceptable(text, self.parent.state.durations):
                     return
 
-                if durations[1] <= start:
-                    return
-
-                if self.identifier.startswith('TEMPO'):
-                    delta = datetime.timedelta(hours=self.span())
-                    end = start + delta
-                    if durations[1] <= end:
-                        text = '{:02d}{:02d}/{}'.format(start.day, start.hour, self.parent.period.text()[5:])
-                    else:
-                        text = '{:02d}{:02d}/{:02d}{:02d}'.format(start.day, start.hour, end.day, end.hour)
-
-                if self.identifier.startswith('BECMG'):
-                    delta = datetime.timedelta(hours=1)
-                    end = start + delta
-                    if durations[1] <= end:
+                if self.identifier.startswith(('TEMPO', 'BECMG')):
+                    completed = completeGroupPeriod(
+                        text,
+                        self.parent.state.durations,
+                        self.identifier,
+                        self.context.taf.spec,
+                    )
+                    if completed is None:
                         return
 
-                    text = '{:02d}{:02d}/{:02d}{:02d}'.format(start.day, start.hour, end.day, end.hour)
+                    text = completed
 
             self.period.setText(text)
 
         self.periodText = text
-
-    def span(self):
-        if self.identifier.startswith('TEMPO'):
-            if 'ft' in self.context.taf.spec:
-                duration = 6
-            else:
-                duration = 4
-        else:
-            duration = 2
-
-        return duration
 
     def updateDurations(self):
         if self.period.hasAcceptableInput() and self.parent.period.text():
@@ -807,15 +787,16 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.validateGroupsPeriod()
 
     def validatePeriod(self):
+        span = groupSpan(self.identifier, self.context.taf.spec)
         error = TafValidator.checkGroupPeriod(
             self.state,
             self.parent.state,
-            self.span(),
+            span,
             isBecmg=self.identifier.startswith('BECMG'),
         )
         if error:
             self.period.clear()
-            self.context.flash.editor('taf', _translate(error, span=self.span()))
+            self.context.flash.editor('taf', _translate(error, span=span))
 
     def validateGroupsPeriod(self):
         groups = self.parent.parent.tempos if self.identifier.startswith('TEMPO') else self.parent.parent.becmgs
