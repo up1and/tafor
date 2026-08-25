@@ -6,6 +6,7 @@ from PyQt5.QtGui import QPixmap, QIcon, QBrush, QPen, QFont, QFontMetrics, QPain
 from PyQt5.QtCore import QCoreApplication, QTimer, QSize, Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QLabel, QHBoxLayout
 
+from tafor.core.states import NOTIFICATION_EXPIRY_MINUTES
 from tafor.core.taf import CurrentTaf
 from tafor.core.utils.time import timeAgo
 from tafor.ui.fonts import fixedFont
@@ -186,9 +187,8 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
     def countdown(self):
         created = self.item.created
         now = datetime.datetime.utcnow()
-        expire = 10
 
-        if now - created > datetime.timedelta(minutes=expire):
+        if now - created > datetime.timedelta(minutes=NOTIFICATION_EXPIRY_MINUTES):
             self.timer.stop()
             if self.clearNotification:
                 self.clearNotification()

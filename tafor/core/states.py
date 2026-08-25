@@ -2,6 +2,8 @@ import datetime
 
 from tafor.core.events import Event
 
+NOTIFICATION_EXPIRY_MINUTES = 10
+
 
 class RemoteMessageState:
     def __init__(self):
@@ -37,11 +39,11 @@ class SigmetMonitorState:
 
 
 class NotificationState:
-    def __init__(self, expireMinutes=15):
+    def __init__(self, expiryMinutes=NOTIFICATION_EXPIRY_MINUTES):
         self.message = None
         self.validation = False
         self.created = datetime.datetime.utcnow()
-        self.expireMinutes = expireMinutes
+        self.expiryMinutes = expiryMinutes
         self.previous = ''
 
 
@@ -447,7 +449,7 @@ class AppContext:
         sigmetMonitorState = SigmetMonitorState()
         otherState = OtherState()
         notificationStates = {
-            'metar': NotificationState(expireMinutes=10),
+            'metar': NotificationState(),
             'sigmet': NotificationState(),
         }
 
