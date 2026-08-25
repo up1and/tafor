@@ -7,7 +7,6 @@ from types import SimpleNamespace
 
 from PyQt5.QtCore import QThread, QObject, pyqtSignal
 
-from tafor.core.telegram.encoder import ITA2_STANDARD, encode
 from tafor.core.telegram.transport import ftpComm, serialComm
 from tafor.core.utils.client import fetchMessage, layerInfo, repoRelease
 
@@ -170,11 +169,8 @@ class SerialWorker(QObject):
 
         try:
             self.context.serial.lock()
-            if codec == 'ITA2':
-                message = encode(self.message, ITA2_STANDARD)
-            else:
-                message = self.message.encode()
-            serialComm(message, port, baudrate=baudrate, bytesize=bytesize, parity=parity, stopbits=stopbits)
+            serialComm(self.message, port, baudrate=baudrate, bytesize=bytesize,
+                       parity=parity, stopbits=stopbits, codec=codec)
             error = ''
         except Exception as e:
             error = str(e)

@@ -5,8 +5,20 @@ from io import BytesIO
 from ftplib import FTP
 from urllib.parse import urlparse
 
+from tafor.core.telegram.encoder import ITA2_STANDARD, encode
 
-def serialComm(message, port, baudrate=9600, bytesize='8', parity='NONE', stopbits='1'):
+
+def serialComm(message, port, baudrate=9600, bytesize='8', parity='NONE', stopbits='1', codec=None):
+    """Write a message to the serial port.
+
+    codec 'ITA2' encodes the text through the ITA2 standard table first;
+    otherwise plain text is encoded as UTF-8 unless already bytes.
+    """
+    if codec == 'ITA2':
+        message = encode(message, ITA2_STANDARD)
+    elif not isinstance(message, bytes):
+        message = message.encode()
+
     bytesizeMap = {
         '5': serial.FIVEBITS,
         '6': serial.SIXBITS,
@@ -27,9 +39,6 @@ def serialComm(message, port, baudrate=9600, bytesize='8', parity='NONE', stopbi
     bytesize = bytesizeMap.get(bytesize, serial.EIGHTBITS)
     parity = parityMap.get(parity, serial.PARITY_NONE)
     stopbits = stopbitsMap.get(stopbits, serial.STOPBITS_ONE)
-
-    if not isinstance(message, bytes):
-        message = message.encode()
 
     with serial.Serial(port, baudrate, bytesize=bytesize,
                         parity=parity, stopbits=stopbits) as ser:
