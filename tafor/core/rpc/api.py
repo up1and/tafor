@@ -113,14 +113,14 @@ def authorize(req, resp, resource, params):
     req.context.user = 'webapi'
 
 
-class LoggerComponent(object):
+class LoggerComponent:
 
     def process_response(self, req, resp, resource, req_succeeded):
         logger.info('Request {} - "{} {}" {}'.format(req.remote_addr, req.method, req.relative_uri, resp.status))
         logger.debug('Response {}'.format(resp.media))
 
 
-class JSONComponent(object):
+class JSONComponent:
 
     def process_request(self, req, resp):
         req.context.body = {}
@@ -138,7 +138,7 @@ class JSONComponent(object):
                                    description='Could not decode the request body. The JSON was incorrect or not encoded as UTF-8.')
 
 
-class SQLAlchemySessionComponent(object):
+class SQLAlchemySessionComponent:
     """
     Create a session for every request and close it when the request ends.
     """
@@ -163,7 +163,7 @@ class SQLAlchemySessionComponent(object):
             req.context['session'].close()
 
 
-class MainResource(object):
+class MainResource:
 
     def on_get(self, req, resp):
         resp.text = ('\nAll in the Sea of Sky, my love\n'
@@ -175,7 +175,7 @@ class MainResource(object):
                      '    ~ The Voyage of the Moon\n')
 
 
-class StateResource(object):
+class StateResource:
 
     def __init__(self, context, conf):
         self.context = context
@@ -205,7 +205,7 @@ class StateResource(object):
         resp.media = data
 
 
-class NotificationResource(object):
+class NotificationResource:
 
     def __init__(self, context, conf):
         self.context = context
@@ -253,7 +253,7 @@ class NotificationResource(object):
         resp.media = media
 
 
-class ResourceCollection(object):
+class ResourceCollection:
 
     def __init__(self, conf):
         self.conf = conf
@@ -358,7 +358,7 @@ class SigmetsResource(ResourceCollection):
 class OthersResource(ResourceCollection):
 
     def __init__(self, context, conf):
-        super(OthersResource, self).__init__(conf)
+        super().__init__(conf)
         self.context = context
 
     @falcon.before(authorize)

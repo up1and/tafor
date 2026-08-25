@@ -198,7 +198,7 @@ class MarkerGraphicsItem(QGraphicsRectItem):
 class Chart(QChart):
 
     def __init__(self):
-        super(Chart, self).__init__()
+        super().__init__()
         self.metars = []
 
     def setMetars(self, metars):
@@ -210,7 +210,7 @@ class ChartView(QChartView):
     markerRadius = 16
 
     def __init__(self, parent=None):
-        super(ChartView, self).__init__(parent)
+        super().__init__(parent)
         self.setMarker(MarkerGraphicsItem(self.chart()))
 
     def setMarker(self, item):
@@ -261,7 +261,7 @@ class ChartView(QChartView):
 class ChartViewer(QDialog, Ui_chart.Ui_Chart):
 
     def __init__(self, parent=None, database=None):
-        super(ChartViewer, self).__init__(parent)
+        super().__init__(parent)
         self.setupUi(self)
         self.metarRepository = MetarRepository(database)
 

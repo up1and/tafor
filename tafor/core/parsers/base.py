@@ -24,7 +24,7 @@ def _purePattern(regex):
     return pattern
 
 
-class Pattern(object):
+class Pattern:
     date = r'(0[1-9]|[12][0-9]|3[0-1])([01][0-9]|2[0-3])([0-5][0-9])'
     wind = r'00000|(VRB|0[1-9]0|[12][0-9]0|3[0-6]0)(0[1-9]|[1-4][0-9]|P49)'
     gust = r'(0[1-9]|[1-4][0-9]|P49)'
@@ -47,7 +47,7 @@ class Pattern(object):
     sequence = r'[A-Z]?([1-9][0-9]?|0[1-9])'
 
 
-class TafGrammar(object):
+class TafGrammar:
     sign = re.compile(r'\b(TAF|BECMG|(?:FM(?:\d{4}|\d{6}))|TEMPO)\b')
     amend = re.compile(r'\b(AMD|COR)\b')
     icao = re.compile(r'\b((A|B|E|K|P|L|R|Y|U|V|Z)[A-Z]{3})\b')
@@ -79,7 +79,7 @@ class MetarGrammar(TafGrammar):
     fmtl = re.compile(r'\b((?:AT|FM|TL)\d{4})\b')
 
 
-class SigmetGrammar(object):
+class SigmetGrammar:
     latitude = re.compile(r'(N|S)(90(0{2})?|[0-8]\d([0-5]\d)?)')
     longitude = re.compile(r'(E|W)(180(0{2})?|((1[0-7]\d)|(0\d{2}))([0-5]\d)?)')
     flightLevel = re.compile(r'(FL(?:[1-9]\d{2}|0[1-9]\d|00[1-9])/[1-9]\d{2})|(FL[1-9]\d{2})|(\d{4,5}FT)|(\d{4,5}M)|(SFC/FL[1-9]\d{2})')
@@ -158,7 +158,7 @@ class SigmetGrammar(object):
         return re.compile(r'PSN\s{}'.format(self._point))
 
 
-class AdvisoryGrammar(object):
+class AdvisoryGrammar:
     name = re.compile(r'\b([A-Z-]+)\b')
     time = re.compile(r'(\d{2})/(\d{2})(\d{2})Z')
     flightLevel = re.compile(r'(FL[1-9]\d{2}/[1-9]\d{2})|(FL[1-9]\d{2})|(\d{4,5}FT)|(\d{4,5}M)|(SFC/FL[1-9]\d{2})')

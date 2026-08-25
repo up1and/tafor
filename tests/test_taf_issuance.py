@@ -15,7 +15,7 @@ BASE_END = datetime.datetime(2026, 8, 10, 21)
 DURATIONS = (BASE_START, BASE_END)
 
 
-class TestComposeHeading(object):
+class TestComposeHeading:
 
     def test_full(self):
         assert composeHeading('fc', 'PE', 'ZBAD', '102400', 'A001') == 'FCPE ZBAD 102400 A001'
@@ -27,7 +27,7 @@ class TestComposeHeading(object):
         assert composeHeading('ft30', 'SH', 'ZBAD', '', '') == 'FTSH ZBAD'
 
 
-class TestSegmentOrderKey(object):
+class TestSegmentOrderKey:
 
     def test_primary_always_first(self):
         start = datetime.datetime(2026, 8, 10, 12)
@@ -48,7 +48,7 @@ class TestSegmentOrderKey(object):
         assert segmentOrderKey('MYSTERY', start) > segmentOrderKey('TEMPO', start)
 
 
-class TestGroupSpan(object):
+class TestGroupSpan:
 
     def test_tempo_depends_on_spec(self):
         assert groupSpan('TEMPO', 'fc') == 4
@@ -61,7 +61,7 @@ class TestGroupSpan(object):
                 assert groupSpan(indicator, spec) == 2
 
 
-class TestFormatValidityEnd(object):
+class TestFormatValidityEnd:
 
     def test_normal_time(self):
         assert formatValidityEnd(datetime.datetime(2026, 8, 10, 18)) == '1018'
@@ -71,7 +71,7 @@ class TestFormatValidityEnd(object):
         assert formatValidityEnd(datetime.datetime(2026, 9, 1)) == '3124'
 
 
-class TestIsGroupStartAcceptable(object):
+class TestIsGroupStartAcceptable:
 
     def test_accepts_digits_within_validity(self):
         assert isGroupStartAcceptable('1012', DURATIONS) is True
@@ -93,7 +93,7 @@ class TestIsGroupStartAcceptable(object):
         assert isGroupStartAcceptable('1024', DURATIONS) is False
 
 
-class TestCompleteGroupPeriod(object):
+class TestCompleteGroupPeriod:
 
     def test_tempo_fc_span_four_hours(self):
         assert completeGroupPeriod('1012', DURATIONS, 'TEMPO', 'fc') == '1012/1016'

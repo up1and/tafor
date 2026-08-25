@@ -80,7 +80,7 @@ def encode(chars, codec):
     return byte
 
 
-class TabledCodec(object):
+class TabledCodec:
     """
     Creates a codec based on a character table.
 

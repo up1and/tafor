@@ -214,7 +214,7 @@ class DataService:
 class MainPresenter(QObject):
 
     def __init__(self, view, context, conf, database, bridge=None, dataService=None, remindService=None):
-        super(MainPresenter, self).__init__(view)
+        super().__init__(view)
         self.view = view
         self.context = context
         self.conf = conf
@@ -467,7 +467,7 @@ class MainPresenter(QObject):
 class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def __init__(self, conf, context, database, bridge=None, parent=None):
-        super(MainWindow, self).__init__(parent)
+        super().__init__(parent)
         self.conf = conf
         self.context = context
         self.database = database
@@ -624,7 +624,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.tray.show()
             return True
         else:
-            return super(MainWindow, self).event(event)
+            return super().event(event)
 
     def closeEvent(self, event):
         if event.spontaneous():

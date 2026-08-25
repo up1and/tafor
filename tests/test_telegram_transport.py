@@ -4,7 +4,7 @@ from tafor.core.telegram.encoder import ITA2_STANDARD, encode
 from tafor.core.telegram.transport import serialComm
 
 
-class FakePort(object):
+class FakePort:
 
     def __init__(self):
         self.written = b''
@@ -33,7 +33,7 @@ def port(monkeypatch):
     return fake
 
 
-class TestSerialCommCodec(object):
+class TestSerialCommCodec:
 
     def test_ita2_codec_encodes_via_table(self, port):
         message = 'AB1'

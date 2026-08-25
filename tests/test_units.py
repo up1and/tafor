@@ -3,7 +3,7 @@ import pytest
 from tafor.core.utils.units import UnitSystem, KM_PER_NM, toKmh, toKt, toKm
 
 
-class TestUnitSystem(object):
+class TestUnitSystem:
 
     def test_metric_units(self):
         units = UnitSystem.METRIC
@@ -30,7 +30,7 @@ class TestUnitSystem(object):
         assert conf.units is UnitSystem.fromConfig(conf.unit)
 
 
-class TestSpeedConversion(object):
+class TestSpeedConversion:
 
     def test_kt_to_kmh(self):
         assert toKmh(65, 'KT') == 65 * KM_PER_NM
@@ -45,7 +45,7 @@ class TestSpeedConversion(object):
         assert toKt(15, 'KT') == 15
 
 
-class TestLengthConversion(object):
+class TestLengthConversion:
 
     def test_nm_to_km(self):
         assert toKm(30, 'NM') == 30 * KM_PER_NM

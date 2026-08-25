@@ -55,7 +55,7 @@ class TrendEditor(BaseEditor):
     confGroup = 'trend'
 
     def __init__(self, parent=None, sender=None, conf=None, context=None, database=None):
-        super(TrendEditor, self).__init__(parent, sender, conf, context, database)
+        super().__init__(parent, sender, conf, context, database)
         self.presenter = TrendPresenter(self, context, conf)
         self.initUI()
         self.presenter.initialize()

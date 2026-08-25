@@ -37,7 +37,7 @@ class SigmetFilter:
         return []
 
 
-class Repository(object):
+class Repository:
 
     def __init__(self, database):
         self.database = database

@@ -877,7 +877,7 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
         self.state.mode = self.mode
 
     def setupValidator(self):
-        super(SigmetTyphoon, self).setupValidator()
+        super().setupValidator()
         latitude = QRegExpValidator(QRegExp(self.rules.latitude, Qt.CaseInsensitive))
         self.currentLatitude.setValidator(latitude)
         self.forecastLatitude.setValidator(latitude)
@@ -1041,7 +1041,7 @@ class SigmetAsh(BaseSigmet, Ui_sigmet_ash.Ui_Editor):
         self.state.isEruption = self.name.isEnabled()
 
     def setupValidator(self):
-        super(SigmetAsh, self).setupValidator()
+        super().setupValidator()
         latitude = QRegExpValidator(QRegExp(self.rules.latitude, Qt.CaseInsensitive))
         self.currentLatitude.setValidator(latitude)
 
@@ -1133,7 +1133,7 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
         self.state.cancelEndingTime = self.cancelEndingTime.text()
 
     def setupValidator(self):
-        super(SigmetCancel, self).setupValidator()
+        super().setupValidator()
         sequence = QRegExpValidator(QRegExp(self.rules.sequence, Qt.CaseInsensitive))
         self.cancelSequence.setValidator(sequence)
 
@@ -1290,4 +1290,4 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
 
     def resizeEvent(self, event):
         self.apiSign.move(self.width() - 43, 80)
-        super(SigmetCustom, self).resizeEvent(event)
+        super().resizeEvent(event)

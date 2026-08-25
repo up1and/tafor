@@ -98,7 +98,7 @@ class MessageWorker(QObject):
     fetched = pyqtSignal(dict)
 
     def __init__(self, conf):
-        super(MessageWorker, self).__init__()
+        super().__init__()
         self.conf = conf
 
     def run(self):
@@ -115,7 +115,7 @@ class LayerWorker(QObject):
     fetched = pyqtSignal(list)
 
     def __init__(self, conf):
-        super(LayerWorker, self).__init__()
+        super().__init__()
         self.conf = conf
 
     def run(self):
@@ -131,7 +131,7 @@ class ExportRecordWorker(QObject):
     finished = pyqtSignal()
 
     def __init__(self, filename, data, headers=None):
-        super(ExportRecordWorker, self).__init__()
+        super().__init__()
         self.data = data
         self.headers = headers
         self.filename = filename
@@ -154,7 +154,7 @@ class SerialWorker(QObject):
     finished = pyqtSignal()
 
     def __init__(self, message, conf, context):
-        super(SerialWorker, self).__init__()
+        super().__init__()
         self.message = message
         self.conf = conf
         self.context = context
@@ -187,7 +187,7 @@ class FtpWorker(QObject):
     finished = pyqtSignal()
 
     def __init__(self, message, url, filename):
-        super(FtpWorker, self).__init__()
+        super().__init__()
         self.message = message
         self.url = url
         self.filename = filename
@@ -223,7 +223,7 @@ class RpcWorker(QObject):
     finished = pyqtSignal()
 
     def __init__(self, app, port=9407):
-        super(RpcWorker, self).__init__()
+        super().__init__()
         self.app = app
         self.port = port
         self.server = None
@@ -262,7 +262,7 @@ class ContextBridge(QObject):
     otherMessage = pyqtSignal(dict)
 
     def __init__(self, context, parent=None):
-        super(ContextBridge, self).__init__(parent)
+        super().__init__(parent)
         self.context = context
         self.serial = context.serial
         self.metarNotification.connect(self.updateMetar)

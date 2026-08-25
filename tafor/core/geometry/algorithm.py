@@ -203,7 +203,7 @@ def clipPolygon(subj, clip, mode='single'):
     return points
 
 
-class SimplifyPolygon(object):
+class SimplifyPolygon:
 
     def __init__(self, maxPoint=7):
         self.maxPoint = maxPoint

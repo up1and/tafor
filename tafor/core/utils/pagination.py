@@ -1,7 +1,7 @@
 import math
 
 
-class Pagination(object):
+class Pagination:
 
     def __init__(self, paginate, page, perPage, total, items):
         self.paginate = paginate

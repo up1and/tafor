@@ -206,7 +206,7 @@ class Other(Base):
         return self.raw
 
 
-class Database(object):
+class Database:
 
     def __init__(self, engine):
         self.engine = engine

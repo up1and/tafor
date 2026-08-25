@@ -1,4 +1,4 @@
-class MockConfig(object):
+class MockConfig:
 
     defaults = {
         'General/Sigmet': 'true',

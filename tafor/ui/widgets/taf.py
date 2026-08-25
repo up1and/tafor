@@ -48,7 +48,7 @@ def _translate(code, **kwargs):
     return messages.get(code, code)
 
 
-class SegmentMixin(object):
+class SegmentMixin:
 
     def formatPeriodSeparator(self, line):
         """Append the '/' separator after the 4-digit day while typing."""
@@ -115,7 +115,7 @@ class BaseSegment(SegmentMixin, QWidget):
     contentChanged = pyqtSignal()
 
     def __init__(self, name=None, parent=None, conf=None, context=None):
-        super(BaseSegment, self).__init__()
+        super().__init__()
         self.rules = Pattern()
         self.parent = parent
         self.conf = conf
@@ -340,7 +340,7 @@ class TemperatureGroup(SegmentMixin, QWidget):
     temperatureChanged = pyqtSignal()
 
     def __init__(self, mode='max', canSwitch=False, parent=None, context=None):
-        super(TemperatureGroup, self).__init__(parent)
+        super().__init__(parent)
         self.state = TemperatureState(mode)
         self.canSwitch = canSwitch
         self.parent = parent
@@ -472,7 +472,7 @@ class TemperatureGroup(SegmentMixin, QWidget):
 class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
     def __init__(self, name='PRIMARY', parent=None, conf=None, context=None, database=None):
-        super(TafPrimarySegment, self).__init__(name, parent, conf, context)
+        super().__init__(name, parent, conf, context)
         self.setupUi(self)
 
         self.setupValidator()
@@ -514,7 +514,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.setOrder()
 
     def syncToState(self):
-        super(TafPrimarySegment, self).syncToState()
+        super().syncToState()
         self.state.date = self.date.text()
         self.state.period = self.period.text()
         self.state.sequence = self.sequence.text()
@@ -533,13 +533,13 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             self.setTabOrder(p, n)
 
     def setupValidator(self):
-        super(TafPrimarySegment, self).setupValidator()
+        super().setupValidator()
 
         date = QRegExpValidator(QRegExp(self.rules.date))
         self.date.setValidator(date)
 
     def bindSignal(self):
-        super(TafPrimarySegment, self).bindSignal()
+        super().bindSignal()
 
         self.normal.clicked.connect(self.updateMessageType)
         self.cor.clicked.connect(self.updateMessageType)
@@ -557,7 +557,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.timer.start(1 * 1000)
 
     def validate(self):
-        super(TafPrimarySegment, self).validate()
+        super().validate()
         for t in self.temperatures:
             t.validateTemperatureTime()
             t.validateTemperature()
@@ -684,7 +684,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         return self.cnl.isChecked()
 
     def clear(self):
-        super(TafPrimarySegment, self).clear()
+        super().clear()
 
         self.cavok.setChecked(False)
         self.nsc.setChecked(False)
@@ -699,7 +699,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
     def __init__(self, name='TEMPO', parent=None, conf=None, context=None):
-        super(TafGroupSegment, self).__init__(name, parent, conf, context)
+        super().__init__(name, parent, conf, context)
         self.setupUi(self)
         self.name.setText(name)
         self.setupFont()
@@ -708,22 +708,22 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.periodText = ''
 
     def syncToState(self):
-        super(TafGroupSegment, self).syncToState()
+        super().syncToState()
         self.state.period = self.period.text()
 
     def bindSignal(self):
-        super(TafGroupSegment, self).bindSignal()
+        super().bindSignal()
         self.period.textEdited.connect(self.fillPeriod)
         self.period.textChanged.connect(self.updateDurations)
         self.period.editingFinished.connect(self.validatePeriod)
         self.period.editingFinished.connect(self.validateGroupsPeriod)
 
     def setupFont(self):
-        super(TafGroupSegment, self).setupFont()
+        super().setupFont()
         self.name.setFont(fixedFont())
 
     def setupValidator(self):
-        super(TafGroupSegment, self).setupValidator()
+        super().setupValidator()
         period = QRegExpValidator(QRegExp(self.rules.period))
         self.period.setValidator(period)
 
@@ -782,7 +782,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
             self.state.durations = None
 
     def validate(self):
-        super(TafGroupSegment, self).validate()
+        super().validate()
         self.validatePeriod()
         self.validateGroupsPeriod()
 
@@ -813,7 +813,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.setupPeriodPlaceholder()
 
     def clear(self):
-        super(TafGroupSegment, self).clear()
+        super().clear()
         self.period.clear()
         self.period.setPlaceholderText('')
         self.periodText = ''
@@ -822,14 +822,14 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 class TafFmSegment(TafGroupSegment):
 
     def __init__(self, name='FM', parent=None, conf=None, context=None):
-        super(TafFmSegment, self).__init__(name, parent, conf, context)
+        super().__init__(name, parent, conf, context)
 
     def bindSignal(self):
-        super(TafFmSegment, self).bindSignal()
+        super().bindSignal()
         self.period.textEdited.disconnect(self.fillPeriod)
 
     def setupValidator(self):
-        super(TafFmSegment, self).setupValidator()
+        super().setupValidator()
         period = QRegExpValidator(QRegExp(self.rules.fmPeriod))
         self.period.setValidator(period)
 
@@ -860,7 +860,7 @@ class TafFmSegment(TafGroupSegment):
         return self.state.composeMessage()
 
     def clear(self):
-        super(TafFmSegment, self).clear()
+        super().clear()
 
         self.cavok.setChecked(False)
         self.nsc.setChecked(False)
@@ -869,13 +869,13 @@ class TafFmSegment(TafGroupSegment):
 class TafBecmgSegment(TafGroupSegment):
 
     def __init__(self, name='BECMG', parent=None, conf=None, context=None):
-        super(TafBecmgSegment, self).__init__(name, parent, conf, context)
+        super().__init__(name, parent, conf, context)
 
     def message(self):
         return self.state.composeMessage()
 
     def clear(self):
-        super(TafBecmgSegment, self).clear()
+        super().clear()
 
         self.cavok.setChecked(False)
         self.nsc.setChecked(False)
@@ -884,7 +884,7 @@ class TafBecmgSegment(TafGroupSegment):
 class TafTempoSegment(TafGroupSegment):
 
     def __init__(self, name='TEMPO', parent=None, conf=None, context=None):
-        super(TafTempoSegment, self).__init__(name, parent, conf, context)
+        super().__init__(name, parent, conf, context)
         self.cavok.hide()
         self.nsc.hide()
 
@@ -895,7 +895,7 @@ class TafTempoSegment(TafGroupSegment):
 class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
     def __init__(self, name='TREND', parent=None, conf=None, context=None):
-        super(TrendSegment, self).__init__(name, parent, conf, context)
+        super().__init__(name, parent, conf, context)
         self.setupUi(self)
         self.setupFont()
         self.setupValidator()
@@ -903,7 +903,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         self.periodText = ''
 
     def syncToState(self):
-        super(TrendSegment, self).syncToState()
+        super().syncToState()
         self.state.isNosig = self.nosig.isChecked()
         self.state.type = "BECMG" if self.becmg.isChecked() else "TEMPO"
         self.state.atChecked = self.at.isChecked()
@@ -912,7 +912,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         self.state.period = self.period.text()
 
     def bindSignal(self):
-        super(TrendSegment, self).bindSignal()
+        super().bindSignal()
         self.nosig.toggled.connect(self.setNosig)
         self.at.toggled.connect(self.setAt)
         self.fm.toggled.connect(self.setFmTl)
@@ -933,7 +933,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         self.tempo.clicked.connect(self.syncToState)
 
     def setupFont(self):
-        super(TrendSegment, self).setupFont()
+        super().setupFont()
         font = fixedFont()
         self.becmg.setFont(font)
         self.tempo.setFont(font)
@@ -943,7 +943,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
             self.formatPeriodSeparator(self.period)
 
     def setupValidator(self):
-        super(TrendSegment, self).setupValidator()
+        super().setupValidator()
         self.setupPeriodValidator()
 
     def setupPeriodValidator(self):
@@ -1106,7 +1106,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         return self.state.composeMessage()
 
     def clear(self):
-        super(TrendSegment, self).clear()
+        super().clear()
         self.at.setChecked(False)
         self.fm.setChecked(False)
         self.tl.setChecked(False)

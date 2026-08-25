@@ -8,7 +8,7 @@ DECLARED_INDEXES = {
 }
 
 
-class TestDeclaredIndexes(object):
+class TestDeclaredIndexes:
 
     def test_metadata_declares_indexes(self):
         names = {i.name for table in Base.metadata.tables.values() for i in table.indexes}

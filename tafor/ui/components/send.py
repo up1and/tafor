@@ -403,7 +403,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
     succeeded = pyqtSignal(bool)
 
     def __init__(self, parent=None, context=None, conf=None, database=None):
-        super(BaseSender, self).__init__(parent)
+        super().__init__(parent)
         self.context = context
         self.conf = conf
         self.setupUi(self)
@@ -600,7 +600,7 @@ class TrendSender(BaseSender):
     fixedProtocol = 'aftn'
 
     def __init__(self, parent=None, context=None, conf=None, database=None):
-        super(TrendSender, self).__init__(parent, context, conf, database)
+        super().__init__(parent, context, conf, database)
         self.context.event.trendReloadRequested.connect(self.presenter.reload)
 
 
@@ -609,7 +609,7 @@ class SigmetSender(BaseSender):
     hasCanvasGroup = True
 
     def __init__(self, parent=None, context=None, conf=None, database=None):
-        super(SigmetSender, self).__init__(parent, context, conf, database)
+        super().__init__(parent, context, conf, database)
         self.graphic = GraphicsViewer(self, context=self.context)
         self.canvasLayout.addWidget(self.graphic)
         self.switchButton.clicked.connect(self.presenter.updateVisibility)
@@ -645,7 +645,7 @@ class SigmetSender(BaseSender):
 
     def resizeEvent(self, event):
         self.switchButton.move(self.width() - 70, self.textGroup.height() + 50)
-        super(SigmetSender, self).resizeEvent(event)
+        super().resizeEvent(event)
 
     def clear(self):
         super().clear()
@@ -657,7 +657,7 @@ class CustomSender(BaseSender):
     fixedProtocol = 'aftn'
 
     def __init__(self, parent=None, context=None, conf=None, database=None):
-        super(CustomSender, self).__init__(parent, context, conf, database)
+        super().__init__(parent, context, conf, database)
         self.textGroup.hide()
         self.setModal(True)
         self.setWindowTitle(QCoreApplication.translate('Sender', 'Send Custom Message'))

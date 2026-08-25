@@ -12,7 +12,7 @@ logger = logging.getLogger('tafor.parser.sigmet')
 
 from tafor.core.parsers.base import AdvisoryGrammar, SigmetGrammar
 
-class SigmetLexer(object):
+class SigmetLexer:
     """SIGMET 报文要素的解析器
 
     :param part: 单行报文内容
@@ -42,7 +42,7 @@ class SigmetLexer(object):
     airmetRules = ['airmansFlightLevel', 'wind', 'vis', 'cloud']
 
     def __init__(self, part, firCode=None, airportCode=None, grammar=None, keywords=None, rules=None, isAirmet=False,**kwargs):
-        super(SigmetLexer, self).__init__()
+        super().__init__()
         if not grammar:
             grammar = self.grammarClass()
 
@@ -164,7 +164,7 @@ class SigmetLexer(object):
         func = locals().get(style, plain)
         return func()
 
-class SigmetParser(object):
+class SigmetParser:
     """解析 SIGMET 报文
 
     :param message: SIGMET 报文
@@ -469,7 +469,7 @@ class SigmetParser(object):
         return '\n'.join(outputs) + '='
 
 
-class AdvisoryParser(object):
+class AdvisoryParser:
 
     grammarClass = AdvisoryGrammar
 

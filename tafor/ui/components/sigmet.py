@@ -75,7 +75,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
     confGroup = 'sigmet'
 
     def __init__(self, parent=None, sender=None, conf=None, context=None, database=None):
-        super(SigmetEditor, self).__init__(parent, sender, conf, context, database)
+        super().__init__(parent, sender, conf, context, database)
         self.setupUi(self)
 
         self.type = 'WS'

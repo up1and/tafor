@@ -21,7 +21,7 @@ def repository():
     return Repository(database)
 
 
-class TestPaginated(object):
+class TestPaginated:
 
     def test_total_computed_when_not_cached(self, repository):
         pagination = repository.paginated(Metar, page=1, perPage=12)

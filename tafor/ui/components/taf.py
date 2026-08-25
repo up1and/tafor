@@ -69,7 +69,7 @@ class TafEditor(BaseEditor):
     confGroup = 'taf'
 
     def __init__(self, parent=None, sender=None, conf=None, context=None, database=None):
-        super(TafEditor, self).__init__(parent, sender, conf, context, database)
+        super().__init__(parent, sender, conf, context, database)
         self.presenter = TafPresenter(self, context, conf)
         self.initUI()
         self.presenter.initialize()

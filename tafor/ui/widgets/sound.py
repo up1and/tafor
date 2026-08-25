@@ -6,10 +6,10 @@ from PyQt5.QtMultimedia import QSoundEffect
 from tafor import root
 
 
-class Sound(object):
+class Sound:
 
     def __init__(self, filename, volumeKey=None, config=None):
-        super(Sound, self).__init__()
+        super().__init__()
         file = os.path.join(root, 'resources', 'sounds', filename)
         self.config = config
         self.volumeKey = volumeKey

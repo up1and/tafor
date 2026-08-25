@@ -5,7 +5,7 @@ from PyQt5.QtCore import Qt, QPointF, QRectF
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsPolygonItem, QGraphicsPixmapItem, QWidget
 
 
-class CanvasMixin(object):
+class CanvasMixin:
 
     def toCanvasCoordinates(self, canvas, lonlats):
         coordinates = QPolygonF()
@@ -49,7 +49,7 @@ class CanvasMixin(object):
         return shape
 
 
-class ColorMixin(object):
+class ColorMixin:
 
     def findPalette(self, hazard, location):
         brushes = {
@@ -72,7 +72,7 @@ class ColorMixin(object):
 class Polygon(QGraphicsPolygonItem, CanvasMixin):
 
     def __init__(self, geometry):
-        super(Polygon, self).__init__()
+        super().__init__()
         self.geometry = geometry
 
     def addTo(self, canvas, group):
@@ -84,7 +84,7 @@ class Polygon(QGraphicsPolygonItem, CanvasMixin):
 class Country(Polygon):
 
     def __init__(self, geometry):
-        super(Country, self).__init__(geometry)
+        super().__init__(geometry)
         self.pen = QPen(QColor(130, 130, 130))
         self.brush = QBrush(QColor(219, 219, 219))
         self.setPen(self.pen)
@@ -94,7 +94,7 @@ class Country(Polygon):
 class Coastline(Polygon):
 
     def __init__(self, geometry):
-        super(Coastline, self).__init__(geometry)
+        super().__init__(geometry)
         self.geometry = geometry
         self.setZValue(1)
         # self.pen = QPen(QColor(130, 130, 130))
@@ -104,7 +104,7 @@ class Coastline(Polygon):
 class BackgroundImage(QGraphicsPixmapItem):
 
     def __init__(self, layer, opacity=1):
-        super(BackgroundImage, self).__init__()
+        super().__init__()
         self.layer = layer
         self.setZValue(-1)
         self.setTransformationMode(Qt.SmoothTransformation)
@@ -125,7 +125,7 @@ class BackgroundImage(QGraphicsPixmapItem):
 class Fir(Polygon):
 
     def __init__(self, geometry):
-        super(Fir, self).__init__(geometry)
+        super().__init__(geometry)
         pen = QPen(QColor(200, 200, 200), 2)
         self.setPen(pen)
 
@@ -133,7 +133,7 @@ class Fir(Polygon):
 class SketchGraphic(QGraphicsItem, CanvasMixin):
 
     def __init__(self, geo=None):
-        super(SketchGraphic, self).__init__()
+        super().__init__()
         self.geo = geo
         self.geometries = []
 
@@ -224,7 +224,7 @@ class StickerGraphic(SketchGraphic):
 class Sigmet(QGraphicsItem, CanvasMixin, ColorMixin):
 
     def __init__(self, geo):
-        super(Sigmet, self).__init__()
+        super().__init__()
         self.geo = geo
         self.geometries = []
 

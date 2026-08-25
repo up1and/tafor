@@ -3,7 +3,7 @@ import random
 from tafor.ui.components.chart import cloudPoints, weatherPoints
 
 
-class TestWeatherPoints(object):
+class TestWeatherPoints:
 
     def test_groups_by_stripped_phenomenon(self):
         random.seed(1)
@@ -39,7 +39,7 @@ class TestWeatherPoints(object):
         assert list(points.keys()) == ['FG', 'RA', 'SN']
 
 
-class TestCloudPoints(object):
+class TestCloudPoints:
 
     def test_height_is_digits_times_thirty_metres(self):
         points = cloudPoints([(1000, ['FEW030'])])

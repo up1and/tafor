@@ -190,7 +190,7 @@ def timeAgo(date, now=None):
     return template.format(seconds) if '{}' in template else template
 
 
-class Layer(object):
+class Layer:
     def __init__(self, layers=None):
         if layers is None:
             layers = {}

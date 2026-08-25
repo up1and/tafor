@@ -5,7 +5,7 @@ from tafor.core.geometry.sketch import (
 from tafor.ui.widgets.geometry import SketchGraphic, StickerGraphic
 
 
-class SketchManager(object):
+class SketchManager:
 
     sketchTypes = {
         'polygon': PolygonSketch,
@@ -17,7 +17,7 @@ class SketchManager(object):
     }
 
     def __init__(self, canvas, sketchNames=None):
-        super(SketchManager, self).__init__()
+        super().__init__()
         self.mode = 'polygon'
         self.canvas = canvas
         self.graphics = []

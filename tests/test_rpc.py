@@ -15,7 +15,7 @@ from tafor.core.rpc.api import authorize, create_app
 from tafor.ui.workers import RpcWorker
 
 
-class FakeConf(object):
+class FakeConf:
 
     channel = 'YMC'
     channelSequenceNumber = '1'
@@ -37,20 +37,20 @@ class FakeConf(object):
         return getattr(self, name)
 
 
-class FakeContext(object):
+class FakeContext:
 
-    class _Serial(object):
+    class _Serial:
         isBusy = False
 
-    class _Metar(object):
+    class _Metar:
         def setState(self, values):
             self.values = values
 
-    class _Sigmet(object):
+    class _Sigmet:
         def setState(self, values):
             self.values = values
 
-    class _Other(object):
+    class _Other:
         def setState(self, values):
             self.__dict__.update(values)
 
@@ -181,7 +181,7 @@ def test_parse_sigmet():
 DEFAULT_TOKEN = 'VGhlIFZveWFnZSBvZiB0aGUgTW9vbg=='  # "The Voyage of the Moon"
 
 
-class PingResource(object):
+class PingResource:
 
     def __init__(self, conf=None):
         self.conf = conf or FakeConf()

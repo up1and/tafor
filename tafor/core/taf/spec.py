@@ -1,7 +1,7 @@
 import datetime
 
 
-class SpecFC(object):
+class SpecFC:
     type = 'FC'
     periods = ['0312', '0615', '0918', '1221', '1524', '1803', '2106', '0009']
     default = '0009'
@@ -11,7 +11,7 @@ class SpecFC(object):
     duration = datetime.timedelta(hours=9)
 
 
-class SpecFT24(object):
+class SpecFT24:
     type = 'FT'
     periods = ['0606', '1212', '1818', '0024']
     default = '0024'
@@ -21,7 +21,7 @@ class SpecFT24(object):
     duration = datetime.timedelta(hours=24)
 
 
-class SpecFT30(object):
+class SpecFT30:
     type = 'FT'
     periods = ['0612', '1218', '1824', '0006']
     default = '0006'
@@ -31,7 +31,7 @@ class SpecFT30(object):
     duration = datetime.timedelta(hours=30)
 
 
-class CurrentTaf(object):
+class CurrentTaf:
     """生成当前的 TAF 报文类型
 
     :param spec: TAF 报文规格，选项 fc, ft24, ft30

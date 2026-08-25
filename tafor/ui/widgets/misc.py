@@ -102,7 +102,7 @@ class OutlinedLabel(QLabel):
 class RemindMessageBox(QMessageBox):
     """闹钟对话框"""
     def __init__(self, parent):
-        super(RemindMessageBox, self).__init__(parent=parent)
+        super().__init__(parent=parent)
         icon = QPixmap(':/time.png')
         title = QCoreApplication.translate('MainWindow', 'Alarm')
         self.setIconPixmap(icon)
@@ -123,7 +123,7 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
 
     def __init__(self, parent, layout, item, fixedFont, layerBoundaries=None,
             clearNotification=None, reminderEnabled=False, index=None, conf=None):
-        super(RecentMessage, self).__init__(parent)
+        super().__init__(parent)
         self.setupUi(self)
         self.conf = conf
         self.item = item
@@ -310,12 +310,12 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
     def resizeEvent(self, event):
         if self.background:
             self.background.move(self.width() - self.background.width() - 100, 16)
-        super(RecentMessage, self).resizeEvent(event)
+        super().resizeEvent(event)
 
 class TafBoard(QWidget):
 
     def __init__(self, parent, container, conf=None, context=None):
-        super(TafBoard, self).__init__(parent)
+        super().__init__(parent)
         self.conf = conf
         self.context = context
 
@@ -344,7 +344,7 @@ class TafBoard(QWidget):
 class Clock(QWidget):
 
     def __init__(self, parent, container, context=None):
-        super(Clock, self).__init__(parent)
+        super().__init__(parent)
         self.context = context
 
         layout = QHBoxLayout()
@@ -377,7 +377,7 @@ class LicenseEditor(QDialog, Ui_main_license.Ui_Editor):
     licenseChanged = pyqtSignal()
 
     def __init__(self, parent, conf=None, context=None):
-        super(LicenseEditor, self).__init__(parent)
+        super().__init__(parent)
         self.setupUi(self)
         self.parent = parent
         self.conf = conf

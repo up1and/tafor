@@ -39,7 +39,7 @@ def fileMessageName(airport, valids, number, created=None):
     )
 
 
-class AFTNMessageGenerator(object):
+class AFTNMessageGenerator:
     """航空固定电信网络（Aeronautical Fixed Telecommunication Network Message）报文的生成
 
     :param text: 报文内容
@@ -121,7 +121,7 @@ class AFTNMessageGenerator(object):
         return chunks(items, self.maxSendAddress)
 
 
-class FileMessageGenerator(object):
+class FileMessageGenerator:
 
     def __init__(self, text, number=1, maxLineChar=69, **kwargs):
         self.texts = text.split('\n')
@@ -148,7 +148,7 @@ class FileMessageGenerator(object):
         self.number += 1
 
 
-class AFTNDecoder(object):
+class AFTNDecoder:
 
     def __init__(self, raw):
         if isinstance(raw, str):

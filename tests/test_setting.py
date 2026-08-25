@@ -13,7 +13,7 @@ from tests.mocks import conf
 pytestmark = pytest.mark.skip(reason='Waiting for UI constructor DI fix (conf/context injection)')
 
 
-class TestSetting(object):
+class TestSetting:
 
     @pytest.fixture
     def setting(self, qtbot):

@@ -11,7 +11,7 @@ logger = logging.getLogger('tafor.parser.taf')
 from tafor.core.parsers.base import MetarGrammar, TafGrammar
 
 
-class TafValidator(object):
+class TafValidator:
     """根据行业标准验证 TAF 报文单项要素之间的转折
 
     :param kwargs: 额外参数
@@ -280,7 +280,7 @@ class TafValidator(object):
         return all(validations)
 
 
-class TafLexer(object):
+class TafLexer:
     """TAF 报文一组要素的解析器
 
     :param part: 单组主报文 BECMG 或 TEMPO
@@ -391,7 +391,7 @@ class TafLexer(object):
         return func()
 
 
-class TafParser(object):
+class TafParser:
     """解析 TAF 报文
 
     :param message: TAF 报文

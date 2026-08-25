@@ -10,7 +10,7 @@ from tafor.ui.components.trend import TrendEditor
 pytestmark = pytest.mark.skip(reason='Waiting for UI constructor DI fix (conf/context injection)')
 
 
-class TestTrend(object):
+class TestTrend:
 
     @pytest.fixture
     def sender(self, qtbot):

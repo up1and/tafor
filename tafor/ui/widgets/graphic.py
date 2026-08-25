@@ -22,7 +22,7 @@ from tafor.ui.widgets.misc import OutlinedLabel
 logger = logging.getLogger('tafor.sigmet.graphic')
 
 
-class SketchTool(object):
+class SketchTool:
 
     def __init__(self, canvas, manager):
         self.canvas = canvas
@@ -110,7 +110,7 @@ class CorridorTool(SketchTool):
 class RectangularTool(SketchTool):
 
     def __init__(self, canvas, manager):
-        super(RectangularTool, self).__init__(canvas, manager)
+        super().__init__(canvas, manager)
         self.origin = None
 
     def mousePress(self, event):
@@ -145,7 +145,7 @@ class EntireTool(SketchTool):
 class BaseCanvas(QGraphicsView):
 
     def __init__(self, context):
-        super(BaseCanvas, self).__init__()
+        super().__init__()
         self.context = context
         self.extent = []
 
@@ -258,7 +258,7 @@ class BaseCanvas(QGraphicsView):
 class Viewer(BaseCanvas):
 
     def __init__(self, context):
-        super(Viewer, self).__init__(context)
+        super().__init__(context)
         self.scale(0.4096, 0.4096)
 
     def mousePressEvent(self, event):
@@ -304,7 +304,7 @@ class Canvas(BaseCanvas):
     mouseMoved = pyqtSignal(tuple)
 
     def __init__(self, context):
-        super(Canvas, self).__init__(context)
+        super().__init__(context)
         self.backgrounds = []
 
         self.mode = 'polygon'
@@ -486,7 +486,7 @@ class Canvas(BaseCanvas):
 class LocationWidget(QWidget):
 
     def __init__(self, context, parent=None):
-        super(LocationWidget, self).__init__(parent)
+        super().__init__(parent)
         self.context = context
         self.setAttribute(Qt.WA_TransparentForMouseEvents)
         self.setFixedSize(600, 200)
@@ -516,7 +516,7 @@ class LocationWidget(QWidget):
 class LayerInfoWidget(QWidget):
 
     def __init__(self, parent=None):
-        super(LayerInfoWidget, self).__init__(parent)
+        super().__init__(parent)
         self.setAttribute(Qt.WA_TransparentForMouseEvents)
         self.setFixedSize(350, 80)
 
@@ -544,7 +544,7 @@ class LayerInfoWidget(QWidget):
 class GraphicsViewer(QWidget):
 
     def __init__(self, parent=None, context=None):
-        super(GraphicsViewer, self).__init__(parent)
+        super().__init__(parent)
         self.context = context
         self.canvas = Viewer(self.context)
         self.verticalLayout = QVBoxLayout(self)
@@ -582,7 +582,7 @@ class GraphicsWindow(QWidget):
     modeChanged = pyqtSignal(str)
 
     def __init__(self, parent=None, context=None):
-        super(GraphicsWindow, self).__init__(parent)
+        super().__init__(parent)
         self.parent = parent
         self.context = context
         self.type = ''
@@ -977,7 +977,7 @@ class GraphicsWindow(QWidget):
         self.positionLabel.move(self.width() - self.positionLabel.width() - 18, self.height() - self.positionLabel.height() - 15)
         self.layerInfoWidget.move(18, self.height() - self.layerInfoWidget.height() - 15)
         self.locationWidget.move(int(self.width() / 2 - self.locationWidget.width() / 2), self.height() - self.locationWidget.height() - 75)
-        super(GraphicsWindow, self).resizeEvent(event)
+        super().resizeEvent(event)
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Control:
