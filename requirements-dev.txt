@@ -1,5 +1,0 @@
-pytest
-pytest-qt
-pytest-cov
-pytest-env
--r requirements.txt
