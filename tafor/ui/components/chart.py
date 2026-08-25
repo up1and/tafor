@@ -15,6 +15,95 @@ from tafor.ui.styles import calendarStyle
 logger = logging.getLogger('tafor.chart')
 
 
+def weatherPoints(weathers):
+    """Map observed weather codes to scatter points grouped by phenomenon.
+
+    weathers is a sequence of (timestamp, codes) pairs, codes being METAR
+    weather strings such as '-SHRA' or 'FG'. An intensity prefix selects
+    the y-value band: '-' weak (2..18), plain normal (22..38) and '+'
+    strong (42..58); values are drawn without replacement within a
+    timestamp so points never overlap exactly.
+
+    Returns {phenomenon: [(timestamp, value), ...]} sorted by name.
+    """
+    def stripIntensity(code):
+        return code[1:] if code.startswith(('+', '-')) else code
+
+    def findWeather(name, codes):
+        for code in codes:
+            if name == stripIntensity(code):
+                return code
+
+    valueMaps = {}
+    phenomenons = set()
+    for timestamp, codes in weathers:
+        if codes:
+            enums = list(range(2, 20, 4))
+            valueMaps[timestamp] = {
+                'weak': enums,
+                'normal': [e + 20 for e in enums],
+                'strong': [e + 40 for e in enums],
+            }
+
+            for code in codes:
+                phenomenons.add(stripIntensity(code))
+
+    points = {}
+    for name in sorted(phenomenons):
+        group = []
+        for timestamp, codes in weathers:
+            code = findWeather(name, codes)
+            if not code:
+                continue
+
+            bands = valueMaps[timestamp]
+            band = bands['normal']
+            if code.startswith('-'):
+                band = bands['weak']
+            if code.startswith('+'):
+                band = bands['strong']
+
+            value = random.choice(band)
+            band.remove(value)
+            group.append((timestamp, value))
+
+        points[name] = group
+
+    return points
+
+
+def cloudPoints(clouds):
+    """Map observed cloud layers to scatter points grouped by cover kind.
+
+    clouds is a sequence of (timestamp, layers) pairs, layers being METAR
+    cloud strings such as 'FEW030', 'BKN040CB' or 'VV002'. Kinds are the
+    cover prefixes FEW/SCT/BKN/OVC plus VV, TCU and CB detected by
+    containment; height is the digits times 30 metres.
+
+    Returns {kind: [(timestamp, height), ...]}.
+    """
+    def kind(text):
+        if 'VV' in text:
+            return 'VV'
+        if 'CB' in text:
+            return 'CB'
+        if 'TCU' in text:
+            return 'TCU'
+        return text[:3]
+
+    def height(text):
+        digits = ''.join(c for c in text if c.isdigit())
+        return int(digits) * 30
+
+    covers = {}
+    for timestamp, layers in clouds:
+        for text in layers:
+            key = kind(text)
+            covers.setdefault(key, []).append((timestamp, height(text)))
+
+    return covers
+
+
 class MarkerGraphicsItem(QGraphicsRectItem):
     """Marker graphics item for series data"""
 
@@ -373,99 +462,29 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
                 chart.removeAxis(axis)
 
     def drawPhenomenonSeries(self, weathers):
-
-        def findWeather(name, weathers):
-            for weather in weathers:
-                text = weather
-                if weather.startswith(('+', '-')):
-                    text = weather[1:]
-                if name == text:
-                    return weather
-
-        valueMaps = {}
-        phenomenons = set()
-        for timestamp, weather in weathers:
-            if weather:
-                enums = list(range(2, 20, 4))
-                values = {
-                    'weak': enums,
-                    'normal': [e + 20 for e in enums],
-                    'strong': [e + 40 for e in enums]
-                }
-                valueMaps[timestamp] = values
-
-                for w in weather:
-                    if w.startswith(('+', '-')):
-                        w = w[1:]
-
-                    phenomenons.add(w)
-
         series = []
-        phenomenons = sorted(list(phenomenons))
-        for name in phenomenons:
+        for name, points in weatherPoints(weathers).items():
             serie = QScatterSeries()
             serie.setMarkerSize(8)
             serie.setName(name)
 
-            if 'TS' in name or 'FG' == name or 'SH' in name:
+            if 'TS' in name or name == 'FG' or 'SH' in name:
                 serie.setMarkerSize(10)
 
-            for timestamp, weather in weathers:
-                text = findWeather(name, weather)
-                if text:
-                    values = valueMaps[timestamp]
-                    enums = values['normal']
-
-                    if text.startswith('-'):
-                        enums = values['weak']
-
-                    if text.startswith('+'):
-                        enums = values['strong']
-
-                    value = random.choice(enums)
-                    enums.remove(value)
-                    serie.append(timestamp, value)
+            for timestamp, value in points:
+                serie.append(timestamp, value)
 
             series.append(serie)
 
         return series
 
     def drawCloudSeries(self, clouds):
-        series = []
         orders = ['FEW', 'SCT', 'BKN', 'OVC', 'VV', 'TCU', 'CB']
+        points = cloudPoints(clouds)
 
-        def kind(text):
-            if 'VV' in text:
-                key = 'VV'
-            elif 'CB' in text:
-                key = 'CB'
-            elif 'TCU' in text:
-                key = 'TCU'
-            else:
-                key = text[:3]
-
-            return key
-
-        def height(text):
-            height = ''.join([t for t in text if t.isdigit()])
-            return int(height) * 30
-
-        covers = {}
-        for timestamp, cloud in clouds:
-            for text in cloud:
-                key = kind(text)
-
-                if key not in covers:
-                    covers[key] = []
-
-        for key in covers:
-            for timestamp, cloud in clouds:
-                for text in cloud:
-                    if key == kind(text):
-                        covers[key].append((timestamp, height(text)))
-
+        series = []
         for key in orders:
-            if key not in covers:
+            if key not in points:
                 continue
 
             serie = QScatterSeries()
@@ -475,9 +494,8 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
             if key in ['TCU', 'CB', 'VV']:
                 serie.setMarkerSize(10)
 
-            values = covers[key]
-            for value in values:
-                serie.append(*value)
+            for timestamp, height in points[key]:
+                serie.append(timestamp, height)
 
             series.append(serie)
 
