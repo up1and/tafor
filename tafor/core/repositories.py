@@ -61,10 +61,10 @@ class Repository(object):
 
         return query
 
-    def paginated(self, model, reportType=None, date=None, keywords=None, page=1, perPage=12):
+    def paginated(self, model, reportType=None, date=None, keywords=None, page=1, perPage=12, total=None):
         with self.database.session() as session:
             queryset = self.queryset(session, model, reportType=reportType, date=date, keywords=keywords)
-            return paginate(queryset, page, perPage=perPage)
+            return paginate(queryset, page, perPage=perPage, total=total)
 
     def filtered(self, model, reportType=None, start=None, end=None):
         with self.database.session() as session:

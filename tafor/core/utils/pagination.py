@@ -54,7 +54,7 @@ class Pagination(object):
         return self.page + 1
 
 
-def paginate(queryset, page=None, perPage=None):
+def paginate(queryset, page=None, perPage=None, total=None):
     if page is None or page < 1:
         page = 1
 
@@ -63,10 +63,11 @@ def paginate(queryset, page=None, perPage=None):
 
     items = queryset.limit(perPage).offset((page - 1) * perPage).all()
 
-    if page == 1 and len(items) < perPage:
-        total = len(items)
-    else:
-        total = queryset.order_by(None).count()
+    if total is None:
+        if page == 1 and len(items) < perPage:
+            total = len(items)
+        else:
+            total = queryset.order_by(None).count()
 
     return Pagination(paginate, page, perPage, total, items)
 

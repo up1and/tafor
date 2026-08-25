@@ -5,7 +5,7 @@ import datetime
 from uuid import uuid4
 from contextlib import contextmanager
 
-from sqlalchemy import Column, Integer, String, Text, DateTime, create_engine
+from sqlalchemy import Column, Index, Integer, String, Text, DateTime, create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -18,6 +18,10 @@ Base = declarative_base()
 
 class Taf(Base):
     __tablename__ = 'tafs'
+    __table_args__ = (
+        Index('ix_tafs_type_created', 'type', 'created'),
+        Index('ix_tafs_created', 'created'),
+    )
 
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36), default=uniqueid)
@@ -62,6 +66,9 @@ class Taf(Base):
 
 class Metar(Base):
     __tablename__ = 'metars'
+    __table_args__ = (
+        Index('ix_metars_created', 'created'),
+    )
 
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36), default=uniqueid)
@@ -117,6 +124,9 @@ class Trend(Base):
 
 class Sigmet(Base):
     __tablename__ = 'sigmets'
+    __table_args__ = (
+        Index('ix_sigmets_type_created', 'type', 'created'),
+    )
 
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36), default=uniqueid)
