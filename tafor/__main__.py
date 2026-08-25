@@ -80,6 +80,6 @@ def cli(argv=None):
 if __name__ == '__main__':
     try:
         sys.exit(cli())
-    except (SystemError, BrokenPipeError, AttributeError):
+    except (SystemError, BrokenPipeError):
         # When packaged without a console, stdout access may raise SystemError.
         pass

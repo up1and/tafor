@@ -723,7 +723,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         if not hasattr(sys, '_MEIPASS'):
             args.append(os.path.join(root, '__main__.py'))
 
-        scripts = json.loads(os.environ.pop('TAFOR_ARGS'))
+        scripts = json.loads(os.environ.pop('TAFOR_ARGS', '[]'))
         args.extend(scripts)
         QProcess.startDetached(program, args)
 
@@ -812,8 +812,8 @@ def main():
 
         code = app.exec_()
         sys.exit(code)
-    except Exception as e:
-        logger.exception('On startup {}'.format(e))
+    except Exception:
+        logger.exception('On startup failed')
     finally:
         socket.close()
         localServer.close()
