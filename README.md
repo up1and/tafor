@@ -2,9 +2,9 @@
 
 # Tafor
 
-[![Build Status](https://travis-ci.org/up1and/tafor.svg?branch=master)](https://travis-ci.org/up1and/tafor)
-[![codecov](https://codecov.io/gh/up1and/tafor/branch/master/graph/badge.svg)](https://codecov.io/gh/up1and/tafor)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/8560a0cc9a3e4793b3476f32234dafe3)](https://www.codacy.com/app/up1and/tafor?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=up1and/tafor&amp;utm_campaign=Badge_Grade)
+[![CI](https://github.com/up1and/tafor/actions/workflows/ci.yml/badge.svg)](https://github.com/up1and/tafor/actions/workflows/ci.yml)
+[![Codecov](https://codecov.io/github/up1and/tafor/graph/badge.svg?token=uLVJ4uWjrM)](https://codecov.io/github/up1and/tafor)
+[![Codacy](https://app.codacy.com/project/badge/Grade/928e8df709424e319b7be57fed5808cc)](https://app.codacy.com/gh/up1and/tafor)
 
 本软件用于民航气象部门智能发布预报报文、趋势报文、重要气象情报，监控预报报文，以声音或电话的方式返回告警。
 
