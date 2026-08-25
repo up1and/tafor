@@ -36,6 +36,8 @@ logger = logging.getLogger('tafor.main')
 
 class RemindService:
 
+    snoozeMinutes = 5
+
     def __init__(self, view, context, conf):
         self.view = view
         self.context = context
@@ -54,7 +56,7 @@ class RemindService:
             text = QCoreApplication.translate('MainWindow', 'Time to issue {}').format(current)
             ret = self.view.showReminder(self.view.remindTafBox, self.view.tafSound, text)
             if ret == QMessageBox.RejectRole:
-                QTimer.singleShot(1000 * 60 * 5, self.remindTaf)
+                QTimer.singleShot(self.snoozeMinutes * 60 * 1000, self.remindTaf)
 
     def remindSigmet(self):
         remindSwitch = self.conf.remindSigmet
@@ -70,7 +72,7 @@ class RemindService:
             if ret == QMessageBox.AcceptRole:
                 self.setSigmetReminder(sig, False)
             else:
-                time = item['time'] + datetime.timedelta(minutes=5)
+                time = item['time'] + datetime.timedelta(minutes=self.snoozeMinutes)
                 self.context.sigmet.update(item['uuid'], time)
 
     def setSigmetReminder(self, message, enabled):
