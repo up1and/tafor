@@ -19,7 +19,6 @@ logger = logging.getLogger('tafor.setting')
 
 
 class SettingDialog(QDialog, Ui_setting.Ui_Settings):
-    """设置窗口"""
 
     def __init__(self, parent=None, conf=None, context=None):
         super(SettingDialog, self).__init__(parent)
@@ -30,14 +29,16 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.setWindowIcon(QIcon(':/setting.png'))
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
-        # 开机自动启动设置
+        # Auto-start on system boot
         self.autoRun = QSettings('HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run', QSettings.NativeFormat)
+
+        self.utcCheckpoint = datetime.datetime.utcnow()
 
         self.clockTimer = QTimer()
         self.clockTimer.timeout.connect(self.checkChannelNumber)
         self.clockTimer.start(1 * 1000)
 
-        # 禁用项
+        # Disabled items
         self.closeToMinimize.setEnabled(False)
         self.closeToMinimize.setChecked(True)
 
@@ -65,7 +66,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.load()
 
     def bindSignal(self):
-        """绑定信号"""
         self.addWeatherButton.clicked.connect(lambda: self.addWeather('weather'))
         self.addWeatherWithIntensityButton.clicked.connect(lambda: self.addWeather('weatherWithIntensity'))
 
@@ -87,20 +87,20 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.save)
 
     def setupValidator(self):
-        """设置验证器"""
         self.baudrate.setValidator(QIntValidator(self.baudrate))
         self.channelSequenceNumber.setValidator(QIntValidator(self.channelSequenceNumber))
         self.maxSendAddress.setValidator(QIntValidator(self.maxSendAddress))
         self.delayMinutes.setValidator(QIntValidator(self.delayMinutes))
 
     def checkChannelNumber(self):
-        """检查是否是世界时日界，如果是重置流水号"""
+        """Reset the sequence numbers once the UTC calendar day rolls over"""
         utc = datetime.datetime.utcnow()
-        if utc.hour == 0 and utc.minute == 0 and utc.second == 0:
+        if utc.date() > self.utcCheckpoint.date():
+            self.utcCheckpoint = utc
             self.resetChannelNumber()
 
     def resetChannelNumber(self):
-        """重置流水号"""
+        """Reset the sequence numbers to one"""
         self.conf.channelSequenceNumber = '1'
         self.conf.fileSequenceNumber = '1'
         self.channelSequenceNumber.setText('1')
@@ -119,14 +119,14 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         QApplication.clipboard().setText(self.conf.authToken)
 
     def addWeather(self, weather):
-        """添加天气现象"""
+        """Add a weather phenomenon"""
         line = getattr(self, weather)
         if line.text():
             getattr(self, weather + 'List').addItem(line.text())
             line.clear()
 
     def delWeather(self, weather):
-        """删除天气现象"""
+        """Remove a weather phenomenon"""
         option = getattr(self, weather + 'List')
         option.takeItem(option.currentRow())
 
@@ -154,7 +154,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.testLoginButton.setEnabled(True)
 
     def save(self):
-        """保存设置"""
         if self.runOnStart.isChecked():
             self.autoRun.setValue('Tafor', sys.argv[0])
         else:
@@ -185,7 +184,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             QMessageBox.warning(self, title, '\n\n'.join(errors))
 
     def load(self):
-        """载入设置"""
         self.runOnStart.setChecked(self.autoRun.contains('Tafor'))
 
         self.serviceHost.setText('http://{}:9407'.format(ipAddress()))
