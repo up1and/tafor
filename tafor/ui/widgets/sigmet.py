@@ -87,7 +87,7 @@ class BaseSigmet(SegmentMixin, QWidget):
             line.setMaximumWidth(77)
 
     def initState(self):
-        self.updateSquence()
+        self.updateSequence()
         self.updatePeriodTime()
         self.updateDurations()
         self.componentUpdate()
@@ -183,7 +183,7 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.beginningTime.setText(beginningTime.strftime('%d%H%M'))
         self.endingTime.setText(endingTime.strftime('%d%H%M'))
 
-    def updateSquence(self):
+    def updateSequence(self):
         sigmets = self.sigmetRepository.countToday(self.type())
         count = nextSequence([sig.heading for sig in sigmets], datetime.datetime.utcnow())
         self.sequence.setText(str(count))
@@ -935,9 +935,9 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
             self.radius.clear()
 
     def updateForecastPosition(self):
-        positons = self.state.calcForecastPosition()
-        if positons:
-            forecastLatitude, forecastLongitude = positons
+        positions = self.state.calcForecastPosition()
+        if positions:
+            forecastLatitude, forecastLongitude = positions
             self.forecastLatitude.setText(forecastLatitude)
             self.forecastLongitude.setText(forecastLongitude)
         else:
@@ -1063,13 +1063,13 @@ class SigmetAsh(BaseSigmet, Ui_sigmet_ash.Ui_Editor):
         self.comeFrom.addItems(observations)
 
     def setEruptionOrCloud(self, text='ERUPTION'):
-        enbaled = text == 'ERUPTION'
-        self.name.setEnabled(enbaled)
-        self.nameLabel.setEnabled(enbaled)
-        self.currentLatitude.setEnabled(enbaled)
-        self.currentLatitudeLabel.setEnabled(enbaled)
-        self.currentLongitude.setEnabled(enbaled)
-        self.currentLongitudeLabel.setEnabled(enbaled)
+        enabled = text == 'ERUPTION'
+        self.name.setEnabled(enabled)
+        self.nameLabel.setEnabled(enabled)
+        self.currentLatitude.setEnabled(enabled)
+        self.currentLatitudeLabel.setEnabled(enabled)
+        self.currentLongitude.setEnabled(enabled)
+        self.currentLongitudeLabel.setEnabled(enabled)
         self.contentChanged.emit()
 
     def message(self):

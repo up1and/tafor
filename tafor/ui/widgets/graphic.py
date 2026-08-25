@@ -748,12 +748,12 @@ class GraphicsWindow(QWidget):
 
     def updateOverlapButton(self):
         initial = self.canvas.sketchManager.first()
-        enbaled = initial.done
+        enabled = initial.done
         if self.type == 'WC' and self.canvas.mode == 'polygon' or self.canvas.mode == 'entire':
-            enbaled = False
-        self.overlapButton.setEnabled(enbaled)
+            enabled = False
+        self.overlapButton.setEnabled(enabled)
         
-        if enbaled:
+        if enabled:
             final = self.canvas.sketchManager.last()
             checked = bool(final)
             self.overlapButton.setChecked(checked)
