@@ -2,6 +2,7 @@ import json
 import logging
 
 from tafor.core.events import Signal
+from tafor.core.utils.units import UnitSystem
 
 logger = logging.getLogger('tafor.config')
 
@@ -346,6 +347,10 @@ class Config:
     license = ConfigItem('License')
     unit = ConfigItem('General/Unit', default='metric')
     codec = ConfigItem('Communication/Codec', default='ASCII')
+
+    @property
+    def units(self):
+        return UnitSystem.fromConfig(self.unit)
 
 
 class ConfigManager:

@@ -123,7 +123,7 @@ class BaseSegment(SegmentMixin, QWidget):
         self.identifier = ''.join(c for c in name if c.isalpha())
         
         # Initialize specific state based on the type of widget
-        unit = 'KT' if self.conf.unit == 'imperial' else 'MPS'
+        unit = self.conf.units.tafSpeed
         if self.identifier == 'PRIMARY':
             self.state = PrimaryState(icao=self.conf.airport, unit=unit, spec=self.context.taf.spec)
         elif self.identifier in ['TEMPO', 'BECMG', 'FM']:

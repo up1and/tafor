@@ -6,6 +6,8 @@ from shapely.geometry import Polygon, MultiPolygon, LineString, LinearRing, Mult
 
 from pyproj import Geod
 
+from tafor.core.utils.units import toKm
+
 
 logger = logging.getLogger('tafor.geometry')
 
@@ -415,13 +417,13 @@ def decode(boundaries, locations, mode, trim=True):
     if mode == 'circle':
         point, (radius, unit) = locations
         center = [degreeToDecimal(point[1]), degreeToDecimal(point[0])]
-        width = int(radius) * 1.852 if unit == 'NM' else int(radius)
+        width = toKm(int(radius), unit)
         return circle(center, width * 1000) 
 
     if mode == 'corridor':
         points, (radius, unit) = locations
         lines = [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in points]
-        width = int(radius) * 1.852 if unit == 'NM' else int(radius)
+        width = toKm(int(radius), unit)
         return buffer(lines, width * 1000 / 2)
 
     if mode == 'entire':

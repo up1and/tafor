@@ -6,6 +6,7 @@ from collections import OrderedDict
 
 from tafor.core.geometry.coordinate import degreeToDecimal
 from tafor.core.utils.time import parseTime, parseTimez
+from tafor.core.utils.units import toKmh, toKt
 
 logger = logging.getLogger('tafor.parser.sigmet')
 
@@ -542,12 +543,9 @@ class AdvisoryParser(object):
             match = self.grammar.speed.search(text)
             if match:
                 speed, u = match.groups()
-                if unit == 'KMH' and u == 'KT':
-                    speed = int(speed) * 1.852
+                if unit != u:
+                    speed = toKmh(speed, u) if unit == 'KMH' else toKt(speed, u)
 
-                if unit == 'KT' and u == 'KMH':
-                    speed = int(speed) / 1.852
-                
                 return int(speed)
 
     def observedTime(self):

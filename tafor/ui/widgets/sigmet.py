@@ -328,7 +328,7 @@ class MovementPart(SigmetPart):
 
     def syncToState(self):
         self.widget.state.direction = self.direction.currentText()
-        self.widget.state.unit = 'KT' if self.widget.conf.unit == 'imperial' else 'KMH'
+        self.widget.state.unit = self.widget.conf.units.sigmetSpeed
         self.widget.state.speed = self.speed.text() if self.speed.hasAcceptableInput() else ''
 
     def setupValidator(self):
@@ -1247,12 +1247,10 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         self.apiSign.hide()
 
     def setupPlaceholder(self):
-        speedUnit = 'KT' if self.conf.unit == 'imperial' else 'KMH'
-        lengthUnit = 'NM' if self.conf.unit == 'imperial' else 'KM'
         tips = {
-            'WS': 'EMBD TS FCST N OF N2000 TOP FL360 MOV N 25{} NC'.format(speedUnit),
-            'WC': 'TC YAGI PSN N2706 W07306 CB OBS AT 1600Z WI 300{} OF TC CENTRE TOP FL420 NC\nFCST AT 2200Z TC CENTRE N2740 W07345'.format(lengthUnit),
-            'WV': 'VA ERUPTION MT ASHVAL PSN S1500 E07348 VA CLD\nOBS AT 1100Z APRX 50{} WID LINE BTN S1500 E07348 - S1530 E07642 FL310/450 MOV ESE 65{}\nFCST AT 1700Z APRX 50{} WID LINE BTN S1506 E07500 - S1518 E08112 - S1712 E08330'.format(lengthUnit, speedUnit, lengthUnit),
+            'WS': 'EMBD TS FCST N OF N2000 TOP FL360 MOV N 25{} NC'.format(self.conf.units.sigmetSpeed),
+            'WC': 'TC YAGI PSN N2706 W07306 CB OBS AT 1600Z WI 300{} OF TC CENTRE TOP FL420 NC\nFCST AT 2200Z TC CENTRE N2740 W07345'.format(self.conf.units.length),
+            'WV': 'VA ERUPTION MT ASHVAL PSN S1500 E07348 VA CLD\nOBS AT 1100Z APRX 50{} WID LINE BTN S1500 E07348 - S1530 E07642 FL310/450 MOV ESE 65{}\nFCST AT 1700Z APRX 50{} WID LINE BTN S1506 E07500 - S1518 E08112 - S1712 E08330'.format(self.conf.units.length, self.conf.units.sigmetSpeed, self.conf.units.length),
             'WA': 'MOD MTW OBS AT 1205Z N4200 E11000 FL080 STNR NC'
         }
         tip = tips[self.type()]
