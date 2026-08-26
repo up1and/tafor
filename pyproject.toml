@@ -50,7 +50,6 @@ dev = [
     "pytest",
     "pytest-qt",
     "pytest-cov",
-    "pytest-env",
     "pyinstaller",
     "alembic",
     "colorama",
@@ -72,3 +71,6 @@ script_location = "%(here)s/alembic"
 
 # additional paths prepended to sys.path
 prepend_sys_path = ["."]
+
+[tool.pytest.ini_options]
+qt_api = "pyqt5"
