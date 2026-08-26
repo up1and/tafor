@@ -1,35 +1,32 @@
 import os
-import sys
+import logging
 
-from logging.config import fileConfig
-
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import pool, create_engine
 
 from alembic import context
-
-root = os.path.abspath(os.path.dirname(sys.argv[0]))
 
 from tafor.core.models import Base
 
 # this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
+# access to the values within pyproject.toml in use.
 config = context.config
 
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
-fileConfig(config.config_file_name)
+# migration progress on stderr, SQL echo stays silent.
+logging.basicConfig(
+    level='WARNING', format='%(levelname)-5.5s [%(name)s] %(message)s', datefmt='%H:%M:%S',
+)
+logging.getLogger('alembic').setLevel('INFO')
+
+database_url = os.environ.get(
+    'TAFOR_DB_URL',
+    'sqlite:///' + os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'tafor', 'db.sqlite3',
+    ),
+)
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
 target_metadata = Base.metadata
-
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
 
 
 def run_migrations_offline():
@@ -44,9 +41,8 @@ def run_migrations_offline():
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
     context.configure(
-        url=url,
+        url=database_url,
         target_metadata=target_metadata,
         render_as_batch=True,
         literal_binds=True,
@@ -64,11 +60,7 @@ def run_migrations_online():
     and associate a connection with the context.
 
     """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+    connectable = create_engine(database_url, poolclass=pool.NullPool)
 
     with connectable.connect() as connection:
         def process_revision_directives(context, revision, directives):

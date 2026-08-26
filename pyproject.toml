@@ -65,3 +65,10 @@ constraint-dependencies = [
 
 [tool.ruff.format]
 quote-style = "single"
+
+[tool.alembic]
+# path to migration scripts
+script_location = "%(here)s/alembic"
+
+# additional paths prepended to sys.path
+prepend_sys_path = ["."]
