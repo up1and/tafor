@@ -27,7 +27,7 @@ def _translate(code, **kwargs):
         TafValidator.CLOUD_ABOVE_OVC: QCoreApplication.translate(
             'Editor', 'No clouds should above overcast clouds'),
         TafValidator.GROUP_PERIOD_EXCEED: QCoreApplication.translate(
-            'Editor', 'Change group time more than {span} hours').format(kwargs.get('span', '')),
+            'Editor', 'Change group time more than {span} hours').format(span=kwargs.get('span', '')),
         TafValidator.GROUP_START_INVALID: QCoreApplication.translate(
             'Editor', 'Start time of change group is not corret'),
         TafValidator.GROUP_END_INVALID: QCoreApplication.translate(
