@@ -728,11 +728,11 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.period.setValidator(period)
 
     def setupPeriodPlaceholder(self):
-        if self.parent.state.durations is None:
+        if self.parent.primary.state.durations is None:
             self.period.setPlaceholderText('')
             return
 
-        time = self.parent.state.durations[0]
+        time = self.parent.primary.state.durations[0]
         self.period.setPlaceholderText('{:02d}'.format(time.day))
 
     def fillPeriod(self):
@@ -742,19 +742,19 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
             self.formatPeriodSeparator(self.period)
 
     def autoCompletePeriod(self):
-        if self.parent.state.durations is None or not self.parent.period.text():
+        if self.parent.primary.state.durations is None or not self.parent.primary.period.text():
             return
 
         text = self.period.text()
         if len(text) > len(self.periodText):
             if len(text) == 4:
-                if not isGroupStartAcceptable(text, self.parent.state.durations):
+                if not isGroupStartAcceptable(text, self.parent.primary.state.durations):
                     return
 
                 if self.identifier.startswith(('TEMPO', 'BECMG')):
                     completed = completeGroupPeriod(
                         text,
-                        self.parent.state.durations,
+                        self.parent.primary.state.durations,
                         self.identifier,
                         self.context.taf.spec,
                     )
@@ -768,9 +768,9 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.periodText = text
 
     def updateDurations(self):
-        if self.period.hasAcceptableInput() and self.parent.period.text():
+        if self.period.hasAcceptableInput() and self.parent.primary.period.text():
             period = self.period.text()
-            basetime = self.parent.state.durations[0]
+            basetime = self.parent.primary.state.durations[0]
             start, end = parsePeriod(period, basetime)
             self.state.durations = (start, end)
 
@@ -790,7 +790,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         span = groupSpan(self.identifier, self.context.taf.spec)
         error = TafValidator.checkGroupPeriod(
             self.state,
-            self.parent.state,
+            self.parent.primary.state,
             span,
             isBecmg=self.identifier.startswith('BECMG'),
         )
@@ -799,7 +799,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
             self.context.flash.editor('taf', _translate(error, span=span))
 
     def validateGroupsPeriod(self):
-        groups = self.parent.parent.tempos if self.identifier.startswith('TEMPO') else self.parent.parent.becmgs
+        groups = self.parent.tempos if self.identifier.startswith('TEMPO') else self.parent.becmgs
         siblings = [g.state for g in groups if g.isVisible() and g.state and self != g]
         error = TafValidator.checkGroupOverlap(self.state, siblings)
         if error:
@@ -834,9 +834,9 @@ class TafFmSegment(TafGroupSegment):
         self.period.setValidator(period)
 
     def updateDurations(self):
-        if self.period.hasAcceptableInput() and self.parent.period.text():
+        if self.period.hasAcceptableInput() and self.parent.primary.period.text():
             period = self.period.text()
-            basetime = self.parent.state.durations[0]
+            basetime = self.parent.primary.state.durations[0]
             time = parseTime(period, basetime)
             self.state.durations = (time, time)
         else:
@@ -844,13 +844,13 @@ class TafFmSegment(TafGroupSegment):
 
     def validatePeriod(self):
         # Using states for validation where possible
-        error = TafValidator.checkFmPeriod(self.state, self.parent.state)
+        error = TafValidator.checkFmPeriod(self.state, self.parent.primary.state)
         if error:
             self.period.clear()
             self.context.flash.editor('taf', _translate(error))
 
     def validateGroupsPeriod(self):
-        siblings = [g.state for g in self.parent.parent.becmgs if g.isVisible() and g.state and self != g]
+        siblings = [g.state for g in self.parent.becmgs if g.isVisible() and g.state and self != g]
         error = TafValidator.checkFmOverlap(self.state, siblings)
         if error:
             self.period.clear()
