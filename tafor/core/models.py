@@ -6,8 +6,7 @@ from uuid import uuid4
 from contextlib import contextmanager
 
 from sqlalchemy import Column, Index, Integer, String, Text, DateTime, create_engine
-from sqlalchemy.orm import sessionmaker, scoped_session
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, scoped_session, declarative_base
 
 from tafor.core import root
 
