@@ -118,8 +118,6 @@ class TrendMessageComposer(MessageComposer):
 
 class SigmetMessageComposer(MessageComposer):
     def compose(self, message):
-        reportType = 'AIRMET' if (message.heading and message.heading[0:2] == 'WA') or 'AIRMET' in message.text.split() else 'SIGMET'
-
         try:
             parser = SigmetParser(message.text, created=message.created)
             html = parser.renderer(style='html')
@@ -132,10 +130,10 @@ class SigmetMessageComposer(MessageComposer):
             if not message.isCnl():
                 geo = parser.geo(self.context.layer.boundaries(), trim=True)
 
-            return ComposedMessage(message, parser=parser, html=html, reportType=reportType, geo=geo)
+            return ComposedMessage(message, parser=parser, html=html, reportType=message.reportType, geo=geo)
         except Exception as e:
             logger.error('Sender parse SIGMET failed, {}, {}'.format(message.text, e))
-            return ComposedMessage(message, reportType=reportType)
+            return ComposedMessage(message, reportType=message.reportType)
 
 
 class CustomMessageComposer(MessageComposer):
@@ -144,11 +142,11 @@ class CustomMessageComposer(MessageComposer):
 
 def createComposer(reportType, conf, context, fontFamily='monospace'):
     mapping = {
-        'TAF': TafMessageComposer,
-        'Trend': TrendMessageComposer,
-        'SIGMET': SigmetMessageComposer,
-        'AIRMET': SigmetMessageComposer,
-        'Custom': CustomMessageComposer,
+        'taf': TafMessageComposer,
+        'trend': TrendMessageComposer,
+        'sigmet': SigmetMessageComposer,
+        'airmet': SigmetMessageComposer,
+        'custom': CustomMessageComposer,
     }
     try:
         return mapping[reportType](conf, context, fontFamily)
@@ -162,7 +160,7 @@ class TransportService:
         self.context = context
 
     def channel(self, protocol):
-        return createChannel(protocol, self.conf, self.context)
+        return createChannel(protocol, self.conf)
 
     def worker(self, protocol):
         if protocol == 'ftp':
@@ -187,8 +185,12 @@ class TransportService:
             'context': self.context,
         }
 
-    def generateRawText(self, message, reportType, protocol):
-        return self.channel(protocol).generateRawText(message, reportType)
+    def generate(self, message, protocol):
+        channel = self.channel(protocol)
+        if message.reportType == 'custom':
+            return channel.generate(message,
+                priority=self.context.other.priority, address=self.context.other.address)
+        return channel.generate(message)
 
     def transmit(self, protocol, parser, rawText, done, finished):
         worker, thread = threadManager.createWorker(self.worker(protocol), rawText, **self.workerParams(protocol, parser))
@@ -268,11 +270,9 @@ class SenderPresenter:
                 self.view.graphic.clear()
 
     def generateRawText(self):
-        generator, rawText = self.transportService.generateRawText(
-            self.view.message, self.view.reportType, self.protocol()
-        )
+        generator = self.transportService.generate(self.view.message, self.protocol())
         self.view.generator = generator
-        return rawText
+        return generator.toString()
 
     def send(self):
         if self.view.parser and not self.view.parser.isValid():
@@ -592,11 +592,11 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
 
 
 class TafSender(BaseSender):
-    reportType = 'TAF'
+    reportType = 'taf'
 
 
 class TrendSender(BaseSender):
-    reportType = 'Trend'
+    reportType = 'trend'
     fixedProtocol = 'aftn'
 
     def __init__(self, parent=None, context=None, conf=None, repository=None):
@@ -605,7 +605,7 @@ class TrendSender(BaseSender):
 
 
 class SigmetSender(BaseSender):
-    reportType = 'SIGMET'
+    reportType = 'sigmet'
     hasCanvasGroup = True
 
     def __init__(self, parent=None, context=None, conf=None, repository=None):
@@ -653,7 +653,7 @@ class SigmetSender(BaseSender):
 
 
 class CustomSender(BaseSender):
-    reportType = 'Custom'
+    reportType = 'custom'
     fixedProtocol = 'aftn'
 
     def __init__(self, parent=None, context=None, conf=None, repository=None):

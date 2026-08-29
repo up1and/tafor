@@ -9,48 +9,45 @@ class BaseChannel:
     generator = None
     configName = None
 
-    def __init__(self, conf, context=None):
+    def __init__(self, conf):
         self.conf = conf
-        self.context = context
 
-    def buildText(self, message, reportType):
-        if reportType == 'Custom':
-            return self.context.other.message
-
-        heading = self.conf.trendIdentifier if reportType == 'Trend' else message.heading
-        spacer = ' ' if reportType == 'Trend' else '\n'
+    def buildText(self, message, category):
+        heading = self.conf.trendIdentifier if category == 'trend' else message.heading
+        spacer = ' ' if category == 'trend' else '\n'
         return spacer.join([heading, message.text])
 
-    def buildParams(self, message, reportType):
+    def buildParams(self, message, priority=None, address=None):
         raise NotImplementedError
 
-    def generateRawText(self, message, reportType):
-        generator = self.generator(**self.buildParams(message, reportType))
-        return generator, generator.toString()
+    def generate(self, message, *, priority=None, address=None):
+        """Build the telegram generator for a report message.
+
+        message is a Taf/Trend/Sigmet/Other instance; its reportType
+        property selects the telegram category. Standard reports derive
+        priority and address from the config, custom messages (Other)
+        require both explicitly.
+        """
+        return self.generator(**self.buildParams(message, priority, address))
 
 
 class AFTNChannel(BaseChannel):
     generator = AFTNMessageGenerator
     configName = 'channelSequenceNumber'
 
-    def buildParams(self, message, reportType):
-        if reportType == 'Custom':
-            return {
-                'text': self.context.other.message,
-                'channel': self.conf.channel,
-                'number': self.conf.get(self.configName),
-                'priority': self.context.other.priority,
-                'address': self.context.other.address,
-                'originator': self.conf.originatorAddress,
-                'sequenceLength': self.conf.channelSequenceLength,
-                'maxSendAddress': self.conf.maxSendAddress,
-            }
+    def buildParams(self, message, priority=None, address=None):
+        category = message.reportType
 
-        priority = aftnPriority(reportType, message.text)
-        address = self.conf.get(f'{reportType.lower()}Address')
+        if category == 'custom':
+            # Custom addressing is user-provided, not derived from config
+            text = message.text
+        else:
+            text = self.buildText(message, category)
+            priority = aftnPriority(category, message.text)
+            address = self.conf.get(f'{category}Address')
 
         return {
-            'text': self.buildText(message, reportType),
+            'text': text,
             'channel': self.conf.channel,
             'number': self.conf.get(self.configName),
             'priority': priority,
@@ -65,9 +62,9 @@ class FileChannel(BaseChannel):
     generator = FileMessageGenerator
     configName = 'fileSequenceNumber'
 
-    def buildParams(self, message, reportType):
+    def buildParams(self, message, priority=None, address=None):
         return {
-            'text': self.buildText(message, reportType),
+            'text': self.buildText(message, message.reportType),
             'number': self.conf.get(self.configName),
         }
 
@@ -79,10 +76,10 @@ class FileChannel(BaseChannel):
         }
 
 
-def createChannel(protocol, conf, context=None):
+def createChannel(protocol, conf):
     if protocol == 'ftp':
-        return FileChannel(conf, context)
-    return AFTNChannel(conf, context)
+        return FileChannel(conf)
+    return AFTNChannel(conf)
 
 
 def canResend(message, now):

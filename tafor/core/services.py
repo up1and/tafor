@@ -50,11 +50,11 @@ class LicenseService:
         return infos
 
     def hasPermission(self, reportType):
-        if reportType == 'Trend':
+        if reportType == 'trend':
             return True
-        if reportType in ['TAF', 'Custom']:
+        if reportType in ['taf', 'custom']:
             return 'airport' in self.license()
-        if reportType in ['SIGMET', 'AIRMET']:
+        if reportType in ['sigmet', 'airmet']:
             return 'fir' in self.license()
         return False
 

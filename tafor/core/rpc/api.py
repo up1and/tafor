@@ -400,8 +400,8 @@ class OthersResource(ResourceCollection):
             'message': message,
         })
 
-        channel = createChannel('aftn', self.conf, self.context)
-        generator = channel.generator(**channel.buildParams(None, 'Custom'))
+        custom = Other(uuid=uuid, text=message)
+        generator = createChannel('aftn', self.conf).generate(custom, priority=priority, address=address)
 
         resp.status = falcon.HTTP_CREATED
         resp.media = {

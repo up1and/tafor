@@ -1,6 +1,7 @@
 import datetime
 import re
 
+from tafor.core.models import Other
 from tafor.core.telegram.channels import AFTNChannel, FileChannel, canResend, createChannel
 
 
@@ -19,28 +20,15 @@ class FakeConf:
         return self.values[name]
 
 
-class FakeOtherState:
-
-    def __init__(self, message='', priority='GG', address=''):
-        self.message = message
-        self.priority = priority
-        self.address = address
-
-
-class FakeContext:
-
-    def __init__(self, other=None):
-        self.other = other or FakeOtherState()
-
-
 class FakeMessage:
 
     def __init__(self, heading='NT36 YUSO 231200', text='TAF YUSO 231200Z 2312/2412 03003MPS=',
-                 confirmed=False, created=None):
+                 confirmed=False, created=None, reportType='taf'):
         self.heading = heading
         self.text = text
         self.confirmed = confirmed
         self.created = created or datetime.datetime.utcnow()
+        self.reportType = reportType
 
 
 def makeConf():
@@ -62,16 +50,16 @@ def makeConf():
 
 
 def test_create_channel_by_protocol():
-    conf, context = makeConf(), FakeContext()
+    conf = makeConf()
 
-    assert isinstance(createChannel('aftn', conf, context), AFTNChannel)
-    assert isinstance(createChannel('ftp', conf, context), FileChannel)
-    assert isinstance(createChannel('serial', conf, context), AFTNChannel)
+    assert isinstance(createChannel('aftn', conf), AFTNChannel)
+    assert isinstance(createChannel('ftp', conf), FileChannel)
+    assert isinstance(createChannel('serial', conf), AFTNChannel)
 
 
 def test_aftn_build_params_for_taf():
-    channel = AFTNChannel(makeConf(), FakeContext())
-    params = channel.buildParams(FakeMessage(), 'TAF')
+    channel = AFTNChannel(makeConf())
+    params = channel.buildParams(FakeMessage())
 
     assert params['text'] == 'NT36 YUSO 231200\nTAF YUSO 231200Z 2312/2412 03003MPS='
     assert params['channel'] == 'YMC'
@@ -84,39 +72,39 @@ def test_aftn_build_params_for_taf():
 
 
 def test_aftn_priority_ff_for_sigmet_and_amended_taf():
-    channel = AFTNChannel(makeConf(), FakeContext())
+    channel = AFTNChannel(makeConf())
 
-    assert channel.buildParams(FakeMessage(), 'SIGMET')['priority'] == 'FF'
-    assert channel.buildParams(FakeMessage(text='TAF AMD YUSO ...'), 'TAF')['priority'] == 'FF'
+    assert channel.buildParams(FakeMessage(reportType='sigmet'))['priority'] == 'FF'
+    assert channel.buildParams(FakeMessage(text='TAF AMD YUSO ...'))['priority'] == 'FF'
 
 
 def test_aftn_defaults_when_blank():
     conf = makeConf()
     conf.values['channelSequenceLength'] = ''
     conf.values['maxSendAddress'] = ''
-    channel = AFTNChannel(conf, FakeContext())
+    channel = AFTNChannel(conf)
 
-    params = channel.buildParams(FakeMessage(), 'TAF')
+    params = channel.buildParams(FakeMessage())
 
     assert params['sequenceLength'] == 4
     assert params['maxSendAddress'] == 21
 
 
 def test_aftn_build_params_for_trend():
-    channel = AFTNChannel(makeConf(), FakeContext())
-    message = FakeMessage(heading='ignored', text='NOSIG=')
+    channel = AFTNChannel(makeConf())
+    message = FakeMessage(heading='ignored', text='NOSIG=', reportType='trend')
 
-    params = channel.buildParams(message, 'Trend')
+    params = channel.buildParams(message)
 
     assert params['address'] == 'YUSO3010'
     assert params['text'] == 'TRENDING NOSIG='
 
 
 def test_aftn_build_params_for_custom():
-    other = FakeOtherState(message='SOME TEXT', priority='FF', address='YUSO YUSI')
-    channel = AFTNChannel(makeConf(), FakeContext(other))
+    channel = AFTNChannel(makeConf())
+    message = Other(text='SOME TEXT')
 
-    params = channel.buildParams(None, 'Custom')
+    params = channel.buildParams(message, priority='FF', address='YUSO YUSI')
 
     assert params == {
         'text': 'SOME TEXT',
@@ -130,10 +118,23 @@ def test_aftn_build_params_for_custom():
     }
 
 
-def test_file_channel_build_params():
-    channel = FileChannel(makeConf(), FakeContext())
+def test_aftn_generate_for_custom():
+    channel = AFTNChannel(makeConf())
+    message = Other(text='SOME TEXT')
 
-    params = channel.buildParams(FakeMessage(), 'TAF')
+    generator = channel.generate(message, priority='FF', address='YUSO YUSI')
+    lines = generator.toString().split('\r\n')
+
+    assert lines[0] == 'ZCZC YMC0003'
+    assert lines[1] == 'FF YUSO YUSI'
+    assert 'SOME TEXT' in generator.toString()
+    assert generator.toString().endswith('NNNN')
+
+
+def test_file_channel_build_params():
+    channel = FileChannel(makeConf())
+
+    params = channel.buildParams(FakeMessage())
 
     assert params == {
         'text': 'NT36 YUSO 231200\nTAF YUSO 231200Z 2312/2412 03003MPS=',
@@ -142,7 +143,7 @@ def test_file_channel_build_params():
 
 
 def test_file_channel_ftp_params():
-    channel = FileChannel(makeConf(), FakeContext())
+    channel = FileChannel(makeConf())
 
     valids = (datetime.datetime(2026, 8, 23, 0), datetime.datetime(2026, 8, 23, 12))
     ftp = channel.ftpParams(valids)
@@ -153,7 +154,7 @@ def test_file_channel_ftp_params():
 
 
 def test_file_channel_ftp_params_fallback_to_now():
-    channel = FileChannel(makeConf(), FakeContext())
+    channel = FileChannel(makeConf())
 
     ftp = channel.ftpParams()
 
