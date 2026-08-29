@@ -12,7 +12,6 @@ from tafor.core.models import Other
 from tafor.core.parsers.metar import MetarParser
 from tafor.core.parsers.sigmet import SigmetParser
 from tafor.core.parsers.taf import TafParser
-from tafor.core.repositories import MessageRepository
 from tafor.core.telegram.channels import canResend, createChannel
 from tafor.core.telegram.generator import AFTNDecoder
 from tafor.core.utils.common import iconPath
@@ -199,13 +198,13 @@ class TransportService:
 
 
 class SenderPresenter:
-    def __init__(self, view, context, conf, database=None):
+    def __init__(self, view, context, conf, repository=None):
         self.view = view
         self.context = context
         self.conf = conf
         self.composer = createComposer(view.reportType, conf, context, fontFamily=uiFont().family())
         self.transportService = TransportService(conf, context)
-        self.messageRepository = MessageRepository(database)
+        self.repository = repository
         self.resetGroupCycle()
 
     def protocol(self):
@@ -328,7 +327,7 @@ class SenderPresenter:
             self.view.message.protocol = self.protocol()
             logger.debug('Send {}'.format(self.view.message.text))
 
-        self.messageRepository.add(self.view.message)
+        self.repository.add(self.view.message)
 
         self.view.succeeded.emit(True)
 
@@ -403,7 +402,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
     backed = pyqtSignal()
     succeeded = pyqtSignal(bool)
 
-    def __init__(self, parent=None, context=None, conf=None, database=None):
+    def __init__(self, parent=None, context=None, conf=None, repository=None):
         super().__init__(parent)
         self.context = context
         self.conf = conf
@@ -433,7 +432,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.cancelButton.setText(QCoreApplication.translate('Sender', 'Cancel'))
         self.printButton.setText(QCoreApplication.translate('Sender', 'Print'))
 
-        self.presenter = SenderPresenter(self, self.context, self.conf, database)
+        self.presenter = SenderPresenter(self, self.context, self.conf, repository)
 
         self.buttonBox.accepted.connect(self.presenter.send)
         self.printButton.clicked.connect(self.print)
@@ -600,8 +599,8 @@ class TrendSender(BaseSender):
     reportType = 'Trend'
     fixedProtocol = 'aftn'
 
-    def __init__(self, parent=None, context=None, conf=None, database=None):
-        super().__init__(parent, context, conf, database)
+    def __init__(self, parent=None, context=None, conf=None, repository=None):
+        super().__init__(parent, context, conf, repository)
         self.context.event.trendReloadRequested.connect(self.presenter.reload)
 
 
@@ -609,8 +608,8 @@ class SigmetSender(BaseSender):
     reportType = 'SIGMET'
     hasCanvasGroup = True
 
-    def __init__(self, parent=None, context=None, conf=None, database=None):
-        super().__init__(parent, context, conf, database)
+    def __init__(self, parent=None, context=None, conf=None, repository=None):
+        super().__init__(parent, context, conf, repository)
         self.graphic = GraphicsViewer(self, context=self.context)
         self.canvasLayout.addWidget(self.graphic)
         self.switchButton.clicked.connect(self.presenter.updateVisibility)
@@ -657,8 +656,8 @@ class CustomSender(BaseSender):
     reportType = 'Custom'
     fixedProtocol = 'aftn'
 
-    def __init__(self, parent=None, context=None, conf=None, database=None):
-        super().__init__(parent, context, conf, database)
+    def __init__(self, parent=None, context=None, conf=None, repository=None):
+        super().__init__(parent, context, conf, repository)
         self.textGroup.hide()
         self.setModal(True)
         self.setWindowTitle(QCoreApplication.translate('Sender', 'Send Custom Message'))

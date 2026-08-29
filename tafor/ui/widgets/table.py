@@ -7,7 +7,6 @@ from PyQt5.QtWidgets import (QDialog, QFileDialog, QWidget, QDialogButtonBox, QT
     QVBoxLayout, QFormLayout, QLabel, QDateEdit, QLayout, QApplication)
 
 from tafor.core.models import Metar, Sigmet, Taf
-from tafor.core.repositories import Repository
 from tafor.core.utils.common import iconPath
 from tafor.ui.qt import Ui_main_table
 from tafor.ui.fonts import fixedFont
@@ -124,7 +123,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
     chartClicked = pyqtSignal()
 
-    def __init__(self, parent, layout, conf=None, context=None, database=None):
+    def __init__(self, parent, layout, conf=None, context=None, repository=None):
         super().__init__(parent)
         self.conf = conf
         self.context = context
@@ -145,7 +144,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.calendar.calendarWidget().setSelectedDate(QDate.currentDate())
         self.calendar.calendarWidget().setHorizontalHeaderFormat(QCalendarWidget.NoHorizontalHeader)
 
-        self.repository = Repository(database)
+        self.repository = repository
         self.exportDialog = ExportDialog(self)
 
         font = fixedFont()
@@ -320,8 +319,8 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
 class TafTable(BaseDataTable):
 
-    def __init__(self, parent, layout, reviewer=None, conf=None, context=None, database=None):
-        super().__init__(parent, layout, conf=conf, context=context, database=database)
+    def __init__(self, parent, layout, reviewer=None, conf=None, context=None, repository=None):
+        super().__init__(parent, layout, conf=conf, context=context, repository=repository)
         self.reportType = 'TAF'
         self.model = Taf
         self.reviewer = reviewer
@@ -339,8 +338,8 @@ class TafTable(BaseDataTable):
 
 class MetarTable(BaseDataTable):
 
-    def __init__(self, parent, layout, conf=None, context=None, database=None):
-        super().__init__(parent, layout, conf=conf, context=context, database=database)
+    def __init__(self, parent, layout, conf=None, context=None, repository=None):
+        super().__init__(parent, layout, conf=conf, context=context, repository=repository)
         self.reportType = 'METAR'
         self.model = Metar
         self.perPage = 24
@@ -361,8 +360,8 @@ class MetarTable(BaseDataTable):
 
 class SigmetTable(BaseDataTable):
 
-    def __init__(self, parent, layout, reviewer=None, conf=None, context=None, database=None):
-        super().__init__(parent, layout, conf=conf, context=context, database=database)
+    def __init__(self, parent, layout, reviewer=None, conf=None, context=None, repository=None):
+        super().__init__(parent, layout, conf=conf, context=context, repository=repository)
         self.reportType = 'SIGMET'
         self.model = Sigmet
         self.reviewer = reviewer
@@ -373,6 +372,6 @@ class SigmetTable(BaseDataTable):
 
 class AirmetTable(SigmetTable):
 
-    def __init__(self, parent, layout, reviewer=None, conf=None, context=None, database=None):
-        super().__init__(parent, layout, reviewer=reviewer, conf=conf, context=context, database=database)
+    def __init__(self, parent, layout, reviewer=None, conf=None, context=None, repository=None):
+        super().__init__(parent, layout, reviewer=reviewer, conf=conf, context=context, repository=repository)
         self.reportType = 'AIRMET'

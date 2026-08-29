@@ -74,8 +74,9 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
     confGroup = 'sigmet'
 
-    def __init__(self, parent=None, sender=None, conf=None, context=None, database=None):
-        super().__init__(parent, sender, conf, context, database)
+    def __init__(self, parent=None, sender=None, conf=None, context=None, repository=None):
+        super().__init__(parent, sender, conf, context)
+        self.repository = repository
         self.setupUi(self)
 
         self.type = 'WS'
@@ -89,12 +90,12 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
     def initUI(self):
         self.graphic = GraphicsWindow(self, context=self.context)
-        self.generalContent = SigmetGeneral(self, conf=self.conf, context=self.context, database=self.database)
-        self.typhoonContent = SigmetTyphoon(self, conf=self.conf, context=self.context, database=self.database)
-        self.ashContent = SigmetAsh(self, conf=self.conf, context=self.context, database=self.database)
-        self.airmetContent = AirmetGeneral(self, conf=self.conf, context=self.context, database=self.database)
-        self.cancelContent = SigmetCancel(self, conf=self.conf, context=self.context, database=self.database)
-        self.customContent = SigmetCustom(self, conf=self.conf, context=self.context, database=self.database)
+        self.generalContent = SigmetGeneral(self, conf=self.conf, context=self.context, repository=self.repository)
+        self.typhoonContent = SigmetTyphoon(self, conf=self.conf, context=self.context, repository=self.repository)
+        self.ashContent = SigmetAsh(self, conf=self.conf, context=self.context, repository=self.repository)
+        self.airmetContent = AirmetGeneral(self, conf=self.conf, context=self.context, repository=self.repository)
+        self.cancelContent = SigmetCancel(self, conf=self.conf, context=self.context, repository=self.repository)
+        self.customContent = SigmetCustom(self, conf=self.conf, context=self.context, repository=self.repository)
 
         self.contents = []
         self.contents.append(self.generalContent)

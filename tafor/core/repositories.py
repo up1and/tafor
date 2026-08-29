@@ -312,3 +312,14 @@ class MessageRepository(Repository):
     def add(self, message):
         with self.database.session() as session:
             session.add(message)
+
+
+class Repositories:
+    """Every repository over one database, built once at the assembly
+    point and shared by the services and widgets that query them."""
+
+    def __init__(self, database):
+        self.taf = TafRepository(database)
+        self.metar = MetarRepository(database)
+        self.sigmet = SigmetRepository(database)
+        self.message = MessageRepository(database)

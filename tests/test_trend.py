@@ -2,6 +2,7 @@ import datetime
 
 import pytest
 
+from tafor.core.repositories import MessageRepository
 from tafor.ui.components.send import TrendSender
 from tafor.ui.components.trend import TrendEditor
 
@@ -19,13 +20,13 @@ class TestTrendEditor:
 
     @pytest.fixture
     def sender(self, qtbot, context, conf, database):
-        sender = TrendSender(None, context, conf, database)
+        sender = TrendSender(None, context, conf, repository=MessageRepository(database))
         qtbot.addWidget(sender)
         return sender
 
     @pytest.fixture
-    def editor(self, qtbot, sender, conf, context, database):
-        editor = TrendEditor(None, sender=sender, conf=conf, context=context, database=database)
+    def editor(self, qtbot, sender, conf, context):
+        editor = TrendEditor(None, sender=sender, conf=conf, context=context)
         qtbot.addWidget(editor)
         return editor
 

@@ -5,7 +5,6 @@ from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QComboBox, QRadioButton, QToolButton, QCheckBox, QTextEdit, QMessageBox, QHBoxLayout, QVBoxLayout
 
 from tafor.core.parsers.base import Pattern
-from tafor.core.repositories import TafRepository
 from tafor.core.taf import (CurrentTaf, GroupState, PrimaryState, SegmentState, TemperatureState, TrendState,
     TafValidator, TrendValidator, completeGroupPeriod, groupSpan, isGroupStartAcceptable,
     normalizeTemperatureTime, parseTemperature)
@@ -472,9 +471,11 @@ class TemperatureGroup(SegmentMixin, QWidget):
 
 class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
-    def __init__(self, name='PRIMARY', editor=None, conf=None, context=None, database=None):
+    def __init__(self, name='PRIMARY', editor=None, conf=None, context=None, repository=None):
         super().__init__(name, editor, conf, context)
         self.setupUi(self)
+
+        self.repository = repository
 
         self.setupValidator()
         self.period.setEnabled(False)
@@ -501,8 +502,6 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
         # Link temperature states to primary state
         self.state.temperatures = [t.state for t in self.temperatures]
-
-        self.tafRepository = TafRepository(database)
 
         self.prevButton.setIcon(QIcon(iconPath('back.png')))
         self.resetButton.setIcon(QIcon(iconPath('reset.png')))
@@ -605,7 +604,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
     def setNormalPeriod(self, taf, strict=False):
         period = taf.period(strict=strict)
-        hasRecent = self.tafRepository.hasRecent(period)
+        hasRecent = self.repository.hasRecent(period)
 
         if period and hasRecent or not self.date.hasAcceptableInput():
             self.period.clear()
@@ -641,7 +640,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
                     self.prevButton.setEnabled(False)
 
     def amendNumber(self, sort):
-        return self.tafRepository.amendSequence(self.amdPeriod, sort)
+        return self.repository.amendSequence(self.amdPeriod, sort)
 
     def findTemperature(self, oneself):
         temps = [t.state.value for t in self.temperatures if t.state.value and t is not oneself]

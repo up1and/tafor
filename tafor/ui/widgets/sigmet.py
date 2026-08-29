@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QToolButton
 
 from tafor.core.parsers.base import Pattern
 from tafor.core.parsers.sigmet import AshAdvisoryParser, TyphoonAdvisoryParser
-from tafor.core.repositories import SigmetFilter, SigmetRepository
+from tafor.core.repositories import SigmetFilter
 from tafor.core.sigmet import (SigmetAshState, SigmetCancelState, SigmetCustomState, SigmetGeneralState,
     SigmetTyphoonState, SigmetValidator)
 from tafor.core.sigmet.issuance import adjustCancelBeginning, nextSequence, validPeriod
@@ -44,7 +44,7 @@ class BaseSigmet(SegmentMixin, QWidget):
     # Concrete classes declare their field-group parts here
     parts = ()
 
-    def __init__(self, editor=None, conf=None, context=None, database=None):
+    def __init__(self, editor=None, conf=None, context=None, repository=None):
         super().__init__()
         self.complete = False
         self.durations = None
@@ -52,7 +52,7 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.editor = editor
         self.conf = conf
         self.context = context
-        self.database = database
+        self.repository = repository
         self.span = 4
         self.forecastMode = False
         self.mode = 'polygon'
@@ -62,7 +62,6 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.switchButton = QToolButton(self)
         self.switchButton.hide()
         self.headingGroup.setMinimumWidth(77 * 3 + 32)
-        self.sigmetRepository = SigmetRepository(self.database)
         self.parts = [part(self) for part in self.parts]
         self.initState()
         self.setupFont()
@@ -185,7 +184,7 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.endingTime.setText(endingTime.strftime('%d%H%M'))
 
     def updateSequence(self):
-        sigmets = self.sigmetRepository.countToday(self.type())
+        sigmets = self.repository.countToday(self.type())
         count = nextSequence([sig.heading for sig in sigmets], datetime.datetime.utcnow())
         self.sequence.setText(str(count))
 
@@ -724,8 +723,8 @@ class SigmetGeneral(BaseSigmet, Ui_sigmet_general.Ui_Editor):
 
     parts = (ObservationPart, ForecastPart, FlightLevelPart, MovementPart)
 
-    def __init__(self, editor=None, conf=None, context=None, database=None):
-        super().__init__(editor, conf=conf, context=context, database=database)
+    def __init__(self, editor=None, conf=None, context=None, repository=None):
+        super().__init__(editor, conf=conf, context=context, repository=repository)
         self.setupUi(self)
         self.state = SigmetGeneralState(unit=self.conf.units.sigmetSpeed)
         self.initialize()
@@ -802,8 +801,8 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
     locationChanged = pyqtSignal(dict)
     circleChanged = pyqtSignal(dict)
 
-    def __init__(self, editor=None, conf=None, context=None, database=None):
-        super().__init__(editor, conf=conf, context=context, database=database)
+    def __init__(self, editor=None, conf=None, context=None, repository=None):
+        super().__init__(editor, conf=conf, context=context, repository=repository)
         self.setupUi(self)
         self.state = SigmetTyphoonState(unit=self.conf.units.sigmetSpeed)
         self.initialize()
@@ -982,8 +981,8 @@ class SigmetAsh(BaseSigmet, Ui_sigmet_ash.Ui_Editor):
 
     locationChanged = pyqtSignal(dict)
 
-    def __init__(self, editor=None, conf=None, context=None, database=None):
-        super().__init__(editor, conf=conf, context=context, database=database)
+    def __init__(self, editor=None, conf=None, context=None, repository=None):
+        super().__init__(editor, conf=conf, context=context, repository=repository)
         self.setupUi(self)
         self.state = SigmetAshState(unit=self.conf.units.sigmetSpeed)
         self.initialize()
@@ -1110,8 +1109,8 @@ class AirmetGeneral(SigmetGeneral):
 
 class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
-    def __init__(self, editor=None, conf=None, context=None, database=None):
-        super().__init__(editor, conf=conf, context=context, database=database)
+    def __init__(self, editor=None, conf=None, context=None, repository=None):
+        super().__init__(editor, conf=conf, context=context, repository=repository)
         self.setupUi(self)
         self.state = SigmetCancelState()
         self.initialize()
@@ -1197,8 +1196,8 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
 class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
 
-    def __init__(self, editor=None, conf=None, context=None, database=None):
-        super().__init__(editor, conf=conf, context=context, database=database)
+    def __init__(self, editor=None, conf=None, context=None, repository=None):
+        super().__init__(editor, conf=conf, context=context, repository=repository)
         self.setupUi(self)
         self.state = SigmetCustomState()
         self.initialize()
@@ -1257,7 +1256,7 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         self.text.setPlaceholderText(tip)
 
     def loadLocalDatabase(self):
-        last = self.sigmetRepository.latest(self.type())
+        last = self.repository.latest(self.type())
 
         if last:
             parser = last.parser()

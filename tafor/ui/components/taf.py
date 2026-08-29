@@ -68,8 +68,9 @@ class TafEditor(BaseEditor):
 
     confGroup = 'taf'
 
-    def __init__(self, parent=None, sender=None, conf=None, context=None, database=None):
-        super().__init__(parent, sender, conf, context, database)
+    def __init__(self, parent=None, sender=None, conf=None, context=None, repository=None):
+        super().__init__(parent, sender, conf, context)
+        self.repository = repository
         self.presenter = TafPresenter(self, context, conf)
         self.initUI()
         self.presenter.initialize()
@@ -80,8 +81,8 @@ class TafEditor(BaseEditor):
         layout = QVBoxLayout(window)
         layout.setSizeConstraint(QLayout.SetFixedSize)
         layout.setSpacing(18)
-        
-        self.primary = TafPrimarySegment(editor=self, conf=self.conf, context=self.context, database=self.database)
+
+        self.primary = TafPrimarySegment(editor=self, conf=self.conf, context=self.context, repository=self.repository)
         self.fm = TafFmSegment('FM', self, conf=self.conf, context=self.context)
         self.becmg1 = TafBecmgSegment('BECMG1', self, conf=self.conf, context=self.context)
         self.becmg2 = TafBecmgSegment('BECMG2', self, conf=self.conf, context=self.context)

@@ -16,7 +16,7 @@ from tafor import __version__, root
 from tafor.core.config import createConfig
 from tafor.core.states import createContext
 from tafor.core.models import Metar, createDatabase
-from tafor.core.repositories import MessageRepository, MetarRepository, SigmetFilter, SigmetRepository, TafRepository, subscribedTypes
+from tafor.core.repositories import Repositories, SigmetFilter, subscribedTypes
 from tafor.core.utils.common import appInfo, checkVersion, iconPath, revision, setupLogging
 from tafor.ui.components.chart import ChartViewer
 from tafor.ui.components.send import CustomSender, SigmetSender, TafSender, TrendSender
@@ -88,18 +88,15 @@ class RemindService:
 
 class DataService:
 
-    def __init__(self, view, context, conf, database):
+    def __init__(self, view, context, conf, repositories):
         self.view = view
         self.context = context
         self.conf = conf
-        self.tafRepository = TafRepository(database)
-        self.metarRepository = MetarRepository(database)
-        self.sigmetRepository = SigmetRepository(database)
-        self.messageRepository = MessageRepository(database)
+        self.repositories = repositories
 
     def loadMetar(self):
         parser = self.context.notification.metar.parser()
-        metar = self.metarRepository.latest()
+        metar = self.repositories.metar.latest()
 
         if parser:
             self.view.trendSound.play()
@@ -125,7 +122,7 @@ class DataService:
         types = subscribedTypes(self.conf.tafSpec, self.conf.sigmetEnabled)
 
         messages = self.context.message.message()
-        items = self.messageRepository.available(messages, types=types)
+        items = self.repositories.message.available(messages, types=types)
         needPlaySound = False
 
         for item in items:
@@ -139,7 +136,7 @@ class DataService:
             else:
                 needPlaySound = True
 
-            self.messageRepository.add(item)
+            self.repositories.message.add(item)
 
         if needPlaySound:
             self.view.notificationSound.play(loop=False)
@@ -148,12 +145,12 @@ class DataService:
         self.refresh()
 
     def updateTaf(self):
-        status = self.tafRepository.status(self.context.taf.spec, delayMinutes=self.conf.delayMinutes)
+        status = self.repositories.taf.status(self.context.taf.spec, delayMinutes=self.conf.delayMinutes)
         self.context.taf.setState(status)
 
     def updateSigmet(self):
         try:
-            sigmets = self.sigmetRepository.current()
+            sigmets = self.repositories.sigmet.current()
             self.context.current.setState(sigmets)
         except Exception as e:
             logger.error('Sigmet cannot be updated, {}'.format(e))
@@ -174,7 +171,7 @@ class DataService:
         if self.conf.sigmetEnabled:
             sigmets = self.context.current.filterSigmets(SigmetFilter(includeCancelled=True))
 
-        messages = self.messageRepository.recent(spec, recent, includeSigmet=self.conf.sigmetEnabled, currentSigmets=sigmets)
+        messages = self.repositories.message.recent(spec, recent, includeSigmet=self.conf.sigmetEnabled, currentSigmets=sigmets)
         metar = self.notificationMetar()
         if metar:
             messages['metar'] = metar
@@ -213,7 +210,7 @@ class DataService:
 
 class MainPresenter(QObject):
 
-    def __init__(self, view, context, conf, database, bridge=None, dataService=None, remindService=None):
+    def __init__(self, view, context, conf, dataService, remindService=None, bridge=None):
         super().__init__(view)
         self.view = view
         self.context = context
@@ -224,7 +221,7 @@ class MainPresenter(QObject):
 
         # The presenter delegates data loading to DataService
         # and reminder logic to RemindService.
-        self.dataService = dataService or DataService(view, context, conf, database)
+        self.dataService = dataService
         self.remindService = remindService or RemindService(view, context, conf)
 
         self.setupTimers()
@@ -471,9 +468,15 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         super().__init__(parent)
         self.conf = conf
         self.context = context
-        self.database = database
         self.setupUi(self)
-        self.presenter = MainPresenter(self, context, conf, database, bridge=bridge)
+
+        # One set of repositories built here and shared by the data service
+        # and the widgets that query them
+        self.repositories = Repositories(database)
+
+        dataService = DataService(self, context, conf, self.repositories)
+
+        self.presenter = MainPresenter(self, context, conf, dataService, bridge=bridge)
         self.sysInfo = QSysInfo.prettyProductName()
 
         self.setup()
@@ -489,17 +492,17 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         # 初始化窗口
         self.settingDialog = SettingDialog(self, self.conf, self.context)
 
-        self.tafSender = TafSender(self, self.context, self.conf, self.database)
-        self.trendSender = TrendSender(self, self.context, self.conf, self.database)
-        self.sigmetSender = SigmetSender(self, self.context, self.conf, self.database)
-        self.customSender = CustomSender(self, self.context, self.conf, self.database)
+        self.tafSender = TafSender(self, self.context, self.conf, repository=self.repositories.message)
+        self.trendSender = TrendSender(self, self.context, self.conf, repository=self.repositories.message)
+        self.sigmetSender = SigmetSender(self, self.context, self.conf, repository=self.repositories.message)
+        self.customSender = CustomSender(self, self.context, self.conf, repository=self.repositories.message)
 
-        self.tafEditor = TafEditor(self, self.tafSender, self.conf, self.context, self.database)
-        self.trendEditor = TrendEditor(self, self.trendSender, self.conf, self.context, self.database)
-        self.sigmetEditor = SigmetEditor(self, self.sigmetSender, self.conf, self.context, self.database)
+        self.tafEditor = TafEditor(self, self.tafSender, self.conf, self.context, repository=self.repositories.taf)
+        self.trendEditor = TrendEditor(self, self.trendSender, self.conf, self.context)
+        self.sigmetEditor = SigmetEditor(self, self.sigmetSender, self.conf, self.context, repository=self.repositories.sigmet)
         self.licenseEditor = LicenseEditor(self, conf=self.conf, context=self.context)
 
-        self.chartViewer = ChartViewer(self, self.database)
+        self.chartViewer = ChartViewer(self, repository=self.repositories.metar)
 
         if not self.conf.sigmetEnabled:
             self.sigmetAction.setVisible(False)
@@ -573,10 +576,10 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.scrollLayout.setAlignment(Qt.AlignTop)
 
     def setupTable(self):
-        self.tafTable = TafTable(self, self.tafLayout, reviewer=self.tafSender, conf=self.conf, context=self.context, database=self.database)
-        self.metarTable = MetarTable(self, self.metarLayout, conf=self.conf, context=self.context, database=self.database)
-        self.sigmetTable = SigmetTable(self, self.sigmetLayout, reviewer=self.sigmetSender, conf=self.conf, context=self.context, database=self.database)
-        self.airmetTable = AirmetTable(self, self.airmetLayout, reviewer=self.sigmetSender, conf=self.conf, context=self.context, database=self.database)
+        self.tafTable = TafTable(self, self.tafLayout, reviewer=self.tafSender, conf=self.conf, context=self.context, repository=self.repositories.taf)
+        self.metarTable = MetarTable(self, self.metarLayout, conf=self.conf, context=self.context, repository=self.repositories.metar)
+        self.sigmetTable = SigmetTable(self, self.sigmetLayout, reviewer=self.sigmetSender, conf=self.conf, context=self.context, repository=self.repositories.sigmet)
+        self.airmetTable = AirmetTable(self, self.airmetLayout, reviewer=self.sigmetSender, conf=self.conf, context=self.context, repository=self.repositories.sigmet)
 
     def setupSysTray(self):
         self.tray = QSystemTrayIcon(self)

@@ -1,5 +1,6 @@
 import pytest
 
+from tafor.core.repositories import MessageRepository, TafRepository
 from tafor.ui.components.send import TafSender
 from tafor.ui.components.taf import TafEditor
 
@@ -8,13 +9,13 @@ class TestTafEditor:
 
     @pytest.fixture
     def sender(self, qtbot, context, conf, database):
-        sender = TafSender(None, context, conf, database)
+        sender = TafSender(None, context, conf, repository=MessageRepository(database))
         qtbot.addWidget(sender)
         return sender
 
     @pytest.fixture
     def editor(self, qtbot, sender, conf, context, database):
-        editor = TafEditor(None, sender=sender, conf=conf, context=context, database=database)
+        editor = TafEditor(None, sender=sender, conf=conf, context=context, repository=TafRepository(database))
         qtbot.addWidget(editor)
         return editor
 

@@ -9,12 +9,11 @@ class BaseEditor(QDialog):
     # Subclass sets this to the conf group checked before the editor can show
     confGroup = None
 
-    def __init__(self, parent=None, sender=None, conf=None, context=None, database=None):
+    def __init__(self, parent=None, sender=None, conf=None, context=None):
         super().__init__(parent)
         self.sender = sender
         self.conf = conf
         self.context = context
-        self.database = database
         self.presenter = None
         self.isStaged = False
 
