@@ -38,7 +38,7 @@ class Event:
         self.tafReminderTriggered = Signal()
         self.trendReloadRequested = Signal()
         self.layerRefreshRequested = Signal()
-        self.otherMessageReceived = Signal()
+        self.otherMessageReceived = Signal()  # emits the transient Other instance from the api
 
         # UI messages
         self.systemMessage = Signal()       # emits title, text, level

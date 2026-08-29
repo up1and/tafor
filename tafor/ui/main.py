@@ -341,10 +341,10 @@ class MainPresenter(QObject):
         self.view.enterLicenseAction.setVisible(not registered)
         self.view.removeLicenseAction.setVisible(registered)
 
-    def loadCustomMessage(self):
+    def loadCustomMessage(self, message):
         self.view.ensureVisible()
         self.view.incomingSound.play(loop=False)
-        self.view.customSender.presenter.load()
+        self.view.customSender.presenter.load(message)
         self.view.customSender.show()
 
         self.context.flash.info(

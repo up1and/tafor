@@ -51,8 +51,8 @@ class FakeContext:
             self.values = values
 
     class _Other:
-        def setState(self, values):
-            self.__dict__.update(values)
+        def submit(self, values):
+            self.values = values
 
     def __init__(self):
         self.serial = self._Serial()

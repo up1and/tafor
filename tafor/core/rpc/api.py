@@ -393,14 +393,11 @@ class OthersResource(ResourceCollection):
             raise falcon.HTTPBadRequest(title='Message Required', description='Please provide priority indicator, addresses and message text.')
 
         uuid = str(uuid4())
-        self.context.other.setState({
-            'uuid': uuid,
-            'priority': priority,
-            'address': address,
-            'message': message,
-        })
+        custom = Other(uuid=uuid, text=message, source='api')
+        custom.priority = priority
+        custom.address = address
+        self.context.other.submit(custom)
 
-        custom = Other(uuid=uuid, text=message)
         generator = createChannel('aftn', self.conf).generate(custom, priority=priority, address=address)
 
         resp.status = falcon.HTTP_CREATED

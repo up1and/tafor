@@ -8,7 +8,6 @@ from PyQt5.QtCore import QCoreApplication, QSize, Qt, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QMessageBox, QTextEdit, QLabel, QToolButton
 from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
 
-from tafor.core.models import Other
 from tafor.core.parsers.metar import MetarParser
 from tafor.core.parsers.sigmet import SigmetParser
 from tafor.core.parsers.taf import TafParser
@@ -187,10 +186,9 @@ class TransportService:
 
     def generate(self, message, protocol):
         channel = self.channel(protocol)
-        if message.reportType == 'custom':
-            return channel.generate(message,
-                priority=self.context.other.priority, address=self.context.other.address)
-        return channel.generate(message)
+        return channel.generate(message,
+            priority=getattr(message, 'priority', None),
+            address=getattr(message, 'address', None))
 
     def transmit(self, protocol, parser, rawText, done, finished):
         worker, thread = threadManager.createWorker(self.worker(protocol), rawText, **self.workerParams(protocol, parser))
@@ -348,9 +346,9 @@ class SenderPresenter:
         if self.view.isVisible() and self.view.message:
             self.compose()
 
-    def load(self):
+    def load(self, message):
         self.view.clear()
-        self.view.message = Other(uuid=self.context.other.uuid, text=self.context.other.message, source='api')
+        self.view.message = message
         rawText = self.generateRawText()
         self.view.setRawGroup(rawText)
         self.view.rawGroup.show()

@@ -253,13 +253,17 @@ class ContextBridge(QObject):
     """The single door through which background threads update context state.
 
     Lives on the GUI thread. Workers connect their fetched signals to the
-    update* slots; the RPC server calls the setState entry points, which
-    emit Qt signals queued back to the GUI thread. The real context
+    update* slots; the RPC server calls the setState/submit entry points,
+    which emit Qt signals queued back to the GUI thread. The real context
     services only ever run on the GUI thread.
+
+    Submit payloads must be transient model instances (never bound to a
+    session) and stay read-only on the emitting thread; the GUI side
+    takes ownership once queued.
     """
     metarNotification = pyqtSignal(dict)
     sigmetNotification = pyqtSignal(dict)
-    otherMessage = pyqtSignal(dict)
+    otherMessage = pyqtSignal(object)
 
     def __init__(self, context, parent=None):
         super().__init__(parent)
@@ -272,7 +276,7 @@ class ContextBridge(QObject):
             metar=SimpleNamespace(setState=self.metarNotification.emit),
             sigmet=SimpleNamespace(setState=self.sigmetNotification.emit),
         )
-        self.other = SimpleNamespace(setState=self.otherMessage.emit)
+        self.other = SimpleNamespace(submit=self.otherMessage.emit)
 
     def updateMetar(self, values):
         self.context.notification.metar.setState(values)
@@ -280,8 +284,8 @@ class ContextBridge(QObject):
     def updateSigmet(self, values):
         self.context.notification.sigmet.setState(values)
 
-    def updateOther(self, values):
-        self.context.other.setState(values)
+    def updateOther(self, message):
+        self.context.event.otherMessageReceived.emit(message)
 
     def updateMessage(self, data):
         self.context.message.setState(data)

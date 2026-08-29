@@ -197,6 +197,11 @@ class Other(Base):
     source = Column(String(16), default='self')
     created = Column(DateTime, default=datetime.datetime.utcnow)
 
+    # Transient AFTN addressing supplied by the API for custom messages;
+    # not mapped columns.
+    priority = None
+    address = None
+
     def __repr__(self):
         return '<Other %r>' % (self.raw)
 

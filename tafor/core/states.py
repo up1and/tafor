@@ -47,15 +47,6 @@ class NotificationState:
         self.previous = ''
 
 
-class OtherState:
-    def __init__(self):
-        self.uuid = None
-        self.priority = None
-        self.address = None
-        self.message = None
-        self.created = datetime.datetime.utcnow()
-
-
 class StateProxyMixin:
     """Readonly Property Mixin"""
     fields = ['']
@@ -393,21 +384,6 @@ class NotificationManager:
         self.sigmet = NotificationService(states.get('sigmet'), event, conf)
 
 
-class OtherService(StateProxyMixin):
-    fields = ['uuid', 'priority', 'address', 'message', 'created']
-
-    def __init__(self, state, event):
-        self.state = state
-        self.event = event
-
-    def setState(self, values):
-        for key, value in values.items():
-            if hasattr(self.state, key):
-                setattr(self.state, key, value)
-        self.state.created = datetime.datetime.utcnow()
-        self.event.otherMessageReceived.emit()
-
-
 class FlashService:
     def __init__(self, event):
         self.event = event
@@ -447,7 +423,6 @@ class AppContext:
         layerState = LayerState()
         tafMonitorState = TafMonitorState()
         sigmetMonitorState = SigmetMonitorState()
-        otherState = OtherState()
         notificationStates = {
             'metar': NotificationState(),
             'sigmet': NotificationState(),
@@ -459,7 +434,6 @@ class AppContext:
         self.layer = LayerService(layerState, self.event, conf)
         self.taf = TafMonitorService(tafMonitorState, self.event, conf)
         self.sigmet = SigmetMonitorService(sigmetMonitorState, self.event)
-        self.other = OtherService(otherState, self.event)
         self.notification = NotificationManager(notificationStates, self.event, conf)
         self.flash = FlashService(self.event)
 
