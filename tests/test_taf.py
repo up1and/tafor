@@ -1,59 +1,74 @@
 import pytest
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QMessageBox
-
 from tafor.ui.components.send import TafSender
 from tafor.ui.components.taf import TafEditor
 
 
-pytestmark = pytest.mark.skip(reason='Waiting for UI constructor DI fix (conf/context injection)')
-
-
-class TestTrend:
+class TestTafEditor:
 
     @pytest.fixture
-    def sender(self, qtbot):
-        sender = TafSender()
+    def sender(self, qtbot, context, conf, database):
+        sender = TafSender(None, context, conf, database)
         qtbot.addWidget(sender)
         return sender
 
     @pytest.fixture
-    def editor(self, qtbot, sender):
-        editor = TafEditor(parent=None, sender=sender)
+    def editor(self, qtbot, sender, conf, context, database):
+        editor = TafEditor(None, sender=sender, conf=conf, context=context, database=database)
         qtbot.addWidget(editor)
         return editor
 
-    def test_send_taf(self, qtbot, monkeypatch, sender, editor):
-        # idx = editor.trend.weatherWithIntensity.findText('TSRA')
-        # editor.trend.weatherWithIntensity.setCurrentIndex(idx)
-        # editor.trend.cloud1.setText('SCT020')
-        # editor.trend.cb.setText('FEW026')
-        # qtbot.mouseClick(editor.nextButton, Qt.LeftButton)
-        # qtbot.mouseClick(sender.sendButton, Qt.LeftButton)
-        # monkeypatch.setattr(QMessageBox, 'critical', lambda *args: 'critical')
-        pass
+    def test_construct(self, editor, conf, context):
+        assert editor.primary.state.icao == conf.airport
+        assert editor.primary.state.spec == context.taf.spec
+        assert len(editor.segments()) == 8
+        assert editor.windowTitle()
 
-    def test_taf_editor(self, qtbot, editor):
-        # qtbot.mouseClick(editor.trend.becmg, Qt.LeftButton)
-        # qtbot.mouseClick(editor.trend.tempo, Qt.LeftButton)
-        # qtbot.mouseClick(editor.trend.cavok, Qt.LeftButton)
-        # qtbot.mouseClick(editor.trend.nsc, Qt.LeftButton)
-        # qtbot.mouseClick(editor.trend.fm, Qt.LeftButton)
-        # qtbot.mouseClick(editor.trend.tl, Qt.LeftButton)
-        # qtbot.mouseClick(editor.trend.at, Qt.LeftButton)
-        # qtbot.mouseClick(editor.trend.nosig, Qt.LeftButton)
-        pass
+    def test_normal_period(self, editor):
+        primary = editor.primary
+        primary.setDate()
+        primary.normal.click()
 
-    def test_taf_validate(self, qtbot, editor):
-        # qtbot.mouseClick(editor.trend.at, Qt.LeftButton)
-        # editor.trend.period.setText('2400')
-        # editor.trend.period.editingFinished.emit()
+        assert primary.period.text()
+        assert primary.state.durations is not None
+        assert not primary.sequence.isEnabled()
 
-        # qtbot.mouseClick(editor.trend.tl, Qt.LeftButton)
-        # editor.trend.period.setText('0000')
-        # editor.trend.period.editingFinished.emit()
-        pass
+    def test_amend_sequence(self, editor):
+        primary = editor.primary
+        primary.setDate()
+        primary.amd.click()
+        primary.syncToState()
+
+        # Empty database: no amendment this period, so the first one is AAA
+        assert primary.sequence.text() == 'AAA'
+        assert primary.sequence.isEnabled()
+        assert primary.state.type == 'AMD'
+        assert primary.state.sequence == 'AAA'
+
+    def test_cancel_mode(self, editor):
+        primary = editor.primary
+        primary.setDate()
+        primary.cnl.click()
+        primary.syncToState()
+
+        assert editor.isCancelMode()
+        assert all(not c.isEnabled() for c in primary.groupCheckboxs)
+
+        message = primary.message()
+        assert message.startswith('TAF AMD ')
+        assert message.endswith(' CNL')
+
+    def test_group_visibility(self, editor):
+        primary = editor.primary
+        checkbox = primary.becmg1Checkbox
+
+        checkbox.setChecked(True)
+        editor.updateGroupsVisibility(checkbox)
+        assert editor.becmg1.isVisibleTo(editor)
+
+        checkbox.setChecked(False)
+        editor.updateGroupsVisibility(checkbox)
+        assert not editor.becmg1.isVisibleTo(editor)
 
 
 if __name__ == '__main__':

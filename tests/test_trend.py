@@ -1,56 +1,79 @@
-import pytest
+import datetime
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QMessageBox
+import pytest
 
 from tafor.ui.components.send import TrendSender
 from tafor.ui.components.trend import TrendEditor
 
 
-pytestmark = pytest.mark.skip(reason='Waiting for UI constructor DI fix (conf/context injection)')
+def futurePeriod():
+    """A trend period always inside the 2.5h validation window."""
+    time = datetime.datetime.utcnow() + datetime.timedelta(minutes=95)
+    period = time.strftime('%H%M')
+    if period in ('0000', '2400'):
+        period = (time + datetime.timedelta(minutes=1)).strftime('%H%M')
+    return period
 
 
-class TestTrend:
+class TestTrendEditor:
 
     @pytest.fixture
-    def sender(self, qtbot):
-        sender = TrendSender()
+    def sender(self, qtbot, context, conf, database):
+        sender = TrendSender(None, context, conf, database)
         qtbot.addWidget(sender)
         return sender
 
     @pytest.fixture
-    def editor(self, qtbot, sender):
-        editor = TrendEditor(parent=None, sender=sender)
+    def editor(self, qtbot, sender, conf, context, database):
+        editor = TrendEditor(None, sender=sender, conf=conf, context=context, database=database)
         qtbot.addWidget(editor)
         return editor
 
-    def test_send_trend(self, qtbot, monkeypatch, sender, editor):
-        idx = editor.trend.weatherWithIntensity.findText('TSRA')
-        editor.trend.weatherWithIntensity.setCurrentIndex(idx)
-        editor.trend.cloud1.setText('SCT020')
-        editor.trend.cb.setText('FEW026')
-        qtbot.mouseClick(editor.nextButton, Qt.LeftButton)
-        qtbot.mouseClick(sender.sendButton, Qt.LeftButton)
-        monkeypatch.setattr(QMessageBox, 'critical', lambda *args: 'critical')
+    def test_construct(self, editor):
+        assert editor.trend.state is not None
+        assert not editor.nextButton.isEnabled()
 
-    def test_trend_editor(self, qtbot, editor):
-        qtbot.mouseClick(editor.trend.becmg, Qt.LeftButton)
-        qtbot.mouseClick(editor.trend.tempo, Qt.LeftButton)
-        qtbot.mouseClick(editor.trend.cavok, Qt.LeftButton)
-        qtbot.mouseClick(editor.trend.nsc, Qt.LeftButton)
-        qtbot.mouseClick(editor.trend.fm, Qt.LeftButton)
-        qtbot.mouseClick(editor.trend.tl, Qt.LeftButton)
-        qtbot.mouseClick(editor.trend.at, Qt.LeftButton)
-        qtbot.mouseClick(editor.trend.nosig, Qt.LeftButton)
+    def test_nosig(self, editor):
+        editor.trend.nosig.click()
 
-    def test_trend_validate(self, qtbot, editor):
-        qtbot.mouseClick(editor.trend.at, Qt.LeftButton)
-        editor.trend.period.setText('2400')
-        editor.trend.period.editingFinished.emit()
+        assert editor.trend.state.isNosig
+        assert editor.trend.message() == 'NOSIG'
+        assert editor.nextButton.isEnabled()
 
-        qtbot.mouseClick(editor.trend.tl, Qt.LeftButton)
-        editor.trend.period.setText('0000')
-        editor.trend.period.editingFinished.emit()
+        editor.trend.nosig.click()
+        assert not editor.trend.state.isNosig
+
+    def test_type_switch(self, editor):
+        editor.trend.becmg.click()
+        assert editor.trend.state.type == 'BECMG'
+        assert editor.trend.at.isEnabled()
+
+        editor.trend.tempo.click()
+        assert editor.trend.state.type == 'TEMPO'
+        assert not editor.trend.at.isEnabled()
+
+    def test_compose_with_cavok_and_at_period(self, editor):
+        period = futurePeriod()
+        trend = editor.trend
+        trend.becmg.click()
+        trend.cavok.click()
+        trend.at.click()
+        trend.period.setText(period)
+
+        assert editor.nextButton.isEnabled()
+        assert trend.message() == 'BECMG AT{} CAVOK'.format(period)
+
+        trend.period.editingFinished.emit()
+        assert trend.period.text() == period
+        assert trend.message() == 'BECMG AT{} CAVOK'.format(period)
+
+    def test_period_required_with_prefix(self, editor):
+        trend = editor.trend
+        trend.becmg.click()
+        trend.cavok.click()
+        trend.at.click()
+
+        assert not editor.nextButton.isEnabled()
 
 
 if __name__ == '__main__':

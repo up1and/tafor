@@ -34,7 +34,9 @@ jobs:
         run: uv sync --group dev
 
       - name: Run tests
-        run: xvfb-run -a uv run pytest --cov=tafor --cov-report=xml --cov-report=term
+        run: uv run pytest --cov=tafor --cov-report=xml --cov-report=term
+        env:
+          QT_QPA_PLATFORM: offscreen
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v6

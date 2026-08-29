@@ -11,8 +11,10 @@ def conf():
     return createConfig(settings=MockConfig())
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture
 def context(conf):
+    # Function-scoped: UI widgets connect to context events, so the context
+    # must not outlive a test's widgets (handlers would fire on dead objects)
     return createContext(conf)
 
 
