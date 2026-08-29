@@ -81,7 +81,7 @@ class TafEditor(BaseEditor):
         layout.setSizeConstraint(QLayout.SetFixedSize)
         layout.setSpacing(18)
         
-        self.primary = TafPrimarySegment(parent=self, conf=self.conf, context=self.context, database=self.database)
+        self.primary = TafPrimarySegment(editor=self, conf=self.conf, context=self.context, database=self.database)
         self.fm = TafFmSegment('FM', self, conf=self.conf, context=self.context)
         self.becmg1 = TafBecmgSegment('BECMG1', self, conf=self.conf, context=self.context)
         self.becmg2 = TafBecmgSegment('BECMG2', self, conf=self.conf, context=self.context)

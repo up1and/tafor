@@ -583,7 +583,6 @@ class GraphicsWindow(QWidget):
 
     def __init__(self, parent=None, context=None):
         super().__init__(parent)
-        self.parent = parent
         self.context = context
         self.type = ''
         self.quietly = False

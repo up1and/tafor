@@ -115,10 +115,10 @@ class BaseSegment(SegmentMixin, QWidget):
 
     contentChanged = pyqtSignal()
 
-    def __init__(self, name=None, parent=None, conf=None, context=None):
+    def __init__(self, name=None, editor=None, conf=None, context=None):
         super().__init__()
         self.rules = Pattern()
-        self.parent = parent
+        self.editor = editor
         self.conf = conf
         self.context = context
         self.identifier = ''.join(c for c in name if c.isalpha())
@@ -340,11 +340,11 @@ class TemperatureGroup(SegmentMixin, QWidget):
 
     temperatureChanged = pyqtSignal()
 
-    def __init__(self, mode='max', canSwitch=False, parent=None, context=None):
-        super().__init__(parent)
+    def __init__(self, mode='max', canSwitch=False, primary=None, context=None):
+        super().__init__(primary)
         self.state = TemperatureState(mode)
         self.canSwitch = canSwitch
-        self.parent = parent
+        self.primary = primary
         self.context = context
 
         self.setupUi()
@@ -393,10 +393,10 @@ class TemperatureGroup(SegmentMixin, QWidget):
         self.state.time = self.tempTime.text() if self.tempTime.hasAcceptableInput() else ""
 
     def setupValidator(self):
-        temperature = QRegExpValidator(QRegExp(self.parent.rules.temperature, Qt.CaseInsensitive))
+        temperature = QRegExpValidator(QRegExp(self.primary.rules.temperature, Qt.CaseInsensitive))
         self.temp.setValidator(temperature)
 
-        dayHour = QRegExpValidator(QRegExp(self.parent.rules.dayHour))
+        dayHour = QRegExpValidator(QRegExp(self.primary.rules.dayHour))
         self.tempTime.setValidator(dayHour)
 
     def setLabel(self):
@@ -411,14 +411,14 @@ class TemperatureGroup(SegmentMixin, QWidget):
         self.switchButton.setIcon(QIcon(iconPath('{}.png').format(icon)))
 
     def validateTemperatureTime(self):
-        if not self.parent.period.text() or not self.tempTime.hasAcceptableInput():
+        if not self.primary.period.text() or not self.tempTime.hasAcceptableInput():
             return
 
         error = TafValidator.checkTemperatureTime(
             self.state,
-            self.parent.state.durations,
-            siblings=self.parent.findTemperatureTime(self),
-            sameTypeSiblings=self.parent.findTemperatureTime(self, sameType=True),
+            self.primary.state.durations,
+            siblings=self.primary.findTemperatureTime(self),
+            sameTypeSiblings=self.primary.findTemperatureTime(self, sameType=True),
         )
         if error:
             self.state.time = ""
@@ -427,8 +427,8 @@ class TemperatureGroup(SegmentMixin, QWidget):
             return
 
         # Time normalization can stay in UI or move to state, keep here for now as it affects UI text
-        time = parseDayHour(self.state.time[:2], self.state.time[2:], self.parent.state.durations[0], delta='month')
-        normalized = normalizeTemperatureTime(time, self.parent.state.durations)
+        time = parseDayHour(self.state.time[:2], self.state.time[2:], self.primary.state.durations[0], delta='month')
+        normalized = normalizeTemperatureTime(time, self.primary.state.durations)
         if normalized:
             self.tempTime.setText(normalized)
 
@@ -438,7 +438,7 @@ class TemperatureGroup(SegmentMixin, QWidget):
 
         error = TafValidator.checkTemperature(
             self.state,
-            self.parent.findTemperature(self),
+            self.primary.findTemperature(self),
         )
         if error:
             self.state.value = ""
@@ -472,8 +472,8 @@ class TemperatureGroup(SegmentMixin, QWidget):
 
 class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
-    def __init__(self, name='PRIMARY', parent=None, conf=None, context=None, database=None):
-        super().__init__(name, parent, conf, context)
+    def __init__(self, name='PRIMARY', editor=None, conf=None, context=None, database=None):
+        super().__init__(name, editor, conf, context)
         self.setupUi(self)
 
         self.setupValidator()
@@ -486,14 +486,14 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             self.tempo1Checkbox, self.tempo2Checkbox, self.tempo3Checkbox,
         ]
 
-        self.tmax = TemperatureGroup(mode='max', parent=self, context=self.context)
-        self.tmin = TemperatureGroup(mode='min', parent=self, context=self.context)
+        self.tmax = TemperatureGroup(mode='max', primary=self, context=self.context)
+        self.tmin = TemperatureGroup(mode='min', primary=self, context=self.context)
         self.temperatureLayout.addWidget(self.tmax)
         self.temperatureLayout.addWidget(self.tmin)
         self.temperatures = [self.tmax, self.tmin]
 
         if self.context.taf.spec == 'ft30':
-            self.temp = TemperatureGroup(canSwitch=True, parent=self, context=self.context)
+            self.temp = TemperatureGroup(canSwitch=True, primary=self, context=self.context)
             self.temperatureLayout.addWidget(self.temp)
             self.temperatures.append(self.temp)
             self.becmg3Checkbox.setStyleSheet('QCheckBox {margin-top: 4px;}')
@@ -699,8 +699,8 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
 class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
-    def __init__(self, name='TEMPO', parent=None, conf=None, context=None):
-        super().__init__(name, parent, conf, context)
+    def __init__(self, name='TEMPO', editor=None, conf=None, context=None):
+        super().__init__(name, editor, conf, context)
         self.setupUi(self)
         self.name.setText(name)
         self.setupFont()
@@ -729,11 +729,11 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.period.setValidator(period)
 
     def setupPeriodPlaceholder(self):
-        if self.parent.primary.state.durations is None:
+        if self.editor.primary.state.durations is None:
             self.period.setPlaceholderText('')
             return
 
-        time = self.parent.primary.state.durations[0]
+        time = self.editor.primary.state.durations[0]
         self.period.setPlaceholderText('{:02d}'.format(time.day))
 
     def fillPeriod(self):
@@ -743,19 +743,19 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
             self.formatPeriodSeparator(self.period)
 
     def autoCompletePeriod(self):
-        if self.parent.primary.state.durations is None or not self.parent.primary.period.text():
+        if self.editor.primary.state.durations is None or not self.editor.primary.period.text():
             return
 
         text = self.period.text()
         if len(text) > len(self.periodText):
             if len(text) == 4:
-                if not isGroupStartAcceptable(text, self.parent.primary.state.durations):
+                if not isGroupStartAcceptable(text, self.editor.primary.state.durations):
                     return
 
                 if self.identifier.startswith(('TEMPO', 'BECMG')):
                     completed = completeGroupPeriod(
                         text,
-                        self.parent.primary.state.durations,
+                        self.editor.primary.state.durations,
                         self.identifier,
                         self.context.taf.spec,
                     )
@@ -769,9 +769,9 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.periodText = text
 
     def updateDurations(self):
-        if self.period.hasAcceptableInput() and self.parent.primary.period.text():
+        if self.period.hasAcceptableInput() and self.editor.primary.period.text():
             period = self.period.text()
-            basetime = self.parent.primary.state.durations[0]
+            basetime = self.editor.primary.state.durations[0]
             start, end = parsePeriod(period, basetime)
             self.state.durations = (start, end)
 
@@ -791,7 +791,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         span = groupSpan(self.identifier, self.context.taf.spec)
         error = TafValidator.checkGroupPeriod(
             self.state,
-            self.parent.primary.state,
+            self.editor.primary.state,
             span,
             isBecmg=self.identifier.startswith('BECMG'),
         )
@@ -800,7 +800,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
             self.context.flash.editor('taf', _translate(error, span=span))
 
     def validateGroupsPeriod(self):
-        groups = self.parent.tempos if self.identifier.startswith('TEMPO') else self.parent.becmgs
+        groups = self.editor.tempos if self.identifier.startswith('TEMPO') else self.editor.becmgs
         siblings = [g.state for g in groups if g.isVisible() and g.state and self != g]
         error = TafValidator.checkGroupOverlap(self.state, siblings)
         if error:
@@ -822,8 +822,8 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
 class TafFmSegment(TafGroupSegment):
 
-    def __init__(self, name='FM', parent=None, conf=None, context=None):
-        super().__init__(name, parent, conf, context)
+    def __init__(self, name='FM', editor=None, conf=None, context=None):
+        super().__init__(name, editor, conf, context)
 
     def bindSignal(self):
         super().bindSignal()
@@ -835,9 +835,9 @@ class TafFmSegment(TafGroupSegment):
         self.period.setValidator(period)
 
     def updateDurations(self):
-        if self.period.hasAcceptableInput() and self.parent.primary.period.text():
+        if self.period.hasAcceptableInput() and self.editor.primary.period.text():
             period = self.period.text()
-            basetime = self.parent.primary.state.durations[0]
+            basetime = self.editor.primary.state.durations[0]
             time = parseTime(period, basetime)
             self.state.durations = (time, time)
         else:
@@ -845,13 +845,13 @@ class TafFmSegment(TafGroupSegment):
 
     def validatePeriod(self):
         # Using states for validation where possible
-        error = TafValidator.checkFmPeriod(self.state, self.parent.primary.state)
+        error = TafValidator.checkFmPeriod(self.state, self.editor.primary.state)
         if error:
             self.period.clear()
             self.context.flash.editor('taf', _translate(error))
 
     def validateGroupsPeriod(self):
-        siblings = [g.state for g in self.parent.becmgs if g.isVisible() and g.state and self != g]
+        siblings = [g.state for g in self.editor.becmgs if g.isVisible() and g.state and self != g]
         error = TafValidator.checkFmOverlap(self.state, siblings)
         if error:
             self.period.clear()
@@ -869,8 +869,8 @@ class TafFmSegment(TafGroupSegment):
 
 class TafBecmgSegment(TafGroupSegment):
 
-    def __init__(self, name='BECMG', parent=None, conf=None, context=None):
-        super().__init__(name, parent, conf, context)
+    def __init__(self, name='BECMG', editor=None, conf=None, context=None):
+        super().__init__(name, editor, conf, context)
 
     def message(self):
         return self.state.composeMessage()
@@ -884,8 +884,8 @@ class TafBecmgSegment(TafGroupSegment):
 
 class TafTempoSegment(TafGroupSegment):
 
-    def __init__(self, name='TEMPO', parent=None, conf=None, context=None):
-        super().__init__(name, parent, conf, context)
+    def __init__(self, name='TEMPO', editor=None, conf=None, context=None):
+        super().__init__(name, editor, conf, context)
         self.cavok.hide()
         self.nsc.hide()
 
@@ -895,8 +895,8 @@ class TafTempoSegment(TafGroupSegment):
 
 class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
-    def __init__(self, name='TREND', parent=None, conf=None, context=None):
-        super().__init__(name, parent, conf, context)
+    def __init__(self, name='TREND', editor=None, conf=None, context=None):
+        super().__init__(name, editor, conf, context)
         self.setupUi(self)
         self.setupFont()
         self.setupValidator()

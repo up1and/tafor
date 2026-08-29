@@ -278,7 +278,6 @@ class SigmetBackground(QWidget, ColorMixin):
         if size is None:
             size = (200, 110)
         self.setFixedSize(*size)
-        self.parent = parent
         self.geo = geo
         self.geometries = []
         self.fitSize()

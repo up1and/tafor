@@ -102,7 +102,7 @@ class OutlinedLabel(QLabel):
 
 class RemindMessageBox(QMessageBox):
     """闹钟对话框"""
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         super().__init__(parent=parent)
         icon = QPixmap(iconPath('time.png'))
         title = QCoreApplication.translate('MainWindow', 'Alarm')
@@ -110,10 +110,9 @@ class RemindMessageBox(QMessageBox):
         self.setWindowTitle(title)
         self.addButton(QCoreApplication.translate('MainWindow', 'Dismiss'), QMessageBox.AcceptRole)
         self.addButton(QCoreApplication.translate('MainWindow', 'Snooze'), QMessageBox.RejectRole)
-        self.parent = parent
 
     def showEvent(self, event):
-        self.parent.showNormal()
+        self.parent().showNormal()
 
 
 class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
@@ -377,10 +376,9 @@ class LicenseEditor(QDialog, Ui_main_license.Ui_Editor):
 
     licenseChanged = pyqtSignal()
 
-    def __init__(self, parent, conf=None, context=None):
+    def __init__(self, parent=None, conf=None, context=None):
         super().__init__(parent)
         self.setupUi(self)
-        self.parent = parent
         self.conf = conf
         self.context = context
         self.buttonBox.accepted.connect(self.save)

@@ -18,9 +18,9 @@ from tafor.ui.workers import ExportRecordWorker, threadManager
 
 class ExportDialog(QDialog):
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.parent = parent
+    def __init__(self, table=None):
+        super().__init__(table)
+        self.table = table
 
         self.setupUi()
         self.bindSignal()
@@ -95,15 +95,15 @@ class ExportDialog(QDialog):
             self.saveButton.setEnabled(True)
 
     def filteredReport(self):
-        model = self.parent.model
-        reportType = self.parent.reportType
+        model = self.table.model
+        reportType = self.table.reportType
         start, end = self.startDate.date().toPyDate(), self.endDate.date().toPyDate()
-        return self.parent.repository.filtered(model, reportType=reportType, start=start, end=end)
+        return self.table.repository.filtered(model, reportType=reportType, start=start, end=end)
 
     def exportToCsv(self):
         fmt = '%Y-%m-%d'
         start, end = self.startDate.date().toPyDate(), self.endDate.date().toPyDate()
-        name = '{} {} {}.csv'.format(self.parent.reportType, start.strftime(fmt), end.strftime(fmt))
+        name = '{} {} {}.csv'.format(self.table.reportType, start.strftime(fmt), end.strftime(fmt))
         title = QCoreApplication.translate('DataTable', 'Save as CSV')
         path = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)
         filename, _ = QFileDialog.getSaveFileName(self, title, os.path.join(path, name), '(*.csv)')
@@ -126,7 +126,6 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
     def __init__(self, parent, layout, conf=None, context=None, database=None):
         super().__init__(parent)
-        self.parentWidget = parent
         self.conf = conf
         self.context = context
         self.perPage = 12

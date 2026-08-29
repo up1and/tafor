@@ -11,7 +11,6 @@ class BaseEditor(QDialog):
 
     def __init__(self, parent=None, sender=None, conf=None, context=None, database=None):
         super().__init__(parent)
-        self.parent = parent
         self.sender = sender
         self.conf = conf
         self.context = context

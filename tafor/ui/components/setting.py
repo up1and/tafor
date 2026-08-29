@@ -22,7 +22,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
     def __init__(self, parent=None, conf=None, context=None):
         super().__init__(parent)
-        self.parent = parent
         self.conf = conf
         self.context = context
         self.setupUi(self)
