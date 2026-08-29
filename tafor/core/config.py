@@ -345,7 +345,7 @@ class Config:
 
     sigmetEnabled = ConfigItem('General/Sigmet', default=False)
     license = ConfigItem('License')
-    unit = ConfigItem('General/Unit', default='metric')
+    unit = ConfigItem('General/Unit', default='metric', scope='restart')
     codec = ConfigItem('Communication/Codec', default='ASCII')
 
     @property

@@ -30,7 +30,7 @@ class SigmetHeaderState:
 
 
 class BaseState:
-    def __init__(self):
+    def __init__(self, unit):
         self.header = SigmetHeaderState()
         self.comeFrom = ''
         self.observedTime = ''
@@ -39,7 +39,7 @@ class BaseState:
         self.flightLevelTop = ''
         self.direction = ''
         self.speed = ''
-        self.unit = 'KT'
+        self.unit = unit
         self.intensityChange = ''
         self.forecastTime = ''
         self.forecastMode = False
@@ -104,15 +104,14 @@ class BaseState:
         self.flightLevelTop = ''
         self.direction = ''
         self.speed = ''
-        self.unit = 'KT'
         self.intensityChange = ''
         self.forecastTime = ''
         self.forecastMode = False
 
 
 class SigmetGeneralState(BaseState):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, unit):
+        super().__init__(unit)
         self.description = ''
         self.phenomenon = ''
 
@@ -154,8 +153,8 @@ class SigmetGeneralState(BaseState):
 
 
 class SigmetTyphoonState(BaseState):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, unit):
+        super().__init__(unit)
         self.phenomenon = ''
         self.name = ''
         self.currentLatitude = ''
@@ -290,8 +289,8 @@ class SigmetTyphoonState(BaseState):
 
 
 class SigmetAshState(BaseState):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, unit):
+        super().__init__(unit)
         self.phenomenon = ''
         self.name = ''
         self.currentLatitude = ''

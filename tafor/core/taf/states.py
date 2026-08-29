@@ -19,7 +19,7 @@ class TemperatureState:
 
 
 class SegmentState:
-    def __init__(self, unit="KT"):
+    def __init__(self, unit):
         self.unit = unit
         self.wind = ""
         self.gust = ""
@@ -65,7 +65,7 @@ class SegmentState:
 
 
 class PrimaryState(SegmentState):
-    def __init__(self, icao="", unit="KT", spec="fc"):
+    def __init__(self, unit, icao="", spec="fc"):
         super().__init__(unit)
         self.icao = icao
         self.spec = spec
@@ -123,7 +123,7 @@ class PrimaryState(SegmentState):
 
 
 class GroupState(SegmentState):
-    def __init__(self, indicator="TEMPO", unit="KT"):
+    def __init__(self, unit, indicator="TEMPO"):
         super().__init__(unit)
         self.indicator = indicator  # FM, BECMG, TEMPO
         self.period = ""
@@ -148,7 +148,7 @@ class GroupState(SegmentState):
 
 
 class TrendState(SegmentState):
-    def __init__(self, unit="KT"):
+    def __init__(self, unit):
         super().__init__(unit)
         self.isNosig = False
         self.type = "BECMG"  # BECMG or TEMPO

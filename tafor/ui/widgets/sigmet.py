@@ -329,7 +329,6 @@ class MovementPart(SigmetPart):
 
     def syncToState(self):
         self.widget.state.direction = self.direction.currentText()
-        self.widget.state.unit = self.widget.conf.units.sigmetSpeed
         self.widget.state.speed = self.speed.text() if self.speed.hasAcceptableInput() else ''
 
     def setupValidator(self):
@@ -728,7 +727,7 @@ class SigmetGeneral(BaseSigmet, Ui_sigmet_general.Ui_Editor):
     def __init__(self, editor=None, conf=None, context=None, database=None):
         super().__init__(editor, conf=conf, context=context, database=database)
         self.setupUi(self)
-        self.state = SigmetGeneralState()
+        self.state = SigmetGeneralState(unit=self.conf.units.sigmetSpeed)
         self.initialize()
         self.setPhenomenaDescription()
         self.setPhenomena()
@@ -806,7 +805,7 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
     def __init__(self, editor=None, conf=None, context=None, database=None):
         super().__init__(editor, conf=conf, context=context, database=database)
         self.setupUi(self)
-        self.state = SigmetTyphoonState()
+        self.state = SigmetTyphoonState(unit=self.conf.units.sigmetSpeed)
         self.initialize()
         self.setPhenomena()
         self.setFcstOrObs()
@@ -986,7 +985,7 @@ class SigmetAsh(BaseSigmet, Ui_sigmet_ash.Ui_Editor):
     def __init__(self, editor=None, conf=None, context=None, database=None):
         super().__init__(editor, conf=conf, context=context, database=database)
         self.setupUi(self)
-        self.state = SigmetAshState()
+        self.state = SigmetAshState(unit=self.conf.units.sigmetSpeed)
         self.initialize()
         self.setPhenomena()
         self.setFcstOrObs()
