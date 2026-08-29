@@ -16,7 +16,8 @@ from tafor.core.sigmet import (SigmetAshState, SigmetCancelState, SigmetCustomSt
 from tafor.core.sigmet.issuance import adjustCancelBeginning, nextSequence, validPeriod
 from tafor.core.geometry.coordinate import decimalToDegree
 from tafor.core.utils.time import parseTime
-from tafor.ui.qt import Ui_sigmet_ash, Ui_sigmet_cancel, Ui_sigmet_custom, Ui_sigmet_general, Ui_sigmet_typhoon, main_rc
+from tafor.core.utils.common import iconPath
+from tafor.ui.qt import Ui_sigmet_ash, Ui_sigmet_cancel, Ui_sigmet_custom, Ui_sigmet_general, Ui_sigmet_typhoon
 from tafor.ui.widgets.taf import SegmentMixin
 
 logger = logging.getLogger('tafor.sigmet.information')
@@ -460,9 +461,9 @@ class AdvisoryImport(SigmetPart):
     def switchGroup(self):
         self.group = next(self.groupNames)
         if self.group == 'main':
-            icon = ':/forward.png'
+            icon = iconPath('forward.png')
         else:
-            icon = ':/back.png'
+            icon = iconPath('back.png')
 
         self.switchButton.setIcon(QIcon(icon))
         self.updateVisibility()
@@ -1239,7 +1240,7 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         self.updateText()
 
     def setupApiSign(self):
-        pixmap = QPixmap(':/api.png')
+        pixmap = QPixmap(iconPath('api.png'))
         self.apiSign = QLabel(self)
         self.apiSign.setPixmap(pixmap)
         self.apiSign.setMask(pixmap.mask())

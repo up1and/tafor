@@ -1,4 +1,8 @@
+import os
+
 from PyQt5.QtCore import QSysInfo
+
+from tafor.core.utils.common import iconPath
 
 
 def buttonHoverStyle(windowsStyle='System'):
@@ -62,19 +66,19 @@ dateEditHiddenStyle = """
         padding: 2px; /* This (useless) line resolves a bug with the font color */
     }
 
-    QDateEdit::drop-down 
+    QDateEdit::drop-down
     {
         border: 0px; /* This seems to replace the whole arrow of the combo box */
     }
 
     /* Define a new custom arrow icon for the combo box */
     QDateEdit::down-arrow {
-        image: url(:/search.png);
+        image: url(%s);
         width: 16px;
         height: 16px;
     }
 
-"""
+""" % iconPath('search.png').replace(os.sep, '/')
 
 tabStyle = """
     QTabBar::tab {

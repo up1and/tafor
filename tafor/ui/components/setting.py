@@ -10,8 +10,8 @@ from PyQt5.QtCore import QCoreApplication, QStandardPaths, QSettings, QTimer, Qt
 from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QFileDialog, QMessageBox, QApplication, QCheckBox, 
                              QLineEdit, QComboBox, QPlainTextEdit, QSlider, QListWidget, QGroupBox)
 
-from tafor.core.utils.common import ipAddress
-from tafor.ui.qt import Ui_setting, main_rc
+from tafor.core.utils.common import iconPath, ipAddress
+from tafor.ui.qt import Ui_setting
 from tafor.ui.styles import tabStyle
 from tafor.ui.workers import FtpWorker, threadManager
 
@@ -26,7 +26,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.conf = conf
         self.context = context
         self.setupUi(self)
-        self.setWindowIcon(QIcon(':/setting.png'))
+        self.setWindowIcon(QIcon(iconPath('setting.png')))
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
         # Auto-start on system boot

@@ -17,7 +17,7 @@ from tafor.core.config import createConfig
 from tafor.core.states import createContext
 from tafor.core.models import Metar, createDatabase
 from tafor.core.repositories import MessageRepository, MetarRepository, SigmetFilter, SigmetRepository, TafRepository, subscribedTypes
-from tafor.core.utils.common import appInfo, checkVersion, revision, setupLogging
+from tafor.core.utils.common import appInfo, checkVersion, iconPath, revision, setupLogging
 from tafor.ui.components.chart import ChartViewer
 from tafor.ui.components.send import CustomSender, SigmetSender, TafSender, TrendSender
 from tafor.ui.components.setting import SettingDialog
@@ -25,7 +25,7 @@ from tafor.ui.components.sigmet import SigmetEditor
 from tafor.ui.components.taf import TafEditor
 from tafor.ui.components.trend import TrendEditor
 from tafor.ui.fonts import fixedFont, uiFont
-from tafor.ui.qt import Ui_main, main_rc
+from tafor.ui.qt import Ui_main
 from tafor.ui.widgets.misc import Clock, LicenseEditor, RecentMessage, RemindMessageBox, TafBoard
 from tafor.ui.widgets.sound import Sound
 from tafor.ui.widgets.table import AirmetTable, MetarTable, SigmetTable, TafTable
@@ -382,14 +382,15 @@ class MainPresenter(QObject):
         ) if self.context.license.license() else QCoreApplication.translate('MainWindow', 'Unregistered')
         html = """
         <div style="text-align:center">
-        <img src=":/logo.png">
+        <img src="{logo}">
         <h2 style="margin:5px 0">Tafor</h2>
         <p style="margin:0;color:#444;font-size:13px">A Terminal Aerodrome Forecast Encoding Software</p>
         <p style="margin:5px 0"><a href="https://github.com/up1and/tafor" style="text-decoration:none;color:#0078d7">{} {} {}</a></p>
         <p style="margin:5px 0;color:#444">{}</p>
         <p style="margin-top:25px;color:#444">Copyright © 2022 <a href="mailto:piratecb@gmail.com" style="text-decoration:none;color:#444">up1and</a></p>
         </div>
-        """.format(QCoreApplication.translate('MainWindow', 'Version'), __version__, revision(), register)
+        """.format(QCoreApplication.translate('MainWindow', 'Version'), __version__, revision(), register,
+            logo=QUrl.fromLocalFile(iconPath('logo.png')).toString())
 
         aboutBox = QMessageBox(self.view)
         aboutBox.setText(html)
@@ -480,7 +481,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.presenter.initialize()
 
     def setup(self):
-        self.setWindowIcon(QIcon(':/logo.png'))
+        self.setWindowIcon(QIcon(iconPath('logo.png')))
 
         self.remindTafBox = RemindMessageBox(self)
         self.remindSigmetBox = RemindMessageBox(self)
@@ -530,7 +531,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         # 连接设置对话框的槽
         self.settingAction.triggered.connect(self.presenter.openSetting)
-        self.settingAction.setIcon(QIcon(':/setting.png'))
+        self.settingAction.setIcon(QIcon(iconPath('setting.png')))
 
         self.openDocsAction.triggered.connect(self.openDocs)
         self.reportIssueAction.triggered.connect(self.reportIssue)
@@ -555,11 +556,11 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def setTrayIcon(self, style='normal'):
         files = {
-            'dark': ':/logo-dark.png',
-            'light': ':/logo-light.png',
-            'normal': ':/logo.png'
+            'dark': iconPath('logo-dark.png'),
+            'light': iconPath('logo-light.png'),
+            'normal': iconPath('logo.png')
         }
-        file = files.get(style, ':/logo.png')
+        file = files.get(style, iconPath('logo.png'))
         icon = QIcon(file)
         if style == 'dark':
             icon.setIsMask(True)

@@ -68,7 +68,8 @@ def run():
     writeVersionInfo(source)
     command = (
         r'pyinstaller {src}//__main__.py -w -F'
-        r' -i {src}//resources//icons//icon.ico --add-data {src}//resources//shapes;shapes -n tafor --version-file {source}//.version'
+        r' -i {src}//resources//icons//icon.ico --add-data {src}//resources//shapes;shapes'
+        r' --add-data {src}//resources//icons;resources/icons -n tafor --version-file {source}//.version'
         r' --specpath {source} --distpath {source}//dist --workpath {source}//build'
         ).format(src=src, source=source)
     proc = subprocess.Popen(command, cwd=src, 

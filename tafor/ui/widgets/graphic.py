@@ -13,7 +13,7 @@ from PyQt5.QtGui import QIcon, QPainter
 from PyQt5.QtCore import QCoreApplication, Qt, QRect, QRectF, QSize, pyqtSignal
 
 from tafor.core.geometry.coordinate import degTodms
-from tafor.core.utils.common import bundlePath
+from tafor.core.utils.common import iconPath, resourcePath
 from tafor.ui.fonts import fixedFont
 from tafor.ui.widgets.sketch import SketchManager
 from tafor.ui.widgets.geometry import BackgroundImage, Coastline, Fir, Sigmet
@@ -185,7 +185,7 @@ class BaseCanvas(QGraphicsView):
             self.coastlines = []
             self.scene.removeItem(self.coastlinesGroup)
 
-        filename = os.path.join(bundlePath('shapes'), 'coastline.shp')
+        filename = os.path.join(resourcePath('shapes'), 'coastline.shp')
         sf = shapefile.Reader(filename)
         shapes = sf.shapes()
 
@@ -606,18 +606,18 @@ class GraphicsWindow(QWidget):
 
         self.refreshButton = QToolButton(self)
         self.refreshButton.setText('Refresh')
-        self.refreshButton.setIcon(QIcon(':/synchronize.png'))
+        self.refreshButton.setIcon(QIcon(iconPath('synchronize.png')))
 
         self.layerButton = QToolButton(self)
         self.layerButton.setText('Layer')
         self.layerButton.setPopupMode(QToolButton.InstantPopup)
-        self.layerButton.setIcon(QIcon(':/layers.png'))
+        self.layerButton.setIcon(QIcon(iconPath('layers.png')))
 
         self.overlapButton = QToolButton(self)
         self.overlapButton.setEnabled(False)
         self.overlapButton.setText('Overlap')
         self.overlapButton.setCheckable(True)
-        self.overlapButton.setIcon(QIcon(':/overlap.png'))
+        self.overlapButton.setIcon(QIcon(iconPath('overlap.png')))
 
         self.modeButton = QToolButton(self)
         self.modeButton.setText('Mode')
@@ -723,16 +723,16 @@ class GraphicsWindow(QWidget):
     def setButton(self, tt='WS', category='template'):
         if tt == 'WC':
             icons = [
-                {'icon': ':/circle.png', 'mode': 'circle'},
-                {'icon': ':/polygon.png', 'mode': 'polygon'}
+                {'icon': iconPath('circle.png'), 'mode': 'circle'},
+                {'icon': iconPath('polygon.png'), 'mode': 'polygon'}
             ]
         else:
             icons = [
-                {'icon': ':/polygon.png', 'mode': 'polygon'},
-                {'icon': ':/line.png', 'mode': 'line'},
-                {'icon': ':/rectangular.png', 'mode': 'rectangular'},
-                {'icon': ':/corridor.png', 'mode': 'corridor'},
-                {'icon': ':/filled-polygon.png', 'mode': 'entire'}
+                {'icon': iconPath('polygon.png'), 'mode': 'polygon'},
+                {'icon': iconPath('line.png'), 'mode': 'line'},
+                {'icon': iconPath('rectangular.png'), 'mode': 'rectangular'},
+                {'icon': iconPath('corridor.png'), 'mode': 'corridor'},
+                {'icon': iconPath('filled-polygon.png'), 'mode': 'entire'}
             ]
 
         self.type = tt

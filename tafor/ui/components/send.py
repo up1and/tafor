@@ -15,8 +15,9 @@ from tafor.core.parsers.taf import TafParser
 from tafor.core.repositories import MessageRepository
 from tafor.core.telegram.channels import canResend, createChannel
 from tafor.core.telegram.generator import AFTNDecoder
+from tafor.core.utils.common import iconPath
 from tafor.ui.fonts import fixedFont, uiFont
-from tafor.ui.qt import Ui_send, main_rc
+from tafor.ui.qt import Ui_send
 from tafor.ui.widgets.graphic import GraphicsViewer
 from tafor.ui.workers import FtpWorker, SerialWorker, threadManager
 
@@ -460,7 +461,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         return self.presenter.channel()
 
     def updateProtocolIcon(self):
-        pixmap = QPixmap(':/{}.png'.format(self.protocol()))
+        pixmap = QPixmap(iconPath('{}.png').format(self.protocol()))
         if hasattr(self, 'protocolSign'):
             self.protocolSign.setPixmap(pixmap)
         else:
@@ -631,9 +632,9 @@ class SigmetSender(BaseSender):
             self.switchButton.hide()
         else:
             if group == 'canvas':
-                icon = ':/words.png'
+                icon = iconPath('words.png')
             else:
-                icon = ':/map.png'
+                icon = iconPath('map.png')
 
             self.switchButton.setIcon(QIcon(icon))
             self.switchButton.show()

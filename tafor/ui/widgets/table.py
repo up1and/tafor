@@ -8,7 +8,8 @@ from PyQt5.QtWidgets import (QDialog, QFileDialog, QWidget, QDialogButtonBox, QT
 
 from tafor.core.models import Metar, Sigmet, Taf
 from tafor.core.repositories import Repository
-from tafor.ui.qt import Ui_main_table, main_rc
+from tafor.core.utils.common import iconPath
+from tafor.ui.qt import Ui_main_table
 from tafor.ui.fonts import fixedFont
 from tafor.ui.styles import buttonHoverStyle, calendarStyle, dateEditHiddenStyle
 from tafor.ui.workers import ExportRecordWorker, threadManager
@@ -183,12 +184,12 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
         self.calendar.setStyleSheet(calendarStyle + dateEditHiddenStyle + buttonHoverStyle(self.conf.windowsStyle))
 
-        self.prevButton.setIcon(QIcon(':/prev.png'))
-        self.nextButton.setIcon(QIcon(':/next.png'))
-        self.chartButton.setIcon(QIcon(':/chart.png'))
-        self.calendarButton.setIcon(QIcon(':/calendar.png'))
-        self.exportButton.setIcon(QIcon(':/export.png'))
-        self.infoButton.setIcon(QIcon(':/info.png'))
+        self.prevButton.setIcon(QIcon(iconPath('prev.png')))
+        self.nextButton.setIcon(QIcon(iconPath('next.png')))
+        self.chartButton.setIcon(QIcon(iconPath('chart.png')))
+        self.calendarButton.setIcon(QIcon(iconPath('calendar.png')))
+        self.exportButton.setIcon(QIcon(iconPath('export.png')))
+        self.infoButton.setIcon(QIcon(iconPath('info.png')))
         self.infoButton.hide()
         self.chartButton.hide()
 
@@ -307,9 +308,9 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
     def checkmarkLabel(self, item):
         if item.confirmed:
-            iconSrc = ':/checkmark.png'
+            iconSrc = iconPath('checkmark.png')
         else:
-            iconSrc = ':/questionmark.png'
+            iconSrc = iconPath('questionmark.png')
 
         label = QLabel()
         icon = QPixmap(iconSrc)

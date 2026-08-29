@@ -10,8 +10,9 @@ from tafor.core.taf import (CurrentTaf, GroupState, PrimaryState, SegmentState, 
     TafValidator, TrendValidator, completeGroupPeriod, groupSpan, isGroupStartAcceptable,
     normalizeTemperatureTime, parseTemperature)
 from tafor.core.utils.time import parseDayHour, parsePeriod, parseTime
+from tafor.core.utils.common import iconPath
 from tafor.ui.fonts import fixedFont
-from tafor.ui.qt import Ui_taf_group, Ui_taf_primary, Ui_trend, main_rc
+from tafor.ui.qt import Ui_taf_group, Ui_taf_primary, Ui_trend
 
 
 def _translate(code, **kwargs):
@@ -407,7 +408,7 @@ class TemperatureGroup(SegmentMixin, QWidget):
             icon = 'cold'
 
         self.label.setText(text)
-        self.switchButton.setIcon(QIcon(':/{}.png'.format(icon)))
+        self.switchButton.setIcon(QIcon(iconPath('{}.png').format(icon)))
 
     def validateTemperatureTime(self):
         if not self.parent.period.text() or not self.tempTime.hasAcceptableInput():
@@ -503,8 +504,8 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
         self.tafRepository = TafRepository(database)
 
-        self.prevButton.setIcon(QIcon(':/back.png'))
-        self.resetButton.setIcon(QIcon(':/reset.png'))
+        self.prevButton.setIcon(QIcon(iconPath('back.png')))
+        self.resetButton.setIcon(QIcon(iconPath('reset.png')))
 
         self.offset = 0
 

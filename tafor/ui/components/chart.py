@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QDialog, QFileDialog, QDialogButtonBox, QCalendarWid
 from PyQt5.QtChart import (QChart, QChartView, QSplineSeries, QScatterSeries, QDateTimeAxis, QCategoryAxis)
 
 from tafor.core.repositories import MetarRepository
-from tafor.ui.qt import Ui_chart, main_rc
+from tafor.ui.qt import Ui_chart
 from tafor.ui.styles import calendarStyle
 
 logger = logging.getLogger('tafor.chart')

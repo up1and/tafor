@@ -9,8 +9,9 @@ from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QLabel, QHBoxLayout
 from tafor.core.states import NOTIFICATION_EXPIRY_MINUTES
 from tafor.core.taf import CurrentTaf
 from tafor.core.utils.time import timeAgo
+from tafor.core.utils.common import iconPath
 from tafor.ui.fonts import fixedFont
-from tafor.ui.qt import Ui_main_license, Ui_main_recent, main_rc
+from tafor.ui.qt import Ui_main_license, Ui_main_recent
 from tafor.ui.styles import buttonHoverStyle
 from tafor.ui.widgets.geometry import SigmetBackground
 
@@ -103,7 +104,7 @@ class RemindMessageBox(QMessageBox):
     """闹钟对话框"""
     def __init__(self, parent):
         super().__init__(parent=parent)
-        icon = QPixmap(':/time.png')
+        icon = QPixmap(iconPath('time.png'))
         title = QCoreApplication.translate('MainWindow', 'Alarm')
         self.setIconPixmap(icon)
         self.setWindowTitle(title)
@@ -213,9 +214,9 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
         
         if isValidationEnabled:
             if isPass:
-                icon = ':/protect.png'
+                icon = iconPath('protect.png')
             else:
-                icon = ':/warning-shield.png'
+                icon = iconPath('warning-shield.png')
 
             shieldIcon = QPixmap(icon)
             self.signLabel.setPixmap(shieldIcon.scaled(24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation))
@@ -236,7 +237,7 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
 
     def updateButton(self):
         hoverStyle = buttonHoverStyle(self.conf.windowsStyle)
-        self.replyButton.setIcon(QIcon(':/reply-arrow.png'))
+        self.replyButton.setIcon(QIcon(iconPath('reply-arrow.png')))
         self.replyButton.setStyleSheet(hoverStyle)
         self.markButton.setStyleSheet(hoverStyle)
         self.reminderButton.setStyleSheet(hoverStyle)
@@ -276,9 +277,9 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
 
     def updateReminderButton(self):
         if self.remind:
-            icon = ':/reminder.png'
+            icon = iconPath('reminder.png')
         else:
-            icon = ':/no-reminder.png'
+            icon = iconPath('no-reminder.png')
 
         self.reminderButton.setIcon(QIcon(icon))
         self.reminderButton.setStyleSheet(buttonHoverStyle(self.conf.windowsStyle))
@@ -289,9 +290,9 @@ class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
             return
 
         if self.item.confirmed:
-            icon = ':/checkmark.png'
+            icon = iconPath('checkmark.png')
         else:
-            icon = ':/questionmark.png'
+            icon = iconPath('questionmark.png')
 
         self.markButton.setIcon(QIcon(icon))
 

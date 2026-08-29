@@ -118,7 +118,7 @@ def revision():
 
     return gitRevisionHash()
 
-def bundlePath(relativePath):
+def resourcePath(relativePath):
     if hasattr(sys, '_MEIPASS'):
         base = sys._MEIPASS
     else:
@@ -131,3 +131,6 @@ def bundlePath(relativePath):
         return candidate
 
     return os.path.join(base, relativePath)
+
+def iconPath(name):
+    return resourcePath(os.path.join('icons', name))
