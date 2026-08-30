@@ -22,9 +22,6 @@
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <widget class="QGroupBox" name="group">
-     <property name="title">
-      <string notr="true">Type</string>
-     </property>
      <layout class="QVBoxLayout" name="groupLayout">
       <item>
        <widget class="QWidget" name="toolsWidget" native="true">

@@ -328,6 +328,10 @@ class SigmetBackground(QWidget, ColorMixin):
                 geom.properties = feature['properties']
                 self.geometries.append(geom)
 
+    def resizeEvent(self, event):
+        self.fitSize()
+        super().resizeEvent(event)
+
     def paintEvent(self, event):
         super().paintEvent(event)
         painter = QPainter(self)

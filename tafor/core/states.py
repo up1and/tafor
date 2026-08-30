@@ -2,8 +2,6 @@ import datetime
 
 from tafor.core.events import Event
 
-NOTIFICATION_EXPIRY_MINUTES = 10
-
 
 class RemoteMessageState:
     def __init__(self):
@@ -39,11 +37,10 @@ class SigmetMonitorState:
 
 
 class NotificationState:
-    def __init__(self, expiryMinutes=NOTIFICATION_EXPIRY_MINUTES):
+    def __init__(self):
         self.message = None
         self.validation = False
         self.created = datetime.datetime.utcnow()
-        self.expiryMinutes = expiryMinutes
         self.previous = ''
 
 
@@ -328,18 +325,18 @@ class NotificationService:
         message = self.state.message
 
         if not message:
-            return 'UNKNOWN'
+            return 'unknown'
 
         if message.startswith('METAR'):
-            return 'METAR'
+            return 'metar'
         elif message.startswith('SPECI'):
-            return 'SPECI'
+            return 'speci'
         elif 'AIRMET' in message:
-            return 'AIRMET'
+            return 'airmet'
         elif 'SIGMET' in message:
-            return 'SIGMET'
+            return 'sigmet'
 
-        return 'UNKNOWN'
+        return 'unknown'
 
     def parser(self):
         from tafor.core.parsers.metar import MetarParser
@@ -352,10 +349,10 @@ class NotificationService:
 
         msgType = self.getMessageType()
 
-        if msgType in ['SIGMET', 'AIRMET']:
+        if msgType in ['sigmet', 'airmet']:
             return SigmetParser(message)
 
-        if msgType in ['METAR', 'SPECI']:
+        if msgType in ['metar', 'speci']:
             return MetarParser(
                 message,
                 ignoreMetar=True,

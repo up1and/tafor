@@ -109,6 +109,10 @@ class Trend(Base):
         return '<Trend %r>' % (self.text)
 
     @property
+    def type(self):
+        return 'TREND'
+
+    @property
     def reportType(self):
         return 'trend'
 

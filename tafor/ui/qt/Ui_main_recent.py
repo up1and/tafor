@@ -24,7 +24,6 @@ class Ui_Recent(object):
         self.verticalLayout = QtWidgets.QVBoxLayout(Recent)
         self.verticalLayout.setObjectName("verticalLayout")
         self.group = QtWidgets.QGroupBox(Recent)
-        self.group.setTitle("Type")
         self.group.setObjectName("group")
         self.groupLayout = QtWidgets.QVBoxLayout(self.group)
         self.groupLayout.setObjectName("groupLayout")

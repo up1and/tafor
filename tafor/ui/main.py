@@ -4,8 +4,6 @@ import json
 import logging
 import datetime
 
-from uuid import uuid4
-
 from PyQt5.QtGui import QIcon, QDesktopServices, QGuiApplication
 from PyQt5.QtCore import QCoreApplication, QTranslator, QLocale, QEvent, QObject, QTimer, Qt, QUrl, QSysInfo, QProcess, QT_VERSION_STR
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy,
@@ -15,7 +13,7 @@ from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 from tafor import __version__, root
 from tafor.core.config import createConfig
 from tafor.core.states import createContext
-from tafor.core.models import Metar, createDatabase
+from tafor.core.models import createDatabase
 from tafor.core.repositories import Repositories, SigmetFilter, subscribedTypes
 from tafor.core.utils.common import appInfo, checkVersion, iconPath, revision, setupLogging
 from tafor.ui.components.chart import ChartViewer
@@ -26,7 +24,8 @@ from tafor.ui.components.taf import TafEditor
 from tafor.ui.components.trend import TrendEditor
 from tafor.ui.fonts import fixedFont, uiFont
 from tafor.ui.qt import Ui_main
-from tafor.ui.widgets.misc import Clock, LicenseEditor, RecentMessage, RemindMessageBox, TafBoard
+from tafor.ui.widgets.misc import Clock, LicenseEditor, RemindMessageBox, TafBoard
+from tafor.ui.widgets.recent import NotificationModel, RecentBoard, ReviewModel
 from tafor.ui.widgets.sound import Sound
 from tafor.ui.widgets.table import AirmetTable, MetarTable, SigmetTable, TafTable
 from tafor.ui.workers import CheckUpgradeWorker, ContextBridge, LayerWorker, MessageWorker, RpcWorker, threadManager
@@ -83,7 +82,7 @@ class RemindService:
         else:
             self.context.sigmet.remove(message.uuid)
 
-        self.view.setRecentMessageReminder(message.uuid, enabled)
+        self.view.recentBoard.setReminderEnabled(message.uuid, enabled)
 
 
 class DataService:
@@ -106,6 +105,7 @@ class DataService:
         isSimilar = parser and metar and parser.isSimilar(metar.text)
         if isSimilar:
             self.context.notification.metar.clear()
+            self.updateRecent()
             return
 
         if parser and self.context.notification.metar.validation():
@@ -172,34 +172,56 @@ class DataService:
             sigmets = self.context.current.filterSigmets(SigmetFilter(includeCancelled=True))
 
         messages = self.repositories.message.recent(spec, recent, includeSigmet=self.conf.sigmetEnabled, currentSigmets=sigmets)
-        metar = self.notificationMetar()
-        if metar:
-            messages['metar'] = metar
 
-        data = list(filter(None, [
-            messages['metar'],
-            messages['trend'],
-            messages['taf'],
-        ] + messages['sigmets']))
-        self.view.renderRecentMessages(data)
-
-    def notificationMetar(self):
+        entries = []
         parser = self.context.notification.metar.parser()
-        if not parser:
+        if parser:
+            parser.validate()
+            entries.append(NotificationModel(
+                created=self.context.notification.metar.created(),
+                validations={
+                    'html': parser.renderer(style='html', showDiff=True),
+                    'tips': parser.tips,
+                    'pass': parser.isValid(),
+                    'validation': self.context.notification.metar.validation(),
+                },
+            ))
+
+        # The stored metar only shows while no live notification replaces it
+        reviewables = [] if parser else [messages['metar']]
+        reviewables += [messages['trend'], messages['taf']] + messages['sigmets']
+
+        for message in reviewables:
+            if message:
+                entries.append(ReviewModel(
+                    uuid=message.uuid,
+                    type=message.type,
+                    created=message.created,
+                    message=message,
+                    text=message.report,
+                    geo=self.sigmetGeometry(message),
+                ))
+
+        self.view.recentBoard.sync(entries)
+
+        # Reminder state lives in context.sigmet.entries; sync the sigmet cards
+        for entry in entries:
+            if entry.type in ['WS', 'WC', 'WV', 'WA']:
+                self.view.recentBoard.setReminderEnabled(
+                    entry.uuid, entry.uuid in self.context.sigmet.entries)
+
+    def sigmetGeometry(self, message):
+        """Pre-render the SIGMET area features for the recent-board card."""
+        if message.reportType not in ['sigmet', 'airmet'] or message.isCnl():
             return None
 
-        uuid = str(uuid4())
-        created = self.context.notification.metar.created()
-        validation = self.context.notification.metar.validation()
-        metar = Metar(uuid=uuid, text=parser.message, created=created)
-        parser.validate()
-        metar.validations = {
-            'html': parser.renderer(style='html', showDiff=True),
-            'tips': parser.tips,
-            'pass': parser.isValid(),
-            'validation': validation
-        }
-        return metar
+        try:
+            parser = message.parser()
+            geos = parser.geo(self.context.layer.boundaries(), trim=True)
+            return geos if geos['features'] else None
+        except Exception as e:
+            logger.error('Failed to draw SIGMET graphic area in recent module, {}, {}'.format(message.text, e))
+            return None
 
     def updateTable(self):
         self.view.tafTable.updateGui()
@@ -573,6 +595,13 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.clock = Clock(self, self.tipsLayout, context=self.context)
         self.tipsLayout.addSpacerItem(QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
         self.tafBoard = TafBoard(self, self.tipsLayout, conf=self.conf, context=self.context)
+
+        self.recentBoard = RecentBoard(self, conf=self.conf)
+        self.recentBoard.reviewRequested.connect(self.reviewRecentMessage)
+        self.recentBoard.replyRequested.connect(self.trendEditor.edit)
+        self.recentBoard.reminderToggled.connect(self.presenter.setSigmetReminder)
+        self.recentBoard.expired.connect(self.expireRecentNotification)
+        self.scrollLayout.insertWidget(1, self.recentBoard)
         self.scrollLayout.setAlignment(Qt.AlignTop)
 
     def setupTable(self):
@@ -638,44 +667,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             self.presenter.shutdown()
             event.accept()
 
-    def recentWidgets(self):
-        recents = []
-        for i in range(self.scrollLayout.count()):
-            widget = self.scrollLayout.itemAt(i).widget()
-            if isinstance(widget, RecentMessage):
-                recents.append(widget)
-
-        return recents
-
-    def renderRecentMessages(self, messages):
-        uuids = [message.uuid for message in messages]
-        reminderStates = {message.uuid: message.uuid in self.context.sigmet.entries for message in messages}
-        for widget in self.recentWidgets():
-            if widget.uuid() not in uuids:
-                widget.deleteLater()
-            else:
-                widget.setReminderEnabled(reminderStates.get(widget.uuid(), False))
-                widget.updateGui()
-
-        uuids = [widget.uuid() for widget in self.recentWidgets()]
-        for i, message in enumerate(messages):
-            if message.uuid not in uuids:
-                layerBoundaries = self.context.layer.boundaries() if hasattr(self.context, 'layer') else None
-                widget = RecentMessage(
-                    self,
-                    self.scrollLayout,
-                    message,
-                    fixedFont=fixedFont(),
-                    layerBoundaries=layerBoundaries,
-                    clearNotification=self.context.notification.metar.clear,
-                    reminderEnabled=reminderStates.get(message.uuid, False),
-                    index=i+1,
-                    conf=self.conf,
-                )
-                widget.reviewRequested.connect(self.reviewRecentMessage)
-                widget.replyRequested.connect(self.trendEditor.edit)
-                widget.reminderToggled.connect(self.presenter.setSigmetReminder)
-
     def isReminderVisible(self, box):
         return box.isVisible()
 
@@ -687,22 +678,21 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
             sound.stop()
         return ret
 
-    def setRecentMessageReminder(self, uuid, enabled):
-        for widget in self.recentWidgets():
-            if uuid == widget.uuid():
-                widget.setReminderEnabled(enabled)
-                break
-
-    def reviewRecentMessage(self, message):
+    def reviewRecentMessage(self, model):
         reviewer = None
-        if message.type in ['FC', 'FT']:
+        if model.type in ['FC', 'FT']:
             reviewer = self.tafSender
-        elif message.type in ['WS', 'WC', 'WV', 'WA']:
+        elif model.type in ['WS', 'WC', 'WV', 'WA']:
             reviewer = self.sigmetSender
 
         if reviewer:
-            reviewer.receive(message)
+            reviewer.receive(model.message)
             reviewer.show()
+
+    def expireRecentNotification(self):
+        # Drop the timed-out notification and fall back to the stored metar card
+        self.context.notification.metar.clear()
+        self.presenter.updateRecent()
 
     def closeSender(self):
         self.tafSender.close()

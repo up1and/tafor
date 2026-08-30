@@ -2,18 +2,15 @@ import math
 import logging
 import datetime
 
-from PyQt5.QtGui import QPixmap, QIcon, QBrush, QPen, QFont, QFontMetrics, QPainterPath, QPainter
+from PyQt5.QtGui import QPixmap, QBrush, QPen, QFont, QFontMetrics, QPainterPath, QPainter
 from PyQt5.QtCore import QCoreApplication, QTimer, QSize, Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QLabel, QHBoxLayout
 
-from tafor.core.states import NOTIFICATION_EXPIRY_MINUTES
 from tafor.core.taf import CurrentTaf
-from tafor.core.utils.time import timeAgo
 from tafor.core.utils.common import iconPath
 from tafor.ui.fonts import fixedFont
-from tafor.ui.qt import Ui_main_license, Ui_main_recent
+from tafor.ui.qt import Ui_main_license
 from tafor.ui.styles import buttonHoverStyle
-from tafor.ui.widgets.geometry import SigmetBackground
 
 logger = logging.getLogger('tafor.widgets')
 
@@ -114,203 +111,6 @@ class RemindMessageBox(QMessageBox):
     def showEvent(self, event):
         self.parent().showNormal()
 
-
-class RecentMessage(QWidget, Ui_main_recent.Ui_Recent):
-
-    reminderToggled = pyqtSignal(object, bool)
-    reviewRequested = pyqtSignal(object)
-    replyRequested = pyqtSignal()
-
-    def __init__(self, parent, layout, item, fixedFont, layerBoundaries=None,
-            clearNotification=None, reminderEnabled=False, index=None, conf=None):
-        super().__init__(parent)
-        self.setupUi(self)
-        self.conf = conf
-        self.item = item
-        self.remind = reminderEnabled
-        self.background = None
-        self.validations = None
-        self.mode = 'review'
-        self.layerBoundaries = layerBoundaries
-        self.clearNotification = clearNotification
-
-        self.toolsWidget.setAttribute(Qt.WA_TranslucentBackground)
-        self.timeLabel.setAttribute(Qt.WA_TranslucentBackground)
-        self.text.setAttribute(Qt.WA_TranslucentBackground)
-
-        if hasattr(item, 'validations'):
-            self.validations = item.validations
-            self.mode = 'notification'
-
-        if self.mode == 'notification':
-            self.notificationMode()
-            self.timer = QTimer(self)
-            self.timer.timeout.connect(self.countdown)
-            self.timer.start(1000)
-            self.countdown()
-        else:
-            self.reviewMode()
-
-        font = QFont(fixedFont)
-        self.setFont(font)
-        self.timeLabel.setFont(QFont(font))
-        textFont = QFont(font)
-        textFont.setPointSize(12)
-        self.text.setFont(textFont)
-
-        font = QFont()
-        font.setPointSize(11)
-        self.tip.setFont(font)
-        self.tip.setContentsMargins(0, 9, 0, 0)
-        self.tip.hide()
-
-        if index:
-            layout.insertWidget(index, self)
-        else:
-            layout.addWidget(self)
-
-        self.bindSignal()
-        self.updateText()
-        self.updateButton()
-
-    def uuid(self):
-        return self.item.uuid
-
-    def timeStamp(self):
-        if self.mode == 'notification':
-            ago = timeAgo(self.item.created, datetime.datetime.utcnow())
-            text = ago.capitalize()
-        else:
-            text = self.item.created.strftime('%Y-%m-%d %H:%M:%S')
-        return text
-
-    def countdown(self):
-        created = self.item.created
-        now = datetime.datetime.utcnow()
-
-        if now - created > datetime.timedelta(minutes=NOTIFICATION_EXPIRY_MINUTES):
-            self.timer.stop()
-            if self.clearNotification:
-                self.clearNotification()
-
-        self.timeLabel.setText(self.timeStamp())
-
-    def reviewMode(self):
-        self.replyButton.hide()
-        self.signLabel.hide()
-        self.reminderButton.hide()
-        self.updateMarkButton()
-
-        if self.item.type in ['WS', 'WC', 'WV', 'WA']:
-            self.setReminderEnabled(self.remind)
-            self.reminderButton.show()
-
-    def notificationMode(self):
-        self.markButton.hide()
-        self.reminderButton.hide()
-        isValidationEnabled = self.item.validations['validation']
-        isPass = self.item.validations['pass']
-        
-        if isValidationEnabled:
-            if isPass:
-                icon = iconPath('protect.png')
-            else:
-                icon = iconPath('warning-shield.png')
-
-            shieldIcon = QPixmap(icon)
-            self.signLabel.setPixmap(shieldIcon.scaled(24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-        else:
-            self.signLabel.hide()
-
-        style = """
-            QGroupBox {
-                border: 2px dotted #dcdcdc;
-            }
-            """
-        self.setStyleSheet(style)
-
-    def bindSignal(self):
-        self.markButton.clicked.connect(lambda: self.reviewRequested.emit(self.item))
-        self.replyButton.clicked.connect(lambda: self.replyRequested.emit())
-        self.reminderButton.clicked.connect(self.toggleReminder)
-
-    def updateButton(self):
-        hoverStyle = buttonHoverStyle(self.conf.windowsStyle)
-        self.replyButton.setIcon(QIcon(iconPath('reply-arrow.png')))
-        self.replyButton.setStyleSheet(hoverStyle)
-        self.markButton.setStyleSheet(hoverStyle)
-        self.reminderButton.setStyleSheet(hoverStyle)
-
-    def updateText(self):
-        self.group.setTitle(self.item.type)
-        self.timeLabel.setText(self.timeStamp())
-
-        if self.validations:
-            self.text.setText(self.validations['html'])
-            if self.validations['tips']:
-                html = '<p style="color: grey"># {}</p>'.format('<br/># '.join(self.validations['tips']))
-                self.tip.setText(html)
-                self.tip.show()
-        else:
-            self.text.setText(self.item.report)
-
-        if self.item.type in ['WS', 'WC', 'WV', 'WA'] and not self.item.isCnl():
-            QTimer.singleShot(0, self.updateBackground)
-
-    def updateBackground(self):
-        try:
-            parser = self.item.parser()
-            if not self.layerBoundaries:
-                return
-
-            geos = parser.geo(self.layerBoundaries, trim=True)
-            if geos['features']:
-                height = self.text.height() + 60
-                size = (int(height / 0.6), height)
-                self.background = SigmetBackground(geos, size=size, parent=self)
-                self.background.setAttribute(Qt.WA_TransparentForMouseEvents)
-                self.background.move(self.width() - self.background.width() - 100, 16)
-                self.background.show()
-        except Exception as e:
-            logger.error('Failed to draw SIGMET graphic area in recent module, {}, {}'.format(self.item.text, e))
-
-    def updateReminderButton(self):
-        if self.remind:
-            icon = iconPath('reminder.png')
-        else:
-            icon = iconPath('no-reminder.png')
-
-        self.reminderButton.setIcon(QIcon(icon))
-        self.reminderButton.setStyleSheet(buttonHoverStyle(self.conf.windowsStyle))
-
-    def updateMarkButton(self):
-        if self.item.type not in ['FC', 'FT', 'WS', 'WC', 'WV', 'WA']:
-            self.markButton.hide()
-            return
-
-        if self.item.confirmed:
-            icon = iconPath('checkmark.png')
-        else:
-            icon = iconPath('questionmark.png')
-
-        self.markButton.setIcon(QIcon(icon))
-
-    def updateGui(self):
-        if self.mode == 'review':
-            self.updateMarkButton()
-            self.updateReminderButton()
-
-    def toggleReminder(self):
-        self.reminderToggled.emit(self.item, not self.remind)
-
-    def setReminderEnabled(self, enabled):
-        self.remind = enabled
-        self.updateReminderButton()
-
-    def resizeEvent(self, event):
-        if self.background:
-            self.background.move(self.width() - self.background.width() - 100, 16)
-        super().resizeEvent(event)
 
 class TafBoard(QWidget):
 
