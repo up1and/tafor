@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from PyQt5.QtWidgets import QSizePolicy
+from PyQt5.QtWidgets import QApplication, QSizePolicy
 
 from tafor.core.models import Metar
 from tafor.core.repositories import Repositories
@@ -32,9 +32,10 @@ def notificationModel(expired=False):
         validations=validations)
 
 
-def polygonGeo(lat=0.0):
+def polygonGeo(lat=0.0, hazard='ts'):
     return {'features': [{'geometry': {'type': 'Polygon',
-           'coordinates': [[0, lat], [2, lat], [2, 1 + lat], [0, 1 + lat], [0, lat]]}, 'properties': {}}]}
+           'coordinates': [[0, lat], [2, lat], [2, 1 + lat], [0, 1 + lat], [0, lat]]},
+           'properties': {'hazard': hazard, 'location': 'initial'}}]}
 
 
 @pytest.fixture
@@ -173,6 +174,25 @@ class TestRecentBoard:
         assert card.map.parent() is card.group
         assert card.map.width() == 200
         assert card.group.title() == 'WS'
+
+    def test_sigmet_map_overlays_full_height(self, board, qtbot):
+        board.sync([cardModel('s', 'WS', geo=polygonGeo())])
+        board.resize(800, board.heightForWidth(800))
+        board.show()
+        qtbot.waitExposed(board)
+
+        card = board.cards['s']
+        inner = card.group.contentsRect()
+        assert card.map.height() == inner.height() > 50
+        assert card.map.y() == inner.y()
+        assert card.map.x() + card.map.width() == inner.x() + inner.width()
+
+    def test_sigmet_map_sits_below_tools_buttons(self, board):
+        board.sync([cardModel('s', 'WS', geo=polygonGeo())])
+
+        card = board.cards['s']
+        children = card.group.children()
+        assert children.index(card.toolsWidget) > children.index(card.map)
 
     def test_sigmet_card_replaces_map_on_geo_change(self, board):
         board.sync([cardModel('s', 'WS', geo=polygonGeo())])

@@ -10,7 +10,6 @@ from tafor.core.taf import CurrentTaf
 from tafor.core.utils.common import iconPath
 from tafor.ui.fonts import fixedFont
 from tafor.ui.qt import Ui_main_license
-from tafor.ui.styles import buttonHoverStyle
 
 logger = logging.getLogger('tafor.widgets')
 

@@ -10,7 +10,7 @@ from tafor.core.models import Metar, Sigmet, Taf
 from tafor.core.utils.common import iconPath
 from tafor.ui.qt import Ui_main_table
 from tafor.ui.fonts import fixedFont
-from tafor.ui.styles import buttonHoverStyle, calendarStyle, dateEditHiddenStyle
+from tafor.ui.styles import flatButtonStyle, calendarStyle, dateEditHiddenStyle
 from tafor.ui.workers import ExportRecordWorker, threadManager
 
 
@@ -180,7 +180,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         header.setSectionResizeMode(1, QHeaderView.Stretch)
         self.table.setStyleSheet('QTableWidget {border: 0;} QTableWidget::item {padding: 5px 0;}')
 
-        self.calendar.setStyleSheet(calendarStyle + dateEditHiddenStyle + buttonHoverStyle(self.conf.windowsStyle))
+        self.calendar.setStyleSheet(calendarStyle + dateEditHiddenStyle)
 
         self.prevButton.setIcon(QIcon(iconPath('prev.png')))
         self.nextButton.setIcon(QIcon(iconPath('next.png')))

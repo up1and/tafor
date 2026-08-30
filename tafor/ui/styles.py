@@ -5,10 +5,12 @@ from PyQt5.QtCore import QSysInfo
 from tafor.core.utils.common import iconPath
 
 
-def buttonHoverStyle(windowsStyle='System'):
-    if QSysInfo.prettyProductName().startswith('Windows 10') and windowsStyle == 'System':
-        return 'QToolButton:hover, QDateEdit:hover { background: #e5f3ff; border: 1px solid #cce8ff;} QToolButton {padding: 2px;}'
-    return 'QToolButton:hover, QDateEdit:hover { background: #f0f0f0; border: 1px solid #999; border-radius: 3px;} QToolButton {padding: 2px;}'
+def flatButtonStyle():
+    """Flat icon buttons over non-white surfaces: any stylesheet rule makes Qt
+    draw the button box, so the resting state must say transparent explicitly."""
+    hover = 'background: #f0f0f0; border: 1px solid #dcdcdc; border-radius: 2px;'
+    return 'QToolButton {{ background: transparent; border: none; padding: 2px; }} ' \
+           'QToolButton:hover, QToolButton:pressed {{ {} }}'.format(hover)
 
 calendarStyle = """
     QCalendarWidget QAbstractItemView:enabled /* date of actual month */{

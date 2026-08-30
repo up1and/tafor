@@ -2,13 +2,13 @@ import datetime
 
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QFont, QIcon, QPixmap
-from PyQt5.QtWidgets import QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget, QWIDGETSIZE_MAX
+from PyQt5.QtWidgets import QHBoxLayout, QSizePolicy, QSpacerItem, QVBoxLayout, QWidget, QWIDGETSIZE_MAX
 
 from tafor.core.utils.time import timeAgo
 from tafor.core.utils.common import iconPath
 from tafor.ui.fonts import fixedFont
 from tafor.ui.qt import Ui_main_recent
-from tafor.ui.styles import buttonHoverStyle
+from tafor.ui.styles import flatButtonStyle
 from tafor.ui.widgets.geometry import SigmetBackground
 
 
@@ -103,7 +103,7 @@ class RecentCard(QWidget, Ui_main_recent.Ui_Recent):
     """Base card: shared setup, fonts and the model update flow. The review
     and notification subclasses fill in the mode specifics."""
 
-    MAP_WIDTH = 200        # Fixed map column width; the height follows the text row
+    MAP_WIDTH = 200        # Fixed overlay width; the height follows the whole card
 
     reminderToggled = pyqtSignal(object, bool)
     reviewRequested = pyqtSignal(object)
@@ -185,11 +185,11 @@ class RecentCard(QWidget, Ui_main_recent.Ui_Recent):
         self.reminderButton.clicked.connect(self.toggleReminder)
 
     def updateButton(self):
-        hoverStyle = buttonHoverStyle(self.conf.windowsStyle)
+        style = flatButtonStyle()
         self.replyButton.setIcon(QIcon(iconPath('reply-arrow.png')))
-        self.replyButton.setStyleSheet(hoverStyle)
-        self.markButton.setStyleSheet(hoverStyle)
-        self.reminderButton.setStyleSheet(hoverStyle)
+        self.replyButton.setStyleSheet(style)
+        self.markButton.setStyleSheet(style)
+        self.reminderButton.setStyleSheet(style)
 
     def toggleReminder(self):
         # RemindService expects the stored message with parser()/expired()
@@ -251,30 +251,46 @@ class ReviewCard(RecentCard):
         self.mapGeo = self.model.geo
 
         if self.map is not None:
-            self.contentLayout.removeWidget(self.map)
+            self.map.setParent(None)
             self.map.deleteLater()
             self.map = None
 
         if self.model.geo:
             self.embedMap()
 
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.repositionMap()
+
     def embedMap(self):
-        """Embed the pre-rendered SIGMET map as a right column within the text height."""
+        """Overlay the pre-rendered SIGMET map on the right side at full card
+        height; the tools row floats above it."""
         if self.contentLayout is None:
             self.buildContentRow()
 
-        self.map = SigmetBackground(self.model.geo, size=(self.MAP_WIDTH, 110), parent=self)
+        self.map = SigmetBackground(self.model.geo, parent=self.group)
+        # SigmetBackground fixes its size; the overlay follows the card instead
+        self.map.setMinimumSize(0, 0)
+        self.map.setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX)
         self.map.setAttribute(Qt.WA_TransparentForMouseEvents)
-        self.map.setFixedWidth(self.MAP_WIDTH)
-        self.map.setMinimumHeight(0)
-        self.map.setMaximumHeight(QWIDGETSIZE_MAX)
-        policy = self.map.sizePolicy()
-        policy.setVerticalPolicy(QSizePolicy.Ignored)
-        self.map.setSizePolicy(policy)
-        self.contentLayout.addWidget(self.map)
+        self.toolsWidget.raise_()
+        self.repositionMap()
+
+    def repositionMap(self):
+        """Pin the map overlay to the right edge of the group at full height."""
+        if self.map is None:
+            return
+
+        inner = self.group.contentsRect()
+        self.map.setGeometry(
+            inner.x() + inner.width() - self.MAP_WIDTH,
+            inner.y(),
+            self.MAP_WIDTH,
+            inner.height())
 
     def buildContentRow(self):
-        """Move text/tip into a two-column row that leaves room for the map."""
+        """Move text/tip into a two-column row that reserves the right side
+        for the map overlay."""
         index = self.groupLayout.indexOf(self.text)
         left = QVBoxLayout()
         left.setContentsMargins(0, 0, 0, 0)
@@ -285,6 +301,7 @@ class ReviewCard(RecentCard):
         content = QHBoxLayout()
         content.setContentsMargins(0, 0, 0, 0)
         content.addLayout(left, 1)
+        content.addItem(QSpacerItem(self.MAP_WIDTH, 0, QSizePolicy.Fixed, QSizePolicy.Minimum))
         self.groupLayout.insertLayout(index, content)
         self.contentLayout = content
 
