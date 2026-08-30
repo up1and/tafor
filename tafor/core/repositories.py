@@ -91,7 +91,7 @@ class TafRepository(Repository):
 
         def _match(objects, message):
             for taf in objects:
-                if taf.flatternedText() == message:
+                if taf.flattenedText() == message:
                     return taf
 
         matched = _match(tafs, message)

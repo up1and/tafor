@@ -40,7 +40,7 @@ class Taf(Base):
     def reportType(self):
         return 'taf'
 
-    def flatternedText(self):
+    def flattenedText(self):
         return self.text.replace('\n', ' ')
 
     @property

@@ -29,21 +29,21 @@ def _translate(code, **kwargs):
         TafValidator.GROUP_PERIOD_EXCEED: QCoreApplication.translate(
             'Editor', 'Change group time more than {span} hours').format(span=kwargs.get('span', '')),
         TafValidator.GROUP_START_INVALID: QCoreApplication.translate(
-            'Editor', 'Start time of change group is not corret'),
+            'Editor', 'Start time of change group is not correct'),
         TafValidator.GROUP_END_INVALID: QCoreApplication.translate(
-            'Editor', 'End time of change group is not corret'),
+            'Editor', 'End time of change group is not correct'),
         TafValidator.GROUP_OVERLAP: QCoreApplication.translate(
             'Editor', 'Change group time is overlap'),
         TafValidator.FM_TIME_INVALID: QCoreApplication.translate(
-            'Editor', 'Time of change group is not corret'),
+            'Editor', 'Time of change group is not correct'),
         TafValidator.TEMP_TIME_INVALID: QCoreApplication.translate(
-            'Editor', 'The time of temperature is not corret'),
+            'Editor', 'The time of temperature is not correct'),
         TafValidator.TEMP_MAX_LESS_MIN: QCoreApplication.translate(
             'Editor', 'The maximum temperature needs to be greater than the minimum temperature'),
         TafValidator.TEMP_MIN_GREATER_MAX: QCoreApplication.translate(
             'Editor', 'The minimum temperature needs to be less than the maximum temperature'),
         TrendValidator.TREND_TIME_INVALID: QCoreApplication.translate(
-            'Editor', 'Trend valid time is not corret'),
+            'Editor', 'Trend valid time is not correct'),
     }
     return messages.get(code, code)
 
@@ -179,8 +179,8 @@ class BaseSegment(SegmentMixin, QWidget):
     def setupPeriodPlaceholder(self):
         raise NotImplementedError
 
-    def setClouds(self, enbale):
-        if enbale:
+    def setClouds(self, enable):
+        if enable:
             self.cloud1.setEnabled(True)
             self.cloud2.setEnabled(True)
             self.cloud3.setEnabled(True)

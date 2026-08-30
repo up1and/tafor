@@ -8,7 +8,7 @@ class MockConfig:
         'General/TAFSpec': 1,
         'General/CloseToMinimize': 'true',
         'General/Debug': 'true',
-        'General/AutoComletionGroupTime': 'true',
+        'General/AutoCompletionGroupTime': 'true',
         'Validation/VisHas5000': 'false',
         'Validation/CloudHeightHas450': 'true',
         'Validation/WeakPrecipitationVerification': 'false',

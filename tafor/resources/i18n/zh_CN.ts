@@ -252,7 +252,7 @@
     </message>
     <message>
         <location filename="../components/widgets/forecast.py" line="1288"/>
-        <source>Trend valid time is not corret</source>
+        <source>Trend valid time is not correct</source>
         <translation>趋势有效时段不正确</translation>
     </message>
     <message>
@@ -272,17 +272,17 @@
     </message>
     <message>
         <location filename="../components/widgets/forecast.py" line="443"/>
-        <source>The time of temperature is not corret</source>
+        <source>The time of temperature is not correct</source>
         <translation>温度组时间不正确</translation>
     </message>
     <message>
         <location filename="../components/widgets/forecast.py" line="939"/>
-        <source>Start time of change group is not corret</source>
+        <source>Start time of change group is not correct</source>
         <translation>变化组起始时间不正确</translation>
     </message>
     <message>
         <location filename="../components/widgets/forecast.py" line="944"/>
-        <source>End time of change group is not corret</source>
+        <source>End time of change group is not correct</source>
         <translation>变化组结束时间不正确</translation>
     </message>
     <message>
@@ -352,7 +352,7 @@
     </message>
     <message>
         <location filename="../components/widgets/forecast.py" line="1017"/>
-        <source>Time of change group is not corret</source>
+        <source>Time of change group is not correct</source>
         <translation>变化组时间不正确</translation>
     </message>
     <message>

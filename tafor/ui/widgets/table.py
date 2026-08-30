@@ -328,7 +328,7 @@ class TafTable(BaseDataTable):
         self.extraColumnWidths = {3: 50}
 
     def displayText(self, item):
-        return item.flatternedText()
+        return item.flattenedText()
 
     def decorateRow(self, row, item):
         if 'COR' in item.text or 'AMD' in item.text:

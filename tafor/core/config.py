@@ -98,9 +98,9 @@ class Config:
         bindProperty='debugMode'
     )
     autoCompletionGroupTime = ConfigItem(
-        'General/AutoComletionGroupTime',
+        'General/AutoCompletionGroupTime',
         default=True,
-        bindProperty='autoComletionGroupTime'
+        bindProperty='autoCompletionGroupTime'
     )
     
     # Validation options

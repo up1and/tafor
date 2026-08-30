@@ -635,11 +635,11 @@ class GraphicsWindow(QWidget):
         self.operationLayout.addWidget(self.overlapButton)
         self.operationLayout.addWidget(self.modeButton)
 
-        self.opacitySilder = QSlider(Qt.Horizontal, self)
-        self.opacitySilder.setMinimum(0)
-        self.opacitySilder.setMaximum(10)
-        self.opacitySilder.setValue(5)
-        self.opacitySilder.hide()
+        self.opacitySlider = QSlider(Qt.Horizontal, self)
+        self.opacitySlider.setMinimum(0)
+        self.opacitySlider.setMaximum(10)
+        self.opacitySlider.setValue(5)
+        self.opacitySlider.hide()
 
         self.positionLabel = OutlinedLabel(self)
         self.positionLabel.setAttribute(Qt.WA_TransparentForMouseEvents)
@@ -672,7 +672,7 @@ class GraphicsWindow(QWidget):
         self.showSigmetAction.toggled.connect(lambda: self.changeSigmetDisplayMode(self.showSigmetAction, 'showSigmet'))
         self.backgroundLayerActionGroup.triggered.connect(self.changeLayer)
         self.mixedBackgroundLayerActionGroup.triggered.connect(self.changeLayer)
-        self.opacitySilder.valueChanged.connect(self.updateMixedBackgroundOpacity)
+        self.opacitySlider.valueChanged.connect(self.updateMixedBackgroundOpacity)
         self.context.event.layerChanged.connect(self.setLayerSelectMenu)
         self.context.event.layerChanged.connect(self.updateLayer)
 
@@ -816,10 +816,10 @@ class GraphicsWindow(QWidget):
             self.layerMenu.addSeparator()
 
         if 'mixed' in layers and layers['mixed']:
-            self.opacitySilder.show()
-            silder = QWidgetAction(self)
-            silder.setDefaultWidget(self.opacitySilder)
-            self.layerMenu.addAction(silder)
+            self.opacitySlider.show()
+            slider = QWidgetAction(self)
+            slider.setDefaultWidget(self.opacitySlider)
+            self.layerMenu.addAction(Slider)
 
         default = self.backgroundLayerActionGroup.actions()[0] or self.mixedBackgroundLayerActionGroup.actions()[0]
         default.setChecked(True)

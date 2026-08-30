@@ -99,7 +99,7 @@
            </widget>
           </item>
           <item row="6" column="0">
-           <widget class="QCheckBox" name="autoComletionGroupTime">
+           <widget class="QCheckBox" name="autoCompletionGroupTime">
             <property name="text">
              <string>Change group auto completion time</string>
             </property>
