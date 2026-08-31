@@ -34,7 +34,7 @@ def weatherPoints(weathers):
                 return code
 
     valueMaps = {}
-    phenomenons = set()
+    phenomena = set()
     for timestamp, codes in weathers:
         if codes:
             enums = list(range(2, 20, 4))
@@ -45,10 +45,10 @@ def weatherPoints(weathers):
             }
 
             for code in codes:
-                phenomenons.add(stripIntensity(code))
+                phenomena.add(stripIntensity(code))
 
     points = {}
-    for name in sorted(phenomenons):
+    for name in sorted(phenomena):
         group = []
         for timestamp, codes in weathers:
             code = findWeather(name, codes)
@@ -103,6 +103,147 @@ def cloudPoints(clouds):
     return covers
 
 
+def metarSamples(records):
+    """Map metar records to time series samples grouped by quantity.
+
+    records is a sequence of records exposing .created and .parser() whose
+    primary metar provides windSpeed()/vis()/... accessors.
+
+    Returns (samples, primaries) where samples is a dict of
+    list-of-(timestamp_ms, value) tuples keyed by quantity name (gusts, rvrs
+    and weathers only present when non-empty) and primaries is the parsed
+    metar list aligned with the samples.
+    """
+    samples = {
+        'winds': [],
+        'gusts': [],
+        'visibilities': [],
+        'rvrs': [],
+        'temperatures': [],
+        'dewpoints': [],
+        'pressures': [],
+        'ceilings': [],
+        'clouds': [],
+        'weathers': [],
+    }
+    primaries = []
+
+    for record in records:
+        metar = record.parser().primary
+        timestamp = round(record.created.timestamp() * 1000)
+
+        primaries.append(metar)
+
+        samples['winds'].append((timestamp, metar.windSpeed()))
+        samples['visibilities'].append((timestamp, metar.vis()))
+        samples['ceilings'].append((timestamp, metar.ceiling()))
+        samples['temperatures'].append((timestamp, metar.temperature()))
+        samples['dewpoints'].append((timestamp, metar.dewpoint()))
+        samples['pressures'].append((timestamp, metar.pressure()))
+
+        samples['clouds'].append((timestamp, metar.clouds()))
+
+        if metar.weathers():
+            samples['weathers'].append((timestamp, metar.weathers()))
+
+        if metar.rvr():
+            samples['rvrs'].append((timestamp, metar.rvr()))
+
+        if metar.gust():
+            samples['gusts'].append((timestamp, metar.gust()))
+
+    return samples, primaries
+
+
+def roundToHalfHour(dt):
+    """Round a datetime down to the nearest full or half hour."""
+    if dt.minute < 30:
+        return dt.replace(minute=0, second=0, microsecond=0)
+    return dt.replace(minute=30, second=0, microsecond=0)
+
+
+def computeDateRange(utcnow, currentRange, request='latest'):
+    """Compute a 24 hour (start, end) chart query window.
+
+    utcnow is the anchor time (already rounded to a full/half hour),
+    currentRange the previous (start, end) and request one of 'latest', an
+    hour offset int, or a datetime.date selecting that day.
+    """
+    if request == 'latest':
+        return (utcnow - datetime.timedelta(hours=24), utcnow)
+
+    if isinstance(request, datetime.date):
+        start = datetime.datetime(request.year, request.month, request.day)
+        dateRange = (start, start + datetime.timedelta(hours=24))
+
+    elif isinstance(request, int):
+        timedelta = datetime.timedelta(hours=request)
+        start, _ = currentRange
+        dateRange = (start + timedelta, start + timedelta + datetime.timedelta(hours=24))
+
+    else:
+        dateRange = currentRange
+
+    if dateRange[1] > utcnow:
+        dateRange = (utcnow - datetime.timedelta(hours=24), utcnow)
+
+    return dateRange
+
+
+def computeTickCount(xmin, xmax):
+    """Number of 3-hourly x ticks spanning the range, inclusive."""
+    tickCount = (xmax - xmin).total_seconds() / (3600 * 3)
+    return round(tickCount) + 1
+
+
+def findIndex(records, timestamp):
+    """Index of the record whose created time is closest to timestamp."""
+    deltas = []
+    for record in records:
+        delta = abs(record.created.timestamp() - timestamp)
+        deltas.append(delta)
+
+    return deltas.index(min(deltas))
+
+
+def markerHtml(title, points):
+    """Build the marker tooltip html for the given sample points.
+
+    points is a sequence of (name, value, timestamp_ms, metar) tuples; only
+    the Wind entry consults metar for a direction suffix.
+    """
+    labels = []
+    for name, value, timestamp, metar in points:
+        if title == 'Weather Phenomenon':
+            if value < 20:
+                name = '-' + name
+            if value > 40:
+                name = '+' + name
+
+            text = name
+        else:
+            unit = title.split('(')[-1].replace(')', '')
+            text = '{}: {} {}'.format(name, value, unit)
+
+            if name == 'Wind' and metar:
+                direction = metar.windDirection()
+                if direction:
+                    if direction == 'VRB':
+                        text += ' from VRB'
+                    else:
+                        text += ' from {} ({}°)'.format(metar.windDirection('compass'), direction)
+
+        labels.append(text)
+
+    time = datetime.datetime.fromtimestamp(float(timestamp) / 1000)
+    return '{:%d %b %H:%M} UTC<br>{}'.format(time, '<br>'.join(labels))
+
+
+def isLightColor(red, green, blue):
+    """Whether a background color is light enough for dark text."""
+    return (red * 0.299 + green * 0.587 + blue * 0.114) > 186
+
+
 class MarkerGraphicsItem(QGraphicsRectItem):
     """Marker graphics item for series data"""
 
@@ -112,53 +253,35 @@ class MarkerGraphicsItem(QGraphicsRectItem):
         self.polygon = QGraphicsPolygonItem(self)
         self.text = QGraphicsTextItem(self)
 
-    def currentMetar(self, series, point):
+    def metarAt(self, index):
+        """Return the metar at the given index, or None when out of range."""
+        records = self.chart.records
         try:
-            index = series.pointsVector().index(point)
-            metar = self.chart.metars[index]
-            return metar
+            return records[index]
         except IndexError:
-            pass
+            logger.debug('Metar index %d out of range (%d records)', index, len(records))
+            return None
 
     def setSeriesText(self, items):
         title = self.chart.title()
 
-        labels = []
-        for _, series, point in items:
-            value = int(point.y())
+        points = []
+        for _, series, point, index in items:
             name = series.name()
-            time = datetime.datetime.fromtimestamp(float(point.x()) / 1000)
-
-            if title == 'Weather Phenomenon':
-                if value < 20:
-                    name = '-' + name
-                if value > 40:
-                    name = '+' + name
-
-                text = name
+            if name == 'Wind':
+                metar = self.metarAt(index)
             else:
-                unit = title.split('(')[-1].replace(')', '')
-                text = '{}: {} {}'.format(name, value, unit)
+                metar = None
 
-                metar = self.currentMetar(series, point)
-                if metar:
-                    direction = metar.windDirection()
-                    if name == 'Wind' and direction:
-                        if direction == 'VRB':
-                            text += ' from VRB'
-                        else:
-                            text += ' from {} ({}°)'.format(metar.windDirection('compass'), direction)
+            points.append((name, int(point.y()), float(point.x()), metar))
 
-            labels.append(text)
-
-        html = '{:%d %b %H:%M} UTC<br>{}'.format(time, '<br>'.join(labels))
-        self.text.setHtml(html)
+        self.text.setHtml(markerHtml(title, points))
 
     def setSeriesColor(self, color):
         # Set primary text and background color
         self.polygon.setBrush(QBrush(color))
         # https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color
-        if (color.red()*0.299 + color.green()*0.587 + color.blue()*0.114) > 186:
+        if isLightColor(color.red(), color.green(), color.blue()):
             penColor = QColor(70, 70, 70)
         else:
             penColor = QColor(255, 255, 255)
@@ -185,7 +308,7 @@ class MarkerGraphicsItem(QGraphicsRectItem):
 
     def place(self, items):
         """Place marker for series at position of first point"""
-        _, series, point = items[0]
+        _, series, point, _ = items[0]
         visible = series.at(0).x() <= point.x() <= series.at(series.count()-1).x() and self.isVisible()
         self.setVisible(visible and series.chart().plotArea().contains(self.pos()))
         self.setPos(series.chart().mapToPosition(point))
@@ -198,18 +321,19 @@ class Chart(QChart):
 
     def __init__(self):
         super().__init__()
-        self.metars = []
+        self.records = []
 
-    def setMetars(self, metars):
-        self.metars = metars
+    def setRecords(self, records):
+        self.records = records
 
 
 class ChartView(QChartView):
     """Custom chart view class providing points marker"""
     markerRadius = 16
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, chart=None, parent=None):
+        super().__init__(chart, parent)
+
         self.setMarker(MarkerGraphicsItem(self.chart()))
 
     def setMarker(self, item):
@@ -220,9 +344,9 @@ class ChartView(QChartView):
     def nearestPoints(self, series, pos):
         items = []
         chart = self.chart()
-        for point in series.pointsVector():
+        for index, point in enumerate(series.pointsVector()):
             distance = (pos - chart.mapToPosition(point)).manhattanLength()
-            items.append((distance, series, point))
+            items.append((distance, series, point, index))
         items.sort(key=lambda item: item[0])
         return items
 
@@ -231,9 +355,6 @@ class ChartView(QChartView):
         chart = self.chart()
         if not chart.series():
             return
-        # Position in data
-        value = chart.mapToValue(event.pos())
-        # Position in plot
         pos = chart.mapToScene(event.pos())
         visible = chart.plotArea().contains(pos)
         self.marker.setVisible(visible)
@@ -247,9 +368,9 @@ class ChartView(QChartView):
         items.sort(key=lambda item: item[0])
 
         if len(items):
-            distance, series, point = items[0]
+            distance, series, point, _ = items[0]
             if distance < self.markerRadius:
-                samePointItems = list(filter(lambda x: x[2] == point, items))
+                samePointItems = list(filter(lambda item: item[2] == point, items))
                 self.marker.place(samePointItems)
             else:
                 self.marker.setVisible(False)
@@ -259,10 +380,12 @@ class ChartView(QChartView):
 
 class ChartViewer(QDialog, Ui_chart.Ui_Chart):
 
-    def __init__(self, parent=None, repository=None):
+    def __init__(self, parent=None, repository=None, clock=None):
         super().__init__(parent)
         self.setupUi(self)
         self.repository = repository
+        self.clock = clock or datetime.datetime.utcnow
+        self.dateRange = None
 
         self.saveButton = self.buttonBox.button(QDialogButtonBox.Save)
         self.saveButton.setText(QCoreApplication.translate('Chart', 'Save'))
@@ -304,42 +427,35 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
             image.save(filepath, 'png')
 
     def setCalendar(self):
-        self.calendar.dateChanged.disconnect(self.updateDateRange)
         maxDate = QDate.currentDate()
         start = self.dateRange[0]
         date = QDate(start.year, start.month, start.day)
-        self.calendar.calendarWidget().setSelectedDate(date)
-        self.calendar.setMaximumDate(maxDate)
-        self.calendar.dateChanged.connect(self.updateDateRange)
+
+        # Programmatic updates would re-emit dateChanged and recursively call
+        # updateDateRange; block the signals instead of disconnecting the slot.
+        self.calendar.blockSignals(True)
+        try:
+            self.calendar.calendarWidget().setSelectedDate(date)
+            self.calendar.setMaximumDate(maxDate)
+        finally:
+            self.calendar.blockSignals(False)
 
     def updateDateRange(self, date='latest'):
-        utcnow = datetime.datetime.utcnow()
-        if utcnow.minute < 30:
-            utcnow = utcnow.replace(minute=0, second=0, microsecond=0)
-        else:
-            utcnow = utcnow.replace(minute=30, second=0, microsecond=0)
+        utcnow = roundToHalfHour(self.clock())
 
         if isinstance(date, QDate):
             date = date.toPyDate()
-            start = datetime.datetime(date.year, date.month, date.day)
-            self.dateRange = (start, start + datetime.timedelta(hours=24))
 
-        if isinstance(date, int):
-            timedelta = datetime.timedelta(hours=date)
-            start, _ = self.dateRange
-            self.dateRange = (start + timedelta, start + timedelta + datetime.timedelta(hours=24))
-
-        if date == 'latest' or self.dateRange[1] > utcnow:
-            self.dateRange = (utcnow - datetime.timedelta(hours=24), utcnow)
+        self.dateRange = computeDateRange(utcnow, self.dateRange, date)
 
         self.setCalendar()
         self.clearChart()
 
         try:
             self.drawChart()
-        except Exception as e:
+        except Exception:
             start, end = self.dateRange
-            logger.error('Failed to draw chart, date range {} - {}, {}'.format(start, end, e))
+            logger.exception('Failed to draw chart, date range %s - %s', start, end)
 
     def showEvent(self, event):
         self.updateDateRange()
@@ -359,8 +475,7 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         if not series:
             return
 
-        tickCount = (xmax - xmin).total_seconds() / (3600 * 3)
-        tickCount = round(tickCount) + 1
+        tickCount = computeTickCount(xmin, xmax)
 
         axisX = QDateTimeAxis()
         axisX.setTickCount(tickCount)
@@ -402,14 +517,6 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         if not series:
             return
 
-        def findIndex(records, timestamp):
-            deltas = []
-            for record in records:
-                delta = abs(record.created.timestamp() - timestamp)
-                deltas.append(delta)
-
-            return deltas.index(min(deltas))
-
         tickCount = chart.axisX().tickCount()
         minx = chart.axisX().min().toMSecsSinceEpoch()
         maxx = chart.axisX().max().toMSecsSinceEpoch()
@@ -421,7 +528,7 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
             tickCountTime = minx + i * step
             timestamp = tickCountTime / 1000
             index = findIndex(records, timestamp)
-            metar = chart.metars[index]
+            metar = chart.records[index]
             label = '<span class="label-{}">{}</span>'.format(i, metar.windDirection('arrow'))
             axisX.append(label, minx + i * step)
 
@@ -461,44 +568,44 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
                 chart.removeAxis(axis)
 
     def drawPhenomenonSeries(self, weathers):
-        series = []
+        graphs = []
         for name, points in weatherPoints(weathers).items():
-            serie = QScatterSeries()
-            serie.setMarkerSize(8)
-            serie.setName(name)
+            series = QScatterSeries()
+            series.setMarkerSize(8)
+            series.setName(name)
 
             if 'TS' in name or name == 'FG' or 'SH' in name:
-                serie.setMarkerSize(10)
+                series.setMarkerSize(10)
 
             for timestamp, value in points:
-                serie.append(timestamp, value)
+                series.append(timestamp, value)
 
-            series.append(serie)
+            graphs.append(series)
 
-        return series
+        return graphs
 
     def drawCloudSeries(self, clouds):
         orders = ['FEW', 'SCT', 'BKN', 'OVC', 'VV', 'TCU', 'CB']
         points = cloudPoints(clouds)
 
-        series = []
+        graphs = []
         for key in orders:
             if key not in points:
                 continue
 
-            serie = QScatterSeries()
-            serie.setName(key)
-            serie.setMarkerSize(8)
+            series = QScatterSeries()
+            series.setName(key)
+            series.setMarkerSize(8)
 
             if key in ['TCU', 'CB', 'VV']:
-                serie.setMarkerSize(10)
+                series.setMarkerSize(10)
 
             for timestamp, height in points[key]:
-                serie.append(timestamp, height)
+                series.append(timestamp, height)
 
-            series.append(serie)
+            graphs.append(series)
 
-        return series
+        return graphs
 
     def drawChart(self):
         start, end = self.dateRange
@@ -538,38 +645,23 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         ceilings = QSplineSeries()
         ceilings.setName('Ceiling')
 
-        clouds = []
-        weathers = []
-
-        metars = []
-
-        for m in results:
-            metar = m.parser().primary
-            timestamp = round(m.created.timestamp() * 1000)
-
-            metars.append(metar)
-
-            winds.append(timestamp, metar.windSpeed())
-            visibilities.append(timestamp, metar.vis())
-            ceilings.append(timestamp, metar.ceiling())
-            temperatures.append(timestamp, metar.temperature())
-            dewpoints.append(timestamp, metar.dewpoint())
-            pressures.append(timestamp, metar.pressure())
-
-            clouds.append((timestamp, metar.clouds()))
-
-            if metar.weathers():
-                weathers.append((timestamp, metar.weathers()))
-
-            if metar.rvr():
-                rvrs.append(timestamp, metar.rvr())
-
-            if metar.gust():
-                gusts.append(timestamp, metar.gust())
-
+        samples, records = metarSamples(results)
 
         for chart in self.charts:
-            chart.setMetars(metars)
+            chart.setRecords(records)
+
+        for series, values in (
+            (winds, samples['winds']),
+            (gusts, samples['gusts']),
+            (visibilities, samples['visibilities']),
+            (rvrs, samples['rvrs']),
+            (temperatures, samples['temperatures']),
+            (dewpoints, samples['dewpoints']),
+            (pressures, samples['pressures']),
+            (ceilings, samples['ceilings']),
+        ):
+            for timestamp, value in values:
+                series.append(timestamp, value)
 
         self.windChart.addSeries(winds)
         if gusts.count():
@@ -586,16 +678,16 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         self.visChart.axisY().setRange(0, 10000)
         self.visChart.axisY().setTickCount(5)
 
-        for serie in self.drawPhenomenonSeries(weathers):
-            self.weatherChart.addSeries(serie)
+        for series in self.drawPhenomenonSeries(samples['weathers']):
+            self.weatherChart.addSeries(series)
 
         self.addWeatherAxis(self.weatherChart)
         self.addAxisX(self.weatherChart, xmin, xmax)
 
         self.cloudChart.addSeries(ceilings)
 
-        for serie in self.drawCloudSeries(clouds):
-            self.cloudChart.addSeries(serie)
+        for series in self.drawCloudSeries(samples['clouds']):
+            self.cloudChart.addSeries(series)
 
         self.addAxisY(self.cloudChart)
         self.addAxisX(self.cloudChart, xmin, xmax)
