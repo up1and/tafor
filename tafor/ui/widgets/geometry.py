@@ -273,13 +273,15 @@ class Sigmet(QGraphicsItem, CanvasMixin, ColorMixin):
 
 class SigmetBackground(QWidget, ColorMixin):
 
-    def __init__(self, geo, size=None, parent=None):
+    def __init__(self, geo, fir=None, size=None, parent=None):
         super().__init__(parent)
         if size is None:
             size = (200, 110)
         self.setFixedSize(*size)
         self.geo = geo
+        self.fir = fir
         self.geometries = []
+        self.firGeometries = []
         self.fitSize()
 
     def toCanvasCoordinates(self, lonlats):
@@ -328,6 +330,13 @@ class SigmetBackground(QWidget, ColorMixin):
                 geom.properties = feature['properties']
                 self.geometries.append(geom)
 
+        # The FIR boundary is an overlay reference: it reuses the centroid,
+        # ratio and rect derived from the SIGMET envelope, so it never affects
+        # the overall widget size.
+        self.firGeometries = []
+        if self.fir:
+            self.firGeometries.append(self.toCanvasCoordinates(self.fir))
+
     def resizeEvent(self, event):
         self.fitSize()
         super().resizeEvent(event)
@@ -336,6 +345,12 @@ class SigmetBackground(QWidget, ColorMixin):
         super().paintEvent(event)
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
+
+        # FIR boundary as a dashed reference layer, underneath the SIGMET
+        for geo in self.firGeometries:
+            painter.setPen(QPen(QColor(150, 150, 150), 1, Qt.DashLine))
+            painter.setBrush(Qt.NoBrush)
+            painter.drawPolygon(geo)
 
         for geo in self.geometries:
             hazard = geo.properties['hazard']
