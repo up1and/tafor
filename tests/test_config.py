@@ -72,7 +72,7 @@ def test_validator_rejects_invalid_value():
         conf.firBoundary = 'not-a-json'
 
     conf.firBoundary = '[[0, 0], [1, 0], [1, 1], [0, 1]]'
-    assert conf.firBoundary == '[[0, 0], [1, 0], [1, 1], [0, 1]]'
+    assert conf.firBoundary == [[0, 0], [1, 0], [1, 1], [0, 1]]
 
 
 def test_emit_fires_signals_for_pending_scopes():

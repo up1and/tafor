@@ -9,10 +9,10 @@ logger = logging.getLogger('tafor.config')
 def validateFirBoundary(value):
     from shapely.geometry import Polygon
     try:
-        boundaries = json.loads(value)
+        boundaries = value if isinstance(value, list) else json.loads(value)
         boundary = Polygon(boundaries)
         return boundary.is_valid and not boundary.is_empty
-    except ValueError:
+    except (ValueError, TypeError):
         return False
 
 class ConfigItem:
@@ -336,7 +336,7 @@ class Config:
     )
     firBoundary = ConfigItem(
         'Layer/FIRBoundary',
-        default='[]',
+        default=[],
         scope='restart',
         bindProperty='firBoundary',
         validator=validateFirBoundary,

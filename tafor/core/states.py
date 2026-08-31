@@ -192,13 +192,8 @@ class LayerService(StateProxyMixin):
         ]
 
     def boundaries(self):
-        import json
-
-        try:
-            boundary = json.loads(self.conf.firBoundary)
-            if not isinstance(boundary, list):
-                return []
-        except Exception as e:
+        boundary = self.conf.firBoundary
+        if not isinstance(boundary, list):
             return []
 
         return boundary

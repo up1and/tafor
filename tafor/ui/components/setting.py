@@ -200,6 +200,8 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             control.setChecked(value)
 
         if isinstance(control, QPlainTextEdit):
+            if not isinstance(value, str):
+                value = json.dumps(value)
             control.setPlainText(value)
             control.moveCursor(QTextCursor.End)
 
