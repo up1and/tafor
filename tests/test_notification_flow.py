@@ -3,17 +3,17 @@ from tafor.core.states import createContext
 from tests.mocks import MockConfig
 
 
-def test_notification_changed_emits_lowercase_type():
+def test_notification_changed_emits_category():
     conf = createConfig(settings=MockConfig())
     context = createContext(conf)
     received = []
     context.event.notificationChanged.connect(received.append)
 
     context.notification.metar.setState({'message': 'METAR ZJHK 210900Z 14004MPS 4500 -RA BKN030=', 'validation': True})
-    assert received[-1] == 'metar'
+    assert received[-1] == 'METAR'
 
     context.notification.sigmet.setState({'message': 'SIGMET YUSO 300400Z ...'})
-    assert received[-1] == 'sigmet'
+    assert received[-1] == 'SIGMET'
 
     context.notification.metar.clear()
-    assert received[-1] == 'unknown'
+    assert received[-1] == 'CUSTOM'

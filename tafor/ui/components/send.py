@@ -23,11 +23,11 @@ logger = logging.getLogger('tafor.send')
 
 
 class ComposedMessage:
-    def __init__(self, message, parser=None, html='', reportType=None, geo=None):
+    def __init__(self, message, parser=None, html='', category=None, geo=None):
         self.message = message
         self.parser = parser
         self.html = html
-        self.reportType = reportType
+        self.category = category
         self.geo = geo
 
 
@@ -129,28 +129,28 @@ class SigmetMessageComposer(MessageComposer):
             if not message.isCnl():
                 geo = parser.geo(self.context.layer.boundaries(), trim=True)
 
-            return ComposedMessage(message, parser=parser, html=html, reportType=message.reportType, geo=geo)
+            return ComposedMessage(message, parser=parser, html=html, category=message.category, geo=geo)
         except Exception as e:
             logger.error('Sender parse SIGMET failed, {}, {}'.format(message.text, e))
-            return ComposedMessage(message, reportType=message.reportType)
+            return ComposedMessage(message, category=message.category)
 
 
 class CustomMessageComposer(MessageComposer):
     pass
 
 
-def createComposer(reportType, conf, context, fontFamily='monospace'):
+def createComposer(category, conf, context, fontFamily='monospace'):
     mapping = {
-        'taf': TafMessageComposer,
-        'trend': TrendMessageComposer,
-        'sigmet': SigmetMessageComposer,
-        'airmet': SigmetMessageComposer,
-        'custom': CustomMessageComposer,
+        'TAF': TafMessageComposer,
+        'TREND': TrendMessageComposer,
+        'SIGMET': SigmetMessageComposer,
+        'AIRMET': SigmetMessageComposer,
+        'CUSTOM': CustomMessageComposer,
     }
     try:
-        return mapping[reportType](conf, context, fontFamily)
+        return mapping[category](conf, context, fontFamily)
     except KeyError:
-        raise ValueError(f'Unsupported report type: {reportType}')
+        raise ValueError(f'Unsupported report type: {category}')
 
 
 class TransportService:
@@ -202,7 +202,7 @@ class SenderPresenter:
         self.view = view
         self.context = context
         self.conf = conf
-        self.composer = createComposer(view.reportType, conf, context, fontFamily=uiFont().family())
+        self.composer = createComposer(view.category, conf, context, fontFamily=uiFont().family())
         self.transportService = TransportService(conf, context)
         self.repository = repository
         self.resetGroupCycle()
@@ -254,8 +254,8 @@ class SenderPresenter:
         self.view.message = result.message
         self.view.parser = result.parser
 
-        if result.reportType:
-            self.view.reportType = result.reportType
+        if result.category:
+            self.view.category = result.category
 
         if result.html:
             self.view.text.setHtml(result.html)
@@ -301,7 +301,7 @@ class SenderPresenter:
 
         rawText = self.generateRawText()
 
-        if self.context.license.hasPermission(self.view.reportType):
+        if self.context.license.hasPermission(self.view.category):
             self.transportService.transmit(
                 self.protocol(),
                 self.view.parser,
@@ -392,7 +392,7 @@ class SenderPresenter:
 
 
 class BaseSender(QDialog, Ui_send.Ui_Sender):
-    reportType = ''
+    category = ''
     fixedProtocol = None
     hasCanvasGroup = False
 
@@ -510,7 +510,7 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             self.error = error
             self.rawGroup.setTitle(QCoreApplication.translate('Sender', 'Send Failed'))
 
-            if self.context.license.hasPermission(self.reportType):
+            if self.context.license.hasPermission(self.category):
                 self.resendButton.setEnabled(True)
                 self.resendButton.setText(QCoreApplication.translate('Sender', 'Resend'))
                 self.resendButton.show()
@@ -590,11 +590,11 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
 
 
 class TafSender(BaseSender):
-    reportType = 'taf'
+    category = 'TAF'
 
 
 class TrendSender(BaseSender):
-    reportType = 'trend'
+    category = 'TREND'
     fixedProtocol = 'aftn'
 
     def __init__(self, parent=None, context=None, conf=None, repository=None):
@@ -603,7 +603,7 @@ class TrendSender(BaseSender):
 
 
 class SigmetSender(BaseSender):
-    reportType = 'sigmet'
+    category = 'SIGMET'
     hasCanvasGroup = True
 
     def __init__(self, parent=None, context=None, conf=None, repository=None):
@@ -651,7 +651,7 @@ class SigmetSender(BaseSender):
 
 
 class CustomSender(BaseSender):
-    reportType = 'custom'
+    category = 'CUSTOM'
     fixedProtocol = 'aftn'
 
     def __init__(self, parent=None, context=None, conf=None, repository=None):

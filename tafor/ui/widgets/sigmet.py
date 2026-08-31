@@ -135,7 +135,7 @@ class BaseSigmet(SegmentMixin, QWidget):
 
     def syncToState(self):
         self.state.header.area = self.conf.firName.split()[0] if self.conf.firName else ''
-        self.state.header.sign = self.editor.reportType()
+        self.state.header.sign = self.editor.category()
         self.state.header.sequence = self.sequence.text()
         self.state.header.beginningTime = self.beginningTime.text()
         self.state.header.endingTime = self.endingTime.text()
@@ -1160,7 +1160,7 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
     def componentUpdate(self):
         self.prevs = []
-        sigmets = self.context.current.filterSigmets(SigmetFilter(typeCode=self.type()))
+        sigmets = self.context.current.filterSigmets(SigmetFilter(designator=self.type()))
 
         for sig in sigmets:
             parser = sig.parser()

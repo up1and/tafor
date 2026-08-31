@@ -65,7 +65,7 @@ class RemindService:
         outdates = self.context.sigmet.outdate()
         for item in outdates:
             sig = item['text']
-            mark = '{} {}'.format(sig.reportType(), sig.sequence())
+            mark = '{} {}'.format(sig.category(), sig.sequence())
             text = QCoreApplication.translate('MainWindow', 'Time to update {}').format(mark)
             ret = self.view.showReminder(self.view.remindSigmetBox, self.view.sigmetSound, text)
             if ret == QMessageBox.AcceptRole:
@@ -212,7 +212,7 @@ class DataService:
 
     def sigmetGeometry(self, message):
         """Pre-render the SIGMET area features for the recent-board card."""
-        if message.reportType not in ['sigmet', 'airmet'] or message.isCnl():
+        if message.category not in ['SIGMET', 'AIRMET'] or message.isCnl():
             return None
 
         try:
@@ -374,11 +374,11 @@ class MainPresenter(QObject):
             QCoreApplication.translate('MainWindow', 'Received a custom message.')
         )
 
-    def handleNotificationChange(self, notificationType):
-        if notificationType == 'metar':
+    def handleNotificationChange(self, category):
+        if category == 'METAR':
             self.dataService.loadMetar()
 
-        if notificationType == 'sigmet':
+        if category == 'SIGMET':
             self.view.sigmetEditor.updateCustomText()
             message = self.context.notification.sigmet.message()
             if message:
@@ -386,7 +386,7 @@ class MainPresenter(QObject):
                 self.context.flash.info(
                     QCoreApplication.translate('MainWindow', 'Message Received'),
                     QCoreApplication.translate('MainWindow', 'Received a {} message').format(
-                        self.context.notification.sigmet.getMessageType()
+                        self.context.notification.sigmet.category()
                     )
                 )
 

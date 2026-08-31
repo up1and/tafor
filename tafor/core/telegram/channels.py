@@ -13,8 +13,8 @@ class BaseChannel:
         self.conf = conf
 
     def buildText(self, message, category):
-        heading = self.conf.trendIdentifier if category == 'trend' else message.heading
-        spacer = ' ' if category == 'trend' else '\n'
+        heading = self.conf.trendIdentifier if category == 'TREND' else message.heading
+        spacer = ' ' if category == 'TREND' else '\n'
         return spacer.join([heading, message.text])
 
     def buildParams(self, message, priority=None, address=None):
@@ -23,7 +23,7 @@ class BaseChannel:
     def generate(self, message, *, priority=None, address=None):
         """Build the telegram generator for a report message.
 
-        message is a Taf/Trend/Sigmet/Other instance; its reportType
+        message is a Taf/Trend/Sigmet/Other instance; its category
         property selects the telegram category. Standard reports derive
         priority and address from the config, custom messages (Other)
         require both explicitly.
@@ -36,15 +36,15 @@ class AFTNChannel(BaseChannel):
     configName = 'channelSequenceNumber'
 
     def buildParams(self, message, priority=None, address=None):
-        category = message.reportType
+        category = message.category
 
-        if category == 'custom':
+        if category == 'CUSTOM':
             # Custom addressing is user-provided, not derived from config
             text = message.text
         else:
             text = self.buildText(message, category)
             priority = aftnPriority(category, message.text)
-            address = self.conf.get(f'{category}Address')
+            address = self.conf.get(f'{category.lower()}Address')
 
         return {
             'text': text,
@@ -64,7 +64,7 @@ class FileChannel(BaseChannel):
 
     def buildParams(self, message, priority=None, address=None):
         return {
-            'text': self.buildText(message, message.reportType),
+            'text': self.buildText(message, message.category),
             'number': self.conf.get(self.configName),
         }
 

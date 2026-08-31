@@ -23,12 +23,12 @@ class FakeConf:
 class FakeMessage:
 
     def __init__(self, heading='NT36 YUSO 231200', text='TAF YUSO 231200Z 2312/2412 03003MPS=',
-                 confirmed=False, created=None, reportType='taf'):
+                 confirmed=False, created=None, category='TAF'):
         self.heading = heading
         self.text = text
         self.confirmed = confirmed
         self.created = created or datetime.datetime.utcnow()
-        self.reportType = reportType
+        self.category = category
 
 
 def makeConf():
@@ -74,7 +74,7 @@ def test_aftn_build_params_for_taf():
 def test_aftn_priority_ff_for_sigmet_and_amended_taf():
     channel = AFTNChannel(makeConf())
 
-    assert channel.buildParams(FakeMessage(reportType='sigmet'))['priority'] == 'FF'
+    assert channel.buildParams(FakeMessage(category='SIGMET'))['priority'] == 'FF'
     assert channel.buildParams(FakeMessage(text='TAF AMD YUSO ...'))['priority'] == 'FF'
 
 
@@ -92,7 +92,7 @@ def test_aftn_defaults_when_blank():
 
 def test_aftn_build_params_for_trend():
     channel = AFTNChannel(makeConf())
-    message = FakeMessage(heading='ignored', text='NOSIG=', reportType='trend')
+    message = FakeMessage(heading='ignored', text='NOSIG=', category='TREND')
 
     params = channel.buildParams(message)
 

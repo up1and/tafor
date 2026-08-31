@@ -49,12 +49,12 @@ class LicenseService:
             infos['fir'] = self.conf.firName[:4]
         return infos
 
-    def hasPermission(self, reportType):
-        if reportType == 'trend':
+    def hasPermission(self, category):
+        if category == 'TREND':
             return True
-        if reportType in ['taf', 'custom']:
+        if category in ['TAF', 'CUSTOM']:
             return 'airport' in self.license()
-        if reportType in ['sigmet', 'airmet']:
+        if category in ['SIGMET', 'AIRMET']:
             return 'fir' in self.license()
         return False
 

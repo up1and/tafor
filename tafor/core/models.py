@@ -37,8 +37,8 @@ class Taf(Base):
         return '<TAF %r %r>' % (self.type, self.text)
 
     @property
-    def reportType(self):
-        return 'taf'
+    def category(self):
+        return 'TAF'
 
     def flattenedText(self):
         return self.text.replace('\n', ' ')
@@ -83,8 +83,8 @@ class Metar(Base):
         return '<METAR %r %r>' % (self.type, self.text)
 
     @property
-    def reportType(self):
-        return 'metar'
+    def category(self):
+        return 'METAR'
 
     @property
     def report(self):
@@ -113,8 +113,8 @@ class Trend(Base):
         return 'TREND'
 
     @property
-    def reportType(self):
-        return 'trend'
+    def category(self):
+        return 'TREND'
 
     @property
     def report(self):
@@ -154,10 +154,10 @@ class Sigmet(Base):
         return '<SIGMET %r %r>' % (self.type, self.text)
 
     @property
-    def reportType(self):
+    def category(self):
         if (self.heading and self.heading[0:2] == 'WA') or 'AIRMET' in self.text.split():
-            return 'airmet'
-        return 'sigmet'
+            return 'AIRMET'
+        return 'SIGMET'
 
     @property
     def report(self):
@@ -210,11 +210,13 @@ class Other(Base):
         return '<Other %r>' % (self.raw)
 
     @property
-    def reportType(self):
-        return 'custom'
+    def category(self):
+        return 'CUSTOM'
+
     @property
     def type(self):
         return ''
+
     @property
     def report(self):
         return self.text

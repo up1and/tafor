@@ -19,19 +19,19 @@ def subscribedTypes(tafSpec, sigmetEnabled):
 
 class SigmetFilter:
 
-    def __init__(self, reportType=None, typeCode=None, includeCancelled=False):
-        self.reportType = reportType
-        self.typeCode = typeCode
+    def __init__(self, category=None, designator=None, includeCancelled=False):
+        self.category = category
+        self.designator = designator
         self.includeCancelled = includeCancelled
 
-    def typeCodes(self):
-        if self.typeCode:
-            return [self.typeCode]
+    def designators(self):
+        if self.designator:
+            return [self.designator]
 
-        if self.reportType == 'SIGMET':
+        if self.category == 'SIGMET':
             return ['WS', 'WC', 'WV']
 
-        if self.reportType == 'AIRMET':
+        if self.category == 'AIRMET':
             return ['WA']
 
         return []
@@ -42,13 +42,13 @@ class Repository:
     def __init__(self, database):
         self.database = database
 
-    def queryset(self, session, model, reportType=None, date=None, keywords=None):
+    def queryset(self, session, model, category=None, date=None, keywords=None):
         query = session.query(model).order_by(model.created.desc())
 
-        if reportType == 'SIGMET':
+        if category == 'SIGMET':
             query = query.filter(model.type != 'WA')
 
-        if reportType == 'AIRMET':
+        if category == 'AIRMET':
             query = query.filter(model.type == 'WA')
 
         if date:
@@ -61,19 +61,19 @@ class Repository:
 
         return query
 
-    def paginated(self, model, reportType=None, date=None, keywords=None, page=1, perPage=12, total=None):
+    def paginated(self, model, category=None, date=None, keywords=None, page=1, perPage=12, total=None):
         with self.database.session() as session:
-            queryset = self.queryset(session, model, reportType=reportType, date=date, keywords=keywords)
+            queryset = self.queryset(session, model, category=category, date=date, keywords=keywords)
             return paginate(queryset, page, perPage=perPage, total=total)
 
-    def filtered(self, model, reportType=None, start=None, end=None):
+    def filtered(self, model, category=None, start=None, end=None):
         with self.database.session() as session:
             query = session.query(model)
 
-            if reportType == 'SIGMET':
+            if category == 'SIGMET':
                 query = query.filter(model.type != 'WA')
 
-            if reportType == 'AIRMET':
+            if category == 'AIRMET':
                 query = query.filter(model.type == 'WA')
 
             query = query.filter(

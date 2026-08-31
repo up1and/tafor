@@ -4,20 +4,20 @@ import re
 from tafor.core.utils.time import ceilTime, parseTime, roundTime
 
 
-def composeHeading(typeCode, area, icao, now):
+def composeHeading(designator, area, icao, now):
     time = now.strftime('%d%H%M')
-    messages = [typeCode + area, icao, time]
+    messages = [designator + area, icao, time]
     return ' '.join(filter(None, messages))
 
 
-def validDuration(typeCode):
+def validDuration(designator):
     durations = {
         'WS': 4,
         'WC': 6,
         'WV': 6,
         'WA': 4,
     }
-    return durations[typeCode]
+    return durations[designator]
 
 
 def nextSequence(headings, today):
@@ -34,9 +34,9 @@ def nextSequence(headings, today):
     return len([h for h in headings if not isYesterday(h)]) + 1
 
 
-def validPeriod(typeCode, span, now):
+def validPeriod(designator, span, now):
     """Valid period start: next full hour for WC, otherwise ceil to 10 minutes."""
-    if typeCode == 'WC':
+    if designator == 'WC':
         start = roundTime(now)
     else:
         start = ceilTime(now, amount=10)

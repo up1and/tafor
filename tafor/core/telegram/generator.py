@@ -20,9 +20,9 @@ def linewrap(lines, maxLineChar):
     return items
 
 
-def aftnPriority(reportType, text):
+def aftnPriority(category, text):
     """SIGMET/AIRMET and amended TAF go out with the higher FF priority."""
-    if reportType in ['sigmet', 'airmet'] or text.startswith('TAF AMD'):
+    if category in ['SIGMET', 'AIRMET'] or text.startswith('TAF AMD'):
         return 'FF'
     return 'GG'
 

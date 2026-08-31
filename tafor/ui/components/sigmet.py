@@ -80,7 +80,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.setupUi(self)
 
         self.type = 'WS'
-        self.category = 'template'
+        self.mode = 'template'
 
         self.presenter = SigmetPresenter(self, context, conf)
         self.initUI()
@@ -115,13 +115,13 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.addBottomBox(self.mainLayout)
 
     def updateGraphicCanvas(self):
-        if self.category == 'custom':
+        if self.mode == 'custom':
             return
 
-        if self.category == 'cancel':
-            sigmets = self.context.current.filterSigmets(SigmetFilter(typeCode=self.type))
+        if self.mode == 'cancel':
+            sigmets = self.context.current.filterSigmets(SigmetFilter(designator=self.type))
         else:
-            sigmets = self.context.current.filterSigmets(SigmetFilter(reportType=self.reportType()))
+            sigmets = self.context.current.filterSigmets(SigmetFilter(category=self.category()))
 
         self.graphic.setCachedSigmet(sigmets)
 
@@ -148,17 +148,17 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         text = text if text.endswith('=') else text + '='
         return text
 
-    def reportType(self):
+    def category(self):
         return 'AIRMET' if self.type == 'WA' else 'SIGMET'
 
     def hasGraphicWindow(self):
         return self.currentContent not in [self.customContent, self.cancelContent]
 
-    def setType(self, type, category):
+    def setType(self, type, mode):
         self.type = type
-        self.category = category
+        self.mode = mode
         self.currentContent.setSpan(validDuration(self.type))
-        self.graphic.setButton(self.type, category)
+        self.graphic.setButton(self.type, mode)
         self.updateGraphicCanvas()
 
     def setOverlapMode(self, mode):
@@ -170,7 +170,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
     def changeContent(self):
         if self.template.isChecked():
-            category = 'template'
+            mode = 'template'
             if self.significantWeather.isChecked():
                 self.currentContent = self.generalContent
 
@@ -184,10 +184,10 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
                 self.currentContent = self.airmetContent
 
         elif self.cancel.isChecked():
-            category = 'cancel'
+            mode = 'cancel'
             self.currentContent = self.cancelContent
         else:
-            category = 'custom'
+            mode = 'custom'
             self.currentContent = self.customContent
 
         if self.currentContent == self.customContent:
@@ -213,7 +213,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         if self.airmansWeather.isChecked():
             tt = 'WA'
         
-        self.setType(tt, category)
+        self.setType(tt, mode)
 
     def clear(self):
         for c in self.contents:

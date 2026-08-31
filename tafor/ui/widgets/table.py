@@ -95,14 +95,14 @@ class ExportDialog(QDialog):
 
     def filteredReport(self):
         model = self.table.model
-        reportType = self.table.reportType
+        category = self.table.category
         start, end = self.startDate.date().toPyDate(), self.endDate.date().toPyDate()
-        return self.table.repository.filtered(model, reportType=reportType, start=start, end=end)
+        return self.table.repository.filtered(model, category=category, start=start, end=end)
 
     def exportToCsv(self):
         fmt = '%Y-%m-%d'
         start, end = self.startDate.date().toPyDate(), self.endDate.date().toPyDate()
-        name = '{} {} {}.csv'.format(self.table.reportType, start.strftime(fmt), end.strftime(fmt))
+        name = '{} {} {}.csv'.format(self.table.category, start.strftime(fmt), end.strftime(fmt))
         title = QCoreApplication.translate('DataTable', 'Save as CSV')
         path = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)
         filename, _ = QFileDialog.getSaveFileName(self, title, os.path.join(path, name), '(*.csv)')
@@ -136,7 +136,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.page = 1
         self.pagination = None
         self.total = None
-        self.reportType = ''
+        self.category = ''
         self.date = None
         self.keywords = []
         self.color = QColor(200, 20, 40)
@@ -237,7 +237,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
     def updateTable(self):
         self.pagination = self.repository.paginated(
-            self.model, reportType=self.reportType, date=self.date, keywords=self.keywords,
+            self.model, category=self.category, date=self.date, keywords=self.keywords,
             page=self.page, perPage=self.perPage, total=self.total)
         self.total = self.pagination.total
 
@@ -321,7 +321,7 @@ class TafTable(BaseDataTable):
 
     def __init__(self, parent, layout, reviewer=None, conf=None, context=None, repository=None):
         super().__init__(parent, layout, conf=conf, context=context, repository=repository)
-        self.reportType = 'TAF'
+        self.category = 'TAF'
         self.model = Taf
         self.reviewer = reviewer
         self.hasCheckmark = True
@@ -340,7 +340,7 @@ class MetarTable(BaseDataTable):
 
     def __init__(self, parent, layout, conf=None, context=None, repository=None):
         super().__init__(parent, layout, conf=conf, context=context, repository=repository)
-        self.reportType = 'METAR'
+        self.category = 'METAR'
         self.model = Metar
         self.perPage = 24
         self.chartButton.show()
@@ -362,7 +362,7 @@ class SigmetTable(BaseDataTable):
 
     def __init__(self, parent, layout, reviewer=None, conf=None, context=None, repository=None):
         super().__init__(parent, layout, conf=conf, context=context, repository=repository)
-        self.reportType = 'SIGMET'
+        self.category = 'SIGMET'
         self.model = Sigmet
         self.reviewer = reviewer
         self.perPage = 8
@@ -374,4 +374,4 @@ class AirmetTable(SigmetTable):
 
     def __init__(self, parent, layout, reviewer=None, conf=None, context=None, repository=None):
         super().__init__(parent, layout, reviewer=reviewer, conf=conf, context=context, repository=repository)
-        self.reportType = 'AIRMET'
+        self.category = 'AIRMET'

@@ -190,7 +190,7 @@ class SigmetParser:
 
     def __init__(self, message, created=None, parse=None, grammar=None, **kwargs):
         self.message = message.strip()
-        self.isAirmet = True if self.reportType() == 'AIRMET' else False
+        self.isAirmet = True if self.category() == 'AIRMET' else False
 
         if not grammar:
             grammar = self.grammarClass()
@@ -264,7 +264,7 @@ class SigmetParser:
         else:
             return ''
 
-    def reportType(self):
+    def category(self):
         pattern = re.compile(r'(SIGMET|AIRMET) ([A-Z]?\d{1,2}) VALID')
         m = pattern.search(self.message)
         if m:

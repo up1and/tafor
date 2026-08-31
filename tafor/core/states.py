@@ -92,9 +92,9 @@ class CurrentSigmetService:
         else:
             candidates = [s for s in self.state.sigmets if not s.isCnl()]
 
-        typeCodes = sigmetFilter.typeCodes()
-        if typeCodes:
-            candidates = [s for s in candidates if s.type in typeCodes]
+        designators = sigmetFilter.designators()
+        if designators:
+            candidates = [s for s in candidates if s.type in designators]
 
         return candidates
 
@@ -311,27 +311,27 @@ class NotificationService:
 
         if oldMessage != self.state.message or oldValidation != self.state.validation:
             self.state.created = datetime.datetime.utcnow()
-            self.event.notificationChanged.emit(self.getMessageType())
+            self.event.notificationChanged.emit(self.category())
 
     def clear(self):
         self.setState({'message': None})
 
-    def getMessageType(self):
+    def category(self):
         message = self.state.message
 
         if not message:
-            return 'unknown'
+            return 'CUSTOM'
 
         if message.startswith('METAR'):
-            return 'metar'
+            return 'METAR'
         elif message.startswith('SPECI'):
-            return 'speci'
+            return 'SPECI'
         elif 'AIRMET' in message:
-            return 'airmet'
+            return 'AIRMET'
         elif 'SIGMET' in message:
-            return 'sigmet'
+            return 'SIGMET'
 
-        return 'unknown'
+        return 'CUSTOM'
 
     def parser(self):
         from tafor.core.parsers.metar import MetarParser
@@ -342,12 +342,12 @@ class NotificationService:
         if not message:
             return None
 
-        msgType = self.getMessageType()
+        category = self.category()
 
-        if msgType in ['sigmet', 'airmet']:
+        if category in ['SIGMET', 'AIRMET']:
             return SigmetParser(message)
 
-        if msgType in ['metar', 'speci']:
+        if category in ['METAR', 'SPECI']:
             return MetarParser(
                 message,
                 ignoreMetar=True,
