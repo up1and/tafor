@@ -96,7 +96,7 @@ class PolygonSketch(PathSketch):
 
     def clip(self, boundaries):
         self.coordinates = clipPolygon(boundaries, self.coordinates, mode='single')
-        self.coordinates = simplifyPolygon(self.coordinates, maxPoint=self.maxPoint, extend=True)
+        self.coordinates = simplifyPolygon(self.coordinates, maxPoint=self.maxPoint, expand=True)
         self.coordinates.reverse()
         self.done = len(self.coordinates) > 2
         self.finished.emit()

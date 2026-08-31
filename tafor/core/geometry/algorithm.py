@@ -132,14 +132,24 @@ def extendLine(line, offset, side='both'):
             line = LineString(coords[:] + [point])
     return line
 
-def lineIntersection(line1, line2, offset=10):
+def linesIntersection(line1, line2):
     """
-    Intersection of lines
+    Intersection point of the two infinite lines defined by the line
+    coordinates, or None when the lines are parallel
     """
-    line1 = extendLine(line1, offset)
-    line2 = extendLine(line2, offset)
+    (x1, y1), (x2, y2) = line1.coords[0], line1.coords[-1]
+    (x3, y3), (x4, y4) = line2.coords[0], line2.coords[-1]
 
-    return line1.intersection(line2)
+    denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+    if denominator == 0:
+        return None
+
+    offset1 = x1 * y2 - y1 * x2
+    offset2 = x3 * y4 - y3 * x4
+    x = (offset1 * (x3 - x4) - (x1 - x2) * offset2) / denominator
+    y = (offset1 * (y3 - y4) - (y1 - y2) * offset2) / denominator
+    # adding 0.0 turns -0.0 into 0.0
+    return (x + 0.0, y + 0.0)
 
 def flattenLine(line):
     values = []
@@ -174,12 +184,14 @@ def whichSide(line, point):
         return 'left'
 
 def clipPolygon(subj, clip, mode='single'):
-    """计算两个多边形之间的交集，并根据允许的最大点平滑多边形
+    """Intersect two polygons and return the exterior coordinates.
 
-    :param subj: 列表，目标多边形的坐标集
-    :param clip: 列表，相切多边形的坐标集
-    :param clockwise: 布尔值，点坐标是否顺时针排序，默认否
-    :return: 列表，新的多边形坐标集
+    :param subj: list, coordinates of the subject polygon
+    :param clip: list, coordinates of the clip polygon
+    :param mode: str, ``'single'`` keeps only the largest piece when the
+        intersection is a MultiPolygon, otherwise all pieces are returned
+    :return: list, coordinates of the clipped polygon; a list of rings when
+        ``mode`` is not ``'single'``, an empty list on failure
     """
     subj = Polygon(subj)
     clip = Polygon(clip)
@@ -203,117 +215,162 @@ def clipPolygon(subj, clip, mode='single'):
     return points
 
 
-class SimplifyPolygon:
+def simplifyToMaxPoint(points, maxPoint=7):
+    """Reduce the polygon with Douglas-Peucker until it has at most
+    ``maxPoint`` exterior coordinates.
 
-    def __init__(self, maxPoint=7):
-        self.maxPoint = maxPoint
-        self.tolerance = 0.1
+    Douglas-Peucker cannot control the vertex count directly, so the
+    tolerance is increased step by step (a pragmatic workaround) until the
+    simplified polygon has few enough vertices. Shapes that can never reach
+    ``maxPoint`` (a square has at least 5 exterior coordinates) give up
+    after a bounded number of steps instead of looping forever.
 
-    def simplify(self, points):
-        polygon = Polygon(points) if isinstance(points, list) else points
-        try:
-            polygon = polygon.simplify(self.tolerance)
-            while len(polygon.exterior.coords) > self.maxPoint:
-                self.tolerance += 0.1
-                polygon = polygon.simplify(self.tolerance)
-
-            outputs = list(polygon.exterior.coords)
-        except Exception as e:
-            outputs = []
-
-        return outputs
-
-    def findBaselines(self, points, simples):
-        baseshape = Polygon(simples).buffer(0.1, cap_style=2, join_style=2)
-        baselines = []
-        outsides = []
-        for p, q in zip(simples, simples[1:]):
-            pidx = points.index(p)
-            qidx = points.index(q)
-
-            if pidx < qidx:
-                line = points[pidx:qidx]
-            else:
-                line = points[qidx:] + points[:pidx]
-
-            vertices = []
-
-            if len(line) > 1:
-                for v in line[1:]:
-                    vertex = Point(v)
-                    # vertex not insede the simplified polygon, means that the corresponding line is simplified
-                    if not baseshape.contains(vertex):
-                        newline = LineString([p, q])
-                        if newline not in baselines:
-                            baselines.append(newline)
-
-                        # the vertex not inside the simplified polygon
-                        vertices.append(vertex)
-
-            if vertices:
-                outsides.append(vertices)
-
-        # caculate the max distance from vertices to baseline
-        distances = []
-        for i, line in enumerate(baselines):
-            distance = 0
-            for vertex in outsides[i]:
-                distance = max(distance, line.distance(vertex))
-
-            distances.append(distance)
-
-        return baselines, distances
-
-    def extend(self, points):
-        simples = self.simplify(points)
-        outputs = simples[:-1]
-        baselines, distances = self.findBaselines(points, simples[:-1])
-
-        for i, line in enumerate(baselines):
-            distance = distances[i]
-
-            # get the index of the baseline vertex
-            start, end = line.coords
-            sidx, eidx = simples.index(start), simples.index(end)
-
-            # find the closest vertex to the baseline
-            prev = outputs[(sidx - 1) % len(outputs)]
-            next = outputs[(eidx + 1) % len(outputs)]
-
-            # update the baseline and nearby lines
-            start = outputs[sidx]
-            end = outputs[eidx]
-            line = LineString([start, end])
-            prevline = LineString([prev, start])
-            nextline = LineString([end, next])
-
-            # parallel baseline with distance
-            newline = line.parallel_offset(distance, 'left', resolution=1, join_style=2)
-            newline = LineString([lineIntersection(prevline, newline), lineIntersection(newline, nextline)])
-            outputs[sidx], outputs[eidx] = newline.coords
-
-        outputs.append(outputs[0])
-        return outputs
-
-    def __call__(self, points, extend=False):
-        if len(points) <= self.maxPoint:
-            return points
-
-        if extend:
-            return self.extend(points)
-
-        return self.simplify(points)
-
-
-def simplifyPolygon(points, maxPoint=7, extend=False):
-    """简化多边形
-
-    :param points: 列表，多边形的坐标集
-    :param maxPoint: 数字，交集允许的最大点
-    :param extend: 布尔值，边界的做标集，如果存在则简化多边形包含边界
-    :return: 列表，简化后的多边形坐标集和简化的误差值
+    :param points: list, coordinates of the polygon
+    :param maxPoint: int, maximum number of exterior coordinates allowed
+    :return: list, coordinates of the simplified polygon, or an empty list
+        when the polygon cannot be simplified
     """
-    return SimplifyPolygon(maxPoint=maxPoint)(points, extend=extend)
+    polygon = Polygon(points) if isinstance(points, list) else points
+    tolerance = 0.1
+    steps = 0
+    try:
+        polygon = polygon.simplify(tolerance)
+        while len(polygon.exterior.coords) > maxPoint and steps < 1000:
+            steps += 1
+            tolerance += 0.1
+            polygon = polygon.simplify(tolerance)
+
+        outputs = list(polygon.exterior.coords)
+    except Exception as e:
+        logger.error('Failed to simplify polygon, {}'.format(e))
+        outputs = []
+
+    return outputs
+
+def findCutEdges(points, simplified, tolerance=0.1):
+    """Find the simplified edges that cut off original vertices.
+
+    The simplified edges inevitably cut through the original shape, so this
+    collects the original vertices that fall outside the simplified polygon
+    and groups them by the simplified edge they were cut off by. The closing
+    edge of the ring is inspected as well. Vertices within ``tolerance`` of
+    the simplified polygon are considered covered.
+
+    :param points: list, coordinates of the original polygon
+    :param simplified: list, coordinates of the simplified polygon
+    :param tolerance: number, accepted distance between a vertex and the
+        simplified polygon before the vertex counts as cut off
+    :return: list, one dict per cut edge with the edge start index in
+        ``simplified``, the edge and the largest distance from its outside
+        vertices to the edge
+    """
+    simplifiedShape = Polygon(simplified).buffer(tolerance, cap_style=2, join_style=2)
+    ring = simplified[:-1]
+    cuts = []
+
+    for i, start in enumerate(ring):
+        end = ring[(i + 1) % len(ring)]
+        sidx = points.index(start)
+        eidx = points.index(end)
+
+        # the original vertices between the edge end-points along the ring
+        if sidx < eidx:
+            arc = points[sidx:eidx]
+        else:
+            arc = points[sidx:] + points[:eidx + 1]
+
+        # vertices outside the simplified polygon means the edge was simplified
+        vertices = [Point(v) for v in arc[1:] if not simplifiedShape.contains(Point(v))]
+        if vertices:
+            edge = LineString([start, end])
+            distance = max(edge.distance(vertex) for vertex in vertices)
+            cuts.append({'index': i, 'edge': edge, 'distance': distance})
+
+    return cuts
+
+def expandToCover(points, simplified):
+    """Expand the simplified polygon until it covers all original vertices.
+
+    Each edge that cut off original vertices is shifted outward by the
+    largest distance of the vertices it cut off (plus a small margin, so the
+    farthest vertex is strictly covered instead of lying on the edge). The
+    shifted edges and the untouched edges close up naturally: every vertex
+    of the result is the intersection of two adjacent edge lines. The
+    outward side is derived from the ring orientation instead of assuming a
+    clockwise ring.
+
+    :param points: list, coordinates of the original polygon
+    :param simplified: list, coordinates of the simplified polygon
+    :return: list, coordinates of the expanded polygon
+    """
+    if not simplified:
+        return simplified
+
+    cuts = {cut['index']: cut for cut in findCutEdges(points, simplified)}
+    if not cuts:
+        return simplified
+
+    ring = simplified[:-1]
+    count = len(ring)
+    outward = 'right' if LinearRing(simplified).is_ccw else 'left'
+
+    # decide the geometry line of every edge: cut edges move outward, the
+    # others stay in place
+    lines = []
+    for i in range(count):
+        edge = LineString([ring[i], ring[(i + 1) % count]])
+        if i in cuts:
+            offset = cuts[i]['distance'] * 1.01
+            edge = edge.parallel_offset(offset, outward, resolution=1, join_style=2)
+            if edge.is_empty:
+                logger.error('Failed to offset the cut edge, {}'.format(list(cuts[i]['edge'].coords)))
+        lines.append(edge)
+
+    # every corner is the intersection of the two adjacent edge lines
+    vertices = []
+    for i in range(count):
+        vertex = linesIntersection(lines[(i - 1) % count], lines[i])
+        if vertex is not None:
+            vertices.append(vertex)
+
+    if len(vertices) < 3:
+        logger.error('Failed to expand the polygon to cover the original vertices')
+        return simplified
+
+    polygon = Polygon(vertices)
+    if not polygon.is_valid:
+        polygon = polygon.buffer(0)
+        if polygon.geom_type == 'MultiPolygon':
+            polygon = max(polygon.geoms, key=lambda p: p.area)
+
+    if polygon.is_empty:
+        logger.error('Failed to expand the polygon to cover the original vertices')
+        return simplified
+
+    # keep the ring orientation of the simplified polygon
+    if not polygon.is_empty and LinearRing(simplified).is_ccw != LinearRing(polygon.exterior).is_ccw:
+        polygon = Polygon(list(polygon.exterior.coords)[::-1])
+
+    return list(polygon.exterior.coords)
+
+
+def simplifyPolygon(points, maxPoint=7, expand=False):
+    """Simplify a polygon to at most ``maxPoint`` vertices.
+
+    :param points: list, coordinates of the polygon
+    :param maxPoint: int, maximum number of vertices allowed in the result
+    :param expand: bool, when True the simplified polygon is expanded
+        outward so that it covers all of the original vertices
+    :return: list, coordinates of the simplified polygon
+    """
+    if len(points) <= maxPoint:
+        return points
+
+    simplified = simplifyToMaxPoint(points, maxPoint)
+    if expand:
+        return expandToCover(points, simplified)
+
+    return simplified
 
 def decodePolygon(boundary, polygon, trim):
     polygon = Polygon(polygon)
