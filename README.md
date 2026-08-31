@@ -16,6 +16,7 @@
     - 自动 METAR、TAF 报文入库查询
     - TAF 报文迟发告警
     - 报文发布提醒
+    - SIGMET 有效期临近提醒
 
 ## 文档
 文档托管于 Read The Docs，用户指南，安装部署说明都可以在这里找到。
@@ -39,7 +40,7 @@
 欢迎提交 Issue 或者 Pull Request。
 
 ## 开源协议
-[GPLv2](LICENSE)
+[GPLv3](LICENSE)
 
   [TAF Decode]: https://www.aviationweather.gov/static/help/taf-decode.php
   [SIGMET Introduction]: https://en.wikipedia.org/wiki/SIGMET

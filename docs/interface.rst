@@ -219,3 +219,44 @@ Tafor 会定时对外轮询数据，报文接口请求间隔为 1 分钟，情�
         "created": "Sun, 30 Jun 2019 07:49:37 GMT"
     }
 
+    {
+        "message": "ZJSA SIGMET 1 VALID 300755/301155 ZJHK- ZJSA SANYA FIR EMBD TS OBS AT 0115Z WI N1906 E11150 - N1731 E10815 - N1904 E10702 - N2030 E10802 - N2030 E11130 - N1930 E11130 - N1906 E11150 TOP FL300 MOV N 20KMH NC=",
+        "created": "Sun, 30 Jun 2019 07:49:37 GMT"
+    }
+
+查询报文
+^^^^^^^^^^^^^^^^^^^^
+
+后台服务还提供了查询历史报文的接口，需要 Bearer Token 认证，支持 ``page`` 和 ``limit`` 两个分页参数，默认每页 20 条，按报文创建时间倒序返回。
+
+.. code-block:: http
+
+    GET /api/metars?page=1&limit=20 HTTP/1.1
+    Authorization: Bearer VGhlIFZveWFnZSBvZiB0aGUgTW9vbg==
+
+可查询的报文端点有：
+
+- ``GET /api/metars`` 历史观测报文
+- ``GET /api/tafs`` 历史预报报文
+- ``GET /api/sigmets`` 历史重要气象情报，额外支持 ``since`` 参数，传入 RFC 1123 格式的日期时间字符串，可筛选该时间之后发布的报文
+
+返回数据：
+
+.. code-block:: json
+
+    {
+        "metars": [
+            {
+                "uuid": "0cf369b2-1a9f-4d92-a40d-75c06954c4a2",
+                "type": "SA",
+                "message": "METAR ZJHK 210600Z 26002MPS 200V300 9999 BKN030 36/27 Q1004 NOSIG=",
+                "created": "Fri, 21 Jun 2019 05:57:34 GMT"
+            }
+        ],
+        "links": {
+            "next": "/api/metars?page=2&limit=20"
+        }
+    }
+
+- **type** 报文类型，观测报文为 ``SA``（METAR）、``SP``（SPECI），预报报文为 ``FC``、``FT``，重要气象情报为 ``WS``、``WV``、``WC``、``WA``
+- **links** 分页链接，包含上一页 ``prev`` 和下一页 ``next``，没有对应页时不返回

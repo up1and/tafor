@@ -21,9 +21,13 @@ Tafor 的源码公开在 GitHub, 你可以在这里找到项目的 `介绍 <http
 安装依赖
 """""""""""""
 
-首先确保已经正确安装 `Python3`::
+首先确保已经正确安装 `Python <https://www.python.org>`_（3.10 或 3.11），推荐使用 `uv <https://docs.astral.sh/uv/>`_ 安装依赖::
 
-    $ pip install -r requirements.txt
+    $ uv sync
+
+也可以使用 `pip` 从源码安装::
+
+    $ pip install .
 
 安装打包工具 `PyInstaller`::
 
@@ -37,7 +41,7 @@ Windows 下如何安装 `PyInstaller` 的请参考 `这里 <https://pythonhosted
 
 打包成可执行的 exe 程序，请在仓库根目录下运行::
 
-    $ python setup.py build
+    $ python build.py
 
 打包成功～
 
@@ -47,13 +51,13 @@ Tafor 的发行版同样放在 GitHub, 你可以在这里 `下载 <https://githu
 
 发行版依赖
 """""""""""""
-- 操作系统需 Windows 7 SP1 或以上
+- 操作系统需 Windows 10 或以上
 - 遇到缺失 `api-ms-win-crt-runtime-l1-1-0.dll`，请确保安装 `Microsoft Visual C++ 2015 Redistributable`
 
 部署数据源接口
 ----------------
 
-数据源的接口样例可以在 :file:`tafor/scripts/` 找到。
+数据源的接口样例可以在 :file:`scripts/mock/` 找到。
 
 .. note:: 不同地方获取数据源的方式不同，所以请根据实际情况更改。
 
