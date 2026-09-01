@@ -1,7 +1,7 @@
 import math
 import logging
 
-from shapely.ops import split, linemerge
+from shapely.ops import linemerge, nearest_points, polylabel, split
 from shapely.geometry import Polygon, MultiPolygon, LineString, LinearRing, MultiLineString, Point
 
 from pyproj import Geod
@@ -30,20 +30,6 @@ def centroid(points):
 
     point = [point[0] / length, point[1] / length]
     return point
-
-def bearing(origin, point):
-    if isinstance(origin, Point):
-        origin = [origin.x, origin.y]
-
-    if isinstance(point, Point):
-        point = [point.x, point.y]
-
-    return math.atan2(origin[1] - point[1], origin[0] - point[0])
-
-def euclideanDistance(p1, p2):
-    """Euclidean straight-line distance between two (x, y) points in planar coordinates."""
-    length = (p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2
-    return math.sqrt(length)
 
 def geodesicDistance(p1, p2):
     """Geodesic distance in meters between two (lon, lat) points on the WGS84 ellipsoid."""
@@ -114,30 +100,13 @@ def buffer(lines, dist):
     polygon = line.buffer(deg, cap_style=2, join_style=2)
     return polygon
 
-def perpendicularFoot(p1, p2, p3):
-    ratio = ((p3[0]- p1[0]) * (p2[0] - p1[0]) + (p3[1] - p1[1]) * (p2[1] - p1[1])) / ((p2[0] - p1[0]) * (p2[0] - p1[0]) + (p2[1] - p1[1]) * (p2[1] - p1[1]))
-    x = p1[0] + ratio * (p2[0] - p1[0])
-    y = p1[1] + ratio * (p2[1] - p1[1])
-    return (x, y)
-
-def perpendicularVector(line, center):
-    vector = [0, 0]
-    for p, q in zip(line, line[1:]):
-        point = perpendicularFoot(p, q, center)
-        radian = bearing(center, point)
-        scale = euclideanDistance(p, q)
-        vec = (math.cos(radian) * scale, math.sin(radian) * scale)
-        vector[0] += vec[0]
-        vector[1] += vec[1]
-
-    return vector
-
-def subAngle(direction, angle):
-    if abs(direction - angle) > 1:
-        degree = min(direction, angle) + 2 - max(direction, angle)
+def angularDistance(first, second):
+    """Shortest angular distance between two angles, as a fraction of pi."""
+    if abs(first - second) > 1:
+        distance = min(first, second) + 2 - max(first, second)
     else:
-        degree = abs(direction - angle)
-    return degree
+        distance = abs(first - second)
+    return distance
 
 def shiftPoint(p1, p2, offset):
     """
@@ -539,7 +508,8 @@ def findDrawnLineEdges(boundaries, points):
     lines = []
     for p, q in zip(points, points[1:]):
         edge = LineString([p, q])
-        if edge.intersection(ring).length < 0.99 * edge.length:
+        midpoint = edge.interpolate(0.5, normalized=True)
+        if ring.distance(midpoint) > 1e-5:
             lines.append(edge)
 
     return lines
@@ -583,63 +553,84 @@ def findLines(boundaries, polygons):
 
 def bearingToDirection(angle):
     """Map a bearing in radians to the closest direction identifier."""
-    bearing = angle / math.pi
+    fraction = angle / math.pi
 
-    deviation = 10
+    deviation = float('inf')
     identifier = ''
     for k, v in directions.items():
-        value = subAngle(v, bearing)
+        value = angularDistance(v, fraction)
         if value < deviation or (value == deviation and len(k) < len(identifier)):
             deviation = value
             identifier = k
 
     return identifier
 
+def principalAxis(line):
+    """Straighten a line or polyline into a single centerline.
+
+    The minimum rotated rectangle brackets the line's overall extent; the
+    segment joining the midpoints of its two short sides smooths out bends
+    in a polyline. When the rectangle degenerates (the line is already
+    straight), the line itself is the axis.
+    """
+    rectangle = line.minimum_rotated_rectangle
+    if rectangle.geom_type != 'Polygon' or rectangle.area <= 0:
+        return line
+
+    corners = list(rectangle.exterior.coords)[:-1]
+    edges = sorted((LineString([corners[i], corners[(i + 1) % 4]])
+                    for i in range(4)), key=lambda edge: edge.length)
+    mids = [edges[0].interpolate(0.5, normalized=True),
+            edges[1].interpolate(0.5, normalized=True)]
+    return LineString([mids[0].coords[0], mids[1].coords[0]])
+
+def lineDirection(line, polygons):
+    """Sum of the unit vectors pointing from the line towards each touching
+    polygon's pole of inaccessibility, or None when no polygon contributes.
+
+    The vectors start on the principal axis of the line, so a bent polyline
+    is measured against its overall course instead of a bending corner.
+    Accumulating unit vectors instead of averaging angles keeps directions
+    near +/-pi from wrapping around (areas west of a line stay west instead
+    of averaging into east). The pole of inaccessibility stands in for the
+    centroid, which can fall outside hollow or bent shapes.
+    """
+    axis = principalAxis(line)
+    total = [0.0, 0.0]
+    for points in polygons:
+        polygon = Polygon(points)
+        if polygon.area <= 0 or not line.intersects(polygon):
+            continue
+
+        pole = polylabel(polygon)
+        origin = nearest_points(axis, pole)[0]
+        angle = math.atan2(pole.y - origin.y, pole.x - origin.x)
+        total[0] += math.cos(angle)
+        total[1] += math.sin(angle)
+
+    if math.hypot(total[0], total[1]) < 1e-9:
+        return None
+
+    return total
+
 def determineDirection(lines, polygons):
     """Determine on which side of each line the drawn areas lie.
 
-    Every polygon touching the line contributes a bearing from the line
-    towards the area, weighted by the polygon area: two-point lines use the
-    perpendicular foot, longer lines use the centroids. The weighted average
-    bearing is mapped to the closest direction identifier.
+    Every polygon touching the line contributes a unit vector from the line
+    towards the polygon. The direction of the vector sum is mapped to the
+    closest direction identifier. Lines no polygon touches, or where the
+    vectors cancel out (areas pulling to both sides), are skipped.
     """
-
-    def _average(angles):
-        # calculate the average value based on the area
-        areas = [area for _, area in angles]
-        totalArea = sum(areas)
-        num = 0
-        for angle, area in angles:
-            num += angle * area / totalArea
-        return num
-
-    orientations = []
-    for line in lines:
-        angles = []
-        for points in polygons:
-            polygon = Polygon(points)
-            polyline = line.buffer(0.1)
-            if polyline.intersects(polygon):
-                if len(line.coords) > 2:
-                    # use line centroid to calculate angle
-                    intersect = polyline.intersection(polygon)
-                    angle = bearing(polygon.centroid, intersect.centroid)
-                else:
-                    # use perpendicular foot to calculate angle
-                    center = polygon.centroid
-                    vector = perpendicularVector(line.coords, (center.x, center.y))
-                    angle = bearing(vector, [0, 0])
-
-                angles.append((angle, polygon.area))
-
-        orientations.append([line, angles])
-
-    # find the direction of the line
     segment = []
-    for line, angles in orientations:
-        angle = _average(angles)
-        identifier = bearingToDirection(angle)
-        segment.append([identifier] + list(line.coords))
+    for line in lines:
+        vector = lineDirection(line, polygons)
+        if vector is None:
+            logger.error('No area to determine the direction of the line, %s',
+                         list(line.coords))
+            continue
+
+        angle = math.atan2(vector[1], vector[0])
+        segment.append([bearingToDirection(angle)] + list(line.coords))
 
     return segment
 

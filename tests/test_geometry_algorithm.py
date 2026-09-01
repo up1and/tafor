@@ -3,9 +3,10 @@ import math
 from shapely.geometry import LineString, Point, Polygon
 
 from tafor.core.geometry.algorithm import (
-    bearingToDirection, collinearWith, encode, findCutEdges, findDrawnLineEdges,
-    findLines, groupCollinearLines, linesIntersection, mergeCollinearLines,
-    overlaps, simplifyPolygon, simplifyToMaxPoint,
+    bearingToDirection, collinearWith, determineDirection, encode, findCutEdges,
+    findDrawnLineEdges, findLines, groupCollinearLines, linesIntersection,
+    mergeCollinearLines, overlaps, principalAxis, simplifyPolygon,
+    simplifyToMaxPoint,
 )
 
 
@@ -238,3 +239,97 @@ def test_find_drawn_line_edges_keeps_line_parallel_near_boundary():
 
     assert len(edges) == 1
     assert edges[0].coords[0][1] == 9.8
+
+
+def test_determine_direction_two_point_line():
+    line = LineString([(0.0, 5.0), (10.0, 5.0)])
+    polygon = [(0.0, 5.0), (10.0, 5.0), (10.0, 8.0), (0.0, 8.0)]
+
+    assert determineDirection([line], [polygon]) == [['N', (0.0, 5.0), (10.0, 5.0)]]
+
+
+def test_determine_direction_offset_polygon_reports_perpendicular():
+    # the area hugs the west end of the line, the direction is still the
+    # perpendicular one, not the bearing seen from the line midpoint
+    line = LineString([(0.0, 5.0), (10.0, 5.0)])
+    polygon = [(0.0, 5.0), (4.0, 5.0), (4.0, 8.0), (0.0, 8.0)]
+
+    assert determineDirection([line], [polygon]) == [['N', (0.0, 5.0), (10.0, 5.0)]]
+
+
+def test_determine_direction_polyline():
+    line = LineString([(0.0, 5.0), (5.0, 5.0), (10.0, 5.0)])
+    polygon = [(0.0, 5.0), (10.0, 5.0), (10.0, 8.0), (0.0, 8.0)]
+
+    assert determineDirection([line], [polygon]) == [
+        ['N', (0.0, 5.0), (5.0, 5.0), (10.0, 5.0)]]
+
+
+def test_determine_direction_south_side():
+    line = LineString([(0.0, 5.0), (10.0, 5.0)])
+    polygon = [(0.0, 2.0), (10.0, 2.0), (10.0, 5.0), (0.0, 5.0)]
+
+    assert determineDirection([line], [polygon]) == [['S', (0.0, 5.0), (10.0, 5.0)]]
+
+
+def test_determine_direction_opposite_areas_cancel_out():
+    # areas pulling to both sides: the vectors cancel and the line has no
+    # well-defined direction, so it is skipped
+    line = LineString([(0.0, 5.0), (10.0, 5.0)])
+    north = [(0.0, 5.0), (10.0, 5.0), (10.0, 11.0), (0.0, 11.0)]
+    south = [(0.0, 4.0), (4.0, 4.0), (4.0, 5.0), (0.0, 5.0)]
+
+    assert determineDirection([line], [north, south]) == []
+
+
+def test_determine_direction_areas_across_the_pi_seam():
+    # bearings near +180 and -180: averaging the angles would yield 'E',
+    # accumulating the unit vectors yields 'W'
+    line = LineString([(5.0, 0.0), (5.0, 5.0), (5.0, 10.0)])
+    north = [(1.0, 6.0), (5.0, 6.0), (5.0, 10.0), (1.0, 10.0)]
+    south = [(1.0, 0.0), (3.0, 0.0), (3.0, 2.0), (5.0, 2.0), (5.0, 4.0), (1.0, 4.0)]
+
+    assert determineDirection([line], [north, south]) == [
+        ['W', (5.0, 0.0), (5.0, 5.0), (5.0, 10.0)]]
+
+
+def test_determine_direction_skips_line_without_contributions():
+    line = LineString([(0.0, 5.0), (10.0, 5.0)])
+    far = [(0.0, 20.0), (10.0, 20.0), (10.0, 25.0), (0.0, 25.0)]
+
+    assert determineDirection([line], [far]) == []
+
+
+def test_determine_direction_ignores_degenerate_polygon():
+    # a collinear ring has zero area, it contributes no direction
+    line = LineString([(0.0, 5.0), (10.0, 5.0)])
+    degenerate = [(0.0, 5.0), (5.0, 5.0), (10.0, 5.0)]
+    good = [(0.0, 5.0), (10.0, 5.0), (10.0, 8.0), (0.0, 8.0)]
+
+    assert determineDirection([line], [degenerate, good]) == [['N', (0.0, 5.0), (10.0, 5.0)]]
+
+
+def test_principal_axis_returns_the_line_when_already_straight():
+    line = LineString([(0.0, 5.0), (10.0, 5.0)])
+
+    assert principalAxis(line) == line
+
+
+def test_principal_axis_straightens_a_bent_polyline():
+    # midpoints of the two short sides of the minimum rotated rectangle
+    line = LineString([(0.0, 5.0), (5.0, 5.0), (5.0, 6.0), (10.0, 6.0)])
+    axis = principalAxis(line)
+
+    start, end = axis.coords
+    for got, want in zip((start, end), ((9.9038, 6.4808), (0.0962, 4.5192))):
+        assert all(abs(g - w) < 1e-3 for g, w in zip(got, want))
+
+
+def test_determine_direction_bent_polyline_measured_against_its_axis():
+    # the vector origin sits on the principal axis of the bent polyline,
+    # not snapped to the bending corner
+    line = LineString([(0.0, 5.0), (5.0, 5.0), (5.0, 6.0), (10.0, 6.0)])
+    polygon = [(0.0, 5.0), (10.0, 6.0), (10.0, 9.0), (0.0, 8.0)]
+
+    assert determineDirection([line], [polygon]) == [
+        ['N', (0.0, 5.0), (5.0, 5.0), (5.0, 6.0), (10.0, 6.0)]]
