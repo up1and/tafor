@@ -14,6 +14,9 @@ logger = logging.getLogger('tafor.geometry')
 
 wgs84 = Geod(ellps='WGS84')
 
+# bearing of each direction identifier, as a fraction of pi
+directions = {'SE': -0.25, 'NE': 0.25, 'N': 0.5, 'SW': -0.75, 'W': 1.0, 'NW': 0.75, 'E': 0.0, 'S': -0.5}
+
 def centroid(points):
     point = [0, 0]
 
@@ -53,15 +56,53 @@ def depth(l):
     else:
         return 0
 
-def slope(line, ndigits=5):
-    x1, y1 = line.coords[0]
-    x2, y2 = line.coords[-1]
+def crossProduct(origin, a, b):
+    """Cross product of vectors OA and OB, its sign tells on which side of OA the point b lies."""
+    return (a[0] - origin[0]) * (b[1] - origin[1]) - (a[1] - origin[1]) * (b[0] - origin[0])
 
-    if x2 - x1 == 0:
-        return None
+def collinearWith(line, other, tolerance=0.1):
+    """True when the two segments lie on the same infinite line.
 
-    s = (y2 - y1) / (x2 - x1)
-    return round(s, ndigits)
+    Judged with the cross product instead of the slope: both endpoints of the
+    other segment must be within the tolerance (in degrees) of the line, so
+    vertical lines work as well.
+    """
+    start, end = line.coords[0], line.coords[-1]
+    length = LineString([start, end]).length
+    return all(abs(crossProduct(start, end, point)) / length <= tolerance
+               for point in (other.coords[0], other.coords[-1]))
+
+def overlaps(line, other):
+    """True when the two segments share more than a single point."""
+    return line.intersection(other).length > 0
+
+def groupCollinearLines(lines, tolerance=0.1):
+    """Group the lines that lie on the same infinite line."""
+    groups = []
+    for line in lines:
+        for group in groups:
+            if collinearWith(group[0], line, tolerance):
+                group.append(line)
+                break
+        else:
+            groups.append([line])
+
+    return groups
+
+def mergeCollinearLines(lines):
+    """Merge collinear pieces into the segment spanning their union.
+
+    All pieces lie on the same line, so the endpoints with the extreme
+    projections onto the direction of the first piece span every piece.
+    """
+    points = [point for line in lines for point in (line.coords[0], line.coords[-1])]
+    start, end = lines[0].coords[0], lines[0].coords[-1]
+    dx, dy = end[0] - start[0], end[1] - start[1]
+
+    def _projection(point):
+        return dx * point[0] + dy * point[1]
+
+    return LineString([min(points, key=_projection), max(points, key=_projection)])
 
 def buffer(lines, dist):
     line = LineString(lines)
@@ -385,7 +426,6 @@ def decodePolygon(boundary, polygon, trim):
 
 def decodeLine(boundary, lines):
     polygons = []
-    directions = {'SE': -0.25, 'NE': 0.25, 'N': 0.5, 'SW': -0.75, 'W': 1.0, 'NW': 0.75, 'E': 0.0, 'S': -0.5}
     for identifier, points in lines:
         line = LineString(points)
         line = extendLine(line, 10)
@@ -486,88 +526,63 @@ def decode(boundaries, locations, mode, trim=True):
     if mode == 'entire':
         return boundary
 
-def mergeSameSlopeLines(lines):
-    points = []
-    for line in lines:
-        points += line.coords
+def findDrawnLineEdges(boundaries, points):
+    """Return the edges of the polygon that do not lie on the FIR boundary.
 
-    points = [Point(p) for p in points]
-    box = LineString(points).envelope
-    center = box.centroid
-
-    while len(points) > 2:
-        target = min(points, key=lambda p: p.distance(center))
-        points.remove(target)
-
-    return LineString(points)
-
-def findNonOverlappingLines(boundaries, points):
+    A polygon drawn for a line model (e.g. an area north of a line) is clipped
+    by the FIR boundary, so its perimeter consists of the drawn line plus FIR
+    boundary arcs. An edge that lies along the boundary has almost its whole
+    length covered by the boundary ring, while an edge that merely starts and
+    ends on the boundary (the drawn line) crosses it only at the endpoints.
+    """
+    ring = LineString(boundaries)
     lines = []
-    boundary = LineString(boundaries).buffer(0.3)
     for p, q in zip(points, points[1:]):
-        line = LineString([p, q])
-        if not boundary.contains(line):
-            lines.append(line)
+        edge = LineString([p, q])
+        if edge.intersection(ring).length < 0.99 * edge.length:
+            lines.append(edge)
 
     return lines
 
 def findLines(boundaries, polygons):
+    """Find the drawn line of a line-model area.
 
-    def _contains(origin, lines):
-        for line in lines:
-            polyline = line.buffer(0.1)
-            if polyline.contains(origin):
-                return True
+    The user draws a polygon but the area is reported as a line (e.g. an area
+    north of a line). The polygon is clipped by the FIR boundary, so the edges
+    that do not lie on the boundary are the drawn line. A polygon that lies
+    entirely inside the boundary was never clipped and is skipped, otherwise
+    every edge would be mistaken for the drawn line.
 
-        return False
-
-    # find the lines that not overlap with the boundary based on the polygon
+    Some FIR boundaries split the drawn line into several pieces, so pieces
+    that are collinear and overlap are merged back together afterwards.
+    """
     lines = []
     boundary = LinearRing(boundaries)
     for points in polygons:
-        polyline = Polygon(points)
-        # lines must intersect with boundary
-        if boundary.intersects(polyline):
-            geoms = findNonOverlappingLines(boundaries, points)
-            for line in geoms:
-                lines.append(line)
-    
-    # find the same slope line
-    slopes = [slope(line) for line in lines]
-    slopeLines = []
-    for s in set(slopes):
-        if slopes.count(s) > 1:
-            parallelLines = []
-            for line in lines:
-                if s == slope(line):
-                    parallelLines.append(line)
+        polygon = Polygon(points)
+        # skip polygons entirely inside the boundary: they were never clipped,
+        # so every edge would be mistaken for the drawn line
+        if boundary.intersects(polygon):
+            lines += findDrawnLineEdges(boundaries, points)
 
-            slopeLines.append(parallelLines)
+    # merge collinear overlapping pieces split by the FIR boundary
+    merged = []
+    for group in groupCollinearLines(lines):
+        clusters = []
+        for line in group:
+            for cluster in clusters:
+                if any(overlaps(line, other) for other in cluster):
+                    cluster.append(line)
+                    break
+            else:
+                clusters.append([line])
 
-    # remove the parallel line
-    mergeLines = []
-    for parallelLines in slopeLines:
-        sameLines = []
-        for line in parallelLines:
-            extendLines = [extendLine(l, offset=100) for l in parallelLines if l is not line]
-            if _contains(line, extendLines):
-                sameLines.append(line)
+        merged += [mergeCollinearLines(cluster) for cluster in clusters]
 
-        if sameLines:
-            mergeLines.append(sameLines)
-
-    # merge the same line
-    for sameLines in mergeLines:
-        keep, *removes = sameLines
-        idx = lines.index(keep)
-        lines[idx] = mergeSameSlopeLines(sameLines)
-        for r in removes:
-            lines.remove(r)
-
-    return lines
+    return merged
 
 def bearingToDirection(angle):
-    directions = {'SE': -0.25, 'NE': 0.25, 'N': 0.5, 'SW': -0.75, 'W': 1.0, 'NW': 0.75, 'E': 0.0, 'S': -0.5}
+    """Map a bearing in radians to the closest direction identifier."""
     bearing = angle / math.pi
 
     deviation = 10
@@ -581,6 +596,13 @@ def bearingToDirection(angle):
     return identifier
 
 def determineDirection(lines, polygons):
+    """Determine on which side of each line the drawn areas lie.
+
+    Every polygon touching the line contributes a bearing from the line
+    towards the area, weighted by the polygon area: two-point lines use the
+    perpendicular foot, longer lines use the centroids. The weighted average
+    bearing is mapped to the closest direction identifier.
+    """
 
     def _average(angles):
         # calculate the average value based on the area
@@ -591,8 +613,7 @@ def determineDirection(lines, polygons):
             num += angle * area / totalArea
         return num
 
-    # determine the polygon corresponding to each line, then calculate slope and area
-    geoms = []
+    orientations = []
     for line in lines:
         angles = []
         for points in polygons:
@@ -611,11 +632,11 @@ def determineDirection(lines, polygons):
 
                 angles.append((angle, polygon.area))
 
-        geoms.append([line, angles])
+        orientations.append([line, angles])
 
     # find the direction of the line
     segment = []
-    for line, angles in geoms:
+    for line, angles in orientations:
         angle = _average(angles)
         identifier = bearingToDirection(angle)
         segment.append([identifier] + list(line.coords))
@@ -623,11 +644,17 @@ def determineDirection(lines, polygons):
     return segment
 
 def encodeRectangular(boundaries, polygons):
+    """Encode a drawn area as its boundary-parallel lines with directions."""
     lines = findLines(boundaries, polygons)
     segment = determineDirection(lines, polygons)
     return segment
 
 def encodeLine(boundaries, polygons):
+    """Encode a drawn area as the drawn line with its direction.
+
+    The line can come back in several pieces; linemerge stitches the
+    connected ones into a single line or polyline first.
+    """
     lines = findLines(boundaries, polygons)
     # merge the line with same point
     if lines:
@@ -641,6 +668,7 @@ def encodeLine(boundaries, polygons):
     return segment
 
 def encode(boundaries, coordinates, mode):
+    """Encode drawn coordinates into ``[direction, *points]`` segments."""
     if depth(coordinates) < 2:
         polygons = [coordinates]
     else:

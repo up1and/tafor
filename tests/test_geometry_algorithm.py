@@ -1,7 +1,11 @@
+import math
+
 from shapely.geometry import LineString, Point, Polygon
 
 from tafor.core.geometry.algorithm import (
-    findCutEdges, linesIntersection, simplifyPolygon, simplifyToMaxPoint,
+    bearingToDirection, collinearWith, encode, findCutEdges, findDrawnLineEdges,
+    findLines, groupCollinearLines, linesIntersection, mergeCollinearLines,
+    overlaps, simplifyPolygon, simplifyToMaxPoint,
 )
 
 
@@ -120,3 +124,117 @@ def test_find_cut_edges_includes_closing_edge():
     assert len(cuts) == 1
     assert cuts[0]['index'] == len(simplified) - 2  # the closing edge
     assert cuts[0]['distance'] > 0.8  # the seam vertices stick out by 1.0 horizontally
+
+
+def test_collinear_with_accepts_same_line_and_rejects_parallel():
+    base = LineString([(0.0, 0.0), (10.0, 0.0)])
+    assert collinearWith(base, LineString([(2.0, 0.0), (6.0, 0.0)]))
+    assert collinearWith(base, LineString([(11.0, 0.0), (15.0, 0.0)]))  # gapped, same line
+    assert not collinearWith(base, LineString([(2.0, 1.0), (6.0, 1.0)]))  # parallel, offset
+    assert not collinearWith(base, LineString([(2.0, 0.0), (6.0, 0.5)]))  # tilted beyond tolerance
+
+
+def test_collinear_with_handles_vertical_lines():
+    # the old slope() approach returned None for vertical lines
+    base = LineString([(5.0, 0.0), (5.0, 10.0)])
+    assert collinearWith(base, LineString([(5.0, 2.0), (5.0, 4.0)]))
+    assert not collinearWith(base, LineString([(6.0, 2.0), (6.0, 4.0)]))
+
+
+def test_overlaps_requires_positive_length():
+    a = LineString([(0.0, 0.0), (10.0, 0.0)])
+    assert overlaps(a, LineString([(5.0, 0.0), (15.0, 0.0)]))
+    assert not overlaps(a, LineString([(15.0, 0.0), (20.0, 0.0)]))  # collinear but disjoint
+    assert not overlaps(a, LineString([(5.0, 0.0), (5.0, 5.0)]))  # touching at a point
+
+
+def test_group_collinear_lines():
+    lines = [
+        LineString([(0.0, 0.0), (5.0, 0.0)]),
+        LineString([(0.0, 1.0), (5.0, 1.0)]),  # parallel, own group
+        LineString([(2.0, 0.0), (7.0, 0.0)]),  # collinear with the first
+        LineString([(7.0, 0.0), (7.0, 5.0)]),  # vertical, own group
+    ]
+
+    groups = groupCollinearLines(lines)
+    assert sorted(len(group) for group in groups) == [1, 1, 2]
+
+
+def test_merge_collinear_lines_spans_the_union():
+    merged = mergeCollinearLines([
+        LineString([(2.0, 0.0), (6.0, 0.0)]),
+        LineString([(4.0, 0.0), (12.0, 0.0)]),
+        LineString([(-3.0, 0.0), (1.0, 0.0)]),
+    ])
+
+    assert sorted([merged.coords[0], merged.coords[-1]]) == [(-3.0, 0.0), (12.0, 0.0)]
+
+
+def test_find_drawn_line_edges_strips_boundary_arcs():
+    fir = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    polygon = [(0.0, 0.0), (10.0, 0.0), (10.0, 5.0), (0.0, 5.0)]
+
+    edges = findDrawnLineEdges(fir, polygon)
+
+    assert len(edges) == 1
+    assert edges[0].coords[0] == (10.0, 5.0)
+    assert edges[0].coords[-1] == (0.0, 5.0)
+
+
+def test_find_lines_merges_collinear_overlapping_pieces():
+    fir = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    polygons = [
+        [(0.0, 0.0), (10.0, 0.0), (10.0, 5.0), (0.0, 5.0)],
+        [(0.0, 5.0), (10.0, 5.0), (10.0, 8.0), (0.0, 8.0)],
+    ]
+
+    lines = findLines(fir, polygons)
+
+    # the duplicated y=5 pieces collapse into the piece spanning the union
+    at5 = [line for line in lines
+           if abs(line.coords[0][1] - 5.0) < 1e-9 and abs(line.coords[-1][1] - 5.0) < 1e-9]
+    assert len(at5) == 1
+    assert sorted([at5[0].coords[0][0], at5[0].coords[-1][0]]) == [0.0, 10.0]
+    assert len(lines) == 2  # plus the y=8 edge of the second polygon
+
+
+def test_bearing_to_direction():
+    assert bearingToDirection(0.0) == 'E'
+    assert bearingToDirection(math.pi / 2) == 'N'
+    assert bearingToDirection(math.pi) == 'W'
+    assert bearingToDirection(-math.pi / 2) == 'S'
+
+
+def test_encode_line_mode_reports_line_with_direction():
+    fir = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    polygon = [(0.0, 0.0), (10.0, 0.0), (10.0, 5.0), (0.0, 5.0)]
+
+    assert encode(fir, polygon, 'line') == [['S', (10.0, 5.0), (0.0, 5.0)]]
+
+
+def test_encode_rectangular_mode_reports_boundary_lines_with_direction():
+    fir = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    polygon = [(0.0, 0.0), (10.0, 0.0), (10.0, 5.0), (0.0, 5.0)]
+
+    assert encode(fir, polygon, 'rectangular') == [['S', (10.0, 5.0), (0.0, 5.0)]]
+
+
+def test_find_lines_skips_polygon_entirely_inside_boundary():
+    # a polygon that was never clipped has no FIR boundary edges, every edge
+    # would be mistaken for the drawn line
+    fir = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    polygon = [(2.0, 2.0), (8.0, 2.0), (8.0, 5.0), (2.0, 5.0)]
+
+    assert findLines(fir, [polygon]) == []
+
+
+def test_find_drawn_line_edges_keeps_line_parallel_near_boundary():
+    # an edge parallel to and within the old 0.3 degree buffer of the boundary
+    # is the drawn line, not a boundary arc
+    fir = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    polygon = [(0.0, 0.0), (10.0, 0.0), (10.0, 9.8), (0.0, 9.8)]
+
+    edges = findDrawnLineEdges(fir, polygon)
+
+    assert len(edges) == 1
+    assert edges[0].coords[0][1] == 9.8
