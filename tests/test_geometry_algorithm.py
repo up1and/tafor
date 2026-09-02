@@ -3,10 +3,10 @@ import math
 from shapely.geometry import LineString, Point, Polygon
 
 from tafor.core.geometry.algorithm import (
-    bearingToDirection, collinearWith, determineDirection, encode, findCutEdges,
-    findDrawnLineEdges, findLines, groupCollinearLines, linesIntersection,
-    mergeCollinearLines, overlaps, principalAxis, simplifyPolygon,
-    simplifyToMaxPoint,
+    bearingToDirection, collinearWith, decode, decodeLine, decodePolygon,
+    determineDirection, encode, findCutEdges, findDrawnLineEdges, findLines,
+    groupCollinearLines, halfPlane, linesIntersection, mergeCollinearLines,
+    overlaps, principalAxis, simplifyPolygon, simplifyToMaxPoint,
 )
 
 
@@ -333,3 +333,134 @@ def test_determine_direction_bent_polyline_measured_against_its_axis():
 
     assert determineDirection([line], [polygon]) == [
         ['N', (0.0, 5.0), (5.0, 5.0), (5.0, 6.0), (10.0, 6.0)]]
+
+
+# ---------------------------------------------------------------------------
+# decode chain
+
+
+def test_decode_line_north_side():
+    boundary = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    area = decodeLine(Polygon(boundary), [('N', [(2.0, 5.0), (8.0, 5.0)])])
+
+    assert area.area == 50.0
+    assert area.covers(Point(5.0, 7.5))
+    assert not area.intersects(Point(5.0, 2.5))
+
+
+def test_decode_line_spans_a_large_boundary():
+    # the line ends inside the boundary, the half-plane must still cover
+    # the whole side: a fixed extension length used to miss large FIRs
+    boundary = [(100.0, 0.0), (130.0, 0.0), (130.0, 15.0), (100.0, 15.0)]
+    area = decodeLine(Polygon(boundary), [('N', [(105.0, 7.5), (125.0, 7.5)])])
+
+    assert area.area == 225.0
+    assert area.covers(Point(115.0, 14.0))
+    assert not area.intersects(Point(115.0, 1.0))
+
+
+def test_decode_line_intersects_multiple_lines():
+    boundary = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    lines = [('N', [(2.0, 5.0), (8.0, 5.0)]), ('W', [(3.0, 2.0), (3.0, 8.0)])]
+    area = decodeLine(Polygon(boundary), lines)
+
+    assert area.area == 15.0
+    assert area.covers(Point(1.5, 7.5))
+    assert not area.intersects(Point(5.0, 7.5))
+    assert not area.intersects(Point(1.5, 2.5))
+
+
+def test_decode_line_polyline_keeps_the_whole_side():
+    # north of the whole chevron path: the area is bounded below by the
+    # polyline itself, not by the intersection of per-segment half-planes
+    boundary = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    area = decodeLine(Polygon(boundary), [('N', [(2.0, 4.0), (6.0, 8.0), (10.0, 4.0)])])
+
+    assert abs(area.area - 46.0) < 1e-9
+    assert area.covers(Point(6.0, 9.0))
+    assert area.covers(Point(5.0, 9.0))
+    assert not area.intersects(Point(5.0, 5.0))
+
+
+def test_decode_line_polyline_keeps_concave_area():
+    # a step line bounds an L-shaped area; per-segment half-planes would
+    # flatten it to the y >= 6 half-plane and lose the western wing
+    boundary = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    area = decodeLine(Polygon(boundary),
+                      [('N', [(0.0, 2.0), (5.0, 2.0), (5.0, 6.0), (10.0, 6.0)])])
+
+    assert abs(area.area - 60.0) < 1e-9
+    assert area.covers(Point(2.5, 4.0))
+    assert area.covers(Point(7.5, 8.0))
+    assert not area.intersects(Point(7.5, 4.0))
+    assert not area.intersects(Point(2.5, 1.0))
+
+
+def test_decode_line_parallel_direction_returns_empty():
+    boundary = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    area = decodeLine(Polygon(boundary), [('N', [(5.0, 2.0), (5.0, 8.0)])])
+
+    assert area.is_empty
+
+
+def test_decode_rectangular_mode():
+    # a FIR crossing the prime meridian, west of W003 and north of N05
+    boundary = [(-10.0, 0.0), (10.0, 0.0), (10.0, 10.0), (-10.0, 10.0)]
+    area = decode(boundary, [('N', 'N05'), ('W', 'W003')], 'rectangular')
+
+    assert area.area == 35.0
+    assert area.covers(Point(-5.0, 7.5))
+    assert not area.intersects(Point(0.0, 7.5))
+    assert not area.intersects(Point(-5.0, 2.5))
+
+
+def test_decode_line_mode_without_boundary():
+    # an invalid boundary cannot be split, so the line area is unknown
+    assert decode([], [('N', ['N0500', 'N0800'])], 'line').is_empty
+
+
+def test_decode_polygon_clips_to_boundary():
+    boundary = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    area = decodePolygon(Polygon(boundary), [(5.0, 5.0), (15.0, 5.0), (15.0, 15.0), (5.0, 15.0)], True)
+
+    assert area.area == 25.0
+    assert area.covers(Point(7.0, 7.0))
+    assert not area.intersects(Point(12.0, 12.0))
+
+
+def test_decode_polygon_keeps_the_largest_piece():
+    # a C-shaped polygon hooked over the right boundary edge leaves two pieces
+    boundary = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    points = [(8.0, -2.0), (8.0, 2.0), (11.0, 2.0), (11.0, 8.0),
+              (8.0, 8.0), (8.0, 12.0), (12.0, 12.0), (12.0, -2.0)]
+    area = decodePolygon(Polygon(boundary), points, True)
+
+    assert area.geom_type == 'Polygon'
+    assert area.area == 4.0
+
+
+def test_decode_polygon_touching_the_boundary_only():
+    # the intersection is a line, not an area
+    boundary = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    area = decodePolygon(Polygon(boundary), [(10.0, 0.0), (20.0, 0.0), (20.0, 10.0), (10.0, 10.0)], True)
+
+    assert area.is_empty
+
+
+def test_decode_polygon_without_trim_keeps_the_area():
+    boundary = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    points = [(10.0, 0.0), (20.0, 0.0), (20.0, 10.0), (10.0, 10.0)]
+    area = decodePolygon(Polygon(boundary), points, False)
+
+    assert area.area == 100.0
+
+
+def test_halfPlane_is_not_limited_by_the_extension_of_old_code():
+    boundary = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    plane = halfPlane('N', [(4.0, 5.0), (6.0, 5.0)], Polygon(boundary))
+
+    # the plane extends far beyond the boundary on every side
+    assert plane.covers(Point(0.0, 9.9))
+    assert plane.covers(Point(9.9, 9.9))
+    assert not plane.intersects(Point(5.0, 1.0))
+

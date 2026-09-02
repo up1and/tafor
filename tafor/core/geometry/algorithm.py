@@ -1,7 +1,7 @@
 import math
 import logging
 
-from shapely.ops import linemerge, nearest_points, polylabel, split
+from shapely.ops import linemerge, nearest_points, polylabel
 from shapely.geometry import Polygon, MultiPolygon, LineString, LinearRing, MultiLineString, Point
 
 from pyproj import Geod
@@ -108,40 +108,6 @@ def angularDistance(first, second):
         distance = abs(first - second)
     return distance
 
-def shiftPoint(p1, p2, offset):
-    """
-    shift points with offset in orientation of line p1 -> p2
-    """
-    x1, y1 = p1
-    x2, y2 = p2
-
-    if ((x1 - x2) == 0) and ((y1 - y2) == 0):  # zero length line
-        x, y = x1, y1
-    else:
-        length = offset / math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
-        x = x1 + (x2 - x1) * length
-        y = y1 + (y2 - y1) * length
-    return x, y
-
-def extendLine(line, offset, side='both'):
-    """
-    extend line in same orientation
-    """
-    if side == 'both':
-        sides = ['start', 'end']
-    else:
-        sides = [side]
-
-    for side in sides:
-        coords = line.coords
-        if side == 'start':
-            point = shiftPoint(coords[0], coords[1], -1. * offset)
-            line = LineString([point] + coords[:])
-        elif side == 'end':
-            point = shiftPoint(coords[-1], coords[-2], -1. * offset)
-            line = LineString(coords[:] + [point])
-    return line
-
 def linesIntersection(line1, line2):
     """
     Intersection point of the two infinite lines defined by the line
@@ -182,16 +148,6 @@ def clipLine(polygon, points):
         points = []
 
     return points
-
-def whichSide(line, point):
-    # form a LinearRing with the end-points of the splitter and a point
-    # determine which side of the line the point is on
-    coords = line + [point]
-    ring = LinearRing(coords)
-    if ring.is_ccw:
-        return 'right'
-    else:
-        return 'left'
 
 def clipPolygon(subj, clip, mode='single'):
     """Intersect two polygons and return the exterior coordinates.
@@ -386,6 +342,10 @@ def decodePolygon(boundary, polygon, trim):
     polygon = Polygon(polygon)
     if trim:
         polygon = polygon.intersection(boundary)
+        if polygon.geom_type not in ('Polygon', 'MultiPolygon'):
+            # the area may lie outside the boundary entirely and touch it
+            # at an edge or a point only
+            return Polygon()
 
     # there can be only one area in polygon sigmet
     if polygon.geom_type == 'MultiPolygon':
@@ -393,43 +353,71 @@ def decodePolygon(boundary, polygon, trim):
 
     return polygon
 
+def halfPlane(identifier, points, boundary):
+    """Build the polygon covering the side of the polyline that the
+    direction identifier points to.
+
+    The whole polyline is treated as one edge of the area: it is extended
+    beyond the boundary at both ends, then closed with a copy of itself
+    shifted towards the direction of the identifier. A concave polyline
+    keeps its concave area, which per-segment half-planes would flatten
+    into a convex one.
+
+    :param identifier: str, one of the direction identifiers like 'N'
+    :param points: list, coordinates of the reported line
+    :param boundary: Polygon, the FIR boundary
+    :return: Polygon, or None when no area can be built, e.g. a line
+        parallel to the direction keeps no area on either side
+    """
+    minx, miny, maxx, maxy = boundary.bounds
+    span = math.hypot(maxx - minx, maxy - miny)
+    angle = directions[identifier] * math.pi
+    dx, dy = math.cos(angle), math.sin(angle)
+
+    def _extend(base, other):
+        ux, uy = base[0] - other[0], base[1] - other[1]
+        length = math.hypot(ux, uy)
+        if length == 0:
+            return base
+        return (base[0] + ux / length * span, base[1] + uy / length * span)
+
+    start = _extend(points[0], points[1])
+    end = _extend(points[-1], points[-2])
+    path = [start] + list(points) + [end]
+
+    shape = Polygon(path + [(p[0] + dx * span, p[1] + dy * span) for p in reversed(path)])
+    if not shape.is_valid:
+        # a path doubling back on itself makes the curtain self-intersect
+        shape = shape.buffer(0)
+
+    if shape.is_empty or shape.area < 1e-9:
+        logger.warning('Direction %s keeps no area along the line %s, skipping it',
+                       identifier, points)
+        return None
+
+    return shape
+
 def decodeLine(boundary, lines):
-    polygons = []
+    """Decode line locations into the area within the boundary.
+
+    Each line describes a half-plane: the side that its direction identifier
+    points to. The area is the intersection of all the half-planes with the
+    boundary, so multiple lines narrow the area down step by step.
+    """
+    planes = []
     for identifier, points in lines:
-        line = LineString(points)
-        line = extendLine(line, 10)
-        parts = split(boundary, line)
-        direction = directions[identifier]
+        plane = halfPlane(identifier, points, boundary)
+        if plane is not None:
+            planes.append(plane)
 
-        refLine = [points[0], points[-1]]
-        refPoint = (line.centroid.x + math.cos(direction * math.pi) * 10, line.centroid.y + math.sin(direction * math.pi) * 10)
-        side = whichSide(refLine, refPoint)
+    if not planes:
+        return Polygon()
 
-        shapes = []
-        for part in parts.geoms:
-            center = part.representative_point()
-            if len(points) > 2:
-                polyline = Polygon(points)
-                if polyline.intersects(part):
-                    other = part.difference(polyline)
-                    if not other.is_empty:
-                        center = other.representative_point()
+    current = planes[0]
+    for plane in planes[1:]:
+        current = current.intersection(plane)
 
-            center = (center.x, center.y)
-            if side == whichSide(refLine, center):
-                shapes.append(part)
-
-        if shapes:
-            polygons.append(MultiPolygon(shapes))
-
-    current = Polygon()
-    for i, polygon in enumerate(polygons):
-        if i == 0:
-            current = polygon
-        else:
-            current = current.intersection(polygon)
-
-    return current
+    return current.intersection(boundary)
 
 def circle(center, radius):
     circles = []
