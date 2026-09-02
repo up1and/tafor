@@ -99,6 +99,18 @@ def test_rectangular_sketch_restore_geometry():
     assert sketch.geometry()['geometries'][0]['type'] == 'Polygon'
 
 
+def test_rectangular_sketch_text_reports_shared_coordinates():
+    sketch = RectangularSketch('initial')
+    # a band spanning the whole FIR width: its E/W edges lie on the FIR
+    # boundary, so only the two boundary-parallel lines are reported
+    sketch.restore(coordinates=[(100.0, 3.0), (110.0, 3.0), (110.0, 6.0), (100.0, 6.0)])
+    boundaries = [(100.0, 0.0), (110.0, 0.0), (110.0, 10.0), (100.0, 10.0)]
+
+    text = sketch.text(boundaries)
+
+    assert set(text.split(' AND ')) == {'N OF N0300', 'S OF N0600'}
+
+
 def test_entire_sketch_text():
     sketch = EntireSketch('initial')
     assert sketch.text(None) == ''

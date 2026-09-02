@@ -5,8 +5,8 @@ corridor, rectangular, entire) and emits signals on state changes.
 """
 from tafor.core.events import Signal
 from tafor.core.geometry.algorithm import (
-    buffer, circle, clipLine, clipPolygon, depth, encode, flattenLine,
-    simplifyPolygon, wgs84, geodesicDistance
+    corridor, circle, clipLine, clipPolygon, depth, encode,
+    simplifyPolygon, geod, geodesicDistance
 )
 from tafor.core.geometry.coordinate import decimalToDegree
 
@@ -204,7 +204,7 @@ class CircleSketch(Sketch):
             self.finished.emit()
 
         if self.radius and len(self.coordinates) == 1:
-            lon, lat, _ = wgs84.fwd(self.coordinates[0][0], self.coordinates[0][1],
+            lon, lat, _ = geod.fwd(self.coordinates[0][0], self.coordinates[0][1],
                                      0, self.radius)
             self.coordinates.append((lon, lat))
             self.done = True
@@ -215,7 +215,7 @@ class CircleSketch(Sketch):
     def completeFromTwoPoints(self):
         dist = geodesicDistance(self.coordinates[0], self.coordinates[1])
         self.radius = round(dist / self.deviation) * self.deviation
-        lon, lat, _ = wgs84.fwd(self.coordinates[0][0], self.coordinates[0][1],
+        lon, lat, _ = geod.fwd(self.coordinates[0][0], self.coordinates[0][1],
                                  0, self.radius)
         self.coordinates[-1] = (lon, lat)
         self.done = True
@@ -236,7 +236,7 @@ class CircleSketch(Sketch):
             return
         if ratio > 0 or self.radius > self.deviation * 4:
             self.radius += self.deviation * ratio
-            lon, lat, _ = wgs84.fwd(self.coordinates[0][0], self.coordinates[0][1],
+            lon, lat, _ = geod.fwd(self.coordinates[0][0], self.coordinates[0][1],
                                      0, self.radius)
             self.coordinates[-1] = [lon, lat]
             self.changed.emit()
@@ -279,7 +279,7 @@ class CircleSketch(Sketch):
             self.radius = 0
 
         if center and radius:
-            lon, lat, _ = wgs84.fwd(center[0], center[1], 0, self.radius)
+            lon, lat, _ = geod.fwd(center[0], center[1], 0, self.radius)
             self.coordinates.append((lon, lat))
             self.done = True
 
@@ -320,7 +320,7 @@ class CorridorSketch(PathSketch):
             return
 
         if ratio > 0:
-            polygon = buffer(self.coordinates, self.radius + self.deviation * ratio)
+            polygon = corridor(self.coordinates, self.radius + self.deviation * ratio)
             if len(self.coordinates) * 2 + 1 == len(polygon.exterior.coords):
                 self.radius += self.deviation * ratio
                 self.changed.emit()
@@ -355,7 +355,7 @@ class CorridorSketch(PathSketch):
             elif len(self.coordinates) > 1:
                 geometries = [{'type': 'LineString', 'coordinates': self.coordinates}]
         else:
-            polygon = buffer(self.coordinates, self.radius)
+            polygon = corridor(self.coordinates, self.radius)
             geometries = [{
                 'type': 'Polygon',
                 'coordinates': list(polygon.exterior.coords),
@@ -438,12 +438,14 @@ class RectangularSketch(Sketch):
             area = encode(boundaries, self.coordinates, mode='rectangular')
             lines = []
             for identifier, *pts in area:
-                pts = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat))
-                       for lon, lat in pts]
-                lonlat = flattenLine(pts)
-                if lonlat:
-                    line = '{} OF {}'.format(identifier, lonlat)
-                    lines.append(line)
+                # the encode sides are boundary-parallel lines: a N/S line
+                # shares one latitude, an E/W line shares one longitude
+                lon, lat = pts[0]
+                lon = decimalToDegree(lon, fmt='longitude')
+                lat = decimalToDegree(lat)
+                coordinate = lat if identifier in ('N', 'S') else lon
+                line = '{} OF {}'.format(identifier, coordinate)
+                lines.append(line)
             return ' AND '.join(lines)
         return ''
 

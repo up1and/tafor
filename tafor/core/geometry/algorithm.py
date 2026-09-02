@@ -1,10 +1,10 @@
 import math
 import logging
 
-from shapely.ops import linemerge, nearest_points, polylabel
-from shapely.geometry import Polygon, MultiPolygon, LineString, LinearRing, MultiLineString, Point
+from shapely.ops import linemerge, nearest_points, polylabel, transform
+from shapely.geometry import Polygon, LineString, LinearRing, MultiLineString, GeometryCollection, Point
 
-from pyproj import Geod
+from pyproj import CRS, Transformer, Geod
 
 from tafor.core.utils.units import toKm
 
@@ -12,35 +12,29 @@ from tafor.core.utils.units import toKm
 logger = logging.getLogger('tafor.geometry')
 
 
-wgs84 = Geod(ellps='WGS84')
+geod = Geod(ellps='WGS84')
 
 # bearing of each direction identifier, as a fraction of pi
 directions = {'SE': -0.25, 'NE': 0.25, 'N': 0.5, 'SW': -0.75, 'W': 1.0, 'NW': 0.75, 'E': 0.0, 'S': -0.5}
-
-def centroid(points):
-    point = [0, 0]
-
-    if not points:
-        return point
-
-    length = len(points)
-    for x, y in points:
-        point[0] += x
-        point[1] += y
-
-    point = [point[0] / length, point[1] / length]
-    return point
-
-def geodesicDistance(p1, p2):
-    """Geodesic distance in meters between two (lon, lat) points on the WGS84 ellipsoid."""
-    *_, length = wgs84.inv(p1[0], p1[1], p2[0], p2[1])
-    return length
 
 def depth(l):
     if isinstance(l, list):
         return max(map(depth, l)) + 1 if l else 1
     else:
         return 0
+
+def geodesicDistance(p1, p2):
+    """Geodesic distance in meters between two (lon, lat) points on the WGS84 ellipsoid."""
+    *_, length = geod.inv(p1[0], p1[1], p2[0], p2[1])
+    return length
+
+def angularDistance(first, second):
+    """Shortest angular distance between two angles, as a fraction of pi."""
+    if abs(first - second) > 1:
+        distance = min(first, second) + 2 - max(first, second)
+    else:
+        distance = abs(first - second)
+    return distance
 
 def crossProduct(origin, a, b):
     """Cross product of vectors OA and OB, its sign tells on which side of OA the point b lies."""
@@ -59,8 +53,13 @@ def collinearWith(line, other, tolerance=0.1):
                for point in (other.coords[0], other.coords[-1]))
 
 def overlaps(line, other):
-    """True when the two segments share more than a single point."""
-    return line.intersection(other).length > 0
+    """True when the two segments share more than nothing, including a
+    single touching point.
+
+    Collinear pieces split by the FIR boundary may merely touch at their
+    endpoints, and those must merge back into one drawn line.
+    """
+    return not line.intersection(other).is_empty
 
 def groupCollinearLines(lines, tolerance=0.1):
     """Group the lines that lie on the same infinite line."""
@@ -90,23 +89,42 @@ def mergeCollinearLines(lines):
 
     return LineString([min(points, key=_projection), max(points, key=_projection)])
 
-def buffer(lines, dist):
+def corridor(lines, width):
+    """Buffer the line into a corridor polygon extending ``width`` metres
+    outwards on each side of the centre line.
+
+    The line is projected onto a local azimuthal equidistant projection
+    centred on the line centroid, buffered in metres there, and projected
+    back. Metres are true in every direction from the centre of that
+    projection, so the corridor keeps its width at any latitude — a plain
+    degree-space buffer would grow north-south and shrink east-west by
+    up to 50% at 60 degrees north.
+
+    :param lines: list, coordinates of the centre line (lon, lat)
+    :param width: number, distance from the centre line outwards in
+        metres, i.e. half of the width reported as ``WID n KM``
+    :return: Polygon, the corridor around the line
+    """
     line = LineString(lines)
     center = line.centroid
-    _, lat, _ = wgs84.fwd(center.x, center.y, 0, dist)
-    lon, _, _ = wgs84.fwd(center.x, center.y, 90, dist)
-    deg = (lat - center.x + lon - center.y) / 2
 
-    polygon = line.buffer(deg, cap_style=2, join_style=2)
-    return polygon
+    aeqd = CRS(f"+proj=aeqd +lat_0={center.y} +lon_0={center.x} +datum=WGS84 +units=m")
+    wgs84 = CRS("EPSG:4326")
 
-def angularDistance(first, second):
-    """Shortest angular distance between two angles, as a fraction of pi."""
-    if abs(first - second) > 1:
-        distance = min(first, second) + 2 - max(first, second)
-    else:
-        distance = abs(first - second)
-    return distance
+    toMeters = Transformer.from_crs(wgs84, aeqd, always_xy=True).transform
+    toWgs84 = Transformer.from_crs(aeqd, wgs84, always_xy=True).transform
+
+    projected = transform(toMeters, line)
+    buffered = projected.buffer(width, cap_style=2, join_style=2)
+    return transform(toWgs84, buffered)
+
+def circle(center, radius):
+    circles = []
+    for i in range(0, 360):
+        lon, lat, _ = geod.fwd(center[0], center[1], i, radius)
+        circles.append([lon, lat])
+
+    return Polygon(circles)
 
 def linesIntersection(line1, line2):
     """
@@ -127,22 +145,35 @@ def linesIntersection(line1, line2):
     # adding 0.0 turns -0.0 into 0.0
     return (x + 0.0, y + 0.0)
 
-def flattenLine(line):
-    values = []
-    for p in line:
-        values += list(p)
-
-    for v in values:
-        if values.count(v) > 1:
-            return v
-
 def clipLine(polygon, points):
+    """Clip the line to the polygon and return the longest kept piece.
+
+    A concave polygon can cut the line into several pieces; only the
+    longest one survives and the rest are dropped with a warning, because
+    the caller expects a single segment (e.g. a corridor centre line).
+
+    :param polygon: list, coordinates of the clipping polygon
+    :param points: list, coordinates of the line
+    :return: list, coordinates of the clipped line, empty when the line
+        misses the polygon
+    """
     poly = Polygon(polygon)
     line = LineString(points)
     if poly.intersects(line):
         intersection = poly.intersection(line)
+        if isinstance(intersection, GeometryCollection):
+            # keep only the line pieces (a grazing corner yields points too)
+            parts = [part for part in intersection.geoms
+                     if part.geom_type == 'LineString']
+            intersection = MultiLineString(parts) if parts else None
         if isinstance(intersection, MultiLineString):
-            intersection = intersection[0]
+            if len(intersection.geoms) > 1:
+                logger.warning('Clipped line breaks into %d pieces, '
+                               'keeping the longest one', len(intersection.geoms))
+            intersection = max(intersection.geoms, key=lambda part: part.length)
+        if intersection is None or intersection.is_empty:
+            return []
+
         points = list(intersection.coords)
     elif not poly.covers(line):
         points = []
@@ -419,14 +450,6 @@ def decodeLine(boundary, lines):
 
     return current.intersection(boundary)
 
-def circle(center, radius):
-    circles = []
-    for i in range(0, 360):
-        lon, lat, _ = wgs84.fwd(center[0], center[1], i, radius)
-        circles.append([lon, lat])
-
-    return Polygon(circles)
-
 def decode(boundaries, locations, mode, trim=True):
     from tafor.core.geometry.coordinate import degreeToDecimal
     boundary = Polygon(boundaries)
@@ -478,7 +501,7 @@ def decode(boundaries, locations, mode, trim=True):
         points, (radius, unit) = locations
         lines = [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in points]
         width = toKm(int(radius), unit)
-        return buffer(lines, width * 1000 / 2)
+        return corridor(lines, width * 1000 / 2)
 
     if mode == 'entire':
         return boundary

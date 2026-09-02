@@ -1,12 +1,16 @@
 import math
 
+import pytest
 from shapely.geometry import LineString, Point, Polygon
 
+from pyproj import Geod
+
 from tafor.core.geometry.algorithm import (
-    bearingToDirection, collinearWith, decode, decodeLine, decodePolygon,
-    determineDirection, encode, findCutEdges, findDrawnLineEdges, findLines,
-    groupCollinearLines, halfPlane, linesIntersection, mergeCollinearLines,
-    overlaps, principalAxis, simplifyPolygon, simplifyToMaxPoint,
+    bearingToDirection, clipLine, collinearWith, corridor, decode, decodeLine,
+    decodePolygon, determineDirection, encode, findCutEdges, findDrawnLineEdges,
+    findLines, groupCollinearLines, halfPlane, linesIntersection,
+    mergeCollinearLines, overlaps, principalAxis, simplifyPolygon,
+    simplifyToMaxPoint, geod,
 )
 
 
@@ -40,6 +44,47 @@ def test_simplify_reduces_to_max_point():
     assert len(simplified) <= 7
     assert simplified[0] == simplified[-1]  # closed ring
     assert Polygon(simplified).is_valid
+
+def test_clipLine_keeps_the_longest_piece_of_a_concave_polygon():
+    # a U-shaped polygon (two columns on a bar) cuts the y=3 line into two
+    # pieces: (0,3)-(4,3) and (8,3)-(13,3); the longer right one must survive
+    polygon = [(0.0, 0.0), (13.0, 0.0), (13.0, 6.0), (8.0, 6.0),
+               (8.0, 2.0), (4.0, 2.0), (4.0, 6.0), (0.0, 6.0)]
+    points = clipLine(polygon, [(-2.0, 3.0), (15.0, 3.0)])
+
+    assert points == [(8.0, 3.0), (13.0, 3.0)]
+
+
+def test_clipLine_with_a_grazing_corner_returns_no_usable_line():
+    # the line only touches a polygon corner: the intersection is a point,
+    # not a line, so there is no usable piece
+    polygon = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    points = clipLine(polygon, [(-5.0, 10.0), (5.0, 20.0)])
+
+    assert points == []
+
+
+def test_clipLine_keeps_the_line_inside_the_polygon():
+    polygon = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    points = clipLine(polygon, [(2.0, 5.0), (8.0, 5.0)])
+
+    assert points == [(2.0, 5.0), (8.0, 5.0)]
+
+
+def test_corridor_width_is_metric_at_any_latitude():
+    # width extends outwards on each side: 200 km means 400 km across
+    polygon = corridor([(0.0, 0.0), (1.0, 0.0)], 200000)
+
+    assert polygon.geom_type == 'Polygon'
+    assert polygon.area > 0
+    _, _, distance = geod.inv(0.5, polygon.bounds[1], 0.5, polygon.bounds[3])
+    assert distance / 1000 == pytest.approx(400.0, abs=0.1)
+
+    # the degree-space approximation used to be 25% off at 60 degrees north
+    polygon = corridor([(0.0, 60.0), (2.0, 60.0)], 50000)
+
+    _, _, distance = geod.inv(1.0, polygon.bounds[1], 1.0, polygon.bounds[3])
+    assert distance / 1000 == pytest.approx(100.0, abs=0.1)
 
 
 def test_simplify_polygon_without_expand():
@@ -142,11 +187,13 @@ def test_collinear_with_handles_vertical_lines():
     assert not collinearWith(base, LineString([(6.0, 2.0), (6.0, 4.0)]))
 
 
-def test_overlaps_requires_positive_length():
+def test_overlaps_counts_touching_segments():
     a = LineString([(0.0, 0.0), (10.0, 0.0)])
     assert overlaps(a, LineString([(5.0, 0.0), (15.0, 0.0)]))
+    assert overlaps(a, LineString([(10.0, 0.0), (15.0, 0.0)]))  # touching at a point
     assert not overlaps(a, LineString([(15.0, 0.0), (20.0, 0.0)]))  # collinear but disjoint
-    assert not overlaps(a, LineString([(5.0, 0.0), (5.0, 5.0)]))  # touching at a point
+    # note: any touching counts, even a crossing; the predicate is only
+    # meaningful for pieces already grouped as collinear
 
 
 def test_group_collinear_lines():

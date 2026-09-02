@@ -659,7 +659,7 @@ class TyphoonAdvisoryParser(AdvisoryParser):
         return geometry
 
     def radius(self):
-        from tafor.core.geometry.algorithm import wgs84
+        from tafor.core.geometry.algorithm import geod
         center = self.position()
         polygon = self.polygon()
         if not center or not polygon:
@@ -669,7 +669,7 @@ class TyphoonAdvisoryParser(AdvisoryParser):
         lat, lon = center
         center = degreeToDecimal(lon), degreeToDecimal(lat)
         for lon, lat in polygon['coordinates']:
-            _, _, distance = wgs84.inv(center[0], center[1], lon, lat)
+            _, _, distance = geod.inv(center[0], center[1], lon, lat)
             distances.append(distance)
 
         return int(max(distances) / 1000)
