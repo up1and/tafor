@@ -216,11 +216,15 @@ def simplifyToMaxPoint(points, maxPoint=7):
     """Reduce the polygon with Douglas-Peucker until it has at most
     ``maxPoint`` exterior coordinates.
 
-    Douglas-Peucker cannot control the vertex count directly, so the
-    tolerance is increased step by step (a pragmatic workaround) until the
-    simplified polygon has few enough vertices. Shapes that can never reach
-    ``maxPoint`` (a square has at least 5 exterior coordinates) give up
-    after a bounded number of steps instead of looping forever.
+    Douglas-Peucker cannot control the vertex count directly, but the
+    vertex count shrinks as the tolerance grows, so the smallest tolerance
+    that satisfies ``maxPoint`` is found with a binary search over the
+    tolerance. Every step simplifies the original polygon, which keeps the
+    resulting vertices a subset of the original ones (a property
+    ``findCutEdges`` relies on when it matches them back by index).
+    Shapes that can never reach ``maxPoint`` (a ring has at least 4
+    exterior coordinates) exhaust the search and give up with an empty
+    list instead of returning a shape that violates ``maxPoint``.
 
     :param points: list, coordinates of the polygon
     :param maxPoint: int, maximum number of exterior coordinates allowed
@@ -228,21 +232,40 @@ def simplifyToMaxPoint(points, maxPoint=7):
         when the polygon cannot be simplified
     """
     polygon = Polygon(points) if isinstance(points, list) else points
-    tolerance = 0.1
-    steps = 0
-    try:
-        polygon = polygon.simplify(tolerance)
-        while len(polygon.exterior.coords) > maxPoint and steps < 1000:
-            steps += 1
-            tolerance += 0.1
-            polygon = polygon.simplify(tolerance)
 
-        outputs = list(polygon.exterior.coords)
-    except Exception as e:
-        logger.error('Failed to simplify polygon, {}'.format(e))
-        outputs = []
+    if len(polygon.exterior.coords) <= maxPoint:
+        return list(polygon.exterior.coords)
 
-    return outputs
+    # search bounds: no simplification at all, up to the bounding box
+    # diagonal which flattens any shape inside it
+    maxIters = 20
+    minx, miny, maxx, maxy = polygon.bounds
+    low, high = 0.0, math.hypot(maxx - minx, maxy - miny)
+    bestCoords = []
+
+    for _ in range(maxIters):
+        mid = (low + high) / 2.0
+        simplified = polygon.simplify(mid, preserve_topology=True)
+
+        # preserve_topology keeps the geometry valid, this only guards
+        # against a degenerate collapse to a line or a point
+        if simplified.is_empty or simplified.geom_type != 'Polygon':
+            high = mid
+            continue
+
+        coords = list(simplified.exterior.coords)
+
+        if len(simplified.exterior.coords) <= maxPoint:
+            # feasible: keep it and try a smaller tolerance for detail
+            bestCoords = coords
+            high = mid
+        else:
+            low = mid
+
+        if high - low < 1e-6:
+            break
+
+    return bestCoords
 
 def findCutEdges(points, simplified, tolerance=0.1):
     """Find the simplified edges that cut off original vertices.

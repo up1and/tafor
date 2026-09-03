@@ -39,11 +39,22 @@ def test_lines_intersection():
 
 
 def test_simplify_reduces_to_max_point():
-    simplified = simplifyToMaxPoint(jagged_coast_ring(), maxPoint=7)
+    points = jagged_coast_ring()
+    simplified = simplifyToMaxPoint(points, maxPoint=7)
 
     assert len(simplified) <= 7
     assert simplified[0] == simplified[-1]  # closed ring
     assert Polygon(simplified).is_valid
+    # every vertex must be an original vertex: findCutEdges matches the
+    # simplified edges back to the original ring by index
+    assert all(vertex in points for vertex in simplified)
+
+
+def test_simplify_keeps_the_polygon_that_is_small_enough():
+    points = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0), (0.0, 0.0)]
+
+    assert simplifyToMaxPoint(points, maxPoint=7) == points
+
 
 def test_clipLine_keeps_the_longest_piece_of_a_concave_polygon():
     # a U-shaped polygon (two columns on a bar) cuts the y=3 line into two
@@ -97,10 +108,12 @@ def test_small_polygon_returned_unchanged():
     assert simplifyPolygon(ring, maxPoint=7) == ring
 
 
-def test_simplify_gives_up_instead_of_looping_forever():
-    # a square can never be reduced below 5 exterior coordinates
+def test_simplify_gives_up_on_an_impossible_max_point():
+    # a square ring has at least 5 exterior coordinates, 3 can never be
+    # reached: give up with an empty list instead of returning a shape
+    # that violates maxPoint (the old behaviour)
     ring = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
-    assert len(simplifyToMaxPoint(ring, maxPoint=3)) == 5
+    assert simplifyToMaxPoint(ring, maxPoint=3) == []
 
 
 def test_expand_covers_cut_vertices():
