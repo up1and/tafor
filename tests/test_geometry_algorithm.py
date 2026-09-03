@@ -3,8 +3,6 @@ import math
 import pytest
 from shapely.geometry import LineString, Point, Polygon
 
-from pyproj import Geod
-
 from tafor.core.geometry.algorithm import (
     bearingToDirection, clipLine, collinearWith, corridor, decode, decodeLine,
     decodePolygon, determineDirection, encode, findCutEdges, findDrawnLineEdges,
@@ -271,6 +269,31 @@ def test_encode_line_mode_reports_line_with_direction():
     polygon = [(0.0, 0.0), (10.0, 0.0), (10.0, 5.0), (0.0, 5.0)]
 
     assert encode(fir, polygon, 'line') == [['S', (10.0, 5.0), (0.0, 5.0)]]
+
+
+def test_encode_line_gives_up_on_too_many_lines():
+    # two blocks sitting on the FIR bottom edge: each contributes three
+    # non-boundary edges, six lines in total, too fragmented for a line
+    # report
+    fir = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    polygons = [
+        [(1.0, 0.0), (3.0, 0.0), (3.0, 1.0), (1.0, 1.0)],
+        [(5.0, 0.0), (7.0, 0.0), (7.0, 1.0), (5.0, 1.0)],
+    ]
+
+    assert encode(fir, polygons, 'line') == []
+
+
+def test_encode_line_reports_exactly_three_lines():
+    # the closing edge is not examined, so a fifth vertex is needed to cut
+    # exactly three non-boundary edges: at the limit, still encoded as the
+    # stitched polyline around the area
+    fir = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    polygon = [(1.0, 0.0), (3.0, 0.0), (3.0, 2.0), (1.0, 2.0), (1.0, 1.0)]
+
+    segment = encode(fir, polygon, 'line')
+
+    assert segment == [['SW', (3.0, 0.0), (3.0, 2.0), (1.0, 2.0), (1.0, 1.0)]]
 
 
 def test_encode_rectangular_mode_reports_boundary_lines_with_direction():

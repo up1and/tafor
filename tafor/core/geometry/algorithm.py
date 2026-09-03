@@ -678,9 +678,16 @@ def encodeLine(boundaries, polygons):
     """Encode a drawn area as the drawn line with its direction.
 
     The line can come back in several pieces; linemerge stitches the
-    connected ones into a single line or polyline first.
+    connected ones into a single line or polyline first. More than three
+    lines mean the drawn area is fragmented beyond what a line report
+    can describe, so nothing is encoded instead of a garbage message.
     """
     lines = findLines(boundaries, polygons)
+    if len(lines) > 3:
+        logger.error('Too many lines to encode, %s',
+                     [list(line.coords) for line in lines])
+        return []
+
     # merge the line with same point
     if lines:
         merged = linemerge(MultiLineString(lines))
