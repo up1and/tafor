@@ -4,9 +4,10 @@ import pytest
 from shapely.geometry import LineString, Point, Polygon
 
 from tafor.core.geometry.algorithm import (
-    bearingToDirection, clipLine, collinearWith, corridor, decode, decodeLine,
-    decodePolygon, determineDirection, encode, findCutEdges, findDrawnLineEdges,
-    findLines, groupCollinearLines, halfPlane, linesIntersection,
+    bearingToDirection, circle, clipLine, clipPolygon, collinearWith, corridor,
+    decode, decodeLine, decodePolygon, determineDirection, encode,
+    expandToCover, findCutEdges, findDrawnLineEdges, findLines,
+    geodesicDistance, groupCollinearLines, halfPlane, linesIntersection,
     mergeCollinearLines, overlaps, principalAxis, simplifyPolygon,
     simplifyToMaxPoint, geod,
 )
@@ -54,30 +55,111 @@ def test_simplify_keeps_the_polygon_that_is_small_enough():
     assert simplifyToMaxPoint(points, maxPoint=7) == points
 
 
-def test_clipLine_keeps_the_longest_piece_of_a_concave_polygon():
+def test_clip_line_keeps_the_longest_piece_of_a_concave_polygon():
     # a U-shaped polygon (two columns on a bar) cuts the y=3 line into two
     # pieces: (0,3)-(4,3) and (8,3)-(13,3); the longer right one must survive
     polygon = [(0.0, 0.0), (13.0, 0.0), (13.0, 6.0), (8.0, 6.0),
                (8.0, 2.0), (4.0, 2.0), (4.0, 6.0), (0.0, 6.0)]
     points = clipLine(polygon, [(-2.0, 3.0), (15.0, 3.0)])
 
-    assert points == [(8.0, 3.0), (13.0, 3.0)]
+    # the ends sit a hair outside the original edges: the clip runs
+    # against the tolerance-grown boundary
+    assert points[0] == pytest.approx((8.0, 3.0), abs=1e-4)
+    assert points[1] == pytest.approx((13.0, 3.0), abs=1e-4)
 
 
-def test_clipLine_with_a_grazing_corner_returns_no_usable_line():
-    # the line only touches a polygon corner: the intersection is a point,
-    # not a line, so there is no usable piece
-    polygon = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
-    points = clipLine(polygon, [(-5.0, 10.0), (5.0, 20.0)])
-
-    assert points == []
-
-
-def test_clipLine_keeps_the_line_inside_the_polygon():
+def test_clip_line_keeps_the_line_inside_the_polygon():
     polygon = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
     points = clipLine(polygon, [(2.0, 5.0), (8.0, 5.0)])
 
     assert points == [(2.0, 5.0), (8.0, 5.0)]
+
+
+def test_clip_line_keeps_a_line_on_the_boundary():
+    # a line lying exactly on an edge must survive the clip
+    polygon = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+
+    assert clipLine(polygon, [(2.0, 10.0), (8.0, 10.0)]) == [(2.0, 10.0), (8.0, 10.0)]
+
+
+def test_clip_line_tolerates_floating_point_error_on_the_boundary():
+    # a line a floating point hair above the top edge used to be clipped
+    # away entirely; the tolerance-grown polygon keeps it
+    polygon = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    edge = [(2.0, 10.0 + 1e-12), (8.0, 10.0 + 1e-12)]
+
+    assert clipLine(polygon, edge) == edge
+
+
+def test_clip_line_with_a_two_corner_graze_returns_no_usable_line():
+    # the line passes exactly through two polygon corners without
+    # entering: the tolerance grows the intersection into tiny slivers
+    # around the corners, which fall below the noise floor
+    polygon = [(0.0, 0.0), (10.0, 0.0), (10.0, 5.0), (5.0, 5.0), (5.0, 10.0), (0.0, 10.0)]
+
+    assert clipLine(polygon, [(0.0, 15.0), (15.0, 0.0)]) == []
+
+
+def test_clip_line_with_a_single_corner_graze_returns_no_usable_line():
+    # a lone corner touch yields a bare point intersection; there is no
+    # usable segment, so the clip degrades to an empty line
+    polygon = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+
+    assert clipLine(polygon, [(-5.0, 5.0), (5.0, 15.0)]) == []
+
+
+def test_clip_line_ignores_point_touches_in_a_mixed_intersection():
+    # an L-shaped polygon: the line clips the left column and afterwards
+    # only grazes past the bar corner, so the intersection mixes a line
+    # piece with point geometries and slivers; only the line piece
+    # survives
+    polygon = [(0.0, 0.0), (10.0, 0.0), (10.0, 5.0), (5.0, 5.0), (5.0, 10.0), (0.0, 10.0)]
+
+    clipped = clipLine(polygon, [(-5.0, 8.0), (15.0, 4.0)])
+    assert clipped[0] == pytest.approx((0.0, 7.0), abs=1e-4)
+    assert clipped[1] == pytest.approx((5.0, 6.0), abs=1e-4)
+
+
+def test_clip_line_with_a_degenerate_line_returns_no_usable_line():
+    polygon = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+
+    assert clipLine(polygon, [(5.0, 5.0), (5.0, 5.0)]) == []
+
+
+def test_clip_line_misses_the_polygon():
+    polygon = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+
+    assert clipLine(polygon, [(-5.0, 3.0), (-1.0, 3.0)]) == []
+
+
+def test_clip_polygon_keeps_the_largest_piece():
+    # a horizontal bar clipped by a U-shaped subject cuts through both
+    # arms and leaves two pieces, the wider right one must survive
+    subj = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (7.0, 10.0),
+            (7.0, 2.0), (2.0, 2.0), (2.0, 10.0), (0.0, 10.0)]
+    clip = [(-2.0, 4.0), (12.0, 4.0), (12.0, 6.0), (-2.0, 6.0)]
+
+    points = clipPolygon(subj, clip)
+
+    assert points == [(10.0, 4.0), (7.0, 4.0), (7.0, 6.0), (10.0, 6.0), (10.0, 4.0)]
+
+
+def test_clip_polygon_multi_mode_returns_every_ring():
+    subj = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (7.0, 10.0),
+            (7.0, 2.0), (2.0, 2.0), (2.0, 10.0), (0.0, 10.0)]
+    clip = [(-2.0, 4.0), (12.0, 4.0), (12.0, 6.0), (-2.0, 6.0)]
+
+    points = clipPolygon(subj, clip, mode='multi')
+
+    assert len(points) == 2
+    assert sorted(Polygon(ring).area for ring in points) == [4.0, 6.0]
+
+
+def test_clip_polygon_without_overlap_returns_empty():
+    subj = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    clip = [(20.0, 20.0), (30.0, 20.0), (30.0, 30.0), (20.0, 30.0)]
+
+    assert clipPolygon(subj, clip) == []
 
 
 def test_corridor_width_is_metric_at_any_latitude():
@@ -94,6 +176,26 @@ def test_corridor_width_is_metric_at_any_latitude():
 
     _, _, distance = geod.inv(1.0, polygon.bounds[1], 1.0, polygon.bounds[3])
     assert distance / 1000 == pytest.approx(100.0, abs=0.1)
+
+
+def test_geodesic_distance_is_metric():
+    # one degree of longitude at the equator, one degree of latitude
+    assert geodesicDistance((0.0, 0.0), (1.0, 0.0)) == pytest.approx(111319.49, abs=1.0)
+    assert geodesicDistance((0.0, 0.0), (0.0, 1.0)) == pytest.approx(110574.39, abs=1.0)
+
+
+def test_circle_is_a_geodesic_ring_around_the_center():
+    ring = circle((120.0, 30.0), 111000)
+
+    assert ring.geom_type == 'Polygon'
+    assert ring.is_valid
+    for lon, lat in list(ring.exterior.coords)[:-1]:
+        assert geodesicDistance((120.0, 30.0), (lon, lat)) == pytest.approx(111000.0, abs=1.0)
+
+    # 111 km is one degree; at 30N a degree of longitude shrinks to cos(30)
+    minx, miny, maxx, maxy = ring.bounds
+    assert (maxy - miny) / 2 == pytest.approx(1.0, abs=0.01)
+    assert (maxx - minx) / 2 == pytest.approx(1.1547, abs=0.01)
 
 
 def test_simplify_polygon_without_expand():
@@ -171,6 +273,13 @@ def test_expand_with_duplicated_vertices():
 
     result = simplifyPolygon(ring, maxPoint=7, expand=True)
     assert_covers_all(result, ring)
+
+
+def test_expand_without_simplified_returns_it_unchanged():
+    # nothing to expand: the simplification gave up entirely
+    ring = [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0)]
+
+    assert expandToCover(ring, []) == []
 
 
 def test_find_cut_edges_includes_closing_edge():
@@ -294,6 +403,22 @@ def test_encode_line_reports_exactly_three_lines():
     segment = encode(fir, polygon, 'line')
 
     assert segment == [['SW', (3.0, 0.0), (3.0, 2.0), (1.0, 2.0), (1.0, 1.0)]]
+
+
+def test_encode_line_reports_separate_pieces_with_own_directions():
+    # one block with two connected edges and one triangle with a single
+    # edge: linemerge cannot stitch the pieces into one line, each piece
+    # is reported with the direction of its own area
+    fir = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    polygons = [
+        [(1.0, 0.0), (3.0, 0.0), (3.0, 1.0), (1.0, 1.0)],
+        [(5.0, 0.0), (7.0, 0.0), (7.0, 1.0)],
+    ]
+
+    assert encode(fir, polygons, 'line') == [
+        ['E', (3.0, 0.0), (3.0, 1.0), (1.0, 1.0)],
+        ['W', (7.0, 0.0), (7.0, 1.0)],
+    ]
 
 
 def test_encode_rectangular_mode_reports_boundary_lines_with_direction():
@@ -497,6 +622,54 @@ def test_decode_rectangular_mode():
     assert not area.intersects(Point(-5.0, 2.5))
 
 
+def test_decode_polygon_mode_parses_degree_strings():
+    # locations come as (latitude, longitude) degree string pairs
+    boundary = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    area = decode(boundary, [('N0500', 'E0500'), ('N0500', 'E1500'),
+                             ('N1500', 'E1500'), ('N1500', 'E0500')], 'polygon')
+
+    assert area.area == 25.0
+    assert area.covers(Point(7.0, 7.0))
+    assert not area.intersects(Point(12.0, 12.0))
+
+
+def test_decode_line_mode_parses_degree_strings():
+    # each line is the identifier followed by (latitude, longitude) pairs
+    boundary = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    area = decode(boundary, [('N', ('N0500', 'E0200'), ('N0500', 'E0800'))], 'line')
+
+    assert area.area == 50.0
+    assert area.covers(Point(5.0, 7.5))
+    assert not area.intersects(Point(5.0, 2.5))
+
+
+def test_decode_circle_mode():
+    # the report gives the center as degree strings and the radius in km
+    boundary = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    area = decode(boundary, [('N3000', 'E12000'), (111, 'KM')], 'circle')
+
+    minx, miny, maxx, maxy = area.bounds
+    # 111 km is one degree; at 30N a degree of longitude shrinks to cos(30)
+    assert (maxy - miny) / 2 == pytest.approx(1.0, abs=0.01)
+    assert (maxx - minx) / 2 == pytest.approx(1.1547, abs=0.01)
+
+
+def test_decode_corridor_mode():
+    # a 100 km wide corridor along the diagonal, the width spans both sides
+    boundary = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    area = decode(boundary, [[('N0000', 'E0000'), ('N0200', 'E0200')], (100, 'KM')], 'corridor')
+
+    assert area.geom_type == 'Polygon'
+    assert area.area > 0
+    assert area.covers(Point(1.0, 1.0))
+
+
+def test_decode_entire_mode_returns_the_boundary():
+    boundary = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+
+    assert decode(boundary, [], 'entire').area == 100.0
+
+
 def test_decode_line_mode_without_boundary():
     # an invalid boundary cannot be split, so the line area is unknown
     assert decode([], [('N', ['N0500', 'N0800'])], 'line').is_empty
@@ -538,7 +711,7 @@ def test_decode_polygon_without_trim_keeps_the_area():
     assert area.area == 100.0
 
 
-def test_halfPlane_is_not_limited_by_the_extension_of_old_code():
+def test_half_plane_is_not_limited_by_the_extension_of_old_code():
     boundary = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
     plane = halfPlane('N', [(4.0, 5.0), (6.0, 5.0)], Polygon(boundary))
 
@@ -546,4 +719,23 @@ def test_halfPlane_is_not_limited_by_the_extension_of_old_code():
     assert plane.covers(Point(0.0, 9.9))
     assert plane.covers(Point(9.9, 9.9))
     assert not plane.intersects(Point(5.0, 1.0))
+
+
+def test_half_plane_repairs_a_self_intersecting_curtain():
+    # a polyline with a north-going leg folds the curtain over itself;
+    # buffer(0) untangles it into the band north/east of the line
+    boundary = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    plane = halfPlane('N', [(5.0, 0.0), (5.0, 8.0), (10.0, 8.0)], Polygon(boundary))
+
+    assert plane.is_valid
+    assert plane.area == pytest.approx(270.7107, abs=0.01)
+    assert plane.covers(Point(7.0, 9.0))
+    assert not plane.intersects(Point(2.0, 2.0))
+
+
+def test_half_plane_with_a_degenerate_line_keeps_no_area():
+    # both endpoints identical: the curtain collapses, nothing is reported
+    boundary = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+
+    assert halfPlane('N', [(5.0, 5.0), (5.0, 5.0)], Polygon(boundary)) is None
 

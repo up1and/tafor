@@ -7,6 +7,7 @@ from shapely.geometry import Polygon, LineString, LinearRing, MultiLineString, G
 from pyproj import CRS, Transformer, Geod
 
 from tafor.core.utils.units import toKm
+from tafor.core.geometry.coordinate import degreeToDecimal
 
 
 logger = logging.getLogger('tafor.geometry')
@@ -149,36 +150,37 @@ def clipLine(polygon, points):
     """Clip the line to the polygon and return the longest kept piece.
 
     A concave polygon can cut the line into several pieces; only the
-    longest one survives and the rest are dropped with a warning, because
-    the caller expects a single segment (e.g. a corridor centre line).
+    longest one survives and the rest are dropped with a warning,
+    because the caller expects a single segment (e.g. a corridor centre
+    line).
 
     :param polygon: list, coordinates of the clipping polygon
     :param points: list, coordinates of the line
+    :param tol: float, boundary tolerance in degrees, about 1 m
     :return: list, coordinates of the clipped line, empty when the line
-        misses the polygon
+        misses or only grazes the polygon
     """
-    poly = Polygon(polygon)
-    line = LineString(points)
-    if poly.intersects(line):
-        intersection = poly.intersection(line)
-        if isinstance(intersection, GeometryCollection):
-            # keep only the line pieces (a grazing corner yields points too)
-            parts = [part for part in intersection.geoms
-                     if part.geom_type == 'LineString']
-            intersection = MultiLineString(parts) if parts else None
-        if isinstance(intersection, MultiLineString):
-            if len(intersection.geoms) > 1:
-                logger.warning('Clipped line breaks into %d pieces, '
-                               'keeping the longest one', len(intersection.geoms))
-            intersection = max(intersection.geoms, key=lambda part: part.length)
-        if intersection is None or intersection.is_empty:
-            return []
+    tol = 1e-5
+    buffered = Polygon(polygon).buffer(tol)
+    intersection = buffered.intersection(LineString(points))
+    if intersection.is_empty:
+        return []
 
-        points = list(intersection.coords)
-    elif not poly.covers(line):
-        points = []
+    if intersection.geom_type == 'LineString':
+        pieces = [intersection]
+    else:
+        # point-only grazes and mixed collections carry no usable segment
+        pieces = [part for part in getattr(intersection, 'geoms', [])
+                  if part.geom_type == 'LineString']
 
-    return points
+    # drop the slivers the tolerance lets in along a grazing pass
+    pieces = [piece for piece in pieces if piece.length > 10 * tol]
+    if not pieces:
+        return []
+    if len(pieces) > 1:
+        logger.warning('Clipped line breaks into %d pieces, '
+                       'keeping the longest one', len(pieces))
+    return list(max(pieces, key=lambda piece: piece.length).coords)
 
 def clipPolygon(subj, clip, mode='single'):
     """Intersect two polygons and return the exterior coordinates.
@@ -474,7 +476,6 @@ def decodeLine(boundary, lines):
     return current.intersection(boundary)
 
 def decode(boundaries, locations, mode, trim=True):
-    from tafor.core.geometry.coordinate import degreeToDecimal
     boundary = Polygon(boundaries)
     hasBoundary = boundary.is_valid and not boundary.is_empty
     if not hasBoundary:
