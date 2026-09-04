@@ -5,10 +5,9 @@ import logging
 from collections import OrderedDict
 
 from tafor.core.utils.time import parsePeriod, parseTime, parseTimez
+from tafor.core.parsers.base import MetarGrammar, TafGrammar, joinRendered, renderTokens
 
 logger = logging.getLogger('tafor.parser.taf')
-
-from tafor.core.parsers.base import MetarGrammar, TafGrammar
 
 
 class TafValidator:
@@ -360,42 +359,14 @@ class TafLexer:
             * html HTML 高亮风格
         :return: 根据不同风格重新渲染的报文
         """
-        def terminal():
-            from colorama import init, Fore
-            init(autoreset=True)
-
-            elements = []
-            for k, e in self.tokens.items():
-                if e['error']:
-                    elements.append(Fore.RED + e['text'])
-                else:
-                    elements.append(Fore.GREEN + e['text'])
-
-            return ' '.join(elements)
-
-        def html():
-            elements = []
-            for k, e in self.tokens.items():
-                if e['error']:
-                    elements.append('<span style="color: red">{}</span>'.format(e['text']))
-                else:
-                    elements.append(e['text'])
-
-            return ' '.join(elements)
-
-        def plain():
-            elements = [e['text'] for _, e in self.tokens.items()]
-            return ' '.join(elements)
-
-        func = locals().get(style, plain)
-        return func()
+        return renderTokens(self.tokens.values(), style)
 
 
 class TafParser:
     """解析 TAF 报文
 
     :param message: TAF 报文
-    :param parse: 解析报文的类，默认 :class:`TafLexer`
+    :param lexer: 解析报文的类，默认 :class:`TafLexer`
     :param validator: 验证报文转折关系的类，默认 :class:`TafValidator`
     :param kwargs: 额外参数
 
@@ -422,7 +393,7 @@ class TafParser:
 
     splitPattern = re.compile(r'(BECMG|(?:FM(?:\d{4}|\d{6}))|TEMPO|PROB[34]0\sTEMPO)')
 
-    def __init__(self, message, created=None, parse=None, validator=None, **kwargs):
+    def __init__(self, message, created=None, lexer=None, validator=None, **kwargs):
         message = message.strip()
         if not message.endswith('='):
             message = message + '='
@@ -437,11 +408,8 @@ class TafParser:
         self.valids = None
         self.created = created
 
-        if not parse:
-            self.parse = self.lexerClass
-
-        if not validator:
-            self.validator = self.validatorClass(**kwargs)
+        self.lexer = lexer or self.lexerClass
+        self.validator = validator or self.validatorClass(**kwargs)
 
         self._analyse()
 
@@ -458,7 +426,7 @@ class TafParser:
         """拆分主报文和变化组"""
         message = self.message.replace('=', '')
         elements = self.splitPattern.split(message)
-        self.primary = self.parse(elements[0])
+        self.primary = self.lexer(elements[0])
 
         if len(elements) > 1:
             becmgIndex = [i for i, item in enumerate(elements) if item == 'BECMG']
@@ -467,19 +435,19 @@ class TafParser:
 
             for index in becmgIndex:
                 e = elements[index] + elements[index+1]
-                becmg = self.parse(e)
+                becmg = self.lexer(e)
                 becmg.order = index
                 self.becmgs.append(becmg)
 
             for index in fmIndex:
                 e = elements[index] + elements[index+1]
-                fm = self.parse(e)
+                fm = self.lexer(e)
                 fm.order = index
                 self.becmgs.append(fm)
 
             for index in tempoIndex:
                 e = elements[index] + elements[index+1]
-                tempo = self.parse(e)
+                tempo = self.lexer(e)
                 tempo.order = index
                 self.tempos.append(tempo)
 
@@ -487,8 +455,9 @@ class TafParser:
 
     def _parsePeriod(self):
         """解析主报文和变化组的时间顺序"""
-        if len(self.primary.tokens['period']['text']) not in [6, 9]:
-            raise 
+        period = self.primary.tokens['period']['text']
+        if len(period) not in [6, 9]:
+            raise ValueError('Malformed TAF period group: {!r}'.format(period))
 
         if self.created is None:
             self.created = parseTimez(self.primary.tokens['timez']['text'])
@@ -747,11 +716,7 @@ class TafParser:
         :return: 根据不同风格重新渲染的报文
         """
         outputs = [e.renderer(style) for e in self.elements if e]
-
-        if style == 'html':
-            return '<br/>'.join(outputs) + '='
-
-        return '\n'.join(outputs) + '='
+        return joinRendered(outputs, style)
 
 
 class MetarLexer(TafLexer):

@@ -17,11 +17,37 @@ weatherWithIntensity = [
 ]
 
 
-def _purePattern(regex):
-    pattern = regex.pattern
-    if pattern.startswith('^'):
-        pattern = pattern[1:]
-    return pattern
+def renderTokens(tokens, style='plain'):
+    """Render a sequence of tokens into a string.
+
+    :param tokens: a sequence of token dicts with ``text`` and ``error`` keys
+    :param style: one of plain, terminal or html
+    :return: the rendered string
+    """
+    if style == 'terminal':
+        from colorama import init, Fore
+        init(autoreset=True)
+
+    elements = []
+    for e in tokens:
+        text = e['text']
+        if e['error']:
+            if style == 'html':
+                text = '<span style="color: red">{}</span>'.format(text)
+            elif style == 'terminal':
+                text = Fore.RED + text
+        elif style == 'terminal':
+            text = Fore.GREEN + text
+
+        elements.append(text)
+
+    return ' '.join(elements)
+
+
+def joinRendered(outputs, style='plain'):
+    """Join rendered report parts into a complete message."""
+    separator = '<br/>' if style == 'html' else '\n'
+    return separator.join(outputs) + '='
 
 
 class Pattern:
@@ -95,67 +121,32 @@ class SigmetGrammar:
     vis = re.compile(r'(9999|5000|[01234][0-9]00|0[0-7]50)(M|FT)')
     cloud = re.compile(r'((?:\d{3,4}|SFC)/(?:ABV)?\d{3,5}(?:M|FT))')
 
-    _point = r'((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))'
-    _pointSpacer = r'\s?-\s?'
-    _radius = r'WI\s(\d{1,3})(KM|NM)\sOF\s(?:TC\s)?(?:CENTRE|CENTER)'
-
-    @property
-    def point(self):
-        return re.compile(self._point)
-
-    @property
-    def radius(self):
-        return re.compile(self._radius)
-
-    @property
-    def line(self):
-        pattern = re.compile(
+    def __init__(self):
+        point = r'((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))'
+        spacer = r'\s?-\s?'
+        line = (
             r'(N|NE|E|SE|S|SW|W|NW)'
             r'\sOF\sLINE\s'
-            r'(%s(?:%s)?)+' % (self._point, self._pointSpacer)
+            r'({}(?:{})?)+'.format(point, spacer)
         )
-        return pattern
-
-    @property
-    def lines(self):
-        pattern = re.compile(
-            r'({}(?:\sAND\s)?)+'.format(_purePattern(self.line))
+        rectangular = (
+            r'(?:(N|S)\sOF\s((?:N|S)(?:\d{4}|\d{2}))'
+            r'|(W|E)\sOF\s((?:W|E)(?:\d{5}|\d{3})))'
         )
-        return pattern
 
-    @property
-    def polygon(self):
-        pattern = re.compile(
-            r'(WI\s(?:{}(?:{})?)+)'.format(self._point, self._pointSpacer)
-        )
-        return pattern
-
-    @property
-    def corridor(self):
-        pattern = re.compile(
+        self.point = re.compile(point)
+        self.radius = re.compile(r'WI\s(\d{1,3})(KM|NM)\sOF\s(?:TC\s)?(?:CENTRE|CENTER)')
+        self.line = re.compile(line)
+        self.lines = re.compile(r'({}(?:\sAND\s)?)+'.format(line))
+        self.polygon = re.compile(r'(WI\s(?:{}(?:{})?)+)'.format(point, spacer))
+        self.corridor = re.compile(
             r'APRX\s(\d{1,3})(KM|NM)'
             r'\sWID\sLINE\sBTN\s'
-            r'(%s(?:%s)?)+' % (self._point, self._pointSpacer)
+            + r'({}(?:{})?)+'.format(point, spacer)
         )
-        return pattern
-
-    @property
-    def rectangular(self):
-        pattern = re.compile(
-            r'(?:(N|S)\sOF\s((?:N|S)(?:\d{4}|\d{2}))|(W|E)\sOF\s((?:W|E)(?:\d{5}|\d{3})))'
-        )
-        return pattern
-
-    @property
-    def rectangulars(self):
-        pattern = re.compile(
-            r'({}(?:\sAND\s)?)+'.format(_purePattern(self.rectangular))
-        )
-        return pattern
-
-    @property
-    def position(self):
-        return re.compile(r'PSN\s{}'.format(self._point))
+        self.rectangular = re.compile(rectangular)
+        self.rectangulars = re.compile(r'({}(?:\sAND\s)?)+'.format(rectangular))
+        self.position = re.compile(r'PSN\s{}'.format(point))
 
 
 class AdvisoryGrammar:
@@ -166,23 +157,17 @@ class AdvisoryGrammar:
     movement = re.compile(r'\b(STNR|N|NNE|NE|ENE|E|ESE|SE|SSE|S|SSW|SW|WSW|W|WNW|NW|NNW)\b')
     speed = re.compile(r'(\d{1,2})(KMH|KT)')
 
-    _point = r'((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))'
-    _pointSpacer = r'\s?-\s?'
+    def __init__(self):
+        point = r'((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))'
+        spacer = r'\s?-\s?'
 
-    @property
-    def point(self):
-        return re.compile(self._point)
-
-    @property
-    def polygon(self):
-        pattern = re.compile(
-            r'(?:{}(?:{})?)+'.format(self._point, self._pointSpacer)
-        )
-        return pattern
+        self.point = re.compile(point)
+        self.polygon = re.compile(r'(?:{}(?:{})?)+'.format(point, spacer))
 
 
 __all__ = [
-    '_purePattern',
+    'renderTokens',
+    'joinRendered',
     'Pattern',
     'TafGrammar',
     'MetarGrammar',

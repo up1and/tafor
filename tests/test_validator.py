@@ -3,7 +3,7 @@ import re
 
 import pytest
 
-from tafor.core.parsers import SigmetParser, TafParser, TafValidator
+from tafor.core.parsers import MetarParser, SigmetParser, TafParser, TafValidator
 
 root = os.path.dirname(__file__)
 
@@ -127,11 +127,23 @@ def test_extra():
     assert not m.hasMessageChanged()
     assert not s.hasMessageChanged()
 
-def test_pure_pattern():
-    from tafor.core.parsers.base import _purePattern
-    pattern = r'^(0|[1-9][0-9]*)$'
-    regex = re.compile(pattern)
-    assert _purePattern(regex) == pattern[1:]
+def test_metar_fm_trend_period():
+    m = MetarParser('METAR ZJHK 210900Z 14004MPS 4500 -RA BKN030 BECMG FM1030 9999 NSW=')
+    m.validate()
+
+    assert not m.failed
+    assert m.isValid()
+    assert m.trends[0].periods[0].strftime('%H%M') == '1030'
+    assert m.trends[0].periods[1] == m.primary.periods[1]
+
+def test_taf_malformed_period(caplog):
+    m = TafParser('TAF ZJHK 150726Z 0918 03003MPS 9999 FEW030=')
+    m.validate()
+
+    assert m.failed
+    assert not m.isValid()
+    assert '报文无法被正确解析' in m.errors
+    assert 'Malformed TAF period group' in caplog.text
 
 
 if __name__ == "__main__":

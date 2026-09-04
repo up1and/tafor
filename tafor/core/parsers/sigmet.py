@@ -7,10 +7,9 @@ from collections import OrderedDict
 from tafor.core.geometry.coordinate import degreeToDecimal
 from tafor.core.utils.time import parseTime, parseTimez
 from tafor.core.utils.units import toKmh, toKt
+from tafor.core.parsers.base import AdvisoryGrammar, SigmetGrammar, joinRendered, renderTokens
 
 logger = logging.getLogger('tafor.parser.sigmet')
-
-from tafor.core.parsers.base import AdvisoryGrammar, SigmetGrammar
 
 class SigmetLexer:
     """SIGMET 报文要素的解析器
@@ -135,40 +134,16 @@ class SigmetLexer:
             * html HTML 高亮风格
         :return: 根据不同风格重新渲染的报文
         """
-        def terminal():
-            from colorama import init, Fore
-            init(autoreset=True)
-
-            elements = []
-            for e in self.tokens:
-                if e['error']:
-                    elements.append(Fore.RED + e['text'])
-                else:
-                    elements.append(Fore.GREEN + e['text'])
-
-            return ' '.join(elements)
-
-        def html():
-            elements = []
-            for e in self.tokens:
-                if e['error']:
-                    elements.append('<span style="color: red">{}</span>'.format(e['text']))
-                else:
-                    elements.append(e['text'])
-
-            return ' '.join(elements)
-
-        def plain():
+        if style == 'plain':
             return self.part
 
-        func = locals().get(style, plain)
-        return func()
+        return renderTokens(self.tokens, style)
 
 class SigmetParser:
     """解析 SIGMET 报文
 
     :param message: SIGMET 报文
-    :param parse: 解析报文的类，默认 :class:`SigmetLexer`
+    :param lexer: 解析报文的类，默认 :class:`SigmetLexer`
 
     使用方法::
 
@@ -188,18 +163,15 @@ class SigmetParser:
 
     lexerClass = SigmetLexer
 
-    def __init__(self, message, created=None, parse=None, grammar=None, **kwargs):
+    def __init__(self, message, created=None, lexer=None, grammar=None, **kwargs):
         self.message = message.strip()
         self.isAirmet = True if self.category() == 'AIRMET' else False
 
         if not grammar:
             grammar = self.grammarClass()
 
-        if not parse:
-            parse = self.lexerClass
-
         self.grammar = grammar
-        self.parse = parse
+        self.lexer = lexer or self.lexerClass
         self.firCode = self.fir()
         self.airportCode = self.airport()
 
@@ -238,7 +210,7 @@ class SigmetParser:
         *lines, text = splitPattern.split(message)
         self.firstline = ' '.join(e.strip() for e in lines)
         text = text.strip()
-        self.elements = [self.parse(e, firCode=self.firCode, airportCode=self.airportCode, isAirmet=self.isAirmet) for e in text.split('\n')]
+        self.elements = [self.lexer(e, firCode=self.firCode, airportCode=self.airportCode, isAirmet=self.isAirmet) for e in text.split('\n')]
         self.text = '\n'.join([self.firstline, text])
 
     def __eq__(self, other):
@@ -440,8 +412,7 @@ class SigmetParser:
         return collections
 
     def content(self):
-        outputs = [e.renderer() for e in self.elements]
-        return '\n'.join(outputs) + '='
+        return joinRendered([e.renderer() for e in self.elements])
 
     def isValid(self):
         """报文是否通过验证"""
@@ -461,12 +432,7 @@ class SigmetParser:
         :return: 根据不同风格重新渲染的报文
         """
         outputs = [self.heading, self.firstline] + [e.renderer(style) for e in self.elements if e]
-        outputs = filter(None, outputs)
-
-        if style == 'html':
-            return '<br/>'.join(outputs) + '='
-
-        return '\n'.join(outputs) + '='
+        return joinRendered([o for o in outputs if o], style)
 
 
 class AdvisoryParser:

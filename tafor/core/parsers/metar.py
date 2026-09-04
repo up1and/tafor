@@ -3,11 +3,9 @@ import logging
 import datetime
 
 from tafor.core.utils.time import parseTime, parseTimez
-
-logger = logging.getLogger('tafor.parser.metar')
-
 from tafor.core.parsers.taf import MetarLexer, TafParser
 
+logger = logging.getLogger('tafor.parser.metar')
 
 class MetarParser(TafParser):
 
@@ -15,12 +13,12 @@ class MetarParser(TafParser):
 
     splitPattern = re.compile(r'(BECMG|TEMPO)')
 
-    def __init__(self, message, parse=None, validator=None, ignoreMetar=False, **kwargs):
-        super().__init__(message, parse=parse, validator=validator, **kwargs)
+    def __init__(self, message, lexer=None, validator=None, ignoreMetar=False, **kwargs):
+        super().__init__(message, lexer=lexer, validator=validator, **kwargs)
         self.ignoreMetar = ignoreMetar
         self.previous = kwargs.get('previous')
         if len(self.elements) > 1 and self.primary:
-            self.metar = MetarParser(self.primary.part, parse=parse, validator=validator, ignoreMetar=False, **kwargs)
+            self.metar = MetarParser(self.primary.part, lexer=lexer, validator=validator, ignoreMetar=False, **kwargs)
             self.metar.validate()
         else:
             self.metar = self
@@ -29,8 +27,8 @@ class MetarParser(TafParser):
         super()._analyse()
         if 'NOSIG' in self.message:
             metar = self.primary.part.replace('NOSIG', '').strip()
-            self.primary = self.parse(metar)
-            self.trends = [self.parse('NOSIG')]
+            self.primary = self.lexer(metar)
+            self.trends = [self.lexer('NOSIG')]
             self.elements = [self.primary] + self.trends
         else:
             self.trends = self.elements[1:]
@@ -53,7 +51,7 @@ class MetarParser(TafParser):
                 else:
                     text = periods[0]
                     if text.startswith('FM'):
-                        e.periods = (parseTime(text[2:], basetime), self.primary.period[1])
+                        e.periods = (parseTime(text[2:], basetime), self.primary.periods[1])
                     if text.startswith('TL'):
                         e.periods = (basetime, parseTime(text[2:], basetime))
                     if text.startswith('AT'):
