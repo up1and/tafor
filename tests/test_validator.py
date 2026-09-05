@@ -136,6 +136,97 @@ def test_metar_fm_trend_period():
     assert m.trends[0].periods[0].strftime('%H%M') == '1030'
     assert m.trends[0].periods[1] == m.primary.periods[1]
 
+def test_metar_without_trend():
+    m = MetarParser('METAR ZJHK 210900Z 14004MPS 4500 -RA BKN030 Q1002=')
+    m.validate()
+
+    assert not m.failed
+    assert m.isValid()
+    assert not m.hasTrend()
+    assert m.renderer() == 'METAR ZJHK 210900Z 14004MPS 4500 -RA BKN030 Q1002='
+
+def test_metar_with_trend():
+    m = MetarParser('METAR ZJHK 210900Z 14004MPS 4500 -RA BKN030 TEMPO AT1020 07005MPS=')
+    m.validate()
+
+    assert not m.failed
+    assert m.isValid()
+    assert m.hasTrend()
+    assert m.trends[0].periods[0].strftime('%H%M') == '1020'
+    expected = 'METAR ZJHK 210900Z 14004MPS 4500 -RA BKN030\nTEMPO AT1020 07005MPS='
+    assert m.renderer() == expected
+
+def test_metar_nosig():
+    m = MetarParser('METAR ZJHK 210900Z 14004MPS 9999 NSW SKC NOSIG=')
+    m.validate()
+
+    assert not m.failed
+    assert m.isValid()
+    assert len(m.trends) == 1
+    assert m.trends[0].tokens['nosig']['text'] == 'NOSIG'
+    expected = 'METAR ZJHK 210900Z 14004MPS 9999 NSW SKC\nNOSIG='
+    assert m.renderer() == expected
+
+def test_metar_dropped_primary_token_detected():
+    m = MetarParser('METAR ZJHK 210900Z 14004MPS 4500 -RA BKN030 QQ123 TEMPO AT1020 07005MPS=')
+    m.validate()
+
+    assert not m.isValid()
+
+def test_metar_nosig_with_becmg_keeps_trend():
+    m = MetarParser('METAR ZJHK 210900Z 14004MPS 4500 -RA BKN030 NOSIG BECMG AT1020 07005MPS=')
+    m.validate()
+
+    assert m.trends[0].sign == 'BECMG'
+    assert not m.isValid()
+
+def test_metar_trend_only_invalid_primary():
+    m = MetarParser('METAR ZJHK 210900Z 14004MPS 4500 -RA BKN030 QQ123=', trendOnly=True)
+    m.validate()
+
+    assert not m.isValid()
+
+def test_metar_trend_time_group_out_of_range():
+    m = MetarParser('METAR ZJHK 210900Z 14004MPS 4500 -RA BKN030 TEMPO AT0800 07005MPS=')
+    m.validate()
+
+    assert '趋势时间组错误' in m.errors
+    assert m.trends[0].tokens['fmtl']['error']
+    assert not m.isValid()
+
+    m = MetarParser('METAR ZJHK 210900Z 14004MPS 4500 -RA BKN030 TEMPO TL1200 07005MPS=')
+    m.validate()
+
+    assert '趋势时间组错误' in m.errors
+    assert m.trends[0].tokens['fmtl']['error']
+
+def test_metar_fm_tl_trend_period_overnight():
+    m = MetarParser('METAR ZJHK 212300Z 14004MPS 4500 -RA BKN030 BECMG FM2330 TL0030 07005MPS=')
+    m.validate()
+
+    assert not m.failed
+    assert m.isValid()
+    assert m.trends[0].periods[0].strftime('%H%M') == '2330'
+    assert m.trends[0].periods[1].strftime('%d%H%M') == '220030'
+
+def test_metar_trend_only_tips_exclude_primary_errors():
+    # primary: visibility 4500 with NSW violates the vis/weather rule
+    message = 'METAR ZJHK 210900Z 14004MPS 4500 NSW SKC TEMPO AT1020 07005MPS='
+
+    m = MetarParser(message, trendOnly=True)
+    m.validate()
+    assert m.tips == []
+
+    m = MetarParser(message)
+    m.validate()
+    assert '能见度小于 5000 米时应有天气现象' in m.tips
+
+def test_metar_is_same_observation():
+    m = MetarParser('METAR ZJHK 210900Z 14004MPS 4500 -RA BKN030 TEMPO AT1020 07005MPS=')
+
+    assert m.isSameObservation('METAR ZJHK 210900Z 14004MPS 4500 -RA BKN030 BECMG AT1030 9999 NSW=')
+    assert not m.isSameObservation('METAR ZJHK 210900Z 15004MPS 4500 -RA BKN030=')
+
 def test_taf_malformed_period(caplog):
     m = TafParser('TAF ZJHK 150726Z 0918 03003MPS 9999 FEW030=')
     m.validate()

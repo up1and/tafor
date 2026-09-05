@@ -550,11 +550,15 @@ class TafParser:
         pass
 
     def _validateChange(self):
-        """验证单项和多项转折"""
+        """Validate single and multiple element changes"""
 
-        # 验证主报文多个要素匹配
+        # validate the primary report against the reference
         self._validateElement(self.reference, self.primary.tokens)
 
+        self._validateGroups()
+
+    def _validateGroups(self):
+        """Validate the trend groups against the reference"""
         for e in self.groups:
             for key in e.tokens:
                 # 依次验证单项要素转折

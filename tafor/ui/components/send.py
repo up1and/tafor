@@ -90,7 +90,7 @@ class TrendMessageComposer(MessageComposer):
         uiFamily = self.fontFamily
         notificationParser = self.context.notification.metar.parser()
 
-        if notificationParser and notificationParser.hasMetar():
+        if notificationParser and notificationParser.hasTrend():
             metar = notificationParser.primary.part
             visHas5000 = self.conf.visHas5000
             cloudHeightHas450 = self.conf.cloudHeightHas450
@@ -98,7 +98,7 @@ class TrendMessageComposer(MessageComposer):
 
             parser = MetarParser(
                 ' '.join([metar, message.text]),
-                ignoreMetar=True,
+                trendOnly=True,
                 visHas5000=visHas5000,
                 cloudHeightHas450=cloudHeightHas450,
                 weakPrecipitationVerification=weakPrecipitationVerification,
@@ -106,7 +106,7 @@ class TrendMessageComposer(MessageComposer):
             parser.validate()
 
             if not parser.failed:
-                html = '<p>{}</p>'.format(parser.renderer(style='html', emphasizeNosig=True))
+                html = '<p>{}</p>'.format(parser.renderer(style='html'))
                 if parser.tips:
                     html += '<p style="color: grey; font-family: \'{}\'; font-size: 10pt;"># {}</p>'.format(
                         uiFamily, '<br/># '.join(parser.tips)

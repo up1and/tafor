@@ -90,9 +90,9 @@ class Metar(Base):
     def report(self):
         return self.text
 
-    def parser(self, ignoreMetar=True, **kwargs):
+    def parser(self, trendOnly=True, **kwargs):
         from tafor.core.parsers.metar import MetarParser
-        return MetarParser(self.text, ignoreMetar=ignoreMetar, **kwargs)
+        return MetarParser(self.text, trendOnly=trendOnly, **kwargs)
 
 class Trend(Base):
     __tablename__ = 'trends'

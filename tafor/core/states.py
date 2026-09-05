@@ -350,7 +350,7 @@ class NotificationService:
         if category in ['METAR', 'SPECI']:
             return MetarParser(
                 message,
-                ignoreMetar=True,
+                trendOnly=True,
                 previous=self.state.previous,
                 visHas5000=self.conf.visHas5000,
                 cloudHeightHas450=self.conf.cloudHeightHas450,

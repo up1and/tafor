@@ -1,11 +1,8 @@
 import re
-import logging
 import datetime
 
 from tafor.core.utils.time import parseTime, parseTimez
 from tafor.core.parsers.taf import MetarLexer, TafParser
-
-logger = logging.getLogger('tafor.parser.metar')
 
 class MetarParser(TafParser):
 
@@ -13,19 +10,20 @@ class MetarParser(TafParser):
 
     splitPattern = re.compile(r'(BECMG|TEMPO)')
 
-    def __init__(self, message, lexer=None, validator=None, ignoreMetar=False, **kwargs):
+    def __init__(self, message, lexer=None, validator=None, trendOnly=False, previous=None, **kwargs):
         super().__init__(message, lexer=lexer, validator=validator, **kwargs)
-        self.ignoreMetar = ignoreMetar
-        self.previous = kwargs.get('previous')
-        if len(self.elements) > 1 and self.primary:
-            self.metar = MetarParser(self.primary.part, lexer=lexer, validator=validator, ignoreMetar=False, **kwargs)
-            self.metar.validate()
-        else:
-            self.metar = self
+        self.trendOnly = trendOnly
+        self.previous = previous
 
     def _analyse(self):
         super()._analyse()
-        if 'NOSIG' in self.message:
+        if self.becmgs or self.tempos:
+            self.trends = self.elements[1:]
+            if 'NOSIG' in self.message:
+                self.errors.append('NOSIG 不能与 BECMG 或 TEMPO 同时存在')
+                if 'nosig' in self.primary.tokens:
+                    self.primary.tokens['nosig']['error'] = True
+        elif 'NOSIG' in self.message:
             metar = self.primary.part.replace('NOSIG', '').strip()
             self.primary = self.lexer(metar)
             self.trends = [self.lexer('NOSIG')]
@@ -34,7 +32,7 @@ class MetarParser(TafParser):
             self.trends = self.elements[1:]
 
     def _parsePeriod(self):
-        """解析主报文和变化组的时间顺序"""
+        """Parse the time order of the primary report and trend groups."""
         time = parseTimez(self.primary.tokens['timez']['text'])
         self.primary.periods = (time, time + datetime.timedelta(hours=2))
         basetime = self.primary.periods[0]
@@ -67,98 +65,85 @@ class MetarParser(TafParser):
                 periods = text.split()
                 for period in periods:
                     conditions = [
-                        'AT' in period and not (self.primary.periods[0] < e.periods[0] < self.primary.periods[1]),
-                        'FM' in period and not (self.primary.periods[0] < e.periods[0] < self.primary.periods[1] and e.periods[0] < e.periods[1]),
-                        'TL' in period and not (self.primary.periods[0] < e.periods[1] < self.primary.periods[1] and e.periods[0] < e.periods[1])
+                        period.startswith('AT') and not (self.primary.periods[0] < e.periods[0] < self.primary.periods[1]),
+                        period.startswith('FM') and not (self.primary.periods[0] < e.periods[0] < self.primary.periods[1] and e.periods[0] < e.periods[1]),
+                        period.startswith('TL') and not (self.primary.periods[0] < e.periods[1] < self.primary.periods[1] and e.periods[0] < e.periods[1])
                     ]
-                    
+
                     if any(conditions):
                         e.tokens['fmtl']['error'] = True
                         self.errors.append('趋势时间组错误')
 
-    def hasMessageChanged(self):
-        """校验后的报文和原始报文相比是否有变化"""
-        origin = ' '.join(self.message.split())
-        outputs = [e.renderer('plain') for e in self.elements if e and e != self.primary]
-        if outputs:
-            output = ' '.join(outputs) + '='
-            return not origin.endswith(output)
-        return False
+    def _validateChange(self):
+        """Validate element changes against the reference."""
+        count = len(self.errors)
+        self._validateElement(self.reference, self.primary.tokens)
+        if self.trendOnly:
+            # keep only the token flags from the primary validation; its
+            # error messages are irrelevant when publishing trends
+            del self.errors[count:]
+        self._validateGroups()
 
     def hasTrend(self):
-        return self.becmgs or self.tempos
+        return bool(self.trends)
 
-    def hasMetar(self):
-        return self.metar is not self
-
-    def isValid(self, ignoreMetar=None):
-        if ignoreMetar is None:
-            ignoreMetar = self.ignoreMetar
-
-        if ignoreMetar or not self.hasMetar():
-            elements = self.elements[1:]
-        else:
-            elements = self.elements
+    def isValid(self, trendOnly=None):
+        if trendOnly is None:
+            trendOnly = self.trendOnly
 
         if self.failed:
             return False
 
-        valids = [e.isValid() for e in elements]
-        return all(valids)
+        if trendOnly and self.trends:
+            elements = self.trends
+        else:
+            elements = self.elements
 
-    def isSimilar(self, other):
+        return all(e.isValid() for e in elements)
+
+    def isSameObservation(self, other):
+        """Whether the primary report matches another message's, ignoring
+        trend groups, whitespace and unrecognized tokens.
+
+        :param other: the other message as raw text
+        """
         other = MetarParser(other)
         return self.primary.renderer() == other.primary.renderer()
 
-    @property
-    def tips(self):
-        if self.ignoreMetar and not self.metar.isValid(ignoreMetar=False):
-            tips = list(set(self.errors) - set(self.metar.errors))
-        else:
-            tips = self.errors
-        return tips
-
-    def renderer(self, style='plain', showDiff=False, emphasizeNosig=False):
-        """将解析后的报文重新渲染
+    def renderer(self, style='plain', previous=None):
+        """Render the parsed message back into a string.
 
         :param style:
-            * plain 纯字符串风格
-            * terminal 终端高亮风格
-            * html HTML 高亮风格
-        :return: 根据不同风格重新渲染的报文
+            * plain plain string style
+            * terminal terminal highlight style
+            * html HTML highlight style
+        :param previous: the previous message; when given, words newly
+            appearing in the primary report are marked in bold
+        :return: the rendered message for the given style
         """
+        previous = previous or self.previous
         outputs = [e.renderer(style) for e in self.elements if e]
-        separator = ' '
 
         if style == 'html':
-            if self.hasTrend() or emphasizeNosig:
-                separator = '<br/>'
+            separator = '<br/>' if self.hasTrend() else ' '
 
-            metar = self.primary.part
-            if self.ignoreMetar:
-                if showDiff and self.previous:
-                    metar = self._diff(metar, self.previous)
-
-                outputs[0] = metar
-
-                if self.hasTrend() or emphasizeNosig:
-                    outputs[0] = '<span style="color: grey">{}</span>'.format(metar)
-                else:
-                    return '<span style="color: grey">{}</span>'.format(separator.join(outputs) + '=')
+            if self.trendOnly:
+                metar = self.primary.part
+                if previous:
+                    metar = self._highlightChanges(metar, previous)
+                outputs[0] = '<span style="color: grey">{}</span>'.format(metar)
 
             return separator.join(outputs) + '='
 
-        if self.hasTrend():
-            separator = '\n'
-
+        separator = '\n' if self.hasTrend() else ' '
         return separator.join(outputs) + '='
 
-    def _diff(self, metar, previous):
+    def _highlightChanges(self, metar, previous):
         previous, *_ = self.splitPattern.split(previous)
-        parts = metar.split()
+        words = previous.split()
         elements = []
-        for e in parts:
-            if e not in previous.split():
+        for e in metar.split():
+            if e not in words:
                 e = '<strong>{}</strong>'.format(e)
             elements.append(e)
 

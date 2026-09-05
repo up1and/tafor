@@ -102,8 +102,8 @@ class DataService:
         else:
             self.view.trendSound.stop()
 
-        isSimilar = parser and metar and parser.isSimilar(metar.text)
-        if isSimilar:
+        sameObservation = parser and metar and parser.isSameObservation(metar.text)
+        if sameObservation:
             self.context.notification.metar.clear()
             self.updateRecent()
             return
@@ -180,7 +180,7 @@ class DataService:
             entries.append(NotificationModel(
                 created=self.context.notification.metar.created(),
                 validations={
-                    'html': parser.renderer(style='html', showDiff=True),
+                    'html': parser.renderer(style='html'),
                     'tips': parser.tips,
                     'pass': parser.isValid(),
                     'validation': self.context.notification.metar.validation(),

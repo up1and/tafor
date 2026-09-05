@@ -49,7 +49,7 @@ def parse_taf(message, kwargs):
     return data
 
 def parse_metar(message, kwargs):
-    parser = MetarParser(message, ignoreMetar=True, **kwargs)
+    parser = MetarParser(message, trendOnly=True, **kwargs)
     parser.validate()
 
     tokens = []
