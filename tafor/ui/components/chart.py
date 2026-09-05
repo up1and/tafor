@@ -134,23 +134,44 @@ def metarSamples(records):
 
         primaries.append(metar)
 
-        samples['winds'].append((timestamp, metar.windSpeed()))
-        samples['visibilities'].append((timestamp, metar.vis()))
-        samples['ceilings'].append((timestamp, metar.ceiling()))
-        samples['temperatures'].append((timestamp, metar.temperature()))
-        samples['dewpoints'].append((timestamp, metar.dewpoint()))
-        samples['pressures'].append((timestamp, metar.pressure()))
+        # accessors return None when the element is missing; skip the sample
+        # instead of feeding None into the chart series
+        windSpeed = metar.windSpeed()
+        if windSpeed is not None:
+            samples['winds'].append((timestamp, windSpeed))
+
+        vis = metar.vis()
+        if vis is not None:
+            samples['visibilities'].append((timestamp, vis))
+
+        ceiling = metar.ceiling()
+        if ceiling is not None:
+            samples['ceilings'].append((timestamp, ceiling))
+
+        temperature = metar.temperature()
+        if temperature is not None:
+            samples['temperatures'].append((timestamp, temperature))
+
+        dewpoint = metar.dewpoint()
+        if dewpoint is not None:
+            samples['dewpoints'].append((timestamp, dewpoint))
+
+        pressure = metar.pressure()
+        if pressure is not None:
+            samples['pressures'].append((timestamp, pressure))
 
         samples['clouds'].append((timestamp, metar.clouds()))
 
         if metar.weathers():
             samples['weathers'].append((timestamp, metar.weathers()))
 
-        if metar.rvr():
-            samples['rvrs'].append((timestamp, metar.rvr()))
+        rvr = metar.rvr()
+        if rvr:
+            samples['rvrs'].append((timestamp, rvr))
 
-        if metar.gust():
-            samples['gusts'].append((timestamp, metar.gust()))
+        gust = metar.gust()
+        if gust:
+            samples['gusts'].append((timestamp, gust))
 
     return samples, primaries
 
@@ -529,7 +550,7 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
             timestamp = tickCountTime / 1000
             index = findIndex(records, timestamp)
             metar = chart.records[index]
-            label = '<span class="label-{}">{}</span>'.format(i, metar.windDirection('arrow'))
+            label = '<span class="label-{}">{}</span>'.format(i, metar.windDirection('arrow') or '')
             axisX.append(label, minx + i * step)
 
         chart.addAxis(axisX, Qt.AlignTop)

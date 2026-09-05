@@ -662,8 +662,8 @@ class TafParser:
                 tokens['weather']['error'] = True
                 self.errors.append('NSW 不能和其他天气现象同时存在')
 
-            weatherCount = set(weathers) & set(['BR', 'HZ', 'FG', 'FU'])
-            if len(weatherCount) > 1:
+            incompatible = set(weathers) & set(['BR', 'HZ', 'FG', 'FU'])
+            if len(incompatible) > 1:
                 tokens['weather']['error'] = True
                 self.errors.append('BR，HZ，FG，FU 不能同时存在')
 
@@ -745,6 +745,9 @@ class MetarLexer(TafLexer):
         return directions[(val % 8)]
 
     def windDirection(self, style='degree'):
+        if 'wind' not in self.tokens:
+            return None
+
         text = self.tokens['wind']['text']
         m = self.grammar.wind.match(text)
         direction = m.group(1)
@@ -770,6 +773,9 @@ class MetarLexer(TafLexer):
         return direction
 
     def windSpeed(self):
+        if 'wind' not in self.tokens:
+            return None
+
         text = self.tokens['wind']['text']
         m = self.grammar.wind.match(text)
         speed = m.group(2)
@@ -779,10 +785,13 @@ class MetarLexer(TafLexer):
 
         if speed == 'P49':
             speed = 50
-        
+
         return int(speed)
 
     def gust(self):
+        if 'wind' not in self.tokens:
+            return None
+
         text = self.tokens['wind']['text']
         m = self.grammar.wind.match(text)
         speed = m.group(3)
@@ -796,8 +805,11 @@ class MetarLexer(TafLexer):
         return speed
 
     def vis(self):
-        if 'CAVOK' in self.part:
+        if 'cavok' in self.tokens:
             return 9999
+
+        if 'vis' not in self.tokens:
+            return None
 
         return int(self.tokens['vis']['text'])
 
@@ -819,41 +831,49 @@ class MetarLexer(TafLexer):
         return []
 
     def clouds(self):
-        if 'CAVOK' in self.part or 'NSC' in self.part:
+        if 'cavok' in self.tokens or 'cloud' not in self.tokens:
             return []
 
-        if 'cloud' in self.tokens:
-            text = self.tokens['cloud']['text']
-            clouds = sorted(text.split(), key=lambda cloud: int(cloud[3:6]))
-
-            return clouds
+        clouds = [c for c in self.tokens['cloud']['text'].split() if not c.startswith(('SKC', 'NSC'))]
+        return sorted(clouds, key=lambda cloud: int(cloud[3:6]))
 
     def ceiling(self):
-        if 'CAVOK' in self.part or 'NSC' in self.part:
+        if 'cavok' in self.tokens:
             return 1500
 
-        if 'cloud' in self.tokens:
-            text = self.tokens['cloud']['text']
-            clouds = sorted(text.split(), key=lambda cloud: int(cloud[3:6]))
+        if 'cloud' not in self.tokens:
+            return None
 
-            ceiling = 1500
-            for cloud in clouds:
-                if cloud.startswith(('BKN', 'OVC', 'VV')):
-                    height = ''.join([c for c in cloud if c.isdigit()])
-                    ceiling = int(height) * 30
-                    break
+        clouds = [c for c in self.tokens['cloud']['text'].split() if not c.startswith(('SKC', 'NSC'))]
+        clouds.sort(key=lambda cloud: int(cloud[3:6]))
 
-            return ceiling
+        ceiling = 1500
+        for cloud in clouds:
+            if cloud.startswith(('BKN', 'OVC', 'VV')):
+                height = ''.join([c for c in cloud if c.isdigit()])
+                ceiling = int(height) * 30
+                break
+
+        return ceiling
 
     def temperature(self):
+        if 'tempdew' not in self.tokens:
+            return None
+
         temp, _ = self.tokens['tempdew']['text'].split('/')
         temp = - int(temp[1:]) if 'M' in temp else int(temp)
         return temp
 
     def dewpoint(self):
+        if 'tempdew' not in self.tokens:
+            return None
+
         _, dew = self.tokens['tempdew']['text'].split('/')
         dew = - int(dew[1:]) if 'M' in dew else int(dew)
         return dew
 
     def pressure(self):
+        if 'pressure' not in self.tokens:
+            return None
+
         return int(self.tokens['pressure']['text'][1:])

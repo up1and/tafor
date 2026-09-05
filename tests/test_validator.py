@@ -228,6 +228,38 @@ def test_metar_is_same_observation():
     assert m.isSameObservation('METAR ZJHK 210900Z 14004MPS 4500 -RA BKN030 BECMG AT1030 9999 NSW=')
     assert not m.isSameObservation('METAR ZJHK 210900Z 15004MPS 4500 -RA BKN030=')
 
+def test_metar_lexer_accessors():
+    m = MetarParser('METAR ZJHK 210900Z 14004MPS 4500 -RA BKN030 OVC080 M03/M05 Q1002=')
+    lexer = m.primary
+
+    assert lexer.vis() == 4500
+    assert lexer.windSpeed() == 4
+    assert lexer.gust() is None
+    assert lexer.weathers() == ['-RA']
+    assert lexer.clouds() == ['BKN030', 'OVC080']
+    assert lexer.ceiling() == 900
+    assert lexer.temperature() == -3
+    assert lexer.dewpoint() == -5
+    assert lexer.pressure() == 1002
+
+def test_metar_lexer_accessors_missing_and_special():
+    cavok = MetarParser('METAR ZJHK 210900Z 14004MPS CAVOK=').primary
+    assert cavok.vis() == 9999
+    assert cavok.clouds() == []
+    assert cavok.ceiling() == 1500
+
+    nsc = MetarParser('METAR ZJHK 210900Z 14004MPS 9999 NSW NSC=').primary
+    assert nsc.clouds() == []
+    assert nsc.ceiling() == 1500
+
+    bare = MetarParser('METAR ZJHK 210900Z=').primary
+    assert bare.windSpeed() is None
+    assert bare.vis() is None
+    assert bare.clouds() == []
+    assert bare.ceiling() is None
+    assert bare.temperature() is None
+    assert bare.pressure() is None
+
 def test_taf_malformed_period(caplog):
     m = TafParser('TAF ZJHK 150726Z 0918 03003MPS 9999 FEW030=')
     m.validate()
