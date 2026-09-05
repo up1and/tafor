@@ -17,11 +17,13 @@ weatherWithIntensity = [
 ]
 
 
-def renderTokens(tokens, style='plain'):
+def renderTokens(tokens, style='plain', failed=False):
     """Render a sequence of tokens into a string.
 
     :param tokens: a sequence of token dicts with ``text`` and ``error`` keys
     :param style: one of plain, terminal or html
+    :param failed: render every token as an error without touching the
+        token dicts (message-level failure)
     :return: the rendered string
     """
     if style == 'terminal':
@@ -31,7 +33,7 @@ def renderTokens(tokens, style='plain'):
     elements = []
     for e in tokens:
         text = e['text']
-        if e['error']:
+        if e['error'] or failed:
             if style == 'html':
                 text = '<span style="color: red">{}</span>'.format(text)
             elif style == 'terminal':

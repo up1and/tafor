@@ -269,6 +269,29 @@ def test_taf_malformed_period(caplog):
     assert '报文无法被正确解析' in m.errors
     assert 'Malformed TAF period group' in caplog.text
 
+def test_pipeline_steps_exist():
+    for parser in (TafParser, MetarParser):
+        for step in parser.pipeline:
+            assert callable(getattr(parser, step))
+
+def test_failed_renderer_marks_whole_message():
+    m = TafParser('TAF ZJHK 150726Z 0918 03003MPS 9999 FEW030=')
+    m.validate()
+
+    assert m.failed
+    assert 'color: red' in m.renderer(style='html')
+
+    # message-level failure is expressed at render time, token data stays clean
+    assert all(not token['error'] for e in m.elements for token in e.tokens.values())
+
+def test_has_message_changed_sets_failed():
+    m = TafParser('TAF ZJHK 150726Z 0918 03003MPS 9999 FEW030 UNKNOWN01=')
+    m.validate()
+
+    assert m.failed
+    assert not m.isValid()
+    assert 'color: red' in m.renderer(style='html')
+
 
 if __name__ == "__main__":
     pytest.main()

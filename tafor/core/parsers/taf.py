@@ -350,16 +350,17 @@ class TafLexer:
         
         return True
 
-    def renderer(self, style='plain'):
+    def renderer(self, style='plain', failed=False):
         """将解析后的报文重新渲染
 
         :param style:
             * plain 纯字符串风格
             * terminal 终端高亮风格
             * html HTML 高亮风格
+        :param failed: 报文级失败时所有 token 按错误渲染
         :return: 根据不同风格重新渲染的报文
         """
-        return renderTokens(self.tokens.values(), style)
+        return renderTokens(self.tokens.values(), style, failed)
 
 
 class TafParser:
@@ -392,6 +393,8 @@ class TafParser:
     ]
 
     splitPattern = re.compile(r'(BECMG|(?:FM(?:\d{4}|\d{6}))|TEMPO|PROB[34]0\sTEMPO)')
+
+    pipeline = ['_parsePeriod', '_regroup', '_createRefs', '_validatePrimary', '_validateGroups']
 
     def __init__(self, message, created=None, lexer=None, validator=None, **kwargs):
         message = message.strip()
@@ -524,41 +527,26 @@ class TafParser:
     def validate(self):
         """验证报文转折逻辑"""
         if self.hasMessageChanged():
+            self.failed = True
             self.errors.append('经过校验后的报文和原始报文有些不同')
-            self._forceError()
 
         try:
-            self._parsePeriod()
-            self._regroup()
-            self._createRefs()
-            self._validateFormat()
-            self._validateChange()
+            for step in self.pipeline:
+                getattr(self, step)()
         except Exception as e:
             self.failed = True
             self.errors.append('报文无法被正确解析')
-            self._forceError()
             logger.error('message cannot be parsed correctly, {}, {}'.format(self.message, e))
 
         self.errors = list(dict.fromkeys(self.errors))
 
-    def _forceError(self):
-        for e in self.elements:
-            for key in e.tokens:
-                e.tokens[key]['error'] = True
-
-    def _validateFormat(self):
-        pass
-
-    def _validateChange(self):
-        """Validate single and multiple element changes"""
-
-        # validate the primary report against the reference
-        self._validateElement(self.reference, self.primary.tokens)
-
-        self._validateGroups()
+    def _validatePrimary(self):
+        """Validate the primary report against the reference"""
+        self._validateCombination(self.reference, self.primary.tokens)
 
     def _validateGroups(self):
-        """Validate the trend groups against the reference"""
+        """Validate the trend groups: single-element turnover, reference
+        evolution and combination consistency"""
         for e in self.groups:
             for key in e.tokens:
                 # 依次验证单项要素转折
@@ -588,9 +576,9 @@ class TafParser:
                             self.reference[key]['text'] = e.tokens[key]['text']
 
             # 验证参照组与转折组之间多个要素匹配
-            self._validateElement(self.reference, e.tokens)
+            self._validateCombination(self.reference, e.tokens)
 
-    def _validateElement(self, ref, tokens):
+    def _validateCombination(self, ref, tokens):
         """验证多个元素之间的匹配规则
 
         1. 能见度和天气现象
@@ -720,7 +708,7 @@ class TafParser:
             * html HTML 高亮风格
         :return: 根据不同风格重新渲染的报文
         """
-        outputs = [e.renderer(style) for e in self.elements if e]
+        outputs = [e.renderer(style, failed=self.failed) for e in self.elements if e]
         return joinRendered(outputs, style)
 
 

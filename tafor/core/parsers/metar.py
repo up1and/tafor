@@ -7,8 +7,9 @@ from tafor.core.parsers.taf import MetarLexer, TafParser
 class MetarParser(TafParser):
 
     lexerClass = MetarLexer
-
     splitPattern = re.compile(r'(BECMG|TEMPO)')
+
+    pipeline = ['_parsePeriod', '_regroup', '_createRefs', '_validateTrendTimes', '_validatePrimary', '_validateGroups']
 
     def __init__(self, message, lexer=None, validator=None, trendOnly=False, previous=None, **kwargs):
         super().__init__(message, lexer=lexer, validator=validator, **kwargs)
@@ -59,7 +60,8 @@ class MetarParser(TafParser):
             else:
                 e.periods = self.primary.periods
 
-    def _validateFormat(self):
+    def _validateTrendTimes(self):
+        """趋势时间组校验：AT/FM/TL 的时间须落在主报文有效窗口内且时序自洽"""
         for e in self.elements[1:]:
             if 'fmtl' in e.tokens:
                 text = e.tokens['fmtl']['text']
@@ -75,15 +77,14 @@ class MetarParser(TafParser):
                         e.tokens['fmtl']['error'] = True
                         self.errors.append('趋势时间组错误')
 
-    def _validateChange(self):
-        """Validate element changes against the reference."""
+    def _validatePrimary(self):
+        """Validate the primary report against the reference."""
         count = len(self.errors)
-        self._validateElement(self.reference, self.primary.tokens)
+        super()._validatePrimary()
         if self.trendOnly:
             # keep only the token flags from the primary validation; its
             # error messages are irrelevant when publishing trends
             del self.errors[count:]
-        self._validateGroups()
 
     def hasTrend(self):
         return bool(self.trends)
@@ -123,7 +124,7 @@ class MetarParser(TafParser):
         :return: the rendered message for the given style
         """
         previous = previous or self.previous
-        outputs = [e.renderer(style) for e in self.elements if e]
+        outputs = [e.renderer(style, failed=self.failed) for e in self.elements if e]
 
         if style == 'html':
             separator = '<br/>' if self.hasTrend() else ' '
