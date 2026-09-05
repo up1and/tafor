@@ -2,8 +2,8 @@ import inspect
 
 import tafor.core.geometry.sketch as sketch_module
 from tafor.core.geometry.sketch import (
-    CircleSketch, CorridorSketch, EntireSketch, LineSketch, PolygonSketch,
-    RectangularSketch, Sketch, mergeGeometries,
+    CircleSketch, EntireSketch, LineSketch, PathSketch, PolygonSketch,
+    RectangularSketch, mergeGeometries,
 )
 
 
@@ -18,17 +18,15 @@ def test_module_has_no_qt_dependency():
     assert 'PyQt5' not in inspect.getsource(sketch_module)
 
 
-def test_polygon_sketch_text_and_geometry():
+def test_polygon_sketch_geometry():
     sketch = PolygonSketch('initial')
     assert not sketch
-    assert sketch.text(None) == ''
 
     sketch.addPoint((110.0, 20.0))
     sketch.addPoint((111.0, 21.0))
 
     assert sketch
     assert not sketch.done
-    assert sketch.text(None) == 'N2000 E11000 - N2100 E11100'
     assert sketch.geometry()['geometries'] == [
         {'type': 'LineString', 'coordinates': [(110.0, 20.0), (111.0, 21.0)]}
     ]
@@ -36,7 +34,6 @@ def test_polygon_sketch_text_and_geometry():
     sketch.restore(coordinates=[(110.0, 20.0), (111.0, 21.0), (112.0, 20.0)])
 
     assert sketch.done
-    assert sketch.text(None) == 'WI N2000 E11000 - N2100 E11100 - N2000 E11200'
     assert sketch.geometry()['geometries'][0]['type'] == 'Polygon'
 
 
@@ -57,7 +54,6 @@ def test_circle_sketch_rounds_radius_to_deviation():
 
     assert sketch.done
     assert sketch.radius == 5000
-    assert sketch.text(None) == 'PSN N2000 E11000 / WI 5KM OF CENTRE'
 
     geometries = sketch.geometry()['geometries']
     assert geometries[0]['type'] == 'Polygon'
@@ -73,22 +69,6 @@ def test_circle_sketch_restore_and_feature():
     assert sketch.feature()['properties'] == {'radius': 30, 'location': 'initial'}
 
 
-def test_circle_sketch_radius_text_omitted_for_final():
-    sketch = CircleSketch('final')
-    sketch.restore(center=(110.0, 20.0), radius=30)
-
-    assert sketch.text(None) == 'PSN N2000 E11000'
-
-
-def test_corridor_sketch_text():
-    sketch = CorridorSketch('initial')
-    sketch.restore(coordinates=[(110.0, 20.0), (111.0, 21.0)], radius=25)
-
-    assert sketch.done
-    assert sketch.radius == 12500
-    assert sketch.text(None) == 'APRX 25KM WID LINE BTN N2000 E11000 - N2100 E11100'
-
-
 def test_rectangular_sketch_restore_geometry():
     sketch = RectangularSketch('initial')
     assert sketch.geometry()['geometries'] == []
@@ -99,27 +79,47 @@ def test_rectangular_sketch_restore_geometry():
     assert sketch.geometry()['geometries'][0]['type'] == 'Polygon'
 
 
-def test_rectangular_sketch_text_reports_shared_coordinates():
-    sketch = RectangularSketch('initial')
-    # a band spanning the whole FIR width: its E/W edges lie on the FIR
-    # boundary, so only the two boundary-parallel lines are reported
-    sketch.restore(coordinates=[(100.0, 3.0), (110.0, 3.0), (110.0, 6.0), (100.0, 6.0)])
-    boundaries = [(100.0, 0.0), (110.0, 0.0), (110.0, 10.0), (100.0, 10.0)]
-
-    text = sketch.text(boundaries)
-
-    assert set(text.split(' AND ')) == {'N OF N0300', 'S OF N0600'}
-
-
-def test_entire_sketch_text():
+def test_entire_sketch_geometry():
     sketch = EntireSketch('initial')
-    assert sketch.text(None) == ''
+    assert sketch.geometry()['geometries'] == []
 
     sketch.restore(boundaries=[(110.0, 20.0), (111.0, 21.0), (112.0, 20.0)])
 
     assert sketch.done
-    assert sketch.text(None) == 'ENTIRE FIR'
     assert sketch.geometry()['geometries'][0]['type'] == 'Polygon'
+
+
+def test_feature_is_available_on_every_sketch():
+    sketch = PolygonSketch('initial')
+    sketch.restore(coordinates=[(110.0, 20.0), (111.0, 21.0), (112.0, 20.0)])
+
+    feature = sketch.feature()
+
+    assert feature['type'] == 'Feature'
+    assert feature['properties'] == {'location': 'initial'}
+    assert feature['geometry']['geometries'][0]['type'] == 'Polygon'
+
+
+def test_done_sketch_ignores_further_points():
+    circle = CircleSketch('initial')
+    circle.restore(center=(110.0, 20.0), radius=30)
+    circle.addPoint((111.0, 21.0))
+    assert len(circle.coordinates) == 2
+
+    rectangular = RectangularSketch('initial')
+    rectangular.restore(coordinates=[(110.0, 20.0), (111.0, 21.0), (112.0, 20.0)])
+    rectangular.addPoint((113.0, 22.0))
+    assert len(rectangular.coordinates) == 3
+
+
+def test_path_sketch_remove_point_falls_back_to_base_editable_coordinates():
+    sketch = PathSketch('initial')
+    sketch.restore(coordinates=[(110.0, 20.0), (111.0, 21.0)])
+
+    sketch.removePoint()
+
+    assert sketch.coordinates == [(110.0, 20.0), (111.0, 21.0)]
+    assert not sketch.done
 
 
 def test_signal_order_on_lifecycle():

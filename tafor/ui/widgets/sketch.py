@@ -26,9 +26,14 @@ class SketchManager:
 
         self.sketchCache = {}
         for mode, cls in self.sketchTypes.items():
-            sketches = [cls(name) for name in self.sketchNames]
-            for sketch in sketches:
+            sketches = []
+            for name in self.sketchNames:
+                if cls is CircleSketch:
+                    sketch = cls(name, withRadius=(name == 'initial'))
+                else:
+                    sketch = cls(name)
                 sketch.changed.connect(self.update)
+                sketches.append(sketch)
             self.sketchCache[mode] = sketches
 
     @property

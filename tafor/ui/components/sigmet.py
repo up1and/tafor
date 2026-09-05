@@ -4,7 +4,7 @@ from PyQt5.QtCore import QCoreApplication
 
 from tafor.core.models import Sigmet
 from tafor.core.repositories import SigmetFilter
-from tafor.core.sigmet.issuance import composeHeading, validDuration
+from tafor.core.sigmet.compose import composeHeading, validDuration
 from tafor.ui.qt import Ui_sigmet
 from tafor.ui.widgets import AirmetGeneral, SigmetAsh, SigmetCancel, SigmetCustom, SigmetGeneral, SigmetTyphoon
 from tafor.ui.widgets.editor import BaseEditor

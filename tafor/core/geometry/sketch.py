@@ -5,10 +5,9 @@ corridor, rectangular, entire) and emits signals on state changes.
 """
 from tafor.core.events import Signal
 from tafor.core.geometry.algorithm import (
-    corridor, circle, clipLine, clipPolygon, depth, encode,
-    simplifyPolygon, geod, geodesicDistance
+    corridor, circle, clipLine, clipPolygon, depth, simplifyPolygon, geod,
+    geodesicDistance
 )
-from tafor.core.geometry.coordinate import decimalToDegree
 
 
 def mergeGeometries(geometries):
@@ -23,6 +22,8 @@ def mergeGeometries(geometries):
 
 
 class Sketch:
+    """A hand-drawn area on the map.
+    """
 
     maxPoint = 7
 
@@ -50,14 +51,25 @@ class Sketch:
     def resize(self, ratio):
         pass
 
-    def restore(self, **kwargs):
-        raise NotImplementedError
+    def restore(self, coordinates=None):
+        if coordinates:
+            self.coordinates = coordinates
+            self.done = True
+            self.finished.emit()
+            self.changed.emit()
+
+    def editableCoordinates(self):
+        return self.coordinates
 
     def geometry(self):
         raise NotImplementedError
 
-    def text(self, boundaries):
-        raise NotImplementedError
+    def feature(self):
+        return {
+            'type': 'Feature',
+            'geometry': self.geometry(),
+            'properties': {'location': self.name},
+        }
 
     def empty(self):
         self.done = False
@@ -97,6 +109,9 @@ class PolygonSketch(PathSketch):
     def clip(self, boundaries):
         self.coordinates = clipPolygon(boundaries, self.coordinates, mode='single')
         self.coordinates = simplifyPolygon(self.coordinates, maxPoint=self.maxPoint, expand=True)
+        # GEOS keeps the drawn ring orientation through the intersection,
+        # so this only flips it; the original intent was to read the
+        # points out clockwise in the location text
         self.coordinates.reverse()
         self.done = len(self.coordinates) > 2
         self.finished.emit()
@@ -115,23 +130,6 @@ class PolygonSketch(PathSketch):
         else:
             geometries = [{'type': 'Polygon', 'coordinates': self.coordinates}]
         return {'type': 'GeometryCollection', 'geometries': geometries}
-
-    def text(self, boundaries):
-        points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat))
-                  for lon, lat in self.coordinates]
-        if self.done:
-            coords = ['{} {}'.format(p[1], p[0]) for p in points]
-            return 'WI ' + ' - '.join(coords)
-        else:
-            coords = ['{} {}'.format(p[1], p[0]) for p in points]
-            return ' - '.join(coords)
-
-    def restore(self, coordinates=None):
-        if coordinates:
-            self.coordinates = coordinates
-            self.done = True
-            self.finished.emit()
-            self.changed.emit()
 
 
 class LineSketch(PathSketch):
@@ -165,38 +163,18 @@ class LineSketch(PathSketch):
             geometries = [{'type': shapeType, 'coordinates': self.coordinates}]
         return {'type': 'GeometryCollection', 'geometries': geometries}
 
-    def text(self, boundaries):
-        points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat))
-                  for lon, lat in self.coordinates]
-        if self.done:
-            area = encode(boundaries, self.coordinates, mode='line')
-            lines = []
-            for identifier, *pts in area:
-                pts = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat))
-                       for lon, lat in pts]
-                coords = []
-                for lon, lat in pts:
-                    coords.append('{} {}'.format(lat, lon))
-                line = '{} OF LINE {}'.format(identifier, ' - '.join(coords))
-                lines.append(line)
-            return ' AND '.join(lines)
-        else:
-            coords = ['{} {}'.format(p[1], p[0]) for p in points]
-            return ' - '.join(coords)
-
-    def restore(self, coordinates=None):
-        if coordinates:
-            self.coordinates = coordinates
-            self.done = True
-            self.finished.emit()
-            self.changed.emit()
-
 
 class CircleSketch(Sketch):
 
     deviation = 5000
 
+    def __init__(self, name, withRadius=True):
+        super().__init__(name)
+        self.withRadius = withRadius
+
     def addPoint(self, lonlat):
+        if self.done:
+            return
         self.coordinates.append(lonlat)
 
         if len(self.coordinates) == 2:
@@ -252,19 +230,6 @@ class CircleSketch(Sketch):
         elif self.coordinates:
             geometries = [{'type': 'Point', 'coordinates': self.coordinates[0]}]
         return {'type': 'GeometryCollection', 'geometries': geometries}
-
-    def text(self, boundaries):
-        points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat))
-                  for lon, lat in self.coordinates]
-        if self.done:
-            center = points[0]
-            msg = 'PSN {} {}'.format(center[1], center[0])
-            if self.name == 'initial':
-                msg += ' / WI {}{} OF CENTRE'.format(round(self.radius / 1000), 'KM')
-            return msg
-        else:
-            coords = ['{} {}'.format(p[1], p[0]) for p in points]
-            return ' - '.join(coords)
 
     def restore(self, center=None, radius=None):
         self.done = False
@@ -344,9 +309,6 @@ class CorridorSketch(PathSketch):
 
             self.changed.emit()
 
-    def editableCoordinates(self):
-        return self.coordinates
-
     def geometry(self):
         geometries = []
         if not self.done:
@@ -362,18 +324,6 @@ class CorridorSketch(PathSketch):
             }]
         return {'type': 'GeometryCollection', 'geometries': geometries}
 
-    def text(self, boundaries):
-        points = [(decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat))
-                  for lon, lat in self.coordinates]
-        if self.done:
-            coords = ['{} {}'.format(p[1], p[0]) for p in points]
-            line = ' - '.join(coords)
-            return 'APRX {}{} WID LINE BTN {}'.format(
-                round(self.radius * 2 / 1000), 'KM', line)
-        else:
-            coords = ['{} {}'.format(p[1], p[0]) for p in points]
-            return ' - '.join(coords)
-
     def restore(self, coordinates=None, radius=None):
         if coordinates:
             self.coordinates = coordinates
@@ -388,6 +338,8 @@ class CorridorSketch(PathSketch):
 class RectangularSketch(Sketch):
 
     def addPoint(self, lonlat):
+        if self.done:
+            return
         self.coordinates.append(lonlat)
         if len(self.coordinates) == 2:
             self.done = True
@@ -428,34 +380,6 @@ class RectangularSketch(Sketch):
         geometries = [{'type': shapeType, 'coordinates': self.coordinates}]
         return {'type': 'GeometryCollection', 'geometries': geometries}
 
-    def text(self, boundaries):
-        if depth(self.coordinates) > 1:
-            self.done = True
-        else:
-            self.done = len(self.coordinates) > 2
-
-        if self.done:
-            area = encode(boundaries, self.coordinates, mode='rectangular')
-            lines = []
-            for identifier, *pts in area:
-                # the encode sides are boundary-parallel lines: a N/S line
-                # shares one latitude, an E/W line shares one longitude
-                lon, lat = pts[0]
-                lon = decimalToDegree(lon, fmt='longitude')
-                lat = decimalToDegree(lat)
-                coordinate = lat if identifier in ('N', 'S') else lon
-                line = '{} OF {}'.format(identifier, coordinate)
-                lines.append(line)
-            return ' AND '.join(lines)
-        return ''
-
-    def restore(self, coordinates=None):
-        if coordinates:
-            self.coordinates = coordinates
-            self.done = True
-            self.finished.emit()
-            self.changed.emit()
-
 
 class EntireSketch(Sketch):
 
@@ -466,12 +390,6 @@ class EntireSketch(Sketch):
             geometries = []
         return {'type': 'GeometryCollection', 'geometries': geometries}
 
-    def text(self, boundaries):
-        return 'ENTIRE FIR' if self.done else ''
-
     def restore(self, boundaries=None):
         if boundaries:
-            self.coordinates = list(boundaries)
-            self.done = True
-            self.finished.emit()
-            self.changed.emit()
+            super().restore(coordinates=list(boundaries))

@@ -13,6 +13,7 @@ from PyQt5.QtGui import QIcon, QPainter
 from PyQt5.QtCore import QCoreApplication, Qt, QRect, QRectF, QSize, pyqtSignal
 
 from tafor.core.geometry.coordinate import degTodms
+from tafor.core.sigmet.compose import formatLocation
 from tafor.core.utils.common import iconPath, resourcePath
 from tafor.ui.fonts import fixedFont
 from tafor.ui.widgets.sketch import SketchManager
@@ -685,7 +686,7 @@ class GraphicsWindow(QWidget):
     def formattedCoordinates(self):
         messages = []
         for s in self.canvas.sketchManager.sketches:
-            messages.append(s.text(self.context.layer.boundaries()))
+            messages.append(formatLocation(s, self.context.layer.boundaries()))
         return messages
 
     def circleCoordinates(self):
@@ -693,7 +694,7 @@ class GraphicsWindow(QWidget):
             'type': 'FeatureCollection',
             'features': []
         }
-        for sketch in self.canvas.sketchManager:
+        for sketch in self.canvas.sketchManager.sketches:
             collections['features'].append(sketch.feature())
 
         return collections
@@ -704,7 +705,7 @@ class GraphicsWindow(QWidget):
 
         for i, sketch in enumerate(self.canvas.sketchManager.sketches):
             if sketch.done:
-                locations[names[i]] = sketch.text(self.context.layer.boundaries())
+                locations[names[i]] = formatLocation(sketch, self.context.layer.boundaries())
 
         return locations
 
@@ -713,9 +714,9 @@ class GraphicsWindow(QWidget):
         final = self.canvas.sketchManager.last()
 
         boundaries = self.context.layer.boundaries()
-        sketchs = [initial.done and initial.text(boundaries)]
+        sketchs = [initial.done and formatLocation(initial, boundaries)]
         if self.canvas.sketchManager.currentSketch() == final:
-            sketchs.append(final.done and final.text(boundaries))
+            sketchs.append(final.done and formatLocation(final, boundaries))
 
         return all(sketchs)
 
@@ -819,7 +820,7 @@ class GraphicsWindow(QWidget):
             self.opacitySlider.show()
             slider = QWidgetAction(self)
             slider.setDefaultWidget(self.opacitySlider)
-            self.layerMenu.addAction(Slider)
+            self.layerMenu.addAction(slider)
 
         default = self.backgroundLayerActionGroup.actions()[0] or self.mixedBackgroundLayerActionGroup.actions()[0]
         default.setChecked(True)

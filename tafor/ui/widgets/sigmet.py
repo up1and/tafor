@@ -13,7 +13,7 @@ from tafor.core.parsers.sigmet import AshAdvisoryParser, TyphoonAdvisoryParser
 from tafor.core.repositories import SigmetFilter
 from tafor.core.sigmet import (SigmetAshState, SigmetCancelState, SigmetCustomState, SigmetGeneralState,
     SigmetTyphoonState, SigmetValidator)
-from tafor.core.sigmet.issuance import adjustCancelBeginning, nextSequence, validPeriod
+from tafor.core.sigmet.compose import adjustCancelBeginning, nextSequence, validPeriod
 from tafor.core.geometry.coordinate import decimalToDegree
 from tafor.core.utils.time import parseTime
 from tafor.core.utils.common import iconPath
