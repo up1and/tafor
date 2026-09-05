@@ -152,6 +152,7 @@ def test_metar_with_trend():
     assert not m.failed
     assert m.isValid()
     assert m.hasTrend()
+    assert m.valids == m.primary.periods
     assert m.trends[0].periods[0].strftime('%H%M') == '1020'
     expected = 'METAR ZJHK 210900Z 14004MPS 4500 -RA BKN030\nTEMPO AT1020 07005MPS='
     assert m.renderer() == expected

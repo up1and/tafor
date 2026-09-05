@@ -52,8 +52,8 @@ class TafValidator:
         windMatch = pattern.match(wind)
 
         def splitWind(m):
-            # 考虑静风的特殊情况
-            if m.group() == '00000MPS':
+            # 考虑静风的特殊情况，静风编报 00000MPS 或 00000KT
+            if m.group().startswith('00000'):
                 return 360, 0, None
 
             direction = m.group(1)
@@ -319,7 +319,7 @@ class TafLexer:
             rules = self.defaultRules
 
         for key in rules:
-            if self.part.startswith('FM') and key == 'period' or not self.part.startswith(('TAF', 'METAR', 'SPECI')) and key == 'icao':
+            if (self.part.startswith('FM') and key == 'period') or (not self.part.startswith(('TAF', 'METAR', 'SPECI')) and key == 'icao'):
                 continue
 
             pattern = getattr(self.grammar, key)
@@ -539,7 +539,7 @@ class TafParser:
             self._forceError()
             logger.error('message cannot be parsed correctly, {}, {}'.format(self.message, e))
 
-        self.errors = list(set(self.errors))
+        self.errors = list(dict.fromkeys(self.errors))
 
     def _forceError(self):
         for e in self.elements:
@@ -569,13 +569,14 @@ class TafParser:
                     else:
                         legal = verify(self.reference[key]['text'], e.tokens[key]['text'])
 
-                    if key == 'weather' and e.tokens[key]['text'] != self.reference[key]['text'] \
-                        and 'vis' in e.tokens and not e.tokens['vis']['error'] \
-                        or e.tokens[key]['error']:
-                        # 天气现象发生改变，并引起能见度变化，同时天气现象不为 NSW
-                        # 单项已判断为有误
-                        pass
-                    else:
+                    # 单项已判断为有误，或天气现象发生改变并引起能见度变化
+                    skip = e.tokens[key]['error'] or (
+                        key == 'weather'
+                        and e.tokens[key]['text'] != self.reference[key]['text']
+                        and 'vis' in e.tokens
+                        and not e.tokens['vis']['error']
+                    )
+                    if not skip:
                         e.tokens[key]['error'] = not legal
 
                     if e.sign == 'BECMG' or e.sign.startswith('FM'):

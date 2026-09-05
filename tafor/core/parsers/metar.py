@@ -35,6 +35,7 @@ class MetarParser(TafParser):
         """Parse the time order of the primary report and trend groups."""
         time = parseTimez(self.primary.tokens['timez']['text'])
         self.primary.periods = (time, time + datetime.timedelta(hours=2))
+        self.valids = self.primary.periods
         basetime = self.primary.periods[0]
 
         for e in self.elements[1:]:
