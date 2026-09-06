@@ -1,19 +1,10 @@
-import os
 import datetime
 
 from tafor.core.parsers import SigmetParser, TyphoonAdvisoryParser, AshAdvisoryParser
 from tafor.core.parsers.sigmet import SigmetLexer
 
-root = os.path.dirname(__file__)
 
-
-def read_fixture(folder, name):
-    filepath = os.path.join(root, 'fixtures', folder, name + '.text')
-    with open(filepath) as f:
-        return f.read()
-
-
-def test_keywords_not_polluted():
+def test_keywords_not_polluted(read_fixture):
     before = len(SigmetLexer.defaultKeywords)
     message = read_fixture('sigmet', 'va_pass')
     SigmetParser(message)
@@ -75,7 +66,7 @@ def test_fir_code_argument():
     assert parser.isValid()
 
 
-def test_error_fixture_tokens():
+def test_error_fixture_tokens(read_fixture):
     parser = SigmetParser(read_fixture('sigmet', 'error1'))
 
     assert not parser.isValid()
@@ -99,7 +90,7 @@ def test_current_standard_tc_circle():
     assert collections['features'][0]['properties']['hazard'] == 'typhoon'
 
 
-def test_tc_fixture_geometry():
+def test_tc_fixture_geometry(read_fixture):
     parser = SigmetParser(read_fixture('sigmet', 'tc_pass'))
 
     assert parser.type() == 'WC'
@@ -113,7 +104,7 @@ def test_tc_fixture_geometry():
     assert all(f['properties']['hazard'] == 'typhoon' for f in features)
 
 
-def test_va_fixture_geometry():
+def test_va_fixture_geometry(read_fixture):
     parser = SigmetParser(read_fixture('sigmet', 'va_pass'))
 
     assert parser.type() == 'WV'
@@ -162,7 +153,7 @@ def test_advisory_accessors_return_none_for_missing_fields():
     assert typhoon.intensity() is None
 
 
-def test_typhoon_advisory():
+def test_typhoon_advisory(read_fixture):
     parser = TyphoonAdvisoryParser(read_fixture('advisory', 'tc_chaba'))
 
     assert parser.time == datetime.datetime(2022, 7, 2, 6, 0)
@@ -196,7 +187,7 @@ def test_typhoon_advisory():
     assert parser.radius() > 300
 
 
-def test_ash_advisory():
+def test_ash_advisory(read_fixture):
     parser = AshAdvisoryParser(read_fixture('advisory', 'va_fukutoku'))
 
     assert parser.time == datetime.datetime(2021, 8, 14, 21, 0)

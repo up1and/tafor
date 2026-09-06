@@ -1,56 +1,36 @@
-import os
 import re
 
 import pytest
 
 from tafor.core.parsers import MetarParser, SigmetParser, TafParser, TafValidator
 
-root = os.path.dirname(__file__)
-
-
-def listdir(folder):
-    folder = os.path.join(root, 'fixtures', folder)
-    files = os.listdir(folder)
-    files = filter(lambda o: o.endswith('.text'), files)
-    names = map(lambda o: o[:-5], files)
-    return folder, names
 
 @pytest.fixture
 def validator():
     return TafValidator()
 
-def test_taf_parser():
-    folder, names = listdir('taf')
-    for name in names:
-        filepath = os.path.join(folder, name + '.text')
-        with open(filepath) as f:
-            content = f.read()
+def test_taf_parser(fixtures_dir):
+    folder = fixtures_dir / 'taf'
+    for filepath in sorted(folder.glob('*.text')):
+        content = filepath.read_text()
 
         m = TafParser(content)
         m.validate()
         html = m.renderer(style='html')
-
-        filepath = os.path.join(folder, name + '.html')
-        with open(filepath) as f:
-            result = f.read()
+        result = filepath.with_suffix('.html').read_text()
 
         html = re.sub(r'\s', '', html)
         result = re.sub(r'\s', '', result)
         assert result == html
 
-def test_sigmet_parser():
-    folder, names = listdir('sigmet')
-    for name in names:
-        filepath = os.path.join(folder, name + '.text')
-        with open(filepath) as f:
-            content = f.read()
+def test_sigmet_parser(fixtures_dir):
+    folder = fixtures_dir / 'sigmet'
+    for filepath in sorted(folder.glob('*.text')):
+        content = filepath.read_text()
 
         m = SigmetParser(content, firCode='ZJSA SANYA FIR')
         html = m.renderer(style='html')
-
-        filepath = os.path.join(folder, name + '.html')
-        with open(filepath) as f:
-            result = f.read()
+        result = filepath.with_suffix('.html').read_text()
 
         html = re.sub(r'\s', '', html)
         result = re.sub(r'\s', '', result)

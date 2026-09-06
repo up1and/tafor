@@ -74,3 +74,4 @@ prepend_sys_path = ["."]
 
 [tool.pytest.ini_options]
 qt_api = "pyqt5"
+pythonpath = ["."]
