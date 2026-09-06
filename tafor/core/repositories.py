@@ -87,7 +87,7 @@ class TafRepository(Repository):
     def available(self, type, message):
         recent = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
         with self.database.session() as session:
-            tafs = session.query(Taf).filter(type == type, Taf.created > recent).all()
+            tafs = session.query(Taf).filter(Taf.type == type, Taf.created > recent).all()
 
         def _match(objects, message):
             for taf in objects:
