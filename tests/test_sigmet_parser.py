@@ -52,6 +52,20 @@ def test_three_digit_speed():
     assert SigmetLexer('MOV N 300KMH NC').isValid()
 
 
+def test_lexer_word_matchers():
+    lexer = SigmetLexer('S1500 E07348')
+
+    assert lexer.matchesGrammar('N2300')
+    assert not lexer.matchesGrammar('N203')
+    assert not lexer.matchesGrammar('YAGI')
+
+    assert lexer.isProperName('MT', None)
+    assert lexer.isProperName('TC', None)
+    assert lexer.isProperName('TC', 'ZJSA SANYA FIR')
+    assert not lexer.isProperName('TC', '1400Z')
+    assert not lexer.isProperName('PSN', 'YAGI')
+
+
 def test_fir_code_argument():
     message = 'ZJSA SIGMET 1 VALID 300855/301255 ZJHK-\nZJSA SANYA FIR VA CLD='
     parser = SigmetParser(message, firCode='ZJSA SANYA FIR', airportCode='ZJHK')

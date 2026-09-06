@@ -76,43 +76,45 @@ class SigmetLexer:
         else:
             parts = part.split()
 
+        prev = None
+        prevPrev = None
         for i, text in enumerate(parts):
-            error = not (text in self.keywords or self.isMatch(text) or self.isSpecialName(i, parts))
+            # the FIR name is derived from the message itself, accept it as is
+            recognized = (i == 0 and text == self.firCode) \
+                or text in self.keywords \
+                or self.matchesGrammar(text) \
+                or self.isProperName(prev, prevPrev)
 
             self.tokens.append({
                 'text': text,
-                'error': error
+                'error': not recognized
             })
 
-    def isMatch(self, text):
-        """检查字符是否被特殊的正则表达式匹配
+            prevPrev = prev
+            prev = text
 
-        :return: 是否正确匹配
-        """
+    def matchesGrammar(self, text):
+        """Tell whether the word is a full match of one of the grammar rules."""
         for key in self.rules:
             pattern = getattr(self.grammar, key)
-            match = pattern.match(text)
-            if match and match.group() == text:
+            if pattern.fullmatch(text):
                 return True
 
         return False
 
-    def isSpecialName(self, index, parts):
-        """检查字符是否是特殊名字，如情报区名、热带气旋名、火山名
+    def isProperName(self, prev, prevPrev):
+        """Tell whether the current word is a proper name given its context.
 
-        :return: 是否是特殊名字
+        Volcano names follow ``MT`` and tropical cyclone names follow
+        ``TC``. A word after ``TC`` only counts as a cyclone name when
+        the word before ``TC`` carries no digits, e.g. when ``TC`` does
+        not follow a coordinate or an observation time.
         """
-        if index == 0:
-            return parts[index] == self.firCode
-
-        if parts[index - 1] == 'MT':
+        if prev == 'MT':
             return True
 
-        if parts[index - 1] == 'TC':
-            # 热带气旋名不应含有数字，避免把坐标误判为名字
-            if index > 1 and any(char.isdigit() for char in parts[index - 2]):
-                return False
-            return True
+        if prev == 'TC':
+            return prevPrev is None or not any(char.isdigit() for char in prevPrev)
 
         return False
 
@@ -145,10 +147,9 @@ class SigmetParser:
 
     使用方法::
 
-        p = SigmetParser('ZJSA SIGMET 1 VALID 300855/301255 ZJHK-
-                        ZJSA SANYA FIR VA ERUPTION MT ASHVAL LOC E S1500 E07348 VA CLD OBS AT 1100Z FL310/450
-                        APRX 220KM BY 35KM S1500 E07348 - S1530 E07642 MOV ESE 65KMH
-                        FCST 1700Z VA CLD APRX S1506 E07500 - S1518 E08112 - S1712 E08330 - S1824 E07836=')
+        p = SigmetParser('ZJSA SIGMET 1 VALID 310950/311350 ZJHK-
+                        ZJSA SANYA FIR EMBD TS FCST WI N2030 E11118 - N2030 E10858 - N1913 E10911 - 
+                        N1906 E11111 - N2030 E11118 TOP FL500 MOV NE 25KMH NC=')
 
         # 报文字符是否通过验证
         p.isValid()
