@@ -9,7 +9,7 @@ from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QToolButton
 
 from tafor.core.parsers.base import Pattern
-from tafor.core.parsers.sigmet import AshAdvisoryParser, TyphoonAdvisoryParser
+from tafor.core.parsers.advisory import AshAdvisoryParser, TyphoonAdvisoryParser
 from tafor.core.repositories import SigmetFilter
 from tafor.core.sigmet import (SigmetAshState, SigmetCancelState, SigmetCustomState, SigmetGeneralState,
     SigmetTyphoonState, SigmetValidator)
@@ -521,7 +521,7 @@ class AdvisoryImport(SigmetPart):
             self.widget.direction.setCurrentIndex(self.widget.direction.findText(movement))
 
             if not final and movement != 'STNR':
-                speed = str(self.parser.speed())
+                speed = str(self.parser.speed() or '')
                 self.widget.speed.setText(speed)
             else:
                 self.widget.speed.clear()

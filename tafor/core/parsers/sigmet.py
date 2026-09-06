@@ -2,12 +2,8 @@ import re
 import logging
 import datetime
 
-from collections import OrderedDict
-
-from tafor.core.geometry.coordinate import degreeToDecimal
 from tafor.core.utils.time import parseTime, parseTimez
-from tafor.core.utils.units import toKmh, toKt
-from tafor.core.parsers.base import AdvisoryGrammar, SigmetGrammar, joinRendered, renderTokens
+from tafor.core.parsers.base import SigmetGrammar, joinRendered, renderTokens
 
 logger = logging.getLogger('tafor.parser.sigmet')
 
@@ -17,7 +13,6 @@ class SigmetLexer:
     :param part: 单行报文内容
     :param grammar: 解析 SIGMET 报文的语法类
     :param keywords: SIGMET 报文允许的关键字
-    :param isFirst: 是否是正文的第一组
     :param kwargs: 额外参数
     """
     grammarClass = SigmetGrammar
@@ -40,16 +35,20 @@ class SigmetLexer:
 
     airmetRules = ['airmansFlightLevel', 'wind', 'vis', 'cloud']
 
-    def __init__(self, part, firCode=None, airportCode=None, grammar=None, keywords=None, rules=None, isAirmet=False,**kwargs):
+    def __init__(self, part, firCode=None, airportCode=None, grammar=None, keywords=None, rules=None, isAirmet=False, **kwargs):
         super().__init__()
         if not grammar:
             grammar = self.grammarClass()
 
         if not keywords:
-            keywords = self.defaultKeywords + self.airmetKeywords if isAirmet else self.defaultKeywords
+            keywords = list(self.defaultKeywords)
+            if isAirmet:
+                keywords += self.airmetKeywords
 
         if not rules:
-            rules = self.defaultRules + self.airmetRules if isAirmet else self.defaultRules
+            rules = list(self.defaultRules)
+            if isAirmet:
+                rules += self.airmetRules
 
         if airportCode:
             keywords.append(airportCode)
@@ -61,7 +60,7 @@ class SigmetLexer:
         self.part = part.strip()
         self.tokens = []
 
-        self.parse(part)
+        self.parse(self.part)
 
     def __repr__(self):
         return '<SigmetLexer {!r}>'.format(self.part)
@@ -78,9 +77,7 @@ class SigmetLexer:
             parts = part.split()
 
         for i, text in enumerate(parts):
-            error = True
-            if text in self.keywords or self.isMatch(text) or self.isSpecialName(i, parts):
-                error = False
+            error = not (text in self.keywords or self.isMatch(text) or self.isSpecialName(i, parts))
 
             self.tokens.append({
                 'text': text,
@@ -94,36 +91,37 @@ class SigmetLexer:
         """
         for key in self.rules:
             pattern = getattr(self.grammar, key)
-            m = pattern.match(text)
-            if m:
-                if m.group() == text:
-                    return True
+            match = pattern.match(text)
+            if match and match.group() == text:
+                return True
+
+        return False
 
     def isSpecialName(self, index, parts):
         """检查字符是否是特殊名字，如情报区名、热带气旋名、火山名
 
         :return: 是否是特殊名字
         """
-        hasNumber = lambda chars: any(char.isdigit() for char in chars)
-        try:
-            if parts[index] == self.firCode \
-                or parts[index-1] == 'MT' \
-                or (parts[index-1] == 'TC' and not hasNumber(parts[index-2])):
-                return True
+        if index == 0:
+            return parts[index] == self.firCode
 
-        except IndexError:
-            pass
+        if parts[index - 1] == 'MT':
+            return True
+
+        if parts[index - 1] == 'TC':
+            # 热带气旋名不应含有数字，避免把坐标误判为名字
+            if index > 1 and any(char.isdigit() for char in parts[index - 2]):
+                return False
+            return True
+
+        return False
 
     def isValid(self):
         """检查报文是否有错误
 
         :return: 报文是否通过验证
         """
-        for e in self.tokens:
-                if e['error']:
-                    return False
-
-        return True
+        return all(not e['error'] for e in self.tokens)
 
     def renderer(self, style='plain'):
         """将解析后的报文重新渲染
@@ -163,17 +161,17 @@ class SigmetParser:
 
     lexerClass = SigmetLexer
 
-    def __init__(self, message, created=None, lexer=None, grammar=None, **kwargs):
+    def __init__(self, message, created=None, firCode=None, airportCode=None, lexer=None, grammar=None, **kwargs):
         self.message = message.strip()
-        self.isAirmet = True if self.category() == 'AIRMET' else False
+        self.isAirmet = self.category() == 'AIRMET'
 
         if not grammar:
             grammar = self.grammarClass()
 
         self.grammar = grammar
         self.lexer = lexer or self.lexerClass
-        self.firCode = self.fir()
-        self.airportCode = self.airport()
+        self.firCode = firCode or self.fir()
+        self.airportCode = airportCode or self.airport()
 
         self.valids = None
         self.created = created
@@ -184,22 +182,15 @@ class SigmetParser:
         """拆分报头和报文内容"""
         self.heading = None
         message = self.message.replace('=', '')
-        headingPattern = re.compile(r'\w{4}\d{2}\s\w{4}\s(\d{6})')
         splitPattern = re.compile(r'([A-Z]{4}-)')
         validPattern = self.grammar.valid
-        
+
         time = None
         valids = None
-        heading = headingPattern.match(message)
         valid = validPattern.search(self.message)
         if valid:
             valids = valid.groups()
             time = valid[0]
-
-        if heading:
-            self.heading = heading.group()
-            message = headingPattern.sub('', message).strip()
-            time = heading.group(1)
 
         if self.created is None:
             self.created = parseTimez(time) if time else datetime.datetime.utcnow()
@@ -222,27 +213,18 @@ class SigmetParser:
 
     def airport(self):
         pattern = re.compile(r'([A-Z]{4})-')
-        m = pattern.search(self.message)
-        if m:
-            return m.group(1)
-        else:
-            return ''
+        match = pattern.search(self.message)
+        return match.group(1) if match else None
 
     def fir(self):
-        pattern = re.compile(r'\b([A-Z]{4}\s.+\s(?:FIR|FIR/UIR|CTA))\b')
-        m = pattern.search(self.message)
-        if m:
-            return m.group(1)
-        else:
-            return ''
+        pattern = re.compile(r'\b([A-Z]{4}(?:\s[A-Z]+)*?\s(?:FIR/UIR|FIR|CTA))\b')
+        match = pattern.search(self.message)
+        return match.group(1) if match else None
 
     def category(self):
-        pattern = re.compile(r'(SIGMET|AIRMET) ([A-Z]?\d{1,2}) VALID')
-        m = pattern.search(self.message)
-        if m:
-            return m.group(1)
-        else:
-            return ''
+        pattern = re.compile(r'(SIGMET|AIRMET)\s([A-Z]?\d{1,2})\sVALID')
+        match = pattern.search(self.message)
+        return match.group(1) if match else None
 
     def type(self):
         if 'AIRMET' in self.message:
@@ -257,27 +239,24 @@ class SigmetParser:
         return 'WS'
 
     def hazard(self):
-        text = 'other'
-        patterns = {
-            'ts': re.compile(r'\b(TS|TSGR)\b'),
-            'turb': re.compile(r'\b(TURB)\b'),
-            'ice': re.compile(r'\b(ICE)\b'),
-            'ash': re.compile(r'\b(WV\w{2}\d{2})|(VA)\b'),
-            'typhoon': re.compile(r'\b(WC\w{2}\d{2})|(TC)\b'),
-        }
+        patterns = [
+            ('typhoon', re.compile(r'\b(?:WC[A-Z]{2}\d{2}|TC)\b')),
+            ('ash', re.compile(r'\b(?:WV[A-Z]{2}\d{2}|VA)\b')),
+            ('ice', re.compile(r'\bICE\b')),
+            ('turb', re.compile(r'\bTURB\b')),
+            ('ts', re.compile(r'\b(?:TS|TSGR)\b')),
+        ]
 
-        for key, pattern in patterns.items():
-            m = pattern.search(self.message)
-            if m:
-                text = key
+        for key, pattern in patterns:
+            if pattern.search(self.message):
+                return key
 
-        return text
+        return 'other'
 
     def sequence(self):
         pattern = re.compile(r'(SIGMET|AIRMET)\s([A-Z]?\d{1,2})\sVALID')
-        m = pattern.search(self.message)
-        if m:
-            return m.group(2)
+        match = pattern.search(self.message)
+        return match.group(2) if match else None
 
     def cancelSequence(self):
         pattern = re.compile(r'CNL\s(SIGMET|AIRMET)\s([A-Z]?\d{1,2})\s(\d{6}/\d{6})')
@@ -303,14 +282,8 @@ class SigmetParser:
 
         geometries = []
         for key, pattern in patterns.items():
-            m = pattern.search(self.message)
-            if not m:
+            if key == 'circle' and not self.grammar.radius.search(self.message):
                 continue
-
-            if key == 'circle':
-                m = self.grammar.radius.search(self.message)
-                if not m:
-                    continue
 
             for match in pattern.finditer(self.message):
                 text = match.group()
@@ -389,7 +362,7 @@ class SigmetParser:
                 },
                 'properties': {
                     'sequence': sequence,
-                    'valids': valid.split('/'),
+                    'valids': valid.split('/') if valid else [],
                     'hazard': hazard,
                     'location': 'initial'
                 }
@@ -433,256 +406,3 @@ class SigmetParser:
         """
         outputs = [self.heading, self.firstline] + [e.renderer(style) for e in self.elements if e]
         return joinRendered([o for o in outputs if o], style)
-
-
-class AdvisoryParser:
-
-    grammarClass = AdvisoryGrammar
-
-    def __init__(self, message, grammar=None):
-        if not grammar:
-            grammar = self.grammarClass()
-
-        self.grammar = grammar
-        self.message = message
-        self.tokens = OrderedDict()
-        self.time = None
-        self.parse()
-
-    def parse(self):
-        regex = r'{}((?:\s?.+\s?)*)'.format(self.type)
-        if '=' in self.message:
-            regex += '='
-        pattern = re.compile(regex)
-        match = pattern.search(self.message)
-        if not match:
-            return
-        text = match.group(1)
-        matches = re.finditer(r'^\s*([^:]+?)\s*:\s*(.*?)\s*$', text, re.MULTILINE)
-        prev = None
-        for match in matches:
-            key, value = match.groups()
-            values = key.split('\n')
-            if len(values) > 1:
-                *temps, key = values
-                if prev:
-                    self.tokens[prev] = self.tokens[prev] + ' '.join(temps)
-
-            self.tokens[key] = value
-            prev = key
-
-        if 'DTG' in self.tokens:
-            self.time = datetime.datetime.strptime(self.tokens['DTG'], '%Y%m%d/%H%MZ')
-
-    def position(self):
-        keys = ['PSN', 'OBS PSN']
-        text = self._findText(keys)
-        if text:
-            match = self.grammar.point.search(text)
-            if match:
-                return match.groups()
-
-    def name(self):
-        field = self.fields['name']
-        if field in self.tokens:
-            text = self.tokens[field]
-            match = self.grammar.name.match(text)
-            if match:
-                return match.group()
-
-        return ''
-
-    def movement(self):
-        field = self.fields['movement']
-        if field in self.tokens:
-            text = self.tokens[field]
-            match = self.grammar.movement.search(text)
-            if match:
-                return match.group(1)
-
-        return ''
-
-    def speed(self, unit='KMH'):
-        field = self.fields['movement']
-        if field in self.tokens:
-            text = self.tokens[field]
-            match = self.grammar.speed.search(text)
-            if match:
-                speed, u = match.groups()
-                if unit != u:
-                    speed = toKmh(speed, u) if unit == 'KMH' else toKt(speed, u)
-
-                return int(speed)
-
-    def observedTime(self):
-        raise NotImplementedError
-
-    def availableLocations(self):
-        keys = []
-        field = self.fields['locations']
-        for key in self.tokens:
-            if field in key:
-                keys.append(key)
-
-        return keys
-
-    def _findLocationTime(self, key):
-        if not self.time:
-            return
-
-        match = re.search(r'\d+', key)
-        obstime = self.observedTime()
-        if match and obstime:
-            hour = int(match.group())
-            time = obstime + datetime.timedelta(hours=hour)
-            return time
-        else:
-            return self.time
-
-    def _findText(self, keys):
-        for key in keys:
-            if key in self.tokens:
-                return self.tokens[key]
-
-
-class TyphoonAdvisoryParser(AdvisoryParser):
-
-    type = 'TC ADVISORY'
-    fields = {
-        'name': 'TC',
-        'movement': 'MOV',
-        'locations': 'PSN'
-    }
-
-    def observedTime(self):
-        return self.time
-
-    def location(self, key):
-        if key not in self.tokens:
-            return {}
-
-        features = {
-            'type': 'Feature',
-            'properties': {}
-        }
-        text = self.tokens[key]
-        coordinates = self.grammar.point.findall(text)
-        coordinates = [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in coordinates]
-        if coordinates:
-            geometry = {
-                'type': 'Point',
-                'coordinates': coordinates[0]
-            }
-            features['geometry'] = geometry
-
-        time = self._findLocationTime(key)
-        if time:
-            features['properties']['time'] = time
-
-        return features
-
-    def height(self):
-        if 'CB' in self.tokens:
-            text= self.tokens['CB']
-            match = self.grammar.height.search(text)
-            if match:
-                return match.group(1)
-
-        return ''
-
-    def intensity(self):
-        if 'INTST CHANGE' in self.tokens:
-            text= self.tokens['INTST CHANGE']
-            return text.strip()
-
-    def route(self):
-        locations = self.availableLocations()
-        geometry = {}
-        coordinates = []
-        for key in locations:
-            text = self.tokens[key]
-            coordinates += self.grammar.point.findall(text)
-
-        if coordinates:
-            geometry = {
-                'type': 'LineString',
-                'coordinates': [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in coordinates]
-            }
-
-        return geometry
-
-    def polygon(self):
-        geometry = {}
-        if 'CB' in self.tokens:
-            text = self.tokens['CB']
-            coordinates = self.grammar.point.findall(text)
-            if coordinates:
-                geometry = {
-                    'type': 'Polygon',
-                    'coordinates': [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in coordinates]
-                }
-
-        return geometry
-
-    def radius(self):
-        from tafor.core.geometry.algorithm import geod
-        center = self.position()
-        polygon = self.polygon()
-        if not center or not polygon:
-            return
-
-        distances = []
-        lat, lon = center
-        center = degreeToDecimal(lon), degreeToDecimal(lat)
-        for lon, lat in polygon['coordinates']:
-            _, _, distance = geod.inv(center[0], center[1], lon, lat)
-            distances.append(distance)
-
-        return int(max(distances) / 1000)
-
-
-class AshAdvisoryParser(AdvisoryParser):
-
-    type = 'VA ADVISORY'
-    fields = {
-        'name': 'VOLCANO',
-        'movement': 'OBS VA CLD',
-        'locations': 'VA CLD'
-    }
-
-    def observedTime(self):
-        if self.time and 'OBS VA DTG' in self.tokens:
-            text = self.tokens['OBS VA DTG']
-            match = self.grammar.time.search(text)
-            if match:
-                day, hour, minute = match.groups()
-                time = self.time.replace(day=int(day), hour=int(hour), minute=int(minute))
-                return time
-
-    def location(self, key):
-        if key not in self.tokens:
-            return {}
-
-        features = {
-            'type': 'Feature',
-            'properties': {}
-        }
-        text = self.tokens[key]
-        coordinates = self.grammar.point.findall(text)
-        coordinates = [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in coordinates]
-        if coordinates:
-            geometry = {
-                'type': 'Polygon',
-                'coordinates': coordinates
-            }
-            features['geometry'] = geometry
-
-        time = self._findLocationTime(key)
-        if time:
-            features['properties']['time'] = time
-
-        match = self.grammar.flightLevel.search(text)
-        if match:
-            features['properties']['flightLevel'] = match.group()
-
-        return features

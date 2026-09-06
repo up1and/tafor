@@ -111,7 +111,7 @@ class SigmetGrammar:
     latitude = re.compile(r'(N|S)(90(0{2})?|[0-8]\d([0-5]\d)?)')
     longitude = re.compile(r'(E|W)(180(0{2})?|((1[0-7]\d)|(0\d{2}))([0-5]\d)?)')
     flightLevel = re.compile(r'(FL(?:[1-9]\d{2}|0[1-9]\d|00[1-9])/[1-9]\d{2})|(FL[1-9]\d{2})|(\d{4,5}FT)|(\d{4,5}M)|(SFC/FL[1-9]\d{2})')
-    speed = re.compile(r'(\d{1,2})(KMH|KT)')
+    speed = re.compile(r'(\d{1,3})(KMH|KT)')
     obsTime = re.compile(r'(\d{4}Z)')
     typhoonRange = re.compile(r'(\d{1,3}KM)')
     sequence = re.compile(r'([A-Z]?\d{1,2})')
@@ -157,7 +157,7 @@ class AdvisoryGrammar:
     flightLevel = re.compile(r'(FL[1-9]\d{2}/[1-9]\d{2})|(FL[1-9]\d{2})|(\d{4,5}FT)|(\d{4,5}M)|(SFC/FL[1-9]\d{2})')
     height = re.compile(r'TOP\sFL(\d+)')
     movement = re.compile(r'\b(STNR|N|NNE|NE|ENE|E|ESE|SE|SSE|S|SSW|SW|WSW|W|WNW|NW|NNW)\b')
-    speed = re.compile(r'(\d{1,2})(KMH|KT)')
+    speed = re.compile(r'(\d{1,3})(KMH|KT)')
 
     def __init__(self):
         point = r'((?:N|S)(?:\d{4}|\d{2}))\s((?:E|W)(?:\d{5}|\d{3}))'
