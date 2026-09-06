@@ -36,14 +36,21 @@ class ConfigItem:
             raise ValueError(f'Invalid value for {self.key}: {value}')
 
         currentValue = instance.manager.get(self.key, self.default)
+
+        # Structured items persist as JSON text and are parsed on read, so a
+        # JSON string input is parsed before comparing and broadcasting
+        typed = value
+        if type(value) != type(currentValue) and isinstance(currentValue, (list, dict)):
+            try:
+                typed = json.loads(value)
+            except (json.JSONDecodeError, TypeError):
+                logger.warning(f'Invalid JSON for {self.key}, keeping raw value: {value!r}')
+
         instance.manager.set(self.key, value)
 
-        if type(value) != type(currentValue) and isinstance(currentValue, (list, dict)):
-            value = json.loads(value)
-
-        if currentValue != value:
-            instance.manager.forwardChange(self.key, value, self.scope)
-            logger.debug(f'{self.key} changed: {currentValue!r} -> {value!r}')
+        if currentValue != typed:
+            instance.manager.forwardChange(self.key, typed, self.scope)
+            logger.debug(f'{self.key} changed: {currentValue!r} -> {typed!r}')
 
     def __repr__(self):
         return f'Config<{self.key}>'

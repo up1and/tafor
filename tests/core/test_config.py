@@ -75,6 +75,30 @@ def test_validator_rejects_invalid_value():
     assert conf.firBoundary == [[0, 0], [1, 0], [1, 1], [0, 1]]
 
 
+def test_set_json_string_broadcasts_typed_value():
+    conf = makeConf()
+    changes = []
+    conf.manager.configChanged.connect(
+        lambda key, value, scope: changes.append((key, value, scope)))
+
+    conf.weatherList = '["FG", "FU"]'
+
+    assert conf.weatherList == ['FG', 'FU']
+    key, value, scope = changes[-1]
+    assert key == 'Message/Weather'
+    assert value == ['FG', 'FU']
+    assert scope == 'restart'
+
+
+def test_set_invalid_json_keeps_raw_value_without_raising():
+    conf = makeConf()
+
+    conf.weatherList = 'not-a-json'
+
+    # the raw text is stored; read-back falls back to the default list
+    assert conf.weatherList == []
+
+
 def test_emit_fires_signals_for_pending_scopes():
     conf = makeConf()
     reloaded = []
