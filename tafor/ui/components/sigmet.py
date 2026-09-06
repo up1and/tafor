@@ -201,19 +201,16 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
             else:
                 c.hide()
 
-        if self.significantWeather.isChecked():
-            tt = 'WS'
-
         if self.tropicalCyclone.isChecked():
-            tt = 'WC'
+            designator = 'WC'
+        elif self.volcanicAsh.isChecked():
+            designator = 'WV'
+        elif self.airmansWeather.isChecked():
+            designator = 'WA'
+        else:
+            designator = 'WS'
 
-        if self.volcanicAsh.isChecked():
-            tt = 'WV'
-
-        if self.airmansWeather.isChecked():
-            tt = 'WA'
-        
-        self.setType(tt, mode)
+        self.setType(designator, mode)
 
     def clear(self):
         for c in self.contents:
