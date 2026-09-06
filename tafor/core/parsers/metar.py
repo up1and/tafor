@@ -21,9 +21,7 @@ class MetarParser(TafParser):
         if self.becmgs or self.tempos:
             self.trends = self.elements[1:]
             if 'NOSIG' in self.message:
-                self.errors.append('NOSIG 不能与 BECMG 或 TEMPO 同时存在')
-                if 'nosig' in self.primary.tokens:
-                    self.primary.tokens['nosig']['error'] = True
+                self.mark(self.primary, 'nosig', 'nosig_with_trend')
         elif 'NOSIG' in self.message:
             metar = self.primary.part.replace('NOSIG', '').strip()
             self.primary = self.lexer(metar)
@@ -74,17 +72,14 @@ class MetarParser(TafParser):
                     ]
 
                     if any(conditions):
-                        e.tokens['fmtl']['error'] = True
-                        self.errors.append('趋势时间组错误')
+                        self.mark(e, 'fmtl', 'trend_time_invalid')
 
-    def _validatePrimary(self):
-        """Validate the primary report against the reference."""
-        count = len(self.errors)
-        super()._validatePrimary()
+    @property
+    def tips(self):
         if self.trendOnly:
-            # keep only the token flags from the primary validation; its
-            # error messages are irrelevant when publishing trends
-            del self.errors[count:]
+            # 发布趋势时主报文的违例只标红、不进提示
+            return self.collectTips(self.trends)
+        return super().tips
 
     def hasTrend(self):
         return bool(self.trends)
@@ -93,7 +88,7 @@ class MetarParser(TafParser):
         if trendOnly is None:
             trendOnly = self.trendOnly
 
-        if self.failed:
+        if self.error:
             return False
 
         if trendOnly and self.trends:
@@ -124,7 +119,7 @@ class MetarParser(TafParser):
         :return: the rendered message for the given style
         """
         previous = previous or self.previous
-        outputs = [e.renderer(style, failed=self.failed) for e in self.elements if e]
+        outputs = [e.renderer(style, failed=self.error) for e in self.elements if e]
 
         if style == 'html':
             separator = '<br/>' if self.hasTrend() else ' '

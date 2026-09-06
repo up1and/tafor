@@ -5,13 +5,13 @@ import logging
 from collections import OrderedDict
 
 from tafor.core.utils.time import parsePeriod, parseTime, parseTimez
-from tafor.core.parsers.base import MetarGrammar, TafGrammar, joinRendered, renderTokens
+from tafor.core.parsers.base import ParseError, MetarGrammar, TafGrammar, joinRendered, renderTokens
 
 logger = logging.getLogger('tafor.parser.taf')
 
 
 class TafValidator:
-    """根据行业标准验证 TAF 报文单项要素之间的转折
+    """根据行业标准验证 TAF 报文单项要素之间的转折，以及要素之间的组合匹配
 
     :param kwargs: 额外参数
 
@@ -20,6 +20,24 @@ class TafValidator:
 
     """
     grammarClass = TafGrammar
+
+    combinationKeys = ['wind', 'vis', 'weather', 'cloud']
+
+    messages = {
+        'message_changed': '经过校验后的报文和原始报文有些不同',
+        'parse_failed': '报文无法被正确解析',
+        'vis_weather_required': '能见度小于 5000 米时应有天气现象',
+        'vis_low_weather_invalid': '能见度小于 1000 米，BR、-DZ 不能有',
+        'vis_mid_weather_invalid': '能见度大于 1000 米、小于 5000 米，FG、+DZ 不能有',
+        'vis_high_weather_invalid': '能见度大于 5000 米，FG、FU、BR、HZ、SA、DU 不能有',
+        'shower_needs_cb': '阵性降水应包含对流云',
+        'nsw_conflict': 'NSW 不能和其他天气现象同时存在',
+        'weather_conflict': 'BR，HZ，FG，FU 不能同时存在',
+        'cloud_second_layer_invalid': '云组第二层云量不能为 FEW',
+        'cloud_third_layer_invalid': '云组第三层云量不能为 FEW 或 SCT',
+        'nosig_with_trend': 'NOSIG 不能与 BECMG 或 TEMPO 同时存在',
+        'trend_time_invalid': '趋势时间组错误',
+    }
 
     def __init__(self, **kwargs):
 
@@ -278,6 +296,108 @@ class TafValidator:
 
         return all(validations)
 
+    def skipTurnover(self, key, ref, tokens):
+        """豁免转折
+
+        天气现象发生改变并引起能见度变化
+        """
+        return (key == 'weather'
+            and tokens[key]['text'] != ref[key]['text']
+            and 'vis' in tokens
+            and not tokens['vis']['error'])
+
+    def combination(self, ref, tokens):
+        """验证参照组与当前组多个要素之间的匹配规则
+
+        1. 能见度和天气现象
+            * 能见度跨 1000 米时应变化天气现象
+            * 能见度小于 5000 米时应有天气现象
+            * 能见度小于 1000 米，BR、-DZ 不能有
+            * 能见度大于 1000 米、小于 5000 米，FG、+DZ 不能有
+            * 能见度大于 5000 米，FG、FU、BR、HZ、SA、DU 不能有
+
+        2. 天气现象
+            * 阵性降水应包含 CB
+            * NSW 不能和其他天气现象同时存在
+            * BR，HZ，FG，FU 不能同时存在
+
+        3. 云组
+            * 云组第二层云量不能为 FEW
+            * 云组第三层云量不能为 FEW 或 SCT
+
+        :param ref: 报文参照组
+        :param tokens: 当前组解析后的要素， `OrderedDict`
+        :returns: 违例列表 `[(key, code), ...]`
+        """
+        mixture = copy.deepcopy(ref)
+        for key in tokens:
+            if key in self.combinationKeys:
+                mixture[key]['text'] = tokens[key]['text']
+
+        violations = []
+
+        def validateVisWeather(vis, weathers):
+            key = 'weather' if 'weather' in tokens else 'vis'
+
+            if 'NSW' in weathers:
+                if vis <= 5000:
+                    violations.append((key, 'vis_weather_required'))
+
+            else:
+                if vis < 1000 and set(weathers) & set(['BR', '-DZ']):
+                    violations.append((key, 'vis_low_weather_invalid'))
+
+                if 1000 <= vis <= 5000 and set(weathers) & set(['FG', '+DZ']):
+                    violations.append((key, 'vis_mid_weather_invalid'))
+
+                if vis > 5000 and set(weathers) & set(['FG', 'FU', 'BR', 'HZ', 'SA', 'DU']):
+                    violations.append((key, 'vis_high_weather_invalid'))
+
+        # 检查能见度和天气现象
+        if 'vis' in tokens:
+            vis = int(tokens['vis']['text'])
+            weathers = mixture['weather']['text'].split()
+
+            validateVisWeather(vis, weathers)
+
+        if 'weather' in tokens:
+            weather = tokens['weather']['text']
+            weathers = weather.split()
+            vis = int(mixture['vis']['text'])
+
+            validateVisWeather(vis, weathers)
+
+            # 检查阵性降水和积雨云
+            cloud = mixture['cloud']['text']
+            if ('TS' in weather or ('SH' in weather and '-' not in weather)) and not ('CB' in cloud or 'TCU' in cloud):
+                violations.append(('weather', 'shower_needs_cb'))
+
+            if 'NSW' in weathers and len(weathers) > 1:
+                violations.append(('weather', 'nsw_conflict'))
+
+            incompatible = set(weathers) & set(['BR', 'HZ', 'FG', 'FU'])
+            if len(incompatible) > 1:
+                violations.append(('weather', 'weather_conflict'))
+
+        if 'cloud' in tokens:
+            # 检查云组转折天气现象的匹配
+            weather = mixture['weather']['text']
+            cloud = tokens['cloud']['text']
+            if ('TS' in weather or ('SH' in weather and '-' not in weather)) and not ('CB' in cloud or 'TCU' in cloud):
+                violations.append(('cloud', 'shower_needs_cb'))
+
+            # 不同高度云组云量的验证
+            clouds = [c for c in cloud.split() if not ('CB' in c or 'TCU' in c)]
+
+            for i, cloud in enumerate(clouds):
+                if i == 1 and 'FEW' in cloud:
+                    violations.append(('cloud', 'cloud_second_layer_invalid'))
+
+                if i == 2 and ('FEW' in cloud or 'SCT' in cloud):
+                    violations.append(('cloud', 'cloud_third_layer_invalid'))
+
+        return list(dict.fromkeys(violations))
+
 
 class TafLexer:
     """TAF 报文一组要素的解析器
@@ -331,12 +451,12 @@ class TafLexer:
                 items = [m.group() for m in pattern.finditer(part)]
                 self.tokens[key] = {
                     'text': ' '.join(items),
-                    'error': None
+                    'error': []
                 }
             else:
                 self.tokens[key] = {
                     'text': m.group(),
-                    'error': None
+                    'error': []
                 }
 
     def isValid(self):
@@ -367,9 +487,10 @@ class TafParser:
     """解析 TAF 报文
 
     :param message: TAF 报文
+    :param created: 报文发布时间，默认从报文时间组解析
     :param lexer: 解析报文的类，默认 :class:`TafLexer`
-    :param validator: 验证报文转折关系的类，默认 :class:`TafValidator`
-    :param kwargs: 额外参数
+    :param validator: 验证报文的方案实例，默认 :class:`TafValidator`
+    :param kwargs: 传给默认校验方案的额外参数（传入 `validator` 时忽略）
 
     使用方法::
 
@@ -381,16 +502,15 @@ class TafParser:
 
         # 报文重新渲染成 HTML 格式，并高亮标注出错误
         p.renderer(style='html')
-        
+
+        # 替换整个校验方案，转折规则、组合规则与提示文案随之改变
+        p = TafParser(message, validator=IcaoTafValidator())
+
     """
 
     validatorClass = TafValidator
     
     lexerClass = TafLexer
-
-    defaultRules = [
-        'wind', 'vis', 'weather', 'cloud'
-    ]
 
     splitPattern = re.compile(r'(BECMG|(?:FM(?:\d{4}|\d{6}))|TEMPO|PROB[34]0\sTEMPO)')
 
@@ -403,8 +523,7 @@ class TafParser:
         self.message = message
         self.becmgs = []
         self.tempos = []
-        self.errors = []
-        self.failed = False
+        self.error = None
 
         self.reference = None
 
@@ -460,7 +579,7 @@ class TafParser:
         """解析主报文和变化组的时间顺序"""
         period = self.primary.tokens['period']['text']
         if len(period) not in [6, 9]:
-            raise ValueError('Malformed TAF period group: {!r}'.format(period))
+            raise ParseError('Malformed TAF period group: {!r}'.format(period))
 
         if self.created is None:
             self.created = parseTimez(self.primary.tokens['timez']['text'])
@@ -511,38 +630,35 @@ class TafParser:
         if 'weather' not in self.reference:
             self.reference['weather'] = {
                 'text': 'NSW',
-                'error': None
+                'error': []
             }
 
         if 'cavok' in self.reference:
             self.reference['vis'] = {
                 'text': '9999',
-                'error': None
+                'error': []
             }
             self.reference['cloud'] = {
                 'text': 'NSC',
-                'error': None
+                'error': []
             }
 
     def validate(self):
         """验证报文转折逻辑"""
         if self.hasMessageChanged():
-            self.failed = True
-            self.errors.append('经过校验后的报文和原始报文有些不同')
+            self.error = 'message_changed'
 
         try:
             for step in self.pipeline:
                 getattr(self, step)()
-        except Exception as e:
-            self.failed = True
-            self.errors.append('报文无法被正确解析')
+        except ParseError as e:
+            self.error = 'parse_failed'
             logger.error('message cannot be parsed correctly, {}, {}'.format(self.message, e))
-
-        self.errors = list(dict.fromkeys(self.errors))
 
     def _validatePrimary(self):
         """Validate the primary report against the reference"""
-        self._validateCombination(self.reference, self.primary.tokens)
+        for key, code in self.validator.combination(self.reference, self.primary.tokens):
+            self.mark(self.primary, key, code)
 
     def _validateGroups(self):
         """Validate the trend groups: single-element turnover, reference
@@ -557,15 +673,9 @@ class TafParser:
                     else:
                         legal = verify(self.reference[key]['text'], e.tokens[key]['text'])
 
-                    # 单项已判断为有误，或天气现象发生改变并引起能见度变化
-                    skip = e.tokens[key]['error'] or (
-                        key == 'weather'
-                        and e.tokens[key]['text'] != self.reference[key]['text']
-                        and 'vis' in e.tokens
-                        and not e.tokens['vis']['error']
-                    )
-                    if not skip:
-                        e.tokens[key]['error'] = not legal
+                    # 如果不合法，且当前要素没有错误，且不满足豁免条件，则标记转折有误
+                    if not legal and not e.tokens[key]['error'] and not self.validator.skipTurnover(key, self.reference, e.tokens):
+                        self.mark(e, key, '{}_turnover'.format(key))
 
                     if e.sign == 'BECMG' or e.sign.startswith('FM'):
                         if key == 'cavok':
@@ -576,113 +686,32 @@ class TafParser:
                             self.reference[key]['text'] = e.tokens[key]['text']
 
             # 验证参照组与转折组之间多个要素匹配
-            self._validateCombination(self.reference, e.tokens)
+            for key, code in self.validator.combination(self.reference, e.tokens):
+                self.mark(e, key, code)
 
-    def _validateCombination(self, ref, tokens):
-        """验证多个元素之间的匹配规则
-
-        1. 能见度和天气现象
-            * 能见度跨 1000 米时应变化天气现象
-            * 能见度小于 5000 米时应有天气现象
-            * 能见度小于 1000 米，BR、-DZ 不能有
-            * 能见度大于 1000 米、小于 5000 米，FG、+DZ 不能有
-            * 能见度大于 5000 米，FG、FU、BR、HZ 不能有
-
-        2. 天气现象
-            * 阵性降水应包含 CB
-            * NSW 不能和其他天气现象同时存在
-            * BR，HZ，FG，FU 不能同时存在
-
-        3. 云组
-            * 云组第二层云量不能为 FEW
-            * 云组第三层云量不能为 FEW 或 SCT
-
-        :param ref: 报文参照组
-        :param tokens: 当前报文解析后的要素， `OrderedDict`
-        """
-        mixture = copy.deepcopy(ref)
-        for key in tokens:
-            if key in self.defaultRules:
-                mixture[key]['text'] = tokens[key]['text']
-
-        def validateVisWeather(vis, weathers):
-            key = 'weather' if 'weather' in tokens else 'vis'
-
-            if 'NSW' in weathers:
-                if vis <= 5000:
-                    tokens[key]['error'] = True
-                    self.errors.append('能见度小于 5000 米时应有天气现象')
-
-            else:
-                if vis < 1000 and set(weathers) & set(['BR', '-DZ']):
-                    tokens[key]['error'] = True
-                    self.errors.append('能见度小于 1000 米，BR、-DZ 不能有')
-
-                if 1000 <= vis <= 5000 and set(weathers) & set(['FG', '+DZ']):
-                    tokens[key]['error'] = True
-                    self.errors.append('能见度大于 1000 米、小于 5000 米，FG、+DZ 不能有')
-
-                if vis > 5000 and set(weathers) & set(['FG', 'FU', 'BR', 'HZ', 'SA', 'DU']):
-                    tokens[key]['error'] = True
-                    self.errors.append('能见度大于 5000 米，FG、FU、BR、HZ、SA、DU 不能有')
-
-        # 检查能见度和天气现象
-        if 'vis' in tokens:
-            vis = int(tokens['vis']['text'])
-            weathers = mixture['weather']['text'].split()
-
-            validateVisWeather(vis, weathers)
-
-        if 'weather' in tokens:
-            weather = tokens['weather']['text']
-            weathers = weather.split()
-            vis = int(mixture['vis']['text'])
-
-            validateVisWeather(vis, weathers)
-
-            # 检查阵性降水和积雨云
-            cloud = mixture['cloud']['text']
-            if ('TS' in weather or ('SH' in weather and '-' not in weather)) and not ('CB' in cloud or 'TCU' in cloud):
-                tokens['weather']['error'] = True
-                self.errors.append('阵性降水应包含对流云')
-
-            if 'NSW' in weathers and len(weathers) > 1:
-                tokens['weather']['error'] = True
-                self.errors.append('NSW 不能和其他天气现象同时存在')
-
-            incompatible = set(weathers) & set(['BR', 'HZ', 'FG', 'FU'])
-            if len(incompatible) > 1:
-                tokens['weather']['error'] = True
-                self.errors.append('BR，HZ，FG，FU 不能同时存在')
-
-
-        if 'cloud' in tokens:
-            # 检查云组转折天气现象的匹配
-            weather = mixture['weather']['text']
-            cloud = tokens['cloud']['text']
-            if ('TS' in weather or ('SH' in weather and '-' not in weather)) and not ('CB' in cloud or 'TCU' in cloud):
-                tokens['cloud']['error'] = True
-                self.errors.append('阵性降水应包含对流云')
-
-            # 不同高度云组云量的验证
-            clouds = [c for c in cloud.split() if not ('CB' in c or 'TCU' in c)]
-
-            for i, cloud in enumerate(clouds):
-                if i == 1 and 'FEW' in cloud:
-                    tokens['cloud']['error'] = True
-                    self.errors.append('云组第二层云量不能为 FEW')
-
-                if i == 2 and ('FEW' in cloud or 'SCT' in cloud):
-                    tokens['cloud']['error'] = True
-                    self.errors.append('云组第三层云量不能为 FEW 或 SCT')
+    def mark(self, element, key, code):
+        if key in element.tokens:
+            element.tokens[key]['error'].append(code)
+        else:
+            self.error = code
 
     @property
     def tips(self):
-        return self.errors
+        return self.collectTips(self.elements)
+
+    def collectTips(self, elements):
+        codes = {self.error} if self.error else set()
+        for e in elements:
+            for t in e.tokens.values():
+                if t['error']:
+                    codes.update(t['error'])
+
+        messages = self.validator.messages
+        return [messages[code] for code in codes if code in messages]
 
     def isValid(self):
         """报文是否通过验证"""
-        if self.failed:
+        if self.error:
             return False
 
         valids = [e.isValid() for e in self.elements]
@@ -708,7 +737,7 @@ class TafParser:
             * html HTML 高亮风格
         :return: 根据不同风格重新渲染的报文
         """
-        outputs = [e.renderer(style, failed=self.failed) for e in self.elements if e]
+        outputs = [e.renderer(style, failed=self.error) for e in self.elements if e]
         return joinRendered(outputs, style)
 
 

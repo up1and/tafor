@@ -105,7 +105,7 @@ class TrendMessageComposer(MessageComposer):
             )
             parser.validate()
 
-            if not parser.failed:
+            if not parser.error:
                 html = '<p>{}</p>'.format(parser.renderer(style='html'))
                 if parser.tips:
                     html += '<p style="color: grey; font-family: \'{}\'; font-size: 10pt;"># {}</p>'.format(

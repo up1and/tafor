@@ -167,6 +167,11 @@ class AdvisoryGrammar:
         self.polygon = re.compile(r'(?:{}(?:{})?)+'.format(point, spacer))
 
 
+class ParseError(ValueError):
+    """The message cannot be parsed and further validation cannot proceed"""
+    pass
+
+
 __all__ = [
     'renderTokens',
     'joinRendered',
@@ -175,4 +180,5 @@ __all__ = [
     'MetarGrammar',
     'SigmetGrammar',
     'AdvisoryGrammar',
+    'ParseError'
 ]
