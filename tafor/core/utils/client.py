@@ -74,13 +74,16 @@ def layerInfo(url):
 def repoRelease(url):
     try:
         r = requests.get(url, headers=headers(), timeout=30)
-        return r.json()
+        if r.status_code == 200:
+            return r.json()
+        else:
+            logger.warning('GET {} returned unexpected status {}'.format(url, r.status_code))
 
     except requests.exceptions.Timeout:
-            logger.warning('GET {} request timed out'.format(url))
+        logger.warning('GET {} request timed out'.format(url))
 
     except requests.exceptions.ConnectionError:
-            logger.warning('GET {} connection failed'.format(url))
+        logger.warning('GET {} connection failed'.format(url))
 
     except Exception as e:
         logger.error('Failed to get the latest version information from {}, {}'.format(url, e))
