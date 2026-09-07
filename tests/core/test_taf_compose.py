@@ -5,6 +5,7 @@ from tafor.core.taf import (
     composeHeading,
     groupSpan,
     isGroupStartAcceptable,
+    normalizeTemperatureTime,
     segmentOrderKey,
     formatValidityEnd,
 )
@@ -69,6 +70,22 @@ class TestFormatValidityEnd:
     def test_midnight_normalizes_to_previous_day_24(self):
         assert formatValidityEnd(datetime.datetime(2026, 8, 11)) == '1024'
         assert formatValidityEnd(datetime.datetime(2026, 9, 1)) == '3124'
+
+
+class TestNormalizeTemperatureTime:
+
+    def test_non_midnight_returns_none(self):
+        # only midnight times need normalising; the caller keeps the raw text
+        assert normalizeTemperatureTime(datetime.datetime(2026, 8, 10, 15), DURATIONS) is None
+        assert normalizeTemperatureTime(datetime.datetime(2026, 8, 10, 21), DURATIONS) is None
+
+    def test_midnight_within_period(self):
+        # midnight resolves to plain DD00 unless it is the validity end
+        assert normalizeTemperatureTime(datetime.datetime(2026, 8, 11, 0), DURATIONS) == '1100'
+
+    def test_midnight_at_validity_end_uses_previous_day_24(self):
+        durations = (datetime.datetime(2026, 8, 10, 12), datetime.datetime(2026, 8, 11))
+        assert normalizeTemperatureTime(datetime.datetime(2026, 8, 11), durations) == '1024'
 
 
 class TestIsGroupStartAcceptable:

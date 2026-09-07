@@ -6,8 +6,8 @@ from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QComboBox, QRadioButton,
 
 from tafor.core.parsers.base import Pattern
 from tafor.core.taf import (CurrentTaf, GroupState, PrimaryState, SegmentState, TemperatureState, TrendState,
-    TafValidator, TrendValidator, completeGroupPeriod, groupSpan, isGroupStartAcceptable,
-    normalizeTemperatureTime, parseTemperature)
+    TafValidator, TrendValidator, completeGroupPeriod, formatValidityEnd, groupSpan,
+    isGroupStartAcceptable, normalizeTemperatureTime, parseTemperature)
 from tafor.core.utils.time import parseDayHour, parsePeriod, parseTime
 from tafor.core.utils.common import iconPath
 from tafor.ui.fonts import fixedFont
@@ -775,9 +775,9 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
             self.state.durations = (start, end)
 
             if end.hour == 0 and not period.endswith('24'):
-                end -= datetime.timedelta(minutes=1)
-                text = '{:02d}{:02d}/{:02d}24'.format(start.day, start.hour, end.day)
+                text = '{:02d}{:02d}/{}'.format(start.day, start.hour, formatValidityEnd(end))
                 self.period.setText(text)
+                end -= datetime.timedelta(minutes=1)
         else:
             self.state.durations = None
 

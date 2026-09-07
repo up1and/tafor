@@ -38,6 +38,19 @@ def formatValidityEnd(end):
     return '{:02d}{:02d}'.format(end.day, end.hour)
 
 
+def normalizeTemperatureTime(time, primary):
+    """Message notation for a temperature time: midnight at the end of the
+    validity period becomes the previous day followed by '24'."""
+    if time.hour != 0:
+        return None
+
+    if time == primary[1]:
+        normalizedTime = time - datetime.timedelta(hours=1)
+        return '{}24'.format(str(normalizedTime.day).zfill(2))
+
+    return '{}{}'.format(str(time.day).zfill(2), str(time.hour).zfill(2))
+
+
 def isGroupStartAcceptable(text, durations):
     """Whether a freshly typed four-digit DDHH parses to a group start
     that still falls inside the message validity period."""
