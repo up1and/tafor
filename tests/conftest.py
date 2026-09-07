@@ -1,6 +1,12 @@
+import os
+
 import pytest
 
 from pathlib import Path
+
+# Run Qt widgets headless so tests that show() top-level widgets do not
+# flash windows on the desktop. Must be set before QApplication is created.
+os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
 from tafor.core.config import createConfig
 from tafor.core.models import createDatabase

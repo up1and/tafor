@@ -113,7 +113,7 @@ class BackgroundImage(QGraphicsPixmapItem):
     def addTo(self, canvas, group):
         raw = QPixmap()
         raw.loadFromData(self.layer.image)
-        minx, miny, maxx, maxy = canvas.extentBound(self.layer.extent)
+        minx, miny, maxx, maxy = canvas.extentToCanvasCoordinates(self.layer.extent)
         width = int(abs(maxx - minx))
         height = int(abs(maxy - miny))
         raw = raw.scaled(width, height)

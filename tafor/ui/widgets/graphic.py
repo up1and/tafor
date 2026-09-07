@@ -63,9 +63,9 @@ class PolygonTool(SketchTool):
             if len(self.sketch.coordinates) > 2:
                 deviation = 12
                 canvasPoint = self.canvas.toCanvasCoordinates(*self.sketch.coordinates[0])
-                initPoint = self.canvas.mapFromScene(*canvasPoint)
-                dx = abs(event.pos().x() - initPoint.x())
-                dy = abs(event.pos().y() - initPoint.y())
+                firstPoint = self.canvas.mapFromScene(*canvasPoint)
+                dx = abs(event.pos().x() - firstPoint.x())
+                dy = abs(event.pos().y() - firstPoint.y())
                 if dx < deviation and dy < deviation:
                     self.sketch.clip(self.canvas.context.layer.boundaries())
                     return
@@ -194,21 +194,21 @@ class BaseCanvas(QGraphicsView):
             self.setExtent(self.context.layer.maxExtent())
 
         bound = self.bbox()
-        for polygons in shapes:
-            polygons = shapely.geometry.shape(polygons)
+        for shape in shapes:
+            polygon = shapely.geometry.shape(shape)
             if bound:
-                polygons = bound.intersection(polygons)
+                polygon = bound.intersection(polygon)
 
-            if polygons.geom_type == 'MultiPolygon':
-                polygons = polygons.geoms
-            elif polygons.geom_type == 'Polygon':
-                polygons = [polygons]
+            if polygon.geom_type == 'MultiPolygon':
+                polygons = polygon.geoms
+            else:
+                polygons = [polygon]
 
-            for shape in polygons:
-                if not shape.is_empty:
+            for part in polygons:
+                if not part.is_empty:
                     geometry = {
                         'type': 'Polygon',
-                        'coordinates': shape.exterior.coords
+                        'coordinates': part.exterior.coords
                     }
                     p = Coastline(geometry)
                     p.addTo(self, self.coastlines)
@@ -228,13 +228,13 @@ class BaseCanvas(QGraphicsView):
         self.firsGroup.setZValue(1)
         self.centerOn(self.firsGroup.boundingRect().center())
 
-    def drawSigmets(self, geos):
+    def drawSigmets(self, geometries):
         if self.sigmets:
             self.sigmets = []
             self.scene.removeItem(self.sigmetsGroup)
         
-        for geo in geos:
-            p = Sigmet(geo=geo)
+        for geometry in geometries:
+            p = Sigmet(geo=geometry)
             p.addTo(self, self.sigmets)
         
         self.sigmetsGroup = self.scene.createItemGroup(self.sigmets)
@@ -335,7 +335,7 @@ class Canvas(BaseCanvas):
     def currentTool(self):
         return self.tools.get(self.mode)
 
-    def extentBound(self, extent):
+    def extentToCanvasCoordinates(self, extent):
         minlon, minlat, maxlon, maxlat = extent
         minx, miny = self.toCanvasCoordinates(minlon, minlat)
         maxx, maxy = self.toCanvasCoordinates(maxlon, maxlat)
@@ -346,7 +346,7 @@ class Canvas(BaseCanvas):
         if not extent:
             return 0
 
-        minx, miny, maxx, maxy = self.extentBound(extent)
+        minx, miny, maxx, maxy = self.extentToCanvasCoordinates(extent)
         rect = QRectF(0, 0, abs(maxx - minx), abs(maxy - miny))
         viewrect = self.viewport().rect()
         scenerect = self.transform().mapRect(rect)
@@ -714,14 +714,14 @@ class GraphicsWindow(QWidget):
         final = self.canvas.sketchManager.last()
 
         boundaries = self.context.layer.boundaries()
-        sketchs = [initial.done and formatLocation(initial, boundaries)]
+        sketches = [initial.done and formatLocation(initial, boundaries)]
         if self.canvas.sketchManager.currentSketch() == final:
-            sketchs.append(final.done and formatLocation(final, boundaries))
+            sketches.append(final.done and formatLocation(final, boundaries))
 
-        return all(sketchs)
+        return all(sketches)
 
-    def setButton(self, tt='WS', category='template'):
-        if tt == 'WC':
+    def setButton(self, designator='WS', category='template'):
+        if designator == 'WC':
             icons = [
                 {'icon': iconPath('circle.png'), 'mode': 'circle'},
                 {'icon': iconPath('polygon.png'), 'mode': 'polygon'}
@@ -735,7 +735,7 @@ class GraphicsWindow(QWidget):
                 {'icon': iconPath('filled-polygon.png'), 'mode': 'entire'}
             ]
 
-        self.type = tt
+        self.type = designator
         self.icons = cycle(icons)
         self.nextMode()
 
@@ -949,17 +949,17 @@ class GraphicsWindow(QWidget):
         if self.context.layer.showSigmet:
             sigmets = self.cachedSigmets
 
-        geos = []
+        geometries = []
         for sig in sigmets:
             parser = sig.parser()
 
             try:
-                geo = parser.geo(self.context.layer.boundaries(), self.context.layer.trimShapes)
-                geos.append(geo)
+                geometry = parser.geo(self.context.layer.boundaries(), self.context.layer.trimShapes)
+                geometries.append(geometry)
             except Exception as e:
                 logger.error('Decode SIGMET graphic area error, {}, {}'.format(sig.text, e))
 
-        self.canvas.drawSigmets(geos)
+        self.canvas.drawSigmets(geometries)
 
     def updateMixedBackgroundOpacity(self, value):
         value = value / 10
