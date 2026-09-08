@@ -2,15 +2,15 @@ import os
 import datetime
 
 from PyQt5.QtGui import QIcon, QRegExpValidator, QColor, QPixmap
-from PyQt5.QtCore import QCoreApplication, QStandardPaths, QRegExp, QDate, Qt, pyqtSignal
+from PyQt5.QtCore import QCoreApplication, QStandardPaths, QRegExp, QDate, QEvent, Qt, QPoint, pyqtSignal
 from PyQt5.QtWidgets import (QDialog, QFileDialog, QWidget, QDialogButtonBox, QTableWidgetItem, QHeaderView, QLabel, QCalendarWidget,
-    QVBoxLayout, QFormLayout, QLabel, QDateEdit, QLayout, QApplication)
+    QVBoxLayout, QFormLayout, QLabel, QDateEdit, QHBoxLayout, QLayout, QApplication)
 
 from tafor.core.models import Metar, Sigmet, Taf
 from tafor.core.utils.common import iconPath
 from tafor.ui.qt import Ui_main_table
 from tafor.ui.fonts import fixedFont
-from tafor.ui.styles import flatButtonStyle, calendarStyle, dateEditHiddenStyle
+from tafor.ui.styles import calendarStyle
 from tafor.ui.workers import ExportRecordWorker, threadManager
 
 
@@ -119,6 +119,19 @@ class ExportDialog(QDialog):
         thread.start()
 
 
+class CalendarPopup(QWidget):
+    """Frameless popup owning the date picker, anchored above the calendar button."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent, Qt.Popup)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.calendar = QCalendarWidget(self)
+        self.calendar.setVerticalHeaderFormat(QCalendarWidget.NoVerticalHeader)
+        self.calendar.setStyleSheet(calendarStyle)
+        layout.addWidget(self.calendar)
+
+
 class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
     chartClicked = pyqtSignal()
@@ -141,11 +154,12 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.keywords = []
         self.color = QColor(200, 20, 40)
 
-        self.calendar.calendarWidget().setSelectedDate(QDate.currentDate())
-        self.calendar.calendarWidget().setHorizontalHeaderFormat(QCalendarWidget.NoHorizontalHeader)
-
         self.repository = repository
         self.exportDialog = ExportDialog(self)
+
+        self.calendarPopup = CalendarPopup(self)
+        self.calendarPopup.calendar.clicked.connect(self.setCalendar)
+        self.calendarPopup.installEventFilter(self)
 
         font = fixedFont()
         font.setPointSize(10)
@@ -161,10 +175,32 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.nextButton.clicked.connect(self.next)
         self.table.itemSelectionChanged.connect(self.updateInfoButton)
         self.infoButton.clicked.connect(self.view)
-        self.calendarButton.clicked.connect(lambda : self.setCalendar(None))
-        self.calendar.calendarWidget().clicked.connect(self.setCalendar)
+        self.calendarButton.clicked.connect(self.showCalendarPopup)
         self.chartButton.clicked.connect(self.chartClicked.emit)
         self.exportButton.clicked.connect(self.exportDialog.show)
+
+    def showCalendarPopup(self):
+        # The button doubles as the clear action while a date filter is active
+        if self.date:
+            self.setCalendar(None)
+            return
+
+        self.calendarPopup.calendar.setSelectedDate(QDate.currentDate())
+        self.calendarPopup.calendar.setMaximumDate(QDate.currentDate())
+        self.calendarPopup.ensurePolished()
+        self.calendarPopup.adjustSize()
+        self.calendarPopup.show()
+        # The polished height is only final after show(); move afterwards so
+        # the bottom edge sits exactly on the button's top edge
+        anchor = self.calendarButton.mapToGlobal(QPoint(0, 0))
+        self.calendarPopup.move(anchor.x(), anchor.y() - self.calendarPopup.height())
+
+    def eventFilter(self, obj, event):
+        # A click outside the popup closes it without picking a date; realign
+        # the checkable button with the (unchanged) filter state.
+        if obj is self.calendarPopup and event.type() == QEvent.Hide:
+            self.updateCalendarButton()
+        return super().eventFilter(obj, event)
 
     def setCalendar(self, date):
         if date:
@@ -180,12 +216,10 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         header.setSectionResizeMode(1, QHeaderView.Stretch)
         self.table.setStyleSheet('QTableWidget {border: 0;} QTableWidget::item {padding: 5px 0;}')
 
-        self.calendar.setStyleSheet(calendarStyle + dateEditHiddenStyle)
-
         self.prevButton.setIcon(QIcon(iconPath('prev.png')))
         self.nextButton.setIcon(QIcon(iconPath('next.png')))
         self.chartButton.setIcon(QIcon(iconPath('chart.png')))
-        self.calendarButton.setIcon(QIcon(iconPath('calendar.png')))
+        self.calendarButton.setIcon(QIcon(iconPath('search.png')))
         self.exportButton.setIcon(QIcon(iconPath('export.png')))
         self.infoButton.setIcon(QIcon(iconPath('info.png')))
         self.infoButton.hide()
@@ -232,8 +266,6 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.updatePages()
         self.updateInfoButton()
         self.updateCalendarButton()
-
-        self.calendar.setMaximumDate(QDate.currentDate())
 
     def updateTable(self):
         self.pagination = self.repository.paginated(
@@ -287,13 +319,8 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.infoButton.show()
 
     def updateCalendarButton(self):
-        if self.date:
-            self.calendarButton.setChecked(True)
-            self.calendarButton.show()
-            self.calendar.hide()
-        else:
-            self.calendarButton.hide()
-            self.calendar.show()
+        source = 'calendar.png' if self.date else 'search.png'
+        self.calendarButton.setIcon(QIcon(iconPath(source)))
 
     def copySelected(self, item):
         QApplication.clipboard().setText(item.text())

@@ -1,16 +1,3 @@
-import os
-
-from PyQt5.QtCore import QSysInfo
-
-from tafor.core.utils.common import iconPath
-
-
-def flatButtonStyle():
-    """Flat icon buttons over non-white surfaces: any stylesheet rule makes Qt
-    draw the button box, so the resting state must say transparent explicitly."""
-    hover = 'background: #f0f0f0; border: 1px solid #dcdcdc; border-radius: 2px;'
-    return 'QToolButton {{ background: transparent; border: none; padding: 2px; }} ' \
-           'QToolButton:hover, QToolButton:pressed {{ {} }}'.format(hover)
 
 calendarStyle = """
     QCalendarWidget QAbstractItemView:enabled /* date of actual month */{
@@ -61,26 +48,6 @@ calendarStyle = """
     }
 
 """
-
-dateEditHiddenStyle = """
-    QDateEdit {
-        border: 1px solid transparent;
-        padding: 2px; /* This (useless) line resolves a bug with the font color */
-    }
-
-    QDateEdit::drop-down
-    {
-        border: 0px; /* This seems to replace the whole arrow of the combo box */
-    }
-
-    /* Define a new custom arrow icon for the combo box */
-    QDateEdit::down-arrow {
-        image: url(%s);
-        width: 16px;
-        height: 16px;
-    }
-
-""" % iconPath('search.png').replace(os.sep, '/')
 
 tabStyle = """
     QTabBar::tab {

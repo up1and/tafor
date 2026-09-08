@@ -81,10 +81,7 @@
              <height>572</height>
             </rect>
            </property>
-           <property name="styleSheet">
-            <string notr="true">background:#fff</string>
-           </property>
-           <layout class="QVBoxLayout" name="scrollLayout">
+            <layout class="QVBoxLayout" name="scrollLayout">
             <property name="spacing">
              <number>0</number>
             </property>

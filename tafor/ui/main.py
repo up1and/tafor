@@ -4,7 +4,7 @@ import json
 import logging
 import datetime
 
-from PyQt5.QtGui import QIcon, QDesktopServices, QGuiApplication
+from PyQt5.QtGui import QIcon, QDesktopServices, QGuiApplication, QColor
 from PyQt5.QtCore import QCoreApplication, QTranslator, QLocale, QEvent, QObject, QTimer, Qt, QUrl, QSysInfo, QProcess, QT_VERSION_STR
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy,
         QSystemTrayIcon, QMenu, QMessageBox, QStyleFactory)
@@ -507,6 +507,12 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def setup(self):
         self.setWindowIcon(QIcon(iconPath('logo.png')))
+
+        # White content background via palette
+        self.scrollContents.setAutoFillBackground(True)
+        palette = self.scrollContents.palette()
+        palette.setColor(self.scrollContents.backgroundRole(), QColor('white'))
+        self.scrollContents.setPalette(palette)
 
         self.remindTafBox = RemindMessageBox(self)
         self.remindSigmetBox = RemindMessageBox(self)

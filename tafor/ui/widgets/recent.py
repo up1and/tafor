@@ -8,7 +8,6 @@ from tafor.core.utils.time import timeAgo
 from tafor.core.utils.common import iconPath
 from tafor.ui.fonts import fixedFont
 from tafor.ui.qt import Ui_main_recent
-from tafor.ui.styles import flatButtonStyle
 from tafor.ui.widgets.geometry import SigmetBackground
 
 
@@ -185,11 +184,7 @@ class RecentCard(QWidget, Ui_main_recent.Ui_Recent):
         self.reminderButton.clicked.connect(self.toggleReminder)
 
     def updateButton(self):
-        style = flatButtonStyle()
         self.replyButton.setIcon(QIcon(iconPath('reply-arrow.png')))
-        self.replyButton.setStyleSheet(style)
-        self.markButton.setStyleSheet(style)
-        self.reminderButton.setStyleSheet(style)
 
     def toggleReminder(self):
         # RemindService expects the stored message with parser()/expired()

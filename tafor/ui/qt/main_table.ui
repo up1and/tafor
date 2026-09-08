@@ -131,19 +131,6 @@
        </widget>
       </item>
       <item>
-       <widget class="QDateEdit" name="calendar">
-        <property name="maximumSize">
-         <size>
-          <width>20</width>
-          <height>16777215</height>
-         </size>
-        </property>
-        <property name="calendarPopup">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
        <widget class="QLineEdit" name="search">
         <property name="maximumSize">
          <size>
