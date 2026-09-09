@@ -432,6 +432,20 @@ class TestGraphicsWindowHelpers:
         assert window.locationWidget.location.text() == ''
         assert window.locationWidget.isHidden() is True
 
+    def test_cancelling_sketch_disables_overlap_button(self, window):
+        # drawing an area enables the overlap switch (done -> finished signal),
+        # but cancelling/undoing it rolls ``done`` back via the changed signal,
+        # which must disable the switch again
+        initial = window.canvas.sketchManager.first()
+        initial.restore(coordinates=TRIANGLE)
+        assert initial.done is True
+        assert window.overlapButton.isEnabled()
+
+        initial.removePoint()
+        assert initial.done is False
+        assert window.overlapButton.isEnabled() is False
+        assert window.overlapButton.isChecked() is False
+
     def test_layer_changed_event_notifies_subscribers(self, window):
         # the bus notification carries no payload; consumers pull fresh
         # data from the layer service and run in a stable order

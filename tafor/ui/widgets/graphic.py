@@ -682,6 +682,10 @@ class GraphicsWindow(QWidget):
         if not self.quietly and self.canvas.mode == 'circle':
             self.circleChanged.emit(self.circleCoordinates())
 
+        # a sketch change can roll back ``done`` (e.g. removePoint cancels an
+        # area), so recompute whether the overlap switch stays available;
+        self.updateOverlapButton()
+
     def formattedCoordinates(self):
         messages = []
         for s in self.canvas.sketchManager.sketches:
