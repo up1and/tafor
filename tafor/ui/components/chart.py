@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QDialog, QFileDialog, QDialogButtonBox, QCalendarWid
 from PyQt5.QtChart import (QChart, QChartView, QSplineSeries, QScatterSeries, QDateTimeAxis, QCategoryAxis)
 
 from tafor.ui.qt import Ui_chart
-from tafor.ui.styles import calendarStyle
+from tafor.ui.styles import applyCalendarStyle
 
 logger = logging.getLogger('tafor.chart')
 
@@ -411,8 +411,8 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         self.saveButton = self.buttonBox.button(QDialogButtonBox.Save)
         self.saveButton.setText(QCoreApplication.translate('Chart', 'Save'))
         self.calendar.calendarWidget().setHorizontalHeaderFormat(QCalendarWidget.NoHorizontalHeader)
+        applyCalendarStyle(self.calendar.calendarWidget())
         self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint)
-        self.setStyleSheet(calendarStyle)
 
         self.bindSignal()
         self.initChart()

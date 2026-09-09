@@ -10,7 +10,7 @@ from tafor.core.models import Metar, Sigmet, Taf
 from tafor.core.utils.common import iconPath
 from tafor.ui.qt import Ui_main_table
 from tafor.ui.fonts import fixedFont
-from tafor.ui.styles import calendarStyle
+from tafor.ui.styles import applyCalendarStyle
 from tafor.ui.workers import ExportRecordWorker, threadManager
 
 
@@ -50,6 +50,8 @@ class ExportDialog(QDialog):
 
         self.startDate.calendarWidget().setHorizontalHeaderFormat(QCalendarWidget.NoHorizontalHeader)
         self.endDate.calendarWidget().setHorizontalHeaderFormat(QCalendarWidget.NoHorizontalHeader)
+        applyCalendarStyle(self.startDate.calendarWidget())
+        applyCalendarStyle(self.endDate.calendarWidget())
 
         self.setWindowTitle(QCoreApplication.translate('DataTable', 'Export Records'))
         self.startDateLabel.setText(QCoreApplication.translate('DataTable', 'Start Date'))
@@ -58,7 +60,6 @@ class ExportDialog(QDialog):
         self.saveButton = self.buttonBox.button(QDialogButtonBox.Save)
         self.saveButton.setText(QCoreApplication.translate('DataTable', 'Export'))
 
-        self.setStyleSheet(calendarStyle)
         self.setWindowModality(Qt.WindowModal)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
@@ -128,7 +129,7 @@ class CalendarPopup(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         self.calendar = QCalendarWidget(self)
         self.calendar.setVerticalHeaderFormat(QCalendarWidget.NoVerticalHeader)
-        self.calendar.setStyleSheet(calendarStyle)
+        applyCalendarStyle(self.calendar)
         layout.addWidget(self.calendar)
 
 

@@ -12,7 +12,6 @@ from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QFileDialog, QMessageBox
 
 from tafor.core.utils.common import iconPath, ipAddress
 from tafor.ui.qt import Ui_setting
-from tafor.ui.styles import tabStyle
 from tafor.ui.workers import FtpWorker, threadManager
 
 logger = logging.getLogger('tafor.setting')
@@ -57,8 +56,6 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             self.addressTab.removeTab(2)
             self.addressTab.removeTab(2)
             self.settingTab.removeTab(6)
-
-        self.setStyleSheet(tabStyle)
 
         self.bindSignal()
         self.setupValidator()
