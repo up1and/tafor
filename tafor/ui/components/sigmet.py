@@ -158,7 +158,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.type = type
         self.mode = mode
         self.currentContent.setSpan(validDuration(self.type))
-        self.graphic.setButton(self.type, mode)
+        self.graphic.setModeButtons(self.type, mode)
         self.updateGraphicCanvas()
 
     def setOverlapMode(self, mode):

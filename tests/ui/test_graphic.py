@@ -7,8 +7,8 @@ rectangular/entire), GraphicsWindow helpers and background opacity handling.
 import pytest
 import shapely.geometry
 from PyQt5.QtCore import QEvent, QPointF, QPoint, QRect, QSize, Qt
-from PyQt5.QtGui import QMouseEvent, QWheelEvent
-from PyQt5.QtWidgets import QToolButton
+from PyQt5.QtGui import QMouseEvent, QResizeEvent, QWheelEvent
+from PyQt5.QtWidgets import QPushButton
 
 from tafor.ui.widgets.graphic import (
     Canvas, GraphicsWindow, LineTool, PolygonTool
@@ -305,7 +305,7 @@ def makeWindow(canvas, designator='WS'):
     window.canvas = canvas
     window.context = canvas.context
     window.type = designator
-    window.overlapButton = QToolButton()
+    window.overlapButton = QPushButton()
     window.overlapButton.setCheckable(True)
     window.positionLabel = OutlinedLabel()
     return window
@@ -374,6 +374,13 @@ class TestUpdateOverlapButton:
         assert window.overlapButton.isEnabled() is True
 
 
+def _is_within(node, root):
+    """True if `node` is `root` or one of its descendants."""
+    while node is not None and node is not root:
+        node = node.parentWidget()
+    return node is root
+
+
 class TestGraphicsWindowHelpers:
 
     @pytest.fixture
@@ -386,13 +393,67 @@ class TestGraphicsWindowHelpers:
         assert window.type == 'WS'
         assert window.canvas.mode == 'polygon'
 
-        window.setButton('WC')
+        window.setModeButtons('WC')
         assert window.type == 'WC'
         assert window.canvas.mode == 'circle'
 
-        window.setButton('WS')
+        window.setModeButtons('WS')
         assert window.type == 'WS'
         assert window.canvas.mode == 'polygon'
+
+    def test_operation_buttons_sizing(self, window):
+        # adaptive buttons follow their text via the style size hint,
+        # the cycling mode button is pinned so it does not jump around
+        for button in [window.refreshButton, window.layerButton, window.overlapButton]:
+            button.adjustSize()
+            assert button.height() == 24
+            assert button.width() == button.sizeHint().width()
+
+        assert window.modeButton.height() == 24
+        assert window.modeButton.width() >= window.modeButton.sizeHint().width()
+
+    def test_corner_overlays_positioned(self, window):
+        window.resize(800, 500)
+        size = QSize(window.width(), window.height())
+        window.resizeEvent(QResizeEvent(size, size))
+        window.locationWidget.show()
+
+        inset = 10
+        assert window.zoomWidget.geometry().topLeft() == QPoint(inset, inset)
+        assert window.operationWidget.geometry().topRight() == QPoint(window.width() - inset - 1, inset)
+        assert window.layerInfoWidget.geometry().bottomLeft() == QPoint(inset, window.height() - inset - 1)
+        assert window.positionLabel.geometry().bottomRight() == QPoint(window.width() - inset - 1, window.height() - inset - 1)
+
+        # the location banner floats above the bottom edge, centered
+        geo = window.locationWidget.geometry()
+        assert geo.x() == (window.width() - geo.width()) // 2
+        assert window.height() - geo.bottom() - 1 == 75
+
+        # zoom buttons are square and stay inside their overlay widget
+        assert window.zoomInButton.parent() is window.zoomWidget
+        assert window.zoomOutButton.parent() is window.zoomWidget
+        assert window.zoomInButton.width() == window.zoomInButton.height() == 24
+
+    def test_corner_buttons_are_clickable(self, window, qtbot):
+        # the interactive overlays float directly over the canvas without a
+        # transparent overlay, so a hit-test at their center must find them;
+        # the labels stay transparent to keep the map reachable
+        window.resize(800, 500)
+        app_size = QSize(window.width(), window.height())
+        window.resizeEvent(QResizeEvent(app_size, app_size))
+        window.show()
+        qtbot.wait(100)
+
+        for widget in [window.zoomWidget, window.operationWidget]:
+            center = widget.geometry().center()
+            hit = window.childAt(center.x(), center.y())
+            assert _is_within(hit, widget), '{} is covered by {}'.format(widget, hit)
+
+        # a real press on the zoom button reaches the button
+        clicks = []
+        window.zoomInButton.clicked.connect(lambda: clicks.append(1))
+        qtbot.mouseClick(window.zoomInButton, Qt.LeftButton)
+        assert clicks, 'zoomInButton was not clickable'
 
     def test_location_only_lists_done_sketches(self, window):
         assert window.location() == {}
@@ -422,7 +483,7 @@ class TestGraphicsWindowHelpers:
         assert window.hasAcceptableGraphic() is True
 
     def test_next_mode_clears_location_label(self, window):
-        window.setButton('WS')
+        window.setModeButtons('WS')
         window.canvas.sketchManager.first().restore(coordinates=TRIANGLE)
         assert window.locationWidget.location.text()
         assert window.locationWidget.isHidden() is False

@@ -8,13 +8,13 @@ import shapely.geometry
 from itertools import cycle
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView, QGraphicsScene, QRubberBand,
-    QStyleOptionGraphicsItem, QPushButton, QToolButton, QLabel, QMenu, QActionGroup, QAction, QWidgetAction, QSlider, QSpacerItem, QSizePolicy)
-from PyQt5.QtGui import QIcon, QPainter
+    QStyleOptionGraphicsItem, QPushButton, QLabel, QMenu, QActionGroup, QAction, QWidgetAction, QSlider, QSpacerItem, QSizePolicy)
+from PyQt5.QtGui import QFontMetrics, QPainter
 from PyQt5.QtCore import QCoreApplication, Qt, QRect, QRectF, QSize, pyqtSignal
 
 from tafor.core.geometry.coordinate import degTodms
 from tafor.core.sigmet.compose import formatLocation
-from tafor.core.utils.common import iconPath, resourcePath
+from tafor.core.utils.common import resourcePath
 from tafor.ui.fonts import fixedFont
 from tafor.ui.widgets.sketch import SketchManager
 from tafor.ui.widgets.geometry import BackgroundImage, Coastline, Fir, Sigmet
@@ -587,50 +587,51 @@ class GraphicsWindow(QWidget):
         self.context = context
         self.type = ''
         self.quietly = False
-        self.canvas = Canvas(self.context)
-        self.verticalLayout = QVBoxLayout(self)
-        self.verticalLayout.setContentsMargins(0, 8, 0, 0)
-        self.verticalLayout.addWidget(self.canvas)
-        self.setMaximumSize(960, 620)
-
         self.cachedSigmets = []
+
+        self.canvas = Canvas(self.context)
+        self.setMaximumSize(960, 620)
+        self.canvasLayout = QVBoxLayout(self)
+        self.canvasLayout.setContentsMargins(0, 0, 0, 0)
+        self.canvasLayout.addWidget(self.canvas)
 
         self.zoomInButton = QPushButton(self)
         self.zoomInButton.setText('+')
         self.zoomOutButton = QPushButton(self)
         self.zoomOutButton.setText('-')
-        self.zoomLayout = QVBoxLayout()
+
+        # compact square zoom buttons inside the top-left overlay
+        for button in (self.zoomInButton, self.zoomOutButton):
+            button.setFixedSize(24, 24)
+
+        self.zoomWidget = QWidget(self)
+        self.zoomLayout = QVBoxLayout(self.zoomWidget)
+        self.zoomLayout.setSpacing(0)
+        self.zoomLayout.setContentsMargins(0, 0, 0, 0)
         self.zoomLayout.addWidget(self.zoomInButton)
         self.zoomLayout.addWidget(self.zoomOutButton)
-        self.zoomLayout.setGeometry(QRect(20, 20, 24, 48))
 
-        self.refreshButton = QToolButton(self)
-        self.refreshButton.setText('Refresh')
-        self.refreshButton.setIcon(QIcon(iconPath('synchronize.png')))
+        self.refreshButton = QPushButton(self)
+        self.refreshButton.setText(QCoreApplication.translate('Editor', 'Refresh'))
 
-        self.layerButton = QToolButton(self)
-        self.layerButton.setText('Layer')
-        self.layerButton.setPopupMode(QToolButton.InstantPopup)
-        self.layerButton.setIcon(QIcon(iconPath('layers.png')))
+        self.layerButton = QPushButton(self)
+        self.layerButton.setText(QCoreApplication.translate('Editor', 'Layer'))
 
-        self.overlapButton = QToolButton(self)
+        self.overlapButton = QPushButton(self)
         self.overlapButton.setEnabled(False)
-        self.overlapButton.setText('Overlap')
+        self.overlapButton.setText(QCoreApplication.translate('Editor', 'Overlap'))
         self.overlapButton.setCheckable(True)
-        self.overlapButton.setIcon(QIcon(iconPath('overlap.png')))
 
-        self.modeButton = QToolButton(self)
-        self.modeButton.setText('Mode')
+        self.modeButton = QPushButton(self)
+        self.modeButton.setText(QCoreApplication.translate('Editor', 'Polygon'))
 
-        for button in [self.refreshButton, self.layerButton, self.overlapButton, self.modeButton]:
-            button.setFixedSize(26, 26)
-            button.setAutoRaise(True)
+        for button in [self.refreshButton, self.layerButton, self.overlapButton]:
+            button.setFixedHeight(24)
 
         self.operationWidget = QWidget(self)
-        self.operationWidget.setMinimumSize(140, 44)
         self.operationLayout = QHBoxLayout(self.operationWidget)
         self.operationLayout.setSpacing(0)
-        self.operationLayout.addItem(QSpacerItem(0, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        self.operationLayout.setContentsMargins(0, 0, 0, 0)
         self.operationLayout.addWidget(self.refreshButton)
         self.operationLayout.addWidget(self.layerButton)
         self.operationLayout.addWidget(self.overlapButton)
@@ -651,7 +652,7 @@ class GraphicsWindow(QWidget):
         self.locationWidget = LocationWidget(self.context, self)
 
         self.setLayerMenu()
-        self.setButton()
+        self.setModeButtons()
         self.load()
         self.bindSignal()
 
@@ -723,23 +724,26 @@ class GraphicsWindow(QWidget):
 
         return all(sketches)
 
-    def setButton(self, designator='WS', category='template'):
+    def setModeButtons(self, designator='WS', category='template'):
         if designator == 'WC':
             icons = [
-                {'icon': iconPath('circle.png'), 'mode': 'circle'},
-                {'icon': iconPath('polygon.png'), 'mode': 'polygon'}
+                {'title': QCoreApplication.translate('Editor', 'Circle'), 'mode': 'circle'},
+                {'title': QCoreApplication.translate('Editor', 'Polygon'), 'mode': 'polygon'}
             ]
         else:
             icons = [
-                {'icon': iconPath('polygon.png'), 'mode': 'polygon'},
-                {'icon': iconPath('line.png'), 'mode': 'line'},
-                {'icon': iconPath('rectangular.png'), 'mode': 'rectangular'},
-                {'icon': iconPath('corridor.png'), 'mode': 'corridor'},
-                {'icon': iconPath('filled-polygon.png'), 'mode': 'entire'}
+                {'title': QCoreApplication.translate('Editor', 'Polygon'), 'mode': 'polygon'},
+                {'title': QCoreApplication.translate('Editor', 'Line'), 'mode': 'line'},
+                {'title': QCoreApplication.translate('Editor', 'Rectangular'), 'mode': 'rectangular'},
+                {'title': QCoreApplication.translate('Editor', 'Corridor'), 'mode': 'corridor'},
+                {'title': QCoreApplication.translate('Editor', 'Entire'), 'mode': 'entire'}
             ]
 
         self.type = designator
         self.icons = cycle(icons)
+        metrics = QFontMetrics(self.modeButton.font())
+        width = max(metrics.horizontalAdvance(icon['title']) for icon in icons) + 20
+        self.modeButton.setFixedSize(width, 24)
         self.nextMode()
 
         if category == 'cancel':
@@ -765,7 +769,7 @@ class GraphicsWindow(QWidget):
         self.clear()
         mode = next(self.icons)
         self.canvas.setMode(mode['mode'])
-        self.modeButton.setIcon(QIcon(mode['icon']))
+        self.modeButton.setText(mode['title'])
         self.modeChanged.emit(mode['mode'])
         # sketches were cleared quietly, so refresh the location label
         # through the same signal the sketch changes flow through
@@ -811,7 +815,6 @@ class GraphicsWindow(QWidget):
         self.layerMenu.addAction(self.showSigmetAction)
         self.layerMenu.addSeparator()
         self.layerButton.setMenu(self.layerMenu)
-        self.layerButton.setStyleSheet('QToolButton::menu-indicator {image: none;}')
 
     def setLayerSelectMenu(self):
         layers = self.context.layer.groupLayers()
@@ -985,10 +988,24 @@ class GraphicsWindow(QWidget):
         self.canvas.drawCoastline()
 
     def resizeEvent(self, event):
-        self.operationWidget.move(self.width() - self.operationWidget.width() - 4, 10)
-        self.positionLabel.move(self.width() - self.positionLabel.width() - 18, self.height() - self.positionLabel.height() - 15)
-        self.layerInfoWidget.move(18, self.height() - self.layerInfoWidget.height() - 15)
-        self.locationWidget.move(int(self.width() / 2 - self.locationWidget.width() / 2), self.height() - self.locationWidget.height() - 75)
+        # float the overlays over the corners, inset from the window edges;
+        # raise them above the canvas so they receive mouse events
+        inset = 10
+        self.zoomWidget.adjustSize()
+        self.operationWidget.adjustSize()
+        self.positionLabel.adjustSize()
+        self.layerInfoWidget.adjustSize()
+
+        self.zoomWidget.move(inset, inset)
+        self.operationWidget.move(self.width() - self.operationWidget.width() - inset, inset)
+        self.layerInfoWidget.move(inset, self.height() - self.layerInfoWidget.height() - inset)
+        self.positionLabel.move(self.width() - self.positionLabel.width() - inset,
+                                self.height() - self.positionLabel.height() - inset)
+
+        # location banner centered, deliberately floated above the bottom edge
+        self.locationWidget.move((self.width() - self.locationWidget.width()) // 2,
+                                  self.height() - self.locationWidget.height() - 75)
+
         super().resizeEvent(event)
 
     def keyPressEvent(self, event):
