@@ -674,8 +674,7 @@ class GraphicsWindow(QWidget):
         self.backgroundLayerActionGroup.triggered.connect(self.changeLayer)
         self.mixedBackgroundLayerActionGroup.triggered.connect(self.changeLayer)
         self.opacitySlider.valueChanged.connect(self.updateMixedBackgroundOpacity)
-        self.context.event.layerChanged.connect(self.setLayerSelectMenu)
-        self.context.event.layerChanged.connect(self.updateLayer)
+        self.context.event.layerChanged.connect(self.handleLayerChanged)
 
     def handleSketchChange(self):
         self.sketchChanged.emit(self.formattedCoordinates())
@@ -764,6 +763,9 @@ class GraphicsWindow(QWidget):
         self.canvas.setMode(mode['mode'])
         self.modeButton.setIcon(QIcon(mode['icon']))
         self.modeChanged.emit(mode['mode'])
+        # sketches were cleared quietly, so refresh the location label
+        # through the same signal the sketch changes flow through
+        self.sketchChanged.emit(self.formattedCoordinates())
 
     def handleOverlap(self, checked):
         if checked:
@@ -781,6 +783,12 @@ class GraphicsWindow(QWidget):
     def setCachedSigmet(self, sigmets):
         self.cachedSigmets = sigmets
         self.updateSigmetGraphic()
+
+    def handleLayerChanged(self):
+        # pure notification: pull fresh data from the layer service,
+        # keeping menu population before the canvas redraw
+        self.setLayerSelectMenu()
+        self.updateLayer()
 
     def setLayerMenu(self):
         self.layerMenu = QMenu(self)

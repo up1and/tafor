@@ -116,7 +116,7 @@ class LayerService(StateProxyMixin):
 
         self.state.layers = layers
         if oldNames != newNames:
-            self.event.layerChanged.emit(self.state)
+            self.event.layerChanged.emit()
 
     def setState(self, values):
         normalized = {}
@@ -133,7 +133,7 @@ class LayerService(StateProxyMixin):
             for key, value in normalized.items():
                 setattr(self.state, key, value)
 
-            self.event.layerChanged.emit(self.state)
+            self.event.layerChanged.emit()
 
     def getLayers(self):
         return self.state.layers

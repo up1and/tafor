@@ -29,7 +29,7 @@ class Event:
 
     def __init__(self):
         # Data changes
-        self.layerChanged = Signal()        # emits the layer state
+        self.layerChanged = Signal()
         self.remoteMessageChanged = Signal()
         self.currentSigmetChanged = Signal()
         self.notificationChanged = Signal()  # emits the message type

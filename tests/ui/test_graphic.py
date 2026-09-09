@@ -421,6 +421,28 @@ class TestGraphicsWindowHelpers:
         window.canvas.sketchManager.last().restore(coordinates=TRIANGLE)
         assert window.hasAcceptableGraphic() is True
 
+    def test_next_mode_clears_location_label(self, window):
+        window.setButton('WS')
+        window.canvas.sketchManager.first().restore(coordinates=TRIANGLE)
+        assert window.locationWidget.location.text()
+        assert window.locationWidget.isHidden() is False
+
+        window.nextMode()
+
+        assert window.locationWidget.location.text() == ''
+        assert window.locationWidget.isHidden() is True
+
+    def test_layer_changed_event_notifies_subscribers(self, window):
+        # the bus notification carries no payload; consumers pull fresh
+        # data from the layer service and run in a stable order
+        calls = []
+        window.setLayerSelectMenu = lambda: calls.append('menu')
+        window.updateLayer = lambda: calls.append('canvas')
+
+        window.context.event.layerChanged.emit()
+
+        assert calls == ['menu', 'canvas']
+
     def test_update_position_label(self, window):
         window.updatePositionLabel((110.5, 15.25))
         assert window.positionLabel.text() == 'N15°15′00″, E110°30′00″'
