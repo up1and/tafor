@@ -7,7 +7,8 @@ from tafor.core.geometry.algorithm import (
     bearingToDirection, circle, clipLine, clipPolygon, collinearWith, corridor,
     decode, decodeLine, decodePolygon, determineDirection, encode,
     expandToCover, findCutEdges, findDrawnLineEdges, findLines,
-    geodesicDistance, groupCollinearLines, halfPlane, linesIntersection,
+    geodesicDistance, groupCollinearLines, halfPlane, labelPoint,
+    linesIntersection,
     mergeCollinearLines, overlaps, principalAxis, simplifyPolygon,
     simplifyToMaxPoint, geod,
 )
@@ -738,4 +739,24 @@ def test_half_plane_with_a_degenerate_line_keeps_no_area():
     boundary = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
 
     assert halfPlane('N', [(5.0, 5.0), (5.0, 5.0)], Polygon(boundary)) is None
+def test_label_point_of_convex_polygon_is_center():
+    square = [(0, 0), (10, 0), (10, 10), (0, 10)]
+    x, y = labelPoint(square)
+    assert (x, y) == pytest.approx((5, 5))
+
+
+def test_label_point_of_concave_polygon_is_inside():
+    # an L shape whose centroid falls outside the polygon; the label
+    # point drops back to an interior point instead
+    L = [(0, 0), (10, 0), (10, 2), (2, 2), (2, 10), (0, 10)]
+    assert not Polygon(L).contains(Polygon(L).centroid)
+
+    x, y = labelPoint(L)
+    assert Polygon(L).contains(Point(x, y))
+
+
+def test_label_point_of_collinear_points_does_not_raise():
+    x, y = labelPoint([(0, 0), (5, 0), (10, 0)])
+    assert y == pytest.approx(0)
+
 

@@ -4,6 +4,8 @@ from PyQt5.QtGui import QPen, QColor, QBrush, QPolygonF, QPainterPath, QPixmap, 
 from PyQt5.QtCore import Qt, QPointF, QRectF
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsPolygonItem, QGraphicsPixmapItem, QWidget
 
+from tafor.core.geometry.algorithm import labelPoint
+
 
 class CanvasMixin:
 
@@ -245,11 +247,19 @@ class Sigmet(QGraphicsItem, CanvasMixin, ColorMixin):
 
             if location == 'initial':
                 sequence = geo.properties['sequence']
-                path = QPainterPath()
                 font = QFont()
                 font.setBold(True)
                 font.setPointSize(16)
-                path.addText(geo.boundingRect().center(), font, sequence)
+
+                # addText anchors the text at its baseline origin, so lay the
+                # text out at the origin first and translate it afterwards
+                path = QPainterPath()
+                path.addText(0, 0, font, sequence)
+                textRect = path.boundingRect()
+
+                cx, cy = labelPoint([(p.x(), p.y()) for p in geo])
+                path.translate(QPointF(cx, cy) - textRect.center())
+
                 pen = QPen(QColor(0, 0, 0, 120))
                 brush = QBrush(Qt.white)
                 painter.strokePath(path, pen)

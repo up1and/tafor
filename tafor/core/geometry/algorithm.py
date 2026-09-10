@@ -619,6 +619,17 @@ def principalAxis(line):
             edges[1].interpolate(0.5, normalized=True)]
     return LineString([mids[0].coords[0], mids[1].coords[0]])
 
+def labelPoint(points):
+    """Find the label point of a polygon. Prefers the centroid, which is
+    the shape's balance point and reads best visually. Falls back to an
+    interior point when the centroid lies outside the polygon (concave
+    or hollow shapes)."""
+    geom = Polygon(points)
+    point = geom.centroid
+    if not geom.contains(point):
+        point = geom.representative_point()
+    return point.x, point.y
+
 def lineDirection(line, polygons):
     """Sum of the unit vectors pointing from the line towards each touching
     polygon's pole of inaccessibility, or None when no polygon contributes.
