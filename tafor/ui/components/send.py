@@ -1,9 +1,7 @@
 import logging
 import datetime
 
-from itertools import cycle
-
-from PyQt5.QtGui import QFontMetrics, QPixmap, QIcon
+from PyQt5.QtGui import QFontMetrics, QIcon, QPixmap
 from PyQt5.QtCore import QCoreApplication, QSize, Qt, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QMessageBox, QTextEdit, QLabel, QToolButton
 from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
@@ -23,24 +21,18 @@ logger = logging.getLogger('tafor.send')
 
 
 class ComposedMessage:
-    def __init__(self, message, parser=None, html='', category=None, geo=None):
+    """Composer product for the current message: the validation result, the
+    preview html and the optional SIGMET geographic shape."""
+
+    def __init__(self, message, parser=None, html='', geo=None):
         self.message = message
         self.parser = parser
         self.html = html
-        self.category = category
         self.geo = geo
 
 
-class SenderViewState:
-    def __init__(self, mode, windowTitle, rawGroupTitle, rawText='', resendVisible=False):
-        self.mode = mode
-        self.windowTitle = windowTitle
-        self.rawGroupTitle = rawGroupTitle
-        self.rawText = rawText
-        self.resendVisible = resendVisible
-
-
 class MessageComposer:
+
     def __init__(self, conf, context, fontFamily='monospace'):
         self.conf = conf
         self.context = context
@@ -51,6 +43,7 @@ class MessageComposer:
 
 
 class TafMessageComposer(MessageComposer):
+
     def compose(self, message):
         visHas5000 = self.conf.visHas5000
         cloudHeightHas450 = self.conf.cloudHeightHas450
@@ -84,6 +77,7 @@ class TafMessageComposer(MessageComposer):
 
 
 class TrendMessageComposer(MessageComposer):
+
     def compose(self, message):
         html = message.text
         parser = None
@@ -92,16 +86,12 @@ class TrendMessageComposer(MessageComposer):
 
         if notificationParser and notificationParser.hasTrend():
             metar = notificationParser.primary.part
-            visHas5000 = self.conf.visHas5000
-            cloudHeightHas450 = self.conf.cloudHeightHas450
-            weakPrecipitationVerification = self.conf.weakPrecipitationVerification
-
             parser = MetarParser(
                 ' '.join([metar, message.text]),
                 trendOnly=True,
-                visHas5000=visHas5000,
-                cloudHeightHas450=cloudHeightHas450,
-                weakPrecipitationVerification=weakPrecipitationVerification,
+                visHas5000=self.conf.visHas5000,
+                cloudHeightHas450=self.conf.cloudHeightHas450,
+                weakPrecipitationVerification=self.conf.weakPrecipitationVerification,
             )
             parser.validate()
 
@@ -116,6 +106,7 @@ class TrendMessageComposer(MessageComposer):
 
 
 class SigmetMessageComposer(MessageComposer):
+
     def compose(self, message):
         try:
             parser = SigmetParser(message.text, created=message.created)
@@ -129,10 +120,10 @@ class SigmetMessageComposer(MessageComposer):
             if not message.isCnl():
                 geo = parser.geo(self.context.layer.boundaries(), trim=True)
 
-            return ComposedMessage(message, parser=parser, html=html, category=message.category, geo=geo)
+            return ComposedMessage(message, parser=parser, html=html, geo=geo)
         except Exception as e:
             logger.error('Sender parse SIGMET failed, {}, {}'.format(message.text, e))
-            return ComposedMessage(message, category=message.category)
+            return ComposedMessage(message)
 
 
 class CustomMessageComposer(MessageComposer):
@@ -153,248 +144,337 @@ def createComposer(category, conf, context, fontFamily='monospace'):
         raise ValueError(f'Unsupported report type: {category}')
 
 
-class TransportService:
-    def __init__(self, conf, context):
+class Line:
+    """The current communication line: protocol, telegraph generation and
+    transmission"""
+
+    def __init__(self, conf, context, pinned=None):
         self.conf = conf
         self.context = context
+        self.pinned = pinned
 
-    def channel(self, protocol):
-        return createChannel(protocol, self.conf)
+    @property
+    def protocol(self):
+        if self.pinned:
+            return self.pinned
 
-    def worker(self, protocol):
-        if protocol == 'ftp':
-            return FtpWorker
-        return SerialWorker
+        text = self.conf.communicationProtocol
+        return text.lower() if text else 'aftn'
 
-    def successText(self, protocol):
-        if protocol == 'ftp':
-            return QCoreApplication.translate('Sender', 'File has been uploaded to the host')
-        return QCoreApplication.translate('Sender', 'Data has been sent to the serial port')
+    @property
+    def channel(self):
+        return createChannel(self.protocol, self.conf)
 
-    def resendText(self, protocol):
-        if protocol == 'ftp':
-            return QCoreApplication.translate('Sender', 'The file will be resent, do you want to continue?')
-        return QCoreApplication.translate('Sender', 'Some part of the AFTN message may be updated, do you still want to resend?')
-
-    def workerParams(self, protocol, parser=None):
-        if protocol == 'ftp':
-            return self.channel(protocol).ftpParams(getattr(parser, 'valids', None))
-        return {
-            'conf': self.conf,
-            'context': self.context,
-        }
-
-    def generate(self, message, protocol):
-        channel = self.channel(protocol)
-        return channel.generate(message,
+    def generate(self, message):
+        """Build the telegraph; custom messages carry their own transient
+        addressing"""
+        return self.channel.generate(
+            message,
             priority=getattr(message, 'priority', None),
-            address=getattr(message, 'address', None))
+            address=getattr(message, 'address', None),
+        )
 
-    def transmit(self, protocol, parser, rawText, done, finished):
-        worker, thread = threadManager.createWorker(self.worker(protocol), rawText, **self.workerParams(protocol, parser))
-        worker.done.connect(done)
-        worker.finished.connect(finished)
+    def transmit(self, text, parser, result):
+        """Submit a background worker; the result arrives via onResult(error),
+        '' on success"""
+        if self.protocol == 'ftp':
+            params = self.channel.ftpParams(getattr(parser, 'valids', None))
+            worker, thread = threadManager.createWorker(FtpWorker, text, **params)
+        else:
+            worker, thread = threadManager.createWorker(
+                SerialWorker, text, conf=self.conf, context=self.context)
+
+        worker.done.connect(result)
         thread.start()
 
 
+class Session:
+    """One message session, the only mutable business state. Loading a new
+    message replaces the whole object (self-healing); object identity guards
+    against stale transmission results."""
+
+    def __init__(self, message, mode, line):
+        self.message = message
+        self.mode = mode            # 'send' | 'review' | 'custom', frozen at load
+        self.line = line
+        self.phase = 'ready'        # ready → sending → sent | failed
+        self.composed = None        # ComposedMessage, set at load
+        self.telegraph = None       # generator, set by send() / custom load
+        self.clicked = None         # 'send' | 'resend', which action is in flight
+        self.pane = None            # 'canvas' | 'telegraph' | None, SIGMET display focus
+
+
+class Situation:
+    """Flat projection of what the dialog should display. Every stored field
+    is a final render decision computed by the presenter; the view applies it
+    blindly and derives nothing. A few decisions are plain restatements of a
+    stored one (the visible pane, the badge following the action) and appear
+    as properties. title = None means leave the current title untouched (the
+    custom sender's fixed window title)."""
+
+    def __init__(self, title=None, previewVisible=True, html='', geo=None,
+                 pane=None, telegraphTitle='', telegraphText='',
+                 action='send', busy=False, printVisible=False,
+                 switchVisible=False, badgeProtocol='aftn'):
+        self.title = title
+        self.previewVisible = previewVisible
+        self.html = html
+        self.geo = geo
+        self.pane = pane            # 'canvas' | 'telegraph' | None, the resolved visible pane
+        self.telegraphTitle = telegraphTitle
+        self.telegraphText = telegraphText
+        self.action = action       # 'send' | 'resend' | None, which action button this frame offers
+        self.busy = busy
+        self.printVisible = printVisible
+        self.switchVisible = switchVisible
+        self.badgeProtocol = badgeProtocol
+
+    @property
+    def canvasVisible(self):
+        return self.pane == 'canvas'
+
+    @property
+    def telegraphVisible(self):
+        return self.pane == 'telegraph'
+
+    @property
+    def badgeVisible(self):
+        return self.action is not None
+
+
 class SenderPresenter:
+
     def __init__(self, view, context, conf, repository=None):
         self.view = view
         self.context = context
         self.conf = conf
-        self.composer = createComposer(view.category, conf, context, fontFamily=uiFont().family())
-        self.transportService = TransportService(conf, context)
         self.repository = repository
-        self.resetGroupCycle()
-
-    def protocol(self):
-        return self.view.protocol()
-
-    def channel(self):
-        return self.transportService.channel(self.protocol())
-
-    def resetGroupCycle(self):
-        groups = ['canvas', 'raw'] if self.view.hasCanvasGroup else ['raw']
-        self.groupNames = cycle(groups)
-
-    def nextGroupName(self):
-        return next(self.groupNames)
+        self.session = None
 
     def receive(self, message):
-        self.view.message = message
-        self.compose()
-        self.view.renderContent(self.buildViewState())
-        self.updateVisibility()
+        """Entry for editor-composed and historical messages"""
+        mode = 'review' if (message and message.id) else 'send'
+        session = Session(message, mode, self.createLine())
+        session.composed = self.compose(message)
 
-    def buildViewState(self):
-        isViewMode = bool(self.view.message and self.view.message.id)
-        mode = 'view' if isViewMode else 'send'
-        resendVisible = False
-        rawText = ''
+        if session.composed.geo is not None:
+            session.pane = 'canvas'
 
-        if isViewMode:
-            windowTitle = QCoreApplication.translate('Sender', 'View Message')
-            rawGroupTitle = QCoreApplication.translate('Sender', 'Raw Data')
-            rawText = self.view.message.rawText()
-            resendVisible = canResend(self.view.message, datetime.datetime.utcnow())
-        else:
-            windowTitle = QCoreApplication.translate('Sender', 'Send Message')
-            rawGroupTitle = self.transportService.successText(self.protocol())
-
-        return SenderViewState(
-            mode=mode,
-            windowTitle=windowTitle,
-            rawGroupTitle=rawGroupTitle,
-            rawText=rawText,
-            resendVisible=resendVisible,
-        )
-
-    def compose(self):
-        result = self.composer.compose(self.view.message)
-        self.view.message = result.message
-        self.view.parser = result.parser
-
-        if result.category:
-            self.view.category = result.category
-
-        if result.html:
-            self.view.text.setHtml(result.html)
-            self.view.resizeText()
-
-        if hasattr(self.view, 'graphic'):
-            if result.geo:
-                self.view.graphic.setSigmet(result.geo)
-            else:
-                self.view.graphic.clear()
-
-    def generateRawText(self):
-        generator = self.transportService.generate(self.view.message, self.protocol())
-        self.view.generator = generator
-        return generator.toString()
-
-    def send(self):
-        if self.view.parser and not self.view.parser.isValid():
-            logger.warning('Validator {}, valid status {}'.format(self.view.parser, self.view.parser.isValid()))
-            title = QCoreApplication.translate('Sender', 'Validator Warning')
-            text = QCoreApplication.translate('Sender', 'The message did not pass the validator, do you still want to send?')
-            ret = QMessageBox.question(self.view, title, text)
-            if ret != QMessageBox.Yes:
-                return None
-
-        if self.view.mode == 'view':
-            title = QCoreApplication.translate('Sender', 'Resend Reminder')
-            ret = QMessageBox.question(self.view, title, self.transportService.resendText(self.protocol()))
-            if ret != QMessageBox.Yes:
-                return None
-
-        if self.protocol() != 'aftn':
-            title = QCoreApplication.translate('Sender', 'Transmission Line Reminder')
-            text = QCoreApplication.translate('Sender', 'Not a common transmission line, do you want to continue?')
-            ret = QMessageBox.question(self.view, title, text)
-            if ret != QMessageBox.Yes:
-                return None
-
-        self.view.sendButton.setEnabled(False)
-        self.view.sendButton.setText(QCoreApplication.translate('Sender', 'Sending'))
-        self.view.resendButton.setEnabled(False)
-        self.view.resendButton.setText(QCoreApplication.translate('Sender', 'Sending'))
-
-        rawText = self.generateRawText()
-
-        if self.context.license.hasPermission(self.view.category):
-            self.transportService.transmit(
-                self.protocol(),
-                self.view.parser,
-                rawText,
-                done=lambda error: self.view.setRawGroup(rawText, error),
-                finished=self.save,
-            )
-        else:
-            error = QCoreApplication.translate('Sender', 'Limited functionality, please check the license information')
-            self.view.setRawGroup(rawText, error=error)
-            self.save()
-
-    def save(self):
-        if self.view.message and self.view.message.id:
-            self.view.message.raw = self.view.generator.toJson()
-            self.view.message.protocol = self.protocol()
-            self.view.message.created = datetime.datetime.utcnow()
-            logger.debug('Resend {}'.format(self.view.message.text))
-        else:
-            self.view.message.raw = self.view.generator.toJson()
-            self.view.message.protocol = self.protocol()
-            logger.debug('Send {}'.format(self.view.message.text))
-
-        self.repository.add(self.view.message)
-
-        self.view.succeeded.emit(True)
-
-    def updateSequenceNumber(self, succeeded=True):
-        if succeeded and not self.view.error:
-            self.conf.set(self.channel().configName, str(self.view.generator.number))
-
-    def handleSucceeded(self, succeeded=True):
-        self.updateSequenceNumber(succeeded)
-        if succeeded and isinstance(self.view, SigmetSender):
-            self.updateReminder()
-        self.updateVisibility(succeeded)
-
-    def updateReminder(self):
-        self.context.sigmet.updateReminders(self.view.message)
-
-    def reload(self):
-        if self.view.isVisible() and self.view.message:
-            self.compose()
+        self.session = session
+        self.view.render()
 
     def load(self, message):
-        self.view.clear()
-        self.view.message = message
-        rawText = self.generateRawText()
-        self.view.setRawGroup(rawText)
-        self.view.rawGroup.show()
-        self.view.protocolSign.show()
-        self.view.sendButton.show()
-        self.view.printButton.hide()
-        self.view.rawGroup.setTitle(QCoreApplication.translate('Sender', 'Received Messages'))
+        """Entry for custom messages arriving over RPC"""
+        session = Session(message, 'custom', self.createLine())
+        session.composed = self.compose(message)
+        session.telegraph = session.line.generate(message)
+        self.session = session
+        self.view.render()
 
-    def groupState(self, succeeded=False):
-        if not self.view.message:
+    def createLine(self):
+        return Line(self.conf, self.context, pinned=self.view.pinnedProtocol)
+
+    def compose(self, message):
+        composer = createComposer(message.category, self.conf, self.context, uiFont().family())
+        return composer.compose(message)
+
+    def situation(self):
+        """Map the session onto the flat render projection — the single
+        place where state becomes pixels. Built by assigning deviations onto
+        the cleared default Situation."""
+        state = Situation()
+        session = self.session
+        if session is None:
+            return state                        # the cleared display
+
+        message = session.message
+        sending = session.phase == 'sending'
+        hasTelegram = bool(message.raw or (session.telegraph and not sending))
+
+        state.previewVisible = session.mode != 'custom'
+        state.html = session.composed.html
+        state.geo = session.composed.geo
+
+        if session.mode == 'review':
+            state.title = QCoreApplication.translate('Sender', 'View Message')
+        elif session.mode == 'custom':
+            state.title = None                  # keep the fixed custom title
+        else:
+            state.title = QCoreApplication.translate('Sender', 'Send Message')
+
+        # The transmission outcome outranks the session kind
+        if session.phase == 'failed':
+            state.telegraphTitle = QCoreApplication.translate('Sender', 'Send Failed')
+        elif session.phase == 'sent':
+            if session.line.protocol == 'ftp':
+                state.telegraphTitle = QCoreApplication.translate('Sender', 'File has been uploaded to the host')
+            else:
+                state.telegraphTitle = QCoreApplication.translate('Sender', 'Data has been sent to the serial port')
+        elif session.mode == 'custom':
+            state.telegraphTitle = QCoreApplication.translate('Sender', 'Received Messages')
+        else:
+            state.telegraphTitle = QCoreApplication.translate('Sender', 'Raw Data')
+
+        if self.view.graphic is not None and session.pane == 'canvas' and session.composed.geo is not None:
+            state.pane = 'canvas'
+        elif hasTelegram:
+            state.pane = 'telegraph'
+
+        state.telegraphText = session.telegraph.toString() if session.telegraph else message.rawText()
+        state.action = self.action(session)
+        state.busy = sending
+        state.printVisible = bool(message.raw)
+        state.switchVisible = self.view.graphic is not None and hasTelegram and not message.isCnl()
+        state.badgeProtocol = session.line.protocol
+        return state
+
+    def action(self, session):
+        """The currently visible action button: None | 'send' | 'resend'"""
+        if session.phase == 'sent':
             return None
 
-        if self.view.hasCanvasGroup:
-            group = self.nextGroupName()
+        if session.phase == 'sending':
+            return session.clicked
 
-            if (self.view.message.isCnl() or succeeded) and group == 'canvas':
-                group = self.nextGroupName()
+        if session.phase == 'failed':
+            licensed = self.context.license.hasPermission(session.message.category)
+            return 'resend' if licensed else None
 
-            if not self.view.message.raw and group == 'raw':
-                group = self.nextGroupName()
+        if session.mode == 'review':
+            eligible = canResend(session.message, datetime.datetime.utcnow())
+            return 'resend' if eligible else None
 
-            if not self.view.message.raw and self.view.message.isCnl():
-                return None
+        return 'send'
 
-            return group
-
-        if self.view.message.rawText():
-            return 'raw'
-
-        return None
-
-    def updateVisibility(self, succeeded=False):
-        group = self.groupState(succeeded)
-        self.view.group = group
-
-        if self.view.hasCanvasGroup:
-            self.view.renderCanvasRawGroup(group)
+    def send(self):
+        """The Send and Resend buttons share this entry"""
+        session = self.session
+        if session is None or session.phase in ('sending', 'sent'):
             return
 
-        self.view.renderRawGroup(group)
+        if not self.confirmations(session):
+            return
+
+        session.clicked = self.action(session)
+        session.phase = 'sending'
+        self.view.render()
+
+        try:
+            session.telegraph = session.line.generate(session.message)
+
+            if not self.context.license.hasPermission(session.message.category):
+                self.settle(session, QCoreApplication.translate('Sender', 'Limited functionality, please check the license information'))
+                return
+            
+            parser = session.composed.parser if session.composed else None
+            session.line.transmit(
+                session.telegraph.toString(), parser,
+                lambda error, target=session: self.settle(target, error))
+        except Exception as e:
+            logger.exception('Failed to generate or submit the telegram')
+            self.settle(session, str(e))
+
+    def confirmations(self, session):
+        """Pre-send confirmations, checked in order; the first refusal aborts
+        with the UI untouched"""
+        if session.composed.parser and not session.composed.parser.isValid():
+            logger.warning('Validator {}, valid status {}'.format(session.composed.parser, session.composed.parser.isValid()))
+            title = QCoreApplication.translate('Sender', 'Validator Warning')
+            text = QCoreApplication.translate('Sender', 'The message did not pass the validator, do you still want to send?')
+            if not self.view.confirm(title, text):
+                return False
+
+        if session.mode == 'review':
+            title = QCoreApplication.translate('Sender', 'Resend Reminder')
+            if session.line.protocol == 'ftp':
+                text = QCoreApplication.translate('Sender', 'The file will be resent, do you want to continue?')
+            else:
+                text = QCoreApplication.translate('Sender', 'Some part of the AFTN message may be updated, do you still want to resend?')
+            if not self.view.confirm(title, text):
+                return False
+
+        if session.line.protocol != 'aftn':
+            title = QCoreApplication.translate('Sender', 'Transmission Line Reminder')
+            text = QCoreApplication.translate('Sender', 'Not a common transmission line, do you want to continue?')
+            if not self.view.confirm(title, text):
+                return False
+
+        return True
+
+    def settle(self, session, error=''):
+        """Record the outcome of a transmission for the session it belongs
+        to; results arriving after the session was replaced are dropped."""
+        if session is not self.session:
+            return
+
+        if error:
+            self.view.showError(error)
+            self.save(session)
+            session.phase = 'failed'
+            self.view.render()
+        else:
+            self.save(session)
+            self.advanceSequence(session)
+            self.updateReminder(session)
+            session.phase = 'sent'
+            session.pane = 'telegraph'
+            self.view.render()
+            self.view.succeeded.emit(True)
+
+    def save(self, session):
+        message = session.message
+        resent = bool(message.raw)
+
+        if resent or message.created is None:
+            message.created = datetime.datetime.utcnow()
+
+        message.raw = session.telegraph.toJson()
+        message.protocol = session.line.protocol
+        self.repository.add(message)
+
+        logger.debug('{} {}'.format('Resend' if resent else 'Send', message.text))
+
+    def advanceSequence(self, session):
+        self.conf.set(session.line.channel.configName, str(session.telegraph.number))
+
+    def updateReminder(self, session):
+        if session.message.category in ('SIGMET', 'AIRMET'):
+            self.context.sigmet.updateReminders(session.message)
+
+    def toggle(self):
+        if self.session is None or self.session.message.isCnl() or self.view.graphic is None:
+            return
+
+        self.session.pane = 'telegraph' if self.session.pane == 'canvas' else 'canvas'
+        self.view.render()
+
+    def reload(self):
+        if self.session is not None and self.view.isVisible():
+            self.session.composed = self.compose(self.session.message)
+            self.view.render()
+
+    def cancel(self):
+        """What Cancel means right now: 'backed' returns to the editor,
+        'closed' closes the dialog chain, None does neither (browsing a
+        historical message)."""
+        if self.session is not None:
+            if self.session.phase == 'sent':
+                self.view.closed.emit()
+            elif self.session.mode != 'review':
+                self.view.backed.emit()
+
+        self.clear()
+        self.view.close()
+
+    def clear(self):
+        self.session = None
+        self.view.render()
 
 
 class BaseSender(QDialog, Ui_send.Ui_Sender):
-    category = ''
-    fixedProtocol = None
-    hasCanvasGroup = False
+
+    graphic = None              # the SIGMET canvas; set only by subclasses that have one
+    pinnedProtocol = None
 
     closed = pyqtSignal()
     backed = pyqtSignal()
@@ -406,13 +486,6 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.conf = conf
         self.setupUi(self)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
-
-        self.generator = None
-        self.parser = None
-        self.message = None
-        self.error = None
-        self.mode = 'send'
-        self.group = None
 
         self.sendButton = self.buttonBox.button(QDialogButtonBox.Ok)
         self.resendButton = self.buttonBox.button(QDialogButtonBox.Retry)
@@ -433,9 +506,8 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.presenter = SenderPresenter(self, self.context, self.conf, repository)
 
         self.buttonBox.accepted.connect(self.presenter.send)
+        self.buttonBox.rejected.connect(self.cancel)
         self.printButton.clicked.connect(self.print)
-        self.cancelButton.clicked.connect(self.cancel)
-        self.succeeded.connect(self.presenter.handleSucceeded)
 
         self.rawGroup.hide()
         self.canvasGroup.hide()
@@ -443,108 +515,107 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.resendButton.hide()
         self.switchButton.hide()
 
+        self.badge = QLabel(self)
+        self.badge.hide()
+
         font = fixedFont()
         font.setPointSize(11)
         self.text.setFont(font)
         self.raw.setFont(font)
 
-        self.updateProtocolIcon()
+    def render(self):
+        """Pull the current Situation from the presenter and apply it.
+        Idempotent: the same session always renders the same display."""
+        state = self.presenter.situation()
 
-    def protocol(self):
-        text = self.fixedProtocol or self.conf.communicationProtocol
-        return text.lower() if text else 'aftn'
+        if state.title is not None:
+            self.setWindowTitle(state.title)
 
-    def channel(self):
-        return self.presenter.channel()
+        self.textGroup.setVisible(state.previewVisible)
+        self.text.setHtml(state.html)
+        self.resizeText()
 
-    def updateProtocolIcon(self):
-        pixmap = QPixmap(iconPath('{}.png').format(self.protocol()))
-        if hasattr(self, 'protocolSign'):
-            self.protocolSign.setPixmap(pixmap)
-        else:
-            self.protocolSign = QLabel(self)
-            self.protocolSign.setPixmap(pixmap)
-            self.protocolSign.setMask(pixmap.mask())
-            self.protocolSign.adjustSize()
-            self.protocolSign.move(self.width() - 100, 3)
+        self.canvasGroup.setVisible(state.canvasVisible)
+        self.rawGroup.setVisible(state.telegraphVisible)
+        self.rawGroup.setTitle(state.telegraphTitle)
+        self.raw.setText(state.telegraphText)
 
-        visible = self.sendButton.isVisible() or self.resendButton.isVisible()
-        self.protocolSign.setVisible(visible)
+        if self.graphic is not None:
+            if state.geo is not None:
+                self.graphic.setSigmet(state.geo)
+            else:
+                self.graphic.clear()
 
-    def renderContent(self, state):
-        self.mode = state.mode
-        self.setWindowTitle(state.windowTitle)
-        self.rawGroup.setTitle(state.rawGroupTitle)
-        self.raw.setText(state.rawText)
+        self.sendButton.setVisible(state.action == 'send')
+        self.sendButton.setEnabled(not state.busy)
+        self.sendButton.setText(QCoreApplication.translate('Sender', 'Sending') if state.busy else QCoreApplication.translate('Sender', 'Send'))
 
-        if state.mode == 'view':
-            self.sendButton.hide()
-        else:
-            self.sendButton.show()
+        self.resendButton.setVisible(state.action == 'resend')
+        self.resendButton.setEnabled(not state.busy)
+        self.resendButton.setText(QCoreApplication.translate('Sender', 'Sending') if state.busy else QCoreApplication.translate('Sender', 'Resend'))
 
-        self.resendButton.setVisible(state.resendVisible)
+        self.switchButton.setVisible(state.switchVisible)
+        if state.switchVisible:
+            # The icon advertises the view it toggles to: the words icon
+            # while the canvas is showing, the map icon while the telegram is.
+            self.switchButton.setIcon(QIcon(iconPath('words.png' if state.canvasVisible else 'map.png')))
 
-    def renderRawGroup(self, group):
-        if group == 'raw':
-            self.rawGroup.show()
-            self.printButton.show()
+        self.printButton.setVisible(state.printVisible)
+        self.updateBadge(state)
 
-        if group is None:
-            self.rawGroup.hide()
-            self.printButton.hide()
+    def confirm(self, title, text):
+        ret = QMessageBox.question(self, title, text)
+        return ret == QMessageBox.Yes
 
-    def receive(self, message):
-        self.presenter.receive(message)
+    def showError(self, text):
+        QMessageBox.critical(self, QCoreApplication.translate('Sender', 'Error'), text)
 
-    def setRawGroup(self, rawText, error=''):
-        if rawText is None:
-            return None
+    def updateBadge(self, state):
+        pixmap = QPixmap(iconPath('{}.png'.format(state.badgeProtocol)))
+        self.badge.setPixmap(pixmap)
+        self.badge.setMask(pixmap.mask())
+        self.badge.adjustSize()
+        self.badge.setVisible(state.badgeVisible)
 
-        self.raw.setText(rawText)
-        self.group = self.presenter.nextGroupName()
-        self.printButton.show()
-        self.sendButton.hide()
-        self.resendButton.hide()
-
-        if error:
-            self.error = error
-            self.rawGroup.setTitle(QCoreApplication.translate('Sender', 'Send Failed'))
-
-            if self.context.license.hasPermission(self.category):
-                self.resendButton.setEnabled(True)
-                self.resendButton.setText(QCoreApplication.translate('Sender', 'Resend'))
-                self.resendButton.show()
-
-            title = QCoreApplication.translate('Sender', 'Error')
-            QMessageBox.critical(self, title, error)
+    def resizeEvent(self, event):
+        self.badge.move(self.width() - 53, 3)
+        super().resizeEvent(event)
 
     def print(self):
+        session = self.presenter.session
+        if session is None or not session.message.raw:
+            return
+
         printer = QPrinter()
-        dialog = QPrintDialog(printer)
+        dialog = QPrintDialog(printer, self)
         if dialog.exec() != QDialog.Accepted:
             return
 
-        editor = QTextEdit()
+        message = session.message
+        aftn = AFTNDecoder(message.raw)
+
         priority = QCoreApplication.translate('Sender', 'Priority Indicator')
         address = QCoreApplication.translate('Sender', 'Send Address')
         originator = QCoreApplication.translate('Sender', 'Originator Address')
         content = QCoreApplication.translate('Sender', 'Message Content')
         time = QCoreApplication.translate('Sender', 'Sent Time')
         raw = QCoreApplication.translate('Sender', 'Raw Data')
-        aftn = AFTNDecoder(self.message.raw)
-        texts = [priority, aftn.priority, address, aftn.address, originator, aftn.originator,
-            content, self.message.report, raw, self.message.rawText(), time, '{} UTC'.format(self.message.created)]
 
-        elements = []
-        for title, content in zip(texts[::2], texts[1::2]):
-            content = '<br>'.join(content.split('\n'))
-            text = '<p><b>{}</b><br>{}</p>'.format(title, content)
-            elements.append(text)
+        items = [
+            (priority, aftn.priority),
+            (address, aftn.address),
+            (originator, aftn.originator),
+            (content, message.report),
+            (raw, message.rawText()),
+            (time, '{} UTC'.format(message.created)),
+        ]
 
-        font = fixedFont()
-        font.setPointSize(10)
-        editor.setFont(font)
-        editor.setHtml(''.join(elements))
+        blocks = ['<p><b>{}</b><br>{}</p>'.format(title, '<br>'.join(str(value).split('\n')))
+                  for title, value in items if value]
+
+        editor = QTextEdit()
+        editor.document().setDefaultFont(fixedFont())
+        editor.setHtml(''.join(blocks))
         editor.print(printer)
 
     def resizeText(self):
@@ -555,47 +626,31 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         textHeight = textSize.height() + 50
         self.text.setMaximumHeight(textHeight)
 
-    def cancel(self):
-        if self.mode == 'send':
-            if (self.error or not self.sendButton.isHidden() or not self.resendButton.isHidden()):
-                self.backed.emit()
-            else:
-                self.closed.emit()
-
-        self.clear()
-
-    def showEvent(self, event):
-        self.updateProtocolIcon()
-
     def closeEvent(self, event):
+        # A user click on the window × counts as Cancel; a programmatic close
+        # only clears silently
         if event.spontaneous():
             self.cancel()
+        else:
+            self.clear()
 
-        self.clear()
+    def receive(self, message):
+        self.presenter.receive(message)
+
+    def cancel(self):
+        self.presenter.cancel()
 
     def clear(self):
-        self.message = None
-        self.error = None
-        self.parser = None
-        self.group = None
-        self.text.setText('')
-        self.rawGroup.hide()
-        self.printButton.hide()
-        self.resendButton.setEnabled(True)
-        self.resendButton.setText(QCoreApplication.translate('Sender', 'Resend'))
-        self.resendButton.hide()
-        self.sendButton.setEnabled(True)
-        self.sendButton.setText(QCoreApplication.translate('Sender', 'Send'))
-        self.sendButton.show()
+        self.presenter.clear()
 
 
 class TafSender(BaseSender):
-    category = 'TAF'
+    pass
 
 
 class TrendSender(BaseSender):
-    category = 'TREND'
-    fixedProtocol = 'aftn'
+
+    pinnedProtocol = 'aftn'
 
     def __init__(self, parent=None, context=None, conf=None, repository=None):
         super().__init__(parent, context, conf, repository)
@@ -603,59 +658,26 @@ class TrendSender(BaseSender):
 
 
 class SigmetSender(BaseSender):
-    category = 'SIGMET'
-    hasCanvasGroup = True
 
     def __init__(self, parent=None, context=None, conf=None, repository=None):
         super().__init__(parent, context, conf, repository)
         self.graphic = GraphicsViewer(self, context=self.context)
         self.canvasLayout.addWidget(self.graphic)
-        self.switchButton.clicked.connect(self.presenter.updateVisibility)
-
-    def renderCanvasRawGroup(self, group):
-        if group is None:
-            self.rawGroup.hide()
-            self.canvasGroup.hide()
-
-        if group == 'canvas':
-            self.rawGroup.hide()
-            self.canvasGroup.show()
-
-        if group == 'raw':
-            self.rawGroup.show()
-            self.canvasGroup.hide()
-
-        if not self.message.raw or self.message.isCnl():
-            self.switchButton.hide()
-        else:
-            if group == 'canvas':
-                icon = iconPath('words.png')
-            else:
-                icon = iconPath('map.png')
-
-            self.switchButton.setIcon(QIcon(icon))
-            self.switchButton.show()
-
-        if self.message.raw:
-            self.printButton.show()
-        else:
-            self.printButton.hide()
+        self.switchButton.clicked.connect(self.presenter.toggle)
 
     def resizeEvent(self, event):
         self.switchButton.move(self.width() - 70, self.textGroup.height() + 50)
         super().resizeEvent(event)
 
-    def clear(self):
-        super().clear()
-        self.presenter.resetGroupCycle()
-
 
 class CustomSender(BaseSender):
-    category = 'CUSTOM'
-    fixedProtocol = 'aftn'
+
+    pinnedProtocol = 'aftn'
 
     def __init__(self, parent=None, context=None, conf=None, repository=None):
         super().__init__(parent, context, conf, repository)
-        self.textGroup.hide()
         self.setModal(True)
         self.setWindowTitle(QCoreApplication.translate('Sender', 'Send Custom Message'))
+
+    def receive(self, message):
+        self.presenter.load(message)

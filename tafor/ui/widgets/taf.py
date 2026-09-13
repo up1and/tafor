@@ -407,7 +407,7 @@ class TemperatureGroup(SegmentMixin, QWidget):
             icon = 'cold'
 
         self.label.setText(text)
-        self.switchButton.setIcon(QIcon(iconPath('{}.png').format(icon)))
+        self.switchButton.setIcon(QIcon(iconPath('{}.png'.format(icon))))
 
     def validateTemperatureTime(self):
         if not self.primary.period.text() or not self.tempTime.hasAcceptableInput():
