@@ -419,8 +419,9 @@ class TestGraphicsWindowHelpers:
         window.locationWidget.show()
 
         inset = 10
-        assert window.zoomWidget.geometry().topLeft() == QPoint(inset, inset)
-        assert window.operationWidget.geometry().topRight() == QPoint(window.width() - inset - 1, inset)
+        margin = 8
+        assert window.zoomWidget.geometry().topLeft() == QPoint(inset, inset + margin)
+        assert window.operationWidget.geometry().topRight() == QPoint(window.width() - inset - 1, inset + margin)
         assert window.layerInfoWidget.geometry().bottomLeft() == QPoint(inset, window.height() - inset - 1)
         assert window.positionLabel.geometry().bottomRight() == QPoint(window.width() - inset - 1, window.height() - inset - 1)
 

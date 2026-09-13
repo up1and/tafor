@@ -592,7 +592,7 @@ class GraphicsWindow(QWidget):
         self.canvas = Canvas(self.context)
         self.setMaximumSize(960, 620)
         self.canvasLayout = QVBoxLayout(self)
-        self.canvasLayout.setContentsMargins(0, 0, 0, 0)
+        self.canvasLayout.setContentsMargins(0, 8, 0, 0)
         self.canvasLayout.addWidget(self.canvas)
 
         self.zoomInButton = QPushButton(self)
@@ -989,15 +989,15 @@ class GraphicsWindow(QWidget):
 
     def resizeEvent(self, event):
         # float the overlays over the corners, inset from the window edges;
-        # raise them above the canvas so they receive mouse events
+        # raise them above the canvas so they receive mouse events.
         inset = 10
         self.zoomWidget.adjustSize()
         self.operationWidget.adjustSize()
         self.positionLabel.adjustSize()
         self.layerInfoWidget.adjustSize()
 
-        self.zoomWidget.move(inset, inset)
-        self.operationWidget.move(self.width() - self.operationWidget.width() - inset, inset)
+        self.zoomWidget.move(inset, inset + 8)
+        self.operationWidget.move(self.width() - self.operationWidget.width() - inset, inset + 8)
         self.layerInfoWidget.move(inset, self.height() - self.layerInfoWidget.height() - inset)
         self.positionLabel.move(self.width() - self.positionLabel.width() - inset,
                                 self.height() - self.positionLabel.height() - inset)
