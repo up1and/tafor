@@ -1,3 +1,4 @@
+import re
 import datetime
 
 from tafor.core.parsers import SigmetParser, TyphoonAdvisoryParser, AshAdvisoryParser
@@ -64,6 +65,29 @@ def test_fir_code_argument():
     assert parser.firCode == 'ZJSA SANYA FIR'
     assert parser.airportCode == 'ZJHK'
     assert parser.isValid()
+
+
+def test_sigmet_parser(fixtures_dir):
+    folder = fixtures_dir / 'sigmet'
+    for filepath in sorted(folder.glob('*.text')):
+        content = filepath.read_text()
+
+        m = SigmetParser(content, firCode='ZJSA SANYA FIR')
+        html = m.renderer(style='html')
+        result = filepath.with_suffix('.html').read_text()
+
+        html = re.sub(r'\s', '', html)
+        result = re.sub(r'\s', '', result)
+        assert result == html
+
+
+def test_repr_and_terminal_renderer():
+    s = SigmetParser('ZJSA SIGMET 1 VALID 311430/311830 ZJHK-\nZJSA SANYA FIR EMBD TS FCST N OF N16 TOP FL300 MOV N 30KMH NC=', firCode='ZJSA SANYA FIR', airportCode='ZJHK')
+    repr(s)
+    s.renderer('terminal')
+
+    assert s.isValid()
+    assert not s.hasMessageChanged()
 
 
 def test_error_fixture_tokens(read_fixture):

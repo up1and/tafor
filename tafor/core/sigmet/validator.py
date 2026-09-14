@@ -1,7 +1,7 @@
 import datetime
 
 
-class SigmetValidator:
+class SigmetFormValidator:
     START_TOO_FAR = 'start_too_far'
     END_NOT_GREATER = 'end_not_greater'
     PERIOD_TOO_LONG = 'period_too_long'
@@ -18,13 +18,13 @@ class SigmetValidator:
         start, end = durations
 
         if start - now > datetime.timedelta(hours=24):
-            return SigmetValidator.START_TOO_FAR
+            return SigmetFormValidator.START_TOO_FAR
 
         if end <= start:
-            return SigmetValidator.END_NOT_GREATER
+            return SigmetFormValidator.END_NOT_GREATER
 
         if end - start > datetime.timedelta(hours=span):
-            return (SigmetValidator.PERIOD_TOO_LONG, {'hours': span})
+            return (SigmetFormValidator.PERIOD_TOO_LONG, {'hours': span})
 
         return None
 
@@ -34,6 +34,6 @@ class SigmetValidator:
             return None
 
         if int(top) <= int(base):
-            return SigmetValidator.FLIGHT_LEVEL_INVALID
+            return SigmetFormValidator.FLIGHT_LEVEL_INVALID
 
         return None

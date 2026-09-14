@@ -5,4 +5,4 @@ from tafor.core.sigmet.states import (
     SigmetGeneralState,
     SigmetTyphoonState,
 )
-from tafor.core.sigmet.validator import SigmetValidator
+from tafor.core.sigmet.validator import SigmetFormValidator

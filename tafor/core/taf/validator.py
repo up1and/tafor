@@ -5,7 +5,7 @@ from tafor.core.utils.time import isOverlap, parseDayHour, parseTime
 def parseTemperature(value):
     return -int(value[1:]) if 'M' in value else int(value)
 
-class TafValidator:
+class TafFormValidator:
     WEATHER_CONFLICT = 'weather_conflict'
     GUST_SPEED_INSUFFICIENT = 'gust_speed_insufficient'
     CLOUD_HEIGHT_CONFLICT = 'cloud_height_conflict'
@@ -28,7 +28,7 @@ class TafValidator:
             return None
 
         if 'TS' in weather and ('TS' in weatherWithIntensity or 'RA' in weatherWithIntensity):
-            return TafValidator.WEATHER_CONFLICT
+            return TafFormValidator.WEATHER_CONFLICT
 
         return None
 
@@ -41,7 +41,7 @@ class TafValidator:
 
         windSpeed = wind[-2:]
         if int(windSpeed) == 0 or int(gust) - int(windSpeed) < 5:
-            return TafValidator.GUST_SPEED_INSUFFICIENT
+            return TafFormValidator.GUST_SPEED_INSUFFICIENT
 
         return None
 
@@ -56,7 +56,7 @@ class TafValidator:
         cloudHeights = [cloud[3:6] for cloud in otherClouds]
 
         if cloudHeights.count(height) > 0:
-            return TafValidator.CLOUD_HEIGHT_CONFLICT
+            return TafFormValidator.CLOUD_HEIGHT_CONFLICT
 
         cloudCover = {'FEW': 1, 'SCT': 3, 'BKN': 5, 'OVC': 8}
         if state.cb:
@@ -65,14 +65,14 @@ class TafValidator:
             for cloud in otherClouds:
                 cover = cloudCover.get(cloud[:3], 0)
                 if cbHeight == cloud[3:6] and cbCover + cover > 8:
-                    return TafValidator.CLOUD_OKTAS_EXCEED
+                    return TafFormValidator.CLOUD_OKTAS_EXCEED
 
         orderedClouds = sorted(allClouds, key=lambda cloud: int(cloud[3:6]) if cloud[3:6].isdigit() else 0)
         covers = [cloud[:3] for cloud in orderedClouds]
         if 'OVC' in covers:
             index = covers.index('OVC')
             if index + 1 < len(covers):
-                return TafValidator.CLOUD_ABOVE_OVC
+                return TafFormValidator.CLOUD_ABOVE_OVC
 
         return None
 
@@ -85,13 +85,13 @@ class TafValidator:
         primaryStart, primaryEnd = primaryState.durations
 
         if end - start > datetime.timedelta(hours=span):
-            return TafValidator.GROUP_PERIOD_EXCEED
+            return TafFormValidator.GROUP_PERIOD_EXCEED
 
         if start < primaryStart or primaryEnd < start:
-            return TafValidator.GROUP_START_INVALID
+            return TafFormValidator.GROUP_START_INVALID
 
         if end < primaryStart or primaryEnd < end or (isBecmg and end == primaryEnd):
-            return TafValidator.GROUP_END_INVALID
+            return TafFormValidator.GROUP_END_INVALID
 
         return None
 
@@ -102,7 +102,7 @@ class TafValidator:
 
         for sibling in siblings:
             if sibling.durations and isOverlap(groupState.durations, sibling.durations):
-                return TafValidator.GROUP_OVERLAP
+                return TafFormValidator.GROUP_OVERLAP
 
         return None
 
@@ -115,7 +115,7 @@ class TafValidator:
         primaryStart, primaryEnd = primaryState.durations
 
         if start < primaryStart or primaryEnd <= start:
-            return TafValidator.FM_TIME_INVALID
+            return TafFormValidator.FM_TIME_INVALID
 
         return None
 
@@ -127,7 +127,7 @@ class TafValidator:
         time = groupState.durations[0]
         for sibling in siblings:
             if sibling.durations and sibling.durations[0] <= time <= sibling.durations[1]:
-                return TafValidator.GROUP_OVERLAP
+                return TafFormValidator.GROUP_OVERLAP
 
         return None
 
@@ -137,12 +137,12 @@ class TafValidator:
             return None
 
         if primaryDurations is None:
-            return TafValidator.TEMP_TIME_INVALID
+            return TafFormValidator.TEMP_TIME_INVALID
 
         try:
             time = parseDayHour(tempState.time[:2], tempState.time[2:], primaryDurations[0], delta='month')
         except Exception:
-            return TafValidator.TEMP_TIME_INVALID
+            return TafFormValidator.TEMP_TIME_INVALID
 
         siblings = siblings or []
         sameTypeSiblings = sameTypeSiblings or []
@@ -153,7 +153,7 @@ class TafValidator:
                 valid = False
 
         if not valid:
-            return TafValidator.TEMP_TIME_INVALID
+            return TafFormValidator.TEMP_TIME_INVALID
 
         return None
 
@@ -165,15 +165,15 @@ class TafValidator:
         temperature = parseTemperature(tempState.value)
         if tempState.mode == 'max':
             if referenceValue is not None and temperature <= referenceValue:
-                return TafValidator.TEMP_MAX_LESS_MIN
+                return TafFormValidator.TEMP_MAX_LESS_MIN
         elif tempState.mode == 'min':
             if referenceValue is not None and referenceValue <= temperature:
-                return TafValidator.TEMP_MIN_GREATER_MAX
+                return TafFormValidator.TEMP_MIN_GREATER_MAX
 
         return None
 
 
-class TrendValidator:
+class TrendFormValidator:
     TREND_TIME_INVALID = 'trend_time_invalid'
 
     @staticmethod
@@ -192,10 +192,10 @@ class TrendValidator:
                 periods[1] = periods[1] + datetime.timedelta(days=1)
 
             if periods[1] - periods[0] > datetime.timedelta(hours=2):
-                return TrendValidator.TREND_TIME_INVALID
+                return TrendFormValidator.TREND_TIME_INVALID
 
         for time in periods:
             if (time - delta) > now:
-                return TrendValidator.TREND_TIME_INVALID
+                return TrendFormValidator.TREND_TIME_INVALID
 
         return None

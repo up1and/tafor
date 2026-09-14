@@ -2,7 +2,7 @@ import re
 
 import pytest
 
-from tafor.core.parsers import MetarParser, SigmetParser, TafParser, TafValidator
+from tafor.core.parsers import MetarParser, TafParser, TafValidator
 
 
 @pytest.fixture
@@ -23,20 +23,7 @@ def test_taf_parser(fixtures_dir):
         result = re.sub(r'\s', '', result)
         assert result == html
 
-def test_sigmet_parser(fixtures_dir):
-    folder = fixtures_dir / 'sigmet'
-    for filepath in sorted(folder.glob('*.text')):
-        content = filepath.read_text()
-
-        m = SigmetParser(content, firCode='ZJSA SANYA FIR')
-        html = m.renderer(style='html')
-        result = filepath.with_suffix('.html').read_text()
-
-        html = re.sub(r'\s', '', html)
-        result = re.sub(r'\s', '', result)
-        assert result == html
-
-def test_wind(validator):
+def test_taf_validator_wind(validator):
     assert validator.wind('01004MPS', '07005MPS')
     assert validator.wind('36010MPS', '36005MPS')
     assert validator.wind('03008G15MPS', '36005G10MPS')
@@ -48,14 +35,14 @@ def test_wind(validator):
     assert not validator.wind('36020GP49MPS', '36020GP49MPS')
     assert not validator.wind('14008G14MPS', '15005G10MPS')
 
-def test_vis(validator):
+def test_taf_validator_vis(validator):
     assert validator.vis(1600, 3000)
     assert validator.vis(1400, 6000)
     assert validator.vis(200, 400)
     assert validator.vis(3000, 1600)
     assert validator.vis(4000, 7000)
 
-def test_weather(validator):
+def test_taf_validator_weather(validator):
     assert validator.weather('TS', '-TSRA')
     assert validator.weather('-TSRA', 'TSRA')
     assert validator.weather('TSRA BR', '-TSRA')
@@ -64,7 +51,7 @@ def test_weather(validator):
     assert not validator.weather('NSW', 'BR')
     assert not validator.weather('-RA BR', 'BR')
 
-def test_cloud(validator):
+def test_taf_validator_cloud(validator):
     assert validator.cloud('BKN015', 'SCT007 OVC010')
     assert validator.cloud('SCT020', 'SCT020 FEW023CB')
     assert validator.cloud('BKN010', 'BKN004')
@@ -87,25 +74,9 @@ def test_cloud(validator):
     # To be fixed 
     # when cloudHeightHas450 equal False, BKN016, BKN011 always return True
 
-def test_cavok(validator):
+def test_taf_validator_cavok(validator):
     assert validator.cavok('4000', '-TSRA', 'SCT020 FEW026CB')
     assert not validator.cavok('4000', 'BR', 'SCT020')
-
-def test_extra():
-    m = TafParser('TAF AMD ZJHK 211338Z 211524 14004MPS 4500 -RA BKN030 BECMG 2122 2500 BR BKN012 TEMPO 1519 07005MPS=')
-    s = SigmetParser('ZJSA SIGMET 1 VALID 311430/311830 ZJHK-\nZJSA SANYA FIR EMBD TS FCST N OF N16 TOP FL300 MOV N 30KMH NC=', firCode='ZJSA SANYA FIR', airportCode='ZJHK')
-    text = m.renderer()
-    d = TafParser(text)
-    repr(m)
-    repr(s)
-    m.renderer('terminal')
-    s.renderer('terminal')
-    assert m.isValid()
-    assert s.isValid()
-    assert m.isAmended()
-    assert m == d
-    assert not m.hasMessageChanged()
-    assert not s.hasMessageChanged()
 
 def test_metar_fm_trend_period():
     m = MetarParser('METAR ZJHK 210900Z 14004MPS 4500 -RA BKN030 BECMG FM1030 9999 NSW=')
@@ -271,6 +242,18 @@ def test_has_message_changed_sets_failed():
     assert m.error
     assert not m.isValid()
     assert 'color: red' in m.renderer(style='html')
+
+def test_render_and_reparse_roundtrip():
+    m = TafParser('TAF AMD ZJHK 211338Z 211524 14004MPS 4500 -RA BKN030 BECMG 2122 2500 BR BKN012 TEMPO 1519 07005MPS=')
+    text = m.renderer()
+    d = TafParser(text)
+    repr(m)
+    m.renderer('terminal')
+
+    assert m.isValid()
+    assert m.isAmended()
+    assert m == d
+    assert not m.hasMessageChanged()
 
 def test_taf_combination_returns_findings(validator):
     ref = {

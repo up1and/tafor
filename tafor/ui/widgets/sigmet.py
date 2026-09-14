@@ -12,7 +12,7 @@ from tafor.core.parsers.base import Pattern
 from tafor.core.parsers.advisory import AshAdvisoryParser, TyphoonAdvisoryParser
 from tafor.core.repositories import SigmetFilter
 from tafor.core.sigmet import (SigmetAshState, SigmetCancelState, SigmetCustomState, SigmetGeneralState,
-    SigmetTyphoonState, SigmetValidator)
+    SigmetTyphoonState, SigmetFormValidator)
 from tafor.core.sigmet.compose import adjustCancelBeginning, nextSequence, validPeriod
 from tafor.core.geometry.coordinate import decimalToDegree
 from tafor.core.utils.time import parseTime
@@ -25,13 +25,13 @@ logger = logging.getLogger('tafor.sigmet.information')
 
 def _translate(code, **kwargs):
     messages = {
-        SigmetValidator.START_TOO_FAR: QCoreApplication.translate(
+        SigmetFormValidator.START_TOO_FAR: QCoreApplication.translate(
             'Editor', 'Start time cannot be less than the current time'),
-        SigmetValidator.END_NOT_GREATER: QCoreApplication.translate(
+        SigmetFormValidator.END_NOT_GREATER: QCoreApplication.translate(
             'Editor', 'Ending time must be greater than the beginning time'),
-        SigmetValidator.PERIOD_TOO_LONG: QCoreApplication.translate(
+        SigmetFormValidator.PERIOD_TOO_LONG: QCoreApplication.translate(
             'Editor', 'Valid period more than {} hours').format(kwargs.get('hours', '')),
-        SigmetValidator.FLIGHT_LEVEL_INVALID: QCoreApplication.translate(
+        SigmetFormValidator.FLIGHT_LEVEL_INVALID: QCoreApplication.translate(
             'Editor', 'The top flight level needs to be greater than the base flight level'),
     }
     return messages.get(code, code)
@@ -124,12 +124,12 @@ class BaseSigmet(SegmentMixin, QWidget):
         return validPeriod(self.type(), self.span, self.time)
 
     def validatePeriod(self):
-        error = SigmetValidator.validatePeriod(self.durations, self.span)
+        error = SigmetFormValidator.validatePeriod(self.durations, self.span)
         if error:
             code = error[0] if isinstance(error, tuple) else error
-            if code == SigmetValidator.START_TOO_FAR:
+            if code == SigmetFormValidator.START_TOO_FAR:
                 self.beginningTime.clear()
-            elif code in (SigmetValidator.END_NOT_GREATER, SigmetValidator.PERIOD_TOO_LONG):
+            elif code in (SigmetFormValidator.END_NOT_GREATER, SigmetFormValidator.PERIOD_TOO_LONG):
                 self.endingTime.clear()
             self.context.flash.editor('sigmet', _translate(error))
 
@@ -298,7 +298,7 @@ class FlightLevelPart(SigmetPart):
         if not (self.base.isEnabled() and self.top.isEnabled()):
             return
 
-        error = SigmetValidator.validateFlightLevel(self.base.text(), self.top.text())
+        error = SigmetFormValidator.validateFlightLevel(self.base.text(), self.top.text())
         if error:
             line.clear()
             self.widget.context.flash.editor('sigmet', _translate(error))

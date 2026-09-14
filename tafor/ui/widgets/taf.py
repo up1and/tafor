@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QComboBox, QRadioButton,
 
 from tafor.core.parsers.base import Pattern
 from tafor.core.taf import (CurrentTaf, GroupState, PrimaryState, SegmentState, TemperatureState, TrendState,
-    TafValidator, TrendValidator, completeGroupPeriod, formatValidityEnd, groupSpan,
+    TafFormValidator, TrendFormValidator, completeGroupPeriod, formatValidityEnd, groupSpan,
     isGroupStartAcceptable, normalizeTemperatureTime, parseTemperature)
 from tafor.core.utils.time import parseDayHour, parsePeriod, parseTime
 from tafor.core.utils.common import iconPath
@@ -16,33 +16,33 @@ from tafor.ui.qt import Ui_taf_group, Ui_taf_primary, Ui_trend
 
 def _translate(code, **kwargs):
     messages = {
-        TafValidator.WEATHER_CONFLICT: QCoreApplication.translate(
+        TafFormValidator.WEATHER_CONFLICT: QCoreApplication.translate(
             'Editor', 'Weather phenomena conflict'),
-        TafValidator.GUST_SPEED_INSUFFICIENT: QCoreApplication.translate(
+        TafFormValidator.GUST_SPEED_INSUFFICIENT: QCoreApplication.translate(
             'Editor', 'Gust speed must be greater than wind speed by at least 5'),
-        TafValidator.CLOUD_HEIGHT_CONFLICT: QCoreApplication.translate(
+        TafFormValidator.CLOUD_HEIGHT_CONFLICT: QCoreApplication.translate(
             'Editor', 'Cloud cover with different oktas should not at the same height'),
-        TafValidator.CLOUD_OKTAS_EXCEED: QCoreApplication.translate(
+        TafFormValidator.CLOUD_OKTAS_EXCEED: QCoreApplication.translate(
             'Editor', 'Cloud cover cannot be more than 8 oktas at the same height'),
-        TafValidator.CLOUD_ABOVE_OVC: QCoreApplication.translate(
+        TafFormValidator.CLOUD_ABOVE_OVC: QCoreApplication.translate(
             'Editor', 'No clouds should above overcast clouds'),
-        TafValidator.GROUP_PERIOD_EXCEED: QCoreApplication.translate(
+        TafFormValidator.GROUP_PERIOD_EXCEED: QCoreApplication.translate(
             'Editor', 'Change group time more than {span} hours').format(span=kwargs.get('span', '')),
-        TafValidator.GROUP_START_INVALID: QCoreApplication.translate(
+        TafFormValidator.GROUP_START_INVALID: QCoreApplication.translate(
             'Editor', 'Start time of change group is not correct'),
-        TafValidator.GROUP_END_INVALID: QCoreApplication.translate(
+        TafFormValidator.GROUP_END_INVALID: QCoreApplication.translate(
             'Editor', 'End time of change group is not correct'),
-        TafValidator.GROUP_OVERLAP: QCoreApplication.translate(
+        TafFormValidator.GROUP_OVERLAP: QCoreApplication.translate(
             'Editor', 'Change group time is overlap'),
-        TafValidator.FM_TIME_INVALID: QCoreApplication.translate(
+        TafFormValidator.FM_TIME_INVALID: QCoreApplication.translate(
             'Editor', 'Time of change group is not correct'),
-        TafValidator.TEMP_TIME_INVALID: QCoreApplication.translate(
+        TafFormValidator.TEMP_TIME_INVALID: QCoreApplication.translate(
             'Editor', 'The time of temperature is not correct'),
-        TafValidator.TEMP_MAX_LESS_MIN: QCoreApplication.translate(
+        TafFormValidator.TEMP_MAX_LESS_MIN: QCoreApplication.translate(
             'Editor', 'The maximum temperature needs to be greater than the minimum temperature'),
-        TafValidator.TEMP_MIN_GREATER_MAX: QCoreApplication.translate(
+        TafFormValidator.TEMP_MIN_GREATER_MAX: QCoreApplication.translate(
             'Editor', 'The minimum temperature needs to be less than the maximum temperature'),
-        TrendValidator.TREND_TIME_INVALID: QCoreApplication.translate(
+        TrendFormValidator.TREND_TIME_INVALID: QCoreApplication.translate(
             'Editor', 'Trend valid time is not correct'),
     }
     return messages.get(code, code)
@@ -286,19 +286,19 @@ class BaseSegment(SegmentMixin, QWidget):
         self.weatherWithIntensity.setValidator(intensityWeather)
 
     def validateWeather(self, line):
-        error = TafValidator.checkWeather(self.state)
+        error = TafFormValidator.checkWeather(self.state)
         if error:
             line.setCurrentIndex(-1)
             self.context.flash.editor(self.editorname(), _translate(error))
 
     def validateGust(self):
-        error = TafValidator.checkGust(self.state)
+        error = TafFormValidator.checkGust(self.state)
         if error:
             self.gust.clear()
             self.context.flash.editor(self.editorname(), _translate(error))
 
     def validateCloud(self, line):
-        error = TafValidator.checkCloud(self.state, line.text())
+        error = TafFormValidator.checkCloud(self.state, line.text())
         if error:
             self.context.flash.editor(self.editorname(), _translate(error))
             line.clear()
@@ -413,7 +413,7 @@ class TemperatureGroup(SegmentMixin, QWidget):
         if not self.primary.period.text() or not self.tempTime.hasAcceptableInput():
             return
 
-        error = TafValidator.checkTemperatureTime(
+        error = TafFormValidator.checkTemperatureTime(
             self.state,
             self.primary.state.durations,
             siblings=self.primary.findTemperatureTime(self),
@@ -435,7 +435,7 @@ class TemperatureGroup(SegmentMixin, QWidget):
         if not self.temp.hasAcceptableInput():
             return
 
-        error = TafValidator.checkTemperature(
+        error = TafFormValidator.checkTemperature(
             self.state,
             self.primary.findTemperature(self),
         )
@@ -788,7 +788,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
     def validatePeriod(self):
         span = groupSpan(self.identifier, self.context.taf.spec)
-        error = TafValidator.checkGroupPeriod(
+        error = TafFormValidator.checkGroupPeriod(
             self.state,
             self.editor.primary.state,
             span,
@@ -801,7 +801,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
     def validateGroupsPeriod(self):
         groups = self.editor.tempos if self.identifier.startswith('TEMPO') else self.editor.becmgs
         siblings = [g.state for g in groups if g.isVisible() and g.state and self != g]
-        error = TafValidator.checkGroupOverlap(self.state, siblings)
+        error = TafFormValidator.checkGroupOverlap(self.state, siblings)
         if error:
             self.period.clear()
             self.context.flash.editor('taf', _translate(error))
@@ -844,14 +844,14 @@ class TafFmSegment(TafGroupSegment):
 
     def validatePeriod(self):
         # Using states for validation where possible
-        error = TafValidator.checkFmPeriod(self.state, self.editor.primary.state)
+        error = TafFormValidator.checkFmPeriod(self.state, self.editor.primary.state)
         if error:
             self.period.clear()
             self.context.flash.editor('taf', _translate(error))
 
     def validateGroupsPeriod(self):
         siblings = [g.state for g in self.editor.becmgs if g.isVisible() and g.state and self != g]
-        error = TafValidator.checkFmOverlap(self.state, siblings)
+        error = TafFormValidator.checkFmOverlap(self.state, siblings)
         if error:
             self.period.clear()
             self.context.flash.editor('taf', _translate(error))
@@ -1084,7 +1084,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
     def validatePeriod(self):
         self.formatPeriod()
-        error = TrendValidator.checkPeriod(self.period.text(), now=datetime.datetime.utcnow())
+        error = TrendFormValidator.checkPeriod(self.period.text(), now=datetime.datetime.utcnow())
         if error:
             self.period.clear()
             self.context.flash.editor('trend', _translate(error))

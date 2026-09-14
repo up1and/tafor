@@ -1,13 +1,7 @@
-"""Tests for tafor/core/taf/validator.py.
-
-Note: this covers the form-level TafValidator in core.taf.validator, not the
-same-named legacy parser class in core.parsers.taf (see tests/test_validator.py).
-"""
-
 import datetime
 
 from tafor.core.taf.states import GroupState, PrimaryState, SegmentState, TemperatureState
-from tafor.core.taf.validator import TafValidator, TrendValidator, parseTemperature
+from tafor.core.taf.validator import TafFormValidator, TrendFormValidator, parseTemperature
 from tafor.core.utils.time import parseTime
 
 
@@ -43,28 +37,28 @@ class TestCheckWeather:
         state = SegmentState('MPS')
         state.weather = 'TS'
         state.weatherWithIntensity = 'TSRA'
-        assert TafValidator.checkWeather(state) == TafValidator.WEATHER_CONFLICT
+        assert TafFormValidator.checkWeather(state) == TafFormValidator.WEATHER_CONFLICT
 
     def test_thunderstorm_with_rain_conflicts(self):
         state = SegmentState('MPS')
         state.weather = 'TS'
         state.weatherWithIntensity = '-RA'
-        assert TafValidator.checkWeather(state) == TafValidator.WEATHER_CONFLICT
+        assert TafFormValidator.checkWeather(state) == TafFormValidator.WEATHER_CONFLICT
 
     def test_thunderstorm_alone_passes(self):
         state = SegmentState('MPS')
         state.weather = 'TS'
         state.weatherWithIntensity = 'NSW'
-        assert TafValidator.checkWeather(state) is None
+        assert TafFormValidator.checkWeather(state) is None
 
     def test_empty_side_passes(self):
         state = SegmentState('MPS')
         state.weather = 'TS'
-        assert TafValidator.checkWeather(state) is None
+        assert TafFormValidator.checkWeather(state) is None
 
         state.weather = ''
         state.weatherWithIntensity = 'TSRA'
-        assert TafValidator.checkWeather(state) is None
+        assert TafFormValidator.checkWeather(state) is None
 
 
 class TestCheckGust:
@@ -73,31 +67,31 @@ class TestCheckGust:
         state = SegmentState('MPS')
         state.wind = '0800'
         state.gust = 'P49'
-        assert TafValidator.checkGust(state) is None
+        assert TafFormValidator.checkGust(state) is None
 
     def test_gust_below_threshold_rejected(self):
         state = SegmentState('MPS')
         state.wind = '0805'
         state.gust = '08'
-        assert TafValidator.checkGust(state) == TafValidator.GUST_SPEED_INSUFFICIENT
+        assert TafFormValidator.checkGust(state) == TafFormValidator.GUST_SPEED_INSUFFICIENT
 
     def test_gust_equal_to_wind_rejected(self):
         state = SegmentState('MPS')
         state.wind = '0810'
         state.gust = '10'
-        assert TafValidator.checkGust(state) == TafValidator.GUST_SPEED_INSUFFICIENT
+        assert TafFormValidator.checkGust(state) == TafFormValidator.GUST_SPEED_INSUFFICIENT
 
     def test_calm_wind_rejected(self):
         state = SegmentState('MPS')
         state.wind = '0800'
         state.gust = '30'
-        assert TafValidator.checkGust(state) == TafValidator.GUST_SPEED_INSUFFICIENT
+        assert TafFormValidator.checkGust(state) == TafFormValidator.GUST_SPEED_INSUFFICIENT
 
     def test_sufficient_gust_passes(self):
         state = SegmentState('MPS')
         state.wind = '0810'
         state.gust = '18'
-        assert TafValidator.checkGust(state) is None
+        assert TafFormValidator.checkGust(state) is None
 
 
 class TestCheckCloud:
@@ -105,13 +99,13 @@ class TestCheckCloud:
     def test_duplicate_height_rejected(self):
         state = SegmentState('MPS')
         state.clouds = ['FEW030', 'SCT030']
-        assert TafValidator.checkCloud(state, 'BKN030') == TafValidator.CLOUD_HEIGHT_CONFLICT
+        assert TafFormValidator.checkCloud(state, 'BKN030') == TafFormValidator.CLOUD_HEIGHT_CONFLICT
 
     def test_cb_and_cloud_oktas_exceed(self):
         state = SegmentState('MPS')
         state.clouds = ['SCT030']
         state.cb = 'OVC030CB'
-        assert TafValidator.checkCloud(state, 'FEW010') == TafValidator.CLOUD_OKTAS_EXCEED
+        assert TafFormValidator.checkCloud(state, 'FEW010') == TafFormValidator.CLOUD_OKTAS_EXCEED
 
     def test_cb_is_compared_against_itself(self):
         # BUG: otherClouds excludes only the edited line, not state.cb, so
@@ -120,86 +114,86 @@ class TestCheckCloud:
         state = SegmentState('MPS')
         state.clouds = []
         state.cb = 'BKN030CB'
-        assert TafValidator.checkCloud(state, 'OVC040') == TafValidator.CLOUD_OKTAS_EXCEED
+        assert TafFormValidator.checkCloud(state, 'OVC040') == TafFormValidator.CLOUD_OKTAS_EXCEED
 
     def test_cb_plus_cloud_oktas_exceed(self):
         state = SegmentState('MPS')
         state.clouds = ['OVC030']
         state.cb = 'SCT030CB'
-        assert TafValidator.checkCloud(state, 'FEW010') == TafValidator.CLOUD_OKTAS_EXCEED
+        assert TafFormValidator.checkCloud(state, 'FEW010') == TafFormValidator.CLOUD_OKTAS_EXCEED
 
     def test_cloud_above_ovc_rejected(self):
         state = SegmentState('MPS')
         state.clouds = ['OVC030', 'BKN040']
-        assert TafValidator.checkCloud(state, 'FEW010') == TafValidator.CLOUD_ABOVE_OVC
+        assert TafFormValidator.checkCloud(state, 'FEW010') == TafFormValidator.CLOUD_ABOVE_OVC
 
     def test_ordinary_stacking_passes(self):
         state = SegmentState('MPS')
         state.clouds = ['FEW030']
-        assert TafValidator.checkCloud(state, 'SCT040') is None
+        assert TafFormValidator.checkCloud(state, 'SCT040') is None
 
     def test_empty_line_value_passes(self):
         state = SegmentState('MPS')
         state.clouds = ['FEW030']
-        assert TafValidator.checkCloud(state, '') is None
+        assert TafFormValidator.checkCloud(state, '') is None
 
 
 class TestCheckGroupPeriod:
 
     def test_within_primary_period_passes(self):
-        error = TafValidator.checkGroupPeriod(
+        error = TafFormValidator.checkGroupPeriod(
             group((datetime.datetime(2026, 6, 10, 10), datetime.datetime(2026, 6, 10, 16))),
             primary(DAY9_18), span=6)
         assert error is None
 
     def test_period_longer_than_span_rejected(self):
-        error = TafValidator.checkGroupPeriod(
+        error = TafFormValidator.checkGroupPeriod(
             group((datetime.datetime(2026, 6, 10, 10), datetime.datetime(2026, 6, 10, 17))),
             primary(DAY9_18), span=6)
-        assert error == TafValidator.GROUP_PERIOD_EXCEED
+        assert error == TafFormValidator.GROUP_PERIOD_EXCEED
 
     def test_start_before_primary_rejected(self):
-        error = TafValidator.checkGroupPeriod(
+        error = TafFormValidator.checkGroupPeriod(
             group((datetime.datetime(2026, 6, 10, 8, 30), datetime.datetime(2026, 6, 10, 12))),
             primary(DAY9_18), span=6)
-        assert error == TafValidator.GROUP_START_INVALID
+        assert error == TafFormValidator.GROUP_START_INVALID
 
     def test_end_after_primary_rejected(self):
-        error = TafValidator.checkGroupPeriod(
+        error = TafFormValidator.checkGroupPeriod(
             group((datetime.datetime(2026, 6, 10, 15), datetime.datetime(2026, 6, 10, 19))),
             primary(DAY9_18), span=6)
-        assert error == TafValidator.GROUP_END_INVALID
+        assert error == TafFormValidator.GROUP_END_INVALID
 
     def test_becmg_may_not_end_with_primary(self):
         becmg = group((datetime.datetime(2026, 6, 10, 12), datetime.datetime(2026, 6, 10, 18)), indicator='BECMG')
-        error = TafValidator.checkGroupPeriod(becmg, primary(DAY9_18), span=6, isBecmg=True)
-        assert error == TafValidator.GROUP_END_INVALID
+        error = TafFormValidator.checkGroupPeriod(becmg, primary(DAY9_18), span=6, isBecmg=True)
+        assert error == TafFormValidator.GROUP_END_INVALID
 
         # The same group is fine as TEMPO
-        assert TafValidator.checkGroupPeriod(becmg, primary(DAY9_18), span=6) is None
+        assert TafFormValidator.checkGroupPeriod(becmg, primary(DAY9_18), span=6) is None
 
     def test_missing_period_passes(self):
         empty = group(None, period='')
-        assert TafValidator.checkGroupPeriod(empty, primary(DAY9_18), span=6) is None
+        assert TafFormValidator.checkGroupPeriod(empty, primary(DAY9_18), span=6) is None
 
 
 class TestCheckGroupOverlap:
 
     def test_overlapping_siblings_rejected(self):
-        error = TafValidator.checkGroupOverlap(
+        error = TafFormValidator.checkGroupOverlap(
             group((datetime.datetime(2026, 6, 10, 10), datetime.datetime(2026, 6, 10, 12))),
             [group((datetime.datetime(2026, 6, 10, 11), datetime.datetime(2026, 6, 10, 13)))])
-        assert error == TafValidator.GROUP_OVERLAP
+        assert error == TafFormValidator.GROUP_OVERLAP
 
     def test_touching_groups_pass(self):
         # isOverlap only reports a positive intersection
-        error = TafValidator.checkGroupOverlap(
+        error = TafFormValidator.checkGroupOverlap(
             group((datetime.datetime(2026, 6, 10, 10), datetime.datetime(2026, 6, 10, 12))),
             [group((datetime.datetime(2026, 6, 10, 12), datetime.datetime(2026, 6, 10, 14)))])
         assert error is None
 
     def test_sibling_without_period_ignored(self):
-        error = TafValidator.checkGroupOverlap(
+        error = TafFormValidator.checkGroupOverlap(
             group((datetime.datetime(2026, 6, 10, 10), datetime.datetime(2026, 6, 10, 12))),
             [group(None)])
         assert error is None
@@ -208,80 +202,80 @@ class TestCheckGroupOverlap:
 class TestCheckFmPeriod:
 
     def test_start_inside_primary_passes(self):
-        error = TafValidator.checkFmPeriod(
+        error = TafFormValidator.checkFmPeriod(
             group((datetime.datetime(2026, 6, 10, 12), datetime.datetime(2026, 6, 10, 12)), indicator='FM'),
             primary(DAY9_18))
         assert error is None
 
     def test_start_on_primary_end_rejected(self):
-        error = TafValidator.checkFmPeriod(
+        error = TafFormValidator.checkFmPeriod(
             group((datetime.datetime(2026, 6, 10, 18), datetime.datetime(2026, 6, 10, 18)), indicator='FM'),
             primary(DAY9_18))
-        assert error == TafValidator.FM_TIME_INVALID
+        assert error == TafFormValidator.FM_TIME_INVALID
 
     def test_start_before_primary_rejected(self):
-        error = TafValidator.checkFmPeriod(
+        error = TafFormValidator.checkFmPeriod(
             group((datetime.datetime(2026, 6, 10, 7), datetime.datetime(2026, 6, 10, 7)), indicator='FM'),
             primary(DAY9_18))
-        assert error == TafValidator.FM_TIME_INVALID
+        assert error == TafFormValidator.FM_TIME_INVALID
 
     def test_missing_durations_passes(self):
-        assert TafValidator.checkFmPeriod(group(None, indicator='FM'), primary(None)) is None
+        assert TafFormValidator.checkFmPeriod(group(None, indicator='FM'), primary(None)) is None
 
 
 class TestCheckFmOverlap:
 
     def test_instant_inside_sibling_rejected(self):
-        error = TafValidator.checkFmOverlap(
+        error = TafFormValidator.checkFmOverlap(
             group((datetime.datetime(2026, 6, 10, 12), datetime.datetime(2026, 6, 10, 12)), indicator='FM'),
             [group((datetime.datetime(2026, 6, 10, 11), datetime.datetime(2026, 6, 10, 13)))])
-        assert error == TafValidator.GROUP_OVERLAP
+        assert error == TafFormValidator.GROUP_OVERLAP
 
     def test_instant_outside_siblings_passes(self):
-        error = TafValidator.checkFmOverlap(
+        error = TafFormValidator.checkFmOverlap(
             group((datetime.datetime(2026, 6, 10, 12), datetime.datetime(2026, 6, 10, 12)), indicator='FM'),
             [group((datetime.datetime(2026, 6, 10, 13), datetime.datetime(2026, 6, 10, 15)))])
         assert error is None
 
     def test_instant_on_sibling_start_rejected(self):
         # FM bounds are inclusive, unlike checkGroupOverlap
-        error = TafValidator.checkFmOverlap(
+        error = TafFormValidator.checkFmOverlap(
             group((datetime.datetime(2026, 6, 10, 13), datetime.datetime(2026, 6, 10, 13)), indicator='FM'),
             [group((datetime.datetime(2026, 6, 10, 13), datetime.datetime(2026, 6, 10, 15)))])
-        assert error == TafValidator.GROUP_OVERLAP
+        assert error == TafFormValidator.GROUP_OVERLAP
 
 
 class TestCheckTemperatureTime:
 
     def test_empty_time_passes(self):
         temp = TemperatureState('max')
-        assert TafValidator.checkTemperatureTime(temp, DAY9_18) is None
+        assert TafFormValidator.checkTemperatureTime(temp, DAY9_18) is None
 
     def test_missing_primary_period_rejected(self):
         temp = TemperatureState('max')
         temp.time = '1012'
-        assert TafValidator.checkTemperatureTime(temp, None) == TafValidator.TEMP_TIME_INVALID
+        assert TafFormValidator.checkTemperatureTime(temp, None) == TafFormValidator.TEMP_TIME_INVALID
 
     def test_unparsable_time_rejected(self):
         temp = TemperatureState('max')
         temp.time = '9999'
-        assert TafValidator.checkTemperatureTime(temp, DAY9_18) == TafValidator.TEMP_TIME_INVALID
+        assert TafFormValidator.checkTemperatureTime(temp, DAY9_18) == TafFormValidator.TEMP_TIME_INVALID
 
     def test_time_inside_primary_passes(self):
         temp = TemperatureState('max')
         temp.time = '1012'
-        assert TafValidator.checkTemperatureTime(temp, DAY9_18) is None
+        assert TafFormValidator.checkTemperatureTime(temp, DAY9_18) is None
 
     def test_time_outside_primary_rejected(self):
         temp = TemperatureState('max')
         temp.time = '1019'
-        assert TafValidator.checkTemperatureTime(temp, DAY9_18) == TafValidator.TEMP_TIME_INVALID
+        assert TafFormValidator.checkTemperatureTime(temp, DAY9_18) == TafFormValidator.TEMP_TIME_INVALID
 
     def test_time_already_used_by_other_mode_rejected(self):
         temp = TemperatureState('max')
         temp.time = '1012'
         siblings = [datetime.datetime(2026, 6, 10, 12, 0)]
-        assert TafValidator.checkTemperatureTime(temp, DAY9_18, siblings=siblings) == TafValidator.TEMP_TIME_INVALID
+        assert TafFormValidator.checkTemperatureTime(temp, DAY9_18, siblings=siblings) == TafFormValidator.TEMP_TIME_INVALID
 
     def test_same_day_as_same_mode_sibling_rejected(self):
         # The caller passes parsed datetime objects here (see
@@ -289,14 +283,14 @@ class TestCheckTemperatureTime:
         temp = TemperatureState('max')
         temp.time = '1012'
         sameType = [datetime.datetime(2026, 6, 10, 14, 0)]
-        assert TafValidator.checkTemperatureTime(temp, DAY9_18, sameTypeSiblings=sameType) == TafValidator.TEMP_TIME_INVALID
+        assert TafFormValidator.checkTemperatureTime(temp, DAY9_18, sameTypeSiblings=sameType) == TafFormValidator.TEMP_TIME_INVALID
 
     def test_other_day_than_same_mode_sibling_passes(self):
         primarySpanning = (datetime.datetime(2026, 6, 10, 9, 0), datetime.datetime(2026, 6, 11, 9, 0))
         temp = TemperatureState('max')
         temp.time = '1108'
         sameType = [datetime.datetime(2026, 6, 10, 8, 0)]
-        assert TafValidator.checkTemperatureTime(temp, primarySpanning, sameTypeSiblings=sameType) is None
+        assert TafFormValidator.checkTemperatureTime(temp, primarySpanning, sameTypeSiblings=sameType) is None
 
 
 class TestCheckTemperature:
@@ -304,45 +298,45 @@ class TestCheckTemperature:
     def test_max_above_min_passes(self):
         temp = TemperatureState('max')
         temp.value = '12'
-        assert TafValidator.checkTemperature(temp, 10) is None
+        assert TafFormValidator.checkTemperature(temp, 10) is None
 
     def test_max_equal_to_min_rejected(self):
         temp = TemperatureState('max')
         temp.value = '10'
-        assert TafValidator.checkTemperature(temp, 10) == TafValidator.TEMP_MAX_LESS_MIN
+        assert TafFormValidator.checkTemperature(temp, 10) == TafFormValidator.TEMP_MAX_LESS_MIN
 
     def test_max_below_min_rejected(self):
         temp = TemperatureState('max')
         temp.value = 'M05'
-        assert TafValidator.checkTemperature(temp, 10) == TafValidator.TEMP_MAX_LESS_MIN
+        assert TafFormValidator.checkTemperature(temp, 10) == TafFormValidator.TEMP_MAX_LESS_MIN
 
     def test_min_below_max_passes(self):
         temp = TemperatureState('min')
         temp.value = 'M08'
-        assert TafValidator.checkTemperature(temp, -5) is None
+        assert TafFormValidator.checkTemperature(temp, -5) is None
 
     def test_min_equal_to_max_rejected(self):
         temp = TemperatureState('min')
         temp.value = 'M05'
-        assert TafValidator.checkTemperature(temp, -5) == TafValidator.TEMP_MIN_GREATER_MAX
+        assert TafFormValidator.checkTemperature(temp, -5) == TafFormValidator.TEMP_MIN_GREATER_MAX
 
     def test_min_above_max_rejected(self):
         temp = TemperatureState('min')
         temp.value = '02'
-        assert TafValidator.checkTemperature(temp, -5) == TafValidator.TEMP_MIN_GREATER_MAX
+        assert TafFormValidator.checkTemperature(temp, -5) == TafFormValidator.TEMP_MIN_GREATER_MAX
 
     def test_empty_value_passes(self):
         temp = TemperatureState('max')
-        assert TafValidator.checkTemperature(temp, 10) is None
+        assert TafFormValidator.checkTemperature(temp, 10) is None
 
     def test_missing_reference_passes(self):
         temp = TemperatureState('max')
         temp.value = '10'
-        assert TafValidator.checkTemperature(temp, None) is None
+        assert TafFormValidator.checkTemperature(temp, None) is None
 
 
-class TestTrendValidatorPeriod:
-    """TrendValidator.checkPeriod receives the raw trend group text from the
+class TestTrendFormValidatorPeriod:
+    """TrendFormValidator.checkPeriod receives the raw trend group text from the
     TAF trend editor: 'HHMM' for AT/FM/TL groups and 'HHMM/HHMM' for FM+TL
     (see widgets/taf.py validatePeriod). parseTime resolves 4-digit groups
     against the real clock, so expectations are built relative to utcnow().
@@ -352,27 +346,27 @@ class TestTrendValidatorPeriod:
         return datetime.datetime.utcnow()
 
     def test_empty_passes(self):
-        assert TrendValidator.checkPeriod('') is None
+        assert TrendFormValidator.checkPeriod('') is None
 
     def test_single_time_within_horizon_passes(self):
         value = (self.now() + datetime.timedelta(hours=1)).strftime('%H%M')
-        assert TrendValidator.checkPeriod(value, now=self.now()) is None
+        assert TrendFormValidator.checkPeriod(value, now=self.now()) is None
 
     def test_single_time_beyond_horizon_rejected(self):
         value = (self.now() + datetime.timedelta(hours=5)).strftime('%H%M')
-        assert TrendValidator.checkPeriod(value, now=self.now()) == TrendValidator.TREND_TIME_INVALID
+        assert TrendFormValidator.checkPeriod(value, now=self.now()) == TrendFormValidator.TREND_TIME_INVALID
 
     def test_span_within_two_hours_passes(self):
         start = (self.now() + datetime.timedelta(minutes=10)).strftime('%H%M')
         end = (self.now() + datetime.timedelta(hours=2)).strftime('%H%M')
         value = '{}/{}'.format(start, end)
-        assert TrendValidator.checkPeriod(value, now=self.now()) is None
+        assert TrendFormValidator.checkPeriod(value, now=self.now()) is None
 
     def test_span_over_two_hours_rejected(self):
         start = (self.now() + datetime.timedelta(minutes=10)).strftime('%H%M')
         end = (self.now() + datetime.timedelta(minutes=140)).strftime('%H%M')
         value = '{}/{}'.format(start, end)
-        assert TrendValidator.checkPeriod(value, now=self.now()) == TrendValidator.TREND_TIME_INVALID
+        assert TrendFormValidator.checkPeriod(value, now=self.now()) == TrendFormValidator.TREND_TIME_INVALID
 
     def test_end_text_before_start_text_is_rejected(self):
         # The validator bumps a non-increasing end by one day, which lands
@@ -380,7 +374,7 @@ class TestTrendValidatorPeriod:
         start = (self.now() + datetime.timedelta(minutes=140)).strftime('%H%M')
         end = (self.now() + datetime.timedelta(minutes=30)).strftime('%H%M')
         value = '{}/{}'.format(start, end)
-        assert TrendValidator.checkPeriod(value, now=self.now()) == TrendValidator.TREND_TIME_INVALID
+        assert TrendFormValidator.checkPeriod(value, now=self.now()) == TrendFormValidator.TREND_TIME_INVALID
 
 
 if __name__ == '__main__':
