@@ -245,7 +245,7 @@ def test_authorize_uses_constant_time_comparison():
     assert '== conf.license' not in source
 
 
-RPC_TEST_PORT = 9417
+RPC_TEST_PORT = 9407
 
 
 def test_rpc_worker_stops_cleanly():
