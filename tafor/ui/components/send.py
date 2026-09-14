@@ -1,5 +1,4 @@
 import logging
-import datetime
 
 from PyQt5.QtGui import QFontMetrics, QIcon, QPixmap
 from PyQt5.QtCore import QCoreApplication, QSize, Qt, pyqtSignal
@@ -12,6 +11,7 @@ from tafor.core.parsers.taf import TafParser
 from tafor.core.telegram.channels import canResend, createChannel
 from tafor.core.telegram.generator import AFTNDecoder
 from tafor.core.utils.common import iconPath
+from tafor.core.utils.time import utcnow
 from tafor.ui.fonts import fixedFont, uiFont
 from tafor.ui.qt import Ui_send
 from tafor.ui.widgets.graphic import GraphicsViewer
@@ -341,7 +341,7 @@ class SenderPresenter:
             return 'resend' if licensed else None
 
         if session.mode == 'review':
-            eligible = canResend(session.message, datetime.datetime.utcnow())
+            eligible = canResend(session.message, utcnow())
             return 'resend' if eligible else None
 
         return 'send'
@@ -426,7 +426,7 @@ class SenderPresenter:
         resent = bool(message.raw)
 
         if resent or message.created is None:
-            message.created = datetime.datetime.utcnow()
+            message.created = utcnow()
 
         message.raw = session.telegraph.toJson()
         message.protocol = session.line.protocol

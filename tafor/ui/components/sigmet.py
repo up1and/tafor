@@ -5,6 +5,7 @@ from PyQt5.QtCore import QCoreApplication
 from tafor.core.models import Sigmet
 from tafor.core.repositories import SigmetFilter
 from tafor.core.sigmet.compose import composeHeading, validDuration
+from tafor.core.utils.time import utcnow
 from tafor.ui.qt import Ui_sigmet
 from tafor.ui.widgets import AirmetGeneral, SigmetAsh, SigmetCancel, SigmetCustom, SigmetGeneral, SigmetTyphoon
 from tafor.ui.widgets.editor import BaseEditor
@@ -136,7 +137,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
     def heading(self):
         area = self.conf.bulletinNumber or ''
-        return composeHeading(self.type, area, self.conf.airport, datetime.datetime.utcnow())
+        return composeHeading(self.type, area, self.conf.airport, utcnow())
 
     def message(self):
         text = self.currentContent.message()

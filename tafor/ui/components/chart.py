@@ -10,6 +10,7 @@ from PyQt5.QtChart import (QChart, QChartView, QSplineSeries, QScatterSeries, QD
 
 from tafor.ui.qt import Ui_chart
 from tafor.ui.styles import applyCalendarStyle
+from tafor.core.utils.time import utcnow
 
 logger = logging.getLogger('tafor.chart')
 
@@ -207,7 +208,6 @@ def computeDateRange(utcnow, currentRange, request='latest'):
 
     if dateRange[1] > utcnow:
         dateRange = (utcnow - datetime.timedelta(hours=24), utcnow)
-
     return dateRange
 
 
@@ -256,7 +256,9 @@ def markerHtml(title, points):
 
         labels.append(text)
 
-    time = datetime.datetime.fromtimestamp(float(timestamp) / 1000)
+    # 'timestamp' is a Unix epoch in milliseconds: interpret it as UTC,
+    # otherwise the naive result shifts by the machine's UTC offset
+    time = datetime.datetime.fromtimestamp(float(timestamp) / 1000, tz=datetime.timezone.utc).replace(tzinfo=None)
     return '{:%d %b %H:%M} UTC<br>{}'.format(time, '<br>'.join(labels))
 
 
@@ -405,7 +407,7 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         super().__init__(parent)
         self.setupUi(self)
         self.repository = repository
-        self.clock = clock or datetime.datetime.utcnow
+        self.clock = clock or utcnow
         self.dateRange = None
 
         self.saveButton = self.buttonBox.button(QDialogButtonBox.Save)

@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QFileDialog, QMessageBox
                              QLineEdit, QComboBox, QPlainTextEdit, QSlider, QListWidget, QGroupBox)
 
 from tafor.core.utils.common import iconPath, ipAddress
+from tafor.core.utils.time import utcnow
 from tafor.ui.qt import Ui_setting
 from tafor.ui.workers import FtpWorker, threadManager
 
@@ -30,7 +31,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         # Auto-start on system boot
         self.autoRun = QSettings('HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run', QSettings.NativeFormat)
 
-        self.utcCheckpoint = datetime.datetime.utcnow()
+        self.utcCheckpoint = utcnow()
 
         self.clockTimer = QTimer()
         self.clockTimer.timeout.connect(self.checkChannelNumber)
@@ -90,7 +91,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
     def checkChannelNumber(self):
         """Reset the sequence numbers once the UTC calendar day rolls over"""
-        utc = datetime.datetime.utcnow()
+        utc = utcnow()
         if utc.date() > self.utcCheckpoint.date():
             self.utcCheckpoint = utc
             self.resetChannelNumber()

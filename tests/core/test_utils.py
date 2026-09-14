@@ -5,6 +5,23 @@ import pytest
 from tafor.core.utils.common import checkVersion
 from tafor.core.utils.pagination import Pagination
 from tafor.core.utils.time import ceilTime, parsePeriod, parseTime, parseTimez
+from tafor.core.models import Taf
+
+
+def test_frozen_clock_reaches_column_defaults_and_parsers(database, frozen_time):
+    """Spike: time-machine must reach both import-time captured references
+    (SQLAlchemy column default) and the parser basetime fallbacks."""
+    with database.session() as session:
+        item = Taf(type='FT', text='TAF ZPPP 100800Z 1009/1018 32008G15MPS 9999 SCT020=')
+        session.add(item)
+
+    assert item.created == frozen_time
+    assert parseTime('100800') == frozen_time
+
+
+def test_parse_timez_accepts_basetime():
+    basetime = datetime.datetime(2026, 6, 5, 3, 0)
+    assert parseTimez('100800', basetime=basetime) == datetime.datetime(2026, 6, 10, 8, 0)
 
 
 def test_check_version():

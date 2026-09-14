@@ -1,5 +1,7 @@
 import datetime
 
+from tafor.core.utils.time import utcnow
+
 
 class SpecFC:
     type = 'FC'
@@ -48,7 +50,7 @@ class CurrentTaf:
 
     def __init__(self, spec, time=None, offset=0):
         self.spec = self.specifications[spec]
-        self.time = datetime.datetime.utcnow() if time is None else time
+        self.time = utcnow() if time is None else time
 
         if offset:
             self.time += self.spec.interval * offset

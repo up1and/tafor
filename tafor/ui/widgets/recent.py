@@ -4,7 +4,7 @@ from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QFont, QIcon, QPixmap
 from PyQt5.QtWidgets import QHBoxLayout, QSizePolicy, QSpacerItem, QVBoxLayout, QWidget, QWIDGETSIZE_MAX
 
-from tafor.core.utils.time import timeAgo
+from tafor.core.utils.time import timeAgo, utcnow
 from tafor.core.utils.common import iconPath
 from tafor.ui.fonts import fixedFont
 from tafor.ui.qt import Ui_main_recent
@@ -92,7 +92,7 @@ class RecentBoard(QWidget):
             card.setReminderEnabled(enabled)
 
     def tick(self):
-        now = datetime.datetime.utcnow()
+        now = utcnow()
         expired = [uuid for uuid, card in self.cards.items() if card.tick(now, self.expiryMinutes)]
         for uuid in expired:
             self.expired.emit(uuid)
@@ -323,7 +323,7 @@ class NotificationCard(RecentCard):
             self.signLabel.hide()
 
     def timeStamp(self, now=None):
-        ago = timeAgo(self.model.created, now or datetime.datetime.utcnow())
+        ago = timeAgo(self.model.created, now or utcnow())
         return ago.capitalize()
 
     def updateMessage(self):

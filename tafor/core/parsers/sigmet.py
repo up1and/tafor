@@ -1,11 +1,11 @@
 import re
 import logging
-import datetime
 
-from tafor.core.utils.time import parseTime, parseTimez
+from tafor.core.utils.time import parseTime, parseTimez, utcnow
 from tafor.core.parsers.base import SigmetGrammar, joinRendered, renderTokens
 
 logger = logging.getLogger('tafor.parser.sigmet')
+
 
 class SigmetLexer:
     """SIGMET 报文要素的解析器
@@ -194,7 +194,7 @@ class SigmetParser:
             time = valid[0]
 
         if self.created is None:
-            self.created = parseTimez(time) if time else datetime.datetime.utcnow()
+            self.created = parseTimez(time) if time else utcnow()
 
         if valids:
             self.valids = parseTime(valids[0], self.created), parseTime(valids[1], self.created)

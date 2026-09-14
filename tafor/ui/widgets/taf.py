@@ -8,7 +8,7 @@ from tafor.core.parsers.base import Pattern
 from tafor.core.taf import (CurrentTaf, GroupState, PrimaryState, SegmentState, TemperatureState, TrendState,
     TafFormValidator, TrendFormValidator, completeGroupPeriod, formatValidityEnd, groupSpan,
     isGroupStartAcceptable, normalizeTemperatureTime, parseTemperature)
-from tafor.core.utils.time import parseDayHour, parsePeriod, parseTime
+from tafor.core.utils.time import parseDayHour, parsePeriod, parseTime, utcnow
 from tafor.core.utils.common import iconPath
 from tafor.ui.fonts import fixedFont
 from tafor.ui.qt import Ui_taf_group, Ui_taf_primary, Ui_trend
@@ -573,7 +573,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         if not self.date.hasAcceptableInput():
             return
 
-        self.taf = CurrentTaf(self.context.taf.spec, time=datetime.datetime.utcnow(), offset=self.offset)
+        self.taf = CurrentTaf(self.context.taf.spec, time=utcnow(), offset=self.offset)
         if self.normal.isChecked():
             self.setNormalPeriod(self.taf)
             self.sequence.clear()
@@ -667,7 +667,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         return times
 
     def setDate(self):
-        time = datetime.datetime.utcnow()
+        time = utcnow()
         self.date.setText(time.strftime('%d%H%M'))
 
     def showEvent(self, event):
@@ -955,7 +955,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         self.period.setValidator(period)
 
     def setupPeriodPlaceholder(self):
-        time = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+        time = utcnow() + datetime.timedelta(hours=1)
         self.period.setPlaceholderText('{:02d}'.format(time.hour))
 
     def setNosig(self, checked):
@@ -1084,7 +1084,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
     def validatePeriod(self):
         self.formatPeriod()
-        error = TrendFormValidator.checkPeriod(self.period.text(), now=datetime.datetime.utcnow())
+        error = TrendFormValidator.checkPeriod(self.period.text(), now=utcnow())
         if error:
             self.period.clear()
             self.context.flash.editor('trend', _translate(error))

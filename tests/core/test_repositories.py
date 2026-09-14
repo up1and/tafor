@@ -1,8 +1,6 @@
 """Tests for tafor/core/repositories.py."""
 
-import copy
 import datetime
-import types
 
 import pytest
 
@@ -23,28 +21,11 @@ SIGMET_ORPHAN_CANCEL = ('ZJSA SIGMET 4 VALID 101200/101900 ZJHK-\n'
 SIGMET_EXPIRED = ('ZJSA SIGMET 3 VALID 100130/100230 ZJHK-\n'
                   'ZJSA SANYA FIR OBSC TS FCST WI E11223 N1829 - E11142 N1916 TOP FL030 MOV N 300KMH NC=')
 
-# Frozen clock for the time-sensitive repository methods. The 08:00 moment
-# puts the current FC period ('0918' -> 1009/1018) past its issue window.
+# Frozen clock (via the shared frozen_time fixture) for the time-sensitive
+# repository methods. The 08:00 moment puts the current FC period ('0918'
+# -> 1009/1018) past its issue window.
 MOMENT = datetime.datetime(2026, 6, 10, 8, 0)
 PERIOD = '1009/1018'
-
-
-def frozenDatetime(moment):
-    class FrozenDatetime(datetime.datetime):
-        @classmethod
-        def utcnow(cls):
-            return moment
-    return FrozenDatetime
-
-
-def freezeUtcnow(monkeypatch, moment, modules=('tafor.core.repositories', 'tafor.core.models')):
-    """Freeze datetime.utcnow() inside the given modules while keeping the
-    rest of the datetime namespace (timedelta etc.) intact."""
-    for module in modules:
-        fake = types.SimpleNamespace(**{
-            name: getattr(datetime, name) for name in dir(datetime) if not name.startswith('_')})
-        fake.datetime = frozenDatetime(moment)
-        monkeypatch.setattr(module + '.datetime', fake)
 
 
 def add(session, model, **kwargs):
@@ -164,9 +145,7 @@ class TestTafRepositoryStatus:
     FC period is 1009/1018 and its issue window (07:00 + delay) has passed."""
 
     @pytest.fixture
-    def repos(self, database, monkeypatch):
-        freezeUtcnow(monkeypatch, MOMENT, modules=(
-            'tafor.core.repositories', 'tafor.core.models', 'tafor.core.taf.spec'))
+    def repos(self, database, frozen_time):
         return Repositories(database)
 
     def seed(self, database, text, created, confirmed=None):
@@ -282,8 +261,7 @@ class TestSigmetRepository:
         assert repos.sigmet.latest('WC') is None
 
     @pytest.fixture
-    def frozen_repos(self, database, monkeypatch):
-        freezeUtcnow(monkeypatch, MOMENT)
+    def frozen_repos(self, database, frozen_time):
         return Repositories(database)
 
     def seed_sigmet(self, database, text, created, confirmed=None):

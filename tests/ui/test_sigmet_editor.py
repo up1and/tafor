@@ -6,13 +6,11 @@ editors. Advisory import panels and typhoon geometry are out of scope.
 
 parseTime resolves day/hour texts against the wall clock and rolls a past
 time into the next month, which would make every assertion date-dependent.
-The tests freeze utcnow in the involved modules to 2026-06-10 08:00 UTC so
-that '100800' means June 10 08:00 deterministically.
+The tests freeze the process-wide clock (shared frozen_time fixture) at
+2026-06-10 08:00 UTC so that '100800' means June 10 08:00 deterministically.
 """
 
 import datetime
-import types
-import datetime as datetime_module
 from types import SimpleNamespace
 
 import pytest
@@ -24,30 +22,6 @@ from tafor.ui.widgets.sigmet import SigmetCancel, SigmetCustom, SigmetGeneral
 
 
 MOMENT = datetime.datetime(2026, 6, 10, 8, 0)
-FROZEN_MODULES = (
-    'tafor.ui.widgets.sigmet',
-    'tafor.core.utils.time',
-    'tafor.core.sigmet.validator',
-)
-
-
-def frozenDatetime(moment):
-    class FrozenDatetime(datetime.datetime):
-        @classmethod
-        def utcnow(cls):
-            return moment
-    return FrozenDatetime
-
-
-@pytest.fixture
-def frozen_time(monkeypatch):
-    for module in FROZEN_MODULES:
-        fake = types.SimpleNamespace(**{
-            name: getattr(datetime_module, name)
-            for name in dir(datetime_module) if not name.startswith('_')})
-        fake.datetime = frozenDatetime(MOMENT)
-        monkeypatch.setattr(module + '.datetime', fake)
-    return MOMENT
 
 
 def editorStub(type='WS'):

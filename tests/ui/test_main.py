@@ -7,9 +7,8 @@ constructors and cannot be instantiated in a test.
 
 import datetime
 import types
-from types import SimpleNamespace
 
-import datetime as datetime_module
+from types import SimpleNamespace
 
 import pytest
 
@@ -28,23 +27,6 @@ SIGMET_ACTIVE = ('ZJSA SIGMET 2 VALID 100730/101430 ZJHK-\n'
                  'ZJSA SANYA FIR OBSC TS FCST WI E11223 N1829 - E11142 N1916 TOP FL030 MOV N 300KMH NC=')
 
 MOMENT = datetime.datetime(2026, 6, 10, 8, 0)
-
-
-def frozenDatetime(moment):
-    class FrozenDatetime(datetime.datetime):
-        @classmethod
-        def utcnow(cls):
-            return moment
-    return FrozenDatetime
-
-
-def freezeUtcnow(monkeypatch, moment, modules):
-    for module in modules:
-        fake = types.SimpleNamespace(**{
-            name: getattr(datetime_module, name)
-            for name in dir(datetime_module) if not name.startswith('_')})
-        fake.datetime = frozenDatetime(moment)
-        monkeypatch.setattr(module + '.datetime', fake)
 
 
 class FakeSound:
@@ -93,10 +75,7 @@ def service(conf, context, database, board):
 
 class TestDataService:
 
-    def test_update_taf_feeds_the_monitor(self, service, database, monkeypatch):
-        freezeUtcnow(monkeypatch, MOMENT, (
-            'tafor.core.repositories', 'tafor.core.models', 'tafor.core.taf.spec'))
-
+    def test_update_taf_feeds_the_monitor(self, service, database, frozen_time):
         # context.taf.spec is ft24; at 08:00 the current period is 0606,
         # valid 1006/1106, and its issue window (03:00 + delay) has passed
         service.updateTaf()
@@ -106,8 +85,7 @@ class TestDataService:
         assert service.context.taf.isExpired() is True
         assert service.context.taf.shouldRemind() is True
 
-    def test_update_sigmet_feeds_current_sigmets(self, service, database, monkeypatch):
-        freezeUtcnow(monkeypatch, MOMENT, ('tafor.core.repositories', 'tafor.core.models'))
+    def test_update_sigmet_feeds_current_sigmets(self, service, database, frozen_time):
         with database.session() as session:
             session.add(Sigmet(type='WS', text=SIGMET_ACTIVE, created=MOMENT))
 

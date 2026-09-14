@@ -53,13 +53,25 @@ class TestLicense:
             lambda token, key: {'airport': 'ZZZZ', 'fir': 'YUDD'})
         assert service.license('token') == {'fir': 'YUDD'}
 
+    def test_exp_days_uses_utc_for_the_token_expiry(self, service, monkeypatch):
+        # 'exp' is a Unix timestamp and must be interpreted as UTC; comparing
+        # it against a local-time fromtimestamp() result would shift the
+        # remaining days by the machine's UTC offset
+        exp = datetime.datetime(2026, 6, 13, 12, 0, tzinfo=datetime.timezone.utc).timestamp()
+        monkeypatch.setattr('tafor.core.services.verifyToken', lambda token, key: {'exp': exp})
+
+        now = datetime.datetime(2026, 6, 10, 8, 0)
+        assert service.license('token', now=now) == {}
+        assert service.exp == 3
+
     def test_exp_days_side_effect(self, service, monkeypatch):
         # license() stores the remaining validity in self.exp even though
         # it returns only the verified claims
-        exp = (datetime.datetime.utcnow() + datetime.timedelta(days=3, hours=4)).timestamp()
+        exp = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=3, hours=4)).timestamp()
         monkeypatch.setattr('tafor.core.services.verifyToken', lambda token, key: {'exp': exp})
         service.license('token')
-        expected = (datetime.datetime.fromtimestamp(exp) - datetime.datetime.utcnow()).days
+        expected = (datetime.datetime.fromtimestamp(exp, tz=datetime.timezone.utc).replace(tzinfo=None)
+                    - datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)).days
         assert service.exp == expected
 
     def test_payload_without_exp_keeps_zero(self, service, monkeypatch):

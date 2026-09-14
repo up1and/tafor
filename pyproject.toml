@@ -53,6 +53,7 @@ dev = [
     "pyinstaller",
     "alembic",
     "colorama",
+    "time-machine",
 ]
 
 [tool.uv]

@@ -3,6 +3,7 @@ import datetime
 from tafor.core.telegram.generator import (
     AFTNMessageGenerator, FileMessageGenerator, aftnPriority, fileMessageName
 )
+from tafor.core.utils.time import utcnow
 
 
 class BaseChannel:
@@ -69,7 +70,7 @@ class FileChannel(BaseChannel):
         }
 
     def ftpParams(self, valids=None):
-        valids = valids or (datetime.datetime.utcnow(), datetime.datetime.utcnow())
+        valids = valids or (utcnow(), utcnow())
         return {
             'url': self.conf.ftpHost,
             'filename': fileMessageName(self.conf.airport, valids, self.conf.get(self.configName)),

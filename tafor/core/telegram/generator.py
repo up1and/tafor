@@ -1,7 +1,8 @@
 import re
 import json
-import datetime
 import textwrap
+
+from tafor.core.utils.time import utcnow
 
 
 def linewrap(lines, maxLineChar):
@@ -29,7 +30,7 @@ def aftnPriority(category, text):
 
 def fileMessageName(airport, valids, number, created=None):
     format = '%Y%m%d%H%M%S'
-    created = created or datetime.datetime.utcnow()
+    created = created or utcnow()
     return '9_OTHE_C_{airport}_{created}_STUB-WTMG-MULT-{validfrom}-{validto}-XXX-1,{number}.txt'.format(
         airport=airport,
         created=created.strftime(format),
@@ -70,7 +71,7 @@ class AFTNMessageGenerator:
         self.maxLineChar = maxLineChar
         self.sequenceLength = int(sequenceLength)
         self.maxSendAddress = int(maxSendAddress)  # AFTN 线路最大发电地址数
-        self.time = datetime.datetime.utcnow() if time is None else time
+        self.time = utcnow() if time is None else time
         self.lineBreak = '\r\n'
         self.generate()
 

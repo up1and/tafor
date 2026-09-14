@@ -1,6 +1,5 @@
 import os
 import json
-import datetime
 
 from uuid import uuid4
 from contextlib import contextmanager
@@ -9,6 +8,7 @@ from sqlalchemy import Column, Index, Integer, String, Text, DateTime, create_en
 from sqlalchemy.orm import sessionmaker, scoped_session, declarative_base
 
 from tafor.core import root
+from tafor.core.utils.time import utcnow
 
 
 uniqueid = lambda: str(uuid4())
@@ -30,7 +30,7 @@ class Taf(Base):
     raw = Column(Text)
     protocol = Column(Text)
     source = Column(String(16), default='self')
-    created = Column(DateTime, default=datetime.datetime.utcnow)
+    created = Column(DateTime, default=utcnow)
     confirmed = Column(DateTime)
 
     def __repr__(self):
@@ -77,7 +77,7 @@ class Metar(Base):
     uuid = Column(String(36), default=uniqueid)
     type = Column(String(2), nullable=False)
     text = Column(Text, nullable=False)
-    created = Column(DateTime, default=datetime.datetime.utcnow)
+    created = Column(DateTime, default=utcnow)
 
     def __repr__(self):
         return '<METAR %r %r>' % (self.type, self.text)
@@ -103,7 +103,7 @@ class Trend(Base):
     raw = Column(Text)
     protocol = Column(Text)
     source = Column(String(16), default='self')
-    created = Column(DateTime, default=datetime.datetime.utcnow)
+    created = Column(DateTime, default=utcnow)
 
     def __repr__(self):
         return '<Trend %r>' % (self.text)
@@ -147,7 +147,7 @@ class Sigmet(Base):
     raw = Column(Text)
     protocol = Column(Text)
     source = Column(String(16), default='self')
-    created = Column(DateTime, default=datetime.datetime.utcnow)
+    created = Column(DateTime, default=utcnow)
     confirmed = Column(DateTime, nullable=True)
 
     def __repr__(self):
@@ -188,7 +188,7 @@ class Sigmet(Base):
         return 'CNL' in items
 
     def isExpired(self):
-        return datetime.datetime.utcnow() > self.expired()
+        return utcnow() > self.expired()
 
 class Other(Base):
     __tablename__ = 'others'
@@ -199,7 +199,7 @@ class Other(Base):
     raw = Column(Text)
     protocol = Column(Text)
     source = Column(String(16), default='self')
-    created = Column(DateTime, default=datetime.datetime.utcnow)
+    created = Column(DateTime, default=utcnow)
 
     # Transient AFTN addressing supplied by the API for custom messages;
     # not mapped columns.

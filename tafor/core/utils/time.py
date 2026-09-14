@@ -4,6 +4,14 @@ import datetime
 from dateutil import relativedelta
 
 
+def utcnow():
+    """Return a naive datetime representing current UTC time.
+    
+    A drop-in replacement for the deprecated datetime.datetime.utcnow().
+    """
+    return datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+
+
 def isOverlap(basetime, reftime):
     start = max(basetime[0], reftime[0])
     end = min(basetime[1], reftime[1])
@@ -32,7 +40,7 @@ def parseDayHour(day, hour, basetime, delta=None):
 
 
 def parseStandardPeriod(period, basetime=None):
-    basetime = basetime if basetime else datetime.datetime.utcnow()
+    basetime = basetime if basetime else utcnow()
     startTime, endTime = period.split('/')
 
     if max([int(startTime[:2]), int(endTime[:2])]) > calendar.monthrange(basetime.year, basetime.month)[1]:
@@ -48,7 +56,7 @@ def parseStandardPeriod(period, basetime=None):
 
 
 def parseOldPeriod(interval, basetime=None):
-    basetime = basetime if basetime else datetime.datetime.utcnow()
+    basetime = basetime if basetime else utcnow()
 
     start = parseDayHour(basetime.day, interval[:2], basetime, delta='day')
     end = parseDayHour(basetime.day, interval[2:], basetime, delta='day')
@@ -73,7 +81,7 @@ def parsePeriod(period, basetime=None):
 
 
 def parseHourMinute(hour, minute, basetime=None):
-    basetime = basetime if basetime else datetime.datetime.utcnow()
+    basetime = basetime if basetime else utcnow()
     hour = int(hour)
     minute = int(minute)
 
@@ -89,7 +97,7 @@ def parseHourMinute(hour, minute, basetime=None):
 
 
 def parseDayHourMinute(day, hour, minute, basetime=None):
-    basetime = basetime if basetime else datetime.datetime.utcnow()
+    basetime = basetime if basetime else utcnow()
     day = int(day)
     hour = int(hour)
     minute = int(minute)
@@ -115,8 +123,8 @@ def parseTime(value, basetime=None):
     return None
 
 
-def parseTimez(timez):
-    basetime = datetime.datetime.utcnow()
+def parseTimez(timez, basetime=None):
+    basetime = basetime if basetime else utcnow()
     day = int(timez[:2])
     hour = int(timez[2:4])
     minute = int(timez[4:6])
@@ -145,7 +153,7 @@ def timeAgo(date, now=None):
     sec_array = [60.0, 60.0, 24.0, 7.0, 365.0 / 7.0 / 12.0, 12.0]
 
     if now is None:
-        now = datetime.datetime.utcnow()
+        now = utcnow()
 
     diff = now - date
     seconds = diff.seconds

@@ -1,5 +1,7 @@
 import datetime
 
+from tafor.core.utils.time import utcnow
+
 
 class SigmetFormValidator:
     START_TOO_FAR = 'start_too_far'
@@ -13,7 +15,7 @@ class SigmetFormValidator:
             return None
 
         if now is None:
-            now = datetime.datetime.utcnow()
+            now = utcnow()
 
         start, end = durations
 

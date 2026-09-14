@@ -1,6 +1,7 @@
 import datetime
 
 from tafor.core.events import Event
+from tafor.core.utils.time import utcnow
 
 
 class RemoteMessageState:
@@ -40,7 +41,7 @@ class NotificationState:
     def __init__(self):
         self.message = None
         self.validation = False
-        self.created = datetime.datetime.utcnow()
+        self.created = utcnow()
         self.previous = ''
 
 
@@ -268,7 +269,7 @@ class SigmetMonitorService(StateProxyMixin):
         self.state.entries.pop(uuid, None)
 
     def outdate(self):
-        now = datetime.datetime.utcnow()
+        now = utcnow()
         outdates = []
         for uuid, value in self.state.entries.items():
             if (
@@ -310,7 +311,7 @@ class NotificationService:
                 setattr(self.state, key, value)
 
         if oldMessage != self.state.message or oldValidation != self.state.validation:
-            self.state.created = datetime.datetime.utcnow()
+            self.state.created = utcnow()
             self.event.notificationChanged.emit(self.category())
 
     def clear(self):

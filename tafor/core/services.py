@@ -1,5 +1,6 @@
 import datetime
 
+from tafor.core.utils.time import utcnow
 from tafor.core.utils.common import verifyToken
 
 
@@ -20,7 +21,7 @@ class LicenseService:
         self.conf = conf
         self.exp = 0
 
-    def license(self, token=None):
+    def license(self, token=None, now=None):
         token = token or self.conf.license
         if not token:
             return {}
@@ -29,9 +30,13 @@ class LicenseService:
         if payload is None:
             return {}
 
+        if now is None:
+            now = utcnow()
+
         if 'exp' in payload:
-            exp = datetime.datetime.fromtimestamp(payload['exp'])
-            now = datetime.datetime.utcnow()
+            # exp is a Unix timestamp: interpret it as UTC, otherwise the
+            # naive result shifts by the machine's UTC offset
+            exp = datetime.datetime.fromtimestamp(payload['exp'], tz=datetime.timezone.utc).replace(tzinfo=None)
             self.exp = (exp - now).days
 
         data = {}

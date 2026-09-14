@@ -7,6 +7,7 @@ from tafor.core.models import Metar, Sigmet, Taf, Trend
 from tafor.core.parsers.sigmet import SigmetParser
 from tafor.core.taf import CurrentTaf
 from tafor.core.utils.pagination import paginate
+from tafor.core.utils.time import utcnow
 
 
 def subscribedTypes(tafSpec, sigmetEnabled):
@@ -85,7 +86,7 @@ class Repository:
 class TafRepository(Repository):
 
     def available(self, type, message):
-        recent = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
+        recent = utcnow() - datetime.timedelta(hours=32)
         with self.database.session() as session:
             tafs = session.query(Taf).filter(Taf.type == type, Taf.created > recent).all()
 
@@ -97,19 +98,19 @@ class TafRepository(Repository):
         matched = _match(tafs, message)
         if matched:
             if not matched.confirmed:
-                matched.confirmed = datetime.datetime.utcnow()
+                matched.confirmed = utcnow()
                 return matched
         else:
-            return Taf(type=type, text=message, source='api', confirmed=datetime.datetime.utcnow())
+            return Taf(type=type, text=message, source='api', confirmed=utcnow())
 
     def hasRecent(self, period, hours=32):
-        recent = datetime.datetime.utcnow() - datetime.timedelta(hours=hours)
+        recent = utcnow() - datetime.timedelta(hours=hours)
         with self.database.session() as session:
             return session.query(Taf).filter(
                 Taf.text.contains(period), Taf.created > recent).first()
 
     def amendCount(self, period, kind):
-        recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+        recent = utcnow() - datetime.timedelta(hours=24)
         with self.database.session() as session:
             query = session.query(Taf).filter(Taf.text.contains(period), Taf.created > recent)
             return query.filter(Taf.text.contains(kind)).count()
@@ -131,7 +132,7 @@ class TafRepository(Repository):
         isExpired = False
 
         # Ignore AMD COR message
-        expired = datetime.datetime.utcnow() - datetime.timedelta(hours=32)
+        expired = utcnow() - datetime.timedelta(hours=32)
 
         with self.database.session() as session:
             recent = session.query(Taf).filter(Taf.text.contains(period),  ~Taf.text.contains('AMD'),
@@ -168,7 +169,7 @@ class MetarRepository(Repository):
             return Metar(type=type, text=message)
 
     def latest(self, hours=2):
-        recent = datetime.datetime.utcnow() - datetime.timedelta(hours=hours)
+        recent = utcnow() - datetime.timedelta(hours=hours)
         with self.database.session() as session:
             return session.query(Metar).filter(Metar.created > recent).order_by(Metar.created.desc()).first()
 
@@ -181,7 +182,7 @@ class MetarRepository(Repository):
 class SigmetRepository(Repository):
 
     def countToday(self, type):
-        time = datetime.datetime.utcnow()
+        time = utcnow()
         begin = datetime.datetime(time.year, time.month, time.day)
 
         with self.database.session() as session:
@@ -204,7 +205,7 @@ class SigmetRepository(Repository):
             return query.order_by(Sigmet.created.desc()).first()
 
     def current(self, hours=24):
-        recent = datetime.datetime.utcnow() - datetime.timedelta(hours=hours)
+        recent = utcnow() - datetime.timedelta(hours=hours)
         with self.database.session() as session:
             records = session.query(Sigmet).filter(Sigmet.created > recent).order_by(Sigmet.created.asc()).all()
 
@@ -237,8 +238,8 @@ class SigmetRepository(Repository):
         return currents
 
     def available(self, type, messages):
-        recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-        time = datetime.datetime.utcnow()
+        recent = utcnow() - datetime.timedelta(hours=24)
+        time = utcnow()
 
         with self.database.session() as session:
             sigmets = session.query(Sigmet).filter(Sigmet.created > recent).all()

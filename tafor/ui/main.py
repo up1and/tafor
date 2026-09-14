@@ -16,6 +16,7 @@ from tafor.core.states import createContext
 from tafor.core.models import createDatabase
 from tafor.core.repositories import Repositories, SigmetFilter, subscribedTypes
 from tafor.core.utils.common import appInfo, checkVersion, iconPath, revision, setupLogging
+from tafor.core.utils.time import utcnow
 from tafor.ui.components.chart import ChartViewer
 from tafor.ui.components.send import CustomSender, SigmetSender, TafSender, TrendSender
 from tafor.ui.components.setting import SettingDialog
@@ -164,7 +165,7 @@ class DataService:
     def updateRecent(self):
         self.view.tafBoard.updateGui()
 
-        recent = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+        recent = utcnow() - datetime.timedelta(hours=24)
         spec = self.context.taf.spec[:2].upper()
 
         sigmets = []
@@ -293,7 +294,7 @@ class MainPresenter(QObject):
         warnSwitch = self.view.warnTafAction.isChecked()
         trendSwitch = self.conf.remindTrend
 
-        utc = datetime.datetime.utcnow()
+        utc = utcnow()
         if trendSwitch and (utc.minute in (57, 58, 59) or self.context.notification.metar.message()):
             self.view.trendSound.play()
         else:

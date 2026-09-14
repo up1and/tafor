@@ -1,6 +1,6 @@
 import datetime
 
-from tafor.core.utils.time import isOverlap, parseDayHour, parseTime
+from tafor.core.utils.time import isOverlap, parseDayHour, parseTime, utcnow
 
 def parseTemperature(value):
     return -int(value[1:]) if 'M' in value else int(value)
@@ -182,10 +182,10 @@ class TrendFormValidator:
             return None
 
         if now is None:
-            now = datetime.datetime.utcnow()
+            now = utcnow()
 
         delta = datetime.timedelta(hours=2, minutes=30)
-        periods = [parseTime(text) for text in value.split('/')]
+        periods = [parseTime(text, basetime=now) for text in value.split('/')]
 
         if len(periods) == 2:
             if periods[1] <= periods[0]:

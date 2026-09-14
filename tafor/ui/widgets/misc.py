@@ -1,6 +1,5 @@
 import math
 import logging
-import datetime
 
 from PyQt5.QtGui import QPixmap, QBrush, QPen, QFont, QFontMetrics, QPainterPath, QPainter
 from PyQt5.QtCore import QCoreApplication, QTimer, QSize, Qt, pyqtSignal
@@ -8,6 +7,7 @@ from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QLabel, QHBoxLayout
 
 from tafor.core.taf import CurrentTaf
 from tafor.core.utils.common import iconPath
+from tafor.core.utils.time import utcnow
 from tafor.ui.fonts import fixedFont
 from tafor.ui.qt import Ui_main_license
 
@@ -167,7 +167,7 @@ class Clock(QWidget):
         container.addWidget(self)
 
     def updateGui(self):
-        utc = datetime.datetime.utcnow()
+        utc = utcnow()
         self.label.setText(utc.strftime('%Y-%m-%d %H:%M:%S'))
 
 

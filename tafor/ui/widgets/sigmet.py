@@ -15,7 +15,7 @@ from tafor.core.sigmet import (SigmetAshState, SigmetCancelState, SigmetCustomSt
     SigmetTyphoonState, SigmetFormValidator)
 from tafor.core.sigmet.compose import adjustCancelBeginning, nextSequence, validPeriod
 from tafor.core.geometry.coordinate import decimalToDegree
-from tafor.core.utils.time import parseTime
+from tafor.core.utils.time import parseTime, utcnow
 from tafor.core.utils.common import iconPath
 from tafor.ui.qt import Ui_sigmet_ash, Ui_sigmet_cancel, Ui_sigmet_custom, Ui_sigmet_general, Ui_sigmet_typhoon
 from tafor.ui.widgets.taf import SegmentMixin
@@ -120,7 +120,7 @@ class BaseSigmet(SegmentMixin, QWidget):
             self.durations = None
 
     def periodTime(self):
-        self.time = datetime.datetime.utcnow()
+        self.time = utcnow()
         return validPeriod(self.type(), self.span, self.time)
 
     def validatePeriod(self):
@@ -185,7 +185,7 @@ class BaseSigmet(SegmentMixin, QWidget):
 
     def updateSequence(self):
         sigmets = self.repository.countToday(self.type())
-        count = nextSequence([sig.heading for sig in sigmets], datetime.datetime.utcnow())
+        count = nextSequence([sig.heading for sig in sigmets], utcnow())
         self.sequence.setText(str(count))
 
     def hasAcceptableInput(self):
@@ -1154,7 +1154,7 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
                 self.cancelBeginningTime.text(),
                 start,
                 self.endingTime.text(),
-                datetime.datetime.utcnow(),
+                utcnow(),
             )
             self.beginningTime.setText(beginning.strftime('%d%H%M'))
 
