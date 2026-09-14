@@ -242,15 +242,16 @@ class MainPresenter(QObject):
         # Single door for background threads to update context state
         self.bridge = bridge or ContextBridge(context)
 
-        # The presenter delegates data loading to DataService
-        # and reminder logic to RemindService.
+        # Plain data events connect straight to these two services
         self.dataService = dataService
         self.remindService = remindService or RemindService(view, context, conf)
 
-        self.setupTimers()
+        # Threads are created here but only started by initialize(),
+        # worker() and the Check-for-Updates menu action
         self.setupThreads()
 
     def initialize(self):
+        self.setupTimers()
         self.worker()
         self.painter()
         self.dataService.updateSigmet()
@@ -332,30 +333,6 @@ class MainPresenter(QObject):
         self.dataService.refresh()
         self.remindService.remindSigmet()
 
-    def updateMessage(self):
-        self.dataService.updateMessage()
-
-    def loadMetar(self):
-        self.dataService.loadMetar()
-
-    def updateTaf(self):
-        self.dataService.updateTaf()
-
-    def updateSigmet(self):
-        self.dataService.updateSigmet()
-
-    def updateRecent(self):
-        self.dataService.updateRecent()
-
-    def updateTable(self):
-        self.dataService.updateTable()
-
-    def remindTaf(self):
-        self.remindService.remindTaf()
-
-    def setSigmetReminder(self, message, enabled):
-        self.remindService.setSigmetReminder(message, enabled)
-
     def updateLayer(self):
         self.view.sigmetEditor.updateLayer()
 
@@ -393,7 +370,7 @@ class MainPresenter(QObject):
 
     def openSetting(self):
         self.view.ensureVisible()
-        self.view.settingDialog.exec_()
+        self.view.settingDialog.reopen()
 
     def about(self):
         title = QCoreApplication.translate('MainWindow', 'About')
@@ -493,16 +470,21 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.context = context
         self.setupUi(self)
 
-        # One set of repositories built here and shared by the data service
-        # and the widgets that query them
-        self.repositories = Repositories(database)
-
-        dataService = DataService(self, context, conf, self.repositories)
-
-        self.presenter = MainPresenter(self, context, conf, dataService, bridge=bridge)
         self.sysInfo = QSysInfo.prettyProductName()
 
+        # One set of repositories shared by the data service and the widgets
+        # that query them
+        self.repositories = Repositories(database)
+
         self.setup()
+
+        # Plain data events go straight to these two services; the presenter
+        # orchestrates the entries that need several collaborators
+        self.dataService = DataService(self, context, conf, self.repositories)
+        self.remindService = RemindService(self, context, conf)
+        self.presenter = MainPresenter(self, context, conf, self.dataService,
+                                       self.remindService, bridge=bridge)
+
         self.bindSignal()
         self.presenter.initialize()
 
@@ -535,8 +517,12 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         if not self.conf.sigmetEnabled:
             self.sigmetAction.setVisible(False)
-            self.mainTab.removeTab(3)
-            self.mainTab.removeTab(3)
+            # Remove by widget identity: a literal index silently deletes
+            # the wrong tab when the page order changes in Designer
+            for page in (self.sigmetTab, self.airmetTab):
+                index = self.mainTab.indexOf(page)
+                if index != -1:
+                    self.mainTab.removeTab(index)
 
         self.setupRecent()
         self.setupTable()
@@ -544,12 +530,15 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.setupSound()
 
     def bindSignal(self):
-        self.context.event.remoteMessageChanged.connect(self.presenter.updateMessage)
-        self.context.event.tafReminderTriggered.connect(self.presenter.remindTaf)
+        # Plain data events go straight to the services
+        self.context.event.remoteMessageChanged.connect(self.dataService.updateMessage)
+        self.context.event.tafReminderTriggered.connect(self.remindService.remindTaf)
+
+        # Entries the presenter needs to orchestrate
         self.context.event.otherMessageReceived.connect(self.presenter.loadCustomMessage)
         self.context.event.notificationChanged.connect(self.presenter.handleNotificationChange)
-        self.context.event.currentSigmetChanged.connect(self.sigmetEditor.updateGraphicCanvas)
         self.context.event.layerRefreshRequested.connect(self.presenter.painter)
+        self.context.event.currentSigmetChanged.connect(self.sigmetEditor.updateGraphicCanvas)
         self.context.event.systemMessage.connect(self.showSystemNotification)
         self.context.event.statusbarMessage.connect(self.showStatusbarNotification)
 
@@ -586,6 +575,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         self.metarTable.chartClicked.connect(self.chartViewer.show)
 
+        self.recentBoard.reminderToggled.connect(self.remindService.setSigmetReminder)
+
     def setTrayIcon(self, style='normal'):
         files = {
             'dark': iconPath('logo-dark.png'),
@@ -606,7 +597,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.recentBoard = RecentBoard(self, conf=self.conf)
         self.recentBoard.reviewRequested.connect(self.reviewRecentMessage)
         self.recentBoard.replyRequested.connect(self.trendEditor.edit)
-        self.recentBoard.reminderToggled.connect(self.presenter.setSigmetReminder)
         self.recentBoard.expired.connect(self.expireRecentNotification)
         self.scrollLayout.insertWidget(1, self.recentBoard)
         self.scrollLayout.setAlignment(Qt.AlignTop)
@@ -680,7 +670,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def showReminder(self, box, sound, text):
         sound.play()
         box.setText(text)
-        ret = box.exec_()
+        ret = box.exec()
         if not box.isVisible():
             sound.stop()
         return ret
@@ -699,7 +689,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def expireRecentNotification(self):
         # Drop the timed-out notification and fall back to the stored metar card
         self.context.notification.metar.clear()
-        self.presenter.updateRecent()
+        self.dataService.updateRecent()
 
     def closeSender(self):
         self.tafSender.close()
@@ -813,7 +803,7 @@ def main():
             rpcWorker, rpcThread = threadManager.createWorker(RpcWorker, server, workerId='rpc', reusable=True)
             rpcThread.start()
 
-        code = app.exec_()
+        code = app.exec()
         sys.exit(code)
     except Exception:
         logger.exception('On startup failed')

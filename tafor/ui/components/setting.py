@@ -45,18 +45,23 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.buttonBox.button(QDialogButtonBox.Apply).setText(QCoreApplication.translate('Settings', 'Apply'))
         self.buttonBox.button(QDialogButtonBox.Cancel).setText(QCoreApplication.translate('Settings', 'Cancel'))
 
-        if self.conf.sigmetEnabled:
-            pass
-        else:
+        if not self.conf.sigmetEnabled:
             self.firName.hide()
             self.firNameLabel.hide()
             self.layerURL.hide()
             self.layerURLLabel.hide()
             self.remindSigmet.hide()
             self.sigmetVolume.hide()
-            self.addressTab.removeTab(2)
-            self.addressTab.removeTab(2)
-            self.settingTab.removeTab(6)
+
+            # Remove by widget identity
+            for page in (self.sigmetTab, self.airmetTab):
+                index = self.addressTab.indexOf(page)
+                if index != -1:
+                    self.addressTab.removeTab(index)
+
+            index = self.settingTab.indexOf(self.layerPage)
+            if index != -1:
+                self.settingTab.removeTab(index)
 
         self.bindSignal()
         self.setupValidator()
@@ -187,6 +192,16 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
         for attr, config in self.conf:
             self.bindValue(self.conf.get(attr), config.bindProperty)
+
+    def reopen(self):
+        """Reload saved values every time the dialog is opened.
+
+        The dialog is constructed once and reused by the main window; without
+        this, the controls keep the last uncommitted draft after OK/Cancel,
+        leaving the UI showing a value that config never stored.
+        """
+        self.load()
+        self.exec()
 
     def bindValue(self, value, bindProperty):
         control = getattr(self, bindProperty)

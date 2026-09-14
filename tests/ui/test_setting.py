@@ -114,6 +114,20 @@ class TestSetting:
         assert conf.airport == 'YUSO'
         assert conf.bulletinNumber == 'NT36'
 
+    def test_reopen_reloads_unsaved_controls(self, setting, conf, monkeypatch):
+        # The dialog is constructed once and reused: reopening must show the
+        # saved config, not the last uncommitted draft. Patch the instance
+        # (not the QDialog class) to bypass the modal loop.
+        modal = []
+        monkeypatch.setattr(setting, 'exec', lambda: modal.append(1))
+        conf.airport = 'YUDD'
+        setting.airport.setText('ZZZZ')
+
+        setting.reopen()
+
+        assert modal == [1]
+        assert setting.airport.text() == 'YUDD'
+
 
 if __name__ == '__main__':
     pytest.main()
