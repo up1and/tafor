@@ -107,19 +107,58 @@ class TestCheckCloud:
         state.cb = 'OVC030CB'
         assert TafFormValidator.checkCloud(state, 'FEW010') == TafFormValidator.CLOUD_OKTAS_EXCEED
 
-    def test_cb_is_compared_against_itself(self):
-        # BUG: otherClouds excludes only the edited line, not state.cb, so
-        # the okta loop compares the CB with itself: 5+5 > 8 flags a lone
-        # BKN CB even with no other cloud at that height
+    def test_lone_cb_at_any_height_passes(self):
         state = SegmentState('MPS')
         state.clouds = []
         state.cb = 'BKN030CB'
-        assert TafFormValidator.checkCloud(state, 'OVC040') == TafFormValidator.CLOUD_OKTAS_EXCEED
+        assert TafFormValidator.checkCloud(state, 'OVC040') is None
+
+    def test_editing_another_line_ignores_the_cb_self_oktas(self):
+        # any ordinary row edit used to trip the okta check against the CB
+        state = SegmentState('MPS')
+        state.clouds = ['BKN040']
+        state.cb = 'BKN030CB'
+        assert TafFormValidator.checkCloud(state, 'BKN040') is None
 
     def test_cb_plus_cloud_oktas_exceed(self):
         state = SegmentState('MPS')
         state.clouds = ['OVC030']
         state.cb = 'SCT030CB'
+        assert TafFormValidator.checkCloud(state, 'FEW010') == TafFormValidator.CLOUD_OKTAS_EXCEED
+
+    def test_cloud_and_cb_at_the_same_height_pass(self):
+        # a CB layer is an independent phenomena layer and may share the
+        # height of an ordinary cloud layer
+        state = SegmentState('MPS')
+        state.clouds = ['SCT020']
+        state.cb = 'SCT020CB'
+        assert TafFormValidator.checkCloud(state, 'SCT020') is None
+
+    def test_different_cover_cb_at_the_same_height_passes(self):
+        state = SegmentState('MPS')
+        state.clouds = ['BKN020']
+        state.cb = 'SCT020CB'
+        assert TafFormValidator.checkCloud(state, 'SCT020') is None
+
+    def test_heavy_cb_flags_from_either_line(self):
+        # the 8-okta cap still applies to a same-height cloud + CB pair,
+        # no matter which line triggered the check
+        state = SegmentState('MPS')
+        state.clouds = ['OVC030']
+        state.cb = 'BKN030CB'
+        assert TafFormValidator.checkCloud(state, 'FEW010') == TafFormValidator.CLOUD_OKTAS_EXCEED
+        assert TafFormValidator.checkCloud(state, 'OVC030') == TafFormValidator.CLOUD_OKTAS_EXCEED
+
+    def test_cb_and_cloud_at_the_same_height_still_exceed_oktas(self):
+        state = SegmentState('MPS')
+        state.clouds = ['OVC030']
+        state.cb = 'BKN030CB'
+        assert TafFormValidator.checkCloud(state, 'FEW010') == TafFormValidator.CLOUD_OKTAS_EXCEED
+
+    def test_featherweight_cb_still_exceeds_oktas_with_a_heavy_cloud(self):
+        state = SegmentState('MPS')
+        state.clouds = ['OVC030']
+        state.cb = 'FEW030CB'
         assert TafFormValidator.checkCloud(state, 'FEW010') == TafFormValidator.CLOUD_OKTAS_EXCEED
 
     def test_cloud_above_ovc_rejected(self):

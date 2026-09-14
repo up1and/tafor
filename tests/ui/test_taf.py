@@ -71,6 +71,20 @@ class TestTafEditor:
         editor.updateGroupsVisibility(checkbox)
         assert not editor.becmg1.isVisibleTo(editor)
 
+    def test_cloud_and_cb_at_the_same_height_are_accepted(self, editor):
+        # a CB layer may share the height of an ordinary cloud layer and
+        # the CB field must keep its complete entry
+        primary = editor.primary
+        primary.cloud1.setText('SCT020')
+        primary.cb.setText('SCT020')
+
+        primary.validateCloud(primary.cloud1)
+        primary.validateCloud(primary.cb)
+
+        assert primary.cloud1.text() == 'SCT020'
+        assert primary.cb.text() == 'SCT020'
+        assert primary.state.cb == 'SCT020CB'
+
 
 if __name__ == '__main__':
     pytest.main()

@@ -50,19 +50,22 @@ class TafFormValidator:
         if not lineValue:
             return None
 
-        height = lineValue[3:]
         allClouds = list(filter(None, state.clouds + ([state.cb] if state.cb else [])))
-        otherClouds = [c for c in allClouds if c != lineValue]
-        cloudHeights = [cloud[3:6] for cloud in otherClouds]
 
-        if cloudHeights.count(height) > 0:
+        # A CB layer is an independent phenomena layer and may share the
+        # height of an ordinary layer; duplicate heights are only checked
+        # between the ordinary cloud rows
+        heights = [cloud[3:6] for cloud in state.clouds if cloud]
+        if len(heights) != len(set(heights)):
             return TafFormValidator.CLOUD_HEIGHT_CONFLICT
 
         cloudCover = {'FEW': 1, 'SCT': 3, 'BKN': 5, 'OVC': 8}
         if state.cb:
             cbCover = cloudCover.get(state.cb[:3], 0)
             cbHeight = state.cb[3:6]
-            for cloud in otherClouds:
+            for cloud in allClouds:
+                if cloud == state.cb:
+                    continue
                 cover = cloudCover.get(cloud[:3], 0)
                 if cbHeight == cloud[3:6] and cbCover + cover > 8:
                     return TafFormValidator.CLOUD_OKTAS_EXCEED
