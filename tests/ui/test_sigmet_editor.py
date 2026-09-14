@@ -103,19 +103,26 @@ class TestSigmetGeneral:
 
         assert general.endingTime.text() == ''
 
-    def test_validate_period_too_long_crashes_in_translate(self, general):
-        # BUG: validatePeriod unwraps the (code, kwargs) tuple only for the
-        # field-clearing branch but passes the whole tuple to _translate,
-        # whose dict lookup hashes the unhashable kwargs dict. Fixing the
-        # call site turns this into: endingTime is cleared.
+    def test_validate_period_too_long_clears_the_ending_time(self, general):
+        # four hours is the editor's span; '102300' overshoots it
         general.beginningTime.setText('100800')
         general.endingTime.setText('102300')
 
-        with pytest.raises(TypeError):
-            general.validatePeriod()
+        general.validatePeriod()
 
-        # the ending field is cleared before the crash
         assert general.endingTime.text() == ''
+        assert general.beginningTime.text() == '100800'
+
+    def test_validate_period_too_long_shows_a_message(self, general, context):
+        general.beginningTime.setText('100800')
+        general.endingTime.setText('102300')
+
+        texts = []
+        context.event.editorMessage.connect(lambda title, text: texts.append(text))
+
+        general.validatePeriod()
+
+        assert texts == ['Valid period more than the permitted hours']
 
     def test_validate_period_clears_far_future_start(self, general):
         general.beginningTime.setText('200800')

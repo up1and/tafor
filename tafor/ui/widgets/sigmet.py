@@ -23,14 +23,14 @@ from tafor.ui.widgets.taf import SegmentMixin
 logger = logging.getLogger('tafor.sigmet.information')
 
 
-def _translate(code, **kwargs):
+def _translate(code):
     messages = {
         SigmetFormValidator.START_TOO_FAR: QCoreApplication.translate(
             'Editor', 'Start time cannot be less than the current time'),
         SigmetFormValidator.END_NOT_GREATER: QCoreApplication.translate(
             'Editor', 'Ending time must be greater than the beginning time'),
         SigmetFormValidator.PERIOD_TOO_LONG: QCoreApplication.translate(
-            'Editor', 'Valid period more than {} hours').format(kwargs.get('hours', '')),
+            'Editor', 'Valid period more than the permitted hours'),
         SigmetFormValidator.FLIGHT_LEVEL_INVALID: QCoreApplication.translate(
             'Editor', 'The top flight level needs to be greater than the base flight level'),
     }
@@ -126,10 +126,9 @@ class BaseSigmet(SegmentMixin, QWidget):
     def validatePeriod(self):
         error = SigmetFormValidator.validatePeriod(self.durations, self.span)
         if error:
-            code = error[0] if isinstance(error, tuple) else error
-            if code == SigmetFormValidator.START_TOO_FAR:
+            if error == SigmetFormValidator.START_TOO_FAR:
                 self.beginningTime.clear()
-            elif code in (SigmetFormValidator.END_NOT_GREATER, SigmetFormValidator.PERIOD_TOO_LONG):
+            elif error in (SigmetFormValidator.END_NOT_GREATER, SigmetFormValidator.PERIOD_TOO_LONG):
                 self.endingTime.clear()
             self.context.flash.editor('sigmet', _translate(error))
 

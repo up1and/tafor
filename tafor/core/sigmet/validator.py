@@ -26,7 +26,7 @@ class SigmetFormValidator:
             return SigmetFormValidator.END_NOT_GREATER
 
         if end - start > datetime.timedelta(hours=span):
-            return (SigmetFormValidator.PERIOD_TOO_LONG, {'hours': span})
+            return SigmetFormValidator.PERIOD_TOO_LONG
 
         return None
 

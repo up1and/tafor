@@ -36,13 +36,9 @@ class TestValidatePeriod:
         durations = (NOW, NOW - datetime.timedelta(hours=1))
         assert SigmetFormValidator.validatePeriod(durations, span=4, now=NOW) == SigmetFormValidator.END_NOT_GREATER
 
-    def test_period_over_span_returns_tuple_with_hours(self):
-        # Inconsistent with the other outcomes: this one error carries
-        # parameters and comes back as a (code, kwargs) tuple, so callers
-        # have to unwrap it (see widgets/sigmet.py validatePeriod)
+    def test_period_over_span_rejected(self):
         durations = (NOW, NOW + datetime.timedelta(hours=5))
-        error = SigmetFormValidator.validatePeriod(durations, span=4, now=NOW)
-        assert error == (SigmetFormValidator.PERIOD_TOO_LONG, {'hours': 4})
+        assert SigmetFormValidator.validatePeriod(durations, span=4, now=NOW) == SigmetFormValidator.PERIOD_TOO_LONG
 
     def test_period_on_span_boundary_passes(self):
         durations = (NOW, NOW + datetime.timedelta(hours=4))

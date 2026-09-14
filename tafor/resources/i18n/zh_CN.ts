@@ -316,9 +316,9 @@
         <translation>有效结束时间需要大于有效开始时间</translation>
     </message>
     <message>
-        <location filename="../components/widgets/information.py" line="120"/>
-        <source>Valid period more than {} hours</source>
-        <translation>有效期大于 {} 小时</translation>
+        <location filename="../tafor/ui/widgets/sigmet.py" line="32"/>
+        <source>Valid period more than the permitted hours</source>
+        <translation>有效期大于允许的时限</translation>
     </message>
     <message>
         <location filename="../components/widgets/forecast.py" line="487"/>
