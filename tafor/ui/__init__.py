@@ -1,3 +1,3 @@
-from tafor.ui.main import main
+from tafor.ui.app import run
 
-__all__ = ['main']
+__all__ = ['run']

@@ -187,7 +187,7 @@ class RecentCard(QWidget, Ui_main_recent.Ui_Recent):
         self.replyButton.setIcon(QIcon(iconPath('reply-arrow.png')))
 
     def toggleReminder(self):
-        # RemindService expects the stored message with parser()/expired()
+        # ReminderPresenter expects the stored message with parser()/expired()
         self.reminderToggled.emit(self.model.message, not self.remind)
 
     def setReminderEnabled(self, enabled):

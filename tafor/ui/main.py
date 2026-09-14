@@ -1,181 +1,289 @@
+"""
+Main Window: a passive view.
+It builds its widgets and holds no behaviour beyond rendering and answering
+questions. Nothing here talks to the context, the database or the network --
+every method below is either a render the presenters ask for, or a question
+they ask.
+
+Main Window's behaviour: one presenter per concern.
+"""
 import os
 import sys
 import json
-import logging
 import datetime
+import logging
 
-from PyQt5.QtGui import QIcon, QDesktopServices, QGuiApplication, QColor
-from PyQt5.QtCore import QCoreApplication, QTranslator, QLocale, QEvent, QObject, QTimer, Qt, QUrl, QSysInfo, QProcess, QT_VERSION_STR
-from PyQt5.QtWidgets import (QMainWindow, QApplication, QSpacerItem, QSizePolicy,
-        QSystemTrayIcon, QMenu, QMessageBox, QStyleFactory)
-from PyQt5.QtNetwork import QLocalSocket, QLocalServer
+from PyQt5.QtCore import QCoreApplication, QObject, QEvent, QTimer, QProcess, QSysInfo, Qt, QUrl, pyqtSignal
+from PyQt5.QtGui import QColor, QDesktopServices, QIcon
+from PyQt5.QtWidgets import QMainWindow, QMenu, QMessageBox, QSizePolicy, QSpacerItem, QSystemTrayIcon
 
 from tafor import __version__, root
-from tafor.core.config import createConfig
-from tafor.core.states import createContext
-from tafor.core.models import createDatabase
-from tafor.core.repositories import Repositories, SigmetFilter, subscribedTypes
-from tafor.core.utils.common import appInfo, checkVersion, iconPath, revision, setupLogging
 from tafor.core.utils.time import utcnow
+from tafor.core.utils.common import iconPath, revision, checkVersion
+from tafor.core.repositories import SigmetFilter, subscribedTypes
 from tafor.ui.components.chart import ChartViewer
 from tafor.ui.components.send import CustomSender, SigmetSender, TafSender, TrendSender
 from tafor.ui.components.setting import SettingDialog
 from tafor.ui.components.sigmet import SigmetEditor
 from tafor.ui.components.taf import TafEditor
 from tafor.ui.components.trend import TrendEditor
-from tafor.ui.fonts import fixedFont, uiFont
 from tafor.ui.qt import Ui_main
 from tafor.ui.widgets.misc import Clock, LicenseEditor, RemindMessageBox, TafBoard
-from tafor.ui.widgets.recent import NotificationModel, RecentBoard, ReviewModel
+from tafor.ui.widgets.recent import RecentBoard, NotificationModel, ReviewModel
 from tafor.ui.widgets.sound import Sound
 from tafor.ui.widgets.table import AirmetTable, MetarTable, SigmetTable, TafTable
-from tafor.ui.workers import CheckUpgradeWorker, ContextBridge, LayerWorker, MessageWorker, RpcWorker, threadManager
+from tafor.ui.workers import CheckUpgradeWorker, LayerWorker, MessageWorker
 
 logger = logging.getLogger('tafor.main')
 
 
-class RemindService:
+def restartArgs():
+    """The argv this process was started with, replayed to the child.
 
-    snoozeMinutes = 5
+    Read, never popped. Mutating the environment of a running process to talk
+    to its replacement is a side effect waiting to surprise someone, and it
+    also means a second restart has nothing left to replay.
+    """
+    raw = os.environ.get('TAFOR_ARGS') or '[]'
+    try:
+        return json.loads(raw)
+    except ValueError:
+        logger.warning('Ignoring malformed TAFOR_ARGS, %r', raw)
+        return []
 
-    def __init__(self, view, context, conf):
+
+class ReminderPresenter(QObject):
+    """Nags about TAF and SIGMET messages that are due.
+
+    Policy and dialog stay together on purpose: the policy is three lines and
+    reads better next to the question it produces.
+    """
+
+    def __init__(self, view, context, conf, parent=None):
+        super().__init__(parent)
         self.view = view
         self.context = context
         self.conf = conf
 
+        self.snooze = QTimer(self)
+        self.snooze.setSingleShot(True)
+        self.snooze.timeout.connect(self.remindTaf)
+
+    def initialize(self):
+        self.context.event.tafReminderTriggered.connect(self.remindTaf)
+        self.view.reminderToggled.connect(self.setReminder)
+        # A sent message can bring a SIGMET reminder forward or cancel it
+        self.view.messageSent.connect(self.remindSigmet)
+
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.remindSigmet)
+        self.timer.start(60 * 1000)
+
     def remindTaf(self):
-        remindSwitch = self.conf.remindTaf
-        if not remindSwitch or self.view.isReminderVisible(self.view.remindTafBox):
-            return None
+        if not self.conf.remindTaf or self.view.reminderVisible('taf'):
+            return
 
-        type = self.context.taf.spec[:2].upper()
+        if not self.context.taf.shouldRemind():
+            return
+
+        spec = self.context.taf.spec[:2].upper()
         period = self.context.taf.period()
+        mark = spec + period[2:4] + period[7:]
+        text = QCoreApplication.translate('MainWindow', 'Time to issue {}').format(mark)
 
-        if self.context.taf.shouldRemind():
-            current = type + period[2:4] + period[7:]
-            text = QCoreApplication.translate('MainWindow', 'Time to issue {}').format(current)
-            ret = self.view.showReminder(self.view.remindTafBox, self.view.tafSound, text)
-            if ret == QMessageBox.RejectRole:
-                QTimer.singleShot(self.snoozeMinutes * 60 * 1000, self.remindTaf)
+        if self.view.showReminder('taf', text) == QMessageBox.RejectRole:
+            self.snooze.start(self.conf.remindSnoozeMinutes * 60 * 1000)
 
     def remindSigmet(self):
-        remindSwitch = self.conf.remindSigmet
-        if not remindSwitch or self.view.isReminderVisible(self.view.remindSigmetBox):
-            return None
+        if not self.conf.remindSigmet or self.view.reminderVisible('sigmet'):
+            return
 
-        outdates = self.context.sigmet.outdate()
-        for item in outdates:
-            sig = item['text']
-            mark = '{} {}'.format(sig.category(), sig.sequence())
+        for due in self.context.sigmet.outdate():
+            parser = due['text']
+            mark = '{} {}'.format(parser.category(), parser.sequence())
             text = QCoreApplication.translate('MainWindow', 'Time to update {}').format(mark)
-            ret = self.view.showReminder(self.view.remindSigmetBox, self.view.sigmetSound, text)
-            if ret == QMessageBox.AcceptRole:
-                self.setSigmetReminder(sig, False)
-            else:
-                time = item['time'] + datetime.timedelta(minutes=self.snoozeMinutes)
-                self.context.sigmet.update(item['uuid'], time)
 
-    def setSigmetReminder(self, message, enabled):
+            if self.view.showReminder('sigmet', text) == QMessageBox.AcceptRole:
+                self.removeReminder(due['uuid'])
+            else:
+                self.context.sigmet.update(
+                    due['uuid'],
+                    due['time'] + datetime.timedelta(minutes=self.conf.remindSnoozeMinutes),
+                )
+
+    def setReminder(self, message, enabled):
+        """Add or remove a reminder for a stored message. Also the slot for a
+        card's bell toggle."""
         if enabled:
-            time = message.expired()
-            sig = message.parser()
-            self.context.sigmet.add(message.uuid, sig, time)
+            self.context.sigmet.add(message.uuid, message.parser(), message.expired())
         else:
             self.context.sigmet.remove(message.uuid)
 
-        self.view.recentBoard.setReminderEnabled(message.uuid, enabled)
+        self.view.setSigmetReminder(message.uuid, enabled)
+
+    def removeReminder(self, uuid):
+        """The user dismissed the alarm for a SIGMET that is already stored.
+
+        Separate from setReminder because there is no message to read here:
+        the due entry only carries the uuid. Passing the parser instead is what
+        the old code did, and it raised AttributeError on every dismissal.
+        """
+        self.context.sigmet.remove(uuid)
+        self.view.setSigmetReminder(uuid, False)
 
 
-class DataService:
+class MessagePresenter(QObject):
+    """Incoming telegrams: store them, alert the user, and hand a message the
+    API pushed in to the sender that can show it.
 
-    def __init__(self, view, context, conf, repositories):
+    Owns the message worker. The fetch runs off the GUI thread and hands its
+    payload to the bridge, which is the only door into the context.
+    """
+
+    def __init__(self, view, context, conf, repositories, workers, bridge, parent=None):
+        super().__init__(parent)
         self.view = view
         self.context = context
         self.conf = conf
         self.repositories = repositories
+        self.workers = workers
+        self.bridge = bridge
 
-    def loadMetar(self):
-        parser = self.context.notification.metar.parser()
-        metar = self.repositories.metar.latest()
+    def initialize(self):
+        self.worker, self.thread = self.workers.create(
+            MessageWorker, self.conf, workerId='message', reusable=True
+        )
+        self.worker.fetched.connect(self.bridge.updateMessage)
+        self.worker.finished.connect(self.connectionLost)
+        self.context.event.remoteMessageChanged.connect(self.store)
+        self.context.event.otherMessageReceived.connect(self.presentCustom)
 
-        if parser:
-            self.view.trendSound.play()
-        else:
-            self.view.trendSound.stop()
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.poll)
+        self.timer.start(60 * 1000)
+        self.poll()
 
-        sameObservation = parser and metar and parser.isSameObservation(metar.text)
-        if sameObservation:
-            self.context.notification.metar.clear()
-            self.updateRecent()
-            return
+    def poll(self):
+        if not self.thread.isRunning():
+            self.thread.start()
 
-        if parser and self.context.notification.metar.validation():
-            parser.validate()
-            if parser.hasTrend() and not parser.isValid():
-                title = QCoreApplication.translate('MainWindow', 'Trend Validation Failed')
-                description = QCoreApplication.translate('MainWindow', 'The trend has been cleared, please resend')
-                self.context.flash.warning(title, description)
-
-        self.updateRecent()
-        self.context.event.trendReloadRequested.emit()
-
-    def updateMessage(self):
+    def store(self):
         types = subscribedTypes(self.conf.tafSpec, self.conf.sigmetEnabled)
-
-        messages = self.context.message.message()
-        items = self.repositories.message.available(messages, types=types)
-        needPlaySound = False
+        items = self.repositories.message.available(self.context.message.message(), types=types)
+        alert = False
 
         for item in items:
-            if item.id:
-                logger.info('Confirm {} {}'.format(item.type, item.text))
-            else:
-                logger.info('Save {} {}'.format(item.type, item.text))
-
-            if item.type in ['SA', 'SP']:
+            logger.info('{} {} {}'.format('Confirm' if item.id else 'Save', item.type, item.text))
+            if item.type in ('SA', 'SP'):
                 self.context.notification.metar.clear()
             else:
-                needPlaySound = True
-
+                alert = True
             self.repositories.message.add(item)
 
-        if needPlaySound:
-            self.view.notificationSound.play(loop=False)
-            self.view.remindTafBox.close()
+        if alert:
+            self.view.updateSound('notification', True)
+            self.view.closeReminder('taf')
 
-        self.refresh()
+    def presentCustom(self, message):
+        """A message submitted through the API. Unlike a telegram it is not
+        stored -- it goes straight to the custom sender for the operator."""
+        self.view.handleCustomMessage(message)
 
-    def updateTaf(self):
-        status = self.repositories.taf.status(self.context.taf.spec, delayMinutes=self.conf.delayMinutes)
-        self.context.taf.setState(status)
+    def connectionLost(self):
+        """An empty payload means the fetch failed -- the client swallows the
+        real error, so 'no data' and 'no connection' are indistinguishable
+        here. Worth fixing in the client, not by guessing in the UI."""
+        if self.context.message.message():
+            return
 
-    def updateSigmet(self):
-        try:
-            sigmets = self.repositories.sigmet.current()
-            self.context.current.setState(sigmets)
-        except Exception as e:
-            logger.error('Sigmet cannot be updated, {}'.format(e))
+        self.view.notify(
+            QCoreApplication.translate('MainWindow', 'Connection Error'),
+            QCoreApplication.translate('MainWindow', 'Unable to connect remote message data source, please check the settings or network status.'),
+            'warning',
+        )
 
-    def refresh(self):
-        self.updateTaf()
-        self.updateSigmet()
-        self.updateTable()
-        self.updateRecent()
 
-    def updateRecent(self):
-        self.view.tafBoard.updateGui()
+class NotificationPresenter(QObject):
+    """The live notification channel: a METAR or SIGMET that just arrived and
+    has not been stored yet.
 
-        recent = utcnow() - datetime.timedelta(hours=24)
-        spec = self.context.taf.spec[:2].upper()
+    METAR: clear the notification once the same observation has been stored,
+    otherwise validate the trend group. SIGMET: refresh the editor's custom
+    text and alert the user.
 
-        sigmets = []
-        if self.conf.sigmetEnabled:
-            sigmets = self.context.current.filterSigmets(SigmetFilter(includeCancelled=True))
+    Deliberately does not touch the trend sound. SoundPresenter owns every
+    continuous channel, so there is exactly one writer per audio stream.
+    """
 
-        messages = self.repositories.message.recent(spec, recent, includeSigmet=self.conf.sigmetEnabled, currentSigmets=sigmets)
+    def __init__(self, view, context, repositories, parent=None):
+        super().__init__(parent)
+        self.view = view
+        self.context = context
+        self.repositories = repositories
 
-        entries = []
+    def initialize(self):
+        self.context.event.notificationChanged.connect(self.notificationChanged)
+
+    def notificationChanged(self, category):
+        # category() also answers SPECI and AIRMET; matching only METAR and
+        # SIGMET left those two notifications with no handler at all
+        if category in ('METAR', 'SPECI'):
+            self.reloadMetar()
+        elif category in ('SIGMET', 'AIRMET'):
+            self.notifySigmet()
+
+    def reloadMetar(self):
+        notification = self.context.notification.metar
+        parser = notification.parser()
+        metar = self.repositories.metar.latest()
+
+        # An observation already in the database needs no notification
+        if parser and metar and parser.isSameObservation(metar.text):
+            notification.clear()
+            return
+
+        if parser and notification.validation():
+            parser.validate()
+            if parser.hasTrend() and not parser.isValid():
+                self.context.flash.warning(
+                    QCoreApplication.translate('MainWindow', 'Trend Validation Failed'),
+                    QCoreApplication.translate('MainWindow', 'The trend has been cleared, please resend'),
+                )
+
+        self.context.event.trendReloadRequested.emit()
+
+    def notifySigmet(self):
+        self.view.renderSigmetText()
+
+        if not self.context.notification.sigmet.message():
+            return
+
+        self.view.updateSound('incoming', True)
+        self.view.notify(
+            QCoreApplication.translate('MainWindow', 'Message Received'),
+            QCoreApplication.translate('MainWindow', 'Received a {} message').format(
+                self.context.notification.sigmet.category()
+            ),
+        )
+
+
+class RecentEntryBuilder:
+    """Query -> view models. No view, no widgets, no Qt: unit-testable as is.
+
+    Querying, modelling, computing the map geometry and drawing the result all
+    used to happen in one 47-line method. Only the last of those needs a
+    widget, so only the last of them is left in the view.
+    """
+
+    def __init__(self, context, conf, repositories):
+        self.context = context
+        self.conf = conf
+        self.repositories = repositories
+
+    def build(self):
         parser = self.context.notification.metar.parser()
+        entries = []
+
         if parser:
             parser.validate()
             entries.append(NotificationModel(
@@ -188,11 +296,7 @@ class DataService:
                 },
             ))
 
-        # The stored metar only shows while no live notification replaces it
-        reviewables = [] if parser else [messages['metar']]
-        reviewables += [messages['trend'], messages['taf']] + messages['sigmets']
-
-        for message in reviewables:
+        for message in self.reviewables(parser):
             if message:
                 entries.append(ReviewModel(
                     uuid=message.uuid,
@@ -203,17 +307,31 @@ class DataService:
                     geo=self.sigmetGeometry(message),
                 ))
 
-        self.view.recentBoard.sync(entries)
+        return entries
 
-        # Reminder state lives in context.sigmet.entries; sync the sigmet cards
-        for entry in entries:
-            if entry.type in ['WS', 'WC', 'WV', 'WA']:
-                self.view.recentBoard.setReminderEnabled(
-                    entry.uuid, entry.uuid in self.context.sigmet.entries)
+    def reviewables(self, parser):
+        messages = self.recentMessages()
+        # The stored metar only shows while no live notification replaces it
+        stored = [] if parser else [messages['metar']]
+        return stored + [messages['trend'], messages['taf']] + messages['sigmets']
+
+    def recentMessages(self):
+        recent = utcnow() - datetime.timedelta(hours=24)
+        spec = self.context.taf.spec[:2].upper()
+
+        sigmets = []
+        if self.conf.sigmetEnabled:
+            sigmets = self.context.current.filterSigmets(SigmetFilter(includeCancelled=True))
+
+        return self.repositories.message.recent(
+            spec, recent,
+            includeSigmet=self.conf.sigmetEnabled,
+            currentSigmets=sigmets,
+        )
 
     def sigmetGeometry(self, message):
         """Pre-render the SIGMET area features for the recent-board card."""
-        if message.category not in ['SIGMET', 'AIRMET'] or message.isCnl():
+        if message.category not in ('SIGMET', 'AIRMET') or message.isCnl():
             return None
 
         try:
@@ -221,181 +339,511 @@ class DataService:
             geos = parser.geo(self.context.layer.boundaries(), trim=True)
             return geos if geos['features'] else None
         except Exception as e:
-            logger.error('Failed to draw SIGMET graphic area in recent module, {}, {}'.format(message.text, e))
+            logger.error('Failed to draw SIGMET area, {}, {}'.format(message.text, e))
             return None
 
-    def updateTable(self):
-        self.view.tafTable.updateGui()
-        self.view.metarTable.updateGui()
-        self.view.sigmetTable.updateGui()
-        self.view.airmetTable.updateGui()
+
+class BoardPresenter(QObject):
+    """Keeps everything that shows stored records in step with the database:
+    the four tables, the recent board, and the monitor state the reminder
+    policy reads (context.taf and context.current).
+
+    The monitor feed lives here rather than in a class of its own because the
+    two must happen in one order -- the recent board reads context.current, so
+    the state has to be refreshed before the cards are built -- and splitting
+    them would leave that order to be decided by connection order.
+    """
+
+    def __init__(self, view, context, conf, repositories, parent=None):
+        super().__init__(parent)
+        self.view = view
+        self.context = context
+        self.conf = conf
+        self.repositories = repositories
+        self.builder = RecentEntryBuilder(context, conf, repositories)
+
+    def initialize(self):
+        self.context.event.remoteMessageChanged.connect(self.refresh)
+        self.context.event.notificationChanged.connect(self.render)
+        self.context.event.currentSigmetChanged.connect(self.renderSigmetGraphic)
+        self.view.notificationExpired.connect(self.expire)
+        self.view.messageSent.connect(self.refresh)
+
+        # Deliberately not refresh(): refreshing the TAF monitor state raises
+        # context.taf.shouldRemind, which fires tafReminderTriggered and opens
+        # the reminder dialog before the window has even settled. The original
+        # startup never read the TAF status either, so this matches it.
+        self.refreshSigmet()
+        self.render()
+
+    def refresh(self):
+        """Read the database, push the monitor state, then draw."""
+        self.refreshTaf()
+        self.refreshSigmet()
+        self.render()
+
+    def refreshTaf(self):
+        status = self.repositories.taf.status(
+            self.context.taf.spec, delayMinutes=self.conf.delayMinutes
+        )
+        self.context.taf.setState(status)
+
+    def refreshSigmet(self):
+        try:
+            sigmets = self.repositories.sigmet.current()
+        except Exception as e:
+            logger.error('Sigmet cannot be updated, {}'.format(e))
+            return
+
+        self.context.current.setState(sigmets)
+
+    def renderSigmetGraphic(self):
+        """context.current only announces a change when the set of SIGMETs
+        actually differs, so this fires on real edits and not on every poll."""
+        self.view.renderSigmetGraphic()
+
+    def render(self, *args):
+        entries = self.builder.build()
+        self.view.renderTafBoard()
+        self.view.renderTables()
+        self.view.renderRecent(entries)
+
+        # Reminder state lives in context.sigmet.entries; sync the bells
+        for entry in entries:
+            if entry.type in ('WS', 'WC', 'WV', 'WA'):
+                self.view.setSigmetReminder(
+                    entry.uuid, entry.uuid in self.context.sigmet.entries
+                )
+
+    def expire(self):
+        """The notification card timed out; fall back to the stored METAR."""
+        self.context.notification.metar.clear()
+        self.render()
 
 
-class MainPresenter(QObject):
+class SoundPresenter(QObject):
+    """What the app sounds like.
 
-    def __init__(self, view, context, conf, dataService, remindService=None, bridge=None):
-        super().__init__(view)
+    Ticked once a second, and the only writer of the two continuous channels.
+    The old code had both singer() and loadMetar() calling trendSound
+    play/stop -- two writers racing over one sound.
+    """
+
+    def __init__(self, view, context, conf, parent=None):
+        super().__init__(parent)
         self.view = view
         self.context = context
         self.conf = conf
 
-        # Single door for background threads to update context state
-        self.bridge = bridge or ContextBridge(context)
+    def initialize(self):
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.tick)
+        self.timer.start(1000)
 
-        # The presenter delegates data loading to DataService
-        # and reminder logic to RemindService.
-        self.dataService = dataService
-        self.remindService = remindService or RemindService(view, context, conf)
+    def tick(self):
+        self.view.updateSound('trend', self.isTrendActive())
+        self.view.updateSound('alarm', self.isAlarmActive())
 
-        self.setupTimers()
-        self.setupThreads()
+    def isTrendActive(self):
+        if not self.conf.remindTrend:
+            return False
+        if self.context.notification.metar.message():
+            return True
+        return utcnow().minute in (57, 58, 59)
+
+    def isAlarmActive(self):
+        return self.view.alarmEnabled() and self.context.taf.isExpired()
+
+
+class LayerPresenter(QObject):
+    """FIR layers: fetch them in the background, then tell the editor."""
+
+    def __init__(self, view, context, conf, workers, bridge, parent=None):
+        super().__init__(parent)
+        self.view = view
+        self.context = context
+        self.conf = conf
+        self.workers = workers
+        self.bridge = bridge
 
     def initialize(self):
-        self.worker()
-        self.painter()
-        self.dataService.updateSigmet()
-        self.dataService.updateTable()
-        self.dataService.updateRecent()
-        self.updateRegisterMenu()
-
-    def setupTimers(self):
-        self.clockTimer = QTimer(self)
-        self.clockTimer.timeout.connect(self.singer)
-        self.clockTimer.start(1 * 1000)
-
-        self.workerTimer = QTimer(self)
-        self.workerTimer.timeout.connect(self.worker)
-        self.workerTimer.start(60 * 1000)
-
-        self.painterTimer = QTimer(self)
-        self.painterTimer.timeout.connect(self.painter)
-        self.painterTimer.start(2 * 60 * 1000)
-
-    def setupThreads(self):
-        self.messageWorker, self.messageThread = threadManager.createWorker(
-            MessageWorker, self.conf, workerId='message', reusable=True
-        )
-        self.messageWorker.fetched.connect(self.bridge.updateMessage)
-        self.messageWorker.finished.connect(self.notifier)
-
-        self.layerWorker, self.layerThread = threadManager.createWorker(
+        self.worker, self.thread = self.workers.create(
             LayerWorker, self.conf, workerId='layer', reusable=True
         )
-        self.layerWorker.fetched.connect(self.bridge.updateLayer)
-        self.layerThread.finished.connect(self.updateLayer)
+        self.worker.fetched.connect(self.bridge.updateLayer)
+        self.thread.finished.connect(self.refresh)
+        self.context.event.layerRefreshRequested.connect(self.poll)
 
-        self.checkUpgradeWorker, self.checkUpgradeThread = threadManager.createWorker(
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.poll)
+        self.timer.start(2 * 60 * 1000)
+        self.poll()
+
+    def poll(self):
+        if self.conf.layerUrl and not self.thread.isRunning():
+            self.thread.start()
+
+    def refresh(self):
+        self.view.renderLayer()
+
+        if not self.conf.layerUrl or self.context.layer.currentLayers():
+            return
+
+        self.view.notify(
+            QCoreApplication.translate('MainWindow', 'Connection Error'),
+            QCoreApplication.translate('MainWindow', 'Unable to connect FIR information data source, please check the settings or network status.'),
+            'warning',
+        )
+
+
+class LicensePresenter(QObject):
+    """Keeps the license menu in step with the stored license.
+
+    The 'enter a key' entry needs no context at all, so it stays a plain
+    window action; only removal and the menu state live here.
+    """
+
+    def __init__(self, view, context, parent=None):
+        super().__init__(parent)
+        self.view = view
+        self.context = context
+
+    def initialize(self):
+        self.view.removeLicenseAction.triggered.connect(self.remove)
+        self.view.licenseChanged.connect(self.updateMenu)
+        self.updateMenu()
+
+    def updateMenu(self):
+        self.view.setLicenseMenuState(bool(self.context.license.license()))
+
+    def remove(self):
+        title = QCoreApplication.translate('MainWindow', 'Remove license key? ')
+        text = QCoreApplication.translate('MainWindow', 'Remove license key? This will revert tafor to an unregistered state.')
+        if self.view.confirm(title, text):
+            self.view.removeLicense()
+
+
+class UpgradePresenter(QObject):
+    """Check for a newer release and offer to download it."""
+
+    def __init__(self, view, workers, parent=None):
+        super().__init__(parent)
+        self.view = view
+        self.workers = workers
+
+    def initialize(self):
+        self.view.checkUpgradeAction.triggered.connect(self.check)
+
+        self.worker, self.thread = self.workers.create(
             CheckUpgradeWorker, workerId='upgrade', reusable=True
         )
-        self.checkUpgradeWorker.done.connect(self.checkUpgrade)
+        self.worker.done.connect(self.report)
 
-    def singer(self):
-        """Fires every second to update alarm and trend notification sounds."""
-        warnSwitch = self.view.warnTafAction.isChecked()
-        trendSwitch = self.conf.remindTrend
+    def check(self):
+        if not self.thread.isRunning():
+            self.thread.start()
 
-        utc = utcnow()
-        if trendSwitch and (utc.minute in (57, 58, 59) or self.context.notification.metar.message()):
-            self.view.trendSound.play()
+    def report(self, data):
+        title = QCoreApplication.translate('MainWindow', 'Check for Updates')
+        release = data.get('tag_name')
+
+        if not release:
+            self.view.notify(title, QCoreApplication.translate('MainWindow', 'Unable to get the latest version information.'))
+            return
+
+        if not checkVersion(release, __version__):
+            self.view.notify(title, QCoreApplication.translate('MainWindow', 'The current version is already the latest version.'))
+            return
+
+        text = QCoreApplication.translate('MainWindow', 'New version found {}, do you want to download now?').format(release)
+        if self.view.confirm(title, text):
+            QDesktopServices.openUrl(QUrl('https://github.com/up1and/tafor/releases'))
+
+
+class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
+    """The window itself. It is handed conf, context and the repositories so
+    that the widgets it builds can be given them, and for nothing else."""
+
+    # Signals for the presenters, under the window's own names: three child
+    # signals passed through, and the three senders merged into messageSent.
+    notificationExpired = pyqtSignal()
+    reminderToggled = pyqtSignal(object, bool)
+    licenseChanged = pyqtSignal()
+    messageSent = pyqtSignal()
+
+    def __init__(self, conf, context, repositories, parent=None):
+        super().__init__(parent)
+        self.conf = conf
+        self.context = context
+        self.setupUi(self)
+
+        self.sysInfo = QSysInfo.prettyProductName()
+        self.repositories = repositories
+
+        self.setupFrame()
+        self.setupReminders()
+        self.setupSenders()
+        self.setupEditors()
+        self.setupRecent()
+        self.setupTables()
+        self.setupSounds()
+        self.setupTray()
+        self.bindSignal()
+
+    def setupFrame(self):
+        self.setWindowIcon(QIcon(iconPath('logo.png')))
+
+        # White content background via palette
+        self.scrollContents.setAutoFillBackground(True)
+        palette = self.scrollContents.palette()
+        palette.setColor(self.scrollContents.backgroundRole(), QColor('white'))
+        self.scrollContents.setPalette(palette)
+
+        if not self.conf.sigmetEnabled:
+            self.sigmetAction.setVisible(False)
+            # Remove by widget identity: a literal index silently deletes the
+            # wrong tab when the page order changes in Designer
+            for page in (self.sigmetTab, self.airmetTab):
+                index = self.mainTab.indexOf(page)
+                if index != -1:
+                    self.mainTab.removeTab(index)
+
+    def setupReminders(self):
+        """One alarm dialog per kind. The kind is also the sound to play."""
+        self.reminders = {
+            'taf': RemindMessageBox(self),
+            'sigmet': RemindMessageBox(self),
+        }
+
+    def setupSenders(self):
+        repository = self.repositories.message
+        self.settingDialog = SettingDialog(self, self.conf, self.context)
+        self.tafSender = TafSender(self, self.context, self.conf, repository=repository)
+        self.trendSender = TrendSender(self, self.context, self.conf, repository=repository)
+        self.sigmetSender = SigmetSender(self, self.context, self.conf, repository=repository)
+        self.customSender = CustomSender(self, self.context, self.conf, repository=repository)
+
+    def setupEditors(self):
+        self.tafEditor = TafEditor(self, self.tafSender, self.conf, self.context,
+                                   repository=self.repositories.taf)
+        self.trendEditor = TrendEditor(self, self.trendSender, self.conf, self.context)
+        self.sigmetEditor = SigmetEditor(self, self.sigmetSender, self.conf, self.context,
+                                         repository=self.repositories.sigmet)
+        self.licenseEditor = LicenseEditor(self, conf=self.conf, context=self.context)
+        self.chartViewer = ChartViewer(self, repository=self.repositories.metar)
+
+    def setupRecent(self):
+        self.clock = Clock(self, self.tipsLayout, context=self.context)
+        self.tipsLayout.addSpacerItem(
+            QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        self.tafBoard = TafBoard(self, self.tipsLayout, conf=self.conf, context=self.context)
+
+        self.recentBoard = RecentBoard(self, conf=self.conf)
+        self.scrollLayout.insertWidget(1, self.recentBoard)
+        self.scrollLayout.setAlignment(Qt.AlignTop)
+
+    def setupTables(self):
+        self.tafTable = TafTable(self, self.tafLayout, reviewer=self.tafSender,
+                                 conf=self.conf, context=self.context,
+                                 repository=self.repositories.taf)
+        self.metarTable = MetarTable(self, self.metarLayout, conf=self.conf,
+                                     context=self.context, repository=self.repositories.metar)
+        self.sigmetTable = SigmetTable(self, self.sigmetLayout, reviewer=self.sigmetSender,
+                                       conf=self.conf, context=self.context,
+                                       repository=self.repositories.sigmet)
+        self.airmetTable = AirmetTable(self, self.airmetLayout, reviewer=self.sigmetSender,
+                                       conf=self.conf, context=self.context,
+                                       repository=self.repositories.sigmet)
+
+    def setupSounds(self):
+        conf = self.conf
+        self.sounds = {
+            'notification': Sound('notification.wav', config=conf),
+            'incoming': Sound('notification-incoming.wav', config=conf),
+            'alarm': Sound('alarm.wav', volumeKey='alarmVolume', config=conf),
+            'taf': Sound('taf.wav', volumeKey='tafVolume', config=conf),
+            'trend': Sound('trend.wav', volumeKey='trendVolume', config=conf),
+            'sigmet': Sound('sigmet.wav', volumeKey='sigmetVolume', config=conf),
+        }
+
+        # A slider previews its own sound, and the volume it previews is the
+        # one the Sound already reads from conf -- one source of truth
+        self.settingDialog.alarmVolume.valueChanged.connect(
+            lambda volume: self.sounds['alarm'].play(volume=volume, loop=False))
+        self.settingDialog.tafVolume.valueChanged.connect(
+            lambda volume: self.sounds['taf'].play(volume=volume, loop=False))
+        self.settingDialog.trendVolume.valueChanged.connect(
+            lambda volume: self.sounds['trend'].play(volume=volume, loop=False))
+        self.settingDialog.sigmetVolume.valueChanged.connect(
+            lambda volume: self.sounds['sigmet'].play(volume=volume, loop=False))
+
+    def setupTray(self):
+        self.tray = QSystemTrayIcon(self)
+        self.setTrayIcon(self.trayStyle())
+        self.tray.show()
+
+        self.trayMenu = QMenu(self)
+        self.trayMenu.addAction(self.settingAction)
+        self.trayMenu.addAction(self.aboutAction)
+        self.trayMenu.addSeparator()
+        self.trayMenu.addAction(self.quitAction)
+        self.tray.setContextMenu(self.trayMenu)
+        self.tray.setToolTip('Tafor {}'.format(__version__))
+
+    def trayStyle(self):
+        if self.sysInfo.startswith(('Windows 10', 'Windows 11', 'Ubuntu')):
+            return 'light'
+        if self.sysInfo.startswith('macOS'):
+            return 'dark'
+        return 'normal'
+
+    def bindSignal(self):
+        """Signals the window can handle itself: no state, no services.
+
+        Everything that needs the context or a worker is connected by the
+        presenter that owns it.
+        """
+        self.tafAction.triggered.connect(self.tafEditor.show)
+        self.trendAction.triggered.connect(self.trendEditor.show)
+        self.sigmetAction.triggered.connect(self.sigmetEditor.show)
+
+        self.settingAction.triggered.connect(self.openSetting)
+        self.settingAction.setIcon(QIcon(iconPath('setting.png')))
+        self.openDocsAction.triggered.connect(self.openDocs)
+        self.reportIssueAction.triggered.connect(self.openIssueTracker)
+        self.aboutAction.triggered.connect(self.showAbout)
+        self.enterLicenseAction.triggered.connect(self.licenseEditor.enter)
+
+        self.tray.activated.connect(self.showNormal)
+        self.tray.messageClicked.connect(self.showNormal)
+        if self.sysInfo.startswith('macOS'):
+            self.trayMenu.aboutToShow.connect(lambda: self.setTrayIcon('light'))
+            self.trayMenu.aboutToHide.connect(lambda: self.setTrayIcon('dark'))
+
+        self.metarTable.chartClicked.connect(self.chartViewer.show)
+
+        # A sent message changes what the tables and the board should show
+        for sender in (self.tafSender, self.trendSender, self.sigmetSender):
+            sender.succeeded.connect(self.messageSent)
+
+        # Re-emit the child signals the presenters subscribe to
+        self.recentBoard.expired.connect(self.notificationExpired)
+        self.recentBoard.reminderToggled.connect(self.reminderToggled)
+        self.licenseEditor.licenseChanged.connect(self.licenseChanged)
+        self.recentBoard.reviewRequested.connect(self.review)
+        self.recentBoard.replyRequested.connect(self.trendEditor.edit)
+
+        self.conf.restartRequired.connect(self.restart)
+        self.conf.reloadRequired.connect(self.closeSenders)
+
+    def setTrayIcon(self, style='normal'):
+        files = {
+            'dark': iconPath('logo-dark.png'),
+            'light': iconPath('logo-light.png'),
+            'normal': iconPath('logo.png'),
+        }
+        icon = QIcon(files.get(style, files['normal']))
+        if style == 'dark':
+            icon.setIsMask(True)
+        self.tray.setIcon(icon)
+
+    def reminderVisible(self, kind):
+        return self.reminders[kind].isVisible()
+
+    def showReminder(self, kind, text):
+        """Ask the user about a message that is due, and hand back the button
+        they pressed: the caller compares it with QMessageBox.AcceptRole."""
+        box = self.reminders[kind]
+        sound = self.sounds[kind]
+
+        sound.play()
+        box.setText(text)
+        answer = box.exec()
+        if not box.isVisible():
+            sound.stop()
+
+        return answer
+
+    def closeReminder(self, kind):
+        self.reminders[kind].close()
+
+    def setSigmetReminder(self, uuid, enabled):
+        self.recentBoard.setReminderEnabled(uuid, enabled)
+
+    def updateSound(self, name, playing):
+        """Turn one channel on or off.
+
+        The alarms and the two reminder dialogs loop until something stops
+        them; the notification and incoming alerts play once. The split is by
+        channel, so each sound still has exactly one writer.
+        """
+        sound = self.sounds[name]
+        if not playing:
+            sound.stop()
+        elif name in ('alarm', 'taf', 'trend', 'sigmet'):
+            sound.play()
         else:
-            self.view.trendSound.stop()
+            sound.play(loop=False)
 
-        if warnSwitch and self.context.taf.isExpired():
-            self.view.alarmSound.play()
-        else:
-            self.view.alarmSound.stop()
+    def alarmEnabled(self):
+        return self.warnTafAction.isChecked()
 
-    def worker(self):
-        if not self.messageThread.isRunning():
-            self.messageThread.start()
+    def renderTafBoard(self):
+        self.tafBoard.updateGui()
 
-    def painter(self):
-        if self.conf.layerUrl and not self.layerThread.isRunning():
-            self.layerThread.start()
+    def renderTables(self):
+        for table in (self.tafTable, self.metarTable, self.sigmetTable, self.airmetTable):
+            table.updateGui()
 
-    def notifier(self):
-        connectionError = QCoreApplication.translate('MainWindow', 'Connection Error')
-        if not self.context.message.message():
-            self.context.flash.warning(
-                connectionError,
-                QCoreApplication.translate('MainWindow', 'Unable to connect remote message data source, please check the settings or network status.')
-            )
+    def renderRecent(self, entries):
+        self.recentBoard.sync(entries)
 
-        if self.conf.layerUrl and not self.context.layer.currentLayers() and not self.layerThread.isRunning():
-            self.context.flash.warning(
-                connectionError,
-                QCoreApplication.translate('MainWindow', 'Unable to connect FIR information data source, please check the settings or network status.')
-            )
+    def renderLayer(self):
+        self.sigmetEditor.updateLayer()
 
-    def updateGui(self):
-        """Refresh all data panels and check for overdue reminders."""
-        self.dataService.refresh()
-        self.remindService.remindSigmet()
+    def renderSigmetGraphic(self):
+        self.sigmetEditor.updateGraphicCanvas()
 
-    def updateMessage(self):
-        self.dataService.updateMessage()
+    def renderSigmetText(self):
+        self.sigmetEditor.updateCustomText()
 
-    def loadMetar(self):
-        self.dataService.loadMetar()
+    def notify(self, title, text, level='information'):
+        icons = ['noicon', 'information', 'warning', 'critical']
+        icon = QSystemTrayIcon.MessageIcon(icons.index(level))
+        self.tray.showMessage(title, text, icon)
 
-    def updateTaf(self):
-        self.dataService.updateTaf()
+    def status(self, text, timeout=5000):
+        self.statusBar.showMessage(text, timeout)
 
-    def updateSigmet(self):
-        self.dataService.updateSigmet()
+    def confirm(self, title, text):
+        return QMessageBox.question(self, title, text) == QMessageBox.Yes
 
-    def updateRecent(self):
-        self.dataService.updateRecent()
-
-    def updateTable(self):
-        self.dataService.updateTable()
-
-    def remindTaf(self):
-        self.remindService.remindTaf()
-
-    def setSigmetReminder(self, message, enabled):
-        self.remindService.setSigmetReminder(message, enabled)
-
-    def updateLayer(self):
-        self.view.sigmetEditor.updateLayer()
-
-    def updateRegisterMenu(self):
-        registered = True if self.context.license.license() else False
-        self.view.enterLicenseAction.setVisible(not registered)
-        self.view.removeLicenseAction.setVisible(registered)
-
-    def loadCustomMessage(self, message):
-        self.view.ensureVisible()
-        self.view.incomingSound.play(loop=False)
-        self.view.customSender.presenter.load(message)
-        self.view.customSender.show()
-
-        self.context.flash.info(
+    def handleCustomMessage(self, message):
+        self.ensureVisible()
+        self.updateSound('incoming', True)
+        self.customSender.receive(message)
+        self.customSender.show()
+        self.notify(
             QCoreApplication.translate('MainWindow', 'Message Received'),
-            QCoreApplication.translate('MainWindow', 'Received a custom message.')
+            QCoreApplication.translate('MainWindow', 'Received a custom message.'),
         )
 
-    def handleNotificationChange(self, category):
-        if category == 'METAR':
-            self.dataService.loadMetar()
+    def setLicenseMenuState(self, registered):
+        self.enterLicenseAction.setVisible(not registered)
+        self.removeLicenseAction.setVisible(registered)
 
-        if category == 'SIGMET':
-            self.view.sigmetEditor.updateCustomText()
-            message = self.context.notification.sigmet.message()
-            if message:
-                self.view.incomingSound.play(loop=False)
-                self.context.flash.info(
-                    QCoreApplication.translate('MainWindow', 'Message Received'),
-                    QCoreApplication.translate('MainWindow', 'Received a {} message').format(
-                        self.context.notification.sigmet.category()
-                    )
-                )
+    def removeLicense(self):
+        self.licenseEditor.removeLicense()
+
+    def ensureVisible(self):
+        if not self.isVisible():
+            self.showNormal()
 
     def openSetting(self):
-        self.view.ensureVisible()
-        self.view.settingDialog.exec_()
+        self.ensureVisible()
+        self.settingDialog.reopen()
 
-    def about(self):
+    def showAbout(self):
         title = QCoreApplication.translate('MainWindow', 'About')
         register = QCoreApplication.translate('MainWindow', '{} days remaining').format(
             self.context.license.exp
@@ -412,323 +860,16 @@ class MainPresenter(QObject):
         """.format(QCoreApplication.translate('MainWindow', 'Version'), __version__, revision(), register,
             logo=QUrl.fromLocalFile(iconPath('logo.png')).toString())
 
-        aboutBox = QMessageBox(self.view)
-        aboutBox.setText(html)
-        aboutBox.setWindowTitle(title)
-        layout = aboutBox.layout()
-        layout.removeItem(layout.itemAt(0))
-        aboutBox.addButton(QMessageBox.Ok)
-        self.view.ensureVisible()
-        aboutBox.exec()
-
-    def checkUpgrade(self, data):
-        title = QCoreApplication.translate('MainWindow', 'Check for Updates')
-        release = data.get('tag_name')
-        if not release:
-            text = QCoreApplication.translate('MainWindow', 'Unable to get the latest version information.')
-            QMessageBox.information(self.view, title, text)
-            return False
-
-        hasNewVersion = checkVersion(release, __version__)
-        if not hasNewVersion:
-            text = QCoreApplication.translate('MainWindow', 'The current version is already the latest version.')
-            QMessageBox.information(self.view, title, text)
-            return False
-
-        download = 'https://github.com/up1and/tafor/releases'
-        text = QCoreApplication.translate('MainWindow', 'New version found {}, do you want to download now?').format(data.get('tag_name'))
-        ret = QMessageBox.question(self.view, title, text)
-        if ret == QMessageBox.Yes:
-            QDesktopServices.openUrl(QUrl(download))
-
-    def removeLicense(self):
-        title = QCoreApplication.translate('MainWindow', 'Remove license key? ')
-        text = QCoreApplication.translate('MainWindow', 'Remove license key? This will revert tafor to an unregistered state.')
-        ret = QMessageBox.question(self.view, title, text)
-        if ret == QMessageBox.Yes:
-            self.view.licenseEditor.removeLicense()
-
-    def shutdown(self):
-        self.clockTimer.stop()
-        self.workerTimer.stop()
-        self.painterTimer.stop()
-
-        for widget in [
-            self.view.tafSender,
-            self.view.trendSender,
-            self.view.sigmetSender,
-            self.view.tafEditor,
-            self.view.trendEditor,
-            self.view.sigmetEditor,
-            self.view.licenseEditor,
-            self.view.settingDialog,
-            self.view.chartViewer
-        ]:
-            widget.setAttribute(Qt.WA_DeleteOnClose)
-
-        for widget in [
-            self.view.tafSender,
-            self.view.trendSender,
-            self.view.sigmetSender,
-            self.view.customSender,
-            self.view.tafEditor,
-            self.view.trendEditor,
-            self.view.sigmetEditor,
-            self.view.licenseEditor,
-            self.view.settingDialog,
-            self.view.chartViewer,
-            self.view.remindTafBox,
-            self.view.remindSigmetBox
-        ]:
-            widget.close()
-
-        self.view.tray.hide()
-
-
-class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
-
-    def __init__(self, conf, context, database, bridge=None, parent=None):
-        super().__init__(parent)
-        self.conf = conf
-        self.context = context
-        self.setupUi(self)
-
-        # One set of repositories built here and shared by the data service
-        # and the widgets that query them
-        self.repositories = Repositories(database)
-
-        dataService = DataService(self, context, conf, self.repositories)
-
-        self.presenter = MainPresenter(self, context, conf, dataService, bridge=bridge)
-        self.sysInfo = QSysInfo.prettyProductName()
-
-        self.setup()
-        self.bindSignal()
-        self.presenter.initialize()
-
-    def setup(self):
-        self.setWindowIcon(QIcon(iconPath('logo.png')))
-
-        # White content background via palette
-        self.scrollContents.setAutoFillBackground(True)
-        palette = self.scrollContents.palette()
-        palette.setColor(self.scrollContents.backgroundRole(), QColor('white'))
-        self.scrollContents.setPalette(palette)
-
-        self.remindTafBox = RemindMessageBox(self)
-        self.remindSigmetBox = RemindMessageBox(self)
-
-        # 初始化窗口
-        self.settingDialog = SettingDialog(self, self.conf, self.context)
-
-        self.tafSender = TafSender(self, self.context, self.conf, repository=self.repositories.message)
-        self.trendSender = TrendSender(self, self.context, self.conf, repository=self.repositories.message)
-        self.sigmetSender = SigmetSender(self, self.context, self.conf, repository=self.repositories.message)
-        self.customSender = CustomSender(self, self.context, self.conf, repository=self.repositories.message)
-
-        self.tafEditor = TafEditor(self, self.tafSender, self.conf, self.context, repository=self.repositories.taf)
-        self.trendEditor = TrendEditor(self, self.trendSender, self.conf, self.context)
-        self.sigmetEditor = SigmetEditor(self, self.sigmetSender, self.conf, self.context, repository=self.repositories.sigmet)
-        self.licenseEditor = LicenseEditor(self, conf=self.conf, context=self.context)
-
-        self.chartViewer = ChartViewer(self, repository=self.repositories.metar)
-
-        if not self.conf.sigmetEnabled:
-            self.sigmetAction.setVisible(False)
-            self.mainTab.removeTab(3)
-            self.mainTab.removeTab(3)
-
-        self.setupRecent()
-        self.setupTable()
-        self.setupSysTray()
-        self.setupSound()
-
-    def bindSignal(self):
-        self.context.event.remoteMessageChanged.connect(self.presenter.updateMessage)
-        self.context.event.tafReminderTriggered.connect(self.presenter.remindTaf)
-        self.context.event.otherMessageReceived.connect(self.presenter.loadCustomMessage)
-        self.context.event.notificationChanged.connect(self.presenter.handleNotificationChange)
-        self.context.event.currentSigmetChanged.connect(self.sigmetEditor.updateGraphicCanvas)
-        self.context.event.layerRefreshRequested.connect(self.presenter.painter)
-        self.context.event.systemMessage.connect(self.showSystemNotification)
-        self.context.event.statusbarMessage.connect(self.showStatusbarNotification)
-
-        self.conf.restartRequired.connect(self.restart)
-        self.conf.reloadRequired.connect(self.closeSender)
-
-        # 连接菜单信号
-        self.tafAction.triggered.connect(self.tafEditor.show)
-        self.trendAction.triggered.connect(self.trendEditor.show)
-        self.sigmetAction.triggered.connect(self.sigmetEditor.show)
-
-        # 连接设置对话框的槽
-        self.settingAction.triggered.connect(self.presenter.openSetting)
-        self.settingAction.setIcon(QIcon(iconPath('setting.png')))
-
-        self.openDocsAction.triggered.connect(self.openDocs)
-        self.reportIssueAction.triggered.connect(self.reportIssue)
-        self.checkUpgradeAction.triggered.connect(self.presenter.checkUpgradeThread.start)
-        self.enterLicenseAction.triggered.connect(self.licenseEditor.enter)
-        self.removeLicenseAction.triggered.connect(self.presenter.removeLicense)
-        self.aboutAction.triggered.connect(self.presenter.about)
-
-        self.tray.activated.connect(self.showNormal)
-        self.tray.messageClicked.connect(self.showNormal)
-        if self.sysInfo.startswith('macOS'):
-            self.trayMenu.aboutToShow.connect(lambda: self.setTrayIcon('light'))
-            self.trayMenu.aboutToHide.connect(lambda: self.setTrayIcon('dark'))
-
-        self.tafSender.succeeded.connect(self.presenter.updateGui)
-        self.trendSender.succeeded.connect(self.presenter.updateGui)
-        self.sigmetSender.succeeded.connect(self.presenter.updateGui)
-
-        self.licenseEditor.licenseChanged.connect(self.presenter.updateRegisterMenu)
-
-        self.metarTable.chartClicked.connect(self.chartViewer.show)
-
-    def setTrayIcon(self, style='normal'):
-        files = {
-            'dark': iconPath('logo-dark.png'),
-            'light': iconPath('logo-light.png'),
-            'normal': iconPath('logo.png')
-        }
-        file = files.get(style, iconPath('logo.png'))
-        icon = QIcon(file)
-        if style == 'dark':
-            icon.setIsMask(True)
-        self.tray.setIcon(icon)
-
-    def setupRecent(self):
-        self.clock = Clock(self, self.tipsLayout, context=self.context)
-        self.tipsLayout.addSpacerItem(QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        self.tafBoard = TafBoard(self, self.tipsLayout, conf=self.conf, context=self.context)
-
-        self.recentBoard = RecentBoard(self, conf=self.conf)
-        self.recentBoard.reviewRequested.connect(self.reviewRecentMessage)
-        self.recentBoard.replyRequested.connect(self.trendEditor.edit)
-        self.recentBoard.reminderToggled.connect(self.presenter.setSigmetReminder)
-        self.recentBoard.expired.connect(self.expireRecentNotification)
-        self.scrollLayout.insertWidget(1, self.recentBoard)
-        self.scrollLayout.setAlignment(Qt.AlignTop)
-
-    def setupTable(self):
-        self.tafTable = TafTable(self, self.tafLayout, reviewer=self.tafSender, conf=self.conf, context=self.context, repository=self.repositories.taf)
-        self.metarTable = MetarTable(self, self.metarLayout, conf=self.conf, context=self.context, repository=self.repositories.metar)
-        self.sigmetTable = SigmetTable(self, self.sigmetLayout, reviewer=self.sigmetSender, conf=self.conf, context=self.context, repository=self.repositories.sigmet)
-        self.airmetTable = AirmetTable(self, self.airmetLayout, reviewer=self.sigmetSender, conf=self.conf, context=self.context, repository=self.repositories.sigmet)
-
-    def setupSysTray(self):
-        self.tray = QSystemTrayIcon(self)
-        if self.sysInfo.startswith('Windows 10') or self.sysInfo.startswith('Ubuntu'):
-            style = 'light'
-        elif self.sysInfo.startswith('macOS'):
-            style = 'dark'
-        else:
-            style = 'normal'
-        self.setTrayIcon(style)
-        self.tray.show()
-
-        self.trayMenu = QMenu(self)
-        self.trayMenu.addAction(self.settingAction)
-        self.trayMenu.addAction(self.aboutAction)
-        self.trayMenu.addSeparator()
-        self.trayMenu.addAction(self.quitAction)
-
-        self.tray.setContextMenu(self.trayMenu)
-
-        message =  'Tafor {}'.format(__version__)
-        self.tray.setToolTip(message)
-
-    def setupSound(self):
-        self.notificationSound = Sound('notification.wav', config=self.conf)
-        self.incomingSound = Sound('notification-incoming.wav', config=self.conf)
-        self.alarmSound = Sound('alarm.wav', volumeKey='alarmVolume', config=self.conf)
-        self.tafSound = Sound('taf.wav', volumeKey='tafVolume', config=self.conf)
-        self.trendSound = Sound('trend.wav', volumeKey='trendVolume', config=self.conf)
-        self.sigmetSound = Sound('sigmet.wav', volumeKey='sigmetVolume', config=self.conf)
-
-        self.settingDialog.alarmVolume.valueChanged.connect(lambda vol: self.alarmSound.play(volume=vol, loop=False))
-        self.settingDialog.tafVolume.valueChanged.connect(lambda vol: self.tafSound.play(volume=vol, loop=False))
-        self.settingDialog.trendVolume.valueChanged.connect(lambda vol: self.trendSound.play(volume=vol, loop=False))
-        self.settingDialog.sigmetVolume.valueChanged.connect(lambda vol: self.sigmetSound.play(volume=vol, loop=False))
-
-    def ensureVisible(self):
-        if not self.isVisible():
-            self.showNormal()
-
-    def event(self, event):
-        if event.type() == QEvent.WindowStateChange and self.isMinimized():
-            # 此时窗口已经最小化,
-            # 从任务栏中移除窗口
-            self.setWindowFlags(self.windowFlags() & Qt.Tool)
-            self.tray.show()
-            return True
-        else:
-            return super().event(event)
-
-    def closeEvent(self, event):
-        if event.spontaneous():
-            event.ignore()
-            self.hide()
-        else:
-            self.presenter.shutdown()
-            event.accept()
-
-    def isReminderVisible(self, box):
-        return box.isVisible()
-
-    def showReminder(self, box, sound, text):
-        sound.play()
-        box.setText(text)
-        ret = box.exec_()
-        if not box.isVisible():
-            sound.stop()
-        return ret
-
-    def reviewRecentMessage(self, model):
-        reviewer = None
-        if model.type in ['FC', 'FT']:
-            reviewer = self.tafSender
-        elif model.type in ['WS', 'WC', 'WV', 'WA']:
-            reviewer = self.sigmetSender
-
-        if reviewer:
-            reviewer.receive(model.message)
-            reviewer.show()
-
-    def expireRecentNotification(self):
-        # Drop the timed-out notification and fall back to the stored metar card
-        self.context.notification.metar.clear()
-        self.presenter.updateRecent()
-
-    def closeSender(self):
-        self.tafSender.close()
-        self.trendSender.close()
-        self.sigmetSender.close()
-
-    def showSystemNotification(self, title, content, level='information'):
-        icons = ['noicon', 'information', 'warning', 'critical']
-        icon = QSystemTrayIcon.MessageIcon(icons.index(level))
-        self.tray.showMessage(title, content, icon)
-
-    def showStatusbarNotification(self, text, timeout):
-        self.statusBar.showMessage(text, timeout)
-
-    def restart(self):
-        title = QCoreApplication.translate('Settings', 'Restart Required')
-        text = QCoreApplication.translate('Settings', 'Program need to restart to apply the configuration, do you wish to restart now?')
-        ret = QMessageBox.information(self, title, text, QMessageBox.Yes | QMessageBox.No)
-        if ret == QMessageBox.No:
-            return
-
-        program = sys.executable
-        args = []
-        if not hasattr(sys, '_MEIPASS'):
-            args.append(os.path.join(root, '__main__.py'))
-
-        scripts = json.loads(os.environ.pop('TAFOR_ARGS', '[]'))
-        args.extend(scripts)
-        QProcess.startDetached(program, args)
+        box = QMessageBox(self)
+        box.setWindowTitle(title)
+        box.setTextFormat(Qt.RichText)
+        box.setText(html)
+        layout = box.layout()
+        if layout.itemAt(0).spacerItem():
+            layout.takeAt(0)
+        box.addButton(QMessageBox.Ok)
+        self.ensureVisible()
+        box.exec()
 
     def openDocs(self):
         devDocs = os.path.join(root, '../docs/_build/html/index.html')
@@ -743,84 +884,72 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
         QDesktopServices.openUrl(url)
 
-    def reportIssue(self):
+    def openIssueTracker(self):
         QDesktopServices.openUrl(QUrl('https://github.com/up1and/tafor/issues'))
 
-def main():
-    # Composition root: build config, context, database and the
-    # background-to-GUI bridge
-    conf = createConfig()
-    context = createContext(conf)
-    database = createDatabase()
-    bridge = ContextBridge(context)
+    def restart(self):
+        title = QCoreApplication.translate('Settings', 'Restart Required')
+        text = QCoreApplication.translate(
+            'Settings', 'Program need to restart to apply the configuration, do you wish to restart now?')
+        if QMessageBox.information(self, title, text, QMessageBox.Yes | QMessageBox.No) == QMessageBox.No:
+            return
 
-    setupLogging(debug=conf.debugMode)
+        program = sys.executable
+        args = [] if hasattr(sys, '_MEIPASS') else [os.path.join(root, '__main__.py')]
+        args.extend(restartArgs())
 
-    os.environ['QT_ENABLE_HIGHDPI_SCALING'] = '1'
-    os.environ['QT_SCALE_FACTOR_ROUNDING_POLICY'] = 'PassThrough'
+        if not QProcess.startDetached(program, args):
+            self.notify(title, QCoreApplication.translate(
+                'Settings', 'Could not restart automatically, please start tafor again.'), 'warning')
 
-    scale = conf.interfaceScaling or 0
-    if scale:
-        os.environ['QT_SCALE_FACTOR'] = str(int(scale) * 0.25 + 1)
+    def closeSenders(self):
+        for sender in (self.tafSender, self.trendSender, self.sigmetSender):
+            sender.close()
 
-    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
-    QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+    def closeDialogs(self):
+        """Close every dialog the app owns, in one pass.
 
-    if hasattr(QGuiApplication, 'setHighDpiScaleFactorRoundingPolicy'):
-        QGuiApplication.setHighDpiScaleFactorRoundingPolicy(
-            Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
-        )
+        Nothing gets Qt.WA_DeleteOnClose: the reminder boxes and the custom
+        sender are closed and then handed back to the user, so deleting them
+        on close would leave a dangling C++ object behind. Shutdown runs once
+        the event loop has returned, on the way out of the process, so there
+        is nothing to gain by destroying them early either.
+        """
+        for dialog in (
+            self.tafSender, self.trendSender, self.sigmetSender, self.customSender,
+            self.tafEditor, self.trendEditor, self.sigmetEditor, self.licenseEditor,
+            self.settingDialog, self.chartViewer,
+            *self.reminders.values(),
+        ):
+            dialog.close()
 
-    os.environ['TAFOR_ARGS'] = json.dumps(sys.argv[1:])
+    def hideTray(self):
+        self.tray.hide()
 
-    app = QApplication(sys.argv)
+    def review(self, model):
+        """Open the right sender for a card the user asked to review."""
+        if model.type in ('FC', 'FT'):
+            sender = self.tafSender
+        elif model.type in ('WS', 'WC', 'WV', 'WA'):
+            sender = self.sigmetSender
+        else:
+            return
 
-    font = uiFont(pointSize=9)
-    app.setFont(font)
+        sender.receive(model.message)
+        sender.show()
 
-    translator = QTranslator()
-    locale = QLocale.system().name()
-    translateFile = os.path.join(root, 'resources', 'i18n', '{}.qm'.format(locale))
-    if translator.load(translateFile):
-        app.installTranslator(translator)
+    def event(self, event):
+        if event.type() == QEvent.WindowStateChange and self.isMinimized():
+            # The window is already minimised; take it off the taskbar
+            self.setWindowFlags(self.windowFlags() & Qt.Tool)
+            self.tray.show()
+            return True
+        return super().event(event)
 
-    if conf.windowsStyle == 'Fusion':
-        app.setStyle(QStyleFactory.create('Fusion'))
-
-    serverName = 'Tafor'
-    socket = QLocalSocket()
-    socket.connectToServer(serverName)
-
-    if socket.waitForConnected(500):
-        return app.quit()
-
-    localServer = QLocalServer()
-    localServer.listen(serverName)
-
-    app.aboutToQuit.connect(threadManager.cleanup)
-
-    versions = appInfo(qt=QT_VERSION_STR)
-    logger.info('Version {version}+{revision}, Python {python} {machine}, Qt {qt} on {system} {release}'.format(**versions))
-
-    try:
-        window = MainWindow(conf, context, database, bridge=bridge)
-        window.show()
-
-        if conf.rpc:
-            from tafor.core.rpc import create_app
-
-            server = create_app(context=bridge, engine=database.engine, conf=conf)
-            rpcWorker, rpcThread = threadManager.createWorker(RpcWorker, server, workerId='rpc', reusable=True)
-            rpcThread.start()
-
-        code = app.exec_()
-        sys.exit(code)
-    except Exception:
-        logger.exception('On startup failed')
-    finally:
-        socket.close()
-        localServer.close()
-
-
-if __name__ == "__main__":
-    main()
+    def closeEvent(self, event):
+        """Closing the window hides it; only a real quit tears things down."""
+        if event.spontaneous():
+            event.ignore()
+            self.hide()
+        else:
+            event.accept()

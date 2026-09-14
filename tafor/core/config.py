@@ -333,7 +333,6 @@ class Config:
         default=100,
         bindProperty='sigmetVolume'
     )
-    
     # Layer configuration
     projection = ConfigItem(
         'Layer/Projection',
@@ -354,6 +353,7 @@ class Config:
     license = ConfigItem('License')
     unit = ConfigItem('General/Unit', default='metric', scope='restart')
     codec = ConfigItem('Communication/Codec', default='ASCII')
+    remindSnoozeMinutes = ConfigItem('Monitor/RemindSnoozeMinutes', default=5)
 
     @property
     def units(self):

@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from tafor import __version__
 from tafor.core.config import createConfig
-from tafor.ui import main
+from tafor.ui import run
 
 
 EPILOG = """Examples:
@@ -54,7 +54,7 @@ def cli(argv=None):
     args = parser.parse_args(argv)
 
     if args.command is None:
-        return main()
+        return run()
 
     conf = createConfig()
 

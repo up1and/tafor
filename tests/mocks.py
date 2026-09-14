@@ -43,6 +43,7 @@ class MockConfig:
         'Communication/SIGMETAddress': 'EGXXMASI KWXXYMYX NFXXYPYX RCXXYMYX RCXXZQZX RJXXYMYX RJXXZQZX RJUUYMYX RKXXZQZX RKXXYMYX',
         'Interface/LayerURL': 'http://127.0.0.1:8000/layers',
         'Monitor/RemindSIGMET': 'true',
+        'Monitor/RemindSnoozeMinutes': '5',
         'Monitor/SIGMETVolume': 60,
         'Layer/Projection': '+proj=webmerc +datum=WGS84',
         'Layer/FIRBoundary': '[\n  [\n    114.000001907,\n    14.500001907\n  ],\n  [\n    112.000001908,\n    14.500001907\n  ],\n  [\n    108.716665268,\n    17.416666031\n  ],\n  [\n    107.683332443,\n    18.333333969\n  ],\n  [\n    107.18972222,\n    19.26777778\n  ],\n  [\n    107.929967,\n    19.9567\n  ],\n  [\n    108.050001145,\n    20.500001907\n  ],\n  [\n    111.500001908,\n    20.500001907\n  ],\n  [\n    111.500001908,\n    19.500001907\n  ],\n  [\n    114.000001907,\n    16.666666031\n  ],\n  [\n    114.000001907,\n    14.500001907\n  ]\n]'
