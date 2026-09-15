@@ -1357,13 +1357,15 @@ class FakeWidget:
 
 
 class FakeSound:
+    """A channel double. Which channels loop is the channel's own business
+    now, so the window only ever says play or stop."""
 
     def __init__(self):
-        self.plays = []
+        self.plays = 0
         self.stops = 0
 
-    def play(self, volume=None, loop=True):
-        self.plays.append((volume, loop))
+    def play(self):
+        self.plays += 1
 
     def stop(self):
         self.stops += 1
@@ -1592,19 +1594,15 @@ class TestMainWindow:
         window.updateSound('trend', False)
 
         assert sounds['trend'].stops == 1
-        assert sounds['trend'].plays == []
+        assert sounds['trend'].plays == 0
 
-    @pytest.mark.parametrize('name', ['alarm', 'taf', 'trend', 'sigmet'])
-    def test_a_continuous_channel_loops(self, window, sounds, name):
+    @pytest.mark.parametrize('name', [
+        'notification', 'incoming', 'alarm', 'taf', 'trend', 'sigmet'])
+    def test_starting_a_channel_plays_it(self, window, sounds, name):
         window.updateSound(name, True)
 
-        assert sounds[name].plays == [(None, True)]
-
-    @pytest.mark.parametrize('name', ['notification', 'incoming'])
-    def test_an_alert_channel_plays_once(self, window, sounds, name):
-        window.updateSound(name, True)
-
-        assert sounds[name].plays == [(None, False)]
+        assert sounds[name].plays == 1
+        assert sounds[name].stops == 0
 
     def test_the_alarm_switch_reads_the_menu_action(self, window):
         window.warnTafAction.setChecked(True)
@@ -1686,7 +1684,7 @@ class TestMainWindow:
         answer = window.showReminder('taf', 'Time to issue FT1012')
 
         assert box.text == 'Time to issue FT1012'
-        assert sound.plays == [(None, True)]
+        assert sound.plays == 1
         assert sound.stops == 1
         assert answer == QMessageBox.AcceptRole
 
@@ -1735,7 +1733,7 @@ class TestMainWindow:
         window.handleCustomMessage(message)
 
         assert sender.calls == [('receive', (message,), {}), ('show', (), {})]
-        assert sounds['incoming'].plays == [(None, False)]
+        assert sounds['incoming'].plays == 1
         assert tray.messages[0][0] == 'Message Received'
 
     def test_the_license_menu_tracks_the_registration(self, window):

@@ -75,6 +75,23 @@ def test_validator_rejects_invalid_value():
     assert conf.firBoundary == [[0, 0], [1, 0], [1, 1], [0, 1]]
 
 
+@pytest.mark.parametrize('value', [-1, 100, 101, 'loud', None])
+def test_a_volume_outside_the_slider_range_is_rejected(value):
+    conf = makeConf()
+
+    with pytest.raises(ValueError):
+        conf.alarmVolume = value
+
+
+@pytest.mark.parametrize('value, expected', [(0, 0), (30, 30), (99, 99), ('60', 60)])
+def test_a_volume_inside_the_slider_range_is_stored(value, expected):
+    conf = makeConf()
+
+    conf.alarmVolume = value
+
+    assert conf.alarmVolume == expected
+
+
 def test_set_json_string_broadcasts_typed_value():
     conf = makeConf()
     changes = []

@@ -658,24 +658,20 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def setupSounds(self):
         conf = self.conf
         self.sounds = {
-            'notification': Sound('notification.wav', config=conf),
-            'incoming': Sound('notification-incoming.wav', config=conf),
-            'alarm': Sound('alarm.wav', volumeKey='alarmVolume', config=conf),
-            'taf': Sound('taf.wav', volumeKey='tafVolume', config=conf),
-            'trend': Sound('trend.wav', volumeKey='trendVolume', config=conf),
-            'sigmet': Sound('sigmet.wav', volumeKey='sigmetVolume', config=conf),
+            'notification': Sound('notification.wav', loop=False),
+            'incoming': Sound('notification-incoming.wav', loop=False),
+            'alarm': Sound('alarm.wav', volume=lambda: conf.alarmVolume),
+            'taf': Sound('taf.wav', volume=lambda: conf.tafVolume),
+            'trend': Sound('trend.wav', volume=lambda: conf.trendVolume),
+            'sigmet': Sound('sigmet.wav', volume=lambda: conf.sigmetVolume),
         }
 
-        # A slider previews its own sound, and the volume it previews is the
-        # one the Sound already reads from conf -- one source of truth
-        self.settingDialog.alarmVolume.valueChanged.connect(
-            lambda volume: self.sounds['alarm'].play(volume=volume, loop=False))
-        self.settingDialog.tafVolume.valueChanged.connect(
-            lambda volume: self.sounds['taf'].play(volume=volume, loop=False))
-        self.settingDialog.trendVolume.valueChanged.connect(
-            lambda volume: self.sounds['trend'].play(volume=volume, loop=False))
-        self.settingDialog.sigmetVolume.valueChanged.connect(
-            lambda volume: self.sounds['sigmet'].play(volume=volume, loop=False))
+        # A slider previews its own sound at the volume it is being dragged to,
+        # which is why the preview takes the control's value and not the one
+        # the channel falls back on
+        for name in ('alarm', 'taf', 'trend', 'sigmet'):
+            control = getattr(self.settingDialog, name + 'Volume')
+            control.valueChanged.connect(self.sounds[name].preview)
 
     def setupTray(self):
         self.tray = QSystemTrayIcon(self)
@@ -774,16 +770,15 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         """Turn one channel on or off.
 
         The alarms and the two reminder dialogs loop until something stops
-        them; the notification and incoming alerts play once. The split is by
-        channel, so each sound still has exactly one writer.
+        them; the notification and incoming alerts play once. Which is which
+        is now a property of the channel, so this only has to say play or
+        stop. Each sound still has exactly one writer.
         """
         sound = self.sounds[name]
-        if not playing:
-            sound.stop()
-        elif name in ('alarm', 'taf', 'trend', 'sigmet'):
+        if playing:
             sound.play()
         else:
-            sound.play(loop=False)
+            sound.stop()
 
     def alarmEnabled(self):
         return self.warnTafAction.isChecked()

@@ -15,6 +15,13 @@ def validateFirBoundary(value):
     except (ValueError, TypeError):
         return False
 
+def validateVolume(value):
+    """A volume is one of the slider's 100 steps, 0 to 99."""
+    try:
+        return 0 <= int(value) <= 99
+    except (TypeError, ValueError):
+        return False
+
 class ConfigItem:
     """Descriptor for configuration items"""
     
@@ -301,6 +308,7 @@ class Config:
     alarmVolume = ConfigItem(
         'Monitor/AlarmVolume',
         default=30,
+        validator=validateVolume,
         bindProperty='alarmVolume'
     )
     remindTaf = ConfigItem(
@@ -310,7 +318,8 @@ class Config:
     )
     tafVolume = ConfigItem(
         'Monitor/TAFVolume',
-        default=100,
+        default=99,
+        validator=validateVolume,
         bindProperty='tafVolume'
     )
     remindTrend = ConfigItem(
@@ -320,7 +329,8 @@ class Config:
     )
     trendVolume = ConfigItem(
         'Monitor/TrendVolume',
-        default=100,
+        default=99,
+        validator=validateVolume,
         bindProperty='trendVolume'
     )
     remindSigmet = ConfigItem(
@@ -330,7 +340,8 @@ class Config:
     )
     sigmetVolume = ConfigItem(
         'Monitor/SIGMETVolume',
-        default=100,
+        default=99,
+        validator=validateVolume,
         bindProperty='sigmetVolume'
     )
     # Layer configuration
