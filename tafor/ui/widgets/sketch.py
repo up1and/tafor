@@ -17,7 +17,6 @@ class SketchManager:
     }
 
     def __init__(self, canvas, sketchNames=None):
-        super().__init__()
         self.mode = 'polygon'
         self.canvas = canvas
         self.graphics = []
@@ -54,16 +53,28 @@ class SketchManager:
         return self.sketches[self.index]
 
     def next(self):
-        self.index += 1
-        if self.index >= len(self.sketches):
-            self.index = 0
-            self.last().clear()
+        """Step to the next area, wrapping around."""
+        self.activate(self.sketchNames[(self.index + 1) % len(self.sketchNames)])
+
+    def activate(self, name):
+        """Move the cursor to the named area.
+
+        ``final`` only exists on top of ``initial``, so returning to
+        ``initial`` discards ``final``. With two areas, "the cursor wrapped"
+        and "we went back to the first area" are the same event -- which is why
+        the rule used to live in the wrap arithmetic. The rule is about the
+        areas, though, not about the wrap: with three areas they would differ.
+        """
+        if name == self.sketchNames[0]:
+            self.get(self.sketchNames[-1]).clear()
+
+        self.index = self.sketchNames.index(name)
 
     def first(self):
         return self.sketches[0]
 
     def last(self):
-        return self.sketches[1]
+        return self.sketches[-1]
 
     def clear(self):
         for s in self.sketches:

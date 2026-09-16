@@ -14,7 +14,7 @@ from tafor.core.utils.common import iconPath
 from tafor.core.utils.time import utcnow
 from tafor.ui.fonts import fixedFont, uiFont
 from tafor.ui.qt import Ui_send
-from tafor.ui.widgets.graphic import GraphicsViewer
+from tafor.ui.widgets.graphic import PreviewPanel
 from tafor.ui.workers import FtpWorker, SerialWorker, threadManager
 
 logger = logging.getLogger('tafor.send')
@@ -661,7 +661,7 @@ class SigmetSender(BaseSender):
 
     def __init__(self, parent=None, context=None, conf=None, repository=None):
         super().__init__(parent, context, conf, repository)
-        self.graphic = GraphicsViewer(self, context=self.context)
+        self.graphic = PreviewPanel(self, context=self.context)
         self.canvasLayout.addWidget(self.graphic)
         self.switchButton.clicked.connect(self.presenter.toggle)
 

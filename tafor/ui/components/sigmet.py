@@ -9,7 +9,7 @@ from tafor.core.utils.time import utcnow
 from tafor.ui.qt import Ui_sigmet
 from tafor.ui.widgets import AirmetGeneral, SigmetAsh, SigmetCancel, SigmetCustom, SigmetGeneral, SigmetTyphoon
 from tafor.ui.widgets.editor import BaseEditor
-from tafor.ui.widgets.graphic import GraphicsWindow
+from tafor.ui.widgets.graphic import SketchPanel
 
 
 class SigmetPresenter:
@@ -90,7 +90,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.setWindowTitle(QCoreApplication.translate('Editor', 'Encoding Significant Meteorological Information'))
 
     def initUI(self):
-        self.graphic = GraphicsWindow(self, context=self.context)
+        self.graphic = SketchPanel(self, context=self.context)
         self.generalContent = SigmetGeneral(self, conf=self.conf, context=self.context, repository=self.repository)
         self.typhoonContent = SigmetTyphoon(self, conf=self.conf, context=self.context, repository=self.repository)
         self.ashContent = SigmetAsh(self, conf=self.conf, context=self.context, repository=self.repository)
@@ -124,7 +124,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         else:
             sigmets = self.context.current.filterSigmets(SigmetFilter(category=self.category()))
 
-        self.graphic.setCachedSigmet(sigmets)
+        self.graphic.setSigmets(sigmets)
 
     def updateLayer(self):
         self.graphic.updateLayer()
@@ -159,7 +159,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.type = type
         self.mode = mode
         self.currentContent.setSpan(validDuration(self.type))
-        self.graphic.setModeButtons(self.type, mode)
+        self.graphic.configureMode(self.type, mode)
         self.updateGraphicCanvas()
 
     def setOverlapMode(self, mode):

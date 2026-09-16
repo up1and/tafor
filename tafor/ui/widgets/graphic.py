@@ -1,9 +1,9 @@
 import os
-import math
 import logging
 
 import shapefile
 import shapely.geometry
+from shapely.affinity import scale
 
 from itertools import cycle
 
@@ -20,18 +20,40 @@ from tafor.ui.widgets.sketch import SketchManager
 from tafor.ui.widgets.geometry import BackgroundImage, Coastline, Fir, Sigmet
 from tafor.ui.widgets.misc import OutlinedLabel
 
-logger = logging.getLogger('tafor.sigmet.graphic')
+logger = logging.getLogger(__name__)
+
+
+class ToolContext:
+    """Everything a drawing tool is allowed to reach.
+
+    Deliberately narrow: a tool never sees the view, the scene or the panel, so
+    the six tools can be exercised with plain Python objects and no Qt at all.
+
+    ``boundary`` and ``band`` are callables rather than values because both
+    change under the tool's feet -- the FIR boundary follows the selected layer,
+    and the rubber band is swapped out by tests.
+    """
+
+    def __init__(self, registry, toGeo, toView, boundary, band):
+        self.registry = registry
+        self.toGeo = toGeo
+        self.toView = toView
+        self.boundary = boundary
+        self.band = band
 
 
 class SketchTool:
+    """What a mouse or key event means in one drawing mode."""
 
-    def __init__(self, canvas, manager):
-        self.canvas = canvas
-        self.manager = manager
+    def __init__(self, context):
+        self.context = context
 
     @property
     def sketch(self):
-        return self.manager.currentSketch()
+        return self.context.registry.currentSketch()
+
+    def toLonLat(self, point):
+        return self.context.toGeo(point)
 
     def mousePress(self, event):
         pass
@@ -51,10 +73,6 @@ class SketchTool:
     def keyRelease(self, event):
         pass
 
-    def toLonLat(self, point):
-        pos = self.canvas.mapToScene(point)
-        return self.canvas.toGeographicalCoordinates(pos.x(), pos.y())
-
 
 class PolygonTool(SketchTool):
 
@@ -62,12 +80,11 @@ class PolygonTool(SketchTool):
         if event.button() == Qt.LeftButton:
             if len(self.sketch.coordinates) > 2:
                 deviation = 12
-                canvasPoint = self.canvas.toCanvasCoordinates(*self.sketch.coordinates[0])
-                firstPoint = self.canvas.mapFromScene(*canvasPoint)
+                firstPoint = self.context.toView(self.sketch.coordinates[0])
                 dx = abs(event.pos().x() - firstPoint.x())
                 dy = abs(event.pos().y() - firstPoint.y())
                 if dx < deviation and dy < deviation:
-                    self.sketch.clip(self.canvas.context.layer.boundaries())
+                    self.sketch.clip(self.context.boundary())
                     return
 
             if not self.sketch.done and len(self.sketch.coordinates) < self.sketch.maxPoint:
@@ -104,55 +121,107 @@ class CorridorTool(SketchTool):
 
     def wheelEvent(self, event):
         ratio = 1 if event.angleDelta().y() > 0 else -1
-        self.sketch.clip(self.canvas.context.layer.boundaries())
+        self.sketch.clip(self.context.boundary())
         self.sketch.resize(ratio)
 
 
 class RectangularTool(SketchTool):
 
-    def __init__(self, canvas, manager):
-        super().__init__(canvas, manager)
+    def __init__(self, context):
+        super().__init__(context)
         self.origin = None
 
     def mousePress(self, event):
         if event.button() == Qt.LeftButton:
             self.origin = event.pos()
             if not self.sketch:
-                self.canvas.rubberBand.setGeometry(QRect(self.origin, QSize()))
-                self.canvas.rubberBand.show()
+                band = self.context.band()
+                band.setGeometry(QRect(self.origin, QSize()))
+                band.show()
                 self.sketch.addPoint(self.toLonLat(event.pos()))
         if event.button() == Qt.RightButton:
             self.sketch.removePoint()
 
     def mouseMove(self, event):
-        if event.buttons() == Qt.LeftButton and self.origin:
-            self.canvas.rubberBand.setGeometry(QRect(self.origin, event.pos()).normalized())
+        if event.buttons() & Qt.LeftButton and self.origin:
+            self.context.band().setGeometry(QRect(self.origin, event.pos()).normalized())
 
     def mouseRelease(self, event):
         if event.button() == Qt.LeftButton and self.origin:
-            self.canvas.rubberBand.hide()
+            self.context.band().hide()
             self.sketch.addPoint(self.toLonLat(event.pos()))
-            self.sketch.clip(self.canvas.context.layer.boundaries())
+            self.sketch.clip(self.context.boundary())
             self.origin = None
 
 
 class EntireTool(SketchTool):
+    """The whole FIR is the area, so there is nothing to draw."""
 
     def mousePress(self, event):
-        boundaries = list(self.canvas.context.layer.boundaries())
-        self.sketch.restore(boundaries=boundaries)
+        self.restore()
+
+    def restore(self):
+        self.sketch.restore(boundaries=list(self.context.boundary()))
 
 
-class BaseCanvas(QGraphicsView):
+class SceneLayer:
+    """One group of graphics items, replaceable as a unit.
+
+    Every rebuild in this module used to hand-roll its own "drop the old items,
+    then make a group" dance, and one of them forgot the first half -- which is
+    why the FIR boundary accumulated another group on every redraw. There is now
+    a single place that can get it wrong.
+    """
+
+    def __init__(self, view, z=0):
+        self.view = view
+        self.z = z
+        self.items = []
+        self.group = None
+
+    def replace(self, items):
+        self.clear()
+        self.items = list(items)
+
+        if self.items:
+            self.group = self.view.scene.createItemGroup(self.items)
+            self.group.setZValue(self.z)
+
+    def clear(self):
+        if self.group is not None:
+            self.view.scene.removeItem(self.group)
+            self.group = None
+
+        self.items = []
+
+    def boundingRect(self):
+        if self.group is not None:
+            return self.group.boundingRect()
+
+
+class MapView(QGraphicsView):
+    """Shared map view: projection, the item layers, pan and zoom.
+
+    Panning and zooming used to be copy-pasted into both concrete views; the
+    only thing that actually differed was the zoom policy, so that is now the
+    only thing a subclass overrides.
+    """
+
+    #: zoom policy -- subclasses narrow it
+    initialScale = 1.0
+    maxZoom = 5
+    minZoom = 0.15
+
+    mouseMoved = pyqtSignal(tuple)
 
     def __init__(self, context):
         super().__init__()
         self.context = context
         self.extent = []
 
-        self.coastlines = []
-        self.firs = []
-        self.sigmets = []
+        self.coastlines = SceneLayer(self)
+        self.firs = SceneLayer(self, z=1)
+        self.sigmets = SceneLayer(self, z=2)
 
         self.projection = self.context.layer.projection()
         if self.projection.crs.is_geographic:
@@ -160,7 +229,6 @@ class BaseCanvas(QGraphicsView):
         else:
             self.ratio = 1 / 1000
 
-        self.offset = (0, 0)
         self.scene = QGraphicsScene(self)
         self.setScene(self.scene)
         self.setTransformationAnchor(QGraphicsView.AnchorViewCenter)
@@ -169,6 +237,9 @@ class BaseCanvas(QGraphicsView):
 
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+        if self.initialScale != 1.0:
+            self.scale(self.initialScale, self.initialScale)
 
     def setExtent(self, extent):
         self.extent = extent
@@ -182,18 +253,14 @@ class BaseCanvas(QGraphicsView):
         return bound
 
     def drawCoastline(self):
-        if self.coastlines:
-            self.coastlines = []
-            self.scene.removeItem(self.coastlinesGroup)
-
         filename = os.path.join(resourcePath('shapes'), 'coastline.shp')
-        sf = shapefile.Reader(filename)
-        shapes = sf.shapes()
+        shapes = shapefile.Reader(filename).shapes()
 
         if not self.extent:
             self.setExtent(self.context.layer.maxExtent())
 
         bound = self.bbox()
+        items = []
         for shape in shapes:
             polygon = shapely.geometry.shape(shape)
             if bound:
@@ -210,88 +277,71 @@ class BaseCanvas(QGraphicsView):
                         'type': 'Polygon',
                         'coordinates': part.exterior.coords
                     }
-                    p = Coastline(geometry)
-                    p.addTo(self, self.coastlines)
+                    Coastline(geometry).addTo(self, items)
 
-        self.coastlinesGroup = self.scene.createItemGroup(self.coastlines)
+        self.coastlines.replace(items)
         self.setSceneRect(self.scene.itemsBoundingRect())
 
     def drawBoundaries(self):
+        boundaries = self.context.layer.boundaries()
+        if not boundaries:
+            self.firs.clear()
+            return
+
         geometry = {
             'type': 'Polygon',
-            'coordinates': self.context.layer.boundaries()
+            'coordinates': boundaries
         }
-        p = Fir(geometry)
-        p.addTo(self, self.firs)
-
-        self.firsGroup = self.scene.createItemGroup(self.firs)
-        self.firsGroup.setZValue(1)
-        self.centerOn(self.firsGroup.boundingRect().center())
+        items = []
+        Fir(geometry).addTo(self, items)
+        self.firs.replace(items)
 
     def drawSigmets(self, geometries):
-        if self.sigmets:
-            self.sigmets = []
-            self.scene.removeItem(self.sigmetsGroup)
-        
+        items = []
         for geometry in geometries:
-            p = Sigmet(geo=geometry)
-            p.addTo(self, self.sigmets)
-        
-        self.sigmetsGroup = self.scene.createItemGroup(self.sigmets)
-        self.sigmetsGroup.setZValue(2)
+            Sigmet(geo=geometry).addTo(self, items)
+        self.sigmets.replace(items)
 
         if not self.context.layer.boundaries():
-            self.centerOn(self.sigmetsGroup.boundingRect().center())
+            self.centerOnLayer(self.sigmets)
 
-    def toGeographicalCoordinates(self, x, y):
-        px, py = (x - self.offset[0]) / self.ratio, (self.offset[1] - y) / self.ratio
-        return self.projection(px, py, inverse=True)
-        
-    def toCanvasCoordinates(self, longitude, latitude):
-        px, py = self.projection(longitude, latitude)
-        return px * self.ratio + self.offset[0], -py * self.ratio + self.offset[1]
+    def centerOnLayer(self, layer):
+        rect = layer.boundingRect()
+        if rect is not None:
+            self.centerOn(rect.center())
 
-    def redraw(self):
-        self.drawCoastline()
-        self.drawBoundaries()
+    def currentZoom(self):
+        return QStyleOptionGraphicsItem.levelOfDetailFromTransform(self.transform())
 
+    def zoomIn(self):
+        if self.currentZoom() < self.maxZoom:
+            self.scale(1.25, 1.25)
 
-class Viewer(BaseCanvas):
-
-    def __init__(self, context):
-        super().__init__(context)
-        self.scale(0.4096, 0.4096)
+    def zoomOut(self):
+        if self.currentZoom() > self.minZoom:
+            self.scale(0.8, 0.8)
 
     def mousePressEvent(self, event):
-        if event.buttons() == Qt.LeftButton:
+        if event.button() == Qt.LeftButton:
             self.setDragMode(QGraphicsView.ScrollHandDrag)
             self.pos = event.pos()
 
     def mouseMoveEvent(self, event):
-        if event.buttons() == Qt.LeftButton:
-            offset = self.pos - event.pos()
+        if event.buttons() & Qt.LeftButton:
+            delta = self.pos - event.pos()
             self.pos = event.pos()
-            x = self.horizontalScrollBar().value() + offset.x()
-            y = self.verticalScrollBar().value() + offset.y()
-            self.horizontalScrollBar().setValue(x)
-            self.verticalScrollBar().setValue(y)
+            self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() + delta.x())
+            self.verticalScrollBar().setValue(self.verticalScrollBar().value() + delta.y())
+
+        super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
         self.setDragMode(QGraphicsView.NoDrag)
+        super().mouseReleaseEvent(event)
 
     def mouseDoubleClickEvent(self, event):
-        if event.buttons() == Qt.LeftButton:
+        if event.button() == Qt.LeftButton:
             self.zoomIn()
-
-    def zoomIn(self):
-        zoom = QStyleOptionGraphicsItem.levelOfDetailFromTransform(self.transform())
-        if zoom < 1:
-            self.scale(1.25, 1.25)
-
-    def zoomOut(self):
-        zoom = QStyleOptionGraphicsItem.levelOfDetailFromTransform(self.transform())
-        if zoom > 0.4:
-            self.scale(0.8, 0.8)
 
     def wheelEvent(self, event):
         if event.angleDelta().y() > 0:
@@ -299,41 +349,90 @@ class Viewer(BaseCanvas):
         else:
             self.zoomOut()
 
+    def emitMouseMoved(self, event):
+        pos = self.mapToScene(event.pos())
+        self.mouseMoved.emit(self.toGeographicalCoordinates(pos.x(), pos.y()))
 
-class Canvas(BaseCanvas):
+    def toGeographicalCoordinates(self, x, y):
+        return self.projection(x / self.ratio, -y / self.ratio, inverse=True)
 
-    mouseMoved = pyqtSignal(tuple)
+    def toCanvasCoordinates(self, longitude, latitude):
+        px, py = self.projection(longitude, latitude)
+        return px * self.ratio, -py * self.ratio
+
+    def redraw(self):
+        self.drawCoastline()
+        self.drawBoundaries()
+        self.centerOnLayer(self.firs)
+
+
+class StaticView(MapView):
+    """Read-only map: the same pan and zoom, no drawing state at all."""
+
+    initialScale = 0.4096
+    maxZoom = 1.0
+    minZoom = 0.4
+
+
+class SketchView(MapView):
+    """The editable map: a MapView plus one pluggable drawing tool."""
+
+    #: the user handed an event to the current tool, so the drawing moved.
+    #: Programmatic writes to a sketch do not come through here.
+    interacted = pyqtSignal()
+
+    maxZoom = 5
+    minZoom = 0.15
 
     def __init__(self, context):
         super().__init__(context)
         self.backgrounds = []
-
-        self.mode = 'polygon'
-        self.lock = False
-        self.maxPoint = 7
-
         self.backgroundOpacity = 0.5
         self.maxLayerExtent = self.context.layer.maxExtent()
+        self.backgroundLayer = SceneLayer(self, z=-1)
 
         self.setMouseTracking(True)
 
         self.rubberBand = QRubberBand(QRubberBand.Rectangle, self)
         self.sketchManager = SketchManager(self, sketchNames=['initial', 'final'])
+        self.toolContext = ToolContext(
+            registry=self.sketchManager,
+            toGeo=self.toGeographicalPoint,
+            toView=self.toViewPoint,
+            boundary=self.context.layer.boundaries,
+            band=lambda: self.rubberBand,
+        )
         self.tools = {
-            'polygon': PolygonTool(self, self.sketchManager),
-            'line': LineTool(self, self.sketchManager),
-            'circle': CircleTool(self, self.sketchManager),
-            'corridor': CorridorTool(self, self.sketchManager),
-            'rectangular': RectangularTool(self, self.sketchManager),
-            'entire': EntireTool(self, self.sketchManager)
+            'polygon': PolygonTool(self.toolContext),
+            'line': LineTool(self.toolContext),
+            'circle': CircleTool(self.toolContext),
+            'corridor': CorridorTool(self.toolContext),
+            'rectangular': RectangularTool(self.toolContext),
+            'entire': EntireTool(self.toolContext)
         }
 
     @property
     def sketch(self):
         return self.sketchManager.currentSketch()
 
-    def currentTool(self):
-        return self.tools.get(self.mode)
+    @property
+    def mode(self):
+        """The drawing mode. It lives on the registry, not on the view."""
+        return self.sketchManager.mode
+
+    @property
+    def tool(self):
+        """The tool the current mode draws with."""
+        return self.tools[self.mode]
+
+    def toGeographicalPoint(self, point):
+        """Widget position -> (longitude, latitude)."""
+        pos = self.mapToScene(point)
+        return self.toGeographicalCoordinates(pos.x(), pos.y())
+
+    def toViewPoint(self, lonlat):
+        """(longitude, latitude) -> widget position."""
+        return self.mapFromScene(*self.toCanvasCoordinates(*lonlat))
 
     def extentToCanvasCoordinates(self, extent):
         minlon, minlat, maxlon, maxlat = extent
@@ -355,98 +454,93 @@ class Canvas(BaseCanvas):
 
         return factor
 
-    def zoomIn(self):
-        zoom = QStyleOptionGraphicsItem.levelOfDetailFromTransform(self.transform())
-        if zoom < 5:
-            self.scale(1.25, 1.25)
-
     def zoomOut(self):
-        zoom = QStyleOptionGraphicsItem.levelOfDetailFromTransform(self.transform())
-        factor = self.maxZoomFactor()
-
-        if factor < 0.8 and zoom > 0.15:
+        # unlike the static view, how far you may zoom out is also limited by
+        # how much of the layer extent is still on screen
+        if self.maxZoomFactor() < 0.8 and self.currentZoom() > self.minZoom:
             self.scale(0.8, 0.8)
 
     def leaveEvent(self, event):
         self.mouseMoved.emit(())
 
-    def mouseDoubleClickEvent(self, event):
-        if event.buttons() == Qt.LeftButton:
-            self.zoomIn()
+    def isDrawing(self, event):
+        """Whether this event belongs to a drawing gesture.
+
+        Drawing is a live property of the event, not a latched flag. The old
+        ``lock`` was set on Ctrl-press and cleared on Ctrl-release, so a double
+        click during a gesture still zoomed the map, and losing focus while Ctrl
+        was held left it stuck on for good.
+        """
+        return bool(event.modifiers() & Qt.ControlModifier)
+
+    def handleDrawing(self, event, handler):
+        """Hand a drawing event to the tool, and say that the user drew.
+
+        Only user drawings pass through here, so the panel's ``circleChanged``
+        reaches the typhoon form without echoing programmatic restores. 
+        Mouse moves stay out: they only preview the rubber band.
+        """
+        handler(event)
+        self.interacted.emit()
 
     def mousePressEvent(self, event):
-        if not self.lock and event.buttons() == Qt.LeftButton:
-            self.setDragMode(QGraphicsView.ScrollHandDrag)
-            self.pos = event.pos()
+        if self.isDrawing(event):
+            self.handleDrawing(event, self.tool.mousePress)
+            return
 
-        if self.lock and self.currentTool():
-            self.currentTool().mousePress(event)
+        super().mousePressEvent(event)
+
+    def mouseDoubleClickEvent(self, event):
+        # a double click during a drawing gesture is two clicks of that
+        # gesture, not a request to zoom
+        if self.isDrawing(event):
+            return
+
+        super().mouseDoubleClickEvent(event)
 
     def mouseMoveEvent(self, event):
         self.emitMouseMoved(event)
 
-        if not self.lock and event.buttons() == Qt.LeftButton:
-            offset = self.pos - event.pos()
-            self.pos = event.pos()
-            x = self.horizontalScrollBar().value() + offset.x()
-            y = self.verticalScrollBar().value() + offset.y()
-            self.horizontalScrollBar().setValue(x)
-            self.verticalScrollBar().setValue(y)
-
-        if self.lock and self.currentTool():
-            self.currentTool().mouseMove(event)
+        if self.isDrawing(event):
+            self.tool.mouseMove(event)
+            return
 
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
-        self.setDragMode(QGraphicsView.NoDrag)
-
-        if self.lock and self.currentTool():
-            self.currentTool().mouseRelease(event)
-
-        if not self.lock and self.rubberBand.isVisible():
+        if self.isDrawing(event):
+            self.handleDrawing(event, self.tool.mouseRelease)
+        elif self.rubberBand.isVisible():
             self.rubberBand.hide()
             self.sketchManager.currentSketch().clear()
 
         super().mouseReleaseEvent(event)
 
     def wheelEvent(self, event):
-        if self.lock and self.currentTool():
-            self.currentTool().wheelEvent(event)
+        if self.isDrawing(event):
+            self.handleDrawing(event, self.tool.wheelEvent)
         else:
-            if event.angleDelta().y() > 0:
-                self.zoomIn()
-            else:
-                self.zoomOut()
+            super().wheelEvent(event)
 
         self.emitMouseMoved(event)
 
     def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Control:
-            self.lock = True
-        if self.lock and self.currentTool():
-            self.currentTool().keyPress(event)
+        if self.isDrawing(event):
+            self.handleDrawing(event, self.tool.keyPress)
 
     def keyReleaseEvent(self, event):
-        if event.key() == Qt.Key_Control:
-            self.lock = False
-        if self.lock and self.currentTool():
-            self.currentTool().keyRelease(event)
-
-    def emitMouseMoved(self, event):
-        pos = self.mapToScene(event.pos())
-        self.mouseMoved.emit(self.toGeographicalCoordinates(pos.x(), pos.y()))
-
-    def groundResolution(self, latitude):
-        resolution = math.cos(latitude * math.pi / 180) * 2 * math.pi * 6378137 / self.scene.width()
-        return resolution
+        if self.isDrawing(event):
+            self.handleDrawing(event, self.tool.keyRelease)
 
     def setMode(self, mode):
-        self.mode = mode
         self.sketchManager.setMode(mode)
 
-        if mode == 'entire' and self.currentTool():
-            self.currentTool().mousePress(None)
+        if mode == 'entire':
+            # The whole FIR is the area, so entering the mode *is* the
+            # drawing. This used to be a fake ``mousePress(None)`` handed to
+            # whichever tool happened to be current; now the view says what
+            # it means, and the tools stay event translators.
+            self.tool.restore()
 
     def setSketch(self, name):
         sketch = self.sketchManager.currentSketch()
@@ -461,18 +555,17 @@ class Canvas(BaseCanvas):
 
     def drawLayer(self):
         layers = [layer for layer in self.context.layer.currentLayers() if layer]
-        if layers:
-            if self.backgrounds:
-                self.backgrounds = []
-                self.scene.removeItem(self.backgroundsGroup)
+        if not layers:
+            return
 
-            for layer in layers:
-                opacity = self.backgroundOpacity if layer.overlay == 'mixed' else 1                
-                background = BackgroundImage(layer, opacity)
-                background.addTo(self, self.backgrounds)
+        items = []
+        for layer in layers:
+            opacity = self.backgroundOpacity if layer.overlay == 'mixed' else 1                
+            background = BackgroundImage(layer, opacity)
+            background.addTo(self, items)
 
-            self.backgroundsGroup = self.scene.createItemGroup(self.backgrounds)
-            self.backgroundsGroup.setZValue(-1)
+        self.backgrounds = items
+        self.backgroundLayer.replace(items)
 
     def clear(self):
         self.sketchManager.clear()
@@ -481,10 +574,10 @@ class Canvas(BaseCanvas):
         extent = self.context.layer.maxExtent()
         if extent != self.maxLayerExtent:
             self.maxLayerExtent = extent
-            self.drawCoastline()
+            self.redraw()
 
 
-class LocationWidget(QWidget):
+class LocationBanner(QWidget):
 
     def __init__(self, context, parent=None):
         super().__init__(parent)
@@ -514,7 +607,7 @@ class LocationWidget(QWidget):
             self.hide()
 
 
-class LayerInfoWidget(QWidget):
+class LayerInfoOverlay(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -542,12 +635,12 @@ class LayerInfoWidget(QWidget):
             self.verticalLayout.addWidget(label)
 
 
-class GraphicsViewer(QWidget):
+class PreviewPanel(QWidget):
 
     def __init__(self, parent=None, context=None):
         super().__init__(parent)
         self.context = context
-        self.canvas = Viewer(self.context)
+        self.canvas = StaticView(self.context)
         self.verticalLayout = QVBoxLayout(self)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout.addWidget(self.canvas)
@@ -560,7 +653,7 @@ class GraphicsViewer(QWidget):
     def extent(self):
         boundary = shapely.geometry.Polygon(self.context.layer.boundaries())
         bbox = boundary.envelope
-        bbox = shapely.affinity.scale(bbox, xfact=4, yfact=2)
+        bbox = scale(bbox, xfact=4, yfact=2)
         return list(bbox.bounds)
 
     def setSigmet(self, geo):
@@ -575,7 +668,7 @@ class GraphicsViewer(QWidget):
         self.updateSigmetGraphic()
 
 
-class GraphicsWindow(QWidget):
+class SketchPanel(QWidget):
 
     sketchChanged = pyqtSignal(list)
     circleChanged = pyqtSignal(dict)
@@ -585,11 +678,10 @@ class GraphicsWindow(QWidget):
     def __init__(self, parent=None, context=None):
         super().__init__(parent)
         self.context = context
-        self.type = ''
-        self.quietly = False
+        self.designator = ''
         self.cachedSigmets = []
 
-        self.canvas = Canvas(self.context)
+        self.canvas = SketchView(self.context)
         self.setMaximumSize(960, 620)
         self.canvasLayout = QVBoxLayout(self)
         self.canvasLayout.setContentsMargins(0, 8, 0, 0)
@@ -604,12 +696,12 @@ class GraphicsWindow(QWidget):
         for button in (self.zoomInButton, self.zoomOutButton):
             button.setFixedSize(24, 24)
 
-        self.zoomWidget = QWidget(self)
-        self.zoomLayout = QVBoxLayout(self.zoomWidget)
-        self.zoomLayout.setSpacing(0)
-        self.zoomLayout.setContentsMargins(0, 0, 0, 0)
-        self.zoomLayout.addWidget(self.zoomInButton)
-        self.zoomLayout.addWidget(self.zoomOutButton)
+        self.zoomControl = QWidget(self)
+        self.zoomControlLayout = QVBoxLayout(self.zoomControl)
+        self.zoomControlLayout.setSpacing(0)
+        self.zoomControlLayout.setContentsMargins(0, 0, 0, 0)
+        self.zoomControlLayout.addWidget(self.zoomInButton)
+        self.zoomControlLayout.addWidget(self.zoomOutButton)
 
         self.refreshButton = QPushButton(self)
         self.refreshButton.setText(QCoreApplication.translate('Editor', 'Refresh'))
@@ -628,14 +720,14 @@ class GraphicsWindow(QWidget):
         for button in [self.refreshButton, self.layerButton, self.overlapButton]:
             button.setFixedHeight(24)
 
-        self.operationWidget = QWidget(self)
-        self.operationLayout = QHBoxLayout(self.operationWidget)
-        self.operationLayout.setSpacing(0)
-        self.operationLayout.setContentsMargins(0, 0, 0, 0)
-        self.operationLayout.addWidget(self.refreshButton)
-        self.operationLayout.addWidget(self.layerButton)
-        self.operationLayout.addWidget(self.overlapButton)
-        self.operationLayout.addWidget(self.modeButton)
+        self.toolbar = QWidget(self)
+        self.toolbarLayout = QHBoxLayout(self.toolbar)
+        self.toolbarLayout.setSpacing(0)
+        self.toolbarLayout.setContentsMargins(0, 0, 0, 0)
+        self.toolbarLayout.addWidget(self.refreshButton)
+        self.toolbarLayout.addWidget(self.layerButton)
+        self.toolbarLayout.addWidget(self.overlapButton)
+        self.toolbarLayout.addWidget(self.modeButton)
 
         self.opacitySlider = QSlider(Qt.Horizontal, self)
         self.opacitySlider.setMinimum(0)
@@ -648,11 +740,11 @@ class GraphicsWindow(QWidget):
         self.positionLabel.setMinimumWidth(200)
         self.positionLabel.setAlignment(Qt.AlignRight | Qt.AlignBottom)
 
-        self.layerInfoWidget = LayerInfoWidget(self)
-        self.locationWidget = LocationWidget(self.context, self)
+        self.layerInfoOverlay = LayerInfoOverlay(self)
+        self.locationBanner = LocationBanner(self.context, self)
 
         self.setLayerMenu()
-        self.setModeButtons()
+        self.configureMode()
         self.load()
         self.bindSignal()
 
@@ -664,6 +756,7 @@ class GraphicsWindow(QWidget):
         self.overlapButton.toggled.connect(self.handleOverlap)
         self.refreshButton.clicked.connect(self.context.layer.refreshLayers)
         self.canvas.mouseMoved.connect(self.updatePositionLabel)
+        self.canvas.interacted.connect(self.handleInteraction)
         for sketch in self.canvas.sketchManager:
             sketch.changed.connect(self.handleSketchChange)
             sketch.finished.connect(self.updateOverlapButton)
@@ -679,13 +772,21 @@ class GraphicsWindow(QWidget):
 
     def handleSketchChange(self):
         self.sketchChanged.emit(self.formattedCoordinates())
-        
-        if not self.quietly and self.canvas.mode == 'circle':
-            self.circleChanged.emit(self.circleCoordinates())
 
         # a sketch change can roll back ``done`` (e.g. removePoint cancels an
         # area), so recompute whether the overlap switch stays available;
         self.updateOverlapButton()
+
+    def handleInteraction(self):
+        """Mirror what the user drew here back into the form that owns it.
+
+        Only the interactive path emits ``circleChanged``: the same circles
+        reach this panel through ``setTyphoonGraphic`` when the typhoon form
+        publishes an edit of its own, and echoing those straight back would
+        close a signal loop between the map and the form.
+        """
+        if self.canvas.mode == 'circle':
+            self.circleChanged.emit(self.circleCoordinates())
 
     def formattedCoordinates(self):
         messages = []
@@ -704,12 +805,25 @@ class GraphicsWindow(QWidget):
         return collections
 
     def location(self):
-        locations = {}
-        names = ['location', 'forecastLocation']
+        """Area text keyed the way the message template reads it.
 
-        for i, sketch in enumerate(self.canvas.sketchManager.sketches):
+        The keys are the ``{location}`` / ``{forecastLocation}`` placeholders
+        of ``tafor/core/sigmet/states.py`` and are frozen by the message
+        format, so they are written out as a mapping from placeholder to area
+        name. The old ``names = ['location', 'forecastLocation']`` list said
+        the same thing, but only by lining up with the order and the length of
+        ``sketchManager.sketches`` -- a coupling that broke silently the
+        moment either side gained a third entry.
+        """
+        manager = self.canvas.sketchManager
+        boundaries = self.context.layer.boundaries()
+        keys = {'location': 'initial', 'forecastLocation': 'final'}
+
+        locations = {}
+        for key, name in keys.items():
+            sketch = manager.get(name)
             if sketch.done:
-                locations[names[i]] = formatLocation(sketch, self.context.layer.boundaries())
+                locations[key] = formatLocation(sketch, boundaries)
 
         return locations
 
@@ -724,7 +838,7 @@ class GraphicsWindow(QWidget):
 
         return all(sketches)
 
-    def setModeButtons(self, designator='WS', category='template'):
+    def configureMode(self, designator='WS', mode='template'):
         if designator == 'WC':
             icons = [
                 {'title': QCoreApplication.translate('Editor', 'Circle'), 'mode': 'circle'},
@@ -739,14 +853,14 @@ class GraphicsWindow(QWidget):
                 {'title': QCoreApplication.translate('Editor', 'Entire'), 'mode': 'entire'}
             ]
 
-        self.type = designator
-        self.icons = cycle(icons)
+        self.designator = designator
+        self.modes = cycle(icons)
         metrics = QFontMetrics(self.modeButton.font())
         width = max(metrics.horizontalAdvance(icon['title']) for icon in icons) + 20
         self.modeButton.setFixedSize(width, 24)
         self.nextMode()
 
-        if category == 'cancel':
+        if mode == 'cancel':
             self.overlapButton.hide()
             self.modeButton.hide()
         else:
@@ -756,7 +870,7 @@ class GraphicsWindow(QWidget):
     def updateOverlapButton(self):
         initial = self.canvas.sketchManager.first()
         enabled = initial.done
-        if self.type == 'WC' and self.canvas.mode == 'polygon' or self.canvas.mode == 'entire':
+        if (self.designator == 'WC' and self.canvas.mode == 'polygon') or self.canvas.mode == 'entire':
             enabled = False
         self.overlapButton.setEnabled(enabled)
         
@@ -767,12 +881,13 @@ class GraphicsWindow(QWidget):
 
     def nextMode(self):
         self.clear()
-        mode = next(self.icons)
+        mode = next(self.modes)
         self.canvas.setMode(mode['mode'])
         self.modeButton.setText(mode['title'])
         self.modeChanged.emit(mode['mode'])
-        # sketches were cleared quietly, so refresh the location label
-        # through the same signal the sketch changes flow through
+        # ``SketchManager.clear`` empties the areas without notifying, so
+        # republish the coordinates through the same signal sketch changes
+        # flow through, which is what refreshes the location label
         self.sketchChanged.emit(self.formattedCoordinates())
 
     def handleOverlap(self, checked):
@@ -785,10 +900,7 @@ class GraphicsWindow(QWidget):
             self.modeButton.setEnabled(True)
             self.overlapChanged.emit('initial')
 
-    def switchLock(self):
-        self.canvas.lock = not self.canvas.lock
-
-    def setCachedSigmet(self, sigmets):
+    def setSigmets(self, sigmets):
         self.cachedSigmets = sigmets
         self.updateSigmetGraphic()
 
@@ -816,10 +928,30 @@ class GraphicsWindow(QWidget):
         self.layerMenu.addSeparator()
         self.layerButton.setMenu(self.layerMenu)
 
+        # The opacity slider reaches the menu through one reusable action:
+        # building a fresh QWidgetAction per rebuild would hand the slider back
+        # and forth between actions that are about to be discarded.
+        self.opacitySliderAction = QWidgetAction(self)
+        self.opacitySliderAction.setDefaultWidget(self.opacitySlider)
+        # everything ``setLayerSelectMenu`` appends, so the next rebuild can
+        # take it back out again
+        self.layerItems = []
+
     def setLayerSelectMenu(self):
         layers = self.context.layer.groupLayers()
-        if not layers or self.backgroundLayerActionGroup.actions() or self.mixedBackgroundLayerActionGroup.actions():
+        if not layers:
             return
+
+        # This runs again on every ``layerChanged``, so start from a clean slate.
+        # Without it the menu was populated exactly once and then kept offering
+        # layers that had since disappeared.
+        for item in self.layerItems:
+            self.layerMenu.removeAction(item)
+        self.layerItems = []
+
+        for actionGroup in (self.backgroundLayerActionGroup, self.mixedBackgroundLayerActionGroup):
+            for action in actionGroup.actions():
+                actionGroup.removeAction(action)
 
         for key, groups in layers.items():
             actionGroup = self.backgroundLayerActionGroup if key == 'standalone' else self.mixedBackgroundLayerActionGroup
@@ -828,16 +960,25 @@ class GraphicsWindow(QWidget):
                 action.setCheckable(True)
                 actionGroup.addAction(action)
                 self.layerMenu.addAction(action)
+                self.layerItems.append(action)
 
-            self.layerMenu.addSeparator()
+            self.layerItems.append(self.layerMenu.addSeparator())
 
         if 'mixed' in layers and layers['mixed']:
             self.opacitySlider.show()
-            slider = QWidgetAction(self)
-            slider.setDefaultWidget(self.opacitySlider)
-            self.layerMenu.addAction(slider)
+            self.layerMenu.addAction(self.opacitySliderAction)
+            self.layerItems.append(self.opacitySliderAction)
+        else:
+            self.opacitySlider.hide()
 
-        default = self.backgroundLayerActionGroup.actions()[0] or self.mixedBackgroundLayerActionGroup.actions()[0]
+        # Either group may legitimately be empty, so take the first of whatever
+        # actually survived. Subscripting both before the ``or`` raised
+        # IndexError as soon as there were no standalone overlays.
+        candidates = self.backgroundLayerActionGroup.actions() + self.mixedBackgroundLayerActionGroup.actions()
+        if not candidates:
+            return
+
+        default = candidates[0]
         default.setChecked(True)
         self.context.layer.setState({'selected': [default.text()]})
 
@@ -875,23 +1016,30 @@ class GraphicsWindow(QWidget):
             text = '{} - {}'.format(text, layer.name)
             words.append(text)
 
-        self.layerInfoWidget.setLabel(words)
+        self.layerInfoOverlay.setLabel(words)
 
     def updateLocationLabel(self, messages):
-        titles = ['INITIAL', 'FINAL']
+        # ``messages`` is built from the sketch list, so the headings are read
+        # off that same list instead of being a second hand-written pair that
+        # has to be kept in step with it.
+        titles = [sketch.name.upper() for sketch in self.canvas.sketchManager.sketches]
+
         words = []
-        for i, text in enumerate(messages):
-            label = '<span style="color: lightgray">{}</span>'.format(titles[i])
+        for title, text in zip(titles, messages):
             if text:
-                text = label + '<br>' + text
-                words.append(text)
+                label = '<span style="color: lightgray">{}</span>'.format(title)
+                words.append(label + '<br>' + text)
 
         html = '<br><br>'.join(words)
-        self.locationWidget.setText(html)
+        self.locationBanner.setText(html)
 
     def setTyphoonGraphic(self, collections):
-        # quietly update sketches while not sending back circle changed signal.
-        self.quietly = True
+        """Apply the circles the typhoon form publishes.
+
+        Nothing needs suppressing around this any more: the map only sends
+        ``circleChanged`` for edits made on the map so the circles written
+        here are not echoed back to the form they came from.
+        """
         names = []
         for feature in collections['features']:
             name = feature['properties']['location']
@@ -903,8 +1051,6 @@ class GraphicsWindow(QWidget):
         for sketch in self.canvas.sketchManager:
             if sketch.name not in names:
                 sketch.clear()
-
-        self.quietly = False
 
     def setAdvisoryGraphic(self, collections):
         self.overlapButton.setChecked(False)
@@ -981,7 +1127,10 @@ class GraphicsWindow(QWidget):
         self.canvas.setMixedBackgroundOpacity(value)
 
     def updateLayer(self):
+        # the FIR boundary belongs to the same rebuild as the backgrounds; it
+        # used to be drawn once at load time and never revisited
         self.canvas.drawLayer()
+        self.canvas.drawBoundaries()
         self.updateLayerInfoLabel()
 
     def updateCoastline(self):
@@ -991,30 +1140,22 @@ class GraphicsWindow(QWidget):
         # float the overlays over the corners, inset from the window edges;
         # raise them above the canvas so they receive mouse events.
         inset = 10
-        self.zoomWidget.adjustSize()
-        self.operationWidget.adjustSize()
+        self.zoomControl.adjustSize()
+        self.toolbar.adjustSize()
         self.positionLabel.adjustSize()
-        self.layerInfoWidget.adjustSize()
+        self.layerInfoOverlay.adjustSize()
 
-        self.zoomWidget.move(inset, inset + 8)
-        self.operationWidget.move(self.width() - self.operationWidget.width() - inset, inset + 8)
-        self.layerInfoWidget.move(inset, self.height() - self.layerInfoWidget.height() - inset)
+        self.zoomControl.move(inset, inset + 8)
+        self.toolbar.move(self.width() - self.toolbar.width() - inset, inset + 8)
+        self.layerInfoOverlay.move(inset, self.height() - self.layerInfoOverlay.height() - inset)
         self.positionLabel.move(self.width() - self.positionLabel.width() - inset,
                                 self.height() - self.positionLabel.height() - inset)
 
         # location banner centered, deliberately floated above the bottom edge
-        self.locationWidget.move((self.width() - self.locationWidget.width()) // 2,
-                                  self.height() - self.locationWidget.height() - 75)
+        self.locationBanner.move((self.width() - self.locationBanner.width()) // 2,
+                                  self.height() - self.locationBanner.height() - 75)
 
         super().resizeEvent(event)
-
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Control:
-            self.canvas.lock = True
-
-    def keyReleaseEvent(self, event):
-        if event.key() == Qt.Key_Control:
-            self.canvas.lock = False
 
     def load(self):
         self.canvas.redraw()

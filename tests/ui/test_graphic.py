@@ -1,7 +1,7 @@
 """Tests for tafor.ui/widgets/graphic.py.
 
 Covers coordinate transforms, sketch tools (polygon/line/circle/corridor/
-rectangular/entire), GraphicsWindow helpers and background opacity handling.
+rectangular/entire), SketchPanel helpers and background opacity handling.
 """
 
 import pytest
@@ -10,9 +10,7 @@ from PyQt5.QtCore import QEvent, QPointF, QPoint, QRect, QSize, Qt
 from PyQt5.QtGui import QMouseEvent, QResizeEvent, QWheelEvent
 from PyQt5.QtWidgets import QPushButton
 
-from tafor.ui.widgets.graphic import (
-    Canvas, GraphicsWindow, LineTool, PolygonTool
-)
+from tafor.ui.widgets.graphic import SketchView, SketchPanel
 from tafor.ui.widgets.misc import OutlinedLabel
 
 
@@ -82,7 +80,7 @@ class FakeRubberBand:
 
 @pytest.fixture
 def canvas(qtbot, context):
-    view = Canvas(context)
+    view = SketchView(context)
     qtbot.addWidget(view)
     return view
 
@@ -97,8 +95,9 @@ class TestCoordinateTransforms:
             assert back[0] == pytest.approx(lon, abs=1e-6)
             assert back[1] == pytest.approx(lat, abs=1e-6)
 
-    def test_canvas_offsets_have_zero_origin(self, canvas):
-        assert canvas.offset == (0, 0)
+    def test_canvas_has_no_pixel_offset(self, canvas):
+        # the projection origin is the canvas origin
+        assert canvas.toCanvasCoordinates(0, 0) == (0, 0)
 
     def test_x_grows_eastward_and_y_grows_southward(self, canvas):
         x1, _ = canvas.toCanvasCoordinates(109, 16)
@@ -128,9 +127,7 @@ class TestCoordinateTransforms:
 class TestPolygonTool:
 
     def test_click_adds_geographical_point(self, canvas):
-        tool = canvas.currentTool()
-
-        tool.mousePress(press(*clickPoint(canvas, 110, 16)))
+        canvas.tool.mousePress(press(*clickPoint(canvas, 110, 16)))
 
         sketch = canvas.sketchManager.currentSketch()
         assert len(sketch.coordinates) == 1
@@ -138,44 +135,40 @@ class TestPolygonTool:
         assert sketch.coordinates[0][1] == pytest.approx(16, abs=0.05)
 
     def test_close_loop_within_deviation_finishes_area(self, canvas):
-        tool = canvas.currentTool()
         sketch = canvas.sketchManager.currentSketch()
         for lonlat in TRIANGLE:
             sketch.addPoint(lonlat)
 
-        tool.mousePress(press(*clickPoint(canvas, *sketch.coordinates[0])))
+        canvas.tool.mousePress(press(*clickPoint(canvas, *sketch.coordinates[0])))
 
         assert sketch.done is True
         assert len(sketch.coordinates) > 2
 
     def test_click_beyond_deviation_does_not_close(self, canvas):
-        tool = canvas.currentTool()
         sketch = canvas.sketchManager.currentSketch()
         for lonlat in TRIANGLE:
             sketch.addPoint(lonlat)
 
-        tool.mousePress(press(*clickPoint(canvas, 107.5, 20.0)))
+        canvas.tool.mousePress(press(*clickPoint(canvas, 107.5, 20.0)))
 
         assert sketch.done is False
         assert len(sketch.coordinates) == 4
 
     def test_max_point_rejection(self, canvas):
-        tool = canvas.currentTool()
         sketch = canvas.sketchManager.currentSketch()
         for i in range(sketch.maxPoint):
             sketch.addPoint((107.5 + i * 0.01, 15.0 + i * 0.01))
 
-        tool.mousePress(press(*clickPoint(canvas, 113, 19)))
+        canvas.tool.mousePress(press(*clickPoint(canvas, 113, 19)))
 
         assert len(sketch.coordinates) == sketch.maxPoint
 
     def test_right_click_removes_last_point(self, canvas):
-        tool = canvas.currentTool()
         sketch = canvas.sketchManager.currentSketch()
         for lonlat in TRIANGLE:
             sketch.addPoint(lonlat)
 
-        tool.mousePress(press(0, 0, button=Qt.RightButton))
+        canvas.tool.mousePress(press(0, 0, button=Qt.RightButton))
 
         assert len(sketch.coordinates) == 2
 
@@ -184,12 +177,11 @@ class TestLineTool:
 
     def test_right_click_removes_last_point(self, canvas):
         canvas.setMode('line')
-        tool = LineTool(canvas, canvas.sketchManager)
         sketch = canvas.sketchManager.currentSketch()
         sketch.addPoint((109, 15))
         sketch.addPoint((111, 16))
 
-        tool.mousePress(press(0, 0, button=Qt.RightButton))
+        canvas.tool.mousePress(press(0, 0, button=Qt.RightButton))
 
         assert len(sketch.coordinates) == 1
 
@@ -198,9 +190,7 @@ class TestCircleTool:
 
     def test_click_adds_centre_point(self, canvas):
         canvas.setMode('circle')
-        tool = canvas.currentTool()
-
-        tool.mousePress(press(*clickPoint(canvas, 111, 16)))
+        canvas.tool.mousePress(press(*clickPoint(canvas, 111, 16)))
 
         sketch = canvas.sketchManager.currentSketch()
         assert len(sketch.coordinates) == 1
@@ -208,15 +198,14 @@ class TestCircleTool:
 
     def test_wheel_grows_and_shrinks_radius(self, canvas):
         canvas.setMode('circle')
-        tool = canvas.currentTool()
         sketch = canvas.sketchManager.currentSketch()
         sketch.restore(center=(112, 17), radius=100)
         assert sketch.radius == 100000
 
-        tool.wheelEvent(wheel(120))
+        canvas.tool.wheelEvent(wheel(120))
         assert sketch.radius == 105000
 
-        tool.wheelEvent(wheel(-120))
+        canvas.tool.wheelEvent(wheel(-120))
         assert sketch.radius == 100000
 
 
@@ -226,7 +215,6 @@ class TestCorridorTool:
 
     def test_wheel_shrinks_radius_of_done_sketch(self, canvas):
         canvas.setMode('corridor')
-        tool = canvas.currentTool()
         sketch = canvas.sketchManager.currentSketch()
         sketch.restore(coordinates=[(109, 15), (111, 16)], radius=100)
         assert sketch.done is True
@@ -236,11 +224,10 @@ class TestRectangularTool:
     def test_press_sets_origin_and_shows_rubber_band(self, canvas):
         canvas.setMode('rectangular')
         canvas.rubberBand = FakeRubberBand()
-        tool = canvas.currentTool()
 
-        tool.mousePress(press(100, 100))
+        canvas.tool.mousePress(press(100, 100))
 
-        assert tool.origin == QPoint(100, 100)
+        assert canvas.tool.origin == QPoint(100, 100)
         assert canvas.rubberBand.shown == 1
         assert canvas.rubberBand.geometry == QRect(QPoint(100, 100), QSize())
         assert len(canvas.sketchManager.currentSketch().coordinates) == 1
@@ -248,10 +235,9 @@ class TestRectangularTool:
     def test_move_resizes_rubber_band(self, canvas):
         canvas.setMode('rectangular')
         canvas.rubberBand = FakeRubberBand()
-        tool = canvas.currentTool()
 
-        tool.mousePress(press(100, 100))
-        tool.mouseMove(drag(150, 120))
+        canvas.tool.mousePress(press(100, 100))
+        canvas.tool.mouseMove(drag(150, 120))
 
         expected = QRect(QPoint(100, 100), QPoint(150, 120)).normalized()
         assert canvas.rubberBand.geometry == expected
@@ -259,22 +245,21 @@ class TestRectangularTool:
     def test_release_adds_point_clips_and_hides(self, canvas):
         canvas.setMode('rectangular')
         canvas.rubberBand = FakeRubberBand()
-        tool = canvas.currentTool()
 
-        tool.mousePress(press(100, 100))
-        tool.mouseRelease(release(*clickPoint(canvas, 111, 16)))
+        canvas.tool.mousePress(press(100, 100))
+        canvas.tool.mouseRelease(release(*clickPoint(canvas, 111, 16)))
 
         sketch = canvas.sketchManager.currentSketch()
         assert sketch.done is True
         assert canvas.rubberBand.hidden == 1
-        assert tool.origin is None
+        assert canvas.tool.origin is None
 
 
 class TestEntireTool:
 
     def test_set_mode_restores_entire_fir(self, canvas):
-        # setMode('entire') triggers EntireTool.mousePress(None), which
-        # restores the FIR boundary onto the sketch
+        # setMode('entire') activates EntireTool, which restores the FIR
+        # boundary onto the sketch
         boundaries = canvas.context.layer.boundaries()
         canvas.setMode('entire')
 
@@ -301,10 +286,10 @@ class TestMixedBackgroundOpacity:
 
 
 def makeWindow(canvas, designator='WS'):
-    window = GraphicsWindow.__new__(GraphicsWindow)
+    window = SketchPanel.__new__(SketchPanel)
     window.canvas = canvas
     window.context = canvas.context
-    window.type = designator
+    window.designator = designator
     window.overlapButton = QPushButton()
     window.overlapButton.setCheckable(True)
     window.positionLabel = OutlinedLabel()
@@ -314,7 +299,7 @@ def makeWindow(canvas, designator='WS'):
 class TestUpdateOverlapButton:
     """Truth table for the overlap button.
 
-    Pinned behaviour: ``self.type == 'WC' and self.canvas.mode == 'polygon'
+    Pinned behaviour: ``self.designator == 'WC' and self.canvas.mode == 'polygon'
     or self.canvas.mode == 'entire'`` evaluates as
     ``(WC and polygon) or entire`` because of and/or precedence.
     """
@@ -381,24 +366,24 @@ def _is_within(node, root):
     return node is root
 
 
-class TestGraphicsWindowHelpers:
+class TestSketchPanelHelpers:
 
     @pytest.fixture
     def window(self, qtbot, context):
-        view = GraphicsWindow(parent=None, context=context)
+        view = SketchPanel(parent=None, context=context)
         qtbot.addWidget(view)
         return view
 
     def test_set_button_switches_designator_and_mode(self, window):
-        assert window.type == 'WS'
+        assert window.designator == 'WS'
         assert window.canvas.mode == 'polygon'
 
-        window.setModeButtons('WC')
-        assert window.type == 'WC'
+        window.configureMode('WC')
+        assert window.designator == 'WC'
         assert window.canvas.mode == 'circle'
 
-        window.setModeButtons('WS')
-        assert window.type == 'WS'
+        window.configureMode('WS')
+        assert window.designator == 'WS'
         assert window.canvas.mode == 'polygon'
 
     def test_operation_buttons_sizing(self, window):
@@ -416,23 +401,23 @@ class TestGraphicsWindowHelpers:
         window.resize(800, 500)
         size = QSize(window.width(), window.height())
         window.resizeEvent(QResizeEvent(size, size))
-        window.locationWidget.show()
+        window.locationBanner.show()
 
         inset = 10
         margin = 8
-        assert window.zoomWidget.geometry().topLeft() == QPoint(inset, inset + margin)
-        assert window.operationWidget.geometry().topRight() == QPoint(window.width() - inset - 1, inset + margin)
-        assert window.layerInfoWidget.geometry().bottomLeft() == QPoint(inset, window.height() - inset - 1)
+        assert window.zoomControl.geometry().topLeft() == QPoint(inset, inset + margin)
+        assert window.toolbar.geometry().topRight() == QPoint(window.width() - inset - 1, inset + margin)
+        assert window.layerInfoOverlay.geometry().bottomLeft() == QPoint(inset, window.height() - inset - 1)
         assert window.positionLabel.geometry().bottomRight() == QPoint(window.width() - inset - 1, window.height() - inset - 1)
 
         # the location banner floats above the bottom edge, centered
-        geo = window.locationWidget.geometry()
+        geo = window.locationBanner.geometry()
         assert geo.x() == (window.width() - geo.width()) // 2
         assert window.height() - geo.bottom() - 1 == 75
 
         # zoom buttons are square and stay inside their overlay widget
-        assert window.zoomInButton.parent() is window.zoomWidget
-        assert window.zoomOutButton.parent() is window.zoomWidget
+        assert window.zoomInButton.parent() is window.zoomControl
+        assert window.zoomOutButton.parent() is window.zoomControl
         assert window.zoomInButton.width() == window.zoomInButton.height() == 24
 
     def test_corner_buttons_are_clickable(self, window, qtbot):
@@ -445,7 +430,7 @@ class TestGraphicsWindowHelpers:
         window.show()
         qtbot.wait(100)
 
-        for widget in [window.zoomWidget, window.operationWidget]:
+        for widget in [window.zoomControl, window.toolbar]:
             center = widget.geometry().center()
             hit = window.childAt(center.x(), center.y())
             assert _is_within(hit, widget), '{} is covered by {}'.format(widget, hit)
@@ -484,15 +469,15 @@ class TestGraphicsWindowHelpers:
         assert window.hasAcceptableGraphic() is True
 
     def test_next_mode_clears_location_label(self, window):
-        window.setModeButtons('WS')
+        window.configureMode('WS')
         window.canvas.sketchManager.first().restore(coordinates=TRIANGLE)
-        assert window.locationWidget.location.text()
-        assert window.locationWidget.isHidden() is False
+        assert window.locationBanner.location.text()
+        assert window.locationBanner.isHidden() is False
 
         window.nextMode()
 
-        assert window.locationWidget.location.text() == ''
-        assert window.locationWidget.isHidden() is True
+        assert window.locationBanner.location.text() == ''
+        assert window.locationBanner.isHidden() is True
 
     def test_cancelling_sketch_disables_overlap_button(self, window):
         # drawing an area enables the overlap switch (done -> finished signal),
