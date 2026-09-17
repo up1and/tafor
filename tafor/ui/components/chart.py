@@ -3,10 +3,12 @@ import random
 import logging
 import datetime
 
+from typing import NamedTuple
+
 from PyQt5.QtGui import QPainter, QColor, QBrush, QPixmap, QPolygonF
 from PyQt5.QtCore import QCoreApplication, QStandardPaths, QDate, QPointF, Qt
 from PyQt5.QtWidgets import QDialog, QFileDialog, QDialogButtonBox, QCalendarWidget, QGraphicsRectItem, QGraphicsPolygonItem, QGraphicsTextItem
-from PyQt5.QtChart import (QChart, QChartView, QSplineSeries, QScatterSeries, QDateTimeAxis, QCategoryAxis)
+from PyQt5.QtChart import (QChart, QChartView, QSplineSeries, QScatterSeries, QValueAxis, QDateTimeAxis, QCategoryAxis)
 
 from tafor.ui.qt import Ui_chart
 from tafor.ui.styles import applyCalendarStyle
@@ -15,61 +17,87 @@ from tafor.core.utils.time import utcnow
 logger = logging.getLogger('tafor.chart')
 
 
+class Sample(NamedTuple):
+    """One plotted value together with the report it came from.
+
+    Carrying the report on the sample is what keeps the marker tooltip
+    honest: a series skips the reports where its quantity is missing, so a
+    point's index does not line up with the index of the report list.
+    """
+
+    timestamp: int      # epoch milliseconds
+    value: object
+    metar: object       # the parsed primary this value was read from
+
+
 def weatherPoints(weathers):
-    """Map observed weather codes to scatter points grouped by phenomenon.
+    """Map observed weather codes to scatter points, grouped by code.
 
     weathers is a sequence of (timestamp, codes) pairs, codes being METAR
-    weather strings such as '-SHRA' or 'FG'. An intensity prefix selects
-    the y-value band: '-' weak (2..18), plain normal (22..38) and '+'
-    strong (42..58); values are drawn without replacement within a
-    timestamp so points never overlap exactly.
+    weather strings such as '-SHRA' or 'FG'. A phenomenon has no numeric
+    value of its own, so the y axis carries intensity instead: '-' draws in
+    2..18, no prefix in 22..38 and '+' in 42..58. Each band is five 4-unit
+    slots and a code takes one of them, so several phenomena observed at the
+    same time never land on the same y and hide one another.
 
-    Returns {phenomenon: [(timestamp, value), ...]} sorted by name.
+    Which slot a code takes comes from a fixed seed rather than from a fixed
+    order, so the spacing does not read as a ladder while the same report
+    still always draws the same points, however often the window is redrawn.
+
+    The key is the code as reported, prefix included, so a phenomenon seen at
+    more than one intensity becomes more than one series. Qt gives a series a
+    single marker size, so the size can only follow intensity that way.
+
+    Returns {code: [(timestamp, value), ...]}, one group per phenomenon,
+    ordered by intensity within it.
     """
     def stripIntensity(code):
         return code[1:] if code.startswith(('+', '-')) else code
 
-    def findWeather(name, codes):
-        for code in codes:
-            if name == stripIntensity(code):
-                return code
-
-    valueMaps = {}
-    phenomena = set()
-    for timestamp, codes in weathers:
-        if codes:
-            enums = list(range(2, 20, 4))
-            valueMaps[timestamp] = {
-                'weak': enums,
-                'normal': [e + 20 for e in enums],
-                'strong': [e + 40 for e in enums],
-            }
-
-            for code in codes:
-                phenomena.add(stripIntensity(code))
+    def bandMin(code):
+        if code.startswith('-'):
+            return 2
+        if code.startswith('+'):
+            return 42
+        return 22
 
     points = {}
-    for name in sorted(phenomena):
-        group = []
-        for timestamp, codes in weathers:
-            code = findWeather(name, codes)
-            if not code:
-                continue
+    for timestamp, codes in weathers:
+        # a generator per report, so a report's layout depends on its own codes
+        # and not on how many reports were drawn before it. The seed is fixed,
+        # and picked so a lone phenomenon lands mid-band and the two and three
+        # code cases come out 8 units apart, which is as far as three of the
+        # five slots can sit. Three is the usual number of phenomena at once.
+        rng = random.Random(52)
+        bands = {}
+        for code in sorted(codes):
+            low = bandMin(code)
+            slots = bands.setdefault(low, [low + 4 * i for i in range(5)])
+            # a sixth code in one band has nowhere left to go; reuse the band
+            # floor rather than spill into the next band, which the tooltip
+            # would decode as a different intensity
+            value = slots.pop(rng.randrange(len(slots))) if slots else low
+            points.setdefault(code, []).append((timestamp, value))
 
-            bands = valueMaps[timestamp]
-            band = bands['normal']
-            if code.startswith('-'):
-                band = bands['weak']
-            if code.startswith('+'):
-                band = bands['strong']
+    # keep the intensities of one phenomenon together; sorting the raw codes
+    # would put '+RA' ahead of '-RA' and split the group apart
+    return {code: points[code] for code in sorted(points, key=lambda c: (stripIntensity(c), bandMin(c)))}
 
-            value = random.choice(band)
-            band.remove(value)
-            group.append((timestamp, value))
 
-        points[name] = group
+def weatherMarkerSize(code):
+    """Marker size for a reported weather code.
 
-    return points
+    Qt gives a series one marker size, which is why the intensity prefix has
+    to reach the chart as part of the series key for the size to be able to
+    follow it. The prefix is the whole rule: light weather draws the smallest
+    marker, no prefix the middle one and heavy weather the largest. Which
+    phenomenon it is does not enter into it.
+    """
+    if code.startswith('+'):
+        return 10
+    if code.startswith('-'):
+        return 8
+    return 9
 
 
 def cloudPoints(clouds):
@@ -80,7 +108,8 @@ def cloudPoints(clouds):
     cover prefixes FEW/SCT/BKN/OVC plus VV, TCU and CB detected by
     containment; height is the digits times 30 metres.
 
-    Returns {kind: [(timestamp, height), ...]}.
+    Returns {kind: [(timestamp, height), ...]} ordered by ascending cover,
+    which is the order the chart legend and the series are built in.
     """
     def kind(text):
         if 'VV' in text:
@@ -101,7 +130,9 @@ def cloudPoints(clouds):
             key = kind(text)
             covers.setdefault(key, []).append((timestamp, height(text)))
 
-    return covers
+    # the legend order lives here so the caller does not repeat the kinds
+    order = ['FEW', 'SCT', 'BKN', 'OVC', 'VV', 'TCU', 'CB']
+    return {key: covers[key] for key in order if key in covers}
 
 
 def metarSamples(records):
@@ -110,71 +141,75 @@ def metarSamples(records):
     records is a sequence of records exposing .created and .parser() whose
     primary metar provides windSpeed()/vis()/... accessors.
 
-    Returns (samples, primaries) where samples is a dict of
-    list-of-(timestamp_ms, value) tuples keyed by quantity name (gusts, rvrs
-    and weathers only present when non-empty) and primaries is the parsed
-    metar list aligned with the samples.
+    Returns (samples, reports) where samples is a dict of list-of-Sample
+    keyed by quantity name (gusts, rvrs and weathers only present when
+    non-empty) and reports is the list of records that parsed, in the same
+    order, so a caller can look up "the report nearest time T".
     """
-    samples = {
-        'winds': [],
-        'gusts': [],
-        'visibilities': [],
-        'rvrs': [],
-        'temperatures': [],
-        'dewpoints': [],
-        'pressures': [],
-        'ceilings': [],
-        'clouds': [],
-        'weathers': [],
-    }
-    primaries = []
+    samples = {name: [] for name in (
+        'winds',
+        'gusts',
+        'visibilities',
+        'rvrs',
+        'temperatures',
+        'dewpoints',
+        'pressures',
+        'ceilings',
+        'clouds',
+        'weathers',
+    )}
+    reports = []
 
     for record in records:
-        metar = record.parser().primary
-        timestamp = round(record.created.timestamp() * 1000)
+        # one unparsable report must not blank the whole window: drop it and
+        # keep drawing the rest. VV/// reaches here because the lexer accepts
+        # it while ceiling()/clouds() cannot turn '///' into a height.
+        try:
+            metar = record.parser().primary
+            windSpeed = metar.windSpeed()
+            vis = metar.vis()
+            ceiling = metar.ceiling()
+            temperature = metar.temperature()
+            dewpoint = metar.dewpoint()
+            pressure = metar.pressure()
+            clouds = metar.clouds()
+            weathers = metar.weathers()
+            rvr = metar.rvr()
+            gust = metar.gust()
+        except ValueError:
+            logger.warning('Skipping unparsable metar: %r', record.text)
+            continue
 
-        primaries.append(metar)
+        timestamp = round(record.created.timestamp() * 1000)
+        reports.append(record)
 
         # accessors return None when the element is missing; skip the sample
-        # instead of feeding None into the chart series
-        windSpeed = metar.windSpeed()
-        if windSpeed is not None:
-            samples['winds'].append((timestamp, windSpeed))
+        # instead of feeding None into the chart series. The test is
+        # `is not None` on purpose: wind speed 0 and temperature 0 are real
+        # observations, not missing values.
+        for name, value in (
+            ('winds', windSpeed),
+            ('visibilities', vis),
+            ('ceilings', ceiling),
+            ('temperatures', temperature),
+            ('dewpoints', dewpoint),
+            ('pressures', pressure),
+        ):
+            if value is not None:
+                samples[name].append(Sample(timestamp, value, metar))
 
-        vis = metar.vis()
-        if vis is not None:
-            samples['visibilities'].append((timestamp, vis))
+        samples['clouds'].append(Sample(timestamp, clouds, metar))
 
-        ceiling = metar.ceiling()
-        if ceiling is not None:
-            samples['ceilings'].append((timestamp, ceiling))
+        if weathers:
+            samples['weathers'].append(Sample(timestamp, weathers, metar))
 
-        temperature = metar.temperature()
-        if temperature is not None:
-            samples['temperatures'].append((timestamp, temperature))
-
-        dewpoint = metar.dewpoint()
-        if dewpoint is not None:
-            samples['dewpoints'].append((timestamp, dewpoint))
-
-        pressure = metar.pressure()
-        if pressure is not None:
-            samples['pressures'].append((timestamp, pressure))
-
-        samples['clouds'].append((timestamp, metar.clouds()))
-
-        if metar.weathers():
-            samples['weathers'].append((timestamp, metar.weathers()))
-
-        rvr = metar.rvr()
         if rvr:
-            samples['rvrs'].append((timestamp, rvr))
+            samples['rvrs'].append(Sample(timestamp, rvr, metar))
 
-        gust = metar.gust()
         if gust:
-            samples['gusts'].append((timestamp, gust))
+            samples['gusts'].append(Sample(timestamp, gust, metar))
 
-    return samples, primaries
+    return samples, reports
 
 
 def roundToHalfHour(dt):
@@ -189,25 +224,33 @@ def computeDateRange(utcnow, currentRange, request='latest'):
 
     utcnow is the anchor time (already rounded to a full/half hour),
     currentRange the previous (start, end) and request one of 'latest', an
-    hour offset int, or a datetime.date selecting that day.
+    hour offset int, or a datetime.date selecting that day. Anything else
+    is rejected rather than quietly falling back to the previous window.
     """
+    day = datetime.timedelta(hours=24)
+
     if request == 'latest':
-        return (utcnow - datetime.timedelta(hours=24), utcnow)
+        dateRange = (utcnow - day, utcnow)
 
-    if isinstance(request, datetime.date):
+    # datetime is a subclass of date: check it first, otherwise the hour is
+    # silently dropped and the window snaps to midnight
+    elif isinstance(request, datetime.datetime):
+        dateRange = (request, request + day)
+
+    elif isinstance(request, datetime.date):
         start = datetime.datetime(request.year, request.month, request.day)
-        dateRange = (start, start + datetime.timedelta(hours=24))
+        dateRange = (start, start + day)
 
-    elif isinstance(request, int):
-        timedelta = datetime.timedelta(hours=request)
+    elif isinstance(request, int) and not isinstance(request, bool):
         start, _ = currentRange
-        dateRange = (start + timedelta, start + timedelta + datetime.timedelta(hours=24))
+        dateRange = (start + datetime.timedelta(hours=request), start + datetime.timedelta(hours=request) + day)
 
     else:
-        dateRange = currentRange
+        raise ValueError('unsupported date request: {!r}'.format(request))
 
     if dateRange[1] > utcnow:
-        dateRange = (utcnow - datetime.timedelta(hours=24), utcnow)
+        dateRange = (utcnow - day, utcnow)
+
     return dateRange
 
 
@@ -218,33 +261,42 @@ def computeTickCount(xmin, xmax):
 
 
 def findIndex(records, timestamp):
-    """Index of the record whose created time is closest to timestamp."""
-    deltas = []
-    for record in records:
-        delta = abs(record.created.timestamp() - timestamp)
-        deltas.append(delta)
+    """Index of the record whose created time is closest to timestamp.
 
-    return deltas.index(min(deltas))
+    A window holds a few dozen reports at most, so this scans rather than
+    bisects, which also means records do not have to be in any order.
+    """
+    best = 0
+    closest = abs(records[0].created.timestamp() - timestamp)
+
+    for index in range(1, len(records)):
+        distance = abs(records[index].created.timestamp() - timestamp)
+        if distance < closest:
+            best, closest = index, distance
+
+    return best
 
 
-def markerHtml(title, points):
+def markerHtml(points, unit='', weather=False):
     """Build the marker tooltip html for the given sample points.
 
     points is a sequence of (name, value, timestamp_ms, metar) tuples; only
     the Wind entry consults metar for a direction suffix.
+
+    unit is what the values are measured in. weather marks the weather chart,
+    whose y is an intensity slot rather than a measurement, so its label is the
+    series name alone -- the name already is the code as reported. That is a
+    property of the chart, not of the missing unit: a chart of real values
+    still prints them however it is measured.
     """
     labels = []
     for name, value, timestamp, metar in points:
-        if title == 'Weather Phenomenon':
-            if value < 20:
-                name = '-' + name
-            if value > 40:
-                name = '+' + name
-
+        if weather:
             text = name
         else:
-            unit = title.split('(')[-1].replace(')', '')
-            text = '{}: {} {}'.format(name, value, unit)
+            text = '{}: {}'.format(name, value)
+            if unit:
+                text += ' ' + unit
 
             if name == 'Wind' and metar:
                 direction = metar.windDirection()
@@ -276,29 +328,13 @@ class MarkerGraphicsItem(QGraphicsRectItem):
         self.polygon = QGraphicsPolygonItem(self)
         self.text = QGraphicsTextItem(self)
 
-    def metarAt(self, index):
-        """Return the metar at the given index, or None when out of range."""
-        records = self.chart.records
-        try:
-            return records[index]
-        except IndexError:
-            logger.debug('Metar index %d out of range (%d records)', index, len(records))
-            return None
-
     def setSeriesText(self, items):
-        title = self.chart.title()
-
         points = []
         for _, series, point, index in items:
-            name = series.name()
-            if name == 'Wind':
-                metar = self.metarAt(index)
-            else:
-                metar = None
+            metar = self.chart.metarAt(series, index) if series.name() == 'Wind' else None
+            points.append((series.name(), int(point.y()), float(point.x()), metar))
 
-            points.append((name, int(point.y()), float(point.x()), metar))
-
-        self.text.setHtml(markerHtml(title, points))
+        self.text.setHtml(markerHtml(points, self.chart.spec.unit, self.chart.spec.weather))
 
     def setSeriesColor(self, color):
         # Set primary text and background color
@@ -313,7 +349,7 @@ class MarkerGraphicsItem(QGraphicsRectItem):
 
     def updateGeometry(self):
         rect = self.text.boundingRect()
-        # Divide height by four to create left point
+        # half-width of the label's pointer triangle, in scene units
         quarter = 5
         self.text.setPos(rect.topLeft() + QPointF(- rect.width() / 2, - rect.height() - quarter - 2))
         # Create pointed left label box
@@ -330,24 +366,46 @@ class MarkerGraphicsItem(QGraphicsRectItem):
         self.polygon.setPos(rect.topLeft().x() - rect.width() / 2, rect.topLeft().y() - rect.height() - quarter - 2)
 
     def place(self, items):
-        """Place marker for series at position of first point"""
+        """Place marker for series at position of first point
+
+        Visibility is the caller's decision: the plot area test has to run
+        against the position set here, not the one left over from the
+        previous call, and consulting isVisible() would make the call depend
+        on whoever called setVisible() last.
+        """
         _, series, point, _ = items[0]
-        visible = series.at(0).x() <= point.x() <= series.at(series.count()-1).x() and self.isVisible()
-        self.setVisible(visible and series.chart().plotArea().contains(self.pos()))
-        self.setPos(series.chart().mapToPosition(point))
+        chart = series.chart()
+
+        self.setPos(chart.mapToPosition(point))
         self.setSeriesText(items)
         self.setSeriesColor(series.pen().color())
         self.updateGeometry()
 
+        inside = chart.plotArea().contains(self.pos())
+        first, last = series.at(0).x(), series.at(series.count() - 1).x()
+        self.setVisible(inside and first <= point.x() <= last)
+
 
 class Chart(QChart):
+    """A chart that knows the spec behind it and the samples behind its series."""
 
-    def __init__(self):
+    def __init__(self, spec):
         super().__init__()
-        self.records = []
+        self.spec = spec
+        self.samples = {}
+        self.setTitle(spec.caption)
 
-    def setRecords(self, records):
-        self.records = records
+    def setSamples(self, series, samples):
+        self.samples[series] = samples
+
+    def metarAt(self, series, index):
+        """The metar that produced the point at index of series, or None."""
+        samples = self.samples.get(series)
+        if samples is None or not 0 <= index < len(samples):
+            logger.debug('No sample for %s at %d', series.name(), index)
+            return None
+
+        return samples[index].metar
 
 
 class ChartView(QChartView):
@@ -401,14 +459,79 @@ class ChartView(QChartView):
         super().mouseMoveEvent(event)
 
 
-class ChartViewer(QDialog, Ui_chart.Ui_Chart):
+class SeriesSpec(NamedTuple):
+    """One series of a chart."""
 
-    def __init__(self, parent=None, repository=None, clock=None):
+    name: str
+    source: str                     # key into the samples dict
+    kind: str = 'spline'            # 'spline' | 'scatter'
+    color: object = None
+    optional: bool = False          # skip the series when the window has no samples
+
+
+class ChartSpec(NamedTuple):
+    """One of the six charts: its series and how its axes are built."""
+
+    title: str
+    series: tuple = ()
+    unit: str = ''                  # what the values are measured in; '' where they are not
+    yRange: tuple = None            # None means derive it from the data
+    yTicks: int = 0
+    windAxis: bool = False          # add the wind direction axis on top
+    weather: bool = False           # series come from weather codes
+    clouds: bool = False            # also draw one series per cloud kind
+
+    @property
+    def caption(self):
+        """The title as shown above the chart, unit and all.
+
+        The unit is carried separately because the file name wants the bare
+        name, so writing it into title by hand would mean every consumer
+        stripping it back out.
+        """
+        return '{} ({})'.format(self.title, self.unit) if self.unit else self.title
+
+
+class ChartViewer(QDialog, Ui_chart.Ui_Chart):
+    """The chart window.
+
+    specs is the set of charts to stack, top to bottom. It is a default: pass
+    specs= to the constructor to show a different set, which is what a test
+    wanting fewer than six charts would do.
+    """
+
+    specs = (
+        ChartSpec('Wind / Gust', unit='m/s', windAxis=True, series=(
+            SeriesSpec('Wind', 'winds'),
+            SeriesSpec('Gust', 'gusts', kind='scatter', color=Qt.darkYellow, optional=True),
+        )),
+        ChartSpec('Visibility / RVR', unit='m', yRange=(0, 10000), yTicks=5, series=(
+            SeriesSpec('Visibility', 'visibilities'),
+            SeriesSpec('RVR', 'rvrs', kind='scatter', color=Qt.darkCyan, optional=True),
+        )),
+        ChartSpec('Weather Phenomenon', weather=True),
+        ChartSpec('Clouds / Ceiling', unit='m', yRange=(0, 1500), yTicks=4, clouds=True, series=(
+            SeriesSpec('Ceiling', 'ceilings'),
+        )),
+        ChartSpec('Temperature / Dewpoint', unit='°C', series=(
+            SeriesSpec('Temperature', 'temperatures'),
+            SeriesSpec('Dewpoint', 'dewpoints'),
+        )),
+        ChartSpec('Query Normal Height', unit='hPa', series=(
+            SeriesSpec('Pressure', 'pressures'),
+        )),
+    )
+
+    def __init__(self, parent=None, specs=None, repository=None, clock=None):
         super().__init__(parent)
         self.setupUi(self)
         self.repository = repository
         self.clock = clock or utcnow
         self.dateRange = None
+        self.views = []
+
+        if specs is not None:
+            self.specs = specs
 
         self.saveButton = self.buttonBox.button(QDialogButtonBox.Save)
         self.saveButton.setText(QCoreApplication.translate('Chart', 'Save'))
@@ -430,21 +553,20 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         self.saveButton.clicked.connect(self.saveImages)
 
     def saveImages(self):
-        title = QCoreApplication.translate('Chart', 'Save to Directory')
+        caption = QCoreApplication.translate('Chart', 'Save to Directory')
         path = QStandardPaths.writableLocation(QStandardPaths.PicturesLocation)
-        directory = str(QFileDialog.getExistingDirectory(self, title, path))
+        directory = str(QFileDialog.getExistingDirectory(self, caption, path))
 
         if not directory:
             return
 
+        stamp = self.dateRange[0].strftime('%Y-%m-%d %H-%M-%S')
+
         for view in self.views:
-            title = view.chart().title()
-            title = title.split('(')[0]
-            title = title.replace('/', '&').strip()
-            fmt = '%Y-%m-%d %H-%M-%S'
-            time = self.dateRange[0].strftime(fmt)
-            filename = '{} {}.png'.format(title, time)
-            filepath = os.path.join(directory, filename)
+            spec = view.chart().spec
+            # '/' reads as a directory separator in a path
+            name = spec.title.replace('/', '&')
+            filepath = os.path.join(directory, '{} {}.png'.format(name, stamp))
 
             image = QPixmap(view.grab())
             image.save(filepath, 'png')
@@ -464,16 +586,19 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
             self.calendar.blockSignals(False)
 
     def updateDateRange(self, date='latest'):
-        utcnow = roundToHalfHour(self.clock())
+        now = roundToHalfHour(self.clock())
 
         if isinstance(date, QDate):
             date = date.toPyDate()
 
-        self.dateRange = computeDateRange(utcnow, self.dateRange, date)
+        self.dateRange = computeDateRange(now, self.dateRange, date)
 
         self.setCalendar()
         self.clearChart()
 
+        # last resort guard: metarSamples already tolerates a single bad
+        # report, so anything arriving here is a genuine bug and the
+        # traceback is worth keeping in the log
         try:
             self.drawChart()
         except Exception:
@@ -483,15 +608,23 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
     def showEvent(self, event):
         self.updateDateRange()
 
-    def createChart(self, title):
-        chart = Chart()
-        chart.setTitle(title)
+    def createChart(self, spec):
+        chart = Chart(spec)
         chart.setMinimumSize(750, 250)
         chart.setAnimationOptions(QChart.SeriesAnimations)
         chart.legend().setVisible(True)
         chart.legend().setAlignment(Qt.AlignBottom)
 
         return chart
+
+    def attachAxis(self, chart, axis, alignment):
+        """Add an axis to the chart and attach every series to it."""
+        chart.addAxis(axis, alignment)
+
+        for series in chart.series():
+            series.attachAxis(axis)
+
+        return axis
 
     def addAxisX(self, chart, xmin, xmax):
         series = chart.series()
@@ -506,16 +639,33 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         axisX.setMax(xmax)
         axisX.setFormat('h')
 
-        chart.addAxis(axisX, Qt.AlignBottom)
+        self.attachAxis(chart, axisX, Qt.AlignBottom)
 
-        for s in series:
-            s.attachAxis(axisX)
+    def addAxisY(self, chart, spec):
+        series = chart.series()
+        if not series:
+            return
 
-    def addAxisY(self, chart):
-        chart.createDefaultAxes()
-        chart.removeAxis(chart.axisX())
-        chart.axisY().applyNiceNumbers()
-        chart.axisY().setLabelFormat('%d')
+        if not spec.yRange:
+            # let Qt derive the range from the data. It pads the raw min/max
+            # to readable numbers, which setRange() on the data range followed
+            # by applyNiceNumbers() does not: a window whose values are all
+            # equal would collapse to a zero-height axis.
+            chart.createDefaultAxes()
+            chart.removeAxis(chart.axisX())
+            axisY = chart.axisY()
+            axisY.setLabelFormat('%d')
+            axisY.applyNiceNumbers()
+            return
+
+        axisY = QValueAxis()
+        axisY.setLabelFormat('%d')
+        axisY.setRange(*spec.yRange)
+
+        if spec.yTicks:
+            axisY.setTickCount(spec.yTicks)
+
+        self.attachAxis(chart, axisY, Qt.AlignLeft)
 
     def addWeatherAxis(self, chart):
         series = chart.series()
@@ -530,17 +680,16 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         axisY.append('&nbsp', 40)
         axisY.append('+', 60)
 
-        chart.addAxis(axisY, Qt.AlignLeft)
+        self.attachAxis(chart, axisY, Qt.AlignLeft)
 
-        for s in series:
-            s.attachAxis(axisY)
-
-    def addWindDirectionAxis(self, chart, records):
+    def addWindDirectionAxis(self, chart, reports):
         series = chart.series()
-        if not series:
+        if not series or not reports:
             return
 
-        tickCount = chart.axisX().tickCount()
+        # a window holding a single report leaves nothing to interpolate
+        # between, so keep the divisor away from zero
+        tickCount = max(2, chart.axisX().tickCount())
         minx = chart.axisX().min().toMSecsSinceEpoch()
         maxx = chart.axisX().max().toMSecsSinceEpoch()
 
@@ -548,83 +697,57 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         axisX.setTickCount(tickCount)
         step = (maxx - minx) / (tickCount - 1)
         for i in range(tickCount):
-            tickCountTime = minx + i * step
-            timestamp = tickCountTime / 1000
-            index = findIndex(records, timestamp)
-            metar = chart.records[index]
-            label = '<span class="label-{}">{}</span>'.format(i, metar.windDirection('arrow') or '')
+            timestamp = (minx + i * step) / 1000
+            index = findIndex(reports, timestamp)
+            arrow = reports[index].parser().primary.windDirection('arrow') or ''
+            # Nothing styles .label-*, but the markup is not inert: Qt lays the
+            # label out differently without it, which shifts this axis's
+            # gridline antialiasing by a fraction of a pixel. Kept verbatim so
+            # the chart renders identically to before the refactor.
+            label = '<span class="label-{}">{}</span>'.format(i, arrow)
             axisX.append(label, minx + i * step)
 
-        chart.addAxis(axisX, Qt.AlignTop)
-
-        for s in series:
-            s.attachAxis(axisX)
+        self.attachAxis(chart, axisX, Qt.AlignTop)
 
     def initChart(self):
-        self.views = []
-        self.charts = []
-
-        self.windChart = self.createChart('Wind / Gust (m/s)')
-        self.visChart = self.createChart('Visibility / RVR (m)')
-        self.weatherChart = self.createChart('Weather Phenomenon')
-        self.cloudChart = self.createChart('Clouds / Ceiling (m)')
-        self.tempdewChart = self.createChart('Temperature / Dewpoint (°C)')
-        self.pressureChart = self.createChart('Query Normal Height (hPa)')
-
-        self.charts.append(self.windChart)
-        self.charts.append(self.visChart)
-        self.charts.append(self.weatherChart)
-        self.charts.append(self.cloudChart)
-        self.charts.append(self.tempdewChart)
-        self.charts.append(self.pressureChart)
-
-        for chart in self.charts:
+        for spec in self.specs:
+            chart = self.createChart(spec)
             view = ChartView(chart)
             view.setRenderHint(QPainter.Antialiasing)
             self.views.append(view)
             self.chartLayout.addWidget(view)
 
     def clearChart(self):
-        for chart in self.charts:
+        for view in self.views:
+            chart = view.chart()
             chart.removeAllSeries()
             for axis in chart.axes():
                 chart.removeAxis(axis)
 
-    def drawPhenomenonSeries(self, weathers):
-        graphs = []
-        for name, points in weatherPoints(weathers).items():
+    def createSeries(self, spec, samples):
+        if spec.kind == 'scatter':
             series = QScatterSeries()
             series.setMarkerSize(8)
-            series.setName(name)
+            series.setColor(spec.color)
+        else:
+            series = QSplineSeries()
 
-            if 'TS' in name or name == 'FG' or 'SH' in name:
-                series.setMarkerSize(10)
+        series.setName(spec.name)
+        for sample in samples:
+            series.append(sample.timestamp, sample.value)
+
+        return series
+
+    def scatterSeries(self, groups, emphasis):
+        """One scatter series per group, its marker sized by emphasis."""
+        graphs = []
+        for name, points in groups.items():
+            series = QScatterSeries()
+            series.setName(name)
+            series.setMarkerSize(emphasis(name))
 
             for timestamp, value in points:
                 series.append(timestamp, value)
-
-            graphs.append(series)
-
-        return graphs
-
-    def drawCloudSeries(self, clouds):
-        orders = ['FEW', 'SCT', 'BKN', 'OVC', 'VV', 'TCU', 'CB']
-        points = cloudPoints(clouds)
-
-        graphs = []
-        for key in orders:
-            if key not in points:
-                continue
-
-            series = QScatterSeries()
-            series.setName(key)
-            series.setMarkerSize(8)
-
-            if key in ['TCU', 'CB', 'VV']:
-                series.setMarkerSize(10)
-
-            for timestamp, height in points[key]:
-                series.append(timestamp, height)
 
             graphs.append(series)
 
@@ -640,88 +763,50 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
         xmin = results[0].created
         xmax = results[-1].created
 
-        winds = QSplineSeries()
-        winds.setName('Wind')
+        samples, reports = metarSamples(results)
 
-        gusts = QScatterSeries()
-        gusts.setMarkerSize(8)
-        gusts.setColor(Qt.darkYellow)
-        gusts.setName('Gust')
+        for view in self.views:
+            self.drawView(view, samples, reports, xmin, xmax)
 
-        visibilities = QSplineSeries()
-        visibilities.setName('Visibility')
+    def drawView(self, view, samples, reports, xmin, xmax):
+        """Build one chart, from its spec and the samples in the window."""
+        chart = view.chart()
+        spec = chart.spec
 
-        rvrs = QScatterSeries()
-        rvrs.setMarkerSize(8)
-        rvrs.setColor(Qt.darkCyan)
-        rvrs.setName('RVR')
+        for seriesSpec in spec.series:
+            values = samples.get(seriesSpec.source)
+            if seriesSpec.optional and not values:
+                continue
 
-        temperatures = QSplineSeries()
-        temperatures.setName('Temperature')
+            series = self.createSeries(seriesSpec, values)
+            chart.addSeries(series)
+            chart.setSamples(series, values)
 
-        dewpoints = QSplineSeries()
-        dewpoints.setName('Dewpoint')
+        # the weather chart draws one series per reported code and the cloud
+        # chart one per cover kind, instead of the series listed in the spec.
+        # Both helpers take (timestamp, value) pairs, hence the unwrapping.
+        if spec.weather:
+            weathers = [(sample.timestamp, sample.value) for sample in samples['weathers']]
+            # the series key is the code as reported, prefix included, which
+            # is what lets the marker size follow the intensity
+            graphs = self.scatterSeries(weatherPoints(weathers), weatherMarkerSize)
+            for series in graphs:
+                chart.addSeries(series)
 
-        pressures = QSplineSeries()
-        pressures.setName('Pressure')
+        if spec.clouds:
+            clouds = [(sample.timestamp, sample.value) for sample in samples['clouds']]
+            graphs = self.scatterSeries(cloudPoints(clouds),
+                                        lambda name: 9 if name in ('TCU', 'CB', 'VV') else 8)
+            for series in graphs:
+                chart.addSeries(series)
 
-        ceilings = QSplineSeries()
-        ceilings.setName('Ceiling')
+        # the weather chart's y axis is a category axis carrying intensity
+        if spec.weather:
+            self.addWeatherAxis(chart)
+        else:
+            self.addAxisY(chart, spec)
 
-        samples, records = metarSamples(results)
+        self.addAxisX(chart, xmin, xmax)
 
-        for chart in self.charts:
-            chart.setRecords(records)
-
-        for series, values in (
-            (winds, samples['winds']),
-            (gusts, samples['gusts']),
-            (visibilities, samples['visibilities']),
-            (rvrs, samples['rvrs']),
-            (temperatures, samples['temperatures']),
-            (dewpoints, samples['dewpoints']),
-            (pressures, samples['pressures']),
-            (ceilings, samples['ceilings']),
-        ):
-            for timestamp, value in values:
-                series.append(timestamp, value)
-
-        self.windChart.addSeries(winds)
-        if gusts.count():
-            self.windChart.addSeries(gusts)
-        self.addAxisY(self.windChart)
-        self.addAxisX(self.windChart, xmin, xmax)
-        self.addWindDirectionAxis(self.windChart, results)
-
-        self.visChart.addSeries(visibilities)
-        if rvrs.count():
-            self.visChart.addSeries(rvrs)
-        self.addAxisY(self.visChart)
-        self.addAxisX(self.visChart, xmin, xmax)
-        self.visChart.axisY().setRange(0, 10000)
-        self.visChart.axisY().setTickCount(5)
-
-        for series in self.drawPhenomenonSeries(samples['weathers']):
-            self.weatherChart.addSeries(series)
-
-        self.addWeatherAxis(self.weatherChart)
-        self.addAxisX(self.weatherChart, xmin, xmax)
-
-        self.cloudChart.addSeries(ceilings)
-
-        for series in self.drawCloudSeries(samples['clouds']):
-            self.cloudChart.addSeries(series)
-
-        self.addAxisY(self.cloudChart)
-        self.addAxisX(self.cloudChart, xmin, xmax)
-        self.cloudChart.axisY().setRange(0, 1500)
-        self.cloudChart.axisY().setTickCount(4)
-
-        self.tempdewChart.addSeries(temperatures)
-        self.tempdewChart.addSeries(dewpoints)
-        self.addAxisY(self.tempdewChart)
-        self.addAxisX(self.tempdewChart, xmin, xmax)
-
-        self.pressureChart.addSeries(pressures)
-        self.addAxisY(self.pressureChart)
-        self.addAxisX(self.pressureChart, xmin, xmax)
+        if spec.windAxis:
+            self.addWindDirectionAxis(chart, reports)
