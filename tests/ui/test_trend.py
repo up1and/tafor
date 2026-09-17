@@ -46,11 +46,11 @@ class TestTrendEditor:
 
     def test_type_switch(self, editor):
         editor.trend.becmg.click()
-        assert editor.trend.state.type == 'BECMG'
+        assert editor.trend.state.indicator == 'BECMG'
         assert editor.trend.at.isEnabled()
 
         editor.trend.tempo.click()
-        assert editor.trend.state.type == 'TEMPO'
+        assert editor.trend.state.indicator == 'TEMPO'
         assert not editor.trend.at.isEnabled()
 
     def test_compose_with_cavok_and_at_period(self, editor):
@@ -74,6 +74,20 @@ class TestTrendEditor:
         trend.cavok.click()
         trend.at.click()
 
+        assert not editor.nextButton.isEnabled()
+
+    def test_clear_leaves_next_disabled(self, editor):
+        # clear() used to emit contentChanged mid-sweep, while isNosig was
+        # still True, so the button kept an enablement that the final, empty
+        # state does not justify. TrendPresenter.clear() masked it by
+        # disabling the button itself.
+        trend = editor.trend
+        trend.nosig.click()
+        assert editor.nextButton.isEnabled()
+
+        trend.clear()
+
+        assert not trend.state.isAcceptable()
         assert not editor.nextButton.isEnabled()
 
 

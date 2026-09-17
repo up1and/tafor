@@ -1,7 +1,11 @@
 import datetime
 
 from tafor.core.taf.states import GroupState, PrimaryState, SegmentState, TemperatureState
-from tafor.core.taf.validator import TafFormValidator, TrendFormValidator, parseTemperature
+from tafor.core.taf.validator import (
+    TafFormValidator,
+    TrendFormValidator,
+    parseTemperature,
+)
 from tafor.core.utils.time import parseTime
 
 
@@ -103,62 +107,53 @@ class TestCheckCloud:
 
     def test_cb_and_cloud_oktas_exceed(self):
         state = SegmentState('MPS')
-        state.clouds = ['SCT030']
-        state.cb = 'OVC030CB'
+        state.clouds = ['SCT030', 'OVC030CB']
         assert TafFormValidator.checkCloud(state, 'FEW010') == TafFormValidator.CLOUD_OKTAS_EXCEED
 
     def test_lone_cb_at_any_height_passes(self):
         state = SegmentState('MPS')
-        state.clouds = []
-        state.cb = 'BKN030CB'
+        state.clouds = ['BKN030CB']
         assert TafFormValidator.checkCloud(state, 'OVC040') is None
 
     def test_editing_another_line_ignores_the_cb_self_oktas(self):
         # any ordinary row edit used to trip the okta check against the CB
         state = SegmentState('MPS')
-        state.clouds = ['BKN040']
-        state.cb = 'BKN030CB'
+        state.clouds = ['BKN040', 'BKN030CB']
         assert TafFormValidator.checkCloud(state, 'BKN040') is None
 
     def test_cb_plus_cloud_oktas_exceed(self):
         state = SegmentState('MPS')
-        state.clouds = ['OVC030']
-        state.cb = 'SCT030CB'
+        state.clouds = ['OVC030', 'SCT030CB']
         assert TafFormValidator.checkCloud(state, 'FEW010') == TafFormValidator.CLOUD_OKTAS_EXCEED
 
     def test_cloud_and_cb_at_the_same_height_pass(self):
         # a CB layer is an independent phenomena layer and may share the
         # height of an ordinary cloud layer
         state = SegmentState('MPS')
-        state.clouds = ['SCT020']
-        state.cb = 'SCT020CB'
+        state.clouds = ['SCT020', 'SCT020CB']
         assert TafFormValidator.checkCloud(state, 'SCT020') is None
 
     def test_different_cover_cb_at_the_same_height_passes(self):
         state = SegmentState('MPS')
-        state.clouds = ['BKN020']
-        state.cb = 'SCT020CB'
+        state.clouds = ['BKN020', 'SCT020CB']
         assert TafFormValidator.checkCloud(state, 'SCT020') is None
 
     def test_heavy_cb_flags_from_either_line(self):
         # the 8-okta cap still applies to a same-height cloud + CB pair,
         # no matter which line triggered the check
         state = SegmentState('MPS')
-        state.clouds = ['OVC030']
-        state.cb = 'BKN030CB'
+        state.clouds = ['OVC030', 'BKN030CB']
         assert TafFormValidator.checkCloud(state, 'FEW010') == TafFormValidator.CLOUD_OKTAS_EXCEED
         assert TafFormValidator.checkCloud(state, 'OVC030') == TafFormValidator.CLOUD_OKTAS_EXCEED
 
     def test_cb_and_cloud_at_the_same_height_still_exceed_oktas(self):
         state = SegmentState('MPS')
-        state.clouds = ['OVC030']
-        state.cb = 'BKN030CB'
+        state.clouds = ['OVC030', 'BKN030CB']
         assert TafFormValidator.checkCloud(state, 'FEW010') == TafFormValidator.CLOUD_OKTAS_EXCEED
 
     def test_featherweight_cb_still_exceeds_oktas_with_a_heavy_cloud(self):
         state = SegmentState('MPS')
-        state.clouds = ['OVC030']
-        state.cb = 'FEW030CB'
+        state.clouds = ['OVC030', 'FEW030CB']
         assert TafFormValidator.checkCloud(state, 'FEW010') == TafFormValidator.CLOUD_OKTAS_EXCEED
 
     def test_cloud_above_ovc_rejected(self):
@@ -205,11 +200,13 @@ class TestCheckGroupPeriod:
 
     def test_becmg_may_not_end_with_primary(self):
         becmg = group((datetime.datetime(2026, 6, 10, 12), datetime.datetime(2026, 6, 10, 18)), indicator='BECMG')
-        error = TafFormValidator.checkGroupPeriod(becmg, primary(DAY9_18), span=6, isBecmg=True)
+        error = TafFormValidator.checkGroupPeriod(becmg, primary(DAY9_18), span=6)
         assert error == TafFormValidator.GROUP_END_INVALID
 
-        # The same group is fine as TEMPO
-        assert TafFormValidator.checkGroupPeriod(becmg, primary(DAY9_18), span=6) is None
+        # The same period is fine as TEMPO. The indicator is read off the group
+        # itself, so the two calls cannot disagree about which rule applies.
+        tempo = group(becmg.durations, indicator='TEMPO')
+        assert TafFormValidator.checkGroupPeriod(tempo, primary(DAY9_18), span=6) is None
 
     def test_missing_period_passes(self):
         empty = group(None, period='')
@@ -285,93 +282,143 @@ class TestCheckFmOverlap:
 
 
 class TestCheckTemperatureTime:
+    """Three rules for a temperature's time (core-taf-design.md §3.2):
+
+      1. inside the validity period
+      2. no two temperatures share an instant -- a TX and a TN never coincide
+      3. two of the same mode never share a day -- FT30 is TX TN TX
+
+    The check takes the raw material (`temperatures`, `durations`) rather than the
+    two prepared lists the old signature wanted, so the sibling lists cannot be
+    built from a different batch than the one being checked.
+    """
+
+    def temperature(self, mode='max', time=''):
+        state = TemperatureState(mode)
+        state.time = time
+        return state
+
+    def check(self, target, others=(), durations=DAY9_18):
+        return TafFormValidator.checkTemperatureTime(target, [target] + list(others), durations)
 
     def test_empty_time_passes(self):
-        temp = TemperatureState('max')
-        assert TafFormValidator.checkTemperatureTime(temp, DAY9_18) is None
+        assert self.check(self.temperature()) is None
 
     def test_missing_primary_period_rejected(self):
-        temp = TemperatureState('max')
-        temp.time = '1012'
-        assert TafFormValidator.checkTemperatureTime(temp, None) == TafFormValidator.TEMP_TIME_INVALID
+        assert self.check(self.temperature(time='1012'), durations=None) == TafFormValidator.TEMP_TIME_INVALID
 
     def test_unparsable_time_rejected(self):
-        temp = TemperatureState('max')
-        temp.time = '9999'
-        assert TafFormValidator.checkTemperatureTime(temp, DAY9_18) == TafFormValidator.TEMP_TIME_INVALID
+        assert self.check(self.temperature(time='9999')) == TafFormValidator.TEMP_TIME_INVALID
 
     def test_time_inside_primary_passes(self):
-        temp = TemperatureState('max')
-        temp.time = '1012'
-        assert TafFormValidator.checkTemperatureTime(temp, DAY9_18) is None
+        assert self.check(self.temperature(time='1012')) is None
+
+    def test_the_period_bounds_themselves_pass(self):
+        assert self.check(self.temperature(time='1009')) is None
+        assert self.check(self.temperature(time='1018')) is None
 
     def test_time_outside_primary_rejected(self):
-        temp = TemperatureState('max')
-        temp.time = '1019'
-        assert TafFormValidator.checkTemperatureTime(temp, DAY9_18) == TafFormValidator.TEMP_TIME_INVALID
+        assert self.check(self.temperature(time='1019')) == TafFormValidator.TEMP_TIME_INVALID
+
+    def test_a_time_before_the_period_is_rejected(self):
+        # 1008 is earlier than the period start, so it rolls to the next month
+        assert self.check(self.temperature(time='1008')) == TafFormValidator.TEMP_TIME_INVALID
 
     def test_time_already_used_by_other_mode_rejected(self):
-        temp = TemperatureState('max')
-        temp.time = '1012'
-        siblings = [datetime.datetime(2026, 6, 10, 12, 0)]
-        assert TafFormValidator.checkTemperatureTime(temp, DAY9_18, siblings=siblings) == TafFormValidator.TEMP_TIME_INVALID
+        # rule 2
+        target = self.temperature('max', '1012')
+        assert self.check(target, [self.temperature('min', '1012')]) == TafFormValidator.TEMP_TIME_INVALID
+
+    def test_different_modes_may_share_a_day(self):
+        # why rule 2 is about the instant while rule 3 is about the day
+        target = self.temperature('max', '1012')
+        assert self.check(target, [self.temperature('min', '1015')]) is None
 
     def test_same_day_as_same_mode_sibling_rejected(self):
-        # The caller passes parsed datetime objects here (see
-        # widgets/taf.py findTemperatureTime)
-        temp = TemperatureState('max')
-        temp.time = '1012'
-        sameType = [datetime.datetime(2026, 6, 10, 14, 0)]
-        assert TafFormValidator.checkTemperatureTime(temp, DAY9_18, sameTypeSiblings=sameType) == TafFormValidator.TEMP_TIME_INVALID
+        # rule 3: two TX may not share a day even at different hours
+        target = self.temperature('max', '1012')
+        assert self.check(target, [self.temperature('max', '1015')]) == TafFormValidator.TEMP_TIME_INVALID
 
-    def test_other_day_than_same_mode_sibling_passes(self):
-        primarySpanning = (datetime.datetime(2026, 6, 10, 9, 0), datetime.datetime(2026, 6, 11, 9, 0))
-        temp = TemperatureState('max')
-        temp.time = '1108'
-        sameType = [datetime.datetime(2026, 6, 10, 8, 0)]
-        assert TafFormValidator.checkTemperatureTime(temp, primarySpanning, sameTypeSiblings=sameType) is None
+    def test_the_third_group_of_a_thirty_hour_report(self):
+        # FT30 is TX TN TX: the second TX has to move to the next day
+        spanning = (datetime.datetime(2026, 6, 10, 9, 0), datetime.datetime(2026, 6, 11, 18, 0))
+        first = self.temperature('max', '1012')
+        second = self.temperature('min', '1015')
+
+        third = self.temperature('max', '1018')
+        assert self.check(third, [first, second], spanning) == TafFormValidator.TEMP_TIME_INVALID
+
+        third.time = '1118'
+        assert self.check(third, [first, second], spanning) is None
+
+    def test_a_temperature_is_not_its_own_sibling(self):
+        target = self.temperature('max', '1012')
+        assert TafFormValidator.checkTemperatureTime(target, [target, target], DAY9_18) is None
+
+    def test_a_sibling_with_an_unparsable_time_is_skipped(self):
+        # a sibling that does not parse is not a clash, it is simply absent
+        target = self.temperature('max', '1012')
+        assert self.check(target, [self.temperature('max', '9999')]) is None
+
+    def test_a_sibling_with_a_blank_time_is_skipped(self):
+        target = self.temperature('max', '1012')
+        assert self.check(target, [self.temperature('max', '')]) is None
 
 
 class TestCheckTemperature:
+    """A max has to stay above the lowest of the others, a min below the highest."""
+
+    def temperature(self, mode='max', value=''):
+        state = TemperatureState(mode)
+        state.value = value
+        return state
+
+    def check(self, target, others=()):
+        return TafFormValidator.checkTemperature(target, [target] + list(others))
 
     def test_max_above_min_passes(self):
-        temp = TemperatureState('max')
-        temp.value = '12'
-        assert TafFormValidator.checkTemperature(temp, 10) is None
+        assert self.check(self.temperature('max', '12'), [self.temperature('min', 'M03')]) is None
 
     def test_max_equal_to_min_rejected(self):
-        temp = TemperatureState('max')
-        temp.value = '10'
-        assert TafFormValidator.checkTemperature(temp, 10) == TafFormValidator.TEMP_MAX_LESS_MIN
+        assert self.check(self.temperature('max', '10'), [self.temperature('min', '10')]) == TafFormValidator.TEMP_MAX_LESS_MIN
 
     def test_max_below_min_rejected(self):
-        temp = TemperatureState('max')
-        temp.value = 'M05'
-        assert TafFormValidator.checkTemperature(temp, 10) == TafFormValidator.TEMP_MAX_LESS_MIN
+        assert self.check(self.temperature('max', 'M05'), [self.temperature('min', '10')]) == TafFormValidator.TEMP_MAX_LESS_MIN
 
     def test_min_below_max_passes(self):
-        temp = TemperatureState('min')
-        temp.value = 'M08'
-        assert TafFormValidator.checkTemperature(temp, -5) is None
+        assert self.check(self.temperature('min', 'M08'), [self.temperature('max', 'M05')]) is None
 
     def test_min_equal_to_max_rejected(self):
-        temp = TemperatureState('min')
-        temp.value = 'M05'
-        assert TafFormValidator.checkTemperature(temp, -5) == TafFormValidator.TEMP_MIN_GREATER_MAX
+        assert self.check(self.temperature('min', 'M05'), [self.temperature('max', 'M05')]) == TafFormValidator.TEMP_MIN_GREATER_MAX
 
     def test_min_above_max_rejected(self):
-        temp = TemperatureState('min')
-        temp.value = '02'
-        assert TafFormValidator.checkTemperature(temp, -5) == TafFormValidator.TEMP_MIN_GREATER_MAX
+        assert self.check(self.temperature('min', '02'), [self.temperature('max', 'M05')]) == TafFormValidator.TEMP_MIN_GREATER_MAX
 
     def test_empty_value_passes(self):
-        temp = TemperatureState('max')
-        assert TafFormValidator.checkTemperature(temp, 10) is None
+        assert self.check(self.temperature('max', ''), [self.temperature('min', '10')]) is None
 
-    def test_missing_reference_passes(self):
-        temp = TemperatureState('max')
-        temp.value = '10'
-        assert TafFormValidator.checkTemperature(temp, None) is None
+    def test_no_other_value_passes(self):
+        assert self.check(self.temperature('max', '10')) is None
+
+    def test_blank_siblings_are_skipped(self):
+        assert self.check(self.temperature('max', '10'), [self.temperature('min', '')]) is None
+
+    def test_a_temperature_is_not_its_own_reference(self):
+        target = self.temperature('max', '10')
+        assert TafFormValidator.checkTemperature(target, [target, target]) is None
+
+    def test_the_bound_is_the_lowest_of_several(self):
+        # a max is bounded by the *lowest* of the others, not by the first one
+        target = self.temperature('max', 'M05')
+        assert self.check(target, [self.temperature('min', '10'),
+                                   self.temperature('min', 'M02')]) == TafFormValidator.TEMP_MAX_LESS_MIN
+
+    def test_another_max_still_bounds_it(self):
+        # the reference is every other temperature whatever its mode, so a second
+        # TX bounds a TX exactly as a TN does. Worth pinning: it is not obvious
+        # from the wording, and FT30 is the only spec with two TX.
+        target = self.temperature('max', '05')
+        assert self.check(target, [self.temperature('max', '10')]) == TafFormValidator.TEMP_MAX_LESS_MIN
 
 
 class TestTrendFormValidatorPeriod:

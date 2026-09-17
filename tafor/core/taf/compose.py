@@ -3,12 +3,6 @@ import datetime
 from tafor.core.utils.time import parseDayHour
 
 
-def composeHeading(spec, area, icao, date, sequence):
-    tt = spec[:2].upper() if spec else "FC"
-    messages = [tt + area, icao, date, sequence]
-    return " ".join(filter(None, messages))
-
-
 def segmentOrderKey(identifier, start):
     """Ordering key for composing the message preview: the primary segment
     comes first, then change groups chronologically by start time; on ties
@@ -25,7 +19,7 @@ def groupSpan(indicator, spec):
     """Maximum change-group span used for validation: a TEMPO group lasts
     6 hours in an FT message and 4 hours in FC, everything else 2 hours."""
     if indicator.startswith('TEMPO'):
-        return 6 if 'ft' in spec else 4
+        return 6 if spec.designator == 'FT' else 4
     return 2
 
 
@@ -96,3 +90,28 @@ def completeGroupPeriod(text, durations, indicator, spec):
         return '{:02d}{:02d}/{:02d}{:02d}'.format(start.day, start.hour, end.day, end.hour)
 
     return None
+
+
+def amendSequence(count, modifier):
+    """Message notation for the amendment sequence: 'AA' for an amendment and
+    'CC' for a correction, followed by one letter per message already sent --
+    the first amendment of a period is 'AAA', the second 'AAB'.
+    """
+    prefix = 'CC' if modifier == 'COR' else 'AA'
+    return prefix + chr(ord('A') + count)
+
+
+def composeHeading(spec, area, icao, date, sequence):
+    tt = spec.designator if spec else "FC"
+    messages = [tt + area, icao, date, sequence]
+    return " ".join(filter(None, messages))
+
+
+def composeBody(primary, groups):
+    """The whole message body: the primary segment first, then the change groups
+    in chronological order, one per line, closed with '='.
+    """
+    segments = [('PRIMARY', primary)] + [(group.indicator, group) for group in groups]
+    ordered = sorted(segments, key=lambda pair: segmentOrderKey(pair[0], pair[1].durations[0]))
+    messages = [state.composeMessage() for _, state in ordered]
+    return '\n'.join(filter(None, messages)) + '='

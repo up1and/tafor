@@ -1,3 +1,6 @@
+from tafor.core.taf.spec import SpecFC
+
+
 class TemperatureState:
     def __init__(self, mode="max"):
         self.mode = mode
@@ -26,8 +29,9 @@ class SegmentState:
         self.visibility = ""
         self.weather = ""
         self.weatherWithIntensity = ""
-        self.clouds = []  # e.g., ["FEW030", "SCT040"]
-        self.cb = ""      # e.g., "BKN030CB"
+        # Every layer, the CB one included. A CB layer is an independent
+        # phenomena layer, marked by its 'CB' suffix: ["FEW030", "BKN040CB"]
+        self.clouds = []
         self.isCavok = False
         self.isNsc = False
 
@@ -37,8 +41,7 @@ class SegmentState:
         else:
             winds = None
 
-        allClouds = list(filter(None, self.clouds + ([self.cb] if self.cb else [])))
-        sortedClouds = sorted(allClouds, key=lambda c: int(c[3:6]) if len(c) >= 6 and c[3:6].isdigit() else 0)
+        sortedClouds = sorted(self.clouds, key=lambda c: int(c[3:6]) if len(c) >= 6 and c[3:6].isdigit() else 0)
 
         if self.isCavok:
             elements = [winds, "CAVOK"]
@@ -59,49 +62,49 @@ class SegmentState:
         self.weather = ""
         self.weatherWithIntensity = ""
         self.clouds = []
-        self.cb = ""
         self.isCavok = False
         self.isNsc = False
 
 
 class PrimaryState(SegmentState):
-    def __init__(self, unit, icao="", spec="fc"):
+
+    def __init__(self, unit, icao="", spec=SpecFC):
         super().__init__(unit)
         self.icao = icao
         self.spec = spec
         self.date = ""
         self.period = ""
         self.durations = None  # (start, end) datetime tuple
-        self.type = "NORMAL"  # NORMAL, AMD, COR, CNL
+        self.modifier = None  # None (normal report), 'AMD', 'COR' or 'CNL'
         self.sequence = ""
         self.temperatures = []  # List of TemperatureState
 
     def isAcceptable(self):
-        if self.type == "CNL":
+        if self.modifier == "CNL":
             return bool(self.icao and self.date and self.period and self.sequence)
 
         headerOk = bool(self.icao and self.date and self.period)
 
         hasWind = bool(self.wind)
-        hasClouds = any([bool(c) for c in self.clouds] + [bool(self.cb)])
+        hasClouds = bool(self.clouds)
         weatherOk = hasWind and (self.isCavok or self.isNsc or (bool(self.visibility) and hasClouds))
 
-        tempsOk = all(t.isAcceptable() for t in self.temperatures if t.value or t.time)
+        tempsOk = all(t.isAcceptable() for t in self.temperatures)
 
-        sequenceOk = bool(self.sequence) if self.type in ["AMD", "COR"] else True
+        sequenceOk = bool(self.sequence) if self.modifier in ("AMD", "COR") else True
 
         return headerOk and weatherOk and sequenceOk and tempsOk
 
     def composeMessage(self):
-        if self.type == "CNL":
+        if self.modifier == "CNL":
             amd = "AMD"
             messages = ["TAF", amd, self.icao, self.date + "Z" if self.date else "", self.period, "CNL"]
             return " ".join(filter(None, messages))
 
         weatherPart = self.composeWeather()
 
-        amd = "AMD" if self.type == "AMD" else ""
-        cor = "COR" if self.type == "COR" else ""
+        amd = "AMD" if self.modifier == "AMD" else ""
+        cor = "COR" if self.modifier == "COR" else ""
         timez = self.date + "Z" if self.date else ""
 
         validTemps = [t for t in self.temperatures if t.isAcceptable()]
@@ -116,7 +119,7 @@ class PrimaryState(SegmentState):
         self.date = ""
         self.period = ""
         self.durations = None
-        self.type = "NORMAL"
+        self.modifier = None
         self.sequence = ""
         for t in self.temperatures:
             t.clear()
@@ -130,9 +133,7 @@ class GroupState(SegmentState):
         self.durations = None  # (start, end) datetime tuple
 
     def isAcceptable(self):
-        oneRequired = any([self.isNsc, self.isCavok, self.wind, self.visibility, self.weather, self.weatherWithIntensity]
-            + [bool(c) for c in self.clouds] + [bool(self.cb)])
-        return bool(self.period) and oneRequired
+        return bool(self.period) and bool(self.composeWeather())
 
     def composeMessage(self):
         weatherPart = self.composeWeather()
@@ -151,7 +152,7 @@ class TrendState(SegmentState):
     def __init__(self, unit):
         super().__init__(unit)
         self.isNosig = False
-        self.type = "BECMG"  # BECMG or TEMPO
+        self.indicator = "BECMG"  # BECMG or TEMPO, as in GroupState
         self.atChecked = False
         self.fmChecked = False
         self.tlChecked = False
@@ -161,11 +162,7 @@ class TrendState(SegmentState):
         if self.isNosig:
             return True
 
-        weatherOk = any([
-            self.isNsc, self.isCavok, bool(self.wind), bool(self.visibility),
-            bool(self.weather), bool(self.weatherWithIntensity),
-            any(bool(c) for c in self.clouds), bool(self.cb)
-        ])
+        weatherOk = bool(self.composeWeather())
 
         if any([self.atChecked, self.fmChecked, self.tlChecked]):
             return bool(self.period) and weatherOk
@@ -178,7 +175,7 @@ class TrendState(SegmentState):
 
         weatherPart = self.composeWeather()
 
-        messages = [self.type]
+        messages = [self.indicator]
         if self.atChecked or self.fmChecked or self.tlChecked:
             if self.fmChecked and self.tlChecked:
                 parts = self.period.split('/')

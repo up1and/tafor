@@ -1,6 +1,7 @@
 import datetime
 
 from tafor.core.events import Event
+from tafor.core.taf.spec import SpecFC, SpecFT24, SpecFT30
 from tafor.core.utils.time import utcnow
 
 
@@ -236,10 +237,10 @@ class TafMonitorService(StateProxyMixin):
     def spec(self):
         index = self.conf.tafSpec or 0
         if int(index) == 1:
-            return 'ft24'
+            return SpecFT24
         if int(index) == 2:
-            return 'ft30'
-        return 'fc'
+            return SpecFT30
+        return SpecFC
 
     def shouldRemind(self):
         return self.state.shouldRemind and self.state.message is None

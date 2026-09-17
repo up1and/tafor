@@ -109,16 +109,13 @@ class TafRepository(Repository):
             return session.query(Taf).filter(
                 Taf.text.contains(period), Taf.created > recent).first()
 
-    def amendCount(self, period, kind):
+    def amendCount(self, period, modifier):
+        """How many messages with this marker have already been sent for this
+        period. The notation built from the count lives in core/taf/compose.py."""
         recent = utcnow() - datetime.timedelta(hours=24)
         with self.database.session() as session:
             query = session.query(Taf).filter(Taf.text.contains(period), Taf.created > recent)
-            return query.filter(Taf.text.contains(kind)).count()
-
-    def amendSequence(self, period, sort):
-        count = self.amendCount(period, sort)
-        prefix = 'CC' if sort == 'COR' else 'AA'
-        return prefix + chr(ord('A') + count)
+            return query.filter(Taf.text.contains(modifier)).count()
 
     def latest(self, type):
         with self.database.session() as session:
@@ -126,9 +123,9 @@ class TafRepository(Repository):
 
     def status(self, spec, delayMinutes=None):
         currentTaf = CurrentTaf(spec)
-        period = currentTaf.period(strict=False)
+        period = currentTaf.period()
 
-        shouldRemind = currentTaf.isExpired(offset=5)
+        shouldRemind = currentTaf.isExpired(minutes=5)
         isExpired = False
 
         # Ignore AMD COR message
@@ -138,7 +135,7 @@ class TafRepository(Repository):
             recent = session.query(Taf).filter(Taf.text.contains(period),  ~Taf.text.contains('AMD'),
             ~Taf.text.contains('COR'), Taf.created > expired).order_by(Taf.created.desc()).first()
 
-        if currentTaf.isExpired(offset=delayMinutes):
+        if currentTaf.isExpired(minutes=delayMinutes):
             if recent:
                 if not recent.confirmed:
                     isExpired = True
@@ -146,7 +143,7 @@ class TafRepository(Repository):
                 isExpired = True
 
         # The alarm clock no longer rings after the cancel message is issued
-        latest = self.latest(currentTaf.spec.type)
+        latest = self.latest(currentTaf.spec.designator)
         if latest and latest.isCnl():
             isExpired = False
             shouldRemind = False

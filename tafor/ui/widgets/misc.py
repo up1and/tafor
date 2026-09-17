@@ -136,7 +136,7 @@ class TafBoard(QWidget):
         if self.context.taf.message:
             text = ''
         else:
-            text = taf.spec.type + taf.period(strict=False, withDay=False)
+            text = taf.spec.designator + taf.key()
         return text
 
 

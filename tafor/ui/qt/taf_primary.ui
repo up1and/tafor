@@ -46,14 +46,14 @@
    <item row="5" column="0">
     <widget class="QCheckBox" name="becmg2Checkbox">
      <property name="text">
-      <string notr="true">BECMG2</string>
+      <string notr="true">BECMG</string>
      </property>
     </widget>
    </item>
    <item row="4" column="0">
     <widget class="QCheckBox" name="becmg1Checkbox">
      <property name="text">
-      <string notr="true">BECMG1</string>
+      <string notr="true">BECMG</string>
      </property>
     </widget>
    </item>
@@ -239,21 +239,21 @@
    <item row="5" column="1">
     <widget class="QCheckBox" name="tempo2Checkbox">
      <property name="text">
-      <string notr="true">TEMPO2</string>
+      <string notr="true">TEMPO</string>
      </property>
     </widget>
    </item>
    <item row="4" column="1">
     <widget class="QCheckBox" name="tempo1Checkbox">
      <property name="text">
-      <string notr="true">TEMPO1</string>
+      <string notr="true">TEMPO</string>
      </property>
     </widget>
    </item>
    <item row="6" column="0">
     <widget class="QCheckBox" name="becmg3Checkbox">
      <property name="text">
-      <string notr="true">BECMG3</string>
+      <string notr="true">BECMG</string>
      </property>
     </widget>
    </item>

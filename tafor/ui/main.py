@@ -86,7 +86,7 @@ class ReminderPresenter(QObject):
         if not self.context.taf.shouldRemind():
             return
 
-        spec = self.context.taf.spec[:2].upper()
+        spec = self.context.taf.spec.designator
         period = self.context.taf.period()
         mark = spec + period[2:4] + period[7:]
         text = QCoreApplication.translate('MainWindow', 'Time to issue {}').format(mark)
@@ -317,7 +317,7 @@ class RecentEntryBuilder:
 
     def recentMessages(self):
         recent = utcnow() - datetime.timedelta(hours=24)
-        spec = self.context.taf.spec[:2].upper()
+        spec = self.context.taf.spec.designator
 
         sigmets = []
         if self.conf.sigmetEnabled:

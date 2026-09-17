@@ -6,6 +6,7 @@ import pytest
 
 from tafor.core.models import Metar, Sigmet, Taf, Trend
 from tafor.core.repositories import (Repositories, SigmetFilter, subscribedTypes)
+from tafor.core.taf import SpecFC
 
 
 TAF_TEXT = 'TAF ZPPP 060500Z 0606/0712 32008G15MPS 9999 SCT020='
@@ -118,26 +119,29 @@ class TestTafRepository:
 
         assert repos.taf.hasRecent('0606/0712') is None
 
-    def test_amend_sequence_starts_at_aaa(self, database):
+    def test_amend_count_is_zero_without_amendments(self, database):
         repos = Repositories(database)
-        assert repos.taf.amendSequence('0606/0712', 'AMD') == 'AAA'
+        assert repos.taf.amendCount('0606/0712', 'AMD') == 0
 
-    def test_amend_sequence_counts_amendments(self, database):
+    def test_amend_count_counts_amendments(self, database):
         repos = Repositories(database)
         created = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
         with database.session() as session:
             add(session, Taf, type='FT', text='TAF AMD ZPPP 060500Z 0606/0712 32008G15MPS=', created=created)
             add(session, Taf, type='FT', text='TAF AMD ZPPP 060600Z 0606/0712 32012MPS=', created=created)
 
-        assert repos.taf.amendSequence('0606/0712', 'AMD') == 'AAC'
+        assert repos.taf.amendCount('0606/0712', 'AMD') == 2
 
-    def test_amend_sequence_prefixes_corrections_with_cc(self, database):
+    def test_amend_count_is_per_modifier(self, database):
+        # Only the notation is built in core/taf; what the repository owes is
+        # "how many of *this* marker went out for this period".
         repos = Repositories(database)
         created = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
         with database.session() as session:
             add(session, Taf, type='FT', text='TAF COR ZPPP 060500Z 0606/0712 32008G15MPS=', created=created)
 
-        assert repos.taf.amendSequence('0606/0712', 'COR') == 'CCB'
+        assert repos.taf.amendCount('0606/0712', 'COR') == 1
+        assert repos.taf.amendCount('0606/0712', 'AMD') == 0
 
 
 class TestTafRepositoryStatus:
@@ -153,7 +157,7 @@ class TestTafRepositoryStatus:
             add(session, Taf, type='FC', text=text, created=created, confirmed=confirmed)
 
     def test_status_without_message(self, repos):
-        status = repos.taf.status('fc', delayMinutes=30)
+        status = repos.taf.status(SpecFC, delayMinutes=0)
 
         assert status['period'] == PERIOD
         assert status['message'] is None
@@ -164,7 +168,7 @@ class TestTafRepositoryStatus:
         self.seed(database, TAF_TEXT.replace('0606/0712', PERIOD),
                   created=MOMENT - datetime.timedelta(hours=1))
 
-        status = repos.taf.status('fc', delayMinutes=30)
+        status = repos.taf.status(SpecFC, delayMinutes=0)
 
         assert status['message'] is not None
         assert status['isExpired'] is True
@@ -174,7 +178,7 @@ class TestTafRepositoryStatus:
                   created=MOMENT - datetime.timedelta(hours=1),
                   confirmed=MOMENT - datetime.timedelta(minutes=30))
 
-        status = repos.taf.status('fc', delayMinutes=30)
+        status = repos.taf.status(SpecFC, delayMinutes=0)
 
         assert status['isExpired'] is False
 
@@ -183,7 +187,7 @@ class TestTafRepositoryStatus:
         self.seed(database, amended, created=MOMENT - datetime.timedelta(hours=1),
                   confirmed=MOMENT - datetime.timedelta(minutes=30))
 
-        status = repos.taf.status('fc', delayMinutes=30)
+        status = repos.taf.status(SpecFC, delayMinutes=0)
 
         assert status['message'] is None
         assert status['isExpired'] is True
@@ -196,10 +200,18 @@ class TestTafRepositoryStatus:
         self.seed(database, 'TAF ZPPP 101000Z {} CNL'.format(PERIOD),
                   created=MOMENT - datetime.timedelta(minutes=30))
 
-        status = repos.taf.status('fc', delayMinutes=30)
+        status = repos.taf.status(SpecFC, delayMinutes=0)
 
         assert status['isExpired'] is False
         assert status['shouldRemind'] is False
+
+    def test_the_operator_tolerance_is_added_to_the_spec_delay(self, repos):
+        # The deadline is 07:50 at zero tolerance, so 30 minutes of tolerance
+        # pushes it to 08:20 -- past the frozen 08:00. The formula used to floor
+        # SpecFC's 50 minutes of delay to whole hours, which threw it away and
+        # left the deadline at 07:30.
+        assert repos.taf.status(SpecFC, delayMinutes=0)['isExpired'] is True
+        assert repos.taf.status(SpecFC, delayMinutes=30)['isExpired'] is False
 
 
 class TestMetarRepository:

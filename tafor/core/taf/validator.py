@@ -5,6 +5,20 @@ from tafor.core.utils.time import isOverlap, parseDayHour, parseTime, utcnow
 def parseTemperature(value):
     return -int(value[1:]) if 'M' in value else int(value)
 
+
+def parseTemperatureTime(text, durations):
+    """A temperature's day-hour as a datetime, or None if it does not parse.
+
+    None is the answer for both callers, but they read it differently: for the
+    temperature being checked an unparsable time is the error, for one of its
+    siblings it just means "not in the comparison". That is the old behaviour
+    kept as is -- the checked time failed the rule, a sibling's was skipped.
+    """
+    try:
+        return parseDayHour(text[:2], text[2:], durations[0], delta='month')
+    except (ValueError, IndexError):
+        pass
+
 class TafFormValidator:
     WEATHER_CONFLICT = 'weather_conflict'
     GUST_SPEED_INSUFFICIENT = 'gust_speed_insufficient'
@@ -50,27 +64,28 @@ class TafFormValidator:
         if not lineValue:
             return None
 
-        allClouds = list(filter(None, state.clouds + ([state.cb] if state.cb else [])))
+        clouds = [cloud for cloud in state.clouds if cloud]
+        cb = next((cloud for cloud in clouds if cloud.endswith('CB')), '')
 
         # A CB layer is an independent phenomena layer and may share the
         # height of an ordinary layer; duplicate heights are only checked
         # between the ordinary cloud rows
-        heights = [cloud[3:6] for cloud in state.clouds if cloud]
+        heights = [cloud[3:6] for cloud in clouds if not cloud.endswith('CB')]
         if len(heights) != len(set(heights)):
             return TafFormValidator.CLOUD_HEIGHT_CONFLICT
 
         cloudCover = {'FEW': 1, 'SCT': 3, 'BKN': 5, 'OVC': 8}
-        if state.cb:
-            cbCover = cloudCover.get(state.cb[:3], 0)
-            cbHeight = state.cb[3:6]
-            for cloud in allClouds:
-                if cloud == state.cb:
+        if cb:
+            cbCover = cloudCover.get(cb[:3], 0)
+            cbHeight = cb[3:6]
+            for cloud in clouds:
+                if cloud == cb:
                     continue
                 cover = cloudCover.get(cloud[:3], 0)
                 if cbHeight == cloud[3:6] and cbCover + cover > 8:
                     return TafFormValidator.CLOUD_OKTAS_EXCEED
 
-        orderedClouds = sorted(allClouds, key=lambda cloud: int(cloud[3:6]) if cloud[3:6].isdigit() else 0)
+        orderedClouds = sorted(clouds, key=lambda cloud: int(cloud[3:6]) if cloud[3:6].isdigit() else 0)
         covers = [cloud[:3] for cloud in orderedClouds]
         if 'OVC' in covers:
             index = covers.index('OVC')
@@ -80,9 +95,14 @@ class TafFormValidator:
         return None
 
     @staticmethod
-    def checkGroupPeriod(groupState, primaryState, span, isBecmg=False):
+    def checkGroupPeriod(groupState, primaryState, span):
         if not groupState.period or not primaryState.period:
             return None
+
+        # The indicator is the group's own, so no caller can hand in a flag that
+        # disagrees with the state it is asking about. `span` stays an argument:
+        # the UI also needs it for the wording of the error.
+        isBecmg = groupState.indicator == 'BECMG'
 
         start, end = groupState.durations
         primaryStart, primaryEnd = primaryState.durations
@@ -135,42 +155,61 @@ class TafFormValidator:
         return None
 
     @staticmethod
-    def checkTemperatureTime(tempState, primaryDurations, siblings=None, sameTypeSiblings=None):
+    def checkTemperatureTime(tempState, temperatures, durations):
+        """One temperature's time: inside the validity period, and clear of the rest.
+
+        Three rules, and the third is the one that is easy to miss:
+
+        - inside `[durations[0], durations[1]]`
+        - no two temperatures share an instant -- a TX and a TN never coincide
+        - two temperatures of the *same* mode never share a day -- FT30 is
+          TX TN TX, and its two TX have to fall on different days
+        """
         if not tempState.time:
             return None
 
-        if primaryDurations is None:
+        if durations is None or durations[0] is None:
             return TafFormValidator.TEMP_TIME_INVALID
 
-        try:
-            time = parseDayHour(tempState.time[:2], tempState.time[2:], primaryDurations[0], delta='month')
-        except Exception:
+        time = parseTemperatureTime(tempState.time, durations)
+        if time is None or not durations[0] <= time <= durations[1]:
             return TafFormValidator.TEMP_TIME_INVALID
 
-        siblings = siblings or []
-        sameTypeSiblings = sameTypeSiblings or []
-        valid = primaryDurations[0] <= time <= primaryDurations[1] and time not in siblings
+        for other in temperatures:
+            if other is tempState or not other.time:
+                continue
 
-        for sibling in sameTypeSiblings:
-            if sibling.day == time.day:
-                valid = False
+            otherTime = parseTemperatureTime(other.time, durations)
+            if otherTime is None:
+                continue
 
-        if not valid:
-            return TafFormValidator.TEMP_TIME_INVALID
+            if otherTime == time:
+                return TafFormValidator.TEMP_TIME_INVALID
+
+            if other.mode == tempState.mode and otherTime.day == time.day:
+                return TafFormValidator.TEMP_TIME_INVALID
 
         return None
 
     @staticmethod
-    def checkTemperature(tempState, referenceValue):
+    def checkTemperature(tempState, temperatures):
+        """The value has to clear the others: a max above the lowest of them, a
+        min below the highest.
+        """
         if not tempState.value:
+            return None
+
+        others = [parseTemperature(t.value) for t in temperatures
+                  if t is not tempState and t.value]
+        if not others:
             return None
 
         temperature = parseTemperature(tempState.value)
         if tempState.mode == 'max':
-            if referenceValue is not None and temperature <= referenceValue:
+            if temperature <= min(others):
                 return TafFormValidator.TEMP_MAX_LESS_MIN
         elif tempState.mode == 'min':
-            if referenceValue is not None and referenceValue <= temperature:
+            if max(others) <= temperature:
                 return TafFormValidator.TEMP_MIN_GREATER_MAX
 
         return None

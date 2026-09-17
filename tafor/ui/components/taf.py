@@ -2,7 +2,7 @@ from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLayout
 
 from tafor.core.models import Taf
-from tafor.core.taf import composeHeading, segmentOrderKey
+from tafor.core.taf import TafDraft, composeHeading, composeBody
 from tafor.ui.widgets import TafBecmgSegment, TafFmSegment, TafPrimarySegment, TafTempoSegment
 from tafor.ui.widgets.editor import BaseEditor
 
@@ -19,28 +19,19 @@ class TafPresenter:
     def bindSignal(self):
         for c in self.view.getGroupCheckboxes():
             c.stateChanged.connect(self.enableNextButton)
-            c.toggled.connect(lambda _, c=c: self.view.updateGroupsVisibility(c))
+            c.toggled.connect(lambda _, c=c: self.view.toggleGroup(c))
 
         for s in self.view.segments():
             s.contentChanged.connect(self.enableNextButton)
 
-        self.view.primary.period.textChanged.connect(self.clear)
-
     def previewMessage(self):
-        # Retrieve and sort active segments
-        activeSegments = sorted(
-            self.view.segments(activeOnly=True),
-            key=lambda s: segmentOrderKey(s.identifier, s.state.durations[0]),
-        )
-        
-        messages = [s.state.composeMessage() for s in activeSegments]
-        text = '\n'.join(filter(None, messages)) + '='
+        """Take the active segments, let core compose them, then build the model."""
+        state = self.view.primary.state
+        groups = [s.state for s in self.view.segments(activeOnly=True) if s is not self.view.primary]
 
-        # Composing Heading from primary state
-        primary = self.view.primary
-        state = primary.state
+        text = composeBody(state, groups)
         heading = composeHeading(state.spec, self.conf.bulletinNumber, state.icao, state.date, state.sequence)
-        
+
         message = Taf(type=heading[0:2], heading=heading, text=text)
         self.view.finished.emit(message)
 
@@ -82,20 +73,24 @@ class TafEditor(BaseEditor):
         layout.setSizeConstraint(QLayout.SetFixedSize)
         layout.setSpacing(18)
 
-        self.primary = TafPrimarySegment(editor=self, conf=self.conf, context=self.context, repository=self.repository)
+        self.draft = TafDraft(self.context.taf.spec)
+
+        self.primary = TafPrimarySegment(editor=self, conf=self.conf, context=self.context,
+                                         repository=self.repository, draft=self.draft)
         self.fm = TafFmSegment('FM', self, conf=self.conf, context=self.context)
-        self.becmg1 = TafBecmgSegment('BECMG1', self, conf=self.conf, context=self.context)
-        self.becmg2 = TafBecmgSegment('BECMG2', self, conf=self.conf, context=self.context)
-        self.becmg3 = TafBecmgSegment('BECMG3', self, conf=self.conf, context=self.context)
-        self.tempo1 = TafTempoSegment('TEMPO1', self, conf=self.conf, context=self.context)
-        self.tempo2 = TafTempoSegment('TEMPO2', self, conf=self.conf, context=self.context)
-        self.tempo3 = TafTempoSegment('TEMPO3', self, conf=self.conf, context=self.context)
+        self.becmg1 = TafBecmgSegment('BECMG', self, conf=self.conf, context=self.context)
+        self.becmg2 = TafBecmgSegment('BECMG', self, conf=self.conf, context=self.context)
+        self.becmg3 = TafBecmgSegment('BECMG', self, conf=self.conf, context=self.context)
+        self.tempo1 = TafTempoSegment('TEMPO', self, conf=self.conf, context=self.context)
+        self.tempo2 = TafTempoSegment('TEMPO', self, conf=self.conf, context=self.context)
+        self.tempo3 = TafTempoSegment('TEMPO', self, conf=self.conf, context=self.context)
         
         self.becmgs = [self.fm, self.becmg1, self.becmg2, self.becmg3]
         self.tempos = [self.tempo1, self.tempo2, self.tempo3]
+        self.groups = self.becmgs + self.tempos
         
         layout.addWidget(self.primary)
-        for segment in self.becmgs + self.tempos:
+        for segment in self.groups:
             layout.addWidget(segment)
             segment.hide()
             
@@ -104,10 +99,32 @@ class TafEditor(BaseEditor):
 
     def segments(self, activeOnly=False):
         """Return segments, optionally filtering for active ones."""
-        allSegments = [self.primary] + self.becmgs + self.tempos
         if activeOnly:
-            return [s for s in allSegments if s == self.primary or s.isVisible()]
-        return allSegments
+            return [self.primary] + self.activeGroups()
+        return [self.primary] + self.groups
+
+    def activeGroups(self):
+        """The selected change-group segments, in the order they are reported.
+
+        The draft holds both halves of that, so the order is read off it rather
+        than off `self.groups`.
+        """
+        byKey = {self.groupKey(g): g for g in self.groups}
+        return [byKey[key] for key in self.draft.activeGroups()]
+
+    def groupKey(self, segment):
+        """The (family, number) a group segment stands for.
+
+        The number is not part of the segment name any more — all three BECMG
+        segments are named 'BECMG' — so it is read off the segment's position
+        among its own family here, in the UI, which is the only layer that knows
+        how many boxes there are. 'FM' is alone in its family, so it comes out as
+        ('FM', 1).
+
+        """
+        family = segment.indicator
+        sameFamily = [g for g in self.groups if g.indicator == family]
+        return family, sameFamily.index(segment) + 1
 
     def getGroupCheckboxes(self):
         return self.primary.groupCheckboxs
@@ -119,47 +136,37 @@ class TafEditor(BaseEditor):
         self.nextButton.setEnabled(enabled)
 
     def clear(self):
-        """Clear all segment data."""
+        """Clear all segment data, and the change-group selection."""
+        self.draft.clear()
         for s in self.segments():
             s.clear()
 
-    def updateGroupsVisibility(self, clickedbox):
-        """Handle visibility logic for change groups."""
-        fmCheckboxs = [self.primary.fmCheckbox]
-        becmgCheckboxs = [self.primary.becmg1Checkbox, self.primary.becmg2Checkbox, self.primary.becmg3Checkbox]
-        tempoCheckboxs = [self.primary.tempo1Checkbox, self.primary.tempo2Checkbox, self.primary.tempo3Checkbox]
-        fmGroups = [self.fm]
-        becmgGroups = [self.becmg1, self.becmg2, self.becmg3]
-        tempoGroups = [self.tempo1, self.tempo2, self.tempo3]
+        self.applySelection()
 
-        checks = [c for c in fmCheckboxs + becmgCheckboxs + tempoCheckboxs if c.isChecked()]
-        if len(checks) > 5:
-            clickedbox.setChecked(False)
+    def toggleGroup(self, checkbox):
+        """A change-group checkbox was clicked: move the selection, then draw it."""
+        segment = self.groups[self.primary.groupCheckboxs.index(checkbox)]
+        error = self.draft.toggle(*self.groupKey(segment))
+        if error == 'too_many_groups':
             self.context.flash.editor('taf', QCoreApplication.translate('Editor', 'Change groups cannot be more than 5'))
-            return
+        self.applySelection()
 
-        def manipulate(checkboxs, groups):
-            if clickedbox not in checkboxs:
-                return
+    def applySelection(self):
+        """Draw `draft.selected` into the checkboxes and the group widgets."""
+        for checkbox, group in zip(self.primary.groupCheckboxs, self.groups):
+            selected = self.groupKey(group) in self.draft.selected
+            # This is a render, not a click: without blocking, the writes below
+            # would come straight back through toggleGroup and fight the
+            # selection they are drawing.
+            checkbox.blockSignals(True)
+            checkbox.setChecked(selected)
+            checkbox.blockSignals(False)
+            group.setVisible(selected)
 
-            index = checkboxs.index(clickedbox)
-            if clickedbox.isChecked():
-                if index != 0 and not checkboxs[index-1].isChecked():
-                    clickedbox.setChecked(False)
-            else:
-                for i, checkbox in enumerate(checkboxs):
-                    if i > index:
-                        checkbox.setChecked(False)
-
-            for i, group in enumerate(groups):
-                group.setVisible(checkboxs[i].isChecked())
-
-        manipulate(fmCheckboxs, fmGroups)
-        manipulate(becmgCheckboxs, becmgGroups)
-        manipulate(tempoCheckboxs, tempoGroups)
+        self.presenter.enableNextButton()
 
     def onFirstShow(self):
-        self.primary.updateMessageType()
+        self.primary.updateModifier()
 
     def onClose(self):
         self.presenter.clear()

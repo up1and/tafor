@@ -3,8 +3,14 @@ import datetime
 from tafor.core.utils.time import utcnow
 
 
+# The three message specs. A day is cut into `periods` windows, each one opening
+# `interval` after the previous, `begin` before the validity it carries starts, and
+# covering `duration`. `delay` is the spec's own grace period before the report is
+# late, which the operator's `Monitor/DelayMinutes` setting is added to.
+
+
 class SpecFC:
-    type = 'FC'
+    designator = 'FC'
     periods = ['0312', '0615', '0918', '1221', '1524', '1803', '2106', '0009']
     default = '0009'
     interval = datetime.timedelta(hours=3)
@@ -14,7 +20,7 @@ class SpecFC:
 
 
 class SpecFT24:
-    type = 'FT'
+    designator = 'FT'
     periods = ['0606', '1212', '1818', '0024']
     default = '0024'
     interval = datetime.timedelta(hours=6)
@@ -24,7 +30,7 @@ class SpecFT24:
 
 
 class SpecFT30:
-    type = 'FT'
+    designator = 'FT'
     periods = ['0612', '1218', '1824', '0006']
     default = '0006'
     interval = datetime.timedelta(hours=6)
@@ -34,111 +40,93 @@ class SpecFT30:
 
 
 class CurrentTaf:
-    """生成当前的 TAF 报文类型
+    """The report window an instant falls in, for one message spec.
 
-    :param spec: TAF 报文规格，选项 fc, ft24, ft30
-    :param time: 报文的生成时间
-    :param offset: 0 代表当前报文，-1 代表上一份报文，1 代表下一份报文，以此类推
+    :param spec: one of SpecFC / SpecFT24 / SpecFT30
+    :param time: the instant the report is made for
+    :param offset: whole windows from it -- 0 is the current one, -1 the previous,
+        1 the next
 
     """
 
-    specifications = {
-        'fc': SpecFC,
-        'ft24': SpecFT24,
-        'ft30': SpecFT30
-    }
-
     def __init__(self, spec, time=None, offset=0):
-        self.spec = self.specifications[spec]
+        self.spec = spec
         self.time = utcnow() if time is None else time
 
         if offset:
             self.time += self.spec.interval * offset
 
-        self._initStartTime()
+        self.initOpenings()
 
     def __repr__(self):
-        return '<Current TAF {}{}>'.format(self.spec.type, self.period())
+        return '<Current TAF {}{}>'.format(self.spec.designator, self.period())
 
-    def period(self, strict=True, withDay=True):
-        if strict:
-            return self._strict(withDay)
-        else:
-            return self._normal(withDay)
+    def key(self):
+        """The window's identity within the day: '0918'.
+
+        The label is what indexes `openings`, and it is the short mark a report is
+        referred to by; `period()` is the same window written out for the message.
+
+        The loop always wins, and `default` is only the answer for the case that
+        cannot happen: the table tiles the day because `periods` spans exactly 24
+        hours and `default` is the window that wraps past midnight. probe-10 swept
+        120,960 instants across the three specs and found no gap. The fallback
+        stays anyway -- a None here would surface as an exception inside a slot,
+        which this codebase turns into exit 127 with no traceback.
+        """
+        for label, start in self.openings.items():
+            if start <= self.time < start + self.spec.interval:
+                return label
+
+        return self.spec.default
+
+    def period(self):
+        """The window as the message writes it: '1009/1018'."""
+        return self.withDay(self.key())
 
     def durations(self):
-        """返回当前报文有效期
+        """The window's validity, as a (start, end) pair."""
+        return self.span(self.key())
 
+    def isExpired(self, minutes=30):
+        """Whether the deadline for this window has passed.
+
+        The deadline is when the window opens, plus the spec's own `delay`, plus
+        `minutes` -- the operator's tolerance from the settings. `minutes` arrives
+        as text, since that is how the settings store it, and None means the caller
+        has no setting to pass and gets the default.
         """
-        period = self._normal(withDay=False)
-        start = self.startTime[period] + self.spec.begin
-        end = start + self.spec.duration
-        return start, end
+        if minutes is None:
+            minutes = 30
 
-    def isExpired(self, offset):
-        """当前时段报文是否过了有效发报时间
-
-        :param offset: 过期时间，单位分钟
-        """
-        offset = int(offset) if offset else 30
-        hours = self.spec.delay // datetime.timedelta(hours=1)
-        delta = datetime.timedelta(hours=hours, minutes=offset)
-        period = self._normal(withDay=False)
-        start = self.startTime[period]
-        threshold = start + delta
+        threshold = self.openings[self.key()] + self.spec.delay + datetime.timedelta(minutes=int(minutes))
         return threshold < self.time
 
-    def _initStartTime(self):
+    def initOpenings(self):
         startOfTheDay = datetime.datetime(self.time.year, self.time.month, self.time.day)
         delta = self.spec.interval - self.spec.begin
 
-        self.startTime = {}
+        self.openings = {}
         for i, period in enumerate(self.spec.periods):
-            self.startTime[period] = startOfTheDay + delta + self.spec.interval * i
+            self.openings[period] = startOfTheDay + delta + self.spec.interval * i
 
         if self.time < startOfTheDay + self.spec.interval - self.spec.begin:
-            self.startTime[self.spec.default] -= datetime.timedelta(days=1)
+            self.openings[self.spec.default] -= datetime.timedelta(days=1)
 
-    def _strict(self, withDay):
-        period = self._findPeriod(self.spec.delay)
+    def span(self, key):
+        """The window's validity, as a (start, end) pair."""
+        start = self.openings[key] + self.spec.begin
+        return start, start + self.spec.duration
 
-        if withDay:
-            period = self._withDay(period)
+    def withDay(self, key):
+        """Write the window out for the message: '1009/1018'."""
+        start, end = self.span(key)
 
-        return period
-
-    def _normal(self, withDay):
-        period = self._findPeriod(self.spec.interval)
-
-        if period is None:
-            period = self.spec.default
-
-        if withDay:
-            period = self._withDay(period)
-
-        return period
-
-    def _findPeriod(self, delay):
-        """查找当前的报文时段
-
-        :param delay: 编辑报文的有效期
-        :return: 不包含日期的报文时段
-        """
-        for period, start in self.startTime.items():
-            if start <= self.time < start + delay:
-                return period
-
-    def _withDay(self, period):
-        """返回报文时段带有日期"""
-        if period is None:
-            return
-
-        start = self.startTime[period] + self.spec.begin
-        end = start + self.spec.duration
-
-        if '24' in period:
+        if int(key[2:]) == 24:
+            # The label's second hour field is the window's end, so 24 means the
+            # end of the day: write 2359 rather than rolling into the next one.
             end -= datetime.timedelta(minutes=1)
 
-        periodWithDay = '{}{}/{}{}'.format(str(start.day).zfill(2), period[:2], str(end.day).zfill(2), period[2:])
+        periodWithDay = '{}{}/{}{}'.format(str(start.day).zfill(2), key[:2], str(end.day).zfill(2), key[2:])
 
         return periodWithDay

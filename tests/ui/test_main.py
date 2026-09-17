@@ -318,11 +318,16 @@ class TestBoardPresenter:
         assert view.boards == 1
         assert view.tables == 1
 
-    def test_initialize_does_not_raise_the_taf_reminder(self, board, context):
+    def test_initialize_does_not_raise_the_taf_reminder(self, board, context, frozen_time):
         """Reading the TAF status flips shouldRemind, which fires
         tafReminderTriggered and opens the reminder dialog -- with the alarm
         looping -- before the window has settled. The startup refresh must
-        leave the TAF monitor state alone, as the original did."""
+        leave the TAF monitor state alone, as the original did.
+
+        frozen_time: shouldRemind only turns True once the window deadline has
+        passed, so on the real clock this assertion has teeth for under an hour
+        out of every six and is vacuously satisfied the rest of the time.
+        """
         fired = []
         context.event.tafReminderTriggered.connect(lambda: fired.append(True))
 
@@ -331,7 +336,9 @@ class TestBoardPresenter:
         assert fired == []
         assert context.taf.shouldRemind() is False
 
-    def test_a_later_refresh_does_raise_the_taf_reminder(self, board, context):
+    def test_a_later_refresh_does_raise_the_taf_reminder(self, board, context, frozen_time):
+        # frozen_time: the reminder is not due for the first 55 minutes of every
+        # window, so on the real clock this assertion depends on when the suite runs.
         fired = []
         context.event.tafReminderTriggered.connect(lambda: fired.append(True))
         board.initialize()
