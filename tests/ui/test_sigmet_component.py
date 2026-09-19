@@ -43,7 +43,7 @@ class StubView(QObject):
 
     def __init__(self):
         super().__init__()
-        self.type = 'WS'
+        self.designator = 'WS'
         self.heading = lambda: 'WSNT36 ZJHK 100800'
         self.message = lambda: 'ZJSA SANYA FIR OBSC TS='
         self.currentContent = StubContent()
@@ -138,10 +138,9 @@ class TestSigmetPresenter:
 class TestSigmetEditor:
 
     def test_category_follows_designator(self, editor):
-        editor.type = 'WS'
         assert editor.category() == 'SIGMET'
 
-        editor.type = 'WA'
+        editor.airmansWeather.click()
         assert editor.category() == 'AIRMET'
 
     def test_template_mode_starts_with_general_content(self, editor):
@@ -156,7 +155,7 @@ class TestSigmetEditor:
 
         assert editor.currentContent is editor.cancelContent
         assert editor.graphic.isVisibleTo(editor)
-        assert editor.type == 'WS'
+        assert editor.designator == 'WS'
 
     def test_leaving_cancel_mode_needs_the_template_radio(self, editor):
         # the template/custom/cancel radios form one exclusive group while
@@ -177,11 +176,22 @@ class TestSigmetEditor:
         assert editor.currentContent is editor.customContent
         assert not editor.graphic.isVisibleTo(editor)
 
-    def test_set_type_updates_span_of_current_content(self, editor):
-        editor.setType('WC', 'template')
+    def test_selecting_a_form_updates_span_of_current_content(self, editor):
+        editor.tropicalCyclone.click()
 
-        assert editor.type == 'WC'
+        assert editor.draft.designator == 'WC'
         assert editor.currentContent.span == validDuration('WC')
+
+    def test_reclicking_the_checked_radio_does_not_reset_the_canvas(self, editor, monkeypatch):
+        # radio clicked fires even on the already-checked radio; the render
+        # gated on draft.select() must not re-run configureMode, which
+        # clears the drawn sketch
+        calls = []
+        monkeypatch.setattr(editor.graphic, 'configureMode', lambda *args: calls.append(args))
+
+        editor.significantWeather.click()
+
+        assert calls == []
 
     def test_heading_composes_designator_area_and_time(self, editor, conf):
         heading = editor.heading()

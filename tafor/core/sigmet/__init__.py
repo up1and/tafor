@@ -1,3 +1,4 @@
+from tafor.core.sigmet.draft import SigmetDraft
 from tafor.core.sigmet.states import (
     SigmetAshState,
     SigmetCancelState,

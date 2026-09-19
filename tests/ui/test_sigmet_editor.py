@@ -24,13 +24,13 @@ from tafor.ui.widgets.sigmet import SigmetCancel, SigmetCustom, SigmetGeneral
 MOMENT = datetime.datetime(2026, 6, 10, 8, 0)
 
 
-def editorStub(type='WS'):
-    return SimpleNamespace(type=type, category=lambda: 'AIRMET' if type == 'WA' else 'SIGMET')
+def editor_stub(designator='WS'):
+    return SimpleNamespace(designator=designator, category=lambda: 'AIRMET' if designator == 'WA' else 'SIGMET')
 
 
 @pytest.fixture
 def editor():
-    return editorStub()
+    return editor_stub()
 
 
 @pytest.fixture
@@ -141,7 +141,7 @@ class TestSigmetGeneral:
     def test_sequence_counts_todays_sigmets(self, qtbot, conf, context, database, frozen_time):
         seed_sigmet(database, 'ZJSA SIGMET 1 VALID 100730/101430 ZJHK-', 'ZJSA SANYA FIR OBSC TS=')
 
-        widget = SigmetGeneral(editor=editorStub(), conf=conf, context=context,
+        widget = SigmetGeneral(editor=editor_stub(), conf=conf, context=context,
                                repository=SigmetRepository(database))
         qtbot.addWidget(widget)
 
@@ -190,8 +190,8 @@ class TestSigmetCustom:
 
 class TestSigmetCancel:
 
-    def test_type_follows_the_editor(self, cancel):
-        assert cancel.type() == 'WS'
+    def test_designator_follows_the_editor(self, cancel):
+        assert cancel.designator() == 'WS'
 
     def test_component_update_lists_active_sequences(self, cancel, context):
         context.current.setState([cancelEditorSigmet()])

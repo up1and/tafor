@@ -1,10 +1,9 @@
-import datetime
-
 from PyQt5.QtCore import QCoreApplication
 
 from tafor.core.models import Sigmet
 from tafor.core.repositories import SigmetFilter
-from tafor.core.sigmet.compose import composeHeading, validDuration
+from tafor.core.sigmet import SigmetDraft
+from tafor.core.sigmet.compose import composeHeading
 from tafor.core.utils.time import utcnow
 from tafor.ui.qt import Ui_sigmet
 from tafor.ui.widgets import AirmetGeneral, SigmetAsh, SigmetCancel, SigmetCustom, SigmetGeneral, SigmetTyphoon
@@ -42,7 +41,7 @@ class SigmetPresenter:
         self.view.ashContent.locationChanged.connect(self.view.graphic.setAdvisoryGraphic)
         self.view.typhoonContent.locationChanged.connect(self.view.graphic.setAdvisoryGraphic)
 
-        for c in self.view.contents:
+        for c in self.view.contents.values():
             c.contentChanged.connect(self.enableNextButton)
 
         self.view.sender.succeeded.connect(self.view.updateState)
@@ -54,7 +53,7 @@ class SigmetPresenter:
             self.previewMessage()
 
     def previewMessage(self):
-        message = Sigmet(type=self.view.type, heading=self.view.heading(), text=self.view.message())
+        message = Sigmet(type=self.view.designator, heading=self.view.heading(), text=self.view.message())
         self.view.finished.emit(message)
 
     def hasAcceptableInput(self):
@@ -80,14 +79,17 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.repository = repository
         self.setupUi(self)
 
-        self.type = 'WS'
-        self.mode = 'template'
+        self.draft = SigmetDraft()
 
         self.presenter = SigmetPresenter(self, context, conf)
         self.initUI()
         self.presenter.initialize()
 
         self.setWindowTitle(QCoreApplication.translate('Editor', 'Encoding Significant Meteorological Information'))
+
+    @property
+    def designator(self):
+        return self.draft.designator
 
     def initUI(self):
         self.graphic = SketchPanel(self, context=self.context)
@@ -98,16 +100,16 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.cancelContent = SigmetCancel(self, conf=self.conf, context=self.context, repository=self.repository)
         self.customContent = SigmetCustom(self, conf=self.conf, context=self.context, repository=self.repository)
 
-        self.contents = []
-        self.contents.append(self.generalContent)
-        self.contents.append(self.typhoonContent)
-        self.contents.append(self.ashContent)
-        self.contents.append(self.airmetContent)
-        self.contents.append(self.cancelContent)
-        self.contents.append(self.customContent)
-        self.currentContent = self.contents[0]
+        self.contents = {
+            'general': self.generalContent,
+            'typhoon': self.typhoonContent,
+            'ash': self.ashContent,
+            'airmet': self.airmetContent,
+            'cancel': self.cancelContent,
+            'custom': self.customContent,
+        }
 
-        for c in self.contents:
+        for c in self.contents.values():
             self.contentLayout.addWidget(c)
 
         self.contentLayout.addWidget(self.graphic)
@@ -116,11 +118,11 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.addBottomBox(self.mainLayout)
 
     def updateGraphicCanvas(self):
-        if self.mode == 'custom':
+        if self.draft.form == 'custom':
             return
 
-        if self.mode == 'cancel':
-            sigmets = self.context.current.filterSigmets(SigmetFilter(designator=self.type))
+        if self.draft.form == 'cancel':
+            sigmets = self.context.current.filterSigmets(SigmetFilter(designator=self.draft.designator))
         else:
             sigmets = self.context.current.filterSigmets(SigmetFilter(category=self.category()))
 
@@ -137,7 +139,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
     def heading(self):
         area = self.conf.bulletinNumber or ''
-        return composeHeading(self.type, area, self.conf.airport, utcnow())
+        return composeHeading(self.draft.designator, area, self.conf.airport, utcnow())
 
     def message(self):
         text = self.currentContent.message()
@@ -150,71 +152,59 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         return text
 
     def category(self):
-        return 'AIRMET' if self.type == 'WA' else 'SIGMET'
+        return self.draft.category()
 
     def hasGraphicWindow(self):
-        return self.currentContent not in [self.customContent, self.cancelContent]
-
-    def setType(self, type, mode):
-        self.type = type
-        self.mode = mode
-        self.currentContent.setSpan(validDuration(self.type))
-        self.graphic.configureMode(self.type, mode)
-        self.updateGraphicCanvas()
+        return self.draft.hasSketch()
 
     def setOverlapMode(self, mode):
-        if self.currentContent not in [self.customContent, self.cancelContent]:
+        if self.draft.hasSketch():
             self.currentContent.setOverlapMode(mode)
 
     def setLocationMode(self, mode):
         self.currentContent.setLocationMode(mode)
 
     def changeContent(self):
-        if self.template.isChecked():
-            mode = 'template'
-            if self.significantWeather.isChecked():
-                self.currentContent = self.generalContent
-
-            elif self.tropicalCyclone.isChecked():
-                self.currentContent = self.typhoonContent
-
-            elif self.volcanicAsh.isChecked():
-                self.currentContent = self.ashContent
-
-            elif self.airmansWeather.isChecked():
-                self.currentContent = self.airmetContent
-
-        elif self.cancel.isChecked():
-            mode = 'cancel'
-            self.currentContent = self.cancelContent
-        else:
-            mode = 'custom'
-            self.currentContent = self.customContent
+        form = self.current()
+        changed = self.draft.select(form)
+        self.currentContent = self.contents[form]
 
         if self.currentContent == self.customContent:
             self.graphic.hide()
         else:
             self.graphic.show()
 
-        for c in self.contents:
+        for c in self.contents.values():
             if c == self.currentContent:
                 c.show()
             else:
                 c.hide()
 
-        if self.tropicalCyclone.isChecked():
-            designator = 'WC'
-        elif self.volcanicAsh.isChecked():
-            designator = 'WV'
-        elif self.airmansWeather.isChecked():
-            designator = 'WA'
-        else:
-            designator = 'WS'
+        if changed:
+            self.currentContent.setSpan(self.draft.span())
+            self.graphic.configureMode(self.draft.designator, 'cancel' if form == 'cancel' else 'template')
+            self.updateGraphicCanvas()
 
-        self.setType(designator, mode)
+    def current(self):
+        if self.cancel.isChecked():
+            return 'cancel'
+
+        if self.custom.isChecked():
+            return 'custom'
+
+        if self.tropicalCyclone.isChecked():
+            return 'typhoon'
+
+        if self.volcanicAsh.isChecked():
+            return 'ash'
+
+        if self.airmansWeather.isChecked():
+            return 'airmet'
+
+        return 'general'
 
     def clear(self):
-        for c in self.contents:
+        for c in self.contents.values():
             c.clear()
 
         self.graphic.clear()

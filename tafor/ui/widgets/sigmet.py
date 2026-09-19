@@ -121,7 +121,7 @@ class BaseSigmet(SegmentMixin, QWidget):
 
     def periodTime(self):
         self.time = utcnow()
-        return validPeriod(self.type(), self.span, self.time)
+        return validPeriod(self.designator(), self.span, self.time)
 
     def validatePeriod(self):
         error = SigmetFormValidator.validatePeriod(self.durations, self.span)
@@ -183,7 +183,7 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.endingTime.setText(endingTime.strftime('%d%H%M'))
 
     def updateSequence(self):
-        sigmets = self.repository.countToday(self.type())
+        sigmets = self.repository.countToday(self.designator())
         count = nextSequence([sig.heading for sig in sigmets], utcnow())
         self.sequence.setText(str(count))
 
@@ -193,8 +193,8 @@ class BaseSigmet(SegmentMixin, QWidget):
     def hasForecastMode(self):
         return self.forecastMode
 
-    def type(self):
-        return self.editor.type
+    def designator(self):
+        return self.editor.designator
 
     def firstLine(self):
         return self.state.header.compose()
@@ -1159,7 +1159,7 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
     def componentUpdate(self):
         self.prevs = []
-        sigmets = self.context.current.filterSigmets(SigmetFilter(designator=self.type()))
+        sigmets = self.context.current.filterSigmets(SigmetFilter(designator=self.designator()))
 
         for sig in sigmets:
             parser = sig.parser()
@@ -1251,11 +1251,11 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
             'WV': 'VA ERUPTION MT ASHVAL PSN S1500 E07348 VA CLD\nOBS AT 1100Z APRX 50{} WID LINE BTN S1500 E07348 - S1530 E07642 FL310/450 MOV ESE 65{}\nFCST AT 1700Z APRX 50{} WID LINE BTN S1506 E07500 - S1518 E08112 - S1712 E08330'.format(self.conf.units.length, self.conf.units.sigmetSpeed, self.conf.units.length),
             'WA': 'MOD MTW OBS AT 1205Z N4200 E11000 FL080 STNR NC'
         }
-        tip = tips[self.type()]
+        tip = tips[self.designator()]
         self.text.setPlaceholderText(tip)
 
     def loadLocalDatabase(self):
-        last = self.repository.latest(self.type())
+        last = self.repository.latest(self.designator())
 
         if last:
             parser = last.parser()
@@ -1263,7 +1263,7 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
 
     def loadNotification(self):
         parser = self.context.notification.sigmet.parser()
-        if parser and self.type() == parser.type():
+        if parser and self.designator() == parser.type():
             return 'notification', parser.content()
 
     def updateText(self):
