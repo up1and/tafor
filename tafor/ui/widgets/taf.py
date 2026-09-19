@@ -527,15 +527,6 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.repository = repository
         self.draft = draft
 
-        # The modifier that last took effect, so updateModifier() can tell a real
-        # change from a click on the radio that is already on. It cannot be read
-        # off the state: the radios emit `toggled` before `clicked`, and toggles()
-        # is wired to onContentChanged, so collect() has already written the new
-        # modifier there by the time the click reaches this widget. Qt keeps no
-        # record of the previous one either -- an exclusive radio group unchecks
-        # the old button the moment the new one goes down.
-        self.appliedModifier = self.modifier
-
         self.setupValidator()
         self.period.setEnabled(False)
         self.sequence.setEnabled(False)
@@ -584,16 +575,10 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         The four radios share one exclusive group, so at most one is on. NORMAL is
         absent from the mapping on purpose -- it is not a marker but the lack of
         one, so it comes out as None, the same value the state spells it with.
-
-        This is the *live* reading. `appliedModifier` is the modifier the form was
-        last built for; the two differ only inside updateModifier(), and that gap is
-        the whole reason appliedModifier exists.
         """
         for radio, modifier in ((self.cor, 'COR'), (self.amd, 'AMD'), (self.cnl, 'CNL')):
             if radio.isChecked():
                 return modifier
-
-        return None
 
     def applyState(self):
         """The primary segment deliberately leaves its header alone.
@@ -665,33 +650,23 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             self.tempo3Checkbox.setChecked(False)
 
     def updateModifier(self):
-        """Empty the form when the modifier or the period changes, then refill the header.
+        """Empty the form when the period changes, then refill the header.
 
-        The trigger is "the value really changed", not "this handler ran": a click
-        on the radio that is already on must keep what has been typed. That is why
-        the previous modifier is `appliedModifier`, the widget's own memory of the
-        last one that took effect -- reading `state.modifier` instead would always
-        report "unchanged", since the radios emit `toggled` before `clicked` and
-        toggles() is wired to onContentChanged, so collect() has already written
-        the new modifier into the state by the time this runs.
-
-        The clear comes first on purpose: everything below it is the header, and
-        the old wiring (period.textChanged -> TafPresenter.clear) used to clear the
-        form from the middle of these writes, after the period was already written.
+        The period is the only trigger: a modifier does not move the validity
+        window, so switching the marker keeps what has been typed, and the header
+        the marker owns -- the sequence notation and its validator -- is rebuilt
+        below on every run, clear or not. Nor is the trigger "this handler ran":
+        a click on the radio that is already on must keep what has been typed.
         """
-        if not self.date.hasAcceptableInput():
-            return
-
         self.taf = self.draft.taf()
         modifier = self.modifier
         period = self.impliedPeriod(self.taf, modifier)
 
-        if modifier != self.appliedModifier or period != self.period.text():
+        if period != self.period.text():
             self.editor.clear()
 
-        self.appliedModifier = modifier
-        # clear() dropped it back to None; writing it here keeps the state right
-        # even when the sequence below happens to be written with its current text.
+        # A clear() drops the state back to defaults and no collect runs on the
+        # prev/reset path, so re-assert the modifier the radios are on.
         self.state.modifier = modifier
         self.applyPeriod(period)
 
@@ -774,10 +749,9 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.setDate()
 
     def clearType(self):
-        # A fresh message: the radios go back to NORMAL, so the widget's memory of
-        # the last modifier that took effect has to follow them.
+        # A fresh message: the radios go back to NORMAL, and the toggled cascade
+        # collects them into the state on the way.
         self.normal.setChecked(True)
-        self.appliedModifier = self.modifier
         self.sequence.clear()
         self.resetButton.setEnabled(False)
         self.prevButton.setEnabled(True)

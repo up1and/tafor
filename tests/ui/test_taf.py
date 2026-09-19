@@ -140,8 +140,9 @@ class TestTafEditor:
         assert primary.state.sequence == 'AAA'
 
     def test_the_modifier_radio_collects_on_its_own(self, editor):
-        # the radios used to be wired to contentChanged only, so `state.modifier`
-        # stayed on its default until something else happened to force a collect
+        # the radios emit toggled before clicked, and toggles() is wired to
+        # onContentChanged, so the state follows them without waiting for a
+        # hand-written collect()
         primary = editor.primary
         primary.setDate()
         primary.amd.click()
@@ -515,14 +516,18 @@ class TestTafApplyState:
         assert not primary.cb.isEnabled()
 
 
-class TestTafModifierClearsTheForm:
-    """Changing the modifier or the period empties the form (design 6).
+class TestTafPeriodClearsTheForm:
+    """Changing the period empties the form; changing the modifier does not.
 
-    The trigger is "the value really changed", not "the handler ran": a click on
-    the radio that is already on must keep what has been typed. Emptying the form
-    is updateModifier()'s own explicit decision — it used to be a side effect of
-    the period line's textChanged signal, which made every write to the period
-    clear the form.
+    The period owns the validity window: when it moves, the change-group times
+    typed against the old window go stale, so everything is emptied. A modifier
+    does not move the window, so switching the marker keeps what has been typed
+    and only rebuilds the header -- the sequence included. Within either half the
+    trigger is "the value really changed", not "the handler ran": a click on the
+    radio that is already on must keep what has been typed. Emptying the form is
+    updateModifier()'s own explicit decision — it used to be a side effect of the
+    period line's textChanged signal, which made every write to the period clear
+    the form, and the modifier used to empty the form too.
     """
 
     def start_filled(self, editor):
@@ -542,18 +547,21 @@ class TestTafModifierClearsTheForm:
         assert read_widgets(primary) == widgets
         assert read_state(primary) == state
 
-    def test_changing_the_modifier_empties_the_form(self, editor):
+    def test_changing_the_modifier_keeps_the_form(self, editor):
         primary = self.start_filled(editor)
-        assert read_widgets(primary)[0]
+        widgets = read_widgets(primary)
+        state = read_state(primary)
 
         primary.amd.click()
 
-        assert read_widgets(primary) == ('',) * 9
-        assert read_state(primary) == EMPTY
+        assert read_widgets(primary) == widgets
+        assert read_state(primary) == state
+        assert primary.state.modifier == 'AMD'
+        assert primary.sequence.text() == 'AAA'
 
-    def test_the_header_is_refilled_after_the_clear(self, editor, frozen_time):
+    def test_changing_the_modifier_refills_the_header(self, editor, frozen_time):
         # frozen_time: the period is read off the clock, and this test compares it
-        # before and after the clear
+        # before and after the switch
         primary = self.start_filled(editor)
         period = primary.period.text()
 
@@ -566,24 +574,27 @@ class TestTafModifierClearsTheForm:
         assert primary.state.sequence == 'AAA'
         assert primary.state.modifier == 'AMD'
 
-    def test_changing_the_modifier_drops_the_change_groups_too(self, editor):
+    def test_changing_the_modifier_keeps_the_change_groups(self, editor):
         primary = self.start_filled(editor)
         primary.becmg1Checkbox.setChecked(True)
         fill(editor.becmg1)
+        widgets = read_widgets(editor.becmg1)
         assert editor.draft.activeGroups() == (('BECMG', 1),)
 
         primary.amd.click()
 
-        assert editor.draft.activeGroups() == ()
-        assert read_widgets(editor.becmg1) == ('',) * 9
+        assert editor.draft.activeGroups() == (('BECMG', 1),)
+        assert read_widgets(editor.becmg1) == widgets
 
-    def test_the_cancel_modifier_empties_the_form_and_still_composes_cnl(self, editor):
+    def test_the_cancel_modifier_keeps_the_form_and_still_composes_cnl(self, editor):
         primary = self.start_filled(editor)
+        widgets = read_widgets(primary)
 
         primary.cnl.click()
 
-        assert read_widgets(primary) == ('',) * 9
+        assert read_widgets(primary) == widgets
         assert primary.state.modifier == 'CNL'
+        assert all(not c.isEnabled() for c in primary.groupCheckboxs)
         assert primary.message().endswith(' CNL')
 
     def test_a_second_click_on_the_new_radio_keeps_the_form(self, editor):
@@ -615,51 +626,57 @@ class TestTafModifierClearsTheForm:
         assert read_widgets(primary) == ('',) * 9
         assert primary.period.text() and primary.period.text() != period
 
-    def test_switching_between_two_amend_modifiers_empties_the_form(self, editor):
-        """AMD -> COR implies the same period, so only `appliedModifier` can fire.
+    def test_stepping_to_another_period_keeps_the_modifier_in_the_state(self, editor):
+        # the clear() inside updateModifier() wipes the state, and no collect
+        # runs after it on this path -- the re-assertion in updateModifier() is
+        # what keeps `state.modifier` on the radios' value
+        primary = open_header(editor)
+        primary.amd.click()
+        assert primary.state.modifier == 'AMD'
 
-        This is the test that pins the widget's own memory of the last modifier.
-        The period COR implies is the one already on screen, so the period half of
-        the trigger is false; if the modifier half went away (by comparing against
-        the state, which collect() has already overwritten), the form would keep its
-        content and a changed report type would not empty it.
+        editor.draft.prev()
+        primary.updateModifier()
+
+        assert primary.state.modifier == 'AMD'
+        assert primary.state.sequence == 'AAA'
+
+    def test_switching_between_two_amend_modifiers_keeps_the_form(self, editor):
+        """AMD -> COR implies the same period, so nothing is cleared.
+
+        The period COR implies is the one already on screen, so the period half
+        of the trigger is false and the typed content stays; what flips is the
+        header the marker owns -- the sequence is rebuilt for the COR notation.
         """
         primary = self.start_filled(editor)
         primary.amd.click()
         fill(primary)
         primary.collect()
         period = primary.period.text()
+        widgets = read_widgets(primary)
         assert primary.sequence.text() == 'AAA'
 
         primary.cor.click()
 
         assert primary.period.text() == period  # the period did not move
-        assert read_widgets(primary) == ('',) * 9
+        assert read_widgets(primary) == widgets
         assert primary.state.modifier == 'COR'
         assert primary.sequence.text() == 'CCA'
 
-    def test_a_click_the_date_field_turned_away_still_counts_as_pending(self, editor):
-        """A click the date guard refuses is not a click that was applied.
+    def test_clear_type_forgets_the_applied_modifier(self, editor):
+        """A fresh message leaves nothing pending in the state.
 
-        updateModifier() bails while the date field holds something unacceptable, so
-        nothing is rebuilt -- but the radios have still moved, and `state.modifier`
-        follows them, because mirroring the radios is what the state is for. The
-        widget's own record of the last modifier that took effect does not follow
-        them, and that record is the only thing left which can tell, on the click
-        after, that the AMD asked for was never built for. Both clicks have to be
-        real clicks: the second is a repeat on a radio that is already on, which is
-        the case the record exists for.
+        clearType() puts the radios back to NORMAL; the toggles() wiring collects
+        them into the state on the way, so `state.modifier` follows without a
+        hand-written reset.
         """
         primary = self.start_filled(editor)
-        primary.date.clear()
 
         primary.amd.click()
-
-        primary.setDate()
-        primary.amd.click()
-
-        assert read_widgets(primary) == ('',) * 9
         assert primary.state.modifier == 'AMD'
+
+        primary.clearType()
+
+        assert primary.state.modifier is None
 
 
 if __name__ == '__main__':
