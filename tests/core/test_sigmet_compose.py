@@ -8,7 +8,7 @@ from tafor.core.geometry.sketch import (
 )
 from tafor.core.sigmet.compose import (
     adjustCancelBeginning, category, composeHeading, formatLocation, nextSequence,
-    validDuration, validPeriod,
+    typhoonCircleFeature, validDuration, validPeriod,
 )
 from tafor.core.states import SigmetMonitorService, SigmetMonitorState
 
@@ -174,6 +174,22 @@ def test_entire_text():
 
     sketch.restore(boundaries=[(110.0, 20.0), (111.0, 21.0), (112.0, 20.0)])
     assert formatLocation(sketch, None) == 'ENTIRE FIR'
+
+
+class TestTyphoonCircleFeature:
+
+    def test_a_complete_position_builds_a_point_feature(self):
+        feature = typhoonCircleFeature('N2417', 'E14129', '50', 'initial')
+
+        assert feature['type'] == 'Feature'
+        assert feature['properties'] == {'location': 'initial', 'radius': 50}
+        lon, lat = feature['geometry']['coordinates']
+        assert lon == pytest.approx(141.483, abs=0.01)
+        assert lat == pytest.approx(24.283, abs=0.01)
+
+    def test_missing_coordinates_collapse_to_an_empty_dict(self):
+        assert typhoonCircleFeature('', 'E14129', '50', 'initial') == {}
+        assert typhoonCircleFeature('N2417', '', '50', 'initial') == {}
 
 
 class FakePrevParser:

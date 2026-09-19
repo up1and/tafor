@@ -1,3 +1,4 @@
+from tafor.core.geometry.coordinate import calcPosition, directionDegrees
 from tafor.core.sigmet.compose import composeBody
 from tafor.core.utils.time import parseTime
 
@@ -31,10 +32,21 @@ class SigmetHeaderState:
         self.icao = ''
 
 
-class BaseState:
+class MessageState:
+
+    def __init__(self):
+        self.header = SigmetHeaderState()
+        self.durations = None
+
+    def clear(self):
+        self.header.clear()
+        self.durations = None
+
+
+class SigmetState(MessageState):
 
     def __init__(self, unit):
-        self.header = SigmetHeaderState()
+        super().__init__()
         self.comeFrom = ''
         self.observedTime = ''
         self.flightLevelFormat = ''
@@ -99,7 +111,7 @@ class BaseState:
         return 'FCST AT {}Z'.format(self.forecastTime)
 
     def clear(self):
-        self.header.clear()
+        super().clear()
         self.comeFrom = ''
         self.observedTime = ''
         self.flightLevelFormat = ''
@@ -112,7 +124,7 @@ class BaseState:
         self.hasForecast = False
 
 
-class SigmetGeneralState(BaseState):
+class SigmetGeneralState(SigmetState):
 
     def __init__(self, unit):
         super().__init__(unit)
@@ -156,7 +168,7 @@ class SigmetGeneralState(BaseState):
         self.phenomenon = ''
 
 
-class SigmetTyphoonState(BaseState):
+class SigmetTyphoonState(SigmetState):
 
     def __init__(self, unit):
         super().__init__(unit)
@@ -241,44 +253,12 @@ class SigmetTyphoonState(BaseState):
         if self.direction == 'STNR':
             return None
 
-        from tafor.core.geometry.coordinate import calcPosition
-
-        directions = {
-            'N': 0, 'NNE': 22.5, 'NE': 45, 'ENE': 67.5,
-            'E': 90, 'ESE': 112.5, 'SE': 135, 'SSE': 157.5,
-            'S': 180, 'SSW': 202.5, 'SW': 225, 'WSW': 247.5,
-            'W': 270, 'WNW': 292.5, 'NW': 315, 'NNW': 337.5,
-        }
-
         beginningTime = self.header.beginningTime[2:] if self.header.beginningTime else ''
         time = parseTime(self.forecastTime) - parseTime(self.observedTime or beginningTime)
-        degree = directions[self.direction]
+        degree = directionDegrees(self.direction)
 
         return calcPosition(self.currentLatitude, self.currentLongitude,
                            self.speed, time.seconds, degree)
-
-    def circleFeature(self, location):
-        from tafor.core.geometry.coordinate import degreeToDecimal
-
-        feature = {'type': 'Feature', 'properties': {'location': location}}
-
-        if location == 'initial':
-            lat, lon = self.currentLatitude, self.currentLongitude
-        else:
-            lat, lon = self.forecastLatitude, self.forecastLongitude
-
-        if lat and lon:
-            feature['geometry'] = {
-                'type': 'Point',
-                'coordinates': (degreeToDecimal(lon), degreeToDecimal(lat)),
-            }
-            if self.radius:
-                feature['properties']['radius'] = int(self.radius)
-
-        if 'geometry' not in feature:
-            return {}
-
-        return feature
 
     def clear(self):
         super().clear()
@@ -293,7 +273,7 @@ class SigmetTyphoonState(BaseState):
         self.mode = 'polygon'
 
 
-class SigmetAshState(BaseState):
+class SigmetAshState(SigmetState):
 
     def __init__(self, unit):
         super().__init__(unit)
@@ -355,10 +335,10 @@ class SigmetAshState(BaseState):
         self.isEruption = True
 
 
-class SigmetCancelState:
+class SigmetCancelState(MessageState):
 
     def __init__(self):
-        self.header = SigmetHeaderState()
+        super().__init__()
         self.cancelSequence = ''
         self.cancelBeginningTime = ''
         self.cancelEndingTime = ''
@@ -379,16 +359,16 @@ class SigmetCancelState:
                 and bool(self.cancelSequence and self.cancelBeginningTime and self.cancelEndingTime))
 
     def clear(self):
-        self.header.clear()
+        super().clear()
         self.cancelSequence = ''
         self.cancelBeginningTime = ''
         self.cancelEndingTime = ''
 
 
-class SigmetCustomState:
+class SigmetCustomState(MessageState):
 
     def __init__(self):
-        self.header = SigmetHeaderState()
+        super().__init__()
         self.text = ''
 
     def composeMessage(self, fir):
@@ -400,5 +380,5 @@ class SigmetCustomState:
         return self.header.isAcceptable() and bool(self.text)
 
     def clear(self):
-        self.header.clear()
+        super().clear()
         self.text = ''

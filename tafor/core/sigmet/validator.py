@@ -10,7 +10,8 @@ class SigmetFormValidator:
     FLIGHT_LEVEL_INVALID = 'flight_level_invalid'
 
     @staticmethod
-    def validatePeriod(durations, span, now=None):
+    def validatePeriod(state, span, now=None):
+        durations = state.durations
         if durations is None:
             return None
 

@@ -2,7 +2,7 @@ import datetime
 import re
 
 from tafor.core.geometry.algorithm import depth, encode
-from tafor.core.geometry.coordinate import decimalToDegree
+from tafor.core.geometry.coordinate import decimalToDegree, degreeToDecimal
 from tafor.core.geometry.sketch import (
     CircleSketch, CorridorSketch, EntireSketch, LineSketch, PolygonSketch,
     RectangularSketch,
@@ -10,20 +10,10 @@ from tafor.core.geometry.sketch import (
 from tafor.core.utils.time import ceilTime, parseTime, roundTime
 
 
-def composeHeading(designator, area, icao, now):
-    time = now.strftime('%d%H%M')
-    messages = [designator + area, icao, time]
-    return ' '.join(filter(None, messages))
-
-
 def category(designator):
     """The bulletin sign the designator files under: WA is an AIRMET."""
     return 'AIRMET' if designator == 'WA' else 'SIGMET'
 
-
-def composeBody(header, content):
-    """The message body: the header line, the content line, closed with '='."""
-    return '\n'.join([header, content]) + '='
 
 
 def validDuration(designator):
@@ -154,3 +144,37 @@ def formatLocation(sketch, boundaries):
         EntireSketch: entireText,
     }
     return formatters[type(sketch)](sketch, boundaries)
+
+
+def typhoonCircleFeature(latitude, longitude, radius, location):
+    """GeoJSON point feature for the typhoon form circles.
+
+    ``location`` selects which position the feature marks, 'initial' or
+    'final'. Without both coordinates there is nothing to draw, so the
+    feature collapses to an empty dict.
+    """
+    feature = {'type': 'Feature', 'properties': {'location': location}}
+
+    if latitude and longitude:
+        feature['geometry'] = {
+            'type': 'Point',
+            'coordinates': (degreeToDecimal(longitude), degreeToDecimal(latitude)),
+        }
+        if radius:
+            feature['properties']['radius'] = int(radius)
+
+    if 'geometry' not in feature:
+        return {}
+
+    return feature
+
+
+def composeHeading(designator, area, icao, now):
+    time = now.strftime('%d%H%M')
+    messages = [designator + area, icao, time]
+    return ' '.join(filter(None, messages))
+
+
+def composeBody(header, content):
+    """The message body: the header line, the content line, closed with '='."""
+    return '\n'.join([header, content]) + '='

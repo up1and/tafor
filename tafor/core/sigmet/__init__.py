@@ -13,6 +13,7 @@ from tafor.core.sigmet.compose import (
     nextSequence,
     polygonText,
     rectangularText,
+    typhoonCircleFeature,
     validDuration,
     validPeriod,
 )

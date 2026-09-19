@@ -48,7 +48,7 @@ def test_lifecycle_defaults_are_noops():
     part = GreedyPart(FakeWidget(comeFrom='c', observedTime='o'))
 
     part.bindSignal()
-    part.syncToState()
+    part.collect()
     part.setupValidator()
     part.clear()
     part.setOverlapMode('final')

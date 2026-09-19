@@ -2,6 +2,7 @@ from tafor.core.taf.spec import SpecFC
 
 
 class TemperatureState:
+
     def __init__(self, mode="max"):
         self.mode = mode
         self.value = ""
@@ -22,6 +23,7 @@ class TemperatureState:
 
 
 class SegmentState:
+
     def __init__(self, unit):
         self.unit = unit
         self.wind = ""
@@ -126,6 +128,7 @@ class PrimaryState(SegmentState):
 
 
 class GroupState(SegmentState):
+
     def __init__(self, unit, indicator="TEMPO"):
         super().__init__(unit)
         self.indicator = indicator  # FM, BECMG, TEMPO
@@ -149,6 +152,7 @@ class GroupState(SegmentState):
 
 
 class TrendState(SegmentState):
+
     def __init__(self, unit):
         super().__init__(unit)
         self.isNosig = False

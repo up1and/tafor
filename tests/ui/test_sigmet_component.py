@@ -44,7 +44,6 @@ class StubView(QObject):
     def __init__(self):
         super().__init__()
         self.designator = 'WS'
-        self.heading = lambda: 'WSNT36 ZJHK 100800'
         self.message = lambda: 'ZJSA SANYA FIR OBSC TS='
         self.currentContent = StubContent()
         self.graphic = SimpleNamespace(hasAcceptableGraphic=lambda: True)
@@ -89,7 +88,7 @@ class TestSigmetPresenter:
         presenter = SigmetPresenter(view, context, conf)
         return presenter
 
-    def test_before_next_validates_and_previews(self, presenter, view, qtbot):
+    def test_before_next_validates_and_previews(self, presenter, view, qtbot, conf):
         messages = []
         view.finished.connect(messages.append)
 
@@ -100,7 +99,8 @@ class TestSigmetPresenter:
         message = messages[0]
         assert isinstance(message, Sigmet)
         assert message.type == 'WS'
-        assert message.heading == 'WSNT36 ZJHK 100800'
+        pattern = r'^WS{} {} \d{{6}}$'.format(conf.bulletinNumber or '', conf.airport)
+        assert re.match(pattern, message.heading)
         assert message.text == 'ZJSA SANYA FIR OBSC TS='
 
     def test_before_next_skips_preview_when_input_rejected(self, presenter, view, qtbot):
@@ -193,12 +193,6 @@ class TestSigmetEditor:
 
         assert calls == []
 
-    def test_heading_composes_designator_area_and_time(self, editor, conf):
-        heading = editor.heading()
-
-        pattern = r'^WS{} {} \d{{6}}$'.format(conf.bulletinNumber or '', conf.airport)
-        assert re.match(pattern, heading)
-
     def test_message_from_custom_content_appends_equals(self, editor):
         editor.custom.click()
         editor.customContent.text.setPlainText('ZJSA SANYA FIR OBSC TS')
@@ -247,14 +241,39 @@ class TestSigmetEditor:
         editor.ashContent.phenomenon.setCurrentText('ERUPTION')
         assert editor.ashContent.state.isEruption is True
 
-    def test_clear_resets_state_but_keeps_the_text_widget(self, editor):
-        # BUG: SigmetCustom.clear resets the state but not the text widget,
-        # so the editor keeps showing stale content after a clear
+    def test_clear_resets_the_state_and_the_text_widget(self, editor):
+        # was pinned as a bug (state cleared, text widget kept stale content)
+        # until applyState() gave clear() its render direction
         editor.customContent.text.setPlainText('SOME TEXT')
         editor.clear()
 
         assert editor.customContent.state.text == ''
-        assert editor.customContent.text.toPlainText() == 'SOME TEXT'
+        assert editor.customContent.text.toPlainText() == ''
+
+    def test_clear_empties_the_cancel_fields(self, editor):
+        editor.cancel.click()
+        editor.cancelContent.cancelBeginningTime.setText('100930')
+
+        editor.clear()
+
+        assert editor.cancelContent.cancelBeginningTime.text() == ''
+        assert editor.cancelContent.cancelSequence.currentText() == ''
+
+    def test_clear_disables_the_forecast_time(self, editor):
+        editor.generalContent.setOverlapMode('final')
+        editor.clear()
+
+        assert not editor.generalContent.forecastTime.isEnabled()
+        assert editor.generalContent.forecastTime.text() == ''
+
+    def test_clear_resets_the_typhoon_canvas_tool(self, editor):
+        editor.tropicalCyclone.click()
+        editor.graphic.modeButton.click()
+
+        editor.clear()
+
+        assert editor.graphic.canvas.mode == 'circle'
+        assert editor.typhoonContent.state.mode == 'circle'
 
     def test_close_clears_sigmet_notification(self, editor, context):
         context.notification.sigmet.setState({'message': 'ZJSA SIGMET 1 VALID 100930/101430 ZJHK-'})

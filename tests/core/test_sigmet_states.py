@@ -11,7 +11,7 @@ import pytest
 
 
 from tafor.core.sigmet.states import (
-    BaseState,
+    SigmetState,
     SigmetAshState,
     SigmetCancelState,
     SigmetCustomState,
@@ -131,10 +131,10 @@ class TestSigmetHeaderState:
             assert getattr(state, field) == ''
 
 
-class TestBaseStateHelpers:
+class TestSigmetStateHelpers:
 
     def test_observation_wording_follows_come_from(self):
-        state = BaseState('KMH')
+        state = SigmetState('KMH')
         state.comeFrom = 'OBS'
         state.observedTime = '100800'
         assert state.observation() == 'OBS AT 100800Z'
@@ -144,28 +144,28 @@ class TestBaseStateHelpers:
         assert state.observation() == 'FCST AT 101000Z'
 
     def test_an_observation_without_a_time_composes_nothing(self):
-        state = BaseState('KMH')
+        state = SigmetState('KMH')
         state.comeFrom = 'OBS'
         assert state.observation() == ''
 
     def test_a_forecast_without_a_time_degrades_to_the_come_from(self):
-        state = BaseState('KMH')
+        state = SigmetState('KMH')
         state.comeFrom = 'FCST'
         assert state.observation() == 'FCST'
 
     def test_stationary_wins_over_any_speed(self):
-        state = BaseState('KMH')
+        state = SigmetState('KMH')
         state.direction = 'STNR'
         state.speed = '25'
         assert state.movement() == 'STNR'
 
     def test_movement_without_a_speed_is_none(self):
-        state = BaseState('KMH')
+        state = SigmetState('KMH')
         state.direction = 'NE'
         assert state.movement() is None
 
     def test_movement_casts_the_speed_and_appends_the_unit(self):
-        state = BaseState('KMH')
+        state = SigmetState('KMH')
         state.direction = 'NE'
         state.speed = '25'
         assert state.movement() == 'MOV NE 25KMH'
@@ -177,7 +177,7 @@ class TestBaseStateHelpers:
         ('', '', ''),
     ])
     def test_flight_level_without_a_format(self, base, top, expected):
-        state = BaseState('KMH')
+        state = SigmetState('KMH')
         state.flightLevelBase = base
         state.flightLevelTop = top
         assert state.flightLevel() == expected
@@ -188,19 +188,19 @@ class TestBaseStateHelpers:
         ('BLW', 'BLW FL120'),
     ])
     def test_top_family_formats_use_the_top(self, format, expected):
-        state = BaseState('KMH')
+        state = SigmetState('KMH')
         state.flightLevelFormat = format
         state.flightLevelTop = '120'
         assert state.flightLevel() == expected
 
     def test_the_abv_format_uses_the_base(self):
-        state = BaseState('KMH')
+        state = SigmetState('KMH')
         state.flightLevelFormat = 'ABV'
         state.flightLevelBase = '80'
         assert state.flightLevel() == 'ABV FL080'
 
     def test_the_sfc_format_uses_the_top(self):
-        state = BaseState('KMH')
+        state = SigmetState('KMH')
         state.flightLevelFormat = 'SFC'
         state.flightLevelTop = '450'
         assert state.flightLevel() == 'SFC/FL450'
@@ -308,6 +308,7 @@ class TestSigmetTyphoonState:
 
     def test_circle_mode_demands_a_radius(self):
         assert typhoon(mode='circle').isAcceptable() is False
+        assert typhoon(mode='circle', radius='200').isAcceptable() is True
 
     def test_forecast_mode_demands_the_forecast_position(self):
         # Unlike the general state, an empty forecastTime is rejected here.

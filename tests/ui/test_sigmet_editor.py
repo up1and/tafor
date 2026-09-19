@@ -37,6 +37,7 @@ def editor():
 def general(qtbot, conf, context, database, editor, frozen_time):
     widget = SigmetGeneral(editor=editor, conf=conf, context=context,
                            repository=SigmetRepository(database))
+    widget.initState()
     qtbot.addWidget(widget)
     return widget
 
@@ -45,6 +46,7 @@ def general(qtbot, conf, context, database, editor, frozen_time):
 def custom(qtbot, conf, context, database, editor, frozen_time):
     widget = SigmetCustom(editor=editor, conf=conf, context=context,
                           repository=SigmetRepository(database))
+    widget.initState()
     qtbot.addWidget(widget)
     return widget
 
@@ -53,6 +55,7 @@ def custom(qtbot, conf, context, database, editor, frozen_time):
 def cancel(qtbot, conf, context, database, editor, frozen_time):
     widget = SigmetCancel(editor=editor, conf=conf, context=context,
                           repository=SigmetRepository(database))
+    widget.initState()
     qtbot.addWidget(widget)
     return widget
 
@@ -73,21 +76,21 @@ def cancelEditorSigmet():
 class TestSigmetGeneral:
 
     def test_initial_durations_follow_the_period(self, general):
-        assert general.durations == (MOMENT + datetime.timedelta(minutes=10),
+        assert general.state.durations == (MOMENT + datetime.timedelta(minutes=10),
                                      MOMENT + datetime.timedelta(hours=4, minutes=10))
 
     def test_update_durations_parses_both_times(self, general):
         general.beginningTime.setText('100800')
         general.endingTime.setText('101400')
 
-        assert general.durations == (MOMENT, MOMENT + datetime.timedelta(hours=6))
+        assert general.state.durations == (MOMENT, MOMENT + datetime.timedelta(hours=6))
 
     def test_incomplete_times_clear_durations(self, general):
         general.beginningTime.setText('100800')
         general.endingTime.setText('101400')
         general.endingTime.clear()
 
-        assert general.durations is None
+        assert general.state.durations is None
 
     def test_validate_period_accepts_the_suggested_period(self, general):
         general.validatePeriod()
@@ -136,13 +139,14 @@ class TestSigmetGeneral:
         general.setSpan(6)
 
         assert general.span == 6
-        assert general.durations[1] - general.durations[0] == datetime.timedelta(hours=6)
+        assert general.state.durations[1] - general.state.durations[0] == datetime.timedelta(hours=6)
 
     def test_sequence_counts_todays_sigmets(self, qtbot, conf, context, database, frozen_time):
         seed_sigmet(database, 'ZJSA SIGMET 1 VALID 100730/101430 ZJHK-', 'ZJSA SANYA FIR OBSC TS=')
 
         widget = SigmetGeneral(editor=editor_stub(), conf=conf, context=context,
                                repository=SigmetRepository(database))
+        widget.initState()
         qtbot.addWidget(widget)
 
         assert widget.sequence.text() == '2'

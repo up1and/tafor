@@ -53,7 +53,9 @@ class SigmetPresenter:
             self.previewMessage()
 
     def previewMessage(self):
-        message = Sigmet(type=self.view.designator, heading=self.view.heading(), text=self.view.message())
+        designator = self.view.designator
+        heading = composeHeading(designator, self.conf.bulletinNumber or '', self.conf.airport, utcnow())
+        message = Sigmet(type=designator, heading=heading, text=self.view.message())
         self.view.finished.emit(message)
 
     def hasAcceptableInput(self):
@@ -137,10 +139,6 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
     def updateCustomText(self):
         self.customContent.updateText()
 
-    def heading(self):
-        area = self.conf.bulletinNumber or ''
-        return composeHeading(self.draft.designator, area, self.conf.airport, utcnow())
-
     def message(self):
         state = self.currentContent.state
         if self.draft.hasSketch():
@@ -204,6 +202,11 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
             c.clear()
 
         self.graphic.clear()
+        # re-render the canvas tool from the draft: modeChanged carries the
+        # designator default back into state.mode, so the cleared state and
+        # the canvas agree instead of drifting until the next form switch
+        self.graphic.configureMode(self.draft.designator,
+                                   'cancel' if self.draft.form == 'cancel' else 'template')
 
     def onFirstShow(self):
         self.updateState()

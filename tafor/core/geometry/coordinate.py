@@ -65,6 +65,17 @@ def calcPosition(latitude, longitude, speed, time, degree):
     return decimalToDegree(newLatitude), decimalToDegree(newLongitude, fmt='longitude')
 
 
+def directionDegrees(direction):
+    """Convert a 16-point compass direction to degrees."""
+    directions = {
+        'N': 0, 'NNE': 22.5, 'NE': 45, 'ENE': 67.5,
+        'E': 90, 'ESE': 112.5, 'SE': 135, 'SSE': 157.5,
+        'S': 180, 'SSW': 202.5, 'SW': 225, 'WSW': 247.5,
+        'W': 270, 'WNW': 292.5, 'NW': 315, 'NNW': 337.5,
+    }
+    return directions[direction]
+
+
 def degTodms(deg, pretty=None):
     """Convert from decimal degrees to degrees, minutes, seconds.
 
