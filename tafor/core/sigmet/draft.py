@@ -1,4 +1,4 @@
-from tafor.core.sigmet.compose import validDuration
+from tafor.core.sigmet.compose import category, validDuration
 
 
 class SigmetDraft:
@@ -37,7 +37,7 @@ class SigmetDraft:
         return validDuration(self.designator)
 
     def category(self):
-        return 'AIRMET' if self.designator == 'WA' else 'SIGMET'
+        return category(self.designator)
 
     def hasSketch(self):
         """Whether the sketch is part of this draft."""

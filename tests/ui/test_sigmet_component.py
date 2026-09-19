@@ -207,6 +207,46 @@ class TestSigmetEditor:
 
         assert message.endswith('ZJSA SANYA FIR OBSC TS=')
 
+    def test_message_composes_from_the_current_state(self, editor, conf):
+        state = editor.generalContent.state
+        state.header.area = 'ZJSA'
+        state.header.sign = 'SIGMET'
+        state.header.sequence = '2'
+        state.header.beginningTime = '100930'
+        state.header.endingTime = '101430'
+        state.header.icao = 'ZJHK'
+        state.description = 'SEV'
+        state.phenomenon = 'TS'
+        state.comeFrom = 'OBS'
+        state.observedTime = '100800'
+        state.flightLevelFormat = ''
+        state.flightLevelBase = '80'
+        state.flightLevelTop = '120'
+        state.direction = 'NE'
+        state.speed = '25'
+        state.intensityChange = 'NC'
+
+        message = editor.message()
+
+        assert message == '\n'.join([
+            'ZJSA SIGMET 2 VALID 100930/101430 ZJHK-',
+            '{} SEV TS OBS AT 100800Z FL080/120 MOV NE 25KMH NC='.format(conf.firName),
+        ])
+
+    def test_the_overlap_mode_writes_the_state_forecast_flag(self, editor):
+        editor.generalContent.setOverlapMode('final')
+        assert editor.generalContent.state.hasForecast is True
+
+        editor.generalContent.setOverlapMode('initial')
+        assert editor.generalContent.state.hasForecast is False
+
+    def test_the_phenomenon_switch_writes_the_state_eruption_flag(self, editor):
+        editor.ashContent.phenomenon.setCurrentText('CLD')
+        assert editor.ashContent.state.isEruption is False
+
+        editor.ashContent.phenomenon.setCurrentText('ERUPTION')
+        assert editor.ashContent.state.isEruption is True
+
     def test_clear_resets_state_but_keeps_the_text_widget(self, editor):
         # BUG: SigmetCustom.clear resets the state but not the text widget,
         # so the editor keeps showing stale content after a clear

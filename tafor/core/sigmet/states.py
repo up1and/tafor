@@ -1,7 +1,9 @@
+from tafor.core.sigmet.compose import composeBody
 from tafor.core.utils.time import parseTime
 
 
 class SigmetHeaderState:
+
     def __init__(self):
         self.area = ''
         self.sign = ''
@@ -30,6 +32,7 @@ class SigmetHeaderState:
 
 
 class BaseState:
+
     def __init__(self, unit):
         self.header = SigmetHeaderState()
         self.comeFrom = ''
@@ -42,7 +45,7 @@ class BaseState:
         self.unit = unit
         self.intensityChange = ''
         self.forecastTime = ''
-        self.forecastMode = False
+        self.hasForecast = False
 
     def observation(self):
         if self.comeFrom == 'OBS':
@@ -106,10 +109,11 @@ class BaseState:
         self.speed = ''
         self.intensityChange = ''
         self.forecastTime = ''
-        self.forecastMode = False
+        self.hasForecast = False
 
 
 class SigmetGeneralState(BaseState):
+
     def __init__(self, unit):
         super().__init__(unit)
         self.description = ''
@@ -119,30 +123,30 @@ class SigmetGeneralState(BaseState):
         items = [self.description, self.phenomenon]
         return ' '.join(filter(None, items))
 
-    def composeMessage(self, fir):
+    def composeMessage(self, fir, locations):
         hazard = self.hazard()
         observation = self.observation()
         flightLevel = self.flightLevel()
         moveState = self.movement()
         intensityChange = self.intensityChange
 
-        items = [fir, hazard, observation, '{location}', flightLevel]
+        items = [fir, hazard, observation, locations.get('location', ''), flightLevel]
 
-        if self.forecastMode:
+        if self.hasForecast:
             forecast = self.forecast()
-            items += [intensityChange, forecast, '{forecastLocation}']
+            items += [intensityChange, forecast, locations.get('forecastLocation', '')]
         else:
             items += [moveState, intensityChange]
 
         content = ' '.join(filter(None, items))
-        return '\n'.join([self.header.compose(), content])
+        return composeBody(self.header.compose(), content)
 
     def isAcceptable(self):
         if not self.header.isAcceptable():
             return False
         if self.comeFrom == 'OBS' and not self.observedTime:
             return False
-        if self.forecastMode:
+        if self.hasForecast:
             return bool(self.hazard() and self.flightLevel() and self.forecast())
         return bool(self.hazard() and self.flightLevel() and self.movement())
 
@@ -153,6 +157,7 @@ class SigmetGeneralState(BaseState):
 
 
 class SigmetTyphoonState(BaseState):
+
     def __init__(self, unit):
         super().__init__(unit)
         self.phenomenon = ''
@@ -180,7 +185,7 @@ class SigmetTyphoonState(BaseState):
             self.forecastTime, self.forecastLatitude, self.forecastLongitude,
         )
 
-    def composeMessage(self, fir):
+    def composeMessage(self, fir, locations):
         hazard = self.hazard()
         observation = self.observation()
         position = 'PSN {latitude} {Longitude} CB {observation}'.format(
@@ -199,7 +204,7 @@ class SigmetTyphoonState(BaseState):
                 unit='KM',
             )
         else:
-            location = '{location}'
+            location = locations.get('location', '')
 
         items = [fir, hazard, position, location, flightLevel]
 
@@ -209,7 +214,7 @@ class SigmetTyphoonState(BaseState):
             items += [moveState, intensityChange]
 
         content = ' '.join(filter(None, items))
-        return '\n'.join([self.header.compose(), content])
+        return composeBody(self.header.compose(), content)
 
     def isAcceptable(self):
         if not self.header.isAcceptable():
@@ -221,7 +226,7 @@ class SigmetTyphoonState(BaseState):
             return False
         if self.mode == 'circle' and not self.radius:
             return False
-        if self.forecastMode:
+        if self.hasForecast:
             return bool(self.forecastTime and self.forecastLatitude and self.forecastLongitude)
         return bool(self.movement())
 
@@ -289,6 +294,7 @@ class SigmetTyphoonState(BaseState):
 
 
 class SigmetAshState(BaseState):
+
     def __init__(self, unit):
         super().__init__(unit)
         self.phenomenon = ''
@@ -303,7 +309,7 @@ class SigmetAshState(BaseState):
             items += ['MT', self.name]
         return ' '.join(filter(None, items))
 
-    def composeMessage(self, fir):
+    def composeMessage(self, fir, locations):
         hazard = self.hazard()
         observation = self.observation()
         flightLevel = self.flightLevel()
@@ -319,15 +325,15 @@ class SigmetAshState(BaseState):
         else:
             position = observation
 
-        items = [fir, hazard, position, '{location}', flightLevel]
-        if self.forecastMode:
+        items = [fir, hazard, position, locations.get('location', ''), flightLevel]
+        if self.hasForecast:
             forecast = self.forecast()
-            items += [intensityChange, forecast, '{forecastLocation}']
+            items += [intensityChange, forecast, locations.get('forecastLocation', '')]
         else:
             items += [moveState, intensityChange]
 
         content = ' '.join(filter(None, items))
-        return '\n'.join([self.header.compose(), content])
+        return composeBody(self.header.compose(), content)
 
     def isAcceptable(self):
         if not self.header.isAcceptable():
@@ -336,7 +342,7 @@ class SigmetAshState(BaseState):
             return False
         if self.isEruption and not (self.currentLatitude and self.currentLongitude):
             return False
-        if self.forecastMode:
+        if self.hasForecast:
             return bool(self.flightLevel() and self.forecast())
         return bool(self.flightLevel() and self.movement())
 
@@ -350,6 +356,7 @@ class SigmetAshState(BaseState):
 
 
 class SigmetCancelState:
+
     def __init__(self):
         self.header = SigmetHeaderState()
         self.cancelSequence = ''
@@ -365,7 +372,7 @@ class SigmetCancelState:
         )
         items = [fir, cancel]
         content = ' '.join(filter(None, items))
-        return '\n'.join([self.header.compose(), content])
+        return composeBody(self.header.compose(), content)
 
     def isAcceptable(self):
         return (self.header.isAcceptable()
@@ -379,6 +386,7 @@ class SigmetCancelState:
 
 
 class SigmetCustomState:
+
     def __init__(self):
         self.header = SigmetHeaderState()
         self.text = ''
@@ -386,7 +394,7 @@ class SigmetCustomState:
     def composeMessage(self, fir):
         items = [fir, self.text]
         content = ' '.join(filter(None, items))
-        return '\n'.join([self.header.compose(), content])
+        return composeBody(self.header.compose(), content)
 
     def isAcceptable(self):
         return self.header.isAcceptable() and bool(self.text)

@@ -16,6 +16,16 @@ def composeHeading(designator, area, icao, now):
     return ' '.join(filter(None, messages))
 
 
+def category(designator):
+    """The bulletin sign the designator files under: WA is an AIRMET."""
+    return 'AIRMET' if designator == 'WA' else 'SIGMET'
+
+
+def composeBody(header, content):
+    """The message body: the header line, the content line, closed with '='."""
+    return '\n'.join([header, content]) + '='
+
+
 def validDuration(designator):
     durations = {
         'WS': 4,

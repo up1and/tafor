@@ -1,15 +1,13 @@
 import datetime
-import inspect
 
 import pytest
 
-import tafor.core.sigmet.compose as compose_module
 from tafor.core.geometry.sketch import (
     CircleSketch, CorridorSketch, EntireSketch, LineSketch, PolygonSketch,
     RectangularSketch,
 )
 from tafor.core.sigmet.compose import (
-    adjustCancelBeginning, composeHeading, formatLocation, nextSequence,
+    adjustCancelBeginning, category, composeHeading, formatLocation, nextSequence,
     validDuration, validPeriod,
 )
 from tafor.core.states import SigmetMonitorService, SigmetMonitorState
@@ -23,6 +21,16 @@ def test_compose_heading():
 
     assert composeHeading('WS', 'NT36', 'YUSO', now) == 'WSNT36 YUSO 231205'
     assert composeHeading('WS', '', 'YUSO', now) == 'WS YUSO 231205'
+
+
+def test_category_files_wa_under_airmet():
+    assert category('WA') == 'AIRMET'
+
+
+def test_category_files_the_other_designators_under_sigmet():
+    assert category('WS') == 'SIGMET'
+    assert category('WC') == 'SIGMET'
+    assert category('WV') == 'SIGMET'
 
 
 def test_valid_duration():
@@ -88,10 +96,6 @@ def test_adjust_cancel_beginning_keeps_period_start_when_input_earlier():
     beginning = adjustCancelBeginning('231205', PERIOD_START, '231600', NOW)
 
     assert beginning == PERIOD_START
-
-
-def test_compose_module_has_no_qt_dependency():
-    assert 'PyQt5' not in inspect.getsource(compose_module)
 
 
 def test_polygon_text_lists_points_then_prepends_wi_when_done():

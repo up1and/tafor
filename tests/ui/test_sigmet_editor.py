@@ -178,7 +178,8 @@ class TestSigmetCustom:
         assert custom.text.toPlainText() == 'EMBD TS (OBS) 12,3 A-B.C/D'
 
     def test_filter_text_strips_unwanted_characters(self, custom):
-        custom.text.setPlainText('AB#CD$12')
+        # '=' must not survive: the state closes the message with it
+        custom.text.setPlainText('AB#CD$12=')
 
         assert custom.text.toPlainText() == 'ABCD12'
 

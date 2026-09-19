@@ -805,13 +805,15 @@ class SketchPanel(QWidget):
         return collections
 
     def location(self):
-        """Area text keyed the way the message template reads it.
+        """Area text keyed the way the message body reads it.
 
-        The keys are the ``{location}`` / ``{forecastLocation}`` placeholders
-        of ``tafor/core/sigmet/states.py`` and are frozen by the message
-        format, so they are written out as a mapping from placeholder to area
-        name. The old ``names = ['location', 'forecastLocation']`` list said
-        the same thing, but only by lining up with the order and the length of
+        The keys are the ``location`` / ``forecastLocation`` entries consumed
+        by ``composeMessage(fir, locations)`` in ``tafor/core/sigmet/states.py``
+        and are frozen by the message format, so they are written out as a
+        mapping from key to area name. A sketch only contributes its key once
+        it is done, so an unfinished area is absent rather than empty. The old
+        ``names = ['location', 'forecastLocation']`` list said the same thing,
+        but only by lining up with the order and the length of
         ``sketchManager.sketches`` -- a coupling that broke silently the
         moment either side gained a third entry.
         """

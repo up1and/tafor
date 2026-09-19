@@ -142,14 +142,10 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         return composeHeading(self.draft.designator, area, self.conf.airport, utcnow())
 
     def message(self):
-        text = self.currentContent.message()
-
-        if self.hasGraphicWindow():
-            locations = self.graphic.location()
-            text = text.format(**locations)
-
-        text = text if text.endswith('=') else text + '='
-        return text
+        state = self.currentContent.state
+        if self.draft.hasSketch():
+            return state.composeMessage(self.conf.firName, self.graphic.location())
+        return state.composeMessage(self.conf.firName)
 
     def category(self):
         return self.draft.category()

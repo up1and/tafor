@@ -54,7 +54,6 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.context = context
         self.repository = repository
         self.span = 4
-        self.forecastMode = False
         self.mode = 'polygon'
         self.state = None
 
@@ -189,9 +188,6 @@ class BaseSigmet(SegmentMixin, QWidget):
 
     def hasAcceptableInput(self):
         return self.state.isAcceptable()
-
-    def hasForecastMode(self):
-        return self.forecastMode
 
     def designator(self):
         return self.editor.designator
@@ -411,17 +407,16 @@ class ForecastPart(SigmetPart):
             self.forecastTime.setEnabled(True)
             self.forecastTimeLabel.setEnabled(True)
             self.setForecastTime()
-            self.widget.forecastMode = True
             if self.finalPositionGroup is not None:
                 self.finalPositionGroup.setEnabled(True)
         else:
             self.forecastTime.setEnabled(False)
             self.forecastTimeLabel.setEnabled(False)
             self.forecastTime.clear()
-            self.widget.forecastMode = False
             if self.finalPositionGroup is not None:
                 self.finalPositionGroup.setEnabled(False)
-        self.widget.state.forecastMode = self.widget.forecastMode
+
+        self.widget.state.hasForecast = mode == 'final'
 
     def clear(self):
         self.forecastTime.clear()
@@ -781,9 +776,6 @@ class SigmetGeneral(BaseSigmet, Ui_sigmet_general.Ui_Editor):
             self.format.addItems(formats)
             self.format.setCurrentIndex(-1)
 
-    def message(self):
-        return self.state.composeMessage(self.conf.firName)
-
     def clear(self):
         super().clear()
         self.description.setCurrentIndex(1)
@@ -960,10 +952,6 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
     def circle(self, location):
         return self.state.circleFeature(location)
 
-    def message(self):
-        self.state.forecastMode = self.hasForecastMode()
-        return self.state.composeMessage(self.conf.firName)
-
     def clear(self):
         super().clear()
         self.name.clear()
@@ -1068,12 +1056,8 @@ class SigmetAsh(BaseSigmet, Ui_sigmet_ash.Ui_Editor):
         self.currentLatitudeLabel.setEnabled(enabled)
         self.currentLongitude.setEnabled(enabled)
         self.currentLongitudeLabel.setEnabled(enabled)
+        self.state.isEruption = enabled
         self.contentChanged.emit()
-
-    def message(self):
-        self.state.isEruption = self.name.isEnabled()
-        self.state.forecastMode = self.hasForecastMode()
-        return self.state.composeMessage(self.conf.firName)
 
     def clear(self):
         super().clear()
@@ -1138,9 +1122,6 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
         date = QRegExpValidator(QRegExp(self.rules.date))
         self.cancelBeginningTime.setValidator(date)
         self.cancelEndingTime.setValidator(date)
-
-    def message(self):
-        return self.state.composeMessage(self.conf.firName)
 
     def syncValidsTime(self):
         if self.cancelEndingTime.hasAcceptableInput():
@@ -1228,9 +1209,6 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         upper = QTextCharFormat()
         upper.setFontCapitalization(QFont.AllUppercase)
         self.text.setCurrentCharFormat(upper)
-
-    def message(self):
-        return self.state.composeMessage(self.conf.firName)
 
     def componentUpdate(self):
         self.setupPlaceholder()
