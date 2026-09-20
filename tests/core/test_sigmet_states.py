@@ -248,11 +248,11 @@ class TestSigmetGeneralState:
     def test_an_observation_needs_a_time(self):
         assert general(observedTime='').isAcceptable() is False
 
-    def test_forecast_mode_accepts_an_empty_forecast_time(self):
-        # CURRENT BEHAVIOR, pinned: forecast() renders 'FCST AT Z', which is
-        # truthy, so forecastTime is effectively unchecked in this branch.
-        # Revisit when composeMessage grows the locations argument.
-        assert general(hasForecast=True, forecastTime='').isAcceptable() is True
+    def test_forecast_mode_demands_the_forecast_time(self):
+        # forecast() renders 'FCST AT Z' for an empty time, which is truthy,
+        # so this branch reads the field itself rather than the rendered text
+        assert general(hasForecast=True, forecastTime='').isAcceptable() is False
+        assert general(hasForecast=True, forecastTime='101000').isAcceptable() is True
 
     def test_clear_resets_its_fields_but_keeps_the_unit(self):
         state = general(hasForecast=True, forecastTime='101000')
@@ -311,7 +311,6 @@ class TestSigmetTyphoonState:
         assert typhoon(mode='circle', radius='200').isAcceptable() is True
 
     def test_forecast_mode_demands_the_forecast_position(self):
-        # Unlike the general state, an empty forecastTime is rejected here.
         state = typhoon(hasForecast=True, forecastTime='')
         assert state.isAcceptable() is False
 
@@ -371,6 +370,9 @@ class TestSigmetAshState:
         # CURRENT BEHAVIOR, pinned: the hazard always starts with the literal
         # 'VA', so it is never empty and isAcceptable never checks these two.
         assert ash(phenomenon='', name='').isAcceptable() is True
+
+    def test_forecast_mode_demands_the_forecast_time(self):
+        assert ash(hasForecast=True, forecastTime='').isAcceptable() is False
 
     def test_forecast_mode_demands_the_flight_level(self):
         assert ash(hasForecast=True, forecastTime='101000').isAcceptable() is True

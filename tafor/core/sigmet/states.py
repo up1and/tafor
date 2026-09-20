@@ -108,7 +108,7 @@ class SigmetState(MessageState):
         return text
 
     def forecast(self):
-        return 'FCST AT {}Z'.format(self.forecastTime)
+        return 'FCST AT {}Z'.format(self.forecastTime) if self.forecastTime else ''
 
     def clear(self):
         super().clear()

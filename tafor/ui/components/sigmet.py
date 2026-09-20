@@ -93,6 +93,10 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
     def designator(self):
         return self.draft.designator
 
+    @property
+    def span(self):
+        return self.draft.span()
+
     def initUI(self):
         self.graphic = SketchPanel(self, context=self.context)
         self.generalContent = SigmetGeneral(self, conf=self.conf, context=self.context, repository=self.repository)
@@ -175,7 +179,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
                 c.hide()
 
         if changed:
-            self.currentContent.setSpan(self.draft.span())
+            self.currentContent.initState()
             self.graphic.configureMode(self.draft.designator, 'cancel' if form == 'cancel' else 'template')
             self.updateGraphicCanvas()
 

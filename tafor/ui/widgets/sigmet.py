@@ -1,6 +1,5 @@
 import re
 import logging
-import datetime
 
 from itertools import cycle
 
@@ -46,14 +45,11 @@ class BaseSigmet(SegmentMixin, QWidget):
 
     def __init__(self, editor=None, conf=None, context=None, repository=None):
         super().__init__()
-        self.complete = False
         self.rules = Pattern()
         self.editor = editor
         self.conf = conf
         self.context = context
         self.repository = repository
-        self.span = 4
-        self.mode = 'polygon'
         self.state = None
 
     def initialize(self):
@@ -95,10 +91,25 @@ class BaseSigmet(SegmentMixin, QWidget):
         self.beginningTime.editingFinished.connect(self.validatePeriod)
         self.endingTime.editingFinished.connect(self.validatePeriod)
 
-        self.defaultSignal()
+        for widget in self.fields():
+            if isinstance(widget, QLineEdit):
+                widget.textChanged.connect(self.onContentChanged)
+                widget.textEdited.connect(lambda _, current=widget: self.upperText(current))
+                widget.textChanged.connect(lambda _, current=widget: self.coloredText(current))
+            else:
+                widget.currentTextChanged.connect(self.onContentChanged)
 
         for part in self.parts:
             part.bindSignal()
+
+    def onContentChanged(self):
+        self.collect()
+        self.contentChanged.emit()
+
+    def fields(self):
+        """Every input widget whose value feeds the state, the parts' included."""
+        return [self.sequence, self.beginningTime, self.endingTime] + \
+               [widget for part in self.parts for widget in part.fields()]
 
     def componentUpdate(self):
         """
@@ -118,10 +129,10 @@ class BaseSigmet(SegmentMixin, QWidget):
 
     def periodTime(self):
         self.time = utcnow()
-        return validPeriod(self.designator(), self.span, self.time)
+        return validPeriod(self.designator(), self.span(), self.time)
 
     def validatePeriod(self):
-        error = SigmetFormValidator.validatePeriod(self.state, self.span)
+        error = SigmetFormValidator.validatePeriod(self.state, self.span())
         if error:
             if error == SigmetFormValidator.START_TOO_FAR:
                 self.beginningTime.clear()
@@ -142,10 +153,6 @@ class BaseSigmet(SegmentMixin, QWidget):
 
     def validate(self):
         self.validatePeriod()
-
-    def setSpan(self, span):
-        self.span = span
-        self.initState()
 
     def setOverlapMode(self, mode):
         if mode == 'final':
@@ -188,6 +195,9 @@ class BaseSigmet(SegmentMixin, QWidget):
 
     def designator(self):
         return self.editor.designator
+
+    def span(self):
+        return self.editor.span
 
     def applyState(self):
         """Write the header fields back from the state, the inverse of collect().
@@ -241,6 +251,9 @@ class SigmetPart:
     def bindSignal(self):
         pass
 
+    def fields(self):
+        return []
+
     def collect(self):
         pass
 
@@ -266,11 +279,11 @@ class FlightLevelPart(SigmetPart):
 
     def bindSignal(self):
         self.format.currentTextChanged.connect(self.setFlightLevel)
-        self.format.currentTextChanged.connect(self.widget.collect)
-        self.base.textChanged.connect(self.widget.collect)
-        self.top.textChanged.connect(self.widget.collect)
         self.base.editingFinished.connect(lambda: self.validateBaseTop(self.base))
         self.top.editingFinished.connect(lambda: self.validateBaseTop(self.top))
+
+    def fields(self):
+        return [self.base, self.top, self.format]
 
     def collect(self):
         self.widget.state.flightLevelFormat = self.format.currentText()
@@ -341,8 +354,9 @@ class MovementPart(SigmetPart):
 
     def bindSignal(self):
         self.direction.currentTextChanged.connect(self.setSpeed)
-        self.direction.currentTextChanged.connect(self.widget.collect)
-        self.speed.textChanged.connect(self.widget.collect)
+
+    def fields(self):
+        return [self.speed, self.direction]
 
     def collect(self):
         self.widget.state.direction = self.direction.currentText()
@@ -381,8 +395,9 @@ class ObservationPart(SigmetPart):
     def bindSignal(self):
         self.comeFrom.currentTextChanged.connect(self.updateObservation)
         self.beginningTime.textChanged.connect(self.updateObservation)
-        self.comeFrom.currentTextChanged.connect(self.widget.collect)
-        self.observedTime.textChanged.connect(self.widget.collect)
+
+    def fields(self):
+        return [self.observedTime, self.comeFrom]
 
     def collect(self):
         self.widget.state.comeFrom = self.comeFrom.currentText()
@@ -425,8 +440,8 @@ class ForecastPart(SigmetPart):
     widgets = ('forecastTime', 'forecastTimeLabel')
     optional = ('finalPositionGroup',)
 
-    def bindSignal(self):
-        self.forecastTime.textChanged.connect(self.widget.collect)
+    def fields(self):
+        return [self.forecastTime]
 
     def collect(self):
         self.widget.state.forecastTime = self.forecastTime.text()
@@ -779,9 +794,9 @@ class SigmetGeneral(BaseSigmet, Ui_sigmet_general.Ui_Editor):
         super().bindSignal()
         self.description.currentTextChanged.connect(self.setPhenomena)
         self.phenomenon.currentTextChanged.connect(self.setFlightLevelFormat)
-        self.description.currentTextChanged.connect(self.collect)
-        self.phenomenon.currentTextChanged.connect(self.collect)
-        self.intensityChange.currentTextChanged.connect(self.collect)
+
+    def fields(self):
+        return super().fields() + [self.description, self.phenomenon, self.intensityChange]
 
     def collect(self):
         super().collect()
@@ -790,10 +805,10 @@ class SigmetGeneral(BaseSigmet, Ui_sigmet_general.Ui_Editor):
         self.state.intensityChange = self.intensityChange.currentText()
 
     def applyState(self):
-        super().applyState()
         description = self.state.description
         phenomenon = self.state.phenomenon
 
+        super().applyState()
         self.description.setCurrentIndex(self.description.findText(description))
         self.phenomenon.setCurrentIndex(self.phenomenon.findText(phenomenon))
 
@@ -891,15 +906,10 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
         self.observedTime.textEdited.connect(self.updateForecastPosition)
         self.endingTime.textChanged.connect(self.part(ForecastPart).setForecastTime)
 
-        self.phenomenon.currentTextChanged.connect(self.collect)
-        self.name.textChanged.connect(self.collect)
-        self.currentLatitude.textChanged.connect(self.collect)
-        self.currentLongitude.textChanged.connect(self.collect)
-        self.forecastLatitude.textChanged.connect(self.collect)
-        self.forecastLongitude.textChanged.connect(self.collect)
-        self.radius.textChanged.connect(self.collect)
-        self.top.textChanged.connect(self.collect)
-        self.intensityChange.currentTextChanged.connect(self.collect)
+    def fields(self):
+        return super().fields() + [self.name, self.currentLatitude, self.currentLongitude,
+                                   self.forecastLatitude, self.forecastLongitude,
+                                   self.radius, self.top]
 
     def collect(self):
         super().collect()
@@ -914,7 +924,6 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
         self.state.intensityChange = self.intensityChange.currentText()
 
     def applyState(self):
-        super().applyState()
         state = self.state
         name = state.name
         top = state.top
@@ -922,6 +931,7 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
         forecastLatitude = state.forecastLatitude
         forecastLongitude = state.forecastLongitude
 
+        super().applyState()
         self.name.setText(name)
         self.top.setText(top)
         self.intensityChange.setCurrentIndex(self.intensityChange.findText(intensityChange))
@@ -1067,11 +1077,9 @@ class SigmetAsh(BaseSigmet, Ui_sigmet_ash.Ui_Editor):
     def bindSignal(self):
         super().bindSignal()
         self.phenomenon.currentTextChanged.connect(self.setEruptionOrCloud)
-        self.phenomenon.currentTextChanged.connect(self.collect)
-        self.name.textChanged.connect(self.collect)
-        self.currentLatitude.textChanged.connect(self.collect)
-        self.currentLongitude.textChanged.connect(self.collect)
-        self.intensityChange.currentTextChanged.connect(self.collect)
+
+    def fields(self):
+        return super().fields() + [self.name, self.currentLatitude, self.currentLongitude]
 
     def collect(self):
         super().collect()
@@ -1083,13 +1091,13 @@ class SigmetAsh(BaseSigmet, Ui_sigmet_ash.Ui_Editor):
         self.state.isEruption = self.phenomenon.currentText() == 'ERUPTION'
 
     def applyState(self):
-        super().applyState()
         state = self.state
         isEruption = state.isEruption
         name = state.name
         currentLatitude = state.currentLatitude
         currentLongitude = state.currentLongitude
 
+        super().applyState()
         self.name.setText(name)
         self.name.setEnabled(isEruption)
         self.nameLabel.setEnabled(isEruption)
@@ -1171,10 +1179,10 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
         self.cancelBeginningTime.textChanged.connect(self.syncValidsTime)
         self.cancelEndingTime.textChanged.connect(self.syncValidsTime)
         self.cancelSequence.currentTextChanged.connect(self.setValids)
-        self.cancelSequence.currentIndexChanged.connect(self.setValids)
-        self.cancelSequence.currentTextChanged.connect(self.collect)
-        self.cancelBeginningTime.textChanged.connect(self.collect)
-        self.cancelEndingTime.textChanged.connect(self.collect)
+
+    def fields(self):
+        return super().fields() + [self.cancelBeginningTime, self.cancelEndingTime,
+                                   self.cancelSequence.lineEdit()]
 
     def collect(self):
         super().collect()
@@ -1183,11 +1191,11 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
         self.state.cancelEndingTime = self.cancelEndingTime.text()
 
     def applyState(self):
-        super().applyState()
         cancelSequence = self.state.cancelSequence
         cancelBeginningTime = self.state.cancelBeginningTime
         cancelEndingTime = self.state.cancelEndingTime
 
+        super().applyState()
         self.cancelSequence.setCurrentIndex(self.cancelSequence.findText(cancelSequence))
         self.cancelBeginningTime.setText(cancelBeginningTime)
         self.cancelEndingTime.setText(cancelEndingTime)
@@ -1265,16 +1273,16 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
     def bindSignal(self):
         super().bindSignal()
         self.text.textChanged.connect(self.filterText)
-        self.text.textChanged.connect(lambda: self.contentChanged.emit())
-        self.text.textChanged.connect(self.collect)
+        self.text.textChanged.connect(self.onContentChanged)
 
     def collect(self):
         super().collect()
         self.state.text = self.text.toPlainText().strip()
 
     def applyState(self):
-        super().applyState()
         text = self.state.text
+
+        super().applyState()
         self.text.setPlainText(text)
 
     def filterText(self):

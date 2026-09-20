@@ -2,7 +2,7 @@ import datetime
 
 from PyQt5.QtGui import QIcon, QRegExpValidator
 from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, QTimer, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QComboBox, QRadioButton, QToolButton, QCheckBox, QTextEdit, QMessageBox, QHBoxLayout, QVBoxLayout
+from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QComboBox, QToolButton, QCheckBox, QTextEdit, QMessageBox, QHBoxLayout, QVBoxLayout
 
 from tafor.core.parsers.base import Pattern
 from tafor.core.taf import (GroupState, PrimaryState, SegmentState, TemperatureState, TrendState,
@@ -72,21 +72,6 @@ class SegmentMixin:
             line.setStyleSheet('color: black')
         else:
             line.setStyleSheet('color: grey')
-
-    def defaultSignal(self):
-        for line in self.findChildren(QLineEdit):
-            line.textChanged.connect(self.contentChanged.emit)
-            line.textEdited.connect(lambda _, current=line: self.upperText(current))
-            line.textChanged.connect(lambda _, current=line: self.coloredText(current))
-
-        for combox in self.findChildren(QComboBox):
-            combox.currentTextChanged.connect(lambda: self.contentChanged.emit())
-
-        for button in self.findChildren(QRadioButton):
-            button.clicked.connect(lambda: self.contentChanged.emit())
-
-        for checkbox in self.findChildren(QCheckBox):
-            checkbox.clicked.connect(lambda: self.contentChanged.emit())
 
     def setupFont(self):
         font = fixedFont()

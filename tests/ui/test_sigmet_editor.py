@@ -11,21 +11,43 @@ The tests freeze the process-wide clock (shared frozen_time fixture) at
 """
 
 import datetime
-from types import SimpleNamespace
 
 import pytest
 
 from tafor.core.models import Sigmet
 from tafor.core.repositories import SigmetRepository
-from tafor.core.utils.time import parseTime
+from tafor.core.sigmet import SigmetDraft
+from tafor.core.sigmet.compose import validDuration
 from tafor.ui.widgets.sigmet import SigmetCancel, SigmetCustom, SigmetGeneral
 
 
 MOMENT = datetime.datetime(2026, 6, 10, 8, 0)
 
 
+class EditorStub:
+    """The slice of SigmetEditor the widgets read: the draft-derived facts.
+
+    Qt-free, and derived from a real draft so that switching the form here
+    moves the designator and the span exactly as the editor does.
+    """
+
+    def __init__(self, draft=None):
+        self.draft = draft or SigmetDraft()
+
+    @property
+    def designator(self):
+        return self.draft.designator
+
+    @property
+    def span(self):
+        return self.draft.span()
+
+    def category(self):
+        return self.draft.category()
+
+
 def editor_stub(designator='WS'):
-    return SimpleNamespace(designator=designator, category=lambda: 'AIRMET' if designator == 'WA' else 'SIGMET')
+    return EditorStub(SigmetDraft(designator=designator))
 
 
 @pytest.fixture
@@ -135,10 +157,12 @@ class TestSigmetGeneral:
 
         assert general.beginningTime.text() == ''
 
-    def test_set_span_refreshes_the_period(self, general):
-        general.setSpan(6)
+    def test_the_period_follows_the_drafts_span(self, general, editor):
+        editor.draft.select('typhoon')
 
-        assert general.span == 6
+        general.initState()
+
+        assert general.span() == validDuration('WC')
         assert general.state.durations[1] - general.state.durations[0] == datetime.timedelta(hours=6)
 
     def test_sequence_counts_todays_sigmets(self, qtbot, conf, context, database, frozen_time):

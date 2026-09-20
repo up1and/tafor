@@ -11,6 +11,7 @@ from types import SimpleNamespace
 import pytest
 
 from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtWidgets import QComboBox
 
 from tafor.core.models import Sigmet
 from tafor.core.repositories import MessageRepository, SigmetRepository
@@ -180,7 +181,7 @@ class TestSigmetEditor:
         editor.tropicalCyclone.click()
 
         assert editor.draft.designator == 'WC'
-        assert editor.currentContent.span == validDuration('WC')
+        assert editor.currentContent.span() == validDuration('WC')
 
     def test_reclicking_the_checked_radio_does_not_reset_the_canvas(self, editor, monkeypatch):
         # radio clicked fires even on the already-checked radio; the render
@@ -274,6 +275,43 @@ class TestSigmetEditor:
 
         assert editor.graphic.canvas.mode == 'circle'
         assert editor.typhoonContent.state.mode == 'circle'
+
+    def _assert_every_input_announces(self, qtbot, content):
+        # the anti-miss guard for the fields() wiring: a declared input that
+        # fails to fire contentChanged means a missed connect
+        changed = []
+        content.contentChanged.connect(lambda: changed.append(1))
+
+        for widget in content.fields():
+            del changed[:]
+            if isinstance(widget, QComboBox):
+                if widget.count() < 2:
+                    continue
+                widget.setCurrentIndex(1 if widget.currentIndex() == 0 else 0)
+            else:
+                widget.setText(widget.text() + 'X')
+            assert changed, '{} did not announce'.format(widget.objectName())
+
+    def test_general_inputs_announce_content_changed(self, editor, qtbot):
+        self._assert_every_input_announces(qtbot, editor.generalContent)
+
+    def test_typhoon_inputs_announce_content_changed(self, editor, qtbot):
+        self._assert_every_input_announces(qtbot, editor.typhoonContent)
+
+    def test_ash_inputs_announce_content_changed(self, editor, qtbot):
+        self._assert_every_input_announces(qtbot, editor.ashContent)
+
+    def test_cancel_inputs_announce_content_changed(self, editor, qtbot):
+        editor.cancel.click()
+        self._assert_every_input_announces(qtbot, editor.cancelContent)
+
+    def test_custom_inputs_announce_content_changed(self, editor, qtbot):
+        self._assert_every_input_announces(qtbot, editor.customContent)
+
+        changed = []
+        editor.customContent.contentChanged.connect(lambda: changed.append(1))
+        editor.customContent.text.setPlainText('X')
+        assert changed
 
     def test_close_clears_sigmet_notification(self, editor, context):
         context.notification.sigmet.setState({'message': 'ZJSA SIGMET 1 VALID 100930/101430 ZJHK-'})
