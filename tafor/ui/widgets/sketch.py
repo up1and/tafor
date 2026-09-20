@@ -1,6 +1,7 @@
+from tafor.core.geometry import geojson
 from tafor.core.geometry.sketch import (
     CircleSketch, CorridorSketch, EntireSketch, LineSketch, PolygonSketch,
-    RectangularSketch, Sketch, mergeGeometries
+    RectangularSketch
 )
 from tafor.ui.widgets.geometry import SketchGraphic, StickerGraphic
 
@@ -98,15 +99,12 @@ class SketchManager:
             sketchGeometries += collections['geometries']
             stickerGeometries += sketch.stickers
 
-        sketchCollections = mergeGeometries(sketchGeometries)
-        stickerCollections = mergeGeometries(stickerGeometries)
-
         graphic = SketchGraphic()
-        graphic.updateGeometry(sketchCollections, self.canvas)
+        graphic.updateGeometry(geojson.geometryCollection(sketchGeometries), self.canvas)
         self.graphics.append(graphic)
 
         sticker = StickerGraphic()
-        sticker.updateGeometry(stickerCollections, self.canvas)
+        sticker.updateGeometry(geojson.geometryCollection(stickerGeometries), self.canvas)
         self.graphics.append(sticker)
 
         self.graphicsGroup = self.canvas.scene.createItemGroup(self.graphics)

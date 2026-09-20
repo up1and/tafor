@@ -1,6 +1,7 @@
 import datetime
 import re
 
+from tafor.core.geometry import geojson
 from tafor.core.geometry.algorithm import depth, encode
 from tafor.core.geometry.coordinate import decimalToDegree, degreeToDecimal
 from tafor.core.geometry.sketch import (
@@ -13,7 +14,6 @@ from tafor.core.utils.time import ceilTime, parseTime, roundTime
 def category(designator):
     """The bulletin sign the designator files under: WA is an AIRMET."""
     return 'AIRMET' if designator == 'WA' else 'SIGMET'
-
 
 
 def validDuration(designator):
@@ -151,22 +151,17 @@ def typhoonCircleFeature(latitude, longitude, radius, location):
 
     ``location`` selects which position the feature marks, 'initial' or
     'final'. Without both coordinates there is nothing to draw, so the
-    feature collapses to an empty dict.
+    function returns ``None``.
     """
-    feature = {'type': 'Feature', 'properties': {'location': location}}
+    if not (latitude and longitude):
+        return
 
-    if latitude and longitude:
-        feature['geometry'] = {
-            'type': 'Point',
-            'coordinates': (degreeToDecimal(longitude), degreeToDecimal(latitude)),
-        }
-        if radius:
-            feature['properties']['radius'] = int(radius)
+    coordinate = (degreeToDecimal(longitude), degreeToDecimal(latitude))
+    properties = {'location': location}
+    if radius:
+        properties['radius'] = int(radius)
 
-    if 'geometry' not in feature:
-        return {}
-
-    return feature
+    return geojson.feature(geojson.point(coordinate), **properties)
 
 
 def composeHeading(designator, area, icao, now):

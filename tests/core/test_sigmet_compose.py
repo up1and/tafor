@@ -187,9 +187,9 @@ class TestTyphoonCircleFeature:
         assert lon == pytest.approx(141.483, abs=0.01)
         assert lat == pytest.approx(24.283, abs=0.01)
 
-    def test_missing_coordinates_collapse_to_an_empty_dict(self):
-        assert typhoonCircleFeature('', 'E14129', '50', 'initial') == {}
-        assert typhoonCircleFeature('N2417', '', '50', 'initial') == {}
+    def test_missing_coordinates_collapse_to_none(self):
+        assert typhoonCircleFeature('', 'E14129', '50', 'initial') is None
+        assert typhoonCircleFeature('N2417', '', '50', 'initial') is None
 
 
 class FakePrevParser:

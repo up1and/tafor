@@ -13,6 +13,7 @@ from tafor.core.repositories import SigmetFilter
 from tafor.core.sigmet import (SigmetAshState, SigmetCancelState, SigmetCustomState, SigmetGeneralState,
     SigmetTyphoonState, SigmetFormValidator)
 from tafor.core.sigmet.compose import adjustCancelBeginning, nextSequence, typhoonCircleFeature, validPeriod
+from tafor.core.geometry import geojson
 from tafor.core.geometry.coordinate import decimalToDegree
 from tafor.core.utils.time import parseTime, utcnow
 from tafor.core.utils.common import iconPath
@@ -588,14 +589,14 @@ class AdvisoryImport(SigmetPart):
         features = []
         if initial:
             feature = self.parser.location(initial)
-            if 'geometry' in feature:
+            if geojson.hasGeometry(feature):
                 feature['properties']['location'] = 'initial'
                 feature['properties']['type'] = 'sketch'
                 features.append(feature)
 
         if initial and final:
             feature = self.parser.location(final)
-            if 'geometry' in feature:
+            if geojson.hasGeometry(feature):
                 feature['properties']['location'] = 'final'
                 feature['properties']['type'] = 'sketch'
                 features.append(feature)
@@ -603,11 +604,8 @@ class AdvisoryImport(SigmetPart):
         return features
 
     def handleLocationChange(self):
-        collections = {
-            'type': 'FeatureCollection',
-            'features': self.locationFeatures(self.initial.currentText(), self.final.currentText()),
-        }
-        self.widget.locationChanged.emit(collections)
+        features = self.locationFeatures(self.initial.currentText(), self.final.currentText())
+        self.widget.locationChanged.emit(geojson.featureCollection(features))
 
     def updateFinalOption(self):
         index = self.initial.currentIndex()
@@ -673,7 +671,7 @@ class TyphoonAdvisoryImport(AdvisoryImport):
             self.widget.radius.setText(str(radius))
 
         features = self.parser.location(self.initial.currentText())
-        if features and 'geometry' in features:
+        if geojson.hasGeometry(features):
             center = features['geometry']['coordinates']
             if center:
                 lon, lat = center
@@ -682,7 +680,7 @@ class TyphoonAdvisoryImport(AdvisoryImport):
                 self.widget.currentLatitude.setText(lat)
 
         features = self.parser.location(self.final.currentText())
-        if features and 'geometry' in features:
+        if geojson.hasGeometry(features):
             center = features['geometry']['coordinates']
             if center:
                 lon, lat = center
@@ -718,10 +716,7 @@ class TyphoonAdvisoryImport(AdvisoryImport):
 
         route = self.parser.route()
         if route:
-            locations.append({
-                'geometry': route,
-                'properties': properties
-            })
+            locations.append(geojson.feature(route, **properties))
 
         polygon = self.parser.polygon()
         if polygon:
@@ -731,16 +726,9 @@ class TyphoonAdvisoryImport(AdvisoryImport):
                     'location': 'initial'
                 }
 
-            locations.append({
-                'geometry': polygon,
-                'properties': properties
-            })
+            locations.append(geojson.feature(polygon, **properties))
 
-        collections = {
-            'type': 'FeatureCollection',
-            'features': locations
-        }
-        self.widget.locationChanged.emit(collections)
+        self.widget.locationChanged.emit(geojson.featureCollection(locations))
 
 
 class AshAdvisoryImport(AdvisoryImport):
@@ -1009,17 +997,14 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
 
     def handleCircleChange(self):
         if self.state.mode == 'circle':
-            collections = {
-                'type': 'FeatureCollection',
-                'features': []
-            }
+            features = []
             initial = self.circle('initial')
             if initial:
-                collections['features'].append(initial)
+                features.append(initial)
                 final = self.circle('final')
                 if final:
-                    collections['features'].append(final)
-            self.circleChanged.emit(collections)
+                    features.append(final)
+            self.circleChanged.emit(geojson.featureCollection(features))
 
     def circle(self, location):
         state = self.state

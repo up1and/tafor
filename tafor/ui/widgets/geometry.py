@@ -4,6 +4,7 @@ from PyQt5.QtGui import QPen, QColor, QBrush, QPolygonF, QPainterPath, QPixmap, 
 from PyQt5.QtCore import Qt, QPointF, QRectF
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsPolygonItem, QGraphicsPixmapItem, QWidget
 
+from tafor.core.geometry import geojson
 from tafor.core.geometry.algorithm import labelPoint
 
 
@@ -184,10 +185,7 @@ class SketchGraphic(QGraphicsItem, CanvasMixin):
             geometries = []
             if geo['type'] == 'MultiPolygon':
                 for coords in geo['coordinates']:
-                    geometries.append({
-                        'type': 'Polygon',
-                        'coordinates': coords
-                })
+                    geometries.append(geojson.polygon(coords))
             else:
                 geometries = [geo]
 
@@ -273,8 +271,7 @@ class Sigmet(QGraphicsItem, CanvasMixin, ColorMixin):
                 polygons = feature['geometry']['coordinates']
 
             for polygon in polygons:
-                geometry = {'type': 'Polygon', 'coordinates': polygon}
-                geo = self.toCanvasGeometry(canvas, geometry)
+                geo = self.toCanvasGeometry(canvas, geojson.polygon(polygon))
                 geo.properties = feature['properties']
                 self.geometries.append(geo)
                 

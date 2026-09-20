@@ -13,6 +13,7 @@ from PyQt5.QtGui import QFontMetrics, QPainter
 from PyQt5.QtCore import QCoreApplication, Qt, QRect, QRectF, QSize, pyqtSignal
 
 from tafor.core.geometry.coordinate import degTodms
+from tafor.core.geometry import geojson
 from tafor.core.sigmet.compose import formatLocation
 from tafor.core.utils.common import resourcePath
 from tafor.ui.fonts import fixedFont
@@ -273,11 +274,7 @@ class MapView(QGraphicsView):
 
             for part in polygons:
                 if not part.is_empty:
-                    geometry = {
-                        'type': 'Polygon',
-                        'coordinates': part.exterior.coords
-                    }
-                    Coastline(geometry).addTo(self, items)
+                    Coastline(geojson.polygon(part.exterior.coords)).addTo(self, items)
 
         self.coastlines.replace(items)
         self.setSceneRect(self.scene.itemsBoundingRect())
@@ -288,12 +285,8 @@ class MapView(QGraphicsView):
             self.firs.clear()
             return
 
-        geometry = {
-            'type': 'Polygon',
-            'coordinates': boundaries
-        }
         items = []
-        Fir(geometry).addTo(self, items)
+        Fir(geojson.polygon(boundaries)).addTo(self, items)
         self.firs.replace(items)
 
     def drawSigmets(self, geometries):
@@ -795,14 +788,8 @@ class SketchPanel(QWidget):
         return messages
 
     def circleCoordinates(self):
-        collections = {
-            'type': 'FeatureCollection',
-            'features': []
-        }
-        for sketch in self.canvas.sketchManager.sketches:
-            collections['features'].append(sketch.feature())
-
-        return collections
+        return geojson.featureCollection(
+            [sketch.feature() for sketch in self.canvas.sketchManager.sketches])
 
     def location(self):
         """Area text keyed the way the message body reads it.

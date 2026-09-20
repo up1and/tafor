@@ -342,11 +342,9 @@ class SigmetParser:
         return []
 
     def geo(self, boundaries, trim=None):
+        from tafor.core.geometry import geojson
         from tafor.core.geometry.algorithm import decode
-        collections = {
-            'type': 'FeatureCollection',
-            'features': []
-        }
+        collections = geojson.featureCollection([])
 
         sequence = self.sequence()
         valid = self.validTime()
@@ -355,33 +353,18 @@ class SigmetParser:
         locations = self.location()
         for i, item in enumerate(locations):
             polygon = decode(boundaries, item['coordinates'], mode=item['type'], trim=trim)
-            features = {
-                'type': 'Feature',
-                'geometry': {
-                    'type': 'Polygon',
-                    'coordinates': []
-                },
-                'properties': {
-                    'sequence': sequence,
-                    'valids': valid.split('/') if valid else [],
-                    'hazard': hazard,
-                    'location': 'initial'
-                }
-            }
             if polygon.geom_type == 'MultiPolygon':
-                coords = []
-                for p in polygon.geoms:
-                    coords.append(list(p.exterior.coords))
-                features['geometry']['type'] = 'MultiPolygon'
+                geometry = geojson.multiPolygon(p.exterior.coords for p in polygon.geoms)
             else:
-                coords = list(polygon.exterior.coords)
+                geometry = geojson.polygon(polygon.exterior.coords)
 
-            features['geometry']['coordinates'] = coords
+            feature = geojson.feature(geometry,
+                sequence=sequence,
+                valids=valid.split('/') if valid else [],
+                hazard=hazard,
+                location='initial' if i == 0 else 'final')
 
-            if i > 0:
-                features['properties']['location'] = 'final'
-
-            collections['features'].append(features)
+            collections['features'].append(feature)
 
         return collections
 

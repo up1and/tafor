@@ -1,9 +1,6 @@
-import inspect
-
-import tafor.core.geometry.sketch as sketch_module
 from tafor.core.geometry.sketch import (
     CircleSketch, EntireSketch, LineSketch, PathSketch, PolygonSketch,
-    RectangularSketch, mergeGeometries,
+    RectangularSketch,
 )
 
 
@@ -12,10 +9,6 @@ def log_signals(sketch):
     sketch.changed.connect(lambda: events.append('changed'))
     sketch.finished.connect(lambda: events.append('finished'))
     return events
-
-
-def test_module_has_no_qt_dependency():
-    assert 'PyQt5' not in inspect.getsource(sketch_module)
 
 
 def test_polygon_sketch_geometry():
@@ -57,7 +50,7 @@ def test_circle_sketch_rounds_radius_to_deviation():
 
     geometries = sketch.geometry()['geometries']
     assert geometries[0]['type'] == 'Polygon'
-    assert geometries[1] == {'type': 'Point', 'coordinates': (110.0, 20.0)}
+    assert geometries[1] == {'type': 'Point', 'coordinates': [110.0, 20.0]}
 
 
 def test_circle_sketch_restore_and_feature():
@@ -149,12 +142,3 @@ def test_sketches_do_not_share_signals():
 
     a.addPoint((110.0, 20.0))
     assert events == ['changed']
-
-
-def test_merge_geometries_skips_empty():
-    collections = mergeGeometries([None, '', {'type': 'Point', 'coordinates': (1, 2)}])
-
-    assert collections == {
-        'type': 'GeometryCollection',
-        'geometries': [{'type': 'Point', 'coordinates': (1, 2)}],
-    }

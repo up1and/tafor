@@ -4,21 +4,11 @@ Each subclass implements a specific drawing mode (polygon, line, circle,
 corridor, rectangular, entire) and emits signals on state changes.
 """
 from tafor.core.events import Signal
+from tafor.core.geometry import geojson
 from tafor.core.geometry.algorithm import (
     corridor, circle, clipLine, clipPolygon, depth, simplifyPolygon, geod,
     geodesicDistance
 )
-
-
-def mergeGeometries(geometries):
-    collections = {
-        'type': 'GeometryCollection',
-        'geometries': []
-    }
-    for geometry in geometries:
-        if geometry:
-            collections['geometries'].append(geometry)
-    return collections
 
 
 class Sketch:
@@ -65,11 +55,7 @@ class Sketch:
         raise NotImplementedError
 
     def feature(self):
-        return {
-            'type': 'Feature',
-            'geometry': self.geometry(),
-            'properties': {'location': self.name},
-        }
+        return geojson.feature(self.geometry(), location=self.name)
 
     def empty(self):
         self.done = False
@@ -124,12 +110,12 @@ class PolygonSketch(PathSketch):
         geometries = []
         if not self.done:
             if len(self.coordinates) == 1:
-                geometries = [{'type': 'Point', 'coordinates': self.coordinates[0]}]
+                geometries = [geojson.point(self.coordinates[0])]
             elif len(self.coordinates) > 1:
-                geometries = [{'type': 'LineString', 'coordinates': self.coordinates}]
+                geometries = [geojson.lineString(self.coordinates)]
         else:
-            geometries = [{'type': 'Polygon', 'coordinates': self.coordinates}]
-        return {'type': 'GeometryCollection', 'geometries': geometries}
+            geometries = [geojson.polygon(self.coordinates)]
+        return geojson.geometryCollection(geometries)
 
 
 class LineSketch(PathSketch):
@@ -152,16 +138,15 @@ class LineSketch(PathSketch):
         geometries = []
         if not self.done:
             if len(self.coordinates) == 1:
-                geometries = [{'type': 'Point', 'coordinates': self.coordinates[0]}]
+                geometries = [geojson.point(self.coordinates[0])]
             elif len(self.coordinates) > 1:
-                geometries = [{'type': 'LineString', 'coordinates': self.coordinates}]
+                geometries = [geojson.lineString(self.coordinates)]
         else:
             if depth(self.coordinates) > 1:
-                shapeType = 'MultiPolygon'
+                geometries = [geojson.multiPolygon(self.coordinates)]
             else:
-                shapeType = 'Polygon'
-            geometries = [{'type': shapeType, 'coordinates': self.coordinates}]
-        return {'type': 'GeometryCollection', 'geometries': geometries}
+                geometries = [geojson.polygon(self.coordinates)]
+        return geojson.geometryCollection(geometries)
 
 
 class CircleSketch(Sketch):
@@ -224,12 +209,12 @@ class CircleSketch(Sketch):
         if self.done:
             polygon = circle(self.coordinates[0], self.radius)
             geometries = [
-                {'type': 'Polygon', 'coordinates': list(polygon.exterior.coords)},
-                {'type': 'Point', 'coordinates': self.coordinates[0]},
+                geojson.polygon(polygon.exterior.coords),
+                geojson.point(self.coordinates[0]),
             ]
         elif self.coordinates:
-            geometries = [{'type': 'Point', 'coordinates': self.coordinates[0]}]
-        return {'type': 'GeometryCollection', 'geometries': geometries}
+            geometries = [geojson.point(self.coordinates[0])]
+        return geojson.geometryCollection(geometries)
 
     def restore(self, center=None, radius=None):
         self.done = False
@@ -252,17 +237,10 @@ class CircleSketch(Sketch):
         self.changed.emit()
 
     def feature(self):
-        return {
-            'type': 'Feature',
-            'geometry': {
-                'type': 'Point',
-                'coordinates': self.coordinates[0] if self.coordinates else (),
-            },
-            'properties': {
-                'radius': round(self.radius / 1000),
-                'location': self.name,
-            },
-        }
+        coordinate = self.coordinates[0] if self.coordinates else ()
+        return geojson.feature(
+            geojson.point(coordinate),
+            radius=round(self.radius / 1000), location=self.name)
 
 
 class CorridorSketch(PathSketch):
@@ -313,16 +291,13 @@ class CorridorSketch(PathSketch):
         geometries = []
         if not self.done:
             if len(self.coordinates) == 1:
-                geometries = [{'type': 'Point', 'coordinates': self.coordinates[0]}]
+                geometries = [geojson.point(self.coordinates[0])]
             elif len(self.coordinates) > 1:
-                geometries = [{'type': 'LineString', 'coordinates': self.coordinates}]
+                geometries = [geojson.lineString(self.coordinates)]
         else:
             polygon = corridor(self.coordinates, self.radius)
-            geometries = [{
-                'type': 'Polygon',
-                'coordinates': list(polygon.exterior.coords),
-            }]
-        return {'type': 'GeometryCollection', 'geometries': geometries}
+            geometries = [geojson.polygon(polygon.exterior.coords)]
+        return geojson.geometryCollection(geometries)
 
     def restore(self, coordinates=None, radius=None):
         if coordinates:
@@ -372,23 +347,22 @@ class RectangularSketch(Sketch):
 
     def geometry(self):
         if not self.done:
-            return {'type': 'GeometryCollection', 'geometries': []}
+            return geojson.geometryCollection([])
         if depth(self.coordinates) > 1:
-            shapeType = 'MultiPolygon'
+            geometry = geojson.multiPolygon(self.coordinates)
         else:
-            shapeType = 'Polygon'
-        geometries = [{'type': shapeType, 'coordinates': self.coordinates}]
-        return {'type': 'GeometryCollection', 'geometries': geometries}
+            geometry = geojson.polygon(self.coordinates)
+        return geojson.geometryCollection([geometry])
 
 
 class EntireSketch(Sketch):
 
     def geometry(self):
         if self.done:
-            geometries = [{'type': 'Polygon', 'coordinates': self.coordinates}]
+            geometries = [geojson.polygon(self.coordinates)]
         else:
             geometries = []
-        return {'type': 'GeometryCollection', 'geometries': geometries}
+        return geojson.geometryCollection(geometries)
 
     def restore(self, boundaries=None):
         if boundaries:

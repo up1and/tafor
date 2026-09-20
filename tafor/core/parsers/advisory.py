@@ -4,6 +4,7 @@ import datetime
 
 from collections import OrderedDict
 
+from tafor.core.geometry import geojson
 from tafor.core.geometry.coordinate import degreeToDecimal
 from tafor.core.utils.units import toKmh, toKt
 from tafor.core.parsers.base import AdvisoryGrammar
@@ -76,8 +77,6 @@ class AdvisoryParser:
             if match:
                 return match.group()
 
-        return None
-
     def movement(self):
         field = self.fields['movement']
         if field in self.tokens:
@@ -85,8 +84,6 @@ class AdvisoryParser:
             match = self.grammar.movement.search(text)
             if match:
                 return match.group(1)
-
-        return None
 
     def speed(self, unit='KMH'):
         field = self.fields['movement']
@@ -146,27 +143,20 @@ class TyphoonAdvisoryParser(AdvisoryParser):
 
     def location(self, key):
         if key not in self.tokens:
-            return {}
+            return
 
-        features = {
-            'type': 'Feature',
-            'properties': {}
-        }
         text = self.tokens[key]
         coordinates = self.grammar.point.findall(text)
         coordinates = [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in coordinates]
-        if coordinates:
-            geometry = {
-                'type': 'Point',
-                'coordinates': coordinates[0]
-            }
-            features['geometry'] = geometry
 
+        geometry = geojson.point(coordinates[0]) if coordinates else None
+
+        properties = {}
         time = self._findLocationTime(key)
         if time:
-            features['properties']['time'] = time
+            properties['time'] = time
 
-        return features
+        return geojson.feature(geometry, **properties)
 
     def height(self):
         if 'CB' in self.tokens:
@@ -175,43 +165,35 @@ class TyphoonAdvisoryParser(AdvisoryParser):
             if match:
                 return match.group(1)
 
-        return None
-
     def intensity(self):
         if 'INTST CHANGE' in self.tokens:
             text = self.tokens['INTST CHANGE']
             return text.strip()
 
-        return None
 
     def route(self):
         locations = self.availableLocations()
-        geometry = {}
         coordinates = []
         for key in locations:
             text = self.tokens[key]
             coordinates += self.grammar.point.findall(text)
 
-        if coordinates:
-            geometry = {
-                'type': 'LineString',
-                'coordinates': [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in coordinates]
-            }
+        if not coordinates:
+            return
 
-        return geometry
+        points = [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in coordinates]
+        return geojson.lineString(points)
 
     def polygon(self):
-        geometry = {}
-        if 'CB' in self.tokens:
-            text = self.tokens['CB']
-            coordinates = self.grammar.point.findall(text)
-            if coordinates:
-                geometry = {
-                    'type': 'Polygon',
-                    'coordinates': [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in coordinates]
-                }
+        if 'CB' not in self.tokens:
+            return
 
-        return geometry
+        coordinates = self.grammar.point.findall(self.tokens['CB'])
+        if not coordinates:
+            return
+
+        ring = [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in coordinates]
+        return geojson.polygon(ring)
 
     def radius(self):
         from tafor.core.geometry.algorithm import geod
@@ -250,28 +232,21 @@ class AshAdvisoryParser(AdvisoryParser):
 
     def location(self, key):
         if key not in self.tokens:
-            return {}
+            return
 
-        features = {
-            'type': 'Feature',
-            'properties': {}
-        }
         text = self.tokens[key]
         coordinates = self.grammar.point.findall(text)
         coordinates = [(degreeToDecimal(lon), degreeToDecimal(lat)) for lat, lon in coordinates]
-        if coordinates:
-            geometry = {
-                'type': 'Polygon',
-                'coordinates': coordinates
-            }
-            features['geometry'] = geometry
 
+        geometry = geojson.polygon(coordinates) if coordinates else None
+
+        properties = {}
         time = self._findLocationTime(key)
         if time:
-            features['properties']['time'] = time
+            properties['time'] = time
 
         match = self.grammar.flightLevel.search(text)
         if match:
-            features['properties']['flightLevel'] = match.group()
+            properties['flightLevel'] = match.group()
 
-        return features
+        return geojson.feature(geometry, **properties)
