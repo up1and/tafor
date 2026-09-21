@@ -6,8 +6,7 @@ corridor, rectangular, entire) and emits signals on state changes.
 from tafor.core.events import Signal
 from tafor.core.geometry import geojson
 from tafor.core.geometry.algorithm import (
-    corridor, circle, clipLine, clipPolygon, depth, simplifyPolygon, geod,
-    geodesicDistance
+    corridor, circle, clipLine, clipPolygon, depth, geod, simplifyPolygon
 )
 
 
@@ -167,20 +166,16 @@ class CircleSketch(Sketch):
             self.finished.emit()
 
         if self.radius and len(self.coordinates) == 1:
-            lon, lat, _ = geod.fwd(self.coordinates[0][0], self.coordinates[0][1],
-                                     0, self.radius)
-            self.coordinates.append((lon, lat))
+            self.coordinates.append(geod.fwd(self.coordinates[0], 0, self.radius))
             self.done = True
             self.finished.emit()
 
         self.changed.emit()
 
     def completeFromTwoPoints(self):
-        dist = geodesicDistance(self.coordinates[0], self.coordinates[1])
+        _, dist = geod.inv(self.coordinates[0], self.coordinates[1])
         self.radius = round(dist / self.deviation) * self.deviation
-        lon, lat, _ = geod.fwd(self.coordinates[0][0], self.coordinates[0][1],
-                                 0, self.radius)
-        self.coordinates[-1] = (lon, lat)
+        self.coordinates[-1] = geod.fwd(self.coordinates[0], 0, self.radius)
         self.done = True
 
     def removePoint(self):
@@ -199,9 +194,7 @@ class CircleSketch(Sketch):
             return
         if ratio > 0 or self.radius > self.deviation * 4:
             self.radius += self.deviation * ratio
-            lon, lat, _ = geod.fwd(self.coordinates[0][0], self.coordinates[0][1],
-                                     0, self.radius)
-            self.coordinates[-1] = [lon, lat]
+            self.coordinates[-1] = list(geod.fwd(self.coordinates[0], 0, self.radius))
             self.changed.emit()
 
     def geometry(self):
@@ -229,8 +222,7 @@ class CircleSketch(Sketch):
             self.radius = 0
 
         if center and radius:
-            lon, lat, _ = geod.fwd(center[0], center[1], 0, self.radius)
-            self.coordinates.append((lon, lat))
+            self.coordinates.append(geod.fwd(center, 0, self.radius))
             self.done = True
 
         self.finished.emit()

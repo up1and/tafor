@@ -225,7 +225,7 @@ class MapView(QGraphicsView):
         self.sigmets = SceneLayer(self, z=2)
 
         self.projection = self.context.layer.projection()
-        if self.projection.crs.is_geographic:
+        if self.projection.geographic:
             self.ratio = 100
         else:
             self.ratio = 1 / 1000
@@ -347,10 +347,10 @@ class MapView(QGraphicsView):
         self.mouseMoved.emit(self.toGeographicalCoordinates(pos.x(), pos.y()))
 
     def toGeographicalCoordinates(self, x, y):
-        return self.projection(x / self.ratio, -y / self.ratio, inverse=True)
+        return self.projection.inverse(x / self.ratio, -y / self.ratio)
 
     def toCanvasCoordinates(self, longitude, latitude):
-        px, py = self.projection(longitude, latitude)
+        px, py = self.projection.forward(longitude, latitude)
         return px * self.ratio, -py * self.ratio
 
     def redraw(self):

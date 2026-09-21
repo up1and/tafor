@@ -7,10 +7,10 @@ from tafor.core.geometry.algorithm import (
     bearingToDirection, circle, clipLine, clipPolygon, collinearWith, corridor,
     decode, decodeLine, decodePolygon, determineDirection, encode,
     expandToCover, findCutEdges, findDrawnLineEdges, findLines,
-    geodesicDistance, groupCollinearLines, halfPlane, labelPoint,
+    geod, groupCollinearLines, halfPlane, labelPoint,
     linesIntersection,
     mergeCollinearLines, overlaps, principalAxis, simplifyPolygon,
-    simplifyToMaxPoint, geod,
+    simplifyToMaxPoint,
 )
 
 
@@ -169,20 +169,20 @@ def test_corridor_width_is_metric_at_any_latitude():
 
     assert polygon.geom_type == 'Polygon'
     assert polygon.area > 0
-    _, _, distance = geod.inv(0.5, polygon.bounds[1], 0.5, polygon.bounds[3])
+    distance = geod.inv((0.5, polygon.bounds[1]), (0.5, polygon.bounds[3]))[1]
     assert distance / 1000 == pytest.approx(400.0, abs=0.1)
 
     # the degree-space approximation used to be 25% off at 60 degrees north
     polygon = corridor([(0.0, 60.0), (2.0, 60.0)], 50000)
 
-    _, _, distance = geod.inv(1.0, polygon.bounds[1], 1.0, polygon.bounds[3])
+    distance = geod.inv((1.0, polygon.bounds[1]), (1.0, polygon.bounds[3]))[1]
     assert distance / 1000 == pytest.approx(100.0, abs=0.1)
 
 
 def test_geodesic_distance_is_metric():
     # one degree of longitude at the equator, one degree of latitude
-    assert geodesicDistance((0.0, 0.0), (1.0, 0.0)) == pytest.approx(111319.49, abs=1.0)
-    assert geodesicDistance((0.0, 0.0), (0.0, 1.0)) == pytest.approx(110574.39, abs=1.0)
+    assert geod.inv((0.0, 0.0), (1.0, 0.0))[1] == pytest.approx(111319.49, abs=1.0)
+    assert geod.inv((0.0, 0.0), (0.0, 1.0))[1] == pytest.approx(110574.39, abs=1.0)
 
 
 def test_circle_is_a_geodesic_ring_around_the_center():
@@ -191,7 +191,7 @@ def test_circle_is_a_geodesic_ring_around_the_center():
     assert ring.geom_type == 'Polygon'
     assert ring.is_valid
     for lon, lat in list(ring.exterior.coords)[:-1]:
-        assert geodesicDistance((120.0, 30.0), (lon, lat)) == pytest.approx(111000.0, abs=1.0)
+        assert geod.inv((120.0, 30.0), (lon, lat))[1] == pytest.approx(111000.0, abs=1.0)
 
     # 111 km is one degree; at 30N a degree of longitude shrinks to cos(30)
     minx, miny, maxx, maxy = ring.bounds

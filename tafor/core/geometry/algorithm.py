@@ -1,10 +1,9 @@
 import math
 import logging
 
+from geographiclib.geodesic import Geodesic
 from shapely.ops import linemerge, nearest_points, polylabel, transform
-from shapely.geometry import Polygon, LineString, LinearRing, MultiLineString, GeometryCollection, Point
-
-from pyproj import CRS, Transformer, Geod
+from shapely.geometry import Polygon, LineString, LinearRing, MultiLineString, Point
 
 from tafor.core.utils.units import toKm
 from tafor.core.geometry.coordinate import degreeToDecimal
@@ -13,7 +12,65 @@ from tafor.core.geometry.coordinate import degreeToDecimal
 logger = logging.getLogger('tafor.geometry')
 
 
-geod = Geod(ellps='WGS84')
+class Geod:
+    """The two geodesic problems on the WGS84 ellipsoid.
+
+    GeographicLib orders its arguments ``(lat, lon)`` — the reverse of
+    pyproj's — and answers with a dict rather than a tuple. Taking and
+    returning ``(lon, lat)`` pairs here keeps every call site reading the way
+    it did while pyproj was solving them.
+    """
+
+    def fwd(self, point, azimuth, distance):
+        """The (lon, lat) reached from ``point`` along ``azimuth`` degrees
+        for ``distance`` metres."""
+        result = Geodesic.WGS84.Direct(point[1], point[0], azimuth, distance)
+        return result['lon2'], result['lat2']
+
+    def inv(self, first, second):
+        """The azimuth in degrees from ``first`` to ``second``, and the
+        geodesic distance between them in metres."""
+        result = Geodesic.WGS84.Inverse(first[1], first[0], second[1], second[0])
+        return result['azi1'], result['s12']
+
+
+geod = Geod()
+
+
+class AzimuthalEquidistant:
+    """Local azimuthal equidistant projection centred on one point.
+
+    Metres are true in every direction from the centre, which is what a
+    metric buffer needs. The azimuth and the geodesic distance from the
+    centre *are* the plane coordinates, so the projection needs no datum
+    database — pyproj pulled all of PROJ in to serve this one transform.
+
+    Both directions take and return coordinate sequences, which is how
+    ``shapely.ops.transform`` hands geometries over.
+    """
+
+    def __init__(self, lon, lat):
+        self.lon = lon
+        self.lat = lat
+
+    def forward(self, lons, lats):
+        """(lon, lat) degrees to plane metres."""
+        points = [self.project(lon, lat) for lon, lat in zip(lons, lats)]
+        return [point[0] for point in points], [point[1] for point in points]
+
+    def inverse(self, xs, ys):
+        """Plane metres to (lon, lat) degrees."""
+        points = [self.unproject(x, y) for x, y in zip(xs, ys)]
+        return [point[0] for point in points], [point[1] for point in points]
+
+    def project(self, lon, lat):
+        azimuth, distance = geod.inv((self.lon, self.lat), (lon, lat))
+        angle = math.radians(azimuth)
+        return distance * math.sin(angle), distance * math.cos(angle)
+
+    def unproject(self, x, y):
+        angle = math.degrees(math.atan2(x, y))
+        return geod.fwd((self.lon, self.lat), angle, math.hypot(x, y))
 
 # bearing of each direction identifier, as a fraction of pi
 directions = {'SE': -0.25, 'NE': 0.25, 'N': 0.5, 'SW': -0.75, 'W': 1.0, 'NW': 0.75, 'E': 0.0, 'S': -0.5}
@@ -23,11 +80,6 @@ def depth(l):
         return max(map(depth, l)) + 1 if l else 1
     else:
         return 0
-
-def geodesicDistance(p1, p2):
-    """Geodesic distance in meters between two (lon, lat) points on the WGS84 ellipsoid."""
-    *_, length = geod.inv(p1[0], p1[1], p2[0], p2[1])
-    return length
 
 def angularDistance(first, second):
     """Shortest angular distance between two angles, as a fraction of pi."""
@@ -108,22 +160,16 @@ def corridor(lines, width):
     """
     line = LineString(lines)
     center = line.centroid
+    proj = AzimuthalEquidistant(center.x, center.y)
 
-    aeqd = CRS(f"+proj=aeqd +lat_0={center.y} +lon_0={center.x} +datum=WGS84 +units=m")
-    wgs84 = CRS("EPSG:4326")
-
-    toMeters = Transformer.from_crs(wgs84, aeqd, always_xy=True).transform
-    toWgs84 = Transformer.from_crs(aeqd, wgs84, always_xy=True).transform
-
-    projected = transform(toMeters, line)
+    projected = transform(proj.forward, line)
     buffered = projected.buffer(width, cap_style=2, join_style=2)
-    return transform(toWgs84, buffered)
+    return transform(proj.inverse, buffered)
 
 def circle(center, radius):
     circles = []
     for i in range(0, 360):
-        lon, lat, _ = geod.fwd(center[0], center[1], i, radius)
-        circles.append([lon, lat])
+        circles.append(list(geod.fwd(center, i, radius)))
 
     return Polygon(circles)
 

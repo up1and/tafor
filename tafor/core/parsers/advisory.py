@@ -206,7 +206,7 @@ class TyphoonAdvisoryParser(AdvisoryParser):
         lat, lon = center
         center = degreeToDecimal(lon), degreeToDecimal(lat)
         for lon, lat in polygon['coordinates']:
-            _, _, distance = geod.inv(center[0], center[1], lon, lat)
+            _, distance = geod.inv(center, (lon, lat))
             distances.append(distance)
 
         return int(max(distances) / 1000)

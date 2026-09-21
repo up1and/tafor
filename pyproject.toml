@@ -12,7 +12,7 @@ dependencies = [
     "pyjwt",
     "pyjwt[crypto]",
     "pyshp",
-    "pyproj",
+    "geographiclib",
     "waitress",
     "requests",
     "SQLAlchemy",

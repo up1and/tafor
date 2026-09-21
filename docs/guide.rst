@@ -251,11 +251,18 @@ FTP 参数
 
 投影
 """"""""""""
-SIGMET 画布的投影参数，支持 proj string，如常见的投影参数：
+SIGMET 画布的投影参数，取值是一个 proj string，支持以下三种：
+
+Web 麦卡托投影 ``+proj=webmerc +datum=WGS84``（默认）
 
 等经纬度投影 ``+proj=eqc``
 
-Web 麦卡托投影 ``+proj=webmerc +datum=WGS84``
+地理坐标 ``+proj=longlat +ellps=WGS84``
+
+``+datum``、``+ellps``、``+units`` 不影响结果，可以照常写上。其余取值——
+包括本项目未实现的投影（如 ``+proj=lcc``），以及会改变投影结果的参数
+（如 ``+lat_ts``、``+lat_0``、``+R``）——都会回落到 Web 麦卡托，并在日志中
+记录一条警告。这样即使配置写错，画布仍然可用。
 
 飞行情报区边界
 """"""""""""""""

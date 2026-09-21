@@ -1,8 +1,13 @@
 import datetime
+import logging
 
 from tafor.core.events import Event
+from tafor.core.geometry.projection import UnsupportedProjection, WebMercator, proj
 from tafor.core.taf.spec import SpecFC, SpecFT24, SpecFT30
 from tafor.core.utils.time import utcnow
+
+
+logger = logging.getLogger('tafor.states')
 
 
 class RemoteMessageState:
@@ -201,16 +206,21 @@ class LayerService(StateProxyMixin):
         return boundary
 
     def projection(self):
-        from pyproj import Proj
+        """The projection the canvas draws with.
 
+        A setting the geometry layer cannot serve falls back to Web Mercator
+        rather than leaving the canvas without a plane. The setting itself is
+        left untouched: writing the fallback back would replace what the user
+        typed with something they did not, and the next version may well be
+        able to serve it.
+        """
         try:
-            proj = Proj(self.conf.projection)
+            return proj(self.conf.projection)
 
-        except Exception as e:
-            self.conf.projection = '+proj=webmerc +datum=WGS84'
-            proj = Proj('+proj=webmerc +datum=WGS84')
-
-        return proj
+        except UnsupportedProjection as e:
+            logger.warning('Cannot serve the projection %r (%s), using Web Mercator',
+                           self.conf.projection, e)
+            return WebMercator()
 
     def refreshLayers(self):
         self.event.layerRefreshRequested.emit()
