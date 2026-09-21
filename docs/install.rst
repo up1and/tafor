@@ -43,6 +43,11 @@ Windows 下如何安装 `PyInstaller` 的请参考 `这里 <https://pythonhosted
 
     $ python build.py
 
+默认构建会剔除 19.9 MB 的软件 OpenGL 兜底 ``opengl32sw.dll``，它只在显卡驱动不可用时才会被 Qt 选中。
+若目标机器没有可用的驱动，可以保留它::
+
+    $ python build.py --keep-opengl32sw
+
 打包成功～
 
 下载发行版

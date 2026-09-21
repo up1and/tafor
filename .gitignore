@@ -37,7 +37,6 @@ nosetests.xml
 *.log
 *.e4p
 *.epj
-*.spec
 *.autosave
 *.sqlite3
 *.py,cover
