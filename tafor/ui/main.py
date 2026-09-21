@@ -840,9 +840,12 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def showAbout(self):
         title = QCoreApplication.translate('MainWindow', 'About')
-        register = QCoreApplication.translate('MainWindow', '{} days remaining').format(
-            self.context.license.exp
-        ) if self.context.license.license() else QCoreApplication.translate('MainWindow', 'Unregistered')
+        license = self.context.license.license()
+        if license:
+            register = QCoreApplication.translate('MainWindow', '{} days remaining').format(
+                license.remaining if license.remaining is not None else 0)
+        else:
+            register = QCoreApplication.translate('MainWindow', 'Unregistered')
         html = """
         <div style="text-align:center">
         <img src="{logo}">

@@ -414,9 +414,25 @@ class FlashService:
         self.showEditorMessage(title, text)
 
 
+class SerialLock:
+    def __init__(self):
+        self._locked = False
+
+    @property
+    def isBusy(self):
+        return self._locked
+
+    def lock(self):
+        self._locked = True
+
+    def release(self):
+        self._locked = False
+
+
 class AppContext:
+
     def __init__(self, conf):
-        from tafor.core.services import LicenseService, SerialLock
+        from tafor.core.license import LicenseService
 
         # Shared event bus
         self.event = Event()

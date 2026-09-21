@@ -21,6 +21,7 @@ from PyQt5.QtWidgets import QAction, QMessageBox, QSizePolicy, QSystemTrayIcon
 
 from tafor import __version__
 from tafor.core.config import createConfig
+from tafor.core.license import License
 from tafor.core.models import Metar, Sigmet, Taf, createDatabase
 from tafor.core.repositories import Repositories
 from tafor.core.states import createContext
@@ -1974,8 +1975,8 @@ class TestMainWindow:
 
     def test_about_reports_the_days_remaining_when_registered(self, window, monkeypatch):
         boxes = installAboutBox(monkeypatch)
-        monkeypatch.setattr(window.context.license, 'license', lambda: {'register': 'YUSO'})
-        monkeypatch.setattr(window.context.license, 'exp', 12)
+        monkeypatch.setattr(window.context.license, 'license',
+                            lambda: License({'airport': 'YUSO'}, 12))
 
         window.showAbout()
 

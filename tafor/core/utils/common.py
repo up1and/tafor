@@ -5,8 +5,6 @@ import platform
 
 from logging.handlers import RotatingFileHandler
 
-logger = logging.getLogger(__name__)
-
 
 def setupLogging(debug=False, name='tafor'):
     logLevel = logging.DEBUG if debug else logging.INFO
@@ -88,14 +86,6 @@ def gitRevisionHash():
         hash = ''
 
     return hash
-
-def verifyToken(token, key):
-    import jwt
-    try:
-        data = jwt.decode(token, key, algorithms='RS256')
-        return data
-    except Exception as e:
-        logger.error('Failed to verify token, {}'.format(e))
 
 def appInfo(qt=''):
     from tafor import __version__
