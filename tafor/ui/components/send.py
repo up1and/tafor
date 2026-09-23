@@ -15,7 +15,7 @@ from tafor.core.utils.time import utcnow
 from tafor.ui.fonts import fixedFont, uiFont
 from tafor.ui.qt import Ui_send
 from tafor.ui.widgets.graphic import PreviewPanel
-from tafor.ui.workers import FtpWorker, SerialWorker, threadManager
+from tafor.ui.workers import Job
 
 logger = logging.getLogger('tafor.send')
 
@@ -145,12 +145,11 @@ def createComposer(category, conf, context, fontFamily='monospace'):
 
 
 class Line:
-    """The current communication line: protocol, telegraph generation and
-    transmission"""
+    """The current communication line: protocol and telegraph generation.
+    Transmission itself is the TransmissionQueue's job"""
 
-    def __init__(self, conf, context, pinned=None):
+    def __init__(self, conf, pinned=None):
         self.conf = conf
-        self.context = context
         self.pinned = pinned
 
     @property
@@ -174,19 +173,6 @@ class Line:
             address=getattr(message, 'address', None),
         )
 
-    def transmit(self, text, parser, result):
-        """Submit a background worker; the result arrives via onResult(error),
-        '' on success"""
-        if self.protocol == 'ftp':
-            params = self.channel.ftpParams(getattr(parser, 'valids', None))
-            worker, thread = threadManager.createWorker(FtpWorker, text, **params)
-        else:
-            worker, thread = threadManager.createWorker(
-                SerialWorker, text, conf=self.conf, context=self.context)
-
-        worker.done.connect(result)
-        thread.start()
-
 
 class Session:
     """One message session, the only mutable business state. Loading a new
@@ -199,7 +185,8 @@ class Session:
         self.line = line
         self.phase = 'ready'        # ready → sending → sent | failed
         self.composed = None        # ComposedMessage, set at load
-        self.telegraph = None       # generator, set by send() / custom load
+        self.telegraph = None       # generator, set by custom load / settle display
+        self.job = None             # the queued transmission, set by send()
         self.clicked = None         # 'send' | 'resend', which action is in flight
         self.pane = None            # 'canvas' | 'telegraph' | None, SIGMET display focus
 
@@ -272,7 +259,7 @@ class SenderPresenter:
         self.view.render()
 
     def createLine(self):
-        return Line(self.conf, self.context, pinned=self.view.pinnedProtocol)
+        return Line(self.conf, pinned=self.view.pinnedProtocol)
 
     def compose(self, message):
         composer = createComposer(message.category, self.conf, self.context, uiFont().family())
@@ -359,20 +346,18 @@ class SenderPresenter:
         session.phase = 'sending'
         self.view.render()
 
-        try:
-            session.telegraph = session.line.generate(session.message)
+        # License before submit: a refused message never enters the queue,
+        # so it is never archived either
+        if not self.context.license.hasPermission(session.message.category):
+            session.phase = 'failed'
+            self.view.showError(QCoreApplication.translate('Sender', 'Limited functionality, please check the license information'))
+            self.view.render()
+            return
 
-            if not self.context.license.hasPermission(session.message.category):
-                self.settle(session, QCoreApplication.translate('Sender', 'Limited functionality, please check the license information'))
-                return
-            
-            parser = session.composed.parser if session.composed else None
-            session.line.transmit(
-                session.telegraph.toString(), parser,
-                lambda error, target=session: self.settle(target, error))
-        except Exception as e:
-            logger.exception('Failed to generate or submit the telegram')
-            self.settle(session, str(e))
+        parser = session.composed.parser if session.composed else None
+        job = Job(session.message, session.line, parser=parser, settle=self.settle)
+        session.job = job
+        self.context.transmission.submit(job)
 
     def confirmations(self, session):
         """Pre-send confirmations, checked in order; the first refusal aborts
@@ -401,45 +386,56 @@ class SenderPresenter:
 
         return True
 
-    def settle(self, session, error=''):
-        """Record the outcome of a transmission for the session it belongs
-        to; results arriving after the session was replaced are dropped."""
-        if session is not self.session:
-            return
+    def settle(self, job, error=''):
+        """Record the outcome of a queued transmission. Submitted is
+        promised: saving and sequencing happen even after the session was
+        replaced or the window closed; only the display is skipped then."""
+        session = self.session
+        self.save(job)
 
         if error:
-            self.view.showError(error)
-            self.save(session)
-            session.phase = 'failed'
-            self.view.render()
-        else:
-            self.save(session)
-            self.advanceSequence(session)
-            self.updateReminder(session)
+            if session is not None and session.job is job:
+                session.telegraph = job.telegraph
+                session.phase = 'failed'
+                self.view.showError(error)
+                self.view.render()
+            return
+
+        self.advanceSequence(job)
+        self.updateReminder(job.message)
+
+        if session is not None and session.job is job:
+            session.telegraph = job.telegraph
             session.phase = 'sent'
             session.pane = 'telegraph'
             self.view.render()
-            self.view.succeeded.emit(True)
 
-    def save(self, session):
-        message = session.message
+        # Consumers (table refresh, SIGMET reminders) do not depend on the
+        # session surviving
+        self.view.succeeded.emit(True)
+
+    def save(self, job):
+        if job.telegraph is None:
+            return                      # generation failed: nothing was sent
+
+        message = job.message
         resent = bool(message.raw)
 
         if resent or message.created is None:
             message.created = utcnow()
 
-        message.raw = session.telegraph.toJson()
-        message.protocol = session.line.protocol
+        message.raw = job.telegraph.toJson()
+        message.protocol = job.line.protocol
         self.repository.add(message)
 
         logger.debug('{} {}'.format('Resend' if resent else 'Send', message.text))
 
-    def advanceSequence(self, session):
-        self.conf.set(session.line.channel.configName, str(session.telegraph.number))
+    def advanceSequence(self, job):
+        self.conf.set(job.line.channel.configName, str(job.telegraph.number))
 
-    def updateReminder(self, session):
-        if session.message.category in ('SIGMET', 'AIRMET'):
-            self.context.sigmet.updateReminders(session.message)
+    def updateReminder(self, message):
+        if message.category in ('SIGMET', 'AIRMET'):
+            self.context.sigmet.updateReminders(message)
 
     def toggle(self):
         if self.session is None or self.session.message.isCnl() or self.view.graphic is None:

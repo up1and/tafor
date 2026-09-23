@@ -3,19 +3,41 @@ import sys
 import json
 import secrets
 import logging
-import datetime
 
 from PyQt5.QtGui import QIcon, QIntValidator, QTextCursor
-from PyQt5.QtCore import QCoreApplication, QStandardPaths, QSettings, QTimer, Qt
+from PyQt5.QtCore import QCoreApplication, QStandardPaths, QSettings, QTimer, Qt, QObject, pyqtSignal
 from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QFileDialog, QMessageBox, QApplication, QCheckBox, 
                              QLineEdit, QComboBox, QPlainTextEdit, QSlider, QListWidget, QGroupBox)
 
+from tafor.core.telegram.transport import ftpComm
 from tafor.core.utils.common import iconPath, ipAddress
 from tafor.core.utils.time import utcnow
 from tafor.ui.qt import Ui_setting
-from tafor.ui.workers import FtpWorker, threadManager
+from tafor.ui.workers import threadManager
 
 logger = logging.getLogger('tafor.setting')
+
+
+class FtpTestWorker(QObject):
+    """One-shot FTP login probe for the settings dialog: a diagnostic, not a
+    transmission, so it stays off the transmission queue"""
+    done = pyqtSignal(str)
+    finished = pyqtSignal()
+
+    def __init__(self, url):
+        super().__init__()
+        self.url = url
+
+    def run(self):
+        try:
+            ftpComm('', self.url, 'test')
+            error = ''
+        except Exception as e:
+            error = str(e)
+            logger.error('Failed to connect to the FTP host, {}'.format(e))
+        finally:
+            self.done.emit(error)
+            self.finished.emit()
 
 
 class SettingDialog(QDialog, Ui_setting.Ui_Settings):
@@ -137,7 +159,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
     def testFtpLogin(self):
         self.testLoginButton.setEnabled(False)
-        worker, thread = threadManager.createWorker(FtpWorker, '', self.ftpHost.text(), 'test')
+        worker, thread = threadManager.createWorker(FtpTestWorker, self.ftpHost.text())
         worker.done.connect(self.handleFtpLoginResult)
         thread.start()
 

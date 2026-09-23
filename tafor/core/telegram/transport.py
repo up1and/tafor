@@ -48,9 +48,9 @@ def serialComm(message, port, baudrate=9600, bytesize='8', parity='NONE', stopbi
         # wait for the UART to shift out the last bytes before the port closes.
         # one byte on the wire is start(1) + data + parity(0/1) + stop bits. 
         # add a fixed margin so short messages are not cut off by the close().
-        bitsPerByte = int(bytesize) + float(stopbits) + (1 if parity in ('EVEN', 'ODD') else 0)
-        transmitTime = len(message) * bitsPerByte / baudrate + 0.1
-        time.sleep(transmitTime)
+        bitsPerByte = 1 + int(bytesize) + (1 if parity in ('EVEN', 'ODD') else 0) + float(stopbits)
+        duration = len(message) * bitsPerByte / baudrate + 0.1
+        time.sleep(duration)
 
 def ftpComm(message, url, filename, tempsuffix='part'):
     parser = urlparse(url)

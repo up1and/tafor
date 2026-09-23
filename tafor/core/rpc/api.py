@@ -199,7 +199,8 @@ class StateResource:
             'file': {
                 'number': self.conf.fileSequenceNumber,
             },
-            'busy': self.context.serial.isBusy,
+            'busy': bool(self.context.transmission and (
+                self.context.transmission.isBusy or self.context.transmission.pending)),
             'time': falcon.http_now()
         }
         resp.media = data

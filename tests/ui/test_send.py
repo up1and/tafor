@@ -1,6 +1,8 @@
 import datetime
 import json
 
+from types import SimpleNamespace
+
 import pytest
 
 from PyQt5.QtWidgets import QMessageBox
@@ -8,6 +10,7 @@ from PyQt5.QtWidgets import QMessageBox
 from tafor.core.models import Other, Sigmet, Taf, Trend
 from tafor.core.repositories import MessageRepository
 from tafor.ui.components.send import CustomSender, SigmetSender, TafSender, TrendSender
+from tafor.ui.workers import TransmissionQueue
 
 
 def makeTaf(read_fixture):
@@ -33,15 +36,18 @@ def resetSequence(conf):
 
 
 @pytest.fixture
-def transmission(monkeypatch):
-    """Intercept the line transmission: record submissions, let tests deliver results"""
+def transmission(context):
+    """A real TransmissionQueue with the worker stubbed out: submissions are
+    generated and dispatched synchronously, the test delivers results with
+    queue.finish(error)"""
     calls = []
-
-    def transmit(self, text, parser, onResult):
-        calls.append({'text': text, 'parser': parser, 'onResult': onResult})
-
-    monkeypatch.setattr('tafor.ui.components.send.Line.transmit', transmit)
-    return calls
+    worker = SimpleNamespace(prepare=lambda: None, stop=lambda: None, error='')
+    queue = TransmissionQueue(worker)
+    queue.dispatch.connect(lambda kind, text, params: calls.append(
+        {'kind': kind, 'text': text, 'params': params}))
+    queue.calls = calls
+    context.transmission = queue
+    return queue
 
 
 @pytest.fixture
@@ -130,7 +136,7 @@ class TestNewMessageSend:
 
         with qtbot.waitSignal(sender.succeeded):
             sender.presenter.send()
-            transmission[0]['onResult']('')
+            transmission.finish('')
 
         assert sender.rawGroup.isVisibleTo(sender)
         assert sender.rawGroup.title() == 'Data has been sent to the serial port'
@@ -150,7 +156,7 @@ class TestNewMessageSend:
         sender.receive(message)
 
         sender.presenter.send()
-        transmission[0]['onResult']('serial port offline')
+        transmission.finish('serial port offline')
 
         # One error popup, 'Send Failed' title, Resend appears
         assert answers['errors'] == ['serial port offline']
@@ -164,7 +170,7 @@ class TestNewMessageSend:
         # Resending is the same entry point; success returns to the sent display
         message.created = datetime.datetime.utcnow() - datetime.timedelta(minutes=5)
         sender.presenter.send()
-        transmission[1]['onResult']('')
+        transmission.finish('')
 
         assert sender.rawGroup.title() == 'Data has been sent to the serial port'
         assert not sender.resendButton.isVisibleTo(sender)
@@ -189,7 +195,7 @@ class TestNewMessageSend:
         sender.presenter.send()
 
         assert answers['questions'] == ['The message did not pass the validator, do you still want to send?']
-        assert len(transmission) == 1
+        assert len(transmission.calls) == 1
 
     def test_send_without_permission(self, sender, transmission, answers, read_fixture, monkeypatch):
         monkeypatch.setattr(sender.context.license, 'hasPermission', lambda category: False)
@@ -198,18 +204,19 @@ class TestNewMessageSend:
 
         sender.presenter.send()
 
-        assert transmission == []
+        assert transmission.calls == []
         assert answers['errors'] == ['Limited functionality, please check the license information']
         assert sender.rawGroup.title() == 'Send Failed'
         assert not sender.sendButton.isVisibleTo(sender)
         assert not sender.resendButton.isVisibleTo(sender)
-        assert message.id is not None
+        # License before submit: a refused message is never archived
+        assert message.id is None
         assert sender.conf.get('channelSequenceNumber') == '1'
 
     def test_receive_twice_without_clear(self, sender, transmission, answers, read_fixture):
         sender.receive(makeTaf(read_fixture))
         sender.presenter.send()
-        transmission[0]['onResult']('')
+        transmission.finish('')
         assert sender.rawGroup.isVisibleTo(sender)
 
         second = makeTaf(read_fixture)
@@ -223,15 +230,36 @@ class TestNewMessageSend:
         assert sender.windowTitle() == 'Send Message'
 
     def test_stale_result_discarded(self, sender, transmission, answers, read_fixture):
-        sender.receive(makeTaf(read_fixture))
+        first = makeTaf(read_fixture)
+        sender.receive(first)
         sender.presenter.send()
-        stale = transmission[0]['onResult']
 
         sender.receive(makeTaf(read_fixture))
-        stale('boom')
+        transmission.finish('boom')
 
+        # The result belongs to the replaced session: the transmission is
+        # still archived (it happened), but the display is not touched
+        assert first.id is not None
         assert answers['errors'] == []
         assert sender.sendButton.isVisibleTo(sender)
+
+    def test_submission_marks_session_sending(self, sender, transmission, answers, read_fixture):
+        sender.receive(makeTaf(read_fixture))
+        sender.presenter.send()
+
+        assert sender.presenter.session.phase == 'sending'
+        assert transmission.calls[0]['kind'] == 'aftn'
+
+    def test_result_after_window_closed_is_still_archived(self, sender, transmission, answers, read_fixture, conf):
+        message = makeTaf(read_fixture)
+        sender.receive(message)
+        sender.presenter.send()
+
+        sender.clear()      # the window closed while the transmission runs
+        transmission.finish('')
+
+        assert message.id is not None
+        assert conf.get('channelSequenceNumber') == '2'
 
 
 class TestReviewMessage:
@@ -262,7 +290,7 @@ class TestReviewMessage:
             'Some part of the AFTN message may be updated, do you still want to resend?']
 
         created = message.created
-        transmission[0]['onResult']('')
+        transmission.finish('')
 
         assert message.created > created
         assert sender.conf.get('channelSequenceNumber') == '2'
@@ -278,7 +306,7 @@ class TestReviewMessage:
     def test_cancel_after_resend_closes(self, sender, transmission, answers, read_fixture):
         sender.receive(self.reviewMessage(read_fixture))
         sender.presenter.send()
-        transmission[0]['onResult']('')
+        transmission.finish('')
 
         received = spySignals(sender)
         sender.cancel()
@@ -297,7 +325,7 @@ class TestSigmet:
         assert sigmetSender.sendButton.isVisibleTo(sigmetSender)
 
         sigmetSender.presenter.send()
-        transmission[0]['onResult']('')
+        transmission.finish('')
 
         # Auto switch to the telegraph view, toggle button appears
         assert sigmetSender.rawGroup.isVisibleTo(sigmetSender)
@@ -324,7 +352,7 @@ class TestSigmet:
         assert sigmetSender.sendButton.isVisibleTo(sigmetSender)
 
         sigmetSender.presenter.send()
-        transmission[0]['onResult']('')
+        transmission.finish('')
 
         assert not sigmetSender.canvasGroup.isVisibleTo(sigmetSender)
         assert sigmetSender.rawGroup.isVisibleTo(sigmetSender)
@@ -365,7 +393,7 @@ class TestSigmet:
         assert sigmetSender.sendButton.isVisibleTo(sigmetSender)
 
         sigmetSender.presenter.send()
-        transmission[0]['onResult']('')
+        transmission.finish('')
 
         assert sigmetSender.rawGroup.isVisibleTo(sigmetSender)
         assert message.raw and message.id is not None
@@ -397,7 +425,7 @@ class TestCustomMessage:
         assert customSender.rawGroup.title() == 'Received Messages'
 
         customSender.presenter.send()
-        transmission[0]['onResult']('')
+        transmission.finish('')
         assert customSender.rawGroup.title() == 'Data has been sent to the serial port'
 
 

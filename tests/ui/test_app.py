@@ -88,10 +88,35 @@ class FakeWindow:
         self.dialogsClosed += 1
 
 
+class FakeSignal:
+    """A pyqtSignal reduced to connect()"""
+
+    def __init__(self):
+        self.targets = []
+
+    def connect(self, target):
+        self.targets.append(target)
+
+
 class FakeWorker:
+    """Worker double with the members the transmission assembly touches."""
+
+    error = ''
+
     def __init__(self, *args, **kwargs):
         self.args = args
         self.kwargs = kwargs
+        self.done = FakeSignal()
+        self.stopped = 0
+
+    def transmit(self, *args):
+        pass
+
+    def prepare(self):
+        pass
+
+    def stop(self):
+        self.stopped += 1
 
 
 class FakeThread:
@@ -382,6 +407,23 @@ class TestApplication:
 
         assert application.window.trayHidden == 1
         assert application.window.dialogsClosed == 1
+        assert application.workers.cleaned == 1
+
+    def test_start_creates_the_transmission_line_first(self, application, runtime):
+        application.start()
+
+        request = application.workers.created[0]
+        assert request.workerClass is app_module.TransmissionWorker
+        assert request.kwargs == {'workerId': 'transmission', 'reusable': True}
+        assert isinstance(runtime.context.transmission, app_module.TransmissionQueue)
+        assert request.thread.started == 1
+
+    def test_shutdown_stops_the_transmission_before_cleanup(self, application, runtime):
+        application.start()
+        application.shutdown()
+
+        request = application.workers.created[0]
+        assert request.worker.stopped == 1
         assert application.workers.cleaned == 1
 
     def test_start_rpc_does_nothing_when_disabled(self, application, runtime, monkeypatch):

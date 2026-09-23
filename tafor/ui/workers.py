@@ -1,8 +1,9 @@
 import csv
+import time
 import logging
 
 from uuid import uuid4
-
+from collections import deque
 from types import SimpleNamespace
 
 from PyQt5.QtCore import QThread, QObject, pyqtSignal
@@ -148,60 +149,177 @@ class ExportRecordWorker(QObject):
             self.finished.emit()
 
 
-class SerialWorker(QObject):
-    """Worker for serial communication"""
+class Job:
+    """One queued transmission. Created and settled on the GUI thread; the
+    worker thread never sees it, only the plain payload derived from it."""
+
+    def __init__(self, message, line, parser=None, settle=None):
+        self.message = message      # transient message instance, GUI thread only
+        self.line = line            # protocol (aftn/ftp), channel + conf
+        self.parser = parser        # composed.parser, only feeds the ftp filename's valids
+        self.settle = settle        # callable(job, error), runs on the GUI thread
+        self.telegraph = None       # filled in by the queue at dispatch
+
+
+def payload(job):
+    """Derive the worker's plain arguments from a job: protocol kind, the
+    telegraph text and the channel parameters, read from conf at dispatch so
+    the freshest sequence number and port settings are used"""
+    line = job.line
+    text = job.telegraph.toString()
+
+    if line.protocol == 'ftp':
+        params = line.channel.ftpParams(getattr(job.parser, 'valids', None))
+    else:
+        params = {
+            'port': line.conf.port,
+            'baudrate': int(line.conf.baudrate),
+            'bytesize': line.conf.bytesize,
+            'parity': line.conf.parity,
+            'stopbits': line.conf.stopbits,
+            'codec': line.conf.codec,
+        }
+
+    return line.protocol, text, params
+
+
+def deliver(job, error):
+    """Hand the outcome back to the job's owner, absorbing its failures.
+
+    A presenter error must not wedge the queue, and finish() runs this from a
+    Qt slot, where an unhandled exception aborts the process outright.
+    """
+    if job.settle is None:
+        return
+    try:
+        job.settle(job, error)
+    except Exception:
+        logger.exception('Failed to settle the transmission')
+
+
+class TransmissionQueue(QObject):
+    """The process-wide single transmission line.
+
+    Lives entirely on the GUI thread: submissions, telegraph generation
+    (sequence number read) and settlement (archive + sequence write-back)
+    happen here in strict FIFO order, lock-free. The resident worker on its
+    own thread only runs the blocking IO. See docs/transmission-queue.md.
+    """
+
+    dispatch = pyqtSignal(str, str, dict)   # kind, text, params
+
+    def __init__(self, worker, parent=None):
+        super().__init__(parent)
+        self.worker = worker
+        self.jobs = deque()
+        self.current = None
+
+    @property
+    def isBusy(self):
+        return self.current is not None
+
+    @property
+    def pending(self):
+        return len(self.jobs)
+
+    def submit(self, job):
+        self.jobs.append(job)
+        self.pump()
+
+    def pump(self):
+        if self.current is not None or not self.jobs:
+            return
+
+        job = self.jobs.popleft()
+        try:
+            job.telegraph = job.line.generate(job.message)
+            kind, text, params = payload(job)
+        except Exception as e:
+            logger.exception('Failed to generate the telegram')
+            deliver(job, str(e))        # generation failure settles as a send failure
+            self.pump()                 # recursion depth is bounded by the queue length
+            return
+
+        self.current = job
+        self.worker.prepare()
+        self.dispatch.emit(kind, text, params)
+
+    def finish(self, error):
+        """Back from worker.done over a queued connection, on the GUI thread"""
+        job, self.current = self.current, None
+        if job is not None:
+            deliver(job, error)
+        self.pump()
+
+    def stop(self):
+        """Shutdown path: block until the wire goes quiet, then settle the
+        in-flight job synchronously — the worker's done signal is never
+        delivered once the event loop has exited. Undispatched jobs are
+        dropped by design.
+
+        The outcome is trustworthy because worker.stop() returns only once
+        busy is cleared, and busy is cleared in the same finally that writes
+        the error.
+        """
+        self.jobs.clear()
+        self.worker.stop()
+        job, self.current = self.current, None
+        if job is not None:
+            deliver(job, self.worker.error)
+
+
+class TransmissionWorker(QObject):
+    """The resident transmission worker: one thread, blocking IO only.
+
+    run() is a no-op; the thread's event loop dispatches the transmit slot.
+    done() always carries the outcome, finished() exists only to satisfy the
+    thread manager contract and is never emitted.
+    """
     done = pyqtSignal(str)
     finished = pyqtSignal()
 
-    def __init__(self, message, conf, context):
+    def __init__(self):
         super().__init__()
-        self.message = message
-        self.conf = conf
-        self.context = context
+        self.busy = False
+        self.error = ''
 
     def run(self):
-        port = self.conf.port
-        baudrate = int(self.conf.baudrate)
-        bytesize = self.conf.bytesize
-        parity = self.conf.parity
-        stopbits = self.conf.stopbits
-        codec = self.conf.codec
+        pass
 
+    def prepare(self):
+        """Called on the GUI thread right before dispatch: close the window
+        where stop() would see an idle worker while a transmit() call is
+        still queued on the worker thread"""
+        self.busy = True
+        self.error = ''
+
+    def transmit(self, kind, text, params):
+        """Runs on the worker thread"""
+        self.busy = True
+        self.error = ''
         try:
-            self.context.serial.lock()
-            serialComm(self.message, port, baudrate=baudrate, bytesize=bytesize,
-                       parity=parity, stopbits=stopbits, codec=codec)
-            error = ''
+            if kind == 'ftp':
+                ftpComm(text, **params)
+            else:
+                serialComm(text, **params)
         except Exception as e:
-            error = str(e)
-            logger.error('Failed to send data through serial port, {}'.format(e))
+            self.error = str(e)
+            logger.error('Failed to send data over {}, {}'.format(kind, e))
         finally:
-            self.context.serial.release()
-            self.done.emit(error)
-            self.finished.emit()
+            self.busy = False
+            self.done.emit(self.error)
 
+    def stop(self):
+        """Block the caller until the wire goes quiet.
 
-class FtpWorker(QObject):
-    """Worker for FTP communication"""
-    done = pyqtSignal(str)
-    finished = pyqtSignal()
-
-    def __init__(self, message, url, filename):
-        super().__init__()
-        self.message = message
-        self.url = url
-        self.filename = filename
-
-    def run(self):
-        try:
-            ftpComm(self.message, self.url, self.filename)
-            error = ''
-        except Exception as e:
-            error = str(e)
-            logger.error('Failed to send data through FTP, {}'.format(e))
-        finally:
-            self.done.emit(error)
-            self.finished.emit()
+        busy is cleared in transmit()'s finally, right after the outcome is
+        written to error, so a False busy means this job's result is known.
+        That is the whole contract — there is no deadline.
+        """
+        if self.busy:
+            logger.info('Waiting for the transmission in flight to finish')
+        while self.busy:
+            time.sleep(0.05)
 
 
 class CheckUpgradeWorker(QObject):
@@ -268,7 +386,6 @@ class ContextBridge(QObject):
     def __init__(self, context, parent=None):
         super().__init__(parent)
         self.context = context
-        self.serial = context.serial
         self.metarNotification.connect(self.updateMetar)
         self.sigmetNotification.connect(self.updateSigmet)
         self.otherMessage.connect(self.updateOther)
@@ -277,6 +394,12 @@ class ContextBridge(QObject):
             sigmet=SimpleNamespace(setState=self.sigmetNotification.emit),
         )
         self.other = SimpleNamespace(submit=self.otherMessage.emit)
+
+    @property
+    def transmission(self):
+        """Forwarded live: the queue is injected into the context by the
+        application assembly after the bridge exists"""
+        return self.context.transmission
 
     def updateMetar(self, values):
         self.context.notification.metar.setState(values)
