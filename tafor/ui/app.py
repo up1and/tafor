@@ -29,7 +29,8 @@ from tafor.core.utils.common import appInfo, setupLogging
 from tafor.ui.fonts import uiFont
 from tafor.ui.main import (MainWindow, BoardPresenter, LayerPresenter, LicensePresenter,
     MessagePresenter, NotificationPresenter, ReminderPresenter, SoundPresenter, UpgradePresenter)
-from tafor.ui.workers import ContextBridge, RpcWorker, threadManager
+from tafor.ui.workers import (ContextBridge, RpcWorker, TransmissionQueue,
+    TransmissionWorker, threadManager)
 
 logger = logging.getLogger('tafor.main')
 
@@ -152,6 +153,16 @@ class Application:
         ]
 
     def start(self):
+        # The single transmission line: the queue lives on the GUI thread,
+        # the resident worker does the blocking IO on its own thread
+        # (docs/transmission-queue.md)
+        worker, thread = self.workers.create(TransmissionWorker, workerId='transmission', reusable=True)
+        queue = TransmissionQueue(worker)
+        queue.dispatch.connect(worker.transmit)
+        worker.done.connect(queue.finish)
+        self.runtime.context.transmission = queue
+        thread.start()
+
         self.window.show()
         for presenter in self.presenters:
             presenter.initialize()
@@ -163,6 +174,10 @@ class Application:
         resources: the windows and the worker threads."""
         self.window.hideTray()
         self.window.closeDialogs()
+        if self.runtime.context.transmission is not None:
+            # the event loop is already gone: block until the wire goes
+            # quiet, then settle the in-flight job synchronously
+            self.runtime.context.transmission.stop()
         self.workers.cleanup()
 
     def startRpc(self):

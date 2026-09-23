@@ -39,8 +39,9 @@ class FakeConf:
 
 class FakeContext:
 
-    class _Serial:
+    class _Transmission:
         isBusy = False
+        pending = 0
 
     class _Metar:
         def setState(self, values):
@@ -55,7 +56,7 @@ class FakeContext:
             self.values = values
 
     def __init__(self):
-        self.serial = self._Serial()
+        self.transmission = self._Transmission()
         self.notification = type('Notification', (), {
             'metar': self._Metar(),
             'sigmet': self._Sigmet(),
@@ -92,6 +93,22 @@ def test_state_resource(client):
     assert data['busy'] is False
     assert data['aftn']['channel'] == 'YMC'
     assert data['address']['taf'] == 'YUSOYMYX'
+
+
+def test_state_busy_while_transmitting(engine):
+    context = FakeContext()
+    context.transmission.isBusy = True
+    app = create_app(context=context, engine=engine, conf=FakeConf())
+    resp = falcon.testing.TestClient(app).simulate_get('/api/state', headers=_auth())
+    assert resp.json['busy'] is True
+
+
+def test_state_busy_with_pending_jobs(engine):
+    context = FakeContext()
+    context.transmission.pending = 2
+    app = create_app(context=context, engine=engine, conf=FakeConf())
+    resp = falcon.testing.TestClient(app).simulate_get('/api/state', headers=_auth())
+    assert resp.json['busy'] is True
 
 
 def test_authorize_required(client):
