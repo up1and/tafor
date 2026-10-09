@@ -1351,6 +1351,22 @@ class TestUpgradePresenter:
 
         assert opened == []
 
+    def test_an_uncomparable_tag_is_offered_instead_of_crashing(self, upgrade, view, monkeypatch, caplog):
+        """Regression: a tag like v3.0.0-beta made checkVersion raise a
+        ValueError inside this Qt slot, which aborts the process with no
+        traceback. The download is the safe answer."""
+        opened = []
+        monkeypatch.setattr(main_module, 'QDesktopServices', SimpleNamespace(openUrl=opened.append))
+        view.answer = True
+
+        with caplog.at_level(logging.WARNING, logger='tafor.main'):
+            upgrade.report({'tag_name': 'v3.0.0-beta'})     # must not raise
+
+        assert 'Cannot compare the release tag' in caplog.text
+        assert view.prompts == [
+            ('Check for Updates', 'New version found v3.0.0-beta, do you want to download now?')]
+        assert opened == [QUrl('https://github.com/up1and/tafor/releases')]
+
 
 class FakeWidget:
     """A child widget reduced to a recorder: every call is captured."""
@@ -1461,7 +1477,7 @@ def windowDatabase():
 
 
 @pytest.fixture(scope='class')
-def sharedWindow(windowDatabase):
+def sharedWindow(windowDatabase, qapp):
     """One real MainWindow for a whole test class.
 
     Building it costs about 0.4s -- five editors, four senders, six sounds --
@@ -2032,7 +2048,8 @@ class TestMainWindowWithoutSigmet:
     and leaves the rest of the window alone."""
 
     @pytest.fixture(scope='class')
-    def window(self, windowDatabase):
+    @classmethod
+    def window(cls, windowDatabase, qapp):
         window = buildMainWindow(windowDatabase, sigmetEnabled=False)
         yield window
         window.hideTray()

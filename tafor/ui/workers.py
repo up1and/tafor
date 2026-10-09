@@ -77,9 +77,17 @@ class ThreadManager:
             thread.quit()
 
             # Blocking wait to ensure thread resources are released before disposal
-            thread.wait(1000)
+            if not thread.wait(1000):
+                # Still running. Unregistering now would drop the last Python
+                # reference to a live QThread, destroying it mid-run and
+                # aborting the process with no traceback. Leave it registered
+                # instead: the manager keeps it alive, and a non-reusable
+                # worker retires itself when its finished signal arrives.
+                logger.warning('Worker %r did not stop in time; left registered', workerId)
+                return
 
         self.unregister(workerId)
+
     def cleanup(self):
         """
         Synchronously shuts down all managed threads. 
@@ -145,6 +153,12 @@ class ExportRecordWorker(QObject):
                     writer.writerow(self.headers)
                 for row in self.data:
                     writer.writerow(row)
+        except Exception as e:
+            # The file system is the untrusted part here: a path that cannot be
+            # written is the operator's mistake, not a reason to abort the
+            # process. Qt hands an exception escaping run() to sys.excepthook,
+            # whose default aborts with no traceback.
+            logger.error('Failed to export records, %s', e)
         finally:
             self.finished.emit()
 

@@ -74,6 +74,16 @@ class TestCurrentTaf:
         assert taf.isExpired(0) is True
         assert taf.isExpired(5) is False
 
+    def test_an_empty_setting_falls_back_to_the_default(self):
+        """Regression: Monitor/DelayMinutes reaches this as the settings text
+        and the dialog lets the field be emptied, so int('') used to raise
+        inside a Qt slot and abort the process."""
+        taf = CurrentTaf(SpecFC, time=datetime.datetime(2026, 6, 10, 8, 0))
+
+        assert taf.isExpired('') == taf.isExpired(30)
+        assert taf.isExpired(None) == taf.isExpired(30)
+        assert taf.isExpired('abc') == taf.isExpired(30)
+
 
 class TestSpecInvariants:
     """The two facts that make the loop in `key()` always win."""

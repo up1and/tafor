@@ -551,7 +551,17 @@ class UpgradePresenter(QObject):
             self.view.notify(title, QCoreApplication.translate('MainWindow', 'Unable to get the latest version information.'))
             return
 
-        if not checkVersion(release, __version__):
+        try:
+            outdated = checkVersion(release, __version__)
+        except ValueError:
+            # A tag that is not "x.y[.z]" (a beta suffix, say) cannot be
+            # compared. Offering the download is the safe answer: it is what
+            # a newer release would do, and a ValueError escaping this slot
+            # would abort the process.
+            logger.warning('Cannot compare the release tag %r', release)
+            outdated = True
+
+        if not outdated:
             self.view.notify(title, QCoreApplication.translate('MainWindow', 'The current version is already the latest version.'))
             return
 

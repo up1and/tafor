@@ -7,6 +7,8 @@ tests/core/test_rpc.py.
 """
 
 import csv
+import logging
+import os
 import threading
 import time
 
@@ -34,6 +36,16 @@ class DummyWorker(QObject):
 
     def run(self):
         self.ran = True
+        self.finished.emit()
+
+
+class BlockingWorker(QObject):
+    """A worker with no stop(): like MessageWorker, run() blocks in IO and
+    quit() cannot interrupt it until that call returns."""
+    finished = pyqtSignal()
+
+    def run(self):
+        time.sleep(1.5)
         self.finished.emit()
 
 
@@ -70,6 +82,20 @@ class TestExportRecordWorker:
             rows = list(csv.reader(file))
 
         assert rows == [['a', '1']]
+
+    def test_run_reports_a_write_failure_without_raising(self, qtbot, tmp_path, caplog):
+        """Regression: an exception escaping run() reaches sys.excepthook,
+        whose default aborts the process with no traceback. A path that cannot
+        be written is the operator's mistake, not a reason to die."""
+        filename = str(tmp_path / 'missing' / 'records.csv')
+        worker = ExportRecordWorker(filename, [['a', 1]], headers=('a',))
+
+        with caplog.at_level(logging.ERROR, logger='tafor.workers'):
+            with qtbot.waitSignal(worker.finished):
+                worker.run()       # must not raise
+
+        assert 'Failed to export records' in caplog.text
+        assert not os.path.exists(filename)
 
 
 class TestThreadManager:
@@ -128,6 +154,26 @@ class TestThreadManager:
         assert manager._threads == {}
         assert manager._workers == {}
 
+    def test_a_worker_that_will_not_stop_is_left_registered(self, qtbot):
+        """Regression: wait()'s return value used to be ignored, so a thread
+        that was still running was unregistered anyway. The last Python
+        reference then went away, the live QThread was destroyed, and the
+        process aborted with no traceback (exit 127)."""
+        manager = ThreadManager()
+        worker, thread = manager.createWorker(BlockingWorker, workerId='slow', reusable=True)
+        thread.start()
+        qtbot.waitUntil(thread.isRunning)
+
+        manager.removeWorker('slow')
+
+        # The manager still holds the pair, which is what keeps the QThread
+        # alive; the thread itself keeps running to the end of the test.
+        assert manager._threads.get('slow') is thread
+        assert manager._workers.get('slow') is worker
+        assert thread.isRunning()
+
+        # Let the blocking call finish; the thread then quits normally
+        thread.wait(3000)
 
 class TestContextBridge:
 

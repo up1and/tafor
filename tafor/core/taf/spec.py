@@ -94,12 +94,16 @@ class CurrentTaf:
         The deadline is when the window opens, plus the spec's own `delay`, plus
         `minutes` -- the operator's tolerance from the settings. `minutes` arrives
         as text, since that is how the settings store it, and None means the caller
-        has no setting to pass and gets the default.
+        has no setting to pass and gets the default. A setting that is present but
+        empty (the settings dialog allows it) falls back to the default too: an
+        int() failure here would surface inside a slot.
         """
-        if minutes is None:
+        try:
+            minutes = int(minutes)
+        except (TypeError, ValueError):
             minutes = 30
 
-        threshold = self.openings[self.key()] + self.spec.delay + datetime.timedelta(minutes=int(minutes))
+        threshold = self.openings[self.key()] + self.spec.delay + datetime.timedelta(minutes=minutes)
         return threshold < self.time
 
     def initOpenings(self):
