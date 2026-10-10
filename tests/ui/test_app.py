@@ -41,6 +41,7 @@ PRESENTERS = [
     'NotificationPresenter',
     'BoardPresenter',
     'SoundPresenter',
+    'FlashPresenter',
     'LayerPresenter',
     'LicensePresenter',
     'UpgradePresenter',
@@ -70,13 +71,20 @@ class PresenterDouble:
 
 
 class FakeWindow:
-    """The MainWindow, reduced to the three methods Application calls."""
+    """The MainWindow, reduced to the methods Application and the presenters
+    reach for.
+
+    notify/status are here because FlashPresenter subscribes them to the
+    context's flash channels, and it does so from initialize().
+    """
 
     def __init__(self, *args):
         self.args = args
         self.shown = 0
         self.trayHidden = 0
         self.dialogsClosed = 0
+        self.notices = []
+        self.statuses = []
 
     def show(self):
         self.shown += 1
@@ -86,6 +94,12 @@ class FakeWindow:
 
     def closeDialogs(self):
         self.dialogsClosed += 1
+
+    def notify(self, title, text, level='information'):
+        self.notices.append((title, text, level))
+
+    def status(self, text, timeout=5000):
+        self.statuses.append((text, timeout))
 
 
 class FakeSignal:
@@ -386,6 +400,7 @@ class TestApplication:
         assert doubles.byRole['BoardPresenter'][0].args == (
             window, runtime.context, runtime.conf, runtime.repositories)
         assert doubles.byRole['SoundPresenter'][0].args == (window, runtime.context, runtime.conf)
+        assert doubles.byRole['FlashPresenter'][0].args == (window, runtime.context)
         assert doubles.byRole['LayerPresenter'][0].args == (
             window, runtime.context, runtime.conf, workers, runtime.bridge)
         assert doubles.byRole['LicensePresenter'][0].args == (window, runtime.context)

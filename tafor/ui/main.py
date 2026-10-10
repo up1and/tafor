@@ -496,6 +496,26 @@ class LayerPresenter(QObject):
         )
 
 
+class FlashPresenter(QObject):
+    """Turns the core's two flash channels into something the operator sees.
+
+    FlashService is how core asks to say something; it emits on the event bus
+    and does not know a window exists. Both channels used to have no subscriber
+    at all, so every message sent through them -- the trend validation warning,
+    the settings import/export confirmations, the copy confirmation -- went
+    nowhere. Subscribing is all that was missing.
+    """
+
+    def __init__(self, view, context, parent=None):
+        super().__init__(parent)
+        self.view = view
+        self.context = context
+
+    def initialize(self):
+        self.context.event.systemMessage.connect(self.view.notify)
+        self.context.event.statusbarMessage.connect(self.view.status)
+
+
 class LicensePresenter(QObject):
     """Keeps the license menu in step with the stored license.
 
@@ -813,9 +833,24 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.sigmetEditor.updateCustomText()
 
     def notify(self, title, text, level='information'):
-        icons = ['noicon', 'information', 'warning', 'critical']
-        icon = QSystemTrayIcon.MessageIcon(icons.index(level))
-        self.tray.showMessage(title, text, icon)
+        """Show a tray notification at the given level.
+
+        The level arrives over the context's event bus, so it is not a closed
+        set here: an unrecognised one falls back to information rather than
+        raising from inside a signal handler, where the traceback would be all
+        the operator got for what is only a wrong icon.
+        """
+        icons = {
+            'noicon': QSystemTrayIcon.NoIcon,
+            'information': QSystemTrayIcon.Information,
+            'warning': QSystemTrayIcon.Warning,
+            'critical': QSystemTrayIcon.Critical,
+        }
+        if level not in icons:
+            logger.warning('Unknown notification level %r, using information', level)
+            level = 'information'
+
+        self.tray.showMessage(title, text, icons[level])
 
     def status(self, text, timeout=5000):
         self.statusBar.showMessage(text, timeout)

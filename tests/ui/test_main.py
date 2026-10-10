@@ -28,6 +28,7 @@ from tafor.core.states import createContext
 from tafor.ui import main as main_module
 from tafor.ui.main import (
     BoardPresenter,
+    FlashPresenter,
     LayerPresenter,
     LicensePresenter,
     MainWindow,
@@ -1265,6 +1266,62 @@ class TestLicensePresenter:
         view.removeLicenseAction.trigger()
 
         assert view.removed == 1
+
+
+class TestFlashPresenter:
+    """Both flash channels had no subscriber, so every message sent through
+    them went nowhere -- the trend validation warning, the settings
+    import/export confirmations, the copy confirmation. These tests fail if
+    the presenter stops subscribing."""
+
+    @pytest.fixture
+    def view(self):
+        return FakeFlashView()
+
+    @pytest.fixture
+    def flash(self, view, context):
+        return FlashPresenter(view, context)
+
+    def test_a_system_message_reaches_the_tray(self, flash, view, context):
+        flash.initialize()
+
+        context.flash.warning('Trend Validation Failed', 'The trend has been cleared, please resend')
+
+        assert view.notices == [
+            ('Trend Validation Failed', 'The trend has been cleared, please resend', 'warning')
+        ]
+
+    def test_a_status_message_reaches_the_status_bar(self, flash, view, context):
+        flash.initialize()
+
+        context.flash.statusbar('Configuration has been exported', 5000)
+
+        assert view.statuses == [('Configuration has been exported', 5000)]
+
+    def test_the_editor_channel_is_left_to_the_editors(self, flash, view, context):
+        """editorMessage is addressed to a named editor, so the flash
+        presenter must not consume it."""
+        flash.initialize()
+
+        context.flash.editor('taf', 'ignored')
+
+        assert view.notices == []
+        assert view.statuses == []
+
+
+class FakeFlashView:
+    """The two methods FlashPresenter calls."""
+
+    def __init__(self):
+        self.notices = []
+        self.statuses = []
+
+    def notify(self, title, text, level='information'):
+        self.notices.append((title, text, level))
+
+    def status(self, text, timeout=5000):
+        self.statuses.append((text, timeout))
+
 
 
 class FakeUpgradeView(QObject):
