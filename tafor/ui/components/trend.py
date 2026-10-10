@@ -40,7 +40,12 @@ class TrendPresenter:
         self.view.finished.emit(message)
 
     def loadFromMetar(self):
+        """Seed the form from the live METAR's trend group.
+        """
         parser = self.context.notification.metar.parser()
+        if parser is None:
+            return
+
         for i, part in enumerate(parser.trends):
             if i == 0:
                 self.view.trend.populateFromTokens(part.tokens)

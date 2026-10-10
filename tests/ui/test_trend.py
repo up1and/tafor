@@ -91,5 +91,23 @@ class TestTrendEditor:
         assert not editor.nextButton.isEnabled()
 
 
+    def test_edit_without_notification_leaves_the_form_empty(self, editor, context):
+        """The reply button is always available, so opening the editor with no
+        live METAR notification must not raise -- there is nothing to seed.
+
+        The form does not come up empty: TrendState starts on BECMG, so an
+        unseeded form already reads 'BECMG' and stays unacceptable until the
+        operator adds a weather group.
+        """
+        assert context.notification.metar.parser() is None
+
+        editor.edit()
+
+        assert editor.isVisible()
+        assert editor.trend.message() == 'BECMG'
+        assert not editor.trend.hasAcceptableInput()
+        assert not editor.nextButton.isEnabled()
+
+
 if __name__ == '__main__':
     pytest.main()
