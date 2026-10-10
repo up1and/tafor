@@ -1,4 +1,3 @@
-import copy
 import datetime
 
 from sqlalchemy import and_
@@ -202,37 +201,46 @@ class SigmetRepository(Repository):
             return query.order_by(Sigmet.created.desc()).first()
 
     def current(self, hours=24):
+        """The SIGMETs still in force: the ones never cancelled, plus the
+        cancellations that cancel nothing (a CNL can arrive before the report
+        it cancels, and the operator still needs to see it).
+
+        A report and the cancellation that targets it annihilate each other --
+        the report leaves ``current`` and the cancellation is not listed on its
+        own. Both directions are the same test on the same pair of keys, so it
+        is done once: collect the key of every report and the target of every
+        cancellation, then keep a record only when the other set does not
+        claim it.
+        """
         recent = utcnow() - datetime.timedelta(hours=hours)
         with self.database.session() as session:
             records = session.query(Sigmet).filter(Sigmet.created > recent).order_by(Sigmet.created.asc()).all()
 
-        sigmets = []
-        cancels = []
+        entries = []
         for sig in records:
-            if not sig.isExpired():
-                if sig.isCnl():
-                    cancels.append(sig)
-                else:
-                    sigmets.append(sig)
+            if sig.isExpired():
+                continue
+
+            parser = sig.parser()
+            isCnl = sig.isCnl()
+            # A report is addressed by its own sequence and validity; a
+            # cancellation by the pair it names. They are compared as one key.
+            key = parser.cancelSequence() if isCnl else (parser.sequence(), parser.validTime())
+            entries.append((sig, isCnl, key))
+
+        cancelledKeys = {key for _, isCnl, key in entries if isCnl}
+        reportKeys = {key for _, isCnl, key in entries if not isCnl}
 
         currents = []
-        cancelSequences = [s.parser().cancelSequence() for s in cancels]
-        for sig in sigmets:
-            parser = sig.parser()
-            sequence = parser.sequence(), parser.validTime()
-            if sequence not in cancelSequences:
+        cancels = []
+        for sig, isCnl, key in entries:
+            if isCnl:
+                if key not in reportKeys:
+                    cancels.append(sig)
+            elif key not in cancelledKeys:
                 currents.append(sig)
 
-        cnls = copy.copy(cancels)
-        sequences = [(s.parser().sequence(), s.parser().validTime()) for s in sigmets]
-        for cnl in cancels:
-            if cnl.parser().cancelSequence() in sequences:
-                cnls.remove(cnl)
-
-        currents = currents + cnls
-        currents.sort(key=lambda x: x.created)
-
-        return currents
+        return sorted(currents + cancels, key=lambda x: x.created)
 
     def available(self, type, messages):
         recent = utcnow() - datetime.timedelta(hours=24)
