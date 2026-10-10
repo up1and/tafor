@@ -10,6 +10,38 @@ from tafor.core.utils.time import utcnow
 logger = logging.getLogger('tafor.states')
 
 
+class Layer:
+    """One map overlay fetched from the layer source.
+
+    Lives here rather than in utils: it is the element LayerState holds and
+    LayerService reads, so the data class sits with its state and service.
+    """
+
+    def __init__(self, layers=None):
+        if layers is None:
+            layers = {}
+
+        self.image = layers.get('image', None)
+        self.name = layers.get('name', 'Untititled')
+        self.extent = layers.get('extent', [])
+        self.proj = layers.get('proj', '')
+        self.overlay = layers.get('overlay', 'standalone')
+        self._updated = layers.get('updated', None)
+
+    def __bool__(self):
+        return self.image is not None
+
+    def __repr__(self):
+        return '<Layer {} ({}) {}>'.format(self.name, self.overlay, self._updated)
+
+    def updatedTime(self):
+        fmt = '%a, %d %b %Y %H:%M:%S GMT'
+        try:
+            return datetime.datetime.strptime(self._updated, fmt)
+        except Exception:
+            return None
+
+
 class RemoteMessageState:
     def __init__(self):
         self.messages = {}
@@ -115,8 +147,6 @@ class LayerService(StateProxyMixin):
         self.conf = conf
 
     def setLayer(self, layerData):
-        from tafor.core.utils.time import Layer
-
         layers = [Layer(data) for data in layerData]
         oldNames = [l.name for l in self.state.layers]
         newNames = [l.name for l in layers]

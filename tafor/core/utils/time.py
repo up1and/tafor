@@ -196,29 +196,3 @@ def timeAgo(date, now=None):
 
     template = locales[i][agoIn]
     return template.format(seconds) if '{}' in template else template
-
-
-class Layer:
-    def __init__(self, layers=None):
-        if layers is None:
-            layers = {}
-
-        self.image = layers.get('image', None)
-        self.name = layers.get('name', 'Untititled')
-        self.extent = layers.get('extent', [])
-        self.proj = layers.get('proj', '')
-        self.overlay = layers.get('overlay', 'standalone')
-        self._updated = layers.get('updated', None)
-
-    def __bool__(self):
-        return self.image is not None
-
-    def __repr__(self):
-        return '<Layer {} ({}) {}>'.format(self.name, self.overlay, self._updated)
-
-    def updatedTime(self):
-        fmt = '%a, %d %b %Y %H:%M:%S GMT'
-        try:
-            return datetime.datetime.strptime(self._updated, fmt)
-        except Exception:
-            return None
