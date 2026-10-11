@@ -1,5 +1,8 @@
 from PyQt5.QtCore import QCoreApplication, QTimer, Qt, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QHBoxLayout, QLabel, QPushButton
+from PyQt5.QtWidgets import (QCheckBox, QComboBox, QDialog, QHBoxLayout, QLabel,
+    QLineEdit, QMessageBox, QPushButton, QTextEdit, QWidget)
+
+from tafor.ui.fonts import fixedFont
 
 
 class BaseEditor(QDialog):
@@ -93,3 +96,36 @@ class BaseEditor(QDialog):
     def closeEvent(self, event):
         self.isStaged = False
         self.onClose()
+
+
+class TextFieldMixin:
+    """Shared text-field behaviour for the message editors.
+
+    The methods here walk the widget tree of whatever editor mixes them in,
+    so they assume nothing beyond a QWidget host.
+    """
+
+    @classmethod
+    def upperText(cls, line):
+        line.setText(line.text().upper())
+
+    @classmethod
+    def coloredText(cls, line):
+        if line.hasAcceptableInput():
+            line.setStyleSheet('color: black')
+        else:
+            line.setStyleSheet('color: grey')
+
+    def setupFont(self):
+        font = fixedFont()
+        for line in self.findChildren(QLineEdit):
+            line.setFont(font)
+
+        for combox in self.findChildren(QComboBox):
+            combox.setFont(font)
+
+        for checkbox in self.findChildren(QCheckBox):
+            checkbox.setFont(font)
+
+        for text in self.findChildren(QTextEdit):
+            text.setFont(font)

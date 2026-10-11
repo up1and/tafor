@@ -18,7 +18,7 @@ from tafor.core.geometry.coordinate import decimalToDegree
 from tafor.core.utils.time import parseTime, utcnow
 from tafor.core.utils.common import iconPath
 from tafor.ui.qt import Ui_sigmet_ash, Ui_sigmet_cancel, Ui_sigmet_custom, Ui_sigmet_general, Ui_sigmet_typhoon
-from tafor.ui.widgets.taf import SegmentMixin
+from tafor.ui.widgets.editor import TextFieldMixin
 
 logger = logging.getLogger('tafor.sigmet.information')
 
@@ -37,7 +37,7 @@ def _translate(code):
     return messages.get(code, code)
 
 
-class BaseSigmet(SegmentMixin, QWidget):
+class BaseSigmet(TextFieldMixin, QWidget):
 
     contentChanged = pyqtSignal()
 

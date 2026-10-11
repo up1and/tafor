@@ -2,7 +2,7 @@ import datetime
 
 from PyQt5.QtGui import QIcon, QRegExpValidator
 from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, QTimer, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QComboBox, QToolButton, QCheckBox, QTextEdit, QMessageBox, QHBoxLayout, QVBoxLayout
+from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QToolButton, QMessageBox, QHBoxLayout, QVBoxLayout
 
 from tafor.core.parsers.base import Pattern
 from tafor.core.taf import (GroupState, PrimaryState, SegmentState, TemperatureState, TrendState,
@@ -11,7 +11,22 @@ from tafor.core.taf import (GroupState, PrimaryState, SegmentState, TemperatureS
 from tafor.core.utils.time import parseDayHour, parsePeriod, parseTime, utcnow
 from tafor.core.utils.common import iconPath
 from tafor.ui.fonts import fixedFont
+from tafor.ui.widgets.editor import TextFieldMixin
 from tafor.ui.qt import Ui_taf_group, Ui_taf_primary, Ui_trend
+
+
+def formatPeriodSeparator(line, previous):
+    """Append the '/' separator after the 4-digit day while typing.
+
+    ``previous`` is the caller's snapshot of the text from the last keystroke;
+    the caller keeps it on its own instance. Returns the new snapshot.
+    """
+    text = line.text()
+    if len(text) > len(previous):
+        if len(text) == 4:
+            text += '/'
+        line.setText(text)
+    return text
 
 
 def _translate(code, **kwargs):
@@ -51,44 +66,7 @@ def _translate(code, **kwargs):
     return messages.get(code, code)
 
 
-class SegmentMixin:
-
-    def formatPeriodSeparator(self, line):
-        """Append the '/' separator after the 4-digit day while typing."""
-        text = line.text()
-        if len(text) > len(self.periodText):
-            if len(text) == 4:
-                text += '/'
-            line.setText(text)
-        self.periodText = text
-
-    @classmethod
-    def upperText(cls, line):
-        line.setText(line.text().upper())
-
-    @classmethod
-    def coloredText(cls, line):
-        if line.hasAcceptableInput():
-            line.setStyleSheet('color: black')
-        else:
-            line.setStyleSheet('color: grey')
-
-    def setupFont(self):
-        font = fixedFont()
-        for line in self.findChildren(QLineEdit):
-            line.setFont(font)
-
-        for combox in self.findChildren(QComboBox):
-            combox.setFont(font)
-
-        for checkbox in self.findChildren(QCheckBox):
-            checkbox.setFont(font)
-
-        for text in self.findChildren(QTextEdit):
-            text.setFont(font)
-
-
-class BaseSegment(SegmentMixin, QWidget):
+class BaseSegment(TextFieldMixin, QWidget):
 
     contentChanged = pyqtSignal()
     # Which notification area this segment's errors belong to. Declared rather
@@ -356,7 +334,7 @@ class BaseSegment(SegmentMixin, QWidget):
         self.applyState()
 
 
-class TemperatureGroup(SegmentMixin, QWidget):
+class TemperatureGroup(TextFieldMixin, QWidget):
 
     temperatureChanged = pyqtSignal()
 
@@ -800,7 +778,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         if self.conf.autoCompletionGroupTime:
             self.autoCompletePeriod()
         else:
-            self.formatPeriodSeparator(self.period)
+            self.periodText = formatPeriodSeparator(self.period, self.periodText)
 
     def autoCompletePeriod(self):
         if self.editor.primary.state.durations is None or not self.editor.primary.period.text():
@@ -995,7 +973,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
     def autoFormatPeriod(self):
         if self.fm.isChecked() and self.tl.isChecked():   
-            self.formatPeriodSeparator(self.period)
+            self.periodText = formatPeriodSeparator(self.period, self.periodText)
 
     def setupValidator(self):
         super().setupValidator()
