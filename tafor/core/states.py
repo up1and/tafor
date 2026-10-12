@@ -85,7 +85,7 @@ class NotificationState:
 
 class StateProxyMixin:
     """Readonly Property Mixin"""
-    fields = ['']
+    fields = []
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)

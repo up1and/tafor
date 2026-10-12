@@ -15,7 +15,29 @@ uniqueid = lambda: str(uuid4())
 
 Base = declarative_base()
 
-class Taf(Base):
+
+class MessageMixin:
+    """Shared accessors for the stored message models.
+
+    ``raw`` holds the wire payload: an AFTN message is stored as a JSON list
+    of parts that are re-joined on read, anything else is already the text.
+    """
+
+    def rawText(self):
+        if not self.raw:
+            return ''
+
+        if self.protocol == 'aftn':
+            messages = json.loads(self.raw)
+            return '\r\n\r\n\r\n\r\n'.join(messages)
+
+        return self.raw
+
+    def isCnl(self):
+        items = self.text.split()
+        return 'CNL' in items
+
+class Taf(MessageMixin, Base):
     __tablename__ = 'tafs'
     __table_args__ = (
         Index('ix_tafs_type_created', 'type', 'created'),
@@ -53,21 +75,7 @@ class Taf(Base):
         from tafor.core.parsers.taf import TafParser
         return TafParser(self.text, created=self.created, **kwargs)
 
-    def rawText(self):
-        if not self.raw:
-            return ''
-
-        if self.protocol == 'aftn':
-            messages = json.loads(self.raw)
-            return '\r\n\r\n\r\n\r\n'.join(messages)
-
-        return self.raw
-
-    def isCnl(self):
-        items = self.text.split()
-        return 'CNL' in items
-
-class Metar(Base):
+class Metar(MessageMixin, Base):
     __tablename__ = 'metars'
     __table_args__ = (
         Index('ix_metars_created', 'created'),
@@ -94,7 +102,7 @@ class Metar(Base):
         from tafor.core.parsers.metar import MetarParser
         return MetarParser(self.text, trendOnly=trendOnly, **kwargs)
 
-class Trend(Base):
+class Trend(MessageMixin, Base):
     __tablename__ = 'trends'
 
     id = Column(Integer, primary_key=True)
@@ -120,20 +128,11 @@ class Trend(Base):
     def report(self):
         return self.text
 
-    def rawText(self):
-        if not self.raw:
-            return ''
-
-        if self.protocol == 'aftn':
-            messages = json.loads(self.raw)
-            return '\r\n\r\n\r\n\r\n'.join(messages)
-
-        return self.raw
 
     def isNosig(self):
         return self.text == 'NOSIG='
 
-class Sigmet(Base):
+class Sigmet(MessageMixin, Base):
     __tablename__ = 'sigmets'
     __table_args__ = (
         Index('ix_sigmets_type_created', 'type', 'created'),
@@ -168,29 +167,17 @@ class Sigmet(Base):
         from tafor.core.parsers.sigmet import SigmetParser
         return SigmetParser(self.report, created=self.created, **kwargs)
 
-    def rawText(self):
-        if not self.raw:
-            return ''
-
-        if self.protocol == 'aftn':
-            messages = json.loads(self.raw)
-            return '\r\n\r\n\r\n\r\n'.join(messages)
-
-        return self.raw
 
     def expired(self):
         parser = self.parser()
         ending = parser.valids[1]
         return ending
 
-    def isCnl(self):
-        items = self.text.split()
-        return 'CNL' in items
 
     def isExpired(self):
         return utcnow() > self.expired()
 
-class Other(Base):
+class Other(MessageMixin, Base):
     __tablename__ = 'others'
 
     id = Column(Integer, primary_key=True)
@@ -221,17 +208,6 @@ class Other(Base):
     def report(self):
         return self.text
 
-    def rawText(self):
-        if not self.raw:
-            return ''
-
-        if self.protocol == 'aftn':
-            messages = json.loads(self.raw)
-            return '\r\n\r\n\r\n\r\n'.join(messages)
-
-        return self.raw
-
-
 class Database:
 
     def __init__(self, engine):
@@ -245,7 +221,7 @@ class Database:
         try:
             yield session
             session.commit()
-        except:
+        except Exception:
             session.rollback()
             raise
         finally:
