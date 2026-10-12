@@ -6,9 +6,11 @@ from tafor.core.utils.time import utcnow
 
 
 def linewrap(lines, maxLineChar):
-    """对超过最大字符限制的行进行换行处理
+    """Wrap every line that runs past the character limit.
 
-    :return: 报文行列表
+    Blank lines are kept as they are, so the message keeps its shape.
+
+    :return: the message as a list of lines
     """
     items = []
     for line in lines:
@@ -41,22 +43,22 @@ def fileMessageName(airport, valids, number, created=None):
 
 
 class AFTNMessageGenerator:
-    """航空固定电信网络（Aeronautical Fixed Telecommunication Network Message）报文的生成
+    """Builds messages for the Aeronautical Fixed Telecommunication Network.
 
-    :param text: 报文内容
-    :param channel: 信道
-    :param priority: 电报优先级，默认 GG
-    :param address: 收电地址
-    :param originator: 发点地址
-    :param maxLineChar: AFTN 线路每行最大字符数
-    :param time: AFTN 报文生成时间
+    :param text: message content
+    :param channel: channel
+    :param priority: telegram priority, GG by default
+    :param address: addressee addresses
+    :param originator: originator address
+    :param maxLineChar: maximum characters per line on an AFTN circuit
+    :param time: the time the AFTN message is generated
 
-    使用方法::
+    Usage::
 
         m = AFTNMessageGenerator('TAF ZJHK 150726Z 150918 03003G10MPS 1600 BR OVC040 BECMG 1112 4000 BR=')
-        # 返回字符串格式 AFTN 报文
+        # the message as a string
         m.toString()
-        # 返回 JSON 格式 AFTN 报文
+        # the message as JSON
         m.toJson()
 
     """
@@ -70,27 +72,27 @@ class AFTNMessageGenerator:
         self.originator = originator
         self.maxLineChar = maxLineChar
         self.sequenceLength = int(sequenceLength)
-        self.maxSendAddress = int(maxSendAddress)  # AFTN 线路最大发电地址数
+        self.maxSendAddress = int(maxSendAddress)  # most addressees per AFTN circuit
         self.time = utcnow() if time is None else time
         self.lineBreak = '\r\n'
         self.generate()
 
     def toString(self):
-        """生成字符串格式的报文
+        """The message as a string.
 
-        :return: 字符串，多份报文用 4 个换行符连接
+        :return: the messages joined by four line breaks
         """
         return '\r\n\r\n\r\n\r\n'.join(self.messages)
 
     def toJson(self):
-        """生成 JSON 格式的报文
+        """The message as JSON.
 
         :return: JSON
         """
         return json.dumps(self.messages)
 
     def generate(self):
-        """生成 AFTN 电报格式的报文"""
+        """Lay out the messages in AFTN telegram form."""
         self.number = self.number % (10 ** self.sequenceLength)
 
         groups = self.divideAddress(self.address)
@@ -109,9 +111,12 @@ class AFTNMessageGenerator:
             self.number += 1
 
     def divideAddress(self, address):
-        """根据最大发送地址拆分地址组，比如允许最大地址是 7，有 10 个地址就拆成 2 组
+        """Split the addresses into groups of maxSendAddress.
 
-        :return: 迭代器，拆分后的地址
+        With a limit of 7 and 10 addresses given, for example, that is two
+        groups.
+
+        :return: an iterator over the address groups
         """
         def chunks(lists, n):
             """Yield successive n-sized chunks from lists."""
@@ -139,7 +144,7 @@ class FileMessageGenerator:
         return self.message
 
     def generate(self):
-        """生成文件类型的报文"""
+        """Lay out the message in file form."""
         self.number = self.number % (10 ** self.sequenceLength)
         ending = 'NNNN'
         heading = ' '.join(['ZCZC', str(self.number).zfill(self.sequenceLength)])
