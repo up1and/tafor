@@ -41,8 +41,9 @@ class BaseSigmet(TextFieldMixin, QWidget):
 
     contentChanged = pyqtSignal()
 
-    # Concrete classes declare their field-group parts here
-    parts = ()
+    # Concrete classes declare their field-group members here. Kept apart
+    # from self.parts, which holds one live instance per member.
+    members = ()
 
     def __init__(self, editor=None, conf=None, context=None, repository=None):
         super().__init__()
@@ -57,7 +58,7 @@ class BaseSigmet(TextFieldMixin, QWidget):
         self.switchButton = QToolButton(self)
         self.switchButton.hide()
         self.headingGroup.setMinimumWidth(77 * 3 + 32)
-        self.parts = [part(self) for part in self.parts]
+        self.parts = [member(self) for member in self.members]
         self.setupFont()
         self.setupMainElementWidth()
         self.setupValidator()
@@ -759,7 +760,24 @@ class AshAdvisoryImport(AdvisoryImport):
 
 class SigmetGeneral(BaseSigmet, Ui_sigmet_general.Ui_Editor):
 
-    parts = (ObservationPart, ForecastPart, FlightLevelPart, MovementPart)
+    members = (ObservationPart, ForecastPart, FlightLevelPart, MovementPart)
+
+    # WMO intensity codes and the phenomena each one admits. OBSC, EMBD,
+    # FRQ and SQL all describe convective weather, so they share a list.
+    phenomena = {
+        'OBSC': ['TS', 'TSGR'],
+        'EMBD': ['TS', 'TSGR'],
+        'FRQ': ['TS', 'TSGR'],
+        'SQL': ['TS', 'TSGR'],
+        'SEV': ['TURB', 'ICE', 'ICE (FZRA)', 'MTW'],
+        'HVY': ['DS', 'SS'],
+        'RDOACT': ['CLD'],
+    }
+
+    descriptions = ['OBSC', 'EMBD', 'FRQ', 'SQL', 'SEV', 'HVY', 'RDOACT']
+
+    # Convective phenomena that take the TOP/ABV/SFC flight-level formats.
+    convective = ['CB', 'TCU', 'TS', 'TSGR']
 
     def __init__(self, editor=None, conf=None, context=None, repository=None):
         super().__init__(editor, conf=conf, context=context, repository=repository)
@@ -794,23 +812,16 @@ class SigmetGeneral(BaseSigmet, Ui_sigmet_general.Ui_Editor):
         self.phenomenon.setCurrentIndex(self.phenomenon.findText(phenomenon))
 
     def setPhenomenaDescription(self):
-        descriptions = ['OBSC', 'EMBD', 'FRQ', 'SQL', 'SEV', 'HVY', 'RDOACT']
-        self.description.addItems(descriptions)
-        self.description.setCurrentIndex(1)
+        self.description.addItems(self.descriptions)
+        # Was setCurrentIndex(1), i.e. the second entry. Named rather than
+        # indexed so reordering `descriptions` cannot silently change it.
+        self.description.setCurrentText('EMBD')
 
     def setPhenomena(self, text='OBSC'):
         self.phenomenon.clear()
-
-        if text == 'SEV':
-            phenomena = ['TURB', 'ICE', 'ICE (FZRA)', 'MTW']
-        elif text == 'HVY':
-            phenomena = ['DS', 'SS']
-        elif text == 'RDOACT':
-            phenomena = ['CLD']
-        else:
-            phenomena = ['TS', 'TSGR']
-
-        self.phenomenon.addItems(phenomena)
+        # Unknown codes fall back to the convective list rather than
+        # silently landing in an else branch.
+        self.phenomenon.addItems(self.phenomena.get(text, ['TS', 'TSGR']))
 
     def setFcstOrObs(self):
         observations = ['FCST', 'OBS']
@@ -819,7 +830,7 @@ class SigmetGeneral(BaseSigmet, Ui_sigmet_general.Ui_Editor):
     def setFlightLevelFormat(self, text):
         self.format.clear()
 
-        if text in ['CB', 'TCU', 'TS', 'TSGR']:
+        if text in self.convective:
             formats = ['', 'TOP', 'ABV', 'SFC', 'TOP ABV']
             self.format.addItems(formats)
             self.format.setCurrentIndex(self.format.findText('TOP'))
@@ -831,7 +842,7 @@ class SigmetGeneral(BaseSigmet, Ui_sigmet_general.Ui_Editor):
 
 class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
 
-    parts = (ObservationPart, ForecastPart, MovementPart, TyphoonAdvisoryImport)
+    members = (ObservationPart, ForecastPart, MovementPart, TyphoonAdvisoryImport)
 
     locationChanged = pyqtSignal(dict)
     circleChanged = pyqtSignal(dict)
@@ -1008,7 +1019,7 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
 
 class SigmetAsh(BaseSigmet, Ui_sigmet_ash.Ui_Editor):
 
-    parts = (ObservationPart, ForecastPart, FlightLevelPart, MovementPart, AshAdvisoryImport)
+    members = (ObservationPart, ForecastPart, FlightLevelPart, MovementPart, AshAdvisoryImport)
 
     locationChanged = pyqtSignal(dict)
 
@@ -1125,23 +1136,29 @@ class SigmetAsh(BaseSigmet, Ui_sigmet_ash.Ui_Editor):
 
 class AirmetGeneral(SigmetGeneral):
 
-    parts = (ObservationPart, ForecastPart, AirmetFlightLevelPart, MovementPart)
+    members = (ObservationPart, ForecastPart, AirmetFlightLevelPart, MovementPart)
+
+    # AIRMET coverage codes and the phenomena each one admits. A different
+    # vocabulary from the SIGMET intensities above, not a subset of them.
+    phenomena = {
+        'ISOL': ['CB', 'TCU', 'TS', 'TSGR'],
+        'OCNL': ['CB', 'TCU', 'TS', 'TSGR'],
+        'FRQ': ['CB', 'TCU'],
+        'MOD': ['TURB', 'ICE', 'MTW'],
+    }
+
+    descriptions = ['ISOL', 'OCNL', 'FRQ', 'MOD']
 
     def setPhenomenaDescription(self):
-        descriptions = ['ISOL', 'OCNL', 'FRQ', 'MOD']
-        self.description.addItems(descriptions)
+        self.description.addItems(self.descriptions)
+        # ISOL is the default below; name it rather than lean on index 0.
+        self.description.setCurrentText('ISOL')
 
     def setPhenomena(self, text='ISOL'):
         self.phenomenon.clear()
-
-        if text == 'MOD':
-            phenomena = ['TURB', 'ICE', 'MTW']
-        elif text == 'FRQ':
-            phenomena = ['CB', 'TCU']
-        else:
-            phenomena = ['CB', 'TCU', 'TS', 'TSGR']
-
-        self.phenomenon.addItems(phenomena)
+        self.phenomenon.addItems(
+            self.phenomena.get(text, ['CB', 'TCU', 'TS', 'TSGR'])
+        )
 
 
 class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
