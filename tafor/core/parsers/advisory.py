@@ -5,7 +5,7 @@ import datetime
 from collections import OrderedDict
 
 from tafor.core.geometry import geojson
-from tafor.core.geometry.coordinate import degreeToDecimal
+from tafor.core.geometry.coordinate import decimalToDegree, degreeToDecimal
 from tafor.core.utils.units import toKmh, toKt
 from tafor.core.parsers.base import AdvisoryGrammar
 
@@ -13,10 +13,10 @@ logger = logging.getLogger('tafor.parser.advisory')
 
 
 class AdvisoryParser:
-    """解析咨询报的基类
+    """Base class for advisory parsers.
 
-    :param message: 咨询报内容
-    :param grammar: 解析咨询报的语法类
+    :param message: the advisory message
+    :param grammar: the grammar class used to parse the advisory
     """
 
     grammarClass = AdvisoryGrammar
@@ -122,6 +122,36 @@ class AdvisoryParser:
             return time
         else:
             return self.time
+
+    def formattedPosition(self, key):
+        """The location as a (latitude, longitude) pair of DMS strings.
+
+        The geometry holds decimal degrees; the editors display DMS.
+        """
+        feature = self.location(key)
+        if not geojson.hasGeometry(feature):
+            return
+
+        coordinates = feature['geometry']['coordinates']
+        if not coordinates:
+            return
+
+        lon, lat = coordinates
+        return decimalToDegree(lat), decimalToDegree(lon, fmt='longitude')
+
+    def splitFlightLevel(self, level):
+        """Split a flight level string into its base and top parts.
+
+        ``'SFC/FL450'`` -> ``('SFC', 'FL450')``; a single level becomes the top.
+        """
+        if not level:
+            return None, None
+
+        if '/' in level:
+            base, top = level.split('/', 1)
+            return base.strip(), top.strip()
+
+        return None, level.strip()
 
     def _findText(self, keys):
         for key in keys:

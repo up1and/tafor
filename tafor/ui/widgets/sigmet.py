@@ -670,28 +670,22 @@ class TyphoonAdvisoryImport(AdvisoryImport):
         if radius:
             self.widget.radius.setText(str(radius))
 
-        features = self.parser.location(self.initial.currentText())
-        if geojson.hasGeometry(features):
-            center = features['geometry']['coordinates']
-            if center:
-                lon, lat = center
-                lon, lat = decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)
-                self.widget.currentLongitude.setText(lon)
-                self.widget.currentLatitude.setText(lat)
+        position = self.parser.formattedPosition(self.initial.currentText())
+        if position:
+            lat, lon = position
+            self.widget.currentLatitude.setText(lat)
+            self.widget.currentLongitude.setText(lon)
 
-        features = self.parser.location(self.final.currentText())
-        if geojson.hasGeometry(features):
-            center = features['geometry']['coordinates']
-            if center:
-                lon, lat = center
-                lon, lat = decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)
-                self.widget.forecastLongitude.setText(lon)
-                self.widget.forecastLatitude.setText(lat)
-                self.widget.finalPositionGroup.setEnabled(True)
-            else:
-                self.widget.forecastLongitude.clear()
-                self.widget.forecastLatitude.clear()
-                self.widget.finalPositionGroup.setEnabled(False)
+        position = self.parser.formattedPosition(self.final.currentText())
+        if position:
+            lat, lon = position
+            self.widget.forecastLatitude.setText(lat)
+            self.widget.forecastLongitude.setText(lon)
+            self.widget.finalPositionGroup.setEnabled(True)
+        else:
+            self.widget.forecastLongitude.clear()
+            self.widget.forecastLatitude.clear()
+            self.widget.finalPositionGroup.setEnabled(False)
 
         self.handleLocationChange()
 
@@ -745,21 +739,20 @@ class AshAdvisoryImport(AdvisoryImport):
         initial = self.initial.currentText()
         features = self.parser.location(initial)
         if features and 'flightLevel' in features['properties']:
-            flightLevel = features['properties']['flightLevel']
+            base, top = self.parser.splitFlightLevel(features['properties']['flightLevel'])
+
             pattern = re.compile(r'\d+')
-            if '/' in flightLevel:
-                base, top = flightLevel.split('/')
+            if base:
                 m = pattern.search(base)
                 if m:
                     self.widget.base.setText(m.group())
                 else:
                     self.widget.format.setCurrentIndex(self.widget.format.findText(base))
-            else:
-                top = flightLevel
 
-            m = pattern.search(top)
-            if m:
-                self.widget.top.setText(m.group())
+            if top:
+                m = pattern.search(top)
+                if m:
+                    self.widget.top.setText(m.group())
 
         self.handleLocationChange()
 

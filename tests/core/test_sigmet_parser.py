@@ -225,7 +225,8 @@ def test_ash_advisory(read_fixture):
         'OBS VA CLD', 'FCST VA CLD +6 HR', 'FCST VA CLD +12 HR', 'FCST VA CLD +18 HR'
     ]
 
-    # 折行的坐标对被拼回上一字段，而不是生成畸形的 key
+    # A wrapped coordinate pair is folded back into the previous field
+    # instead of producing a malformed key
     assert parser.tokens['OBS VA CLD'].endswith('N2314 E13222 MOV W 55KT')
 
     location = parser.location('OBS VA CLD')
@@ -238,6 +239,51 @@ def test_ash_advisory(read_fixture):
     assert len(forecast['geometry']['coordinates']) == 9
     assert forecast['properties']['time'] == datetime.datetime(2021, 8, 15, 8, 20)
 
+
+
+
+def test_typhoon_advisory_formatted_position(read_fixture):
+    parser = TyphoonAdvisoryParser(read_fixture('advisory', 'tc_chaba'))
+
+    # Latitude first, matching the single-value DMS format used elsewhere
+    assert parser.formattedPosition('PSN') == ('N2110', 'E11119')
+    assert parser.formattedPosition('FCST PSN +6 HR') == ('N2155', 'E11049')
+
+
+def test_formatted_position_rounds_down_against_the_raw_text(read_fixture):
+    # The message says E11120, but degreeToDecimal loses the minute precision
+    # and decimalToDegree truncates instead of rounding, so the round trip
+    # comes back one minute short. This is a pre-existing defect in
+    # tafor/core/geometry/coordinate.py, not something this refactor added.
+    parser = TyphoonAdvisoryParser(read_fixture('advisory', 'tc_chaba'))
+
+    assert parser.position() == ('N2110', 'E11120')
+    assert parser.formattedPosition('PSN') == ('N2110', 'E11119')
+
+
+def test_advisory_formatted_position_is_none_when_unavailable(read_fixture):
+    parser = TyphoonAdvisoryParser(read_fixture('advisory', 'tc_chaba'))
+
+    assert parser.formattedPosition('FCST PSN +48 HR') is None
+    assert parser.formattedPosition('MOV') is None
+
+
+def test_split_flight_level():
+    parser = AshAdvisoryParser('VA ADVISORY\nDTG: 20210814/2100Z=')
+
+    assert parser.splitFlightLevel('SFC/FL480') == ('SFC', 'FL480')
+    assert parser.splitFlightLevel('FL450') == (None, 'FL450')
+    assert parser.splitFlightLevel(' FL450 / FL600 ') == ('FL450', 'FL600')
+    assert parser.splitFlightLevel('') == (None, None)
+    assert parser.splitFlightLevel(None) == (None, None)
+
+
+def test_ash_advisory_flight_level_splits_for_the_editor():
+    parser = AshAdvisoryParser(
+        'VA ADVISORY\nDTG: 20210814/2100Z\nOBS VA CLD: SFC/FL480 N2314 E13222=')
+
+    feature = parser.location('OBS VA CLD')
+    assert parser.splitFlightLevel(feature['properties']['flightLevel']) == ('SFC', 'FL480')
 
 if __name__ == '__main__':
     import pytest
