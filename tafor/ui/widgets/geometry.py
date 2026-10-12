@@ -291,7 +291,7 @@ class SigmetBackground(QWidget, ColorMixin):
         self.firGeometries = []
         self.fitSize()
 
-    def toCanvasCoordinates(self, lonlats):
+    def scaled(self, lonlats):
         poly = shapely.geometry.Polygon(lonlats)
         poly = shapely.affinity.scale(poly, xfact=self.ratio, yfact=-self.ratio, origin=self.centroid)
         poly = shapely.affinity.translate(poly, 
@@ -333,7 +333,7 @@ class SigmetBackground(QWidget, ColorMixin):
         for feature in self.geo['features']:
             polygons = toPolygons(feature)
             for polygon in polygons:
-                geom = self.toCanvasCoordinates(polygon)
+                geom = self.scaled(polygon)
                 geom.properties = feature['properties']
                 self.geometries.append(geom)
 
@@ -342,7 +342,7 @@ class SigmetBackground(QWidget, ColorMixin):
         # the overall widget size.
         self.firGeometries = []
         if self.fir:
-            self.firGeometries.append(self.toCanvasCoordinates(self.fir))
+            self.firGeometries.append(self.scaled(self.fir))
 
     def resizeEvent(self, event):
         self.fitSize()
