@@ -57,7 +57,7 @@ class TafPresenter:
 
 class TafEditor(BaseEditor):
 
-    confGroup = 'taf'
+    editorName = 'taf'
 
     def __init__(self, parent=None, sender=None, conf=None, context=None, repository=None):
         super().__init__(parent, sender, conf, context)

@@ -9,8 +9,10 @@ class BaseEditor(QDialog):
 
     finished = pyqtSignal(object)
 
-    # Subclass sets this to the conf group checked before the editor can show
-    confGroup = None
+    # The name this editor answers to. The editorMessage bus addresses it
+    # by this, and it also selects the conf groups checked before the
+    # editor can show. Subclass sets it.
+    editorName = None
 
     def __init__(self, parent=None, sender=None, conf=None, context=None):
         super().__init__(parent)
@@ -66,8 +68,8 @@ class BaseEditor(QDialog):
         self.bottomBox.setLayout(bottomLayout)
         layout.addWidget(self.bottomBox)
 
-    def showNotification(self, editorname, message):
-        if editorname in self.__class__.__name__.lower():
+    def showNotification(self, editorName, message):
+        if editorName == self.editorName:
             self.notificationArea.setText(message)
             QTimer.singleShot(10 * 1000, self.notificationArea.clear)
 
@@ -86,7 +88,7 @@ class BaseEditor(QDialog):
             self.beforeNext()
 
     def showEvent(self, event):
-        if self.confGroup and not self.conf.checkCompleteness(self.confGroup):
+        if self.editorName and not self.conf.checkCompleteness(self.editorName):
             QTimer.singleShot(0, self.showConfigError)
             return
 

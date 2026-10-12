@@ -69,9 +69,14 @@ def _translate(code, **kwargs):
 class BaseSegment(TextFieldMixin, QWidget):
 
     contentChanged = pyqtSignal()
-    # Which notification area this segment's errors belong to. Declared rather
-    # than guessed from the class name; TrendSegment overrides it.
-    editorName = 'taf'
+
+    def editorName(self):
+        """Which notification area this segment's errors belong to.
+
+        Asked of the editor that owns the segment rather than declared
+        here, so a segment never carries a copy of its editor's name.
+        """
+        return self.editor.editorName
 
     def __init__(self, name=None, editor=None, conf=None, context=None):
         super().__init__()
@@ -299,18 +304,18 @@ class BaseSegment(TextFieldMixin, QWidget):
         error = TafFormValidator.checkWeather(self.state)
         if error:
             line.setCurrentIndex(-1)
-            self.context.flash.editor(self.editorName, _translate(error))
+            self.context.flash.editor(self.editorName(), _translate(error))
 
     def validateGust(self):
         error = TafFormValidator.checkGust(self.state)
         if error:
             self.gust.clear()
-            self.context.flash.editor(self.editorName, _translate(error))
+            self.context.flash.editor(self.editorName(), _translate(error))
 
     def validateCloud(self, line):
         error = TafFormValidator.checkCloud(self.state, line.text())
         if error:
-            self.context.flash.editor(self.editorName, _translate(error))
+            self.context.flash.editor(self.editorName(), _translate(error))
             line.clear()
             return
 
@@ -903,8 +908,6 @@ class TafTempoSegment(TafGroupSegment):
 
 
 class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
-
-    editorName = 'trend'
 
     def __init__(self, name='TREND', editor=None, conf=None, context=None):
         super().__init__(name, editor, conf, context)

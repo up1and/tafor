@@ -74,7 +74,7 @@ class SigmetPresenter:
 
 class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
-    confGroup = 'sigmet'
+    editorName = 'sigmet'
 
     def __init__(self, parent=None, sender=None, conf=None, context=None, repository=None):
         super().__init__(parent, sender, conf, context)
