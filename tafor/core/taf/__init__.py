@@ -5,6 +5,7 @@ from tafor.core.taf.validator import (
     TafFormValidator,
     TrendFormValidator,
     parseTemperature,
+    parseWindSpeed,
 )
 from tafor.core.taf.compose import (
     amendSequence,

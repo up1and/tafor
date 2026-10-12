@@ -19,6 +19,28 @@ def parseTemperatureTime(text, durations):
     except (ValueError, IndexError):
         pass
 
+
+def parseWindSpeed(text):
+    """The speed in knots a wind or gust group carries.
+
+    '36045' -> 45, 'VRB05' -> 5, '00000' -> 0 and 'P49' -> 50, since
+    P49 means 50 or more. It is three characters, so the two-character
+    slice this replaces returned '49' and understated the speed by one.
+    Returns None when the text carries no readable speed.
+    """
+    if not text:
+        return None
+
+    speed = text[-3:] if text.endswith('P49') else text[-2:]
+    if speed == 'P49':
+        return 50
+
+    try:
+        return int(speed)
+    except ValueError:
+        return None
+
+
 class TafFormValidator:
     WEATHER_CONFLICT = 'weather_conflict'
     GUST_SPEED_INSUFFICIENT = 'gust_speed_insufficient'
@@ -50,11 +72,14 @@ class TafFormValidator:
     def checkGust(state):
         wind = state.wind
         gust = state.gust
+        # A gust of P49 is left unchecked; that is the long-standing
+        # behaviour and the parse below would otherwise read it as 50.
         if not wind or not gust or gust == 'P49':
             return None
 
-        windSpeed = wind[-2:]
-        if int(windSpeed) == 0 or int(gust) - int(windSpeed) < 5:
+        windSpeed = parseWindSpeed(wind)
+        gustSpeed = parseWindSpeed(gust)
+        if windSpeed == 0 or gustSpeed - windSpeed < 5:
             return TafFormValidator.GUST_SPEED_INSUFFICIENT
 
         return None

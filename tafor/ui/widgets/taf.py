@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QToolButton, QMessageBox
 from tafor.core.parsers.base import Pattern
 from tafor.core.taf import (GroupState, PrimaryState, SegmentState, TemperatureState, TrendState,
     TafFormValidator, TrendFormValidator, amendSequence, completeGroupPeriod, formatValidityEnd,
-    groupSpan, isGroupStartAcceptable, normalizeTemperatureTime)
+    groupSpan, isGroupStartAcceptable, normalizeTemperatureTime, parseWindSpeed)
 from tafor.core.utils.time import parseDayHour, parsePeriod, parseTime, utcnow
 from tafor.core.utils.common import iconPath
 from tafor.ui.fonts import fixedFont
@@ -245,7 +245,7 @@ class BaseSegment(TextFieldMixin, QWidget):
             self.cloud1Label.setText(QCoreApplication.translate('Editor', 'Cloud'))
 
     def setGust(self):
-        if self.wind.hasAcceptableInput() and int(self.wind.text()[-2:]) == 0:
+        if self.wind.hasAcceptableInput() and parseWindSpeed(self.wind.text()) == 0:
             self.gust.setEnabled(False)
             self.gust.clear()
         else:
