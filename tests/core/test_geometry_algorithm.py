@@ -3,6 +3,7 @@ import math
 import pytest
 from shapely.geometry import LineString, Point, Polygon
 
+from tafor.core.geometry.coordinate import decimalToDegree, degreeToDecimal
 from tafor.core.geometry.algorithm import (
     bearingToDirection, circle, clipLine, clipPolygon, collinearWith, corridor,
     decode, decodeLine, decodePolygon, determineDirection, encode,
@@ -760,3 +761,45 @@ def test_label_point_of_collinear_points_does_not_raise():
     assert y == pytest.approx(0)
 
 
+def test_decimal_to_degree_matches_the_reporting_format():
+    assert decimalToDegree(24.0) == 'N2400'
+    assert decimalToDegree(27.8) == 'N2748'
+    assert decimalToDegree(111.33333333333333, fmt='longitude') == 'E11120'
+    assert decimalToDegree(73.8, fmt='longitude') == 'E07348'
+
+
+def test_decimal_to_degree_keeps_the_minute_that_truncation_used_to_drop():
+    # 111 20/60 is 19.999999... minutes as a float. int() used to truncate it
+    # to 19, so parsing a report and formatting it back lost a minute and
+    # repeated edits drifted. See the round trip below.
+    assert decimalToDegree(111.33333333333333, fmt='longitude') == 'E11120'
+    assert decimalToDegree(73.8, fmt='longitude') == 'E07348'
+
+
+def test_decimal_to_degree_rounds_the_southern_and_western_hemispheres():
+    assert decimalToDegree(-33.25) == 'S3315'
+    assert decimalToDegree(-110.5, fmt='longitude') == 'W11030'
+
+
+def test_decimal_to_degree_carries_a_rounded_sixtieth_minute():
+    assert decimalToDegree(110.9999999999, fmt='longitude') == 'E11100'
+    assert decimalToDegree(24.9999999) == 'N2500'
+
+
+def test_coordinate_round_trip_is_lossless():
+    # Every coordinate a report can carry must survive parse -> format.
+    # S0000 and W00000 are excluded: they decode to -0.0, which compares
+    # equal to 0.0 and so formats back as N0000/E00000. The two spellings
+    # denote the same place and reports use the N/E form, so nothing is lost.
+    for prefix, width, isLongitude in [('N', 2, False), ('S', 2, False),
+                                       ('E', 3, True), ('W', 3, True)]:
+        fmt = 'longitude' if isLongitude else 'latitude'
+        for degree in range(0, 180 if isLongitude else 90):
+            for minute in range(0, 60):
+                source = '{}{:0{}}{:02d}'.format(prefix, degree, width, minute)
+                result = decimalToDegree(degreeToDecimal(source), fmt=fmt)
+                if result == source:
+                    continue
+                # the only tolerated difference is the signed zero
+                assert source in ('S0000', 'W00000'), source
+                assert result in ('N0000', 'E00000'), result

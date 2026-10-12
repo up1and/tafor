@@ -19,18 +19,17 @@ def degreeToDecimal(text):
 
 def decimalToDegree(degree, fmt='latitude'):
     """Convert decimal degrees to a DMS string like 'N2748' or 'E03909'."""
-    integer = int(abs(degree))
-    decimal = int(abs(degree) % 1 * 60) / 100
+    # Work in whole minutes: rounding the total avoids both the truncation
+    # that used to drop a minute (111 20/60 -> 19.9999 -> 19) and the
+    # carry a rounded 60th minute would produce.
+    integer, minutes = divmod(round(abs(degree) * 60), 60)
 
     if fmt == 'latitude':
         identifier = 'N' if degree >= 0 else 'S'
-        template = '{:05.2f}'
-    else:
-        identifier = 'E' if degree >= 0 else 'W'
-        template = '{:06.2f}'
+        return '{}{:02d}{:02d}'.format(identifier, integer, minutes)
 
-    value = template.format(integer + decimal)
-    return identifier + str(value).replace('.', '')
+    identifier = 'E' if degree >= 0 else 'W'
+    return '{}{:03d}{:02d}'.format(identifier, integer, minutes)
 
 
 def calcPosition(latitude, longitude, speed, time, degree):

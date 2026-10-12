@@ -246,19 +246,15 @@ def test_typhoon_advisory_formatted_position(read_fixture):
     parser = TyphoonAdvisoryParser(read_fixture('advisory', 'tc_chaba'))
 
     # Latitude first, matching the single-value DMS format used elsewhere
-    assert parser.formattedPosition('PSN') == ('N2110', 'E11119')
-    assert parser.formattedPosition('FCST PSN +6 HR') == ('N2155', 'E11049')
+    assert parser.formattedPosition('PSN') == ('N2110', 'E11120')
+    assert parser.formattedPosition('FCST PSN +6 HR') == ('N2155', 'E11050')
 
 
-def test_formatted_position_rounds_down_against_the_raw_text(read_fixture):
-    # The message says E11120, but degreeToDecimal loses the minute precision
-    # and decimalToDegree truncates instead of rounding, so the round trip
-    # comes back one minute short. This is a pre-existing defect in
-    # tafor/core/geometry/coordinate.py, not something this refactor added.
+def test_formatted_position_matches_the_raw_text(read_fixture):
     parser = TyphoonAdvisoryParser(read_fixture('advisory', 'tc_chaba'))
 
     assert parser.position() == ('N2110', 'E11120')
-    assert parser.formattedPosition('PSN') == ('N2110', 'E11119')
+    assert parser.formattedPosition('PSN') == ('N2110', 'E11120')
 
 
 def test_advisory_formatted_position_is_none_when_unavailable(read_fixture):
