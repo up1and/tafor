@@ -150,32 +150,50 @@ def roundTime(value):
 
 
 def timeAgo(date, now=None):
-    sec_array = [60.0, 60.0, 24.0, 7.0, 365.0 / 7.0 / 12.0, 12.0]
+    """Describe how long ago ``date`` happened, relative to ``now``.
+
+    Returns phrases like 'just now', '5 minutes ago' or 'in 2 days' when
+    the date lies in the future.
+    """
+    # Divisor applied at each step of the walk: seconds -> minutes ->
+    # hours -> days -> weeks -> months -> years.
+    unitDivisors = [60.0, 60.0, 24.0, 7.0, 365.0 / 7.0 / 12.0, 12.0]
 
     if now is None:
         now = utcnow()
 
-    diff = now - date
-    seconds = diff.seconds
+    # utcnow() is naive, so an aware date would raise on subtraction.
+    # Normalise the odd one out rather than letting the caller crash.
+    if date.tzinfo is not None and now.tzinfo is None:
+        date = date.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+    elif date.tzinfo is None and now.tzinfo is not None:
+        now = now.astimezone(datetime.timezone.utc).replace(tzinfo=None)
 
-    agoIn = 0
+    # total_seconds, not .seconds: the latter drops the days component, so
+    # anything three or more days old looked like it happened just now.
+    seconds = (now - date).total_seconds()
+
+    suffix = 0
     if seconds < 0:
-        agoIn = 1
+        suffix = 1
         seconds *= -1
 
-    i = 0
-    while i < len(sec_array):
-        tmp = sec_array[i]
-        if seconds >= tmp:
-            i += 1
-            seconds /= tmp
+    index = 0
+    while index < len(unitDivisors):
+        divisor = unitDivisors[index]
+        if seconds >= divisor:
+            seconds /= divisor
+            index += 1
         else:
             break
-    seconds = int(seconds)
-    i *= 2
 
-    if seconds > (9 if i == 0 else 1):
-        i += 1
+    seconds = int(seconds)
+
+    # Units below 10 stay in the current bucket: '9 seconds ago' rather than
+    # '9 seconds' rounding up into minutes. Every coarser unit reads as a
+    # singular once it is the current one.
+    threshold = 9 if index == 0 else 1
+    row = index * 2 + (1 if seconds > threshold else 0)
 
     locales = [
         ['just now', 'a while'],
@@ -194,5 +212,5 @@ def timeAgo(date, now=None):
         ['{} years ago', 'in {} years'],
     ]
 
-    template = locales[i][agoIn]
+    template = locales[row][suffix]
     return template.format(seconds) if '{}' in template else template
