@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 from sqlalchemy import and_
 
@@ -7,6 +8,9 @@ from tafor.core.parsers.sigmet import SigmetParser
 from tafor.core.taf import CurrentTaf
 from tafor.core.utils.pagination import paginate
 from tafor.core.utils.time import utcnow
+
+
+logger = logging.getLogger('tafor.repositories')
 
 
 def subscribedTypes(tafSpec, sigmetEnabled):
@@ -84,23 +88,28 @@ class Repository:
 
 class TafRepository(Repository):
 
-    def available(self, type, message):
-        recent = utcnow() - datetime.timedelta(hours=32)
-        with self.database.session() as session:
-            tafs = session.query(Taf).filter(Taf.type == type, Taf.created > recent).all()
+    def reconcile(self, session, type, message, now):
+        """Find how an incoming TAF stands against the stored ones.
 
-        def _match(objects, message):
-            for taf in objects:
-                if taf.flattenedText() == message:
-                    return taf
+        Returns the stored report that the feed has now acknowledged and that
+        still needs its ``confirmed`` stamp, a fresh unsaved Taf when the
+        report has not been stored, or None when it was already confirmed.
+        Nothing is written here: deciding and writing are split so that
+        ``save()`` stays the only writer on the ingest path.
+        """
+        recent = now - datetime.timedelta(hours=32)
+        tafs = session.query(Taf).filter(Taf.type == type, Taf.created > recent).all()
 
-        matched = _match(tafs, message)
-        if matched:
-            if not matched.confirmed:
-                matched.confirmed = utcnow()
-                return matched
-        else:
-            return Taf(type=type, text=message, source='api', confirmed=utcnow())
+        for taf in tafs:
+            if taf.flattenedText() != message:
+                continue
+
+            if taf.confirmed:
+                return
+
+            return taf
+
+        return Taf(type=type, text=message, source='api', confirmed=now)
 
     def hasRecent(self, period, hours=32):
         recent = utcnow() - datetime.timedelta(hours=hours)
@@ -157,12 +166,19 @@ class TafRepository(Repository):
 
 class MetarRepository(Repository):
 
-    def available(self, type, message):
-        with self.database.session() as session:
-            last = session.query(Metar).filter_by(type=type).order_by(Metar.created.desc()).first()
+    def reconcile(self, session, type, message, now):
+        """Return a fresh Metar when the feed has delivered an observation the
+        latest stored one does not already carry, or None when it repeats it.
 
-        if last is None or last.text != message:
-            return Metar(type=type, text=message)
+        An observation is never confirmed, so this only ever answers 'new' or
+        'skip'; it returns nothing to stamp.
+        """
+        last = session.query(Metar).filter_by(type=type).order_by(Metar.created.desc()).first()
+
+        if last is not None and last.text == message:
+            return
+
+        return Metar(type=type, text=message)
 
     def latest(self, hours=2):
         recent = utcnow() - datetime.timedelta(hours=hours)
@@ -242,28 +258,43 @@ class SigmetRepository(Repository):
 
         return sorted(currents + cancels, key=lambda x: x.created)
 
-    def available(self, type, messages):
-        recent = utcnow() - datetime.timedelta(hours=24)
-        time = utcnow()
+    def reconcile(self, session, type, messages, now):
+        """Find how an incoming SIGMET batch stands against the stored ones.
 
-        with self.database.session() as session:
-            sigmets = session.query(Sigmet).filter(Sigmet.created > recent).all()
+        Returns the stored reports the feed has now acknowledged and that
+        still need their ``confirmed`` stamp, plus a fresh unsaved Sigmet for
+        every report not stored yet. Nothing is written here: deciding and
+        writing are split so that ``save()`` stays the only writer on the
+        ingest path.
 
-        availables = []
+        The stored parsers are built once for the whole batch, since parsing
+        is the expensive half of the comparison.
+        """
+        recent = now - datetime.timedelta(hours=24)
+        sigmets = session.query(Sigmet).filter(Sigmet.created > recent).all()
+        stored = [(sig, sig.parser()) for sig in sigmets]
+
+        results = []
         for message in messages:
             message = ' '.join(message.split())
             parser = SigmetParser(message)
 
-            if parser not in [sig.parser() for sig in sigmets]:
-                item = Sigmet(type=type, heading=parser.heading, text=parser.text + '=', source='api', confirmed=time)
-                availables.append(item)
+            matched = [sig for sig, cached in stored if cached == parser]
+            if matched:
+                for sig in matched:
+                    # A report already claimed by an earlier message in this
+                    # batch is not claimed twice, and a confirmed one is done.
+                    if not sig.confirmed and sig not in results:
+                        results.append(sig)
+                continue
 
-            for sig in sigmets:
-                if not sig.confirmed and sig.parser() == parser:
-                    sig.confirmed = time
-                    availables.append(sig)
+            item = Sigmet(type=type, heading=parser.heading, text=parser.text + '=', source='api', confirmed=now)
+            results.append(item)
+            # Keep the batch's own additions visible, so a payload that
+            # repeats the same report does not store it twice.
+            stored.append((item, parser))
 
-        return availables
+        return results
 
 
 class MessageRepository(Repository):
@@ -274,28 +305,48 @@ class MessageRepository(Repository):
         self.taf = TafRepository(database)
         self.sigmet = SigmetRepository(database)
 
-    def available(self, messages, types=None):
-        availables = []
-        for key, text in messages.items():
-            if types and key not in types:
-                continue
+    def save(self, messages, types=None):
+        """Take the fetched payload, match it against what is stored, and
+        write the outcome in one transaction.
 
-            if key in ['SA', 'SP']:
-                message = self.metar.available(key, text)
-                if message:
-                    availables.append(message)
+        Returns the messages the feed added or confirmed, in payload order.
+        The log lines are emitted after the commit, so a batch that rolls
+        back leaves no record of a message that was never stored.
+        """
+        now = utcnow()
+        staged = []
 
-            if key in ['FC', 'FT']:
-                message = self.taf.available(key, text)
-                if message:
-                    availables.append(message)
+        with self.database.session() as session:
+            for key, value in messages.items():
+                if types and key not in types:
+                    continue
 
-            if key in ['WS', 'WC', 'WV', 'WA']:
-                message = self.sigmet.available(key, text)
-                if message:
-                    availables += message
+                results = []
+                if key in ['SA', 'SP']:
+                    message = self.metar.reconcile(session, key, value, now)
+                    if message:
+                        results.append(message)
 
-        return availables
+                if key in ['FC', 'FT']:
+                    message = self.taf.reconcile(session, key, value, now)
+                    if message:
+                        results.append(message)
+
+                if key in ['WS', 'WC', 'WV', 'WA']:
+                    results += self.sigmet.reconcile(session, key, value, now)
+
+                for message in results:
+                    if message.id is None:
+                        session.add(message)
+                        staged.append((message, 'Save'))
+                    else:
+                        message.confirmed = now
+                        staged.append((message, 'Confirm'))
+
+        for message, label in staged:
+            logger.info('%s %s %s', label, message.type, message.text)
+
+        return [message for message, _ in staged]
 
     def recent(self, spec, since, includeSigmet=False, currentSigmets=None):
         with self.database.session() as session:

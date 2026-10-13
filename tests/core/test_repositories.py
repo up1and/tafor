@@ -1,12 +1,14 @@
 """Tests for tafor/core/repositories.py."""
 
 import datetime
+import logging
 
 import pytest
 
 from tafor.core.models import Metar, Sigmet, Taf, Trend
 from tafor.core.repositories import (Repositories, SigmetFilter, subscribedTypes)
 from tafor.core.taf import SpecFC
+from tafor.core.utils.time import utcnow
 
 
 TAF_TEXT = 'TAF ZPPP 060500Z 0606/0712 32008G15MPS 9999 SCT020='
@@ -64,26 +66,28 @@ class TestSigmetFilter:
 
 class TestTafRepository:
 
-    def test_available_confirms_existing_message(self, database):
+    def test_save_confirms_existing_message(self, database):
         repos = Repositories(database)
         created = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
         with database.session() as session:
             add(session, Taf, type='FC', text=TAF_TEXT, source='api', created=created)
 
-        taf = repos.taf.available('FC', TAF_TEXT)
+        changes = repos.message.save({'FC': TAF_TEXT})
 
-        assert taf is not None
+        assert len(changes) == 1
+        taf = changes[0]
         assert taf.type == 'FC'
         assert taf.confirmed is not None
 
-    def test_available_does_not_confirm_across_types(self, database):
+    def test_save_does_not_confirm_across_types(self, database):
         repos = Repositories(database)
         created = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
         with database.session() as session:
             add(session, Taf, type='FC', text=TAF_TEXT, source='api', created=created)
 
-        taf = repos.taf.available('FT', TAF_TEXT)
+        changes = repos.message.save({'FT': TAF_TEXT})
 
+        taf = changes[0]
         assert taf.type == 'FT'
         assert taf.source == 'api'
 
@@ -91,16 +95,20 @@ class TestTafRepository:
             fc = session.query(Taf).filter(Taf.type == 'FC').first()
             assert fc.confirmed is None
 
-    def test_available_ignores_outdated_message(self, database):
+    def test_save_ignores_outdated_message(self, database):
         repos = Repositories(database)
         created = datetime.datetime.utcnow() - datetime.timedelta(hours=33)
         with database.session() as session:
             add(session, Taf, type='FC', text=TAF_TEXT, source='api', created=created)
 
-        taf = repos.taf.available('FC', TAF_TEXT)
+        changes = repos.message.save({'FC': TAF_TEXT})
 
+        # The old row is outside the window, so a second row is stored
+        taf = changes[0]
         assert taf.type == 'FC'
-        assert taf.id is None
+
+        with database.session() as session:
+            assert session.query(Taf).count() == 2
 
     def test_has_recent(self, database):
         repos = Repositories(database)
@@ -216,21 +224,20 @@ class TestTafRepositoryStatus:
 
 class TestMetarRepository:
 
-    def test_available_returns_transient_for_new_message(self, database):
+    def test_save_returns_new_message(self, database):
         repos = Repositories(database)
 
-        metar = repos.metar.available('SA', METAR_TEXT)
+        changes = repos.message.save({'SA': METAR_TEXT})
 
-        assert metar is not None
+        metar = changes[0]
         assert metar.type == 'SA'
-        assert metar.id is None
 
-    def test_available_skips_unchanged_message(self, database):
+    def test_save_skips_unchanged_message(self, database):
         repos = Repositories(database)
         with database.session() as session:
             add(session, Metar, type='SA', text=METAR_TEXT, created=datetime.datetime.utcnow())
 
-        assert repos.metar.available('SA', METAR_TEXT) is None
+        assert repos.message.save({'SA': METAR_TEXT}) == []
 
     def test_latest_within_hours(self, database):
         repos = Repositories(database)
@@ -315,87 +322,128 @@ class TestSigmetRepository:
 
         assert [s.id for s in currents] == [active.id, orphan.id]
 
-    def test_available_adds_new_message(self, database):
+    def test_save_adds_new_message(self, database):
         repos = Repositories(database)
 
-        items = repos.sigmet.available('WS', [SIGMET_ACTIVE])
+        changes = repos.message.save({'WS': [SIGMET_ACTIVE]})
 
-        assert len(items) == 1
-        item = items[0]
+        assert len(changes) == 1
+        item = changes[0]
         assert item.type == 'WS'
         assert item.source == 'api'
         assert item.confirmed is not None
-        assert item.id is None
         assert item.text.endswith('=')
         assert 'ZJHK-' in item.text
 
-    def test_available_confirms_stored_unconfirmed(self, database):
+        with database.session() as session:
+            assert session.query(Sigmet).count() == 1
+
+    def test_save_confirms_stored_unconfirmed(self, database):
         repos = Repositories(database)
         stored = self.seed_sigmet(database, SIGMET_ACTIVE,
                                   created=datetime.datetime.utcnow() - datetime.timedelta(hours=1))
 
-        items = repos.sigmet.available('WS', [SIGMET_ACTIVE])
+        changes = repos.message.save({'WS': [SIGMET_ACTIVE]})
 
-        assert len(items) == 1
-        assert items[0].id == stored.id
-        assert items[0].confirmed is not None
+        assert len(changes) == 1
+        item = changes[0]
+        assert item.id == stored.id
+        assert item.confirmed is not None
 
-    def test_available_normalizes_whitespace(self, database):
+    def test_save_normalizes_whitespace(self, database):
         repos = Repositories(database)
         stored = self.seed_sigmet(database, SIGMET_ACTIVE,
                                   created=datetime.datetime.utcnow() - datetime.timedelta(hours=1))
 
         spaced = ' '.join(SIGMET_ACTIVE.split()) + '  '
-        items = repos.sigmet.available('WS', [spaced])
+        changes = repos.message.save({'WS': [spaced]})
 
-        assert len(items) == 1
-        assert items[0].id == stored.id
+        assert len(changes) == 1
+        assert changes[0].id == stored.id
 
-    def test_available_ignores_stored_beyond_window(self, database):
+    def test_save_ignores_stored_beyond_window(self, database):
         repos = Repositories(database)
         self.seed_sigmet(database, SIGMET_ACTIVE,
                          created=datetime.datetime.utcnow() - datetime.timedelta(hours=25))
 
-        items = repos.sigmet.available('WS', [SIGMET_ACTIVE])
+        changes = repos.message.save({'WS': [SIGMET_ACTIVE]})
 
-        assert len(items) == 1
-        assert items[0].id is None
+        assert len(changes) == 1
+        assert changes[0].type == 'WS'
+
+    def test_save_stores_a_report_repeated_in_one_payload_once(self, database):
+        repos = Repositories(database)
+
+        changes = repos.message.save({'WS': [SIGMET_ACTIVE, SIGMET_ACTIVE]})
+
+        assert len(changes) == 1
+        assert changes[0].type == 'WS'
+
+        with database.session() as session:
+            assert session.query(Sigmet).count() == 1
+
+    def test_reconcile_does_not_write(self, database):
+        # The decision and the write are split, so a reconcile that is never
+        # followed by a save leaves the database untouched.
+        repos = Repositories(database)
+
+        with database.session() as session:
+            result = repos.sigmet.reconcile(session, 'WS', [SIGMET_ACTIVE], utcnow())
+
+        assert len(result) == 1
+        assert result[0].id is None
+        with database.session() as session:
+            assert session.query(Sigmet).count() == 0
+
+    def test_reconcile_reports_a_stored_unconfirmed_report(self, database):
+        # A stored report comes back as itself, with an id, and still
+        # unconfirmed: stamping it is save()'s job.
+        repos = Repositories(database)
+        stored = self.seed_sigmet(database, SIGMET_ACTIVE,
+                                  created=datetime.datetime.utcnow() - datetime.timedelta(hours=1))
+
+        with database.session() as session:
+            result = repos.sigmet.reconcile(session, 'WS', [SIGMET_ACTIVE], utcnow())
+
+        assert [sig.id for sig in result] == [stored.id]
+        with database.session() as session:
+            assert session.query(Sigmet).first().confirmed is None
 
 
 class TestMessageRepository:
 
-    def test_available_dispatches_by_key(self, database):
+    def test_save_dispatches_by_key(self, database):
         repos = Repositories(database)
 
         # Message values are strings for metar/taf keys and lists of
         # messages for sigmet keys (the shape fetchMessage produces)
-        items = repos.message.available({
+        changes = repos.message.save({
             'SA': METAR_TEXT,
             'FT': TAF_TEXT,
             'WS': [SIGMET_ACTIVE],
         })
 
-        kinds = sorted(type(item).__name__ for item in items)
+        kinds = sorted(type(message).__name__ for message in changes)
         assert kinds == ['Metar', 'Sigmet', 'Taf']
 
-    def test_available_filters_by_types(self, database):
+    def test_save_filters_by_types(self, database):
         repos = Repositories(database)
 
-        items = repos.message.available({
+        changes = repos.message.save({
             'SA': METAR_TEXT,
             'FT': TAF_TEXT,
         }, types=['FT'])
 
-        assert [type(item).__name__ for item in items] == ['Taf']
+        assert [type(message).__name__ for message in changes] == ['Taf']
 
-    def test_available_skips_unchanged_metar(self, database):
+    def test_save_skips_unchanged_metar(self, database):
         repos = Repositories(database)
         with database.session() as session:
             add(session, Metar, type='SA', text=METAR_TEXT, created=datetime.datetime.utcnow())
 
-        items = repos.message.available({'SA': METAR_TEXT, 'FT': TAF_TEXT})
+        changes = repos.message.save({'SA': METAR_TEXT, 'FT': TAF_TEXT})
 
-        assert [type(item).__name__ for item in items] == ['Taf']
+        assert [type(message).__name__ for message in changes] == ['Taf']
 
     def test_recent_returns_latest_of_each_kind(self, database):
         repos = Repositories(database)
@@ -443,7 +491,7 @@ class TestMessageRepository:
 
     def test_add_persists_transient_model(self, database):
         repos = Repositories(database)
-        metar = repos.metar.available('SA', METAR_TEXT)
+        metar = Metar(type='SA', text=METAR_TEXT)
 
         repos.message.add(metar)
 
@@ -451,6 +499,72 @@ class TestMessageRepository:
             stored = session.query(Metar).first()
             assert stored is not None
             assert stored.text == METAR_TEXT
+
+    def test_save_persists_new_messages_in_one_transaction(self, database):
+        repos = Repositories(database)
+
+        changes = repos.message.save({'SA': METAR_TEXT, 'FT': TAF_TEXT})
+
+        assert len(changes) == 2
+        with database.session() as session:
+            assert session.query(Metar).count() == 1
+            assert session.query(Taf).count() == 1
+
+    def test_a_failure_rolls_back_the_whole_batch(self, database, monkeypatch):
+        # The METAR is reconciled before the TAF blows up. One transaction for
+        # the payload means the METAR must not survive the failure.
+        repos = Repositories(database)
+
+        def explode(*args, **kwargs):
+            raise RuntimeError('boom')
+
+        monkeypatch.setattr(repos.message.taf, 'reconcile', explode)
+
+        with pytest.raises(RuntimeError):
+            repos.message.save({'SA': METAR_TEXT, 'FT': TAF_TEXT})
+
+        with database.session() as session:
+            assert session.query(Metar).count() == 0
+
+    def test_a_rolled_back_batch_logs_nothing(self, database, monkeypatch, caplog):
+        # Logging inside the transaction would announce a message that the
+        # rollback then discards.
+        repos = Repositories(database)
+
+        def explode(*args, **kwargs):
+            raise RuntimeError('boom')
+
+        monkeypatch.setattr(repos.message.taf, 'reconcile', explode)
+
+        with caplog.at_level(logging.INFO, logger='tafor.repositories'):
+            with pytest.raises(RuntimeError):
+                repos.message.save({'SA': METAR_TEXT, 'FT': TAF_TEXT})
+
+        assert caplog.text == ''
+
+    def test_save_logs_each_outcome_it_writes(self, database, caplog):
+        # The repository owns this line now, so a caller that only wants the
+        # messages does not have to reconstruct the wording.
+        repos = Repositories(database)
+        created = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
+        with database.session() as session:
+            add(session, Taf, type='FC', text=TAF_TEXT, created=created)
+
+        with caplog.at_level(logging.INFO, logger='tafor.repositories'):
+            repos.message.save({'FC': TAF_TEXT, 'SA': METAR_TEXT})
+
+        assert 'Confirm FC {}'.format(TAF_TEXT) in caplog.text
+        assert 'Save SA {}'.format(METAR_TEXT) in caplog.text
+
+    def test_save_logs_nothing_when_the_feed_repeats_itself(self, database, caplog):
+        repos = Repositories(database)
+        with database.session() as session:
+            add(session, Metar, type='SA', text=METAR_TEXT, created=datetime.datetime.utcnow())
+
+        with caplog.at_level(logging.INFO, logger='tafor.repositories'):
+            assert repos.message.save({'SA': METAR_TEXT}) == []
+
+        assert caplog.text == ''
 
 
 if __name__ == '__main__':

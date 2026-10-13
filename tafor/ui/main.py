@@ -169,16 +169,14 @@ class MessagePresenter(QObject):
 
     def store(self):
         types = subscribedTypes(self.conf.tafSpec, self.conf.sigmetEnabled)
-        items = self.repositories.message.available(self.context.message.message(), types=types)
+        messages = self.repositories.message.save(self.context.message.message(), types=types)
         alert = False
 
-        for item in items:
-            logger.info('{} {} {}'.format('Confirm' if item.id else 'Save', item.type, item.text))
-            if item.type in ('SA', 'SP'):
+        for message in messages:
+            if message.type in ('SA', 'SP'):
                 self.context.notification.metar.clear()
             else:
                 alert = True
-            self.repositories.message.add(item)
 
         if alert:
             self.view.updateSound('notification', True)
