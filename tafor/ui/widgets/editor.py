@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import (QCheckBox, QComboBox, QDialog, QHBoxLayout, QLabel,
     QLineEdit, QMessageBox, QPushButton, QTextEdit, QWidget)
 
 from tafor.ui.fonts import fixedFont
+from tafor.ui.styles import mutedStyle, invalidTextStyle, validTextStyle
 
 
 class BaseEditor(QDialog):
@@ -62,7 +63,7 @@ class BaseEditor(QDialog):
         self.nextButton.setText(QCoreApplication.translate('Editor', 'Next'))
         self.nextButton.clicked.connect(self.beforeNext)
         self.notificationArea = QLabel()
-        self.notificationArea.setStyleSheet('QLabel {color: grey;}')
+        self.notificationArea.setStyleSheet(mutedStyle)
         bottomLayout.addWidget(self.notificationArea)
         bottomLayout.addWidget(self.nextButton, 0, Qt.AlignRight|Qt.AlignBottom)
         self.bottomBox.setLayout(bottomLayout)
@@ -114,9 +115,9 @@ class TextFieldMixin:
     @classmethod
     def coloredText(cls, line):
         if line.hasAcceptableInput():
-            line.setStyleSheet('color: black')
+            line.setStyleSheet(validTextStyle)
         else:
-            line.setStyleSheet('color: grey')
+            line.setStyleSheet(invalidTextStyle)
 
     def setupFont(self):
         font = fixedFont()

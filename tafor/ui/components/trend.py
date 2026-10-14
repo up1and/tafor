@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLayout
 from tafor.core.models import Trend
 from tafor.ui.widgets import TrendSegment
 from tafor.ui.widgets.editor import BaseEditor
+from tafor.ui.styles import mutedStyle
 
 
 class TrendPresenter:
@@ -76,7 +77,7 @@ class TrendEditor(BaseEditor):
         self.addBottomBox(layout)
         self.setLayout(layout)
 
-        self.trend.metar.setStyleSheet('QLabel {color: grey;}')
+        self.trend.metar.setStyleSheet(mutedStyle)
 
     def edit(self):
         self.presenter.loadFromMetar()

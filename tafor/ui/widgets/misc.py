@@ -9,6 +9,7 @@ from tafor.core.taf import CurrentTaf
 from tafor.core.utils.common import iconPath
 from tafor.core.utils.time import utcnow
 from tafor.ui.fonts import fixedFont
+from tafor.ui.styles import mutedStyle
 from tafor.ui.qt import Ui_main_license
 
 logger = logging.getLogger('tafor.widgets')
@@ -152,7 +153,7 @@ class Clock(QWidget):
 
         self.zone = QLabel('UTC')
         self.zone.setFont(fixedFont())
-        self.zone.setStyleSheet('QLabel {color: grey;}')
+        self.zone.setStyleSheet(mutedStyle)
         self.label = QLabel()
         self.label.setFont(fixedFont())
         layout.addWidget(self.zone)

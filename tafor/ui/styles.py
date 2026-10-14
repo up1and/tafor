@@ -84,3 +84,12 @@ def applyCalendarStyle(calendar):
     calendar.setWeekdayTextFormat(Qt.Saturday, muted)
     calendar.setWeekdayTextFormat(Qt.Sunday, muted)
 
+
+#: Secondary text: hints, counts and other labels that should recede.
+mutedStyle = 'QLabel {color: grey;}'
+
+#: An input whose contents are complete and acceptable.
+validTextStyle = 'color: black;'
+
+#: An input whose contents are still missing something.
+invalidTextStyle = 'color: grey;'

@@ -19,6 +19,7 @@ from tafor.core.utils.time import parseTime, utcnow
 from tafor.core.utils.common import iconPath
 from tafor.ui.qt import Ui_sigmet_ash, Ui_sigmet_cancel, Ui_sigmet_custom, Ui_sigmet_general, Ui_sigmet_typhoon
 from tafor.ui.widgets.editor import TextFieldMixin
+from tafor.ui.styles import invalidTextStyle, validTextStyle
 
 logger = logging.getLogger('tafor.sigmet.information')
 
@@ -541,10 +542,10 @@ class AdvisoryImport(SigmetPart):
             self.initial.clear()
             self.initial.addItems(options)
             self.applyAdvisoryData()
-            self.text.setStyleSheet('color: black')
+            self.text.setStyleSheet(validTextStyle)
         except Exception as e:
             self.widget.context.flash.editor('sigmet', QCoreApplication.translate('Editor', 'Advisory message can not be decoded'))
-            self.text.setStyleSheet('color: grey')
+            self.text.setStyleSheet(invalidTextStyle)
             logger.error('Advisory message can not be decoded, {}, {}'.format(text, e))
 
     def applyAdvisoryData(self):

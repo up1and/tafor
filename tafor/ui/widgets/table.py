@@ -10,7 +10,7 @@ from tafor.core.models import Metar, Sigmet, Taf
 from tafor.core.utils.common import iconPath
 from tafor.ui.qt import Ui_main_table
 from tafor.ui.fonts import fixedFont
-from tafor.ui.styles import applyCalendarStyle
+from tafor.ui.styles import applyCalendarStyle, mutedStyle
 from tafor.ui.workers import ExportRecordWorker, threadManager
 
 
@@ -40,7 +40,7 @@ class ExportDialog(QDialog):
         self.formLayout.setWidget(1, QFormLayout.FieldRole, self.endDate)
         self.countLabel = QLabel(self)
         self.countLabel.setMinimumSize(180, 0)
-        self.countLabel.setStyleSheet('QLabel {color: grey; margin: 10px 0;}')
+        self.countLabel.setStyleSheet(mutedStyle)
         self.formLayout.setWidget(2, QFormLayout.SpanningRole, self.countLabel)
         self.verticalLayout.addLayout(self.formLayout)
         self.buttonBox = QDialogButtonBox(self)
