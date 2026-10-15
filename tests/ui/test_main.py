@@ -2078,6 +2078,11 @@ class FakeAboutBox:
     def layout(self):
         return SimpleNamespace(itemAt=lambda index: SimpleNamespace(spacerItem=lambda: None))
 
+    def palette(self):
+        # The dialog carries its own palette, and showAbout reads it after
+        # the box exists -- so the stub has to answer for one.
+        return QMessageBox().palette()
+
     def addButton(self, button):
         pass
 

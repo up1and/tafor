@@ -14,7 +14,7 @@ import datetime
 import logging
 
 from PyQt5.QtCore import QCoreApplication, QObject, QEvent, QTimer, QProcess, QSysInfo, Qt, QUrl, pyqtSignal
-from PyQt5.QtGui import QColor, QDesktopServices, QIcon
+from PyQt5.QtGui import QDesktopServices, QIcon, QPalette
 from PyQt5.QtWidgets import QMainWindow, QMenu, QMessageBox, QSizePolicy, QSpacerItem, QSystemTrayIcon
 
 from tafor import __version__, root
@@ -621,11 +621,14 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def setupFrame(self):
         self.setWindowIcon(QIcon(iconPath('logo.png')))
 
-        # White content background via palette
+        # Give the recent page the same surface as the table pages. A
+        # QTableWidget draws QPalette.Base, while a bare QWidget inherits
+        # Window -- two greys that differ in every theme, not only a dark
+        # one. Naming the role rather than a colour is what keeps this
+        # following a theme switch at runtime; setPalette() would be a
+        # one-off copy, pinning the page for the life of the window.
         self.scrollContents.setAutoFillBackground(True)
-        palette = self.scrollContents.palette()
-        palette.setColor(self.scrollContents.backgroundRole(), QColor('white'))
-        self.scrollContents.setPalette(palette)
+        self.scrollContents.setBackgroundRole(QPalette.Base)
 
         if not self.conf.sigmetEnabled:
             self.sigmetAction.setVisible(False)
@@ -889,19 +892,24 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
                 license.remaining if license.remaining is not None else 0)
         else:
             register = QCoreApplication.translate('MainWindow', 'Unregistered')
+
+        box = QMessageBox(self)
+        palette = box.palette()
+        muted = palette.color(QPalette.PlaceholderText).name()
+        link = palette.color(QPalette.Highlight).name()
+
         html = """
         <div style="text-align:center">
         <img src="{logo}">
         <h2 style="margin:5px 0">Tafor</h2>
-        <p style="margin:0;color:#444;font-size:13px">A Terminal Aerodrome Forecast Encoding Software</p>
-        <p style="margin:5px 0"><a href="https://github.com/up1and/tafor" style="text-decoration:none;color:#0078d7">{} {} {}</a></p>
-        <p style="margin:5px 0;color:#444">{}</p>
-        <p style="margin-top:25px;color:#444">Copyright © 2022 <a href="mailto:piratecb@gmail.com" style="text-decoration:none;color:#444">up1and</a></p>
+        <p style="margin:0;color:{muted};font-size:13px">A Terminal Aerodrome Forecast Encoding Software</p>
+        <p style="margin:5px 0"><a href="https://github.com/up1and/tafor" style="text-decoration:none;color:{link}">{} {} {}</a></p>
+        <p style="margin:5px 0;color:{muted}">{}</p>
+        <p style="margin-top:25px;color:{muted}">Copyright © 2022 <a href="mailto:piratecb@gmail.com" style="text-decoration:none;color:{muted}">up1and</a></p>
         </div>
         """.format(QCoreApplication.translate('MainWindow', 'Version'), __version__, revision(), register,
-            logo=QUrl.fromLocalFile(iconPath('logo.png')).toString())
+            logo=QUrl.fromLocalFile(iconPath('logo.png')).toString(), muted=muted, link=link)
 
-        box = QMessageBox(self)
         box.setWindowTitle(title)
         box.setTextFormat(Qt.RichText)
         box.setText(html)
