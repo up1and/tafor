@@ -18,6 +18,7 @@ from PyQt5.QtGui import QDesktopServices, QIcon, QPalette
 from PyQt5.QtWidgets import QMainWindow, QMenu, QMessageBox, QSizePolicy, QSpacerItem, QSystemTrayIcon
 
 from tafor import __version__, root
+from tafor.core.taf import CurrentTaf
 from tafor.core.utils.time import utcnow
 from tafor.core.utils.common import iconPath, revision, checkVersion
 from tafor.core.repositories import SigmetFilter, subscribedTypes
@@ -402,7 +403,7 @@ class BoardPresenter(QObject):
 
     def render(self, *args):
         entries = self.builder.build()
-        self.view.renderTafBoard()
+        self.view.renderTafBoard(self.currentTaf())
         self.view.renderTables()
         self.view.renderRecent(entries)
 
@@ -412,6 +413,14 @@ class BoardPresenter(QObject):
                 self.view.setSigmetReminder(
                     entry.uuid, entry.uuid in self.context.sigmet.entries
                 )
+
+    def currentTaf(self):
+        """What the board shows: empty once the period's report has arrived,
+        otherwise the designator and the period key it is waiting for."""
+        taf = CurrentTaf(self.context.taf.spec)
+        if self.context.taf.message:
+            return ''
+        return taf.spec.designator + taf.key()
 
     def expire(self):
         """The notification card timed out; fall back to the stored METAR."""
@@ -478,6 +487,13 @@ class LayerPresenter(QObject):
         self.poll()
 
     def poll(self):
+        """The refresh button and the two-minute timer share this one entry.
+
+        A run in flight means the data already on its way is newer than a
+        second request would fetch, so a pressed button during a fetch is
+        absorbed instead of queueing another one. The message worker has the
+        same guard below.
+        """
         if self.conf.layerUrl and not self.thread.isRunning():
             self.thread.start()
 
@@ -495,13 +511,12 @@ class LayerPresenter(QObject):
 
 
 class FlashPresenter(QObject):
-    """Turns the core's two flash channels into something the operator sees.
+    """Turns the core's flash channel into something the operator sees.
 
     FlashService is how core asks to say something; it emits on the event bus
-    and does not know a window exists. Both channels used to have no subscriber
-    at all, so every message sent through them -- the trend validation warning,
-    the settings import/export confirmations, the copy confirmation -- went
-    nowhere. Subscribing is all that was missing.
+    and does not know a window exists. Statusbar and editor messages do not
+    travel through the bus any more -- their former senders were widgets,
+    which now report through their own signals.
     """
 
     def __init__(self, view, context, parent=None):
@@ -511,34 +526,53 @@ class FlashPresenter(QObject):
 
     def initialize(self):
         self.context.event.systemMessage.connect(self.view.notify)
-        self.context.event.statusbarMessage.connect(self.view.status)
 
 
 class LicensePresenter(QObject):
-    """Keeps the license menu in step with the stored license.
+    """Keeps the license menu in step with the stored license, and owns the
+    verify-and-store flow the editor dialog only reports through a signal.
 
-    The 'enter a key' entry needs no context at all, so it stays a plain
-    window action; only removal and the menu state live here.
+    The 'enter a key' entry needs conf to decide whether the dialog may open,
+    so that decision lives here too, next to the other conf writes.
     """
 
-    def __init__(self, view, context, parent=None):
+    def __init__(self, view, context, conf, parent=None):
         super().__init__(parent)
         self.view = view
         self.context = context
+        self.conf = conf
 
     def initialize(self):
         self.view.removeLicenseAction.triggered.connect(self.remove)
-        self.view.licenseChanged.connect(self.updateMenu)
+        self.view.enterLicenseAction.triggered.connect(self.enter)
+        self.view.licenseEditor.submitted.connect(self.submit)
         self.updateMenu()
 
     def updateMenu(self):
         self.view.setLicenseMenuState(bool(self.context.license.license()))
 
+    def enter(self):
+        if not self.conf.airport:
+            self.view.licenseEditor.showAirportHint()
+        else:
+            self.view.licenseEditor.show()
+
+    def submit(self, text):
+        if self.context.license.license(text):
+            if self.conf.license != text:
+                self.conf.license = text
+            self.view.licenseEditor.clear()
+            self.updateMenu()
+        else:
+            self.view.licenseEditor.showInvalid()
+
     def remove(self):
         title = QCoreApplication.translate('MainWindow', 'Remove license key? ')
         text = QCoreApplication.translate('MainWindow', 'Remove license key? This will revert tafor to an unregistered state.')
         if self.view.confirm(title, text):
-            self.view.removeLicense()
+            if self.conf.license:
+                self.conf.license = ''
+            self.updateMenu()
 
 
 class UpgradePresenter(QObject):
@@ -596,7 +630,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     # signals passed through, and the three senders merged into messageSent.
     notificationExpired = pyqtSignal()
     reminderToggled = pyqtSignal(object, bool)
-    licenseChanged = pyqtSignal()
     messageSent = pyqtSignal()
 
     def __init__(self, conf, context, repositories, parent=None):
@@ -648,7 +681,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def setupSenders(self):
         repository = self.repositories.message
-        self.settingDialog = SettingDialog(self, self.conf, self.context)
+        self.settingDialog = SettingDialog(self, self.conf)
         self.tafSender = TafSender(self, self.context, self.conf, repository=repository)
         self.trendSender = TrendSender(self, self.context, self.conf, repository=repository)
         self.sigmetSender = SigmetSender(self, self.context, self.conf, repository=repository)
@@ -660,14 +693,14 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.trendEditor = TrendEditor(self, self.trendSender, self.conf, self.context)
         self.sigmetEditor = SigmetEditor(self, self.sigmetSender, self.conf, self.context,
                                          repository=self.repositories.sigmet)
-        self.licenseEditor = LicenseEditor(self, conf=self.conf, context=self.context)
+        self.licenseEditor = LicenseEditor(self)
         self.chartViewer = ChartViewer(self, repository=self.repositories.metar)
 
     def setupRecent(self):
-        self.clock = Clock(self, self.tipsLayout, context=self.context)
+        self.clock = Clock(self, self.tipsLayout)
         self.tipsLayout.addSpacerItem(
             QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        self.tafBoard = TafBoard(self, self.tipsLayout, conf=self.conf, context=self.context)
+        self.tafBoard = TafBoard(self, self.tipsLayout)
 
         self.recentBoard = RecentBoard(self, conf=self.conf)
         self.scrollLayout.insertWidget(1, self.recentBoard)
@@ -675,16 +708,16 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def setupTables(self):
         self.tafTable = TafTable(self, self.tafLayout, reviewer=self.tafSender,
-                                 conf=self.conf, context=self.context,
                                  repository=self.repositories.taf)
-        self.metarTable = MetarTable(self, self.metarLayout, conf=self.conf,
-                                     context=self.context, repository=self.repositories.metar)
+        self.metarTable = MetarTable(self, self.metarLayout,
+                                     repository=self.repositories.metar)
         self.sigmetTable = SigmetTable(self, self.sigmetLayout, reviewer=self.sigmetSender,
-                                       conf=self.conf, context=self.context,
                                        repository=self.repositories.sigmet)
         self.airmetTable = AirmetTable(self, self.airmetLayout, reviewer=self.sigmetSender,
-                                       conf=self.conf, context=self.context,
                                        repository=self.repositories.sigmet)
+
+        for table in (self.tafTable, self.metarTable, self.sigmetTable, self.airmetTable):
+            table.statusMessage.connect(self.status)
 
     def setupSounds(self):
         conf = self.conf
@@ -739,7 +772,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.openDocsAction.triggered.connect(self.openDocs)
         self.reportIssueAction.triggered.connect(self.openIssueTracker)
         self.aboutAction.triggered.connect(self.showAbout)
-        self.enterLicenseAction.triggered.connect(self.licenseEditor.enter)
 
         self.tray.activated.connect(self.showNormal)
         self.tray.messageClicked.connect(self.showNormal)
@@ -756,12 +788,12 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         # Re-emit the child signals the presenters subscribe to
         self.recentBoard.expired.connect(self.notificationExpired)
         self.recentBoard.reminderToggled.connect(self.reminderToggled)
-        self.licenseEditor.licenseChanged.connect(self.licenseChanged)
         self.recentBoard.reviewRequested.connect(self.review)
         self.recentBoard.replyRequested.connect(self.trendEditor.edit)
 
         self.conf.restartRequired.connect(self.restart)
         self.conf.reloadRequired.connect(self.closeSenders)
+        self.settingDialog.statusMessage.connect(self.status)
 
     def setTrayIcon(self, style='normal'):
         files = {
@@ -814,8 +846,8 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def alarmEnabled(self):
         return self.warnTafAction.isChecked()
 
-    def renderTafBoard(self):
-        self.tafBoard.updateGui()
+    def renderTafBoard(self, text):
+        self.tafBoard.setText(text)
 
     def renderTables(self):
         for table in (self.tafTable, self.metarTable, self.sigmetTable, self.airmetTable):
@@ -872,9 +904,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def setLicenseMenuState(self, registered):
         self.enterLicenseAction.setVisible(not registered)
         self.removeLicenseAction.setVisible(registered)
-
-    def removeLicense(self):
-        self.licenseEditor.removeLicense()
 
     def ensureVisible(self):
         if not self.isVisible():

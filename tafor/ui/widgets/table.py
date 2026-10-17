@@ -136,11 +136,10 @@ class CalendarPopup(QWidget):
 class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
     chartClicked = pyqtSignal()
+    statusMessage = pyqtSignal(str, int)
 
-    def __init__(self, parent, layout, conf=None, context=None, repository=None):
+    def __init__(self, parent, layout, repository=None):
         super().__init__(parent)
-        self.conf = conf
-        self.context = context
         self.perPage = 12
         self.hasCheckmark = False
         self.extraColumnWidths = {}
@@ -325,7 +324,8 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
     def copySelected(self, item):
         QApplication.clipboard().setText(item.text())
-        self.context.flash.statusbar(QCoreApplication.translate('MainWindow', 'Selected message has been copied'), 5000)
+        self.statusMessage.emit(
+            QCoreApplication.translate('MainWindow', 'Selected message has been copied'), 5000)
 
     def view(self):
         message = self.selected
@@ -347,8 +347,8 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
 class TafTable(BaseDataTable):
 
-    def __init__(self, parent, layout, reviewer=None, conf=None, context=None, repository=None):
-        super().__init__(parent, layout, conf=conf, context=context, repository=repository)
+    def __init__(self, parent, layout, reviewer=None, repository=None):
+        super().__init__(parent, layout, repository=repository)
         self.category = 'TAF'
         self.model = Taf
         self.reviewer = reviewer
@@ -366,8 +366,8 @@ class TafTable(BaseDataTable):
 
 class MetarTable(BaseDataTable):
 
-    def __init__(self, parent, layout, conf=None, context=None, repository=None):
-        super().__init__(parent, layout, conf=conf, context=context, repository=repository)
+    def __init__(self, parent, layout, repository=None):
+        super().__init__(parent, layout, repository=repository)
         self.category = 'METAR'
         self.model = Metar
         self.perPage = 24
@@ -388,8 +388,8 @@ class MetarTable(BaseDataTable):
 
 class SigmetTable(BaseDataTable):
 
-    def __init__(self, parent, layout, reviewer=None, conf=None, context=None, repository=None):
-        super().__init__(parent, layout, conf=conf, context=context, repository=repository)
+    def __init__(self, parent, layout, reviewer=None, repository=None):
+        super().__init__(parent, layout, repository=repository)
         self.category = 'SIGMET'
         self.model = Sigmet
         self.reviewer = reviewer
@@ -400,6 +400,6 @@ class SigmetTable(BaseDataTable):
 
 class AirmetTable(SigmetTable):
 
-    def __init__(self, parent, layout, reviewer=None, conf=None, context=None, repository=None):
-        super().__init__(parent, layout, reviewer=reviewer, conf=conf, context=context, repository=repository)
+    def __init__(self, parent, layout, reviewer=None, repository=None):
+        super().__init__(parent, layout, reviewer=reviewer, repository=repository)
         self.category = 'AIRMET'

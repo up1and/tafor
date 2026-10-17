@@ -403,7 +403,8 @@ class TestApplication:
         assert doubles.byRole['FlashPresenter'][0].args == (window, runtime.context)
         assert doubles.byRole['LayerPresenter'][0].args == (
             window, runtime.context, runtime.conf, workers, runtime.bridge)
-        assert doubles.byRole['LicensePresenter'][0].args == (window, runtime.context)
+        assert doubles.byRole['LicensePresenter'][0].args == (
+            window, runtime.context, runtime.conf)
         assert doubles.byRole['UpgradePresenter'][0].args == (window, workers)
 
     def test_start_shows_the_window_then_initializes_every_presenter(self, application, doubles):

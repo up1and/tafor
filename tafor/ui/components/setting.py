@@ -20,10 +20,11 @@ logger = logging.getLogger('tafor.setting')
 
 class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
-    def __init__(self, parent=None, conf=None, context=None):
+    statusMessage = pyqtSignal(str, int)
+
+    def __init__(self, parent=None, conf=None):
         super().__init__(parent)
         self.conf = conf
-        self.context = context
         self.setupUi(self)
         self.setWindowIcon(QIcon(iconPath('setting.png')))
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
@@ -261,7 +262,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             with open(filename, 'w') as file:
                 json.dump(data, file)
 
-            self.context.flash.statusbar(QCoreApplication.translate('Settings', 'Configuration has been exported'), 5000)
+            self.statusMessage.emit(QCoreApplication.translate('Settings', 'Configuration has been exported'), 5000)
         except Exception as e:
             logger.error('Export configuration file failed, {}'.format(e))
 
@@ -276,7 +277,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
             self.conf.emit()
             self.load()
-            self.context.flash.statusbar(QCoreApplication.translate('Settings', 'Configuration has been imported'), 5000)
+            self.statusMessage.emit(QCoreApplication.translate('Settings', 'Configuration has been imported'), 5000)
         except Exception as e:
             logger.error('Import configuration file failed, {}'.format(e), exc_info=True)
 

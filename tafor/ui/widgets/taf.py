@@ -304,18 +304,18 @@ class BaseSegment(TextFieldMixin, QWidget):
         error = TafFormValidator.checkWeather(self.state)
         if error:
             line.setCurrentIndex(-1)
-            self.context.flash.editor(self.editorName(), _translate(error))
+            self.editor.showNotification(self.editorName(), _translate(error))
 
     def validateGust(self):
         error = TafFormValidator.checkGust(self.state)
         if error:
             self.gust.clear()
-            self.context.flash.editor(self.editorName(), _translate(error))
+            self.editor.showNotification(self.editorName(), _translate(error))
 
     def validateCloud(self, line):
         error = TafFormValidator.checkCloud(self.state, line.text())
         if error:
-            self.context.flash.editor(self.editorName(), _translate(error))
+            self.editor.showNotification(self.editorName(), _translate(error))
             line.clear()
             return
 
@@ -429,7 +429,7 @@ class TemperatureGroup(TextFieldMixin, QWidget):
         if error:
             self.state.time = ""
             self.tempTime.clear()
-            self.context.flash.editor('taf', _translate(error))
+            self.primary.editor.showNotification('taf', _translate(error))
             return
 
         # Time normalization can stay in UI or move to state, keep here for now as it affects UI text
@@ -450,7 +450,7 @@ class TemperatureGroup(TextFieldMixin, QWidget):
         if error:
             self.state.value = ""
             self.temp.clear()
-            self.context.flash.editor('taf', _translate(error))
+            self.primary.editor.showNotification('taf', _translate(error))
             return
 
     def switchMode(self):
@@ -835,7 +835,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         error = TafFormValidator.checkGroupPeriod(self.state, self.editor.primary.state, span)
         if error:
             self.period.clear()
-            self.context.flash.editor('taf', _translate(error, span=span))
+            self.editor.showNotification('taf', _translate(error, span=span))
 
     def validateGroupsPeriod(self):
         siblings = [g.state for g in self.editor.activeGroups()
@@ -843,7 +843,7 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         error = TafFormValidator.checkGroupOverlap(self.state, siblings)
         if error:
             self.period.clear()
-            self.context.flash.editor('taf', _translate(error))
+            self.editor.showNotification('taf', _translate(error))
 
     def showEvent(self, event):
         self.setupPeriodPlaceholder()
@@ -883,14 +883,14 @@ class TafFmSegment(TafGroupSegment):
         error = TafFormValidator.checkFmPeriod(self.state, self.editor.primary.state)
         if error:
             self.period.clear()
-            self.context.flash.editor('taf', _translate(error))
+            self.editor.showNotification('taf', _translate(error))
 
     def validateGroupsPeriod(self):
         siblings = [g.state for g in self.editor.activeGroups() if g.indicator == 'BECMG']
         error = TafFormValidator.checkFmOverlap(self.state, siblings)
         if error:
             self.period.clear()
-            self.context.flash.editor('taf', _translate(error))
+            self.editor.showNotification('taf', _translate(error))
 
 
 class TafBecmgSegment(TafGroupSegment):
@@ -1123,7 +1123,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         error = TrendFormValidator.checkPeriod(self.period.text(), now=utcnow())
         if error:
             self.period.clear()
-            self.context.flash.editor('trend', _translate(error))
+            self.editor.showNotification('trend', _translate(error))
 
     def updateAtStatus(self):
         if self.tempo.isChecked():

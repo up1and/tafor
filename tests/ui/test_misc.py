@@ -8,7 +8,6 @@ import pytest
 from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QFont, QImage
 
-from tafor.core.models import Taf
 from tafor.ui.widgets.misc import Clock, LicenseEditor, OutlinedLabel, RemindMessageBox, TafBoard
 
 
@@ -20,13 +19,6 @@ def container(qtbot):
     layout = QVBoxLayout(widget)
     widget.setLayout(layout)
     return widget, layout
-
-
-@pytest.fixture
-def license_conf(conf):
-    """conf is session-scoped: reset the stored license after each test."""
-    yield conf
-    conf.license = ''
 
 
 class TestOutlinedLabel:
@@ -80,33 +72,33 @@ class TestOutlinedLabel:
 
 
 class TestTafBoard:
+    """The board is a passive view: the text is computed by BoardPresenter
+    and pushed in through setText()."""
 
     @pytest.fixture
-    def board(self, qtbot, conf, context, container):
+    def board(self, qtbot, container):
         widget, layout = container
-        board = TafBoard(widget, layout, conf=conf, context=context)
+        board = TafBoard(widget, layout)
         qtbot.addWidget(board)
         return board
 
-    def test_current_shows_the_expected_period(self, board):
-        assert re.match(r'^FT\d{4}$', board.current())
+    def test_set_text_renders_the_period_key(self, board):
+        board.setText('FT1011')
 
-    def test_current_is_empty_with_a_message(self, board, context):
-        context.taf.setState({'message': Taf(type='FT', text='TAF YUSO=')})
+        assert board.board.text() == 'FT1011'
 
-        assert board.current() == ''
+    def test_set_text_to_empty_clears_the_board(self, board):
+        board.setText('FT1011')
+        board.setText('')
 
-    def test_update_gui_renders_current(self, board):
-        board.updateGui()
-
-        assert board.board.text() == board.current()
+        assert board.board.text() == ''
 
 
 class TestClock:
 
-    def test_update_gui_formats_utc(self, qtbot, container, context):
+    def test_update_gui_formats_utc(self, qtbot, container):
         widget, layout = container
-        clock = Clock(widget, layout, context=context)
+        clock = Clock(widget, layout)
         qtbot.addWidget(clock)
         try:
             clock.updateGui()
@@ -116,50 +108,31 @@ class TestClock:
 
 
 class TestLicenseEditor:
+    """The editor normalises the typed key and reports it; verification and
+    the conf write belong to the LicensePresenter (see test_main.py)."""
 
     @pytest.fixture
-    def editor(self, qtbot, license_conf, context):
-        editor = LicenseEditor(conf=license_conf, context=context)
+    def editor(self, qtbot):
+        editor = LicenseEditor()
         qtbot.addWidget(editor)
         return editor
 
-    def test_set_license_emits_once_on_change(self, editor, license_conf):
-        changes = []
-        editor.licenseChanged.connect(lambda: changes.append(1))
-
-        editor.setLicense('TOKEN')
-        assert license_conf.license == 'TOKEN'
-
-        editor.setLicense('TOKEN')
-        assert changes == [1]
-
-    def test_remove_license_clears_config(self, editor, license_conf):
-        editor.setLicense('TOKEN')
-        editor.removeLicense()
-
-        assert license_conf.license == ''
-
-    def test_save_stores_normalized_token(self, editor, license_conf, context, monkeypatch):
-        monkeypatch.setattr(context.license, 'license', lambda token=None: {'airport': 'YUSO'} if token else {})
+    def test_submit_emits_the_normalized_token(self, editor):
+        seen = []
+        editor.submitted.connect(seen.append)
         editor.textarea.setPlainText('  my token\n')
 
-        editor.save()
+        editor.submit()
 
-        assert license_conf.license == 'mytoken'
-        assert editor.textarea.toPlainText() == ''
+        assert seen == ['mytoken']
 
-    def test_save_rejects_invalid_token(self, editor, license_conf, context, monkeypatch):
-        monkeypatch.setattr(context.license, 'license', lambda token=None: {})
-        criticals = []
-        monkeypatch.setattr('tafor.ui.widgets.misc.QMessageBox.critical',
-                            lambda *args, **kwargs: criticals.append(args))
-        editor.textarea.setPlainText('BAD TOKEN')
+    def test_submit_emits_an_empty_key_when_nothing_is_typed(self, editor):
+        seen = []
+        editor.submitted.connect(seen.append)
 
-        editor.save()
+        editor.submit()
 
-        assert criticals
-        assert license_conf.license == ''
-        assert editor.textarea.toPlainText() == 'BAD TOKEN'
+        assert seen == ['']
 
 
 class TestRemindMessageBox:

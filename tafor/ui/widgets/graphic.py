@@ -572,9 +572,8 @@ class SketchView(MapView):
 
 class LocationBanner(QWidget):
 
-    def __init__(self, context, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self.context = context
         self.setAttribute(Qt.WA_TransparentForMouseEvents)
         self.setFixedSize(600, 200)
 
@@ -667,6 +666,10 @@ class SketchPanel(QWidget):
     circleChanged = pyqtSignal(dict)
     overlapChanged = pyqtSignal(str)
     modeChanged = pyqtSignal(str)
+    refreshClicked = pyqtSignal()
+    defaultLayerSelected = pyqtSignal(str)
+    displayToggled = pyqtSignal(str, bool)
+    layerSelectionChanged = pyqtSignal(list)
 
     def __init__(self, parent=None, context=None):
         super().__init__(parent)
@@ -734,7 +737,7 @@ class SketchPanel(QWidget):
         self.positionLabel.setAlignment(Qt.AlignRight | Qt.AlignBottom)
 
         self.layerInfoOverlay = LayerInfoOverlay(self)
-        self.locationBanner = LocationBanner(self.context, self)
+        self.locationBanner = LocationBanner(self)
 
         self.setLayerMenu()
         self.configureMode()
@@ -747,7 +750,7 @@ class SketchPanel(QWidget):
         self.modeButton.clicked.connect(self.nextMode)
         self.modeButton.clicked.connect(self.updateOverlapButton)
         self.overlapButton.toggled.connect(self.handleOverlap)
-        self.refreshButton.clicked.connect(self.context.layer.refreshLayers)
+        self.refreshButton.clicked.connect(self.refreshClicked.emit)
         self.canvas.mouseMoved.connect(self.updatePositionLabel)
         self.canvas.interacted.connect(self.handleInteraction)
         for sketch in self.canvas.sketchManager:
@@ -761,7 +764,6 @@ class SketchPanel(QWidget):
         self.backgroundLayerActionGroup.triggered.connect(self.changeLayer)
         self.mixedBackgroundLayerActionGroup.triggered.connect(self.changeLayer)
         self.opacitySlider.valueChanged.connect(self.updateMixedBackgroundOpacity)
-        self.context.event.layerChanged.connect(self.handleLayerChanged)
 
     def handleSketchChange(self):
         self.sketchChanged.emit(self.formattedCoordinates())
@@ -898,6 +900,9 @@ class SketchPanel(QWidget):
         # keeping menu population before the canvas redraw
         self.setLayerSelectMenu()
         self.updateLayer()
+        # showSigmet/trimShapes live in the same state, so the SIGMET overlay
+        # is redrawn here -- the only place that knows the write landed.
+        self.updateSigmetGraphic()
 
     def setLayerMenu(self):
         self.layerMenu = QMenu(self)
@@ -969,19 +974,20 @@ class SketchPanel(QWidget):
 
         default = candidates[0]
         default.setChecked(True)
-        self.context.layer.setState({'selected': [default.text()]})
+        self.defaultLayerSelected.emit(default.text())
 
     def changeSigmetDisplayMode(self, action, attr):
-        checked = action.isChecked()
-        self.context.layer.setState({attr: checked})
-        self.updateSigmetGraphic()
+        # No redraw here: the value only becomes true state once the presenter
+        # writes it, and that write comes back as layerChanged. Redrawing on
+        # emit would paint from a value the service may have rejected.
+        self.displayToggled.emit(attr, action.isChecked())
 
     def changeLayer(self, action):
         stackable = self.context.layer.canStack(action.text())
         if stackable:
             selected = [action.text() for action in self.backgroundLayerActionGroup.actions() + self.mixedBackgroundLayerActionGroup.actions() if action.isChecked()]
             if selected != self.context.layer.selected:
-                self.context.layer.setState({'selected': selected})
+                self.layerSelectionChanged.emit(selected)
         else:
             action.setChecked(False)
 

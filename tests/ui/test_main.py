@@ -91,9 +91,11 @@ class FakeBoardView(QObject):
         self.tables = 0
         self.graphics = 0
         self.entries = None
+        self.boardTexts = []
         self.bells = []
 
-    def renderTafBoard(self):
+    def renderTafBoard(self, text):
+        self.boardTexts.append(text)
         self.boards += 1
 
     def renderTables(self):
@@ -398,6 +400,18 @@ class TestBoardPresenter:
 
         assert len(view.bells) == 1
         assert view.bells[0][1] is False
+
+    def test_the_board_text_names_the_due_period(self, board, context, frozen_time):
+        text = board.currentTaf()
+
+        assert text.startswith('FT')
+        assert len(text) == 6
+        assert text[2:].isdigit()
+
+    def test_the_board_text_empties_once_the_report_arrives(self, board, context):
+        context.taf.setState({'message': Taf(type='FT', text='TAF YUSO=')})
+
+        assert board.currentTaf() == ''
 
 
 class TestRecentEntryBuilder:
@@ -1194,18 +1208,42 @@ class TestSoundPresenter:
         assert view.sounds == [('trend', True), ('alarm', True)]
 
 
-class FakeLicenseView(QObject):
-    """The methods LicensePresenter calls."""
+class FakeLicenseEditor(QObject):
+    """The methods LicensePresenter calls on the editor dialog."""
 
-    licenseChanged = pyqtSignal()
+    submitted = pyqtSignal(str)
+
+    def __init__(self):
+        super().__init__()
+        self.cleared = 0
+        self.criticals = 0
+        self.hints = 0
+        self.shown = 0
+
+    def clear(self):
+        self.cleared += 1
+
+    def showInvalid(self):
+        self.criticals += 1
+
+    def showAirportHint(self):
+        self.hints += 1
+
+    def show(self):
+        self.shown += 1
+
+
+class FakeLicenseView(QObject):
+    """The actions LicensePresenter connects and the methods it calls."""
 
     def __init__(self, confirm=True):
         super().__init__()
         self.removeLicenseAction = QAction()
+        self.enterLicenseAction = QAction()
+        self.licenseEditor = FakeLicenseEditor()
         self.answer = confirm
         self.menuStates = []
         self.prompts = []
-        self.removed = 0
 
     def setLicenseMenuState(self, registered):
         self.menuStates.append(registered)
@@ -1214,21 +1252,25 @@ class FakeLicenseView(QObject):
         self.prompts.append((title, text))
         return self.answer
 
-    def removeLicense(self):
-        self.removed += 1
-
 
 class TestLicensePresenter:
-    """Only removal and the menu state live here; entering a key is a plain
-    window action."""
+    """The verify-and-store flow, the enter gate and the menu state live
+    here; the editor only reports what the operator typed."""
 
     @pytest.fixture
-    def view(self, qtbot):
+    def license_conf(self, conf):
+        """conf is session-scoped: reset the fields this class writes."""
+        yield conf
+        conf.license = ''
+        conf.airport = 'YUSO'
+
+    @pytest.fixture
+    def view(self):
         return FakeLicenseView()
 
     @pytest.fixture
-    def license(self, view, context):
-        return LicensePresenter(view, context)
+    def license(self, view, context, license_conf):
+        return LicensePresenter(view, context, license_conf)
 
     def test_initialize_syncs_the_menu(self, license, view):
         license.initialize()
@@ -1242,37 +1284,72 @@ class TestLicensePresenter:
 
         assert view.menuStates == [True]
 
-    def test_a_license_change_resyncs_the_menu(self, license, view):
+    def test_a_submitted_token_is_verified_then_stored(self, license, view, context, license_conf, monkeypatch):
+        # a stateful fake: validity is re-derived from the stored license,
+        # exactly like the real License
+        monkeypatch.setattr(
+            context.license, 'license',
+            lambda token=None: {'airport': 'YUSO'} if token else ({'register': 'YUSO'} if license_conf.license else {}))
         license.initialize()
-        view.menuStates.clear()
 
-        view.licenseChanged.emit()
+        view.licenseEditor.submitted.emit('TOKEN')
 
-        assert view.menuStates == [False]
+        assert license_conf.license == 'TOKEN'
+        assert view.licenseEditor.cleared == 1
+        assert view.menuStates == [False, True]
 
-    def test_removal_asks_first(self, license, view):
+    def test_an_invalid_token_is_reported_and_dropped(self, license, view, context, license_conf, monkeypatch):
+        monkeypatch.setattr(context.license, 'license', lambda token=None: {})
+        license.initialize()
+
+        view.licenseEditor.submitted.emit('BAD')
+
+        assert view.licenseEditor.criticals == 1
+        assert license_conf.license == ''
+
+    def test_entering_without_an_airport_shows_the_hint(self, license, view, license_conf):
+        license_conf.airport = ''
+        license.initialize()
+
+        view.enterLicenseAction.trigger()
+
+        assert view.licenseEditor.hints == 1
+        assert view.licenseEditor.shown == 0
+
+    def test_entering_with_an_airport_opens_the_editor(self, license, view, license_conf):
+        license.initialize()
+
+        view.enterLicenseAction.trigger()
+
+        assert view.licenseEditor.shown == 1
+        assert view.licenseEditor.hints == 0
+
+    def test_removal_asks_first(self, license, view, license_conf):
         view.answer = False
+        license_conf.license = 'TOKEN'
         license.initialize()
 
         view.removeLicenseAction.trigger()
 
         assert view.prompts[0][0] == 'Remove license key? '
-        assert view.removed == 0
+        assert license_conf.license == 'TOKEN'
+        assert view.menuStates == [False]
 
-    def test_a_confirmed_removal_removes_the_license(self, license, view):
+    def test_a_confirmed_removal_clears_the_license(self, license, view, license_conf):
         view.answer = True
+        license_conf.license = 'TOKEN'
         license.initialize()
 
         view.removeLicenseAction.trigger()
 
-        assert view.removed == 1
+        assert license_conf.license == ''
+        assert view.menuStates == [False, False]
 
 
 class TestFlashPresenter:
-    """Both flash channels had no subscriber, so every message sent through
-    them went nowhere -- the trend validation warning, the settings
-    import/export confirmations, the copy confirmation. These tests fail if
-    the presenter stops subscribing."""
+    """The core's flash channel had no subscriber, so every message sent
+    through it went nowhere -- the trend validation warning. This test fails
+    if the presenter stops subscribing."""
 
     @pytest.fixture
     def view(self):
@@ -1291,36 +1368,15 @@ class TestFlashPresenter:
             ('Trend Validation Failed', 'The trend has been cleared, please resend', 'warning')
         ]
 
-    def test_a_status_message_reaches_the_status_bar(self, flash, view, context):
-        flash.initialize()
-
-        context.flash.statusbar('Configuration has been exported', 5000)
-
-        assert view.statuses == [('Configuration has been exported', 5000)]
-
-    def test_the_editor_channel_is_left_to_the_editors(self, flash, view, context):
-        """editorMessage is addressed to a named editor, so the flash
-        presenter must not consume it."""
-        flash.initialize()
-
-        context.flash.editor('taf', 'ignored')
-
-        assert view.notices == []
-        assert view.statuses == []
-
 
 class FakeFlashView:
-    """The two methods FlashPresenter calls."""
+    """The one method FlashPresenter calls."""
 
     def __init__(self):
         self.notices = []
-        self.statuses = []
 
     def notify(self, title, text, level='information'):
         self.notices.append((title, text, level))
-
-    def status(self, text, timeout=5000):
-        self.statuses.append((text, timeout))
 
 
 
@@ -1581,8 +1637,7 @@ class TestMainWindow:
         assert window.sigmetTable.repository is window.repositories.sigmet
         assert window.airmetTable.repository is window.repositories.sigmet
         assert window.chartViewer.repository is window.repositories.metar
-        assert window.tafBoard.context is window.context
-        assert window.clock.context is window.context
+        assert window.tafBoard.board.text() == ''
 
     def test_the_tray_carries_the_standard_menu(self, window):
         actions = window.trayMenu.actions()
@@ -1696,9 +1751,9 @@ class TestMainWindow:
         board = FakeWidget()
         monkeypatch.setattr(window, 'tafBoard', board)
 
-        window.renderTafBoard()
+        window.renderTafBoard('FT1011')
 
-        assert board.calls == [('updateGui', (), {})]
+        assert board.calls == [('setText', ('FT1011',), {})]
 
     def test_render_tables_updates_every_table(self, window, monkeypatch):
         tables = [FakeWidget() for _ in range(4)]
@@ -1835,14 +1890,6 @@ class TestMainWindow:
         window.openSetting()
 
         assert dialog.calls == [('reopen', (), {})]
-
-    def test_removing_a_license_delegates_to_the_editor(self, window, monkeypatch):
-        editor = FakeWidget()
-        monkeypatch.setattr(window, 'licenseEditor', editor)
-
-        window.removeLicense()
-
-        assert editor.calls == [('removeLicense', (), {})]
 
     def test_ensure_visible_shows_a_hidden_window(self, window, monkeypatch):
         calls = []

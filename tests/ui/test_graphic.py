@@ -4,12 +4,15 @@ Covers coordinate transforms, sketch tools (polygon/line/circle/corridor/
 rectangular/entire), SketchPanel helpers and background opacity handling.
 """
 
+from types import SimpleNamespace
+
 import pytest
 import shapely.geometry
 from PyQt5.QtCore import QEvent, QPointF, QPoint, QRect, QSize, Qt
 from PyQt5.QtGui import QMouseEvent, QResizeEvent, QWheelEvent
 from PyQt5.QtWidgets import QPushButton
 
+from tafor.ui.components.sigmet import SigmetPresenter
 from tafor.ui.widgets.graphic import SketchView, SketchPanel
 from tafor.ui.widgets.misc import OutlinedLabel
 
@@ -493,16 +496,41 @@ class TestSketchPanelHelpers:
         assert window.overlapButton.isEnabled() is False
         assert window.overlapButton.isChecked() is False
 
-    def test_layer_changed_event_notifies_subscribers(self, window):
-        # the bus notification carries no payload; consumers pull fresh
-        # data from the layer service and run in a stable order
+    def test_layer_changed_event_notifies_subscribers(self, window, context):
+        # the panel must not subscribe to the bus itself; its presenter
+        # connects layerChanged to the panel's render. Consumers pull fresh
+        # data from the layer service and run in a stable order.
+        presenter = SigmetPresenter(PanelOnlyView(window), context, conf=None)
+        presenter.connectGraphic()
         calls = []
         window.setLayerSelectMenu = lambda: calls.append('menu')
         window.updateLayer = lambda: calls.append('canvas')
+        window.updateSigmetGraphic = lambda: calls.append('sigmet')
 
-        window.context.event.layerChanged.emit()
+        context.event.layerChanged.emit()
 
-        assert calls == ['menu', 'canvas']
+        assert calls == ['menu', 'canvas', 'sigmet']
+
+    def test_a_display_toggle_emits_and_does_not_redraw(self, window, context):
+        # Redrawing belongs to the write landing (handleLayerChanged), never to
+        # the emit: at emit time the state still holds the old value, so a
+        # redraw here paints the overlay the service may be about to reject.
+        redraws = []
+        window.updateSigmetGraphic = lambda: redraws.append(1)
+
+        window.trimShapesAction.setChecked(False)
+
+        assert redraws == []
+
+    def test_the_layer_changed_handler_redraws_the_sigmet_overlay(self, window, context):
+        calls = []
+        window.setLayerSelectMenu = lambda: calls.append('menu')
+        window.updateLayer = lambda: calls.append('canvas')
+        window.updateSigmetGraphic = lambda: calls.append('sigmet')
+
+        window.handleLayerChanged()
+
+        assert calls == ['menu', 'canvas', 'sigmet']
 
     def test_update_position_label(self, window):
         window.updatePositionLabel((110.5, 15.25))
@@ -510,3 +538,58 @@ class TestSketchPanelHelpers:
 
         window.updatePositionLabel(())
         assert window.positionLabel.text() == ''
+
+
+class PanelOnlyView:
+    """A view holding just a sketch panel; SigmetPresenter.bindSignal is the
+    only thing called, so the rest of the editor is not needed."""
+
+    def __init__(self, panel):
+        self.graphic = panel
+
+
+class TestSketchPanelLayerWrites:
+    """The panel reports intent via signals; SigmetPresenter turns them into
+    the layer writes and the refresh trigger the panel must not do itself."""
+
+    @pytest.fixture
+    def panel(self, qtbot, context):
+        panel = SketchPanel(parent=None, context=context)
+        qtbot.addWidget(panel)
+        return panel
+
+    @pytest.fixture
+    def presenter(self, panel, context):
+        # SigmetPresenter owns the panel's layer writes; the rest of its view
+        # is not needed, so only the panel is faked.
+        return SigmetPresenter(PanelOnlyView(panel), context, conf=None)
+
+    def test_a_refresh_click_triggers_the_fetch(self, presenter, panel, context):
+        presenter.connectGraphic()
+        fetches = []
+        context.event.layerRefreshRequested.connect(lambda: fetches.append(1))
+
+        panel.refreshClicked.emit()
+
+        assert fetches == [1]
+
+    def test_the_default_layer_selection_is_written_to_state(self, presenter, panel, context):
+        presenter.connectGraphic()
+
+        panel.defaultLayerSelected.emit('Satellite')
+
+        assert context.layer.selected == ['Satellite']
+
+    def test_a_display_toggle_is_written_to_state(self, presenter, panel, context):
+        presenter.connectGraphic()
+
+        panel.displayToggled.emit('showSigmet', True)
+
+        assert context.layer.showSigmet is True
+
+    def test_a_menu_selection_is_written_to_state(self, presenter, panel, context):
+        presenter.connectGraphic()
+
+        panel.layerSelectionChanged.emit(['Satellite', 'Radar'])
+
+        assert context.layer.selected == ['Satellite', 'Radar']

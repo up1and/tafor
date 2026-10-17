@@ -42,5 +42,3 @@ class Event:
 
         # UI messages
         self.systemMessage = Signal()       # emits title, text, level
-        self.statusbarMessage = Signal()    # emits text, timeout
-        self.editorMessage = Signal()       # emits title, text

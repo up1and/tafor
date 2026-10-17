@@ -1,11 +1,10 @@
 import math
 import logging
 
-from PyQt5.QtGui import QPixmap, QBrush, QPen, QFont, QFontMetrics, QPainterPath, QPainter
+from PyQt5.QtGui import QPixmap, QBrush, QPen, QFontMetrics, QPainterPath, QPainter
 from PyQt5.QtCore import QCoreApplication, QTimer, QSize, Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QDialog, QMessageBox, QLabel, QHBoxLayout
 
-from tafor.core.taf import CurrentTaf
 from tafor.core.utils.common import iconPath
 from tafor.core.utils.time import utcnow
 from tafor.ui.fonts import fixedFont
@@ -113,11 +112,11 @@ class RemindMessageBox(QMessageBox):
 
 
 class TafBoard(QWidget):
+    """A passive view: the board text is computed by BoardPresenter and
+    pushed in through setText()."""
 
-    def __init__(self, parent, container, conf=None, context=None):
+    def __init__(self, parent, container):
         super().__init__(parent)
-        self.conf = conf
-        self.context = context
 
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -129,23 +128,14 @@ class TafBoard(QWidget):
 
         container.addWidget(self)
 
-    def updateGui(self):
-        self.board.setText(self.current())
-
-    def current(self):
-        taf = CurrentTaf(self.context.taf.spec)
-        if self.context.taf.message:
-            text = ''
-        else:
-            text = taf.spec.designator + taf.key()
-        return text
+    def setText(self, text):
+        self.board.setText(text)
 
 
 class Clock(QWidget):
 
-    def __init__(self, parent, container, context=None):
+    def __init__(self, parent, container):
         super().__init__(parent)
-        self.context = context
 
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 5)
@@ -173,38 +163,30 @@ class Clock(QWidget):
 
 
 class LicenseEditor(QDialog, Ui_main_license.Ui_Editor):
+    """A passive dialog: it normalises the typed key and reports it through
+    ``submitted``; the verification and the conf write live in the
+    LicensePresenter."""
 
-    licenseChanged = pyqtSignal()
+    submitted = pyqtSignal(str)
 
-    def __init__(self, parent=None, conf=None, context=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
-        self.conf = conf
-        self.context = context
-        self.buttonBox.accepted.connect(self.save)
+        self.buttonBox.accepted.connect(self.submit)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
-    def save(self):
+    def submit(self):
         license = self.textarea.toPlainText().strip()
         license = ''.join(license.split())
-        if self.context.license.license(license):
-            self.setLicense(license)
-            self.textarea.clear()
-        else:
-            text = QCoreApplication.translate('Editor', 'That license key doesn\'t appear to be valid')
-            QMessageBox.critical(self, 'Tafor', text)
+        self.submitted.emit(license)
 
-    def enter(self):
-        if not self.conf.airport:
-            text = QCoreApplication.translate('Editor', 'Please fill in the airport information or flight information region in the settings first')
-            QMessageBox.information(self, 'Tafor', text)
-        else:
-            self.show()
+    def clear(self):
+        self.textarea.clear()
 
-    def setLicense(self, text):
-        if self.conf.license != text:
-            self.conf.license = text
-            self.licenseChanged.emit()
+    def showInvalid(self):
+        text = QCoreApplication.translate('Editor', 'That license key doesn\'t appear to be valid')
+        QMessageBox.critical(self, 'Tafor', text)
 
-    def removeLicense(self):
-        self.setLicense('')
+    def showAirportHint(self):
+        text = QCoreApplication.translate('Editor', 'Please fill in the airport information or flight information region in the settings first')
+        QMessageBox.information(self, 'Tafor', text)

@@ -10,9 +10,9 @@ class BaseEditor(QDialog):
 
     finished = pyqtSignal(object)
 
-    # The name this editor answers to. The editorMessage bus addresses it
-    # by this, and it also selects the conf groups checked before the
-    # editor can show. Subclass sets it.
+    # The name this editor answers to. Segments address their validation
+    # messages by it, and it also selects the conf groups checked before
+    # the editor can show. Subclass sets it.
     editorName = None
 
     def __init__(self, parent=None, sender=None, conf=None, context=None):
@@ -34,8 +34,6 @@ class BaseEditor(QDialog):
         self.finished.connect(self.showSender)
         self.sender.backed.connect(self.showEditor)
         self.sender.closed.connect(self.close)
-
-        self.context.event.editorMessage.connect(self.showNotification)
 
     def showEditor(self):
         self.isStaged = True

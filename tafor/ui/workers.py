@@ -239,7 +239,7 @@ class TransmissionQueue(QObject):
     Lives entirely on the GUI thread: submissions, telegraph generation
     (sequence number read) and settlement (archive + sequence write-back)
     happen here in strict FIFO order, lock-free. The resident worker on its
-    own thread only runs the blocking IO. See docs/transmission-queue.md.
+    own thread only runs the blocking IO.
     """
 
     dispatch = pyqtSignal(str, str, dict)   # kind, text, params

@@ -148,7 +148,7 @@ class TafEditor(BaseEditor):
         segment = self.groups[self.primary.groupCheckboxs.index(checkbox)]
         error = self.draft.toggle(*self.groupKey(segment))
         if error == 'too_many_groups':
-            self.context.flash.editor('taf', QCoreApplication.translate('Editor', 'Change groups cannot be more than 5'))
+            self.showNotification('taf', QCoreApplication.translate('Editor', 'Change groups cannot be more than 5'))
         self.applySelection()
 
     def applySelection(self):

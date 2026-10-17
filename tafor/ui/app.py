@@ -150,14 +150,13 @@ class Application:
             SoundPresenter(self.window, self.runtime.context, self.runtime.conf),
             FlashPresenter(self.window, self.runtime.context),
             LayerPresenter(self.window, self.runtime.context, self.runtime.conf, self.workers, self.runtime.bridge),
-            LicensePresenter(self.window, self.runtime.context),
+            LicensePresenter(self.window, self.runtime.context, self.runtime.conf),
             UpgradePresenter(self.window, self.workers)
         ]
 
     def start(self):
         # The single transmission line: the queue lives on the GUI thread,
         # the resident worker does the blocking IO on its own thread
-        # (docs/transmission-queue.md)
         worker, thread = self.workers.create(TransmissionWorker, workerId='transmission', reusable=True)
         queue = TransmissionQueue(worker)
         queue.dispatch.connect(worker.transmit)

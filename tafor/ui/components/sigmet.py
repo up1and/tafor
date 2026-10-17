@@ -46,6 +46,31 @@ class SigmetPresenter:
 
         self.view.sender.succeeded.connect(self.view.updateState)
 
+        self.connectGraphic()
+
+    def connectGraphic(self):
+        """The sketch panel only reads context; every layer write it asks for
+        comes back through these four signals and lands here."""
+        self.view.graphic.refreshClicked.connect(self.refreshLayers)
+        self.view.graphic.defaultLayerSelected.connect(self.selectDefaultLayer)
+        self.view.graphic.displayToggled.connect(self.setDisplay)
+        self.view.graphic.layerSelectionChanged.connect(self.selectLayers)
+        # A write the service accepted comes back as layerChanged; so does a
+        # fetch. Either way the panel repopulates itself from the new state.
+        self.context.event.layerChanged.connect(self.view.graphic.handleLayerChanged)
+
+    def refreshLayers(self):
+        self.context.layer.refreshLayers()
+
+    def selectDefaultLayer(self, name):
+        self.context.layer.setState({'selected': [name]})
+
+    def setDisplay(self, attr, checked):
+        self.context.layer.setState({attr: checked})
+
+    def selectLayers(self, selected):
+        self.context.layer.setState({'selected': selected})
+
     def beforeNext(self):
         self.view.currentContent.validate()
 
@@ -69,6 +94,7 @@ class SigmetPresenter:
         self.view.nextButton.setEnabled(self.hasAcceptableInput())
 
     def clear(self):
+        self.context.notification.sigmet.clear()
         self.view.clear()
 
 
@@ -216,5 +242,4 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.updateState()
 
     def onClose(self):
-        self.context.notification.sigmet.clear()
         self.presenter.clear()

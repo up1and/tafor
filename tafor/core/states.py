@@ -419,29 +419,20 @@ class NotificationManager:
 
 
 class FlashService:
+    """How core asks to say something: it emits on the event bus and does
+    not know a window exists."""
+
     def __init__(self, event):
         self.event = event
 
-    def showSystemMessage(self, title, text, level='information'):
+    def showMessage(self, title, text, level='information'):
         self.event.systemMessage.emit(title, text, level)
 
-    def showStatusbarMessage(self, text, timeout=5000):
-        self.event.statusbarMessage.emit(text, timeout)
-
-    def showEditorMessage(self, title, text):
-        self.event.editorMessage.emit(title, text)
-
     def info(self, title, text):
-        self.showSystemMessage(title, text)
+        self.showMessage(title, text)
 
     def warning(self, title, text):
-        self.showSystemMessage(title, text, 'warning')
-
-    def statusbar(self, text, timeout=5000):
-        self.showStatusbarMessage(text, timeout)
-
-    def editor(self, title, text):
-        self.showEditorMessage(title, text)
+        self.showMessage(title, text, 'warning')
 
 
 class AppContext:

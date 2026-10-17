@@ -45,17 +45,17 @@ def repos(database):
 
 
 @pytest.fixture
-def taf_table(qtbot, conf, context, database, repos, container):
+def taf_table(qtbot, repos, container):
     widget, layout = container
-    table = TafTable(widget, layout, conf=conf, context=context, repository=repos.message.taf)
+    table = TafTable(widget, layout, repository=repos.message.taf)
     qtbot.addWidget(table)
     return table
 
 
 @pytest.fixture
-def metar_table(qtbot, conf, context, database, repos, container):
+def metar_table(qtbot, repos, container):
     widget, layout = container
-    table = MetarTable(widget, layout, conf=conf, context=context, repository=repos.message.metar)
+    table = MetarTable(widget, layout, repository=repos.message.metar)
     qtbot.addWidget(table)
     return table
 

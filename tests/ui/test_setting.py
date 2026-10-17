@@ -18,8 +18,8 @@ class TestSetting:
         return createConfig(settings=MockConfig())
 
     @pytest.fixture
-    def setting(self, qtbot, conf, context):
-        dialog = SettingDialog(None, conf, context)
+    def setting(self, qtbot, conf):
+        dialog = SettingDialog(None, conf)
         qtbot.addWidget(dialog)
         return dialog
 

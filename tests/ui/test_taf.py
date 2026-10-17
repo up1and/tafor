@@ -230,9 +230,12 @@ class TestTafGroupOverlap:
     made both checks unreachable rather than merely untested.
     """
 
-    def messages(self, context):
+    def messages(self, editor):
+        """The editor addresses its notifications with showNotification();
+        the old editorMessage bus channel is gone. Spy on the method the
+        groups call."""
         seen = []
-        context.event.editorMessage.connect(lambda title, text: seen.append((title, text)))
+        editor.showNotification = lambda editorName, message: seen.append((editorName, message))
         return seen
 
     def openPeriod(self, editor):
@@ -256,7 +259,7 @@ class TestTafGroupOverlap:
         editor.becmg2.state.durations = (start + datetime.timedelta(hours=3),
                                          start + datetime.timedelta(hours=6))
 
-        seen = self.messages(context)
+        seen = self.messages(editor)
         editor.becmg2.validateGroupsPeriod()
 
         assert seen == [('taf', 'Change group time is overlap')]
@@ -272,7 +275,7 @@ class TestTafGroupOverlap:
         editor.becmg2.state.durations = (start + datetime.timedelta(hours=5),
                                          start + datetime.timedelta(hours=8))
 
-        seen = self.messages(context)
+        seen = self.messages(editor)
         editor.becmg2.validateGroupsPeriod()
 
         assert seen == []
@@ -288,7 +291,7 @@ class TestTafGroupOverlap:
         editor.becmg2.state.durations = (start + datetime.timedelta(hours=3),
                                          start + datetime.timedelta(hours=6))
 
-        seen = self.messages(context)
+        seen = self.messages(editor)
         editor.becmg1.validateGroupsPeriod()
 
         assert seen == []
@@ -304,7 +307,7 @@ class TestTafGroupOverlap:
         editor.tempo1.state.durations = (start + datetime.timedelta(hours=3),
                                          start + datetime.timedelta(hours=6))
 
-        seen = self.messages(context)
+        seen = self.messages(editor)
         editor.becmg1.validateGroupsPeriod()
 
         assert seen == []
@@ -320,7 +323,7 @@ class TestTafGroupOverlap:
         editor.becmg1.state.durations = (start + datetime.timedelta(hours=2),
                                          start + datetime.timedelta(hours=5))
 
-        seen = self.messages(context)
+        seen = self.messages(editor)
         editor.fm.validateGroupsPeriod()
 
         assert seen == [('taf', 'Change group time is overlap')]
