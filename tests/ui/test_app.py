@@ -15,6 +15,8 @@ from types import SimpleNamespace
 
 import pytest
 
+from PyQt5.QtWidgets import QAction
+
 from tafor.core.config import createConfig
 from tafor.core.repositories import Repositories
 from tafor.ui import app as app_module
@@ -45,6 +47,7 @@ PRESENTERS = [
     'LayerPresenter',
     'LicensePresenter',
     'UpgradePresenter',
+    'LogPresenter',
 ]
 
 
@@ -85,6 +88,10 @@ class FakeWindow:
         self.dialogsClosed = 0
         self.notices = []
         self.statuses = []
+
+        # LogPresenter connects to this from initialize(); the real one
+        # comes from Ui_main, which a double has no reason to run.
+        self.viewLogsAction = QAction()
 
     def show(self):
         self.shown += 1
@@ -406,6 +413,7 @@ class TestApplication:
         assert doubles.byRole['LicensePresenter'][0].args == (
             window, runtime.context, runtime.conf)
         assert doubles.byRole['UpgradePresenter'][0].args == (window, workers)
+        assert doubles.byRole['LogPresenter'][0].args == (window,)
 
     def test_start_shows_the_window_then_initializes_every_presenter(self, application, doubles):
         application.start()

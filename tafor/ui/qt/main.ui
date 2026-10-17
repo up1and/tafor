@@ -242,6 +242,7 @@
      <string>Help</string>
     </property>
     <addaction name="openDocsAction"/>
+    <addaction name="viewLogsAction"/>
     <addaction name="reportIssueAction"/>
     <addaction name="checkUpgradeAction"/>
     <addaction name="separator"/>
@@ -314,6 +315,11 @@
    <property name="text">
     <string>Documents</string>
    </property>
+  </action>
+  <action name="viewLogsAction">
+    <property name="text">
+     <string>View Logs</string>
+    </property>
   </action>
   <action name="warnTafAction">
    <property name="checkable">

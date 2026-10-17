@@ -29,6 +29,7 @@ from tafor.ui.components.sigmet import SigmetEditor
 from tafor.ui.components.taf import TafEditor
 from tafor.ui.components.trend import TrendEditor
 from tafor.ui.qt import Ui_main
+from tafor.ui.widgets.logpanel import LogPanel
 from tafor.ui.widgets.misc import Clock, LicenseEditor, RemindMessageBox, TafBoard
 from tafor.ui.widgets.recent import RecentBoard, NotificationModel, ReviewModel
 from tafor.ui.widgets.sound import Sound
@@ -626,6 +627,45 @@ class UpgradePresenter(QObject):
         text = QCoreApplication.translate('MainWindow', 'New version found {}, do you want to download now?').format(release)
         if self.view.confirm(title, text):
             QDesktopServices.openUrl(QUrl('https://github.com/up1and/tafor/releases'))
+
+
+class LogPresenter(QObject):
+    """Show the log window, and keep the ring drained only while it is up.
+
+    One window for the life of the application, hidden on close rather than
+    discarded, so its filters and its scroll position survive being closed.
+    It reads the ring by itself; this owns the timer, stopped whenever
+    nobody is looking at the output.
+    """
+
+    def __init__(self, view, parent=None):
+        super().__init__(parent)
+        self.view = view
+        # Built here, not when the action is first used: the window has to
+        # belong to something that outlives the signal handler that would
+        # otherwise create it, and a QObject parented to itself is a
+        # reference cycle waiting for a garbage collector that may never run.
+        self.logPanel = LogPanel(view)
+        self.logPanel.closed.connect(self.stop)
+
+        self.timer = QTimer(self)
+        self.timer.setInterval(500)
+        self.timer.timeout.connect(self.poll)
+
+    def initialize(self):
+        self.view.viewLogsAction.triggered.connect(self.show)
+
+    def poll(self):
+        self.logPanel.poll()
+
+    def show(self):
+        self.logPanel.show()
+        self.logPanel.raise_()
+        self.logPanel.activateWindow()
+        self.timer.start()
+
+    def stop(self):
+        self.timer.stop()
 
 
 class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
