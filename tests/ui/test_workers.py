@@ -13,8 +13,10 @@ import threading
 import time
 
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
+import requests
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
@@ -228,17 +230,26 @@ class TestNetworkWorkers:
 
         assert blocker.args == [{'SA': METAR}]
 
-    def test_message_worker_emits_empty_dict_on_failure(self, qtbot, conf, monkeypatch):
-        # fetchMessage swallows every error and returns {}; the UI cannot
-        # tell "no data" from "connection failed". The signal is typed as
-        # dict, so a client ever returning None would crash right here.
-        monkeypatch.setattr('tafor.ui.workers.fetchMessage', lambda url: {})
+    def test_message_worker_reports_a_dead_connection(self, qtbot, conf, monkeypatch):
+        monkeypatch.setattr('tafor.ui.workers.fetchMessage',
+                            Mock(side_effect=requests.exceptions.ConnectionError()))
         worker = MessageWorker(conf)
 
-        with qtbot.waitSignal(worker.fetched) as blocker:
+        with qtbot.waitSignal(worker.failed):
             worker.run()
 
-        assert blocker.args == [{}]
+    def test_message_worker_swallows_a_broken_payload(self, qtbot, conf, monkeypatch):
+        # a payload the app cannot use is a server matter: logged, not
+        # emitted, and the operator's cache is kept
+        monkeypatch.setattr('tafor.ui.workers.fetchMessage',
+                            Mock(side_effect=ValueError('bad payload')))
+        worker = MessageWorker(conf)
+        emitted = []
+        worker.fetched.connect(emitted.append)
+
+        worker.run()
+
+        assert emitted == []
 
     def test_layer_worker_emits_fetched(self, qtbot, conf, monkeypatch):
         layers = [{'image': b'bytes', 'name': 'cloud'}]
@@ -250,12 +261,46 @@ class TestNetworkWorkers:
 
         assert blocker.args == [layers]
 
+    def test_layer_worker_reports_a_dead_connection(self, qtbot, conf, monkeypatch):
+        monkeypatch.setattr('tafor.ui.workers.layerInfo',
+                            Mock(side_effect=requests.exceptions.Timeout()))
+        worker = LayerWorker(conf)
+
+        with qtbot.waitSignal(worker.failed):
+            worker.run()
+
+    def test_layer_worker_swallows_a_broken_payload(self, qtbot, conf, monkeypatch):
+        monkeypatch.setattr('tafor.ui.workers.layerInfo',
+                            Mock(side_effect=ValueError('bad payload')))
+        worker = LayerWorker(conf)
+        emitted = []
+        worker.fetched.connect(emitted.append)
+
+        worker.run()
+
+        assert emitted == []
+
+    def test_check_upgrade_worker_stays_silent_on_failure(self, qtbot, monkeypatch, caplog):
+        # Nothing in the UI waits on a failed check, so the worker must not
+        # deliver a payload -- an empty one would read as "up to date".
+        monkeypatch.setattr('tafor.ui.workers.repoRelease',
+                            Mock(side_effect=requests.exceptions.Timeout()))
+        worker = CheckUpgradeWorker()
+        emitted = []
+        worker.fetched.connect(emitted.append)
+
+        with caplog.at_level(logging.WARNING):
+            worker.run()
+
+        assert emitted == []
+        assert 'Release check' in caplog.text
+
     def test_check_upgrade_worker_emits_release(self, qtbot, monkeypatch):
         release = {'tag_name': 'v3.0.1'}
         monkeypatch.setattr('tafor.ui.workers.repoRelease', lambda url: release)
         worker = CheckUpgradeWorker()
 
-        with qtbot.waitSignal(worker.done) as blocker:
+        with qtbot.waitSignal(worker.fetched) as blocker:
             worker.run()
 
         assert blocker.args == [release]

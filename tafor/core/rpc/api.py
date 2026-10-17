@@ -386,9 +386,9 @@ class OthersResource(ResourceCollection):
         if isinstance(address, list):
             address = ' '.join(address)
 
-        priority = priority.strip()
-        address = address.strip()
-        message = message.strip()
+        priority = priority.strip() if priority else ''
+        address = address.strip() if address else ''
+        message = message.strip() if message else ''
 
         if not all([priority, address, message]):
             raise falcon.HTTPBadRequest(title='Message Required', description='Please provide priority indicator, addresses and message text.')

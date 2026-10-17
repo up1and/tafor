@@ -7,6 +7,7 @@ from collections import deque
 from types import SimpleNamespace
 
 from PyQt5.QtCore import QThread, QObject, pyqtSignal
+from requests.exceptions import ConnectionError as RequestsConnectionError, Timeout
 
 from tafor.core.telegram.transport import ftpComm, serialComm
 from tafor.core.utils.client import fetchMessage, layerInfo, repoRelease
@@ -102,35 +103,63 @@ threadManager = ThreadManager()
 
 
 class MessageWorker(QObject):
-    """Worker for fetching message data"""
-    finished = pyqtSignal()
+    """Fetcher for the remote message feed.
+
+    A Timeout or a ConnectionError means the line to the data source is
+    down; those reach the operator as one Connection Error through the
+    ``failed`` signal. Every other failure -- an unexpected status, a
+    payload of the wrong shape, nothing in it this app subscribes to -- is
+    a server or configuration matter: it is logged here and stops, so a
+    failed run can never reach the context or wipe the cached messages.
+    """
     fetched = pyqtSignal(dict)
+    failed = pyqtSignal()
+    finished = pyqtSignal()
 
     def __init__(self, conf):
         super().__init__()
         self.conf = conf
 
     def run(self):
+        url = self.conf.messageUrl or 'http://127.0.0.1:6575'
         try:
-            url = self.conf.messageUrl or 'http://127.0.0.1:6575'
             self.fetched.emit(fetchMessage(url))
+        except (Timeout, RequestsConnectionError):
+            logger.error('Message fetch from {} failed, the connection is down'.format(url))
+            self.failed.emit()
+        except Exception as e:
+            logger.exception('Message fetch from {} failed: {}'.format(url, e))
         finally:
             self.finished.emit()
 
 
 class LayerWorker(QObject):
-    """Worker for fetching layer information"""
-    finished = pyqtSignal()
+    """Fetcher for the FIR layers, the same contract as MessageWorker: a
+    dead connection goes out on ``failed``, any other failure is logged and
+    stops, and the layers on display are simply kept.
+
+    That contract covers the fetch as a whole -- the request and the shape
+    of the payload. A single layer image that cannot be downloaded is not
+    the fetch failing: layerInfo logs it and hands that layer back without
+    a picture, so one broken thumbnail never costs the operator the rest.
+    """
     fetched = pyqtSignal(list)
+    failed = pyqtSignal()
+    finished = pyqtSignal()
 
     def __init__(self, conf):
         super().__init__()
         self.conf = conf
 
     def run(self):
+        url = self.conf.layerUrl
         try:
-            url = self.conf.layerUrl
             self.fetched.emit(layerInfo(url))
+        except (Timeout, RequestsConnectionError):
+            logger.error('Layer fetch from {} failed, the connection is down'.format(url))
+            self.failed.emit()
+        except Exception as e:
+            logger.exception('Layer fetch from {} failed: {}'.format(url, e))
         finally:
             self.finished.emit()
 
@@ -359,15 +388,21 @@ class TransmissionWorker(QObject):
 
 
 class CheckUpgradeWorker(QObject):
-    """Worker for checking software updates"""
-    done = pyqtSignal(dict)
+    """Fetcher for the latest release.
+
+    A failed check is logged and stays silent. This is one manual press,
+    not a data source the panel depends on: nothing is stale, nothing needs
+    acting on, and the next press simply tries again.
+    """
+    fetched = pyqtSignal(dict)
     finished = pyqtSignal()
 
     def run(self):
+        url = 'https://api.github.com/repos/up1and/tafor/releases/latest'
         try:
-            url = 'https://api.github.com/repos/up1and/tafor/releases/latest'
-            data = repoRelease(url)
-            self.done.emit(data)
+            self.fetched.emit(repoRelease(url))
+        except Exception as e:
+            logger.warning('Release check from {} failed, {}'.format(url, e))
         finally:
             self.finished.emit()
 

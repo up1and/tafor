@@ -12,7 +12,8 @@ from sqlalchemy import create_engine
 
 from tafor.core.models import Base
 from tafor.core.rpc.api import authorize, create_app
-from tafor.ui.workers import RpcWorker
+from tafor.core.states import createContext
+from tafor.ui.workers import ContextBridge, RpcWorker
 
 
 class FakeConf:
@@ -37,31 +38,38 @@ class FakeConf:
         return getattr(self, name)
 
 
-class FakeContext:
+class FakeTransmission:
+    """A stand-in for TransmissionQueue, which the real context only carries
+    once the application assembly has built one."""
 
-    class _Transmission:
-        isBusy = False
-        pending = 0
+    isBusy = False
+    pending = 0
 
-    class _Metar:
-        def setState(self, values):
-            self.values = values
 
-    class _Sigmet:
-        def setState(self, values):
-            self.values = values
+def makeContext(transmission=None):
+    """The real AppContext, not a hand-built one.
 
-    class _Other:
-        def submit(self, values):
-            self.values = values
+    A stand-in used to be passed here, and it quietly provided context.other
+    long after that attribute was deleted from AppContext -- so the custom
+    message endpoint kept "passing" while raising AttributeError in production.
+    The context is real now; only the transmission queue is injected, because
+    it is None until ui/app.py assigns one. What create_app receives is the
+    ContextBridge wrapped around it, exactly like the production assembly:
+    ``other.submit`` exists only on the bridge, the single door the RPC
+    server shares with the workers.
+    """
+    context = createContext(FakeConf())
+    context.transmission = transmission if transmission is not None else FakeTransmission()
+    return context
 
-    def __init__(self):
-        self.transmission = self._Transmission()
-        self.notification = type('Notification', (), {
-            'metar': self._Metar(),
-            'sigmet': self._Sigmet(),
-        })()
-        self.other = self._Other()
+
+def makeApp(engine, conf, transmission=None):
+    """create_app over the real context behind the ContextBridge."""
+    return create_app(
+        context=ContextBridge(makeContext(transmission)),
+        engine=engine,
+        conf=conf,
+    )
 
 
 @pytest.fixture
@@ -74,7 +82,7 @@ def engine():
 
 @pytest.fixture
 def client(engine):
-    app = create_app(engine=engine, conf=FakeConf(), context=FakeContext())
+    app = makeApp(engine, FakeConf())
     return falcon.testing.TestClient(app)
 
 
@@ -96,17 +104,17 @@ def test_state_resource(client):
 
 
 def test_state_busy_while_transmitting(engine):
-    context = FakeContext()
-    context.transmission.isBusy = True
-    app = create_app(context=context, engine=engine, conf=FakeConf())
+    transmission = FakeTransmission()
+    transmission.isBusy = True
+    app = makeApp(engine, FakeConf(), transmission=transmission)
     resp = falcon.testing.TestClient(app).simulate_get('/api/state', headers=_auth())
     assert resp.json['busy'] is True
 
 
 def test_state_busy_with_pending_jobs(engine):
-    context = FakeContext()
-    context.transmission.pending = 2
-    app = create_app(context=context, engine=engine, conf=FakeConf())
+    transmission = FakeTransmission()
+    transmission.pending = 2
+    app = makeApp(engine, FakeConf(), transmission=transmission)
     resp = falcon.testing.TestClient(app).simulate_get('/api/state', headers=_auth())
     assert resp.json['busy'] is True
 
@@ -138,6 +146,56 @@ def test_others_resource(client, engine):
     assert resp.json['type'] == 'other'
     assert resp.json['message']
     assert client.simulate_get('/api/others', headers=_auth()).status == falcon.HTTP_200
+
+
+def test_others_resource_missing_fields_is_400_not_500(client):
+    # production trace: a caller that omits address (or priority) used to be
+    # answered with a 500 -- a None .strip() in the handler
+    bodies = [
+        {},
+        {'priority': 'FF'},
+        {'priority': 'FF', 'message': 'TEST MESSAGE'},
+        {'address': 'YUSOYMYX', 'message': 'TEST MESSAGE'},
+    ]
+    for body in bodies:
+        resp = client.simulate_post('/api/others', headers=_auth(), json=body)
+        assert resp.status == falcon.HTTP_400, body
+
+    # the same request shape that hit the log, as a query string
+    resp = client.simulate_post(
+        '/api/others',
+        headers=_auth(),
+        params={'message': 'TEST MESSAGE', 'priority': 'FF'},
+    )
+    assert resp.status == falcon.HTTP_400
+
+
+def test_others_resource_hands_the_message_to_the_sender(engine):
+    """The endpoint's job is to hand the custom message over, not just to
+    answer 201 -- a 201 with nothing emitted is the bug this covers."""
+    context = createContext(FakeConf())
+    received = []
+    context.event.otherMessageReceived.connect(received.append)
+    app = create_app(
+        context=ContextBridge(context),
+        engine=engine,
+        conf=FakeConf(),
+    )
+
+    resp = falcon.testing.TestClient(app).simulate_post(
+        '/api/others',
+        headers=_auth(),
+        json={'priority': 'UR', 'address': 'YUSOYMYX', 'message': 'TEST MESSAGE'},
+    )
+
+    assert resp.status == falcon.HTTP_CREATED
+    assert len(received) == 1
+    custom = received[0]
+    assert custom.text == 'TEST MESSAGE'
+    assert custom.priority == 'UR'
+    assert custom.address == 'YUSOYMYX'
+    assert custom.source == 'api'
+    assert custom.uuid == resp.json['uuid']
 
 
 def test_notification_metar(client):
@@ -267,7 +325,7 @@ RPC_TEST_PORT = 9407
 
 def test_rpc_worker_stops_cleanly():
     engine = create_engine('sqlite://')
-    app = create_app(engine=engine, conf=FakeConf(), context=FakeContext())
+    app = makeApp(engine, FakeConf())
     worker = RpcWorker(app, port=RPC_TEST_PORT)
 
     # run() blocks; drive it on a plain thread like the QThread would

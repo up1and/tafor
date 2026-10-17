@@ -155,7 +155,7 @@ class MessagePresenter(QObject):
             MessageWorker, self.conf, workerId='message', reusable=True
         )
         self.worker.fetched.connect(self.bridge.updateMessage)
-        self.worker.finished.connect(self.connectionLost)
+        self.worker.failed.connect(self.connectionLost)
         self.context.event.remoteMessageChanged.connect(self.store)
         self.context.event.otherMessageReceived.connect(self.presentCustom)
 
@@ -189,12 +189,12 @@ class MessagePresenter(QObject):
         self.view.handleCustomMessage(message)
 
     def connectionLost(self):
-        """An empty payload means the fetch failed -- the client swallows the
-        real error, so 'no data' and 'no connection' are indistinguishable
-        here. Worth fixing in the client, not by guessing in the UI."""
-        if self.context.message.message():
-            return
-
+        """The worker reported a dead connection through ``failed``.
+        Every other failure -- an unexpected status, a payload of the wrong
+        shape -- is logged by the worker and never arrives here, so nothing
+        can mislead the operator: a successful empty payload used to be
+        reported as a Connection Error, and a failed run used to wipe the
+        cached messages before this check ever ran."""
         self.view.notify(
             QCoreApplication.translate('MainWindow', 'Connection Error'),
             QCoreApplication.translate('MainWindow', 'Unable to connect remote message data source, please check the settings or network status.'),
@@ -463,7 +463,12 @@ class SoundPresenter(QObject):
 
 
 class LayerPresenter(QObject):
-    """FIR layers: fetch them in the background, then tell the editor."""
+    """FIR layers: fetch them in the background, then tell the editor.
+
+    A dead connection is reported through the worker's ``failed`` signal.
+    Every other failure is logged and stops, so the layers already on the
+    map are kept and nothing is drawn from a fetch that never happened.
+    """
 
     def __init__(self, view, context, conf, workers, bridge, parent=None):
         super().__init__(parent)
@@ -478,6 +483,7 @@ class LayerPresenter(QObject):
             LayerWorker, self.conf, workerId='layer', reusable=True
         )
         self.worker.fetched.connect(self.bridge.updateLayer)
+        self.worker.failed.connect(self.connectionLost)
         self.thread.finished.connect(self.refresh)
         self.context.event.layerRefreshRequested.connect(self.poll)
 
@@ -500,9 +506,9 @@ class LayerPresenter(QObject):
     def refresh(self):
         self.view.renderLayer()
 
-        if not self.conf.layerUrl or self.context.layer.currentLayers():
-            return
-
+    def connectionLost(self):
+        """The worker reported a dead connection through ``failed``; an
+        empty-but-legitimate layer list stays silent."""
         self.view.notify(
             QCoreApplication.translate('MainWindow', 'Connection Error'),
             QCoreApplication.translate('MainWindow', 'Unable to connect FIR information data source, please check the settings or network status.'),
@@ -589,7 +595,7 @@ class UpgradePresenter(QObject):
         self.worker, self.thread = self.workers.create(
             CheckUpgradeWorker, workerId='upgrade', reusable=True
         )
-        self.worker.done.connect(self.report)
+        self.worker.fetched.connect(self.report)
 
     def check(self):
         if not self.thread.isRunning():

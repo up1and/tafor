@@ -155,6 +155,7 @@ class FakeWorker(QObject):
     fetched = pyqtSignal(object)
     finished = pyqtSignal()
     done = pyqtSignal(object)
+    failed = pyqtSignal()
 
 
 class FakeThread(QObject):
@@ -720,14 +721,23 @@ class TestMessagePresenter:
         assert view.notices[0][2] == 'warning'
         assert 'Connection Error' in view.notices[0][0]
 
-    def test_a_successful_fetch_reports_nothing(self, message, view, context):
-        context.message.setState({'FT': TAF_TEXT})
+    def test_the_workers_dead_connection_signal_reaches_the_view(self, message, view):
         message.initialize()
         view.notices = []
 
-        message.connectionLost()
+        message.worker.failed.emit()
+
+        assert view.notices[0][2] == 'warning'
+
+    def test_a_successful_fetch_reports_nothing(self, message, view, context, bridge):
+        # a legitimate empty payload is fresh silence, not a dead connection
+        message.initialize()
+        bridge.messages.clear()
+
+        message.worker.fetched.emit({})
 
         assert view.notices == []
+        assert bridge.messages == [{}]
 
 
 class TestLayerPresenter:
@@ -782,26 +792,25 @@ class TestLayerPresenter:
 
         assert view.layers == 1
 
-    def test_a_fetch_that_returns_nothing_reports_a_connection_error(self, layer, view, context):
+    def test_a_failed_fetch_reports_a_connection_error(self, layer, view):
         layer.initialize()
         view.notices = []
 
-        layer.refresh()
+        layer.connectionLost()
+
+        assert view.notices[0][2] == 'warning'
+        assert 'Connection Error' in view.notices[0][0]
+
+    def test_the_workers_dead_connection_signal_reaches_the_view(self, layer, view):
+        layer.initialize()
+        view.notices = []
+
+        layer.worker.failed.emit()
 
         assert view.notices[0][2] == 'warning'
 
     def test_refresh_without_a_layer_url_only_renders(self, layer, view, layer_conf):
         layer_conf.layerUrl = ''
-        layer.initialize()
-        view.notices = []
-
-        layer.refresh()
-
-        assert view.layers == 1
-        assert view.notices == []
-
-    def test_refresh_with_layers_already_present_reports_nothing(self, layer, view, context, monkeypatch):
-        monkeypatch.setattr(context.layer, 'currentLayers', lambda: [object()])
         layer.initialize()
         view.notices = []
 
