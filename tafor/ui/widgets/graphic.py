@@ -299,9 +299,24 @@ class MapView(QGraphicsView):
             self.centerOnLayer(self.sigmets)
 
     def centerOnLayer(self, layer):
+        """Put the layer in the middle of the viewport, scaled to fit."""
         rect = layer.boundingRect()
-        if rect is not None:
-            self.centerOn(rect.center())
+        if rect is not None and not rect.isEmpty():
+            self.fitInView(self.padded(rect, 1.25), Qt.KeepAspectRatio)
+
+    def padded(self, rect, factor):
+        """Grow a rect about its centre, so the fit leaves a margin."""
+        width = rect.width() * factor
+        height = rect.height() * factor
+        return QRectF(rect.center().x() - width / 2, rect.center().y() - height / 2,
+                      width, height)
+
+    def resizeEvent(self, event):
+        """Re-fit when the viewport changes size."""
+        super().resizeEvent(event)
+
+        if self.firs.group is not None:
+            self.centerOnLayer(self.firs)
 
     def currentZoom(self):
         return QStyleOptionGraphicsItem.levelOfDetailFromTransform(self.transform())
@@ -360,11 +375,17 @@ class MapView(QGraphicsView):
 
 
 class StaticView(MapView):
-    """Read-only map: the same pan and zoom, no drawing state at all."""
+    """Read-only map: the same pan and zoom, no drawing state at all.
+
+    ``minZoom`` sits below every fit the preview produces (it fits to about
+    0.33 in the 812x300 sender pane), so the fit never starts out past the
+    zoom-out limit and leave the button dead. ``initialScale`` only shows
+    while the view is blank, before any layer has been fitted.
+    """
 
     initialScale = 0.4096
     maxZoom = 1.0
-    minZoom = 0.4
+    minZoom = 0.2
 
 
 class SketchView(MapView):

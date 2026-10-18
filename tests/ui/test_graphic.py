@@ -4,16 +4,14 @@ Covers coordinate transforms, sketch tools (polygon/line/circle/corridor/
 rectangular/entire), SketchPanel helpers and background opacity handling.
 """
 
-from types import SimpleNamespace
-
 import pytest
 import shapely.geometry
-from PyQt5.QtCore import QEvent, QPointF, QPoint, QRect, QSize, Qt
+from PyQt5.QtCore import QEvent, QPointF, QPoint, QRect, QRectF, QSize, QSizeF, Qt
 from PyQt5.QtGui import QMouseEvent, QResizeEvent, QWheelEvent
 from PyQt5.QtWidgets import QPushButton
 
 from tafor.ui.components.sigmet import SigmetPresenter
-from tafor.ui.widgets.graphic import SketchView, SketchPanel
+from tafor.ui.widgets.graphic import SketchView, SketchPanel, StaticView, PreviewPanel
 from tafor.ui.widgets.misc import OutlinedLabel
 
 
@@ -125,6 +123,248 @@ class TestCoordinateTransforms:
         assert result[:2] == canvas.toCanvasCoordinates(107, 14)
         assert result[2:] == canvas.toCanvasCoordinates(114, 20.5)
 
+
+class TestCenterOnLayer:
+    """centerOnLayer centres the layer and scales it to fit the viewport."""
+
+    @pytest.fixture
+    def sized(self, qtbot, context):
+        # fitInView needs a real viewport: an unattached view reports 0x0
+        # and Qt leaves the transform alone.
+        view = SketchView(context)
+        qtbot.addWidget(view)
+        view.resize(640, 480)
+        view.show()
+        qtbot.waitExposed(view)
+        return view
+
+    def test_the_fir_is_fitted_to_the_viewport(self, sized, qtbot):
+        sized.redraw()
+        qtbot.wait(50)
+
+        rect = sized.firs.boundingRect()
+        assert rect is not None
+
+        # every corner of the FIR lands inside the visible viewport
+        viewport = QRectF(sized.viewport().rect())
+        corners = [sized.mapFromScene(rect.topLeft()), sized.mapFromScene(rect.bottomRight())]
+        for corner in corners:
+            assert viewport.contains(QRectF(corner, QSizeF(1, 1))), corner
+
+    def test_the_fit_is_centred_on_the_layer(self, sized, qtbot):
+        sized.redraw()
+        qtbot.wait(50)
+
+        rect = sized.firs.boundingRect()
+        centre = sized.mapToScene(sized.viewport().rect().center())
+
+        assert centre.x() == pytest.approx(rect.center().x(), abs=8)
+        assert centre.y() == pytest.approx(rect.center().y(), abs=8)
+
+    def test_fitting_replaces_the_initial_scale(self, sized, qtbot):
+        # StaticView declares initialScale = 0.4096; once a layer is fitted
+        # that constant must no longer be what the transform says
+        fitted = StaticView(sized.context)
+        qtbot.addWidget(fitted)
+        fitted.resize(640, 480)
+        fitted.show()
+        qtbot.waitExposed(fitted)
+
+        fitted.drawBoundaries()
+        fitted.centerOnLayer(fitted.firs)
+        qtbot.wait(50)
+
+        assert fitted.currentZoom() != pytest.approx(StaticView.initialScale, abs=1e-6)
+
+    def test_an_empty_layer_leaves_the_transform_alone(self, sized):
+        # no FIR drawn -> no group -> boundingRect() is None -> nothing to fit,
+        # which is what keeps initialScale in charge of a still-blank layer
+        zoom = sized.currentZoom()
+
+        sized.centerOnLayer(sized.firs)
+
+        assert sized.currentZoom() == pytest.approx(zoom, abs=1e-9)
+
+    def test_an_empty_rect_leaves_the_transform_alone(self, sized):
+        # a group that exists but has no extent is the same story
+        class Blank:
+            def boundingRect(self):
+                return QRectF()
+
+        zoom = sized.currentZoom()
+
+        sized.centerOnLayer(Blank())
+
+        assert sized.currentZoom() == pytest.approx(zoom, abs=1e-9)
+
+    def test_static_view_keeps_its_initial_scale_while_blank(self, qtbot, context):
+        # the guard above is what preserves this: a preview with no FIR is
+        # still drawn at the scale StaticView declares
+        view = StaticView(context)
+        qtbot.addWidget(view)
+        view.resize(640, 480)
+
+        assert view.currentZoom() == pytest.approx(StaticView.initialScale)
+
+
+class TestFitMargin:
+    """The fit leaves a margin, so the boundary is not flush with the edges."""
+
+    @pytest.fixture
+    def shown(self, qtbot, context):
+        view = SketchView(context)
+        qtbot.addWidget(view)
+        view.resize(640, 480)
+        view.show()
+        qtbot.waitExposed(view)
+        view.drawBoundaries()
+        return view
+
+    def margins(self, view):
+        rect = view.firs.boundingRect()
+        viewport = view.viewport().rect()
+        topLeft = view.mapFromScene(rect.topLeft())
+        bottomRight = view.mapFromScene(rect.bottomRight())
+        return {
+            'left': topLeft.x(),
+            'top': topLeft.y(),
+            'right': viewport.width() - bottomRight.x(),
+            'bottom': viewport.height() - bottomRight.y(),
+        }
+
+    def test_the_layer_does_not_touch_the_edges(self, shown):
+        shown.centerOnLayer(shown.firs)
+
+        for edge, margin in self.margins(shown).items():
+            assert margin > 10, 'the FIR is flush against the {} edge'.format(edge)
+
+    def test_a_quarter_margin_shrinks_the_fit_by_a_fifth(self, shown):
+        # padded() grows the rect by 1.25, and fitInView then divides by that,
+        # so the fitted zoom is the tight fit / 1.25
+        shown.fitInView(shown.firs.boundingRect(), Qt.KeepAspectRatio)
+        tight = shown.currentZoom()
+
+        shown.centerOnLayer(shown.firs)
+
+        assert shown.currentZoom() == pytest.approx(tight / 1.25, rel=1e-6)
+
+    def test_the_margin_is_the_same_on_opposite_edges(self, shown):
+        shown.centerOnLayer(shown.firs)
+
+        margins = self.margins(shown)
+        assert margins['left'] == pytest.approx(margins['right'], abs=3)
+        assert margins['top'] == pytest.approx(margins['bottom'], abs=3)
+
+
+class TestStaticViewZoomPolicy:
+    """The preview fits to ~0.33, so minZoom must sit below every fit."""
+
+    @pytest.fixture
+    def preview(self, qtbot, context):
+        panel = PreviewPanel(parent=None, context=context)
+        qtbot.addWidget(panel)
+        panel.resize(812, 300)
+        panel.show()
+        qtbot.waitExposed(panel)
+        return panel
+
+    def test_the_fitted_zoom_is_in_reach_of_the_zoom_controls(self, preview):
+        # fitInView bypasses minZoom/maxZoom, so a fit below minZoom would
+        # leave zoomOut refusing to do anything at all
+        zoom = preview.canvas.currentZoom()
+
+        assert zoom > StaticView.minZoom
+        assert zoom < StaticView.maxZoom
+
+    def test_zooming_out_from_the_fit_actually_moves(self, preview):
+        before = preview.canvas.currentZoom()
+
+        preview.canvas.zoomOut()
+
+        assert preview.canvas.currentZoom() < before
+
+    def test_zooming_in_from_the_fit_actually_moves(self, preview):
+        before = preview.canvas.currentZoom()
+
+        preview.canvas.zoomIn()
+
+        assert preview.canvas.currentZoom() > before
+
+    def test_the_preview_is_centred(self, preview):
+        # scrollbars position on whole pixels, so allow a couple of pixels
+        rect = preview.canvas.firs.boundingRect()
+        centre = preview.canvas.mapToScene(preview.canvas.viewport().rect().center())
+
+        assert centre.x() == pytest.approx(rect.center().x(), abs=8)
+        assert centre.y() == pytest.approx(rect.center().y(), abs=8)
+
+
+class TestCentringWhenTheViewportGrows:
+    """The canvas is fitted while the panel is still unlaid out.
+
+    ``fitInView`` sets the transform but leaves the centring to the scroll
+    bars, which Qt only recomputes for a view that has its final size. Fitting
+    a 638x478 placeholder and then showing the panel at 958x610 used to leave
+    the FIR pinned to the top-left corner, so these pin the layout transition
+    rather than a single fit.
+    """
+
+    @pytest.fixture
+    def panel(self, qtbot, context):
+        # deliberately not shown yet: load() already fitted the placeholder
+        panel = SketchPanel(parent=None, context=context)
+        qtbot.addWidget(panel)
+        return panel
+
+    def centreOffset(self, view):
+        rect = view.firs.boundingRect()
+        centre = view.mapToScene(view.viewport().rect().center())
+        return (centre.x() - rect.center().x(), centre.y() - rect.center().y())
+
+    def test_the_fir_is_centred_after_the_panel_is_shown(self, panel, qtbot):
+        panel.resize(960, 620)
+        panel.show()
+        qtbot.waitExposed(panel)
+
+        x, y = self.centreOffset(panel.canvas)
+        assert x == pytest.approx(0, abs=8), 'FIR is %s off centre horizontally' % x
+        assert y == pytest.approx(0, abs=8), 'FIR is %s off centre vertically' % y
+
+    def test_a_larger_window_keeps_the_fir_centred(self, panel, qtbot):
+        panel.resize(960, 620)
+        panel.show()
+        qtbot.waitExposed(panel)
+
+        panel.resize(1180, 780)
+        qtbot.wait(50)
+
+        x, y = self.centreOffset(panel.canvas)
+        assert x == pytest.approx(0, abs=8)
+        assert y == pytest.approx(0, abs=8)
+
+    def test_growing_the_view_keeps_the_fir_visible(self, panel, qtbot):
+        # the regression showed as the FIR in the top-left corner, i.e. its
+        # centre far outside the viewport it should have filled
+        panel.resize(960, 620)
+        panel.show()
+        qtbot.waitExposed(panel)
+
+        rect = panel.canvas.firs.boundingRect()
+        viewport = QRectF(panel.canvas.viewport().rect())
+        for corner in (rect.topLeft(), rect.bottomRight()):
+            point = panel.canvas.mapFromScene(corner)
+            assert viewport.contains(QRectF(point, QSizeF(1, 1))), corner
+
+    def test_a_resize_does_not_refit_a_blank_view(self, qtbot, context):
+        # nothing drawn yet, so initialScale is still what the user sees
+        view = SketchView(context)
+        qtbot.addWidget(view)
+        view.resize(640, 480)
+
+        zoom = view.currentZoom()
+        view.resize(900, 700)
+
+        assert view.currentZoom() == pytest.approx(zoom, abs=1e-9)
 
 
 class TestPolygonTool:
