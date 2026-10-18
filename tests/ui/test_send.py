@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QMessageBox, QStackedWidget
 
 from tafor.core.models import Other, Sigmet, Taf, Trend
 from tafor.core.repositories import MessageRepository
@@ -440,3 +440,65 @@ class TestTrendSender:
 
         sender.presenter.reload()
         assert sender.sendButton.isVisibleTo(sender)
+
+
+class TestSenderPanes:
+    """The canvas and the telegram are two pages of one stack.
+
+    They were two independent group boxes, and render() showed one before
+    hiding the other. With SetFixedSize on the dialog layout that left both
+    on the column for a frame, so switching panes grew the window and then
+    shrank it back.
+    """
+
+    @pytest.fixture
+    def shown(self, qtbot, sigmetSender):
+        sigmetSender.show()
+        qtbot.waitExposed(sigmetSender)
+        return sigmetSender
+
+    def visiblePanes(self, sender):
+        return [name for name, group in (('canvas', sender.canvasGroup),
+                                         ('telegraph', sender.rawGroup))
+                if group.isVisibleTo(sender)]
+
+    def test_both_panes_are_pages_of_one_stack(self, sigmetSender):
+        assert isinstance(sigmetSender.paneContent, QStackedWidget)
+        assert sigmetSender.paneContent.indexOf(sigmetSender.canvasGroup) != -1
+        assert sigmetSender.paneContent.indexOf(sigmetSender.rawGroup) != -1
+
+    def test_the_message_preview_is_not_a_page(self, sigmetSender):
+        # the preview can show together with either pane, so it must not be
+        # switched away by the stack
+        assert sigmetSender.paneContent.indexOf(sigmetSender.textGroup) == -1
+
+    def test_at_most_one_pane_is_visible(self, shown, read_fixture, transmission, answers):
+        shown.receive(makeSigmet(read_fixture))
+        assert len(self.visiblePanes(shown)) <= 1
+
+        shown.presenter.send()
+        transmission.finish('')
+        assert self.visiblePanes(shown) == ['telegraph']
+
+    def test_switching_panes_keeps_the_window_width(self, shown, read_fixture, transmission, answers):
+        # the height may change between panes (the telegram is taller), but a
+        # width that jumps is the frame-by-frame flash this replaces
+        shown.receive(makeSigmet(read_fixture))
+        widths = [shown.width()]
+
+        shown.presenter.send()
+        transmission.finish('')
+        widths.append(shown.width())
+
+        shown.presenter.toggle()
+        widths.append(shown.width())
+
+        assert len(set(widths)) == 1, widths
+
+    def test_no_pane_hides_the_whole_stack(self, shown):
+        # a TAF has neither a canvas nor a telegram: the stack itself goes
+        # away rather than leaving an empty group box behind
+        shown.receive(Taf(text='TAF YUSO 100800Z 1009/1115 18005MPS CAVOK='))
+
+        assert not shown.paneContent.isVisibleTo(shown)
+        assert self.visiblePanes(shown) == []

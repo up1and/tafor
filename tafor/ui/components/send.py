@@ -505,8 +505,8 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.buttonBox.rejected.connect(self.cancel)
         self.printButton.clicked.connect(self.print)
 
-        self.rawGroup.hide()
-        self.canvasGroup.hide()
+        # The pane stack starts empty; render() decides which pane to show
+        self.paneContent.hide()
         self.printButton.hide()
         self.resendButton.hide()
         self.switchButton.hide()
@@ -531,8 +531,14 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
         self.text.setHtml(state.html)
         self.resizeText()
 
-        self.canvasGroup.setVisible(state.canvasVisible)
-        self.rawGroup.setVisible(state.telegraphVisible)
+        # The canvas and the telegram are alternatives, so they are one stack
+        # switch rather than two independent show/hide calls.
+        if state.canvasVisible:
+            self.paneContent.setCurrentWidget(self.canvasGroup)
+        elif state.telegraphVisible:
+            self.paneContent.setCurrentWidget(self.rawGroup)
+
+        self.paneContent.setVisible(state.pane is not None)
         self.rawGroup.setTitle(state.telegraphTitle)
         self.raw.setText(state.telegraphText)
 

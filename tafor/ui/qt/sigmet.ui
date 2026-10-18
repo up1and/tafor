@@ -108,7 +108,11 @@
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="contentLayout"/>
+    <layout class="QHBoxLayout" name="contentLayout">
+     <item>
+      <widget class="QStackedWidget" name="formStack"/>
+     </item>
+    </layout>
    </item>
   </layout>
  </widget>

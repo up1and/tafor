@@ -43,40 +43,40 @@
     </widget>
    </item>
    <item>
-    <widget class="QGroupBox" name="canvasGroup">
-     <property name="title">
-      <string>Canvas</string>
-     </property>
-     <layout class="QVBoxLayout" name="canvasLayout"/>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="rawGroup">
-     <property name="title">
-      <string>Data has been sent to the serial port</string>
-     </property>
-     <layout class="QVBoxLayout" name="rawLayout">
-      <item>
-       <widget class="QTextEdit" name="raw">
-        <property name="minimumSize">
-         <size>
-          <width>812</width>
-          <height>300</height>
-         </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">background-color: rgb(0, 0, 0);
+    <widget class="QStackedWidget" name="paneContent">
+     <widget class="QGroupBox" name="canvasGroup">
+      <property name="title">
+       <string>Canvas</string>
+      </property>
+      <layout class="QVBoxLayout" name="canvasLayout"/>
+     </widget>
+     <widget class="QGroupBox" name="rawGroup">
+      <property name="title">
+       <string>Data has been sent to the serial port</string>
+      </property>
+      <layout class="QVBoxLayout" name="rawLayout">
+       <item>
+        <widget class="QTextEdit" name="raw">
+         <property name="minimumSize">
+          <size>
+           <width>812</width>
+           <height>300</height>
+          </size>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(0, 0, 0);
 color: rgb(255, 255, 255);</string>
-        </property>
-        <property name="cursorWidth">
-         <number>0</number>
-        </property>
-        <property name="textInteractionFlags">
-         <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
-        </property>
-       </widget>
-      </item>
-     </layout>
+         </property>
+         <property name="cursorWidth">
+          <number>0</number>
+         </property>
+         <property name="textInteractionFlags">
+          <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
     </widget>
    </item>
    <item>

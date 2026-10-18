@@ -11,7 +11,7 @@ from types import SimpleNamespace
 import pytest
 
 from PyQt5.QtCore import QObject, pyqtSignal
-from PyQt5.QtWidgets import QComboBox
+from PyQt5.QtWidgets import QComboBox, QStackedWidget
 
 from tafor.core.models import Sigmet
 from tafor.core.repositories import MessageRepository, SigmetRepository
@@ -46,7 +46,7 @@ class StubView(QObject):
         super().__init__()
         self.designator = 'WS'
         self.message = lambda: 'ZJSA SANYA FIR OBSC TS='
-        self.currentContent = StubContent()
+        self.currentForm = StubContent()
         self.graphic = SimpleNamespace(hasAcceptableGraphic=lambda: True)
         self.graphicWindow = False
         self.enabled = None
@@ -95,7 +95,7 @@ class TestSigmetPresenter:
 
         presenter.beforeNext()
 
-        assert view.currentContent.validated is True
+        assert view.currentForm.validated is True
         assert len(messages) == 1
         message = messages[0]
         assert isinstance(message, Sigmet)
@@ -107,11 +107,11 @@ class TestSigmetPresenter:
     def test_before_next_skips_preview_when_input_rejected(self, presenter, view, qtbot):
         messages = []
         view.finished.connect(messages.append)
-        view.currentContent.acceptable = False
+        view.currentForm.acceptable = False
 
         presenter.beforeNext()
 
-        assert view.currentContent.validated is True
+        assert view.currentForm.validated is True
         assert messages == []
 
     def test_has_acceptable_input_aggregates_graphic(self, presenter, view):
@@ -127,7 +127,7 @@ class TestSigmetPresenter:
         presenter.enableNextButton()
         assert view.enabled is True
 
-        view.currentContent.acceptable = False
+        view.currentForm.acceptable = False
         presenter.enableNextButton()
         assert view.enabled is False
 
@@ -146,7 +146,7 @@ class TestSigmetEditor:
 
     def test_template_mode_starts_with_general_content(self, editor):
         assert editor.template.isChecked() is True
-        assert editor.currentContent is editor.generalContent
+        assert editor.currentForm is editor.generalContent
         assert editor.graphic.isVisibleTo(editor)
 
     def test_cancel_mode_keeps_the_graphic_visible(self, editor):
@@ -154,7 +154,7 @@ class TestSigmetEditor:
         # cancel mode; only custom content hides it
         editor.cancel.click()
 
-        assert editor.currentContent is editor.cancelContent
+        assert editor.currentForm is editor.cancelContent
         assert editor.graphic.isVisibleTo(editor)
         assert editor.designator == 'WS'
 
@@ -165,23 +165,23 @@ class TestSigmetEditor:
         editor.cancel.click()
         editor.significantWeather.click()
 
-        assert editor.currentContent is editor.cancelContent
+        assert editor.currentForm is editor.cancelContent
 
         editor.template.click()
-        assert editor.currentContent is editor.generalContent
+        assert editor.currentForm is editor.generalContent
         assert editor.graphic.isVisibleTo(editor)
 
     def test_custom_mode_hides_graphic(self, editor):
         editor.custom.click()
 
-        assert editor.currentContent is editor.customContent
+        assert editor.currentForm is editor.customForm
         assert not editor.graphic.isVisibleTo(editor)
 
     def test_selecting_a_form_updates_span_of_current_content(self, editor):
         editor.tropicalCyclone.click()
 
         assert editor.draft.designator == 'WC'
-        assert editor.currentContent.span() == validDuration('WC')
+        assert editor.currentForm.span() == validDuration('WC')
 
     def test_reclicking_the_checked_radio_does_not_reset_the_canvas(self, editor, monkeypatch):
         # radio clicked fires even on the already-checked radio; the render
@@ -196,7 +196,7 @@ class TestSigmetEditor:
 
     def test_message_from_custom_content_appends_equals(self, editor):
         editor.custom.click()
-        editor.customContent.text.setPlainText('ZJSA SANYA FIR OBSC TS')
+        editor.customForm.text.setPlainText('ZJSA SANYA FIR OBSC TS')
 
         message = editor.message()
 
@@ -245,11 +245,11 @@ class TestSigmetEditor:
     def test_clear_resets_the_state_and_the_text_widget(self, editor):
         # was pinned as a bug (state cleared, text widget kept stale content)
         # until applyState() gave clear() its render direction
-        editor.customContent.text.setPlainText('SOME TEXT')
+        editor.customForm.text.setPlainText('SOME TEXT')
         editor.clear()
 
-        assert editor.customContent.state.text == ''
-        assert editor.customContent.text.toPlainText() == ''
+        assert editor.customForm.state.text == ''
+        assert editor.customForm.text.toPlainText() == ''
 
     def test_clear_empties_the_cancel_fields(self, editor):
         editor.cancel.click()
@@ -306,11 +306,11 @@ class TestSigmetEditor:
         self._assert_every_input_announces(qtbot, editor.cancelContent)
 
     def test_custom_inputs_announce_content_changed(self, editor, qtbot):
-        self._assert_every_input_announces(qtbot, editor.customContent)
+        self._assert_every_input_announces(qtbot, editor.customForm)
 
         changed = []
-        editor.customContent.contentChanged.connect(lambda: changed.append(1))
-        editor.customContent.text.setPlainText('X')
+        editor.customForm.contentChanged.connect(lambda: changed.append(1))
+        editor.customForm.text.setPlainText('X')
         assert changed
 
     def test_close_clears_sigmet_notification(self, editor, context):
@@ -319,6 +319,180 @@ class TestSigmetEditor:
         editor.onClose()
 
         assert context.notification.sigmet.message() is None
+
+
+class TestSigmetEditorPageSwitching:
+    """The forms live in a stack, so switching cannot show two at once.
+
+    They used to share one horizontal layout, and ``changeContent`` showed the
+    new form before hiding the old one. With ``SetFixedSize`` on the main
+    layout that stretched the window to the two forms' combined width for a
+    frame, which showed up as a flash of extra window on the right when the
+    form radios were clicked quickly.
+
+    The stack is pinned to the size of the page it shows (``pageResize``):
+    a QStackedWidget otherwise reports the largest page it holds, so the
+    window kept the tall Cyclone form's height on every other form.
+    """
+
+    @pytest.fixture
+    def shown(self, qtbot, editor):
+        editor.show()
+        qtbot.waitExposed(editor)
+        return editor
+
+    def visiblePages(self, editor):
+        return [name for name, page in editor.forms.items() if page.isVisibleTo(editor)]
+
+    def test_the_forms_are_switched_by_a_stack(self, editor):
+        assert isinstance(editor.formStack, QStackedWidget)
+
+    def test_the_canvas_is_not_one_of_the_pages(self, editor):
+        # the canvas is shown alongside every form but Custom, so it is a
+        # sibling of the stack, not one of the pages switched inside it
+        assert editor.graphic.parent() is not editor.formStack
+        assert editor.formStack.indexOf(editor.graphic) == -1
+        assert editor.graphic.isVisibleTo(editor) is True
+
+    def test_only_one_form_is_ever_visible(self, shown):
+        for radio in ('tropicalCyclone', 'volcanicAsh', 'airmansWeather',
+                      'significantWeather', 'cancel', 'custom'):
+            getattr(shown, radio).click()
+
+            assert len(self.visiblePages(shown)) == 1, radio
+
+    def test_the_stack_tracks_the_current_content(self, shown):
+        shown.tropicalCyclone.click()
+
+        assert shown.formStack.currentWidget() is shown.typhoonContent
+        assert self.visiblePages(shown) == ['typhoon']
+
+    def test_the_window_keeps_one_size_across_the_forms(self, shown, qtbot):
+        # the stack holds every form, so the window is the size of the largest
+        # one throughout: no resize while the radios are being clicked
+        sizes = []
+        for radio in ('tropicalCyclone', 'volcanicAsh', 'airmansWeather',
+                      'significantWeather', 'cancel'):
+            getattr(shown, radio).click()
+            qtbot.wait(30)
+            sizes.append((shown.width(), shown.height()))
+
+        assert len(set(sizes)) == 1, sizes
+
+    def test_the_tallest_form_sets_the_window_height(self, shown, qtbot):
+        # each form is laid out inside the stack, not squeezed to fit a
+        # smaller one, so the tallest page is what the window has to be
+        shown.tropicalCyclone.click()
+        qtbot.wait(30)
+
+        tallest = max(page.sizeHint().height() for page in shown.forms.values()
+                      if shown.formStack.indexOf(page) != -1)
+
+        assert shown.currentForm.height() >= tallest
+
+    def test_every_form_fits_the_stack(self, shown, qtbot):
+        # a form must never be laid out smaller than it asks for
+        for radio in ('tropicalCyclone', 'volcanicAsh', 'airmansWeather',
+                      'significantWeather', 'cancel'):
+            getattr(shown, radio).click()
+            qtbot.wait(30)
+
+            page = shown.currentForm
+            assert page.height() >= page.sizeHint().height(), radio
+            assert page.width() >= page.sizeHint().width(), radio
+
+    def test_rapid_switching_leaves_one_form_visible(self, shown, qtbot):
+        for _ in range(6):
+            shown.tropicalCyclone.click()
+            shown.significantWeather.click()
+
+        qtbot.wait(50)
+
+        assert len(self.visiblePages(shown)) == 1
+        assert shown.formStack.currentWidget() is shown.generalContent
+
+
+class TestSigmetEditorCustomPage:
+    """Custom is not a stack page.
+
+    It is the widest form (599 against 366) and the only one that replaces the
+    canvas rather than sitting beside it, so keeping it in the stack made every
+    other form as wide as it. It sits in the row beside the stack instead and
+    is shown or hidden; a hidden widget is skipped by the layout, so it
+    reserves no width while the other forms are up.
+    """
+
+    @pytest.fixture
+    def shown(self, qtbot, editor):
+        editor.show()
+        qtbot.waitExposed(editor)
+        return editor
+
+    def test_custom_is_not_a_page_of_the_stack(self, editor):
+        assert editor.formStack.indexOf(editor.customForm) == -1
+
+    def test_custom_hides_the_stack_and_the_canvas(self, shown):
+        shown.custom.click()
+
+        assert shown.currentForm is shown.customForm
+        assert not shown.formStack.isVisibleTo(shown)
+        assert not shown.graphic.isVisibleTo(shown)
+
+    def test_custom_takes_the_whole_row(self, shown):
+        shown.significantWeather.click()
+        stackedWidth = shown.formStack.width()
+
+        shown.custom.click()
+
+        # custom is the only thing in the row when it shows
+        assert shown.customForm.isVisibleTo(shown)
+        assert shown.customForm.width() > stackedWidth
+
+    def test_a_hidden_custom_reserves_no_width(self, shown):
+        # this is why it can stay in the row the whole time: the layout skips
+        # hidden items, so nothing of custom's width is held back
+        assert not shown.customForm.isVisibleTo(shown)
+
+        hidden_width = shown.customForm.sizeHint().width()
+        row = shown.contentLayout.geometry()
+        stack = shown.formStack.geometry()
+        canvas = shown.graphic.geometry()
+
+        # the two visible columns fit without custom's width
+        assert stack.left() == row.left()
+        assert canvas.right() < row.left() + hidden_width + canvas.width()
+
+    def test_custom_yields_the_row_again(self, shown):
+        shown.custom.click()
+        shown.template.click()
+
+        assert not shown.customForm.isVisibleTo(shown)
+        assert shown.formStack.isVisibleTo(shown)
+        assert shown.graphic.isVisibleTo(shown)
+        assert shown.currentForm is shown.generalContent
+
+    def test_custom_can_be_entered_twice(self, shown):
+        shown.custom.click()
+        shown.template.click()
+        shown.custom.click()
+
+        assert shown.currentForm is shown.customForm
+        assert shown.customForm.isVisibleTo(shown)
+        assert not shown.formStack.isVisibleTo(shown)
+
+    def test_the_template_forms_are_all_the_same_width(self, editor):
+        # this is what lets a plain width come out right now that the stack
+        # no longer holds the wide custom form: the pages agree on a width
+        widths = {editor.forms[name].sizeHint().width()
+                  for name in ('general', 'typhoon', 'ash', 'airmet')}
+
+        assert len(widths) == 1, widths
+
+    def test_custom_is_wider_than_every_page_in_the_stack(self, editor):
+        # the reason custom cannot share the stack
+        pages = [editor.forms[name] for name in ('general', 'typhoon', 'ash', 'airmet')]
+
+        assert editor.customForm.sizeHint().width() > max(p.sizeHint().width() for p in pages)
 
 
 if __name__ == '__main__':

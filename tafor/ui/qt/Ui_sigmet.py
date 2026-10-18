@@ -61,6 +61,9 @@ class Ui_Editor(object):
         self.mainLayout.addLayout(self.typeLayout)
         self.contentLayout = QtWidgets.QHBoxLayout()
         self.contentLayout.setObjectName("contentLayout")
+        self.formStack = QtWidgets.QStackedWidget(Editor)
+        self.formStack.setObjectName("formStack")
+        self.contentLayout.addWidget(self.formStack)
         self.mainLayout.addLayout(self.contentLayout)
 
         self.retranslateUi(Editor)

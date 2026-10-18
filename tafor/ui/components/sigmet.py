@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtCore import QCoreApplication, Qt
 
 from tafor.core.models import Sigmet
 from tafor.core.repositories import SigmetFilter
@@ -41,7 +41,7 @@ class SigmetPresenter:
         self.view.ashContent.locationChanged.connect(self.view.graphic.setAdvisoryGraphic)
         self.view.typhoonContent.locationChanged.connect(self.view.graphic.setAdvisoryGraphic)
 
-        for c in self.view.contents.values():
+        for c in self.view.forms.values():
             c.contentChanged.connect(self.enableNextButton)
 
         self.view.sender.succeeded.connect(self.view.updateState)
@@ -72,7 +72,7 @@ class SigmetPresenter:
         self.context.layer.setState({'selected': selected})
 
     def beforeNext(self):
-        self.view.currentContent.validate()
+        self.view.currentForm.validate()
 
         if self.hasAcceptableInput():
             self.previewMessage()
@@ -84,7 +84,7 @@ class SigmetPresenter:
         self.view.finished.emit(message)
 
     def hasAcceptableInput(self):
-        items = [self.view.currentContent.hasAcceptableInput()]
+        items = [self.view.currentForm.hasAcceptableInput()]
         if self.view.hasGraphicWindow():
             items.append(self.view.graphic.hasAcceptableGraphic())
 
@@ -130,23 +130,29 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.ashContent = SigmetAsh(self, conf=self.conf, context=self.context, repository=self.repository)
         self.airmetContent = AirmetGeneral(self, conf=self.conf, context=self.context, repository=self.repository)
         self.cancelContent = SigmetCancel(self, conf=self.conf, context=self.context, repository=self.repository)
-        self.customContent = SigmetCustom(self, conf=self.conf, context=self.context, repository=self.repository)
+        self.customForm = SigmetCustom(self, conf=self.conf, context=self.context, repository=self.repository)
 
-        self.contents = {
+        self.forms = {
             'general': self.generalContent,
             'typhoon': self.typhoonContent,
             'ash': self.ashContent,
             'airmet': self.airmetContent,
             'cancel': self.cancelContent,
-            'custom': self.customContent,
+            'custom': self.customForm,
         }
 
-        for c in self.contents.values():
-            self.contentLayout.addWidget(c)
+        # The template forms are pages of one stack.
+        for name in ('general', 'typhoon', 'ash', 'airmet', 'cancel'):
+            self.formStack.addWidget(self.forms[name])
 
+        self.contentLayout.addWidget(self.customForm)
+        self.customForm.hide()
         self.contentLayout.addWidget(self.graphic)
-        self.changeContent()
+        # Pin the canvas to the top of the row.
+        self.contentLayout.setAlignment(self.graphic, Qt.AlignTop)
+        self.contentLayout.addStretch()
 
+        self.changeContent()
         self.addBottomBox(self.mainLayout)
 
     def updateGraphicCanvas(self):
@@ -164,13 +170,13 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.graphic.updateLayer()
 
     def updateState(self):
-        self.currentContent.initState()
+        self.currentForm.initState()
 
     def updateCustomText(self):
-        self.customContent.updateText()
+        self.customForm.updateText()
 
     def message(self):
-        state = self.currentContent.state
+        state = self.currentForm.state
         if self.draft.hasSketch():
             return state.composeMessage(self.conf.firName, self.graphic.location())
         return state.composeMessage(self.conf.firName)
@@ -183,29 +189,29 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
     def setOverlapMode(self, mode):
         if self.draft.hasSketch():
-            self.currentContent.setOverlapMode(mode)
+            self.currentForm.setOverlapMode(mode)
 
     def setLocationMode(self, mode):
-        self.currentContent.setLocationMode(mode)
+        self.currentForm.setLocationMode(mode)
 
     def changeContent(self):
         form = self.current()
         changed = self.draft.select(form)
-        self.currentContent = self.contents[form]
+        self.currentForm = self.forms[form]
 
-        if self.currentContent == self.customContent:
+        # Custom takes the canvas's place, so it is shown instead of the pair.
+        if self.currentForm is self.customForm:
+            self.customForm.show()
+            self.formStack.hide()
             self.graphic.hide()
         else:
+            self.customForm.hide()
+            self.formStack.show()
+            self.formStack.setCurrentWidget(self.currentForm)
             self.graphic.show()
 
-        for c in self.contents.values():
-            if c == self.currentContent:
-                c.show()
-            else:
-                c.hide()
-
         if changed:
-            self.currentContent.initState()
+            self.currentForm.initState()
             self.graphic.configureMode(self.draft.designator, 'cancel' if form == 'cancel' else 'template')
             self.updateGraphicCanvas()
 
@@ -228,7 +234,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         return 'general'
 
     def clear(self):
-        for c in self.contents.values():
+        for c in self.forms.values():
             c.clear()
 
         self.graphic.clear()
