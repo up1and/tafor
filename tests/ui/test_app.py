@@ -329,6 +329,116 @@ class TestSingleInstance:
         assert guard.server.isListening() is False
 
 
+class TestRestartedCopy:
+    """The wait a restarted copy does for its predecessor's lock.
+
+    The socket is stubbed rather than bound: these cases are about the loop's
+    decisions, and a real name would tie them to the host's local-socket
+    permissions.
+    """
+
+    @pytest.fixture
+    def name(self, request):
+        return 'TaforRestartedTest-{}'.format(request.node.name)
+
+    @pytest.fixture
+    def socket(self, monkeypatch):
+        monkeypatch.setattr(app_module.time, 'sleep', lambda seconds: None)
+        return SimpleNamespace(connectToServer=lambda name: None, abort=lambda: None)
+
+    def test_a_restarted_copy_waits_for_its_predecessor(self, name, socket, monkeypatch):
+        monkeypatch.setenv('TAFOR_RESTARTED', '1')
+        answers = [True, True, False]          # the predecessor lets go last
+
+        def waitForConnected(ms):
+            return answers.pop(0) if answers else False
+
+        socket.waitForConnected = waitForConnected
+        guard = SingleInstance(name)
+        guard.socket = socket
+        guard.server.listen = lambda name: True
+
+        guard.__enter__()
+
+        assert guard.acquired is True
+        assert answers == []
+
+    def test_a_restarted_copy_reconnects_between_answers(self, name, socket, monkeypatch):
+        monkeypatch.setenv('TAFOR_RESTARTED', '1')
+        connects = []
+        socket.connectToServer = lambda name: connects.append(name)
+        answers = [True, False]
+        socket.waitForConnected = lambda ms: answers.pop(0) if answers else False
+
+        guard = SingleInstance(name)
+        guard.socket = socket
+        guard.server.listen = lambda name: True
+
+        guard.__enter__()
+
+        assert connects == [name, name]
+
+    def test_a_restarted_copy_aborts_each_stale_connection(self, name, socket, monkeypatch):
+        """Without the abort the next connectToServer would be a no-op."""
+        monkeypatch.setenv('TAFOR_RESTARTED', '1')
+        aborts = []
+        socket.abort = lambda: aborts.append(True)
+        answers = [True, False]
+        socket.waitForConnected = lambda ms: answers.pop(0) if answers else False
+
+        guard = SingleInstance(name)
+        guard.socket = socket
+        guard.server.listen = lambda name: True
+
+        guard.__enter__()
+
+        assert aborts == [True]
+
+    def test_an_ordinary_copy_does_not_wait(self, name, socket, monkeypatch):
+        """A second launch is refused on the first answer, as before."""
+        monkeypatch.delenv('TAFOR_RESTARTED', raising=False)
+        answers = [True]
+
+        def waitForConnected(ms):
+            return answers.pop(0) if answers else False
+
+        socket.waitForConnected = waitForConnected
+        guard = SingleInstance(name)
+        guard.socket = socket
+
+        guard.__enter__()
+
+        assert guard.acquired is False
+
+    def test_an_ordinary_copy_leaves_the_socket_alone(self, name, socket, monkeypatch):
+        """It must not abort or reconnect: the other copy is still in use."""
+        monkeypatch.delenv('TAFOR_RESTARTED', raising=False)
+        connects, aborts = [], []
+        socket.connectToServer = lambda name: connects.append(name)
+        socket.abort = lambda: aborts.append(True)
+        socket.waitForConnected = lambda ms: True
+
+        guard = SingleInstance(name)
+        guard.socket = socket
+
+        guard.__enter__()
+
+        assert (connects, aborts) == ([name], [])
+
+    def test_a_restarted_copy_that_finds_no_one_starts_normally(self, name, socket, monkeypatch):
+        """The common case: the predecessor is already gone."""
+        monkeypatch.setenv('TAFOR_RESTARTED', '1')
+        socket.waitForConnected = lambda ms: False
+
+        guard = SingleInstance(name)
+        guard.socket = socket
+        guard.server.listen = lambda name: True
+
+        guard.__enter__()
+
+        assert guard.acquired is True
+
+
 class TestWorkerPool:
 
     def test_defaults_to_the_shared_thread_manager(self):

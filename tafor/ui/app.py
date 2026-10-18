@@ -14,6 +14,7 @@ import json
 import logging
 import os
 import sys
+import time
 
 from PyQt5.QtCore import QLocale, QT_VERSION_STR, Qt, QTranslator
 from PyQt5.QtGui import QGuiApplication
@@ -90,9 +91,16 @@ class SingleInstance:
         self.acquired = False
 
     def __enter__(self):
+        # The flag is the only thing that bounds this loop: every other start
+        # returns on its first answer, so a stuck predecessor can only strand
+        # a restart that the flag was handed to.
         self.socket.connectToServer(self.name)
-        if self.socket.waitForConnected(500):
-            return self                                 # another copy is up
+        while self.socket.waitForConnected(500):
+            if not os.environ.get('TAFOR_RESTARTED'):
+                return self                             # another copy is up
+            self.socket.abort()
+            time.sleep(0.1)
+            self.socket.connectToServer(self.name)
 
         if not self.server.listen(self.name):
             self.server.removeServer(self.name)

@@ -13,7 +13,8 @@ import json
 import datetime
 import logging
 
-from PyQt5.QtCore import QCoreApplication, QObject, QEvent, QTimer, QProcess, QSysInfo, Qt, QUrl, pyqtSignal
+from PyQt5.QtCore import (QCoreApplication, QObject, QEvent, QProcess,
+    QSysInfo, QTimer, Qt, QUrl, pyqtSignal)
 from PyQt5.QtGui import QDesktopServices, QIcon, QPalette
 from PyQt5.QtWidgets import QMainWindow, QMenu, QMessageBox, QSizePolicy, QSpacerItem, QSystemTrayIcon
 
@@ -1012,6 +1013,12 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         QDesktopServices.openUrl(QUrl('https://github.com/up1and/tafor/issues'))
 
     def restart(self):
+        """Start the replacement, then leave.
+
+        The child cannot take the single-instance lock while this process is
+        alive, so TAFOR_RESTARTED tells it to wait rather than count itself a
+        second copy -- and this process must actually quit once it is up.
+        """
         title = QCoreApplication.translate('Settings', 'Restart Required')
         text = QCoreApplication.translate(
             'Settings', 'Program need to restart to apply the configuration, do you wish to restart now?')
@@ -1022,9 +1029,19 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         args = [] if hasattr(sys, '_MEIPASS') else [os.path.join(root, '__main__.py')]
         args.extend(restartArgs())
 
+        # startDetached() has no overload that takes an environment block, so
+        # the flag goes into this process's environment and the child inherits
+        # it. This process is on its way out, so there is nothing to undo.
+        os.environ['TAFOR_RESTARTED'] = '1'
+
         if not QProcess.startDetached(program, args):
+            os.environ.pop('TAFOR_RESTARTED', None)
             self.notify(title, QCoreApplication.translate(
                 'Settings', 'Could not restart automatically, please start tafor again.'), 'warning')
+            return
+
+        self.close()
+        QCoreApplication.quit()
 
     def closeSenders(self):
         for sender in (self.tafSender, self.trendSender, self.sigmetSender):

@@ -2054,22 +2054,28 @@ class TestMainWindow:
 
     def test_restart_requires_the_users_consent(self, window, monkeypatch):
         starts = []
+        quits = []
         monkeypatch.setattr(main_module.QMessageBox, 'information',
                             lambda *args, **kwargs: QMessageBox.No)
         monkeypatch.setattr(main_module.QProcess, 'startDetached',
                             lambda *args, **kwargs: starts.append((args, kwargs)) or True)
+        monkeypatch.setattr(main_module.QCoreApplication, 'quit', lambda: quits.append(True))
 
         window.restart()
 
         assert starts == []
+        assert quits == []
 
     def test_a_confirmed_restart_relaunches_with_the_saved_arguments(self, window, monkeypatch):
         starts = []
+        quits = []
         monkeypatch.setattr(main_module.QMessageBox, 'information',
                             lambda *args, **kwargs: QMessageBox.Yes)
         monkeypatch.setenv('TAFOR_ARGS', '["--debug"]')
         monkeypatch.setattr(main_module.QProcess, 'startDetached',
                             lambda program, args: starts.append((program, args)) or True)
+        monkeypatch.setattr(window, 'close', lambda: None)
+        monkeypatch.setattr(main_module.QCoreApplication, 'quit', lambda: quits.append(True))
 
         window.restart()
 
@@ -2078,12 +2084,53 @@ class TestMainWindow:
         assert args[0] == os.path.join(main_module.root, '__main__.py')
         assert args[1:] == ['--debug']
 
+    def test_a_confirmed_restart_quits_once_the_child_is_started(self, window, monkeypatch):
+        """Without the quit the child blocks on the single-instance lock and
+        exits silently, which is a restart that looks like nothing happened."""
+        order = []
+
+        def start(program, args):
+            order.append('start')
+            return True
+
+        monkeypatch.setattr(main_module.QMessageBox, 'information',
+                            lambda *args, **kwargs: QMessageBox.Yes)
+        monkeypatch.setattr(main_module.QProcess, 'startDetached', start)
+        monkeypatch.setattr(window, 'close', lambda: order.append('close'))
+        monkeypatch.setattr(main_module.QCoreApplication, 'quit',
+                            lambda: order.append('quit'))
+
+        window.restart()
+
+        assert order == ['start', 'close', 'quit']
+
+    def test_the_child_is_marked_as_a_restart_in_the_environment(self, window, monkeypatch):
+        """The flag travels in the environment, not argv: argparse rejects an
+        unknown switch and the child would die before the window existed."""
+        seen = []
+        monkeypatch.delenv('TAFOR_RESTARTED', raising=False)
+        monkeypatch.setattr(main_module.QMessageBox, 'information',
+                            lambda *args, **kwargs: QMessageBox.Yes)
+        monkeypatch.setattr(main_module.QProcess, 'startDetached',
+                            lambda program, args: seen.append(
+                                (list(args), os.environ.get('TAFOR_RESTARTED'))) or True)
+        monkeypatch.setattr(window, 'close', lambda: None)
+        monkeypatch.setattr(main_module.QCoreApplication, 'quit', lambda: None)
+
+        window.restart()
+
+        args, marked = seen[0]
+        assert 'TAFOR_RESTARTED' not in ' '.join(args)
+        assert marked == '1'
+
     def test_a_failed_restart_is_reported(self, window, monkeypatch):
         tray = FakeTray()
+        quits = []
         monkeypatch.setattr(window, 'tray', tray)
         monkeypatch.setattr(main_module.QMessageBox, 'information',
                             lambda *args, **kwargs: QMessageBox.Yes)
         monkeypatch.setattr(main_module.QProcess, 'startDetached', lambda *args, **kwargs: False)
+        monkeypatch.setattr(main_module.QCoreApplication, 'quit', lambda: quits.append(True))
 
         window.restart()
 
@@ -2091,6 +2138,40 @@ class TestMainWindow:
             ('Restart Required',
              'Could not restart automatically, please start tafor again.',
              QSystemTrayIcon.Warning)]
+        assert quits == []
+
+    def test_a_failed_restart_leaves_the_environment_alone(self, window, monkeypatch):
+        """A process that stays up must not carry the flag a later start would
+        read as its own."""
+        monkeypatch.delenv('TAFOR_RESTARTED', raising=False)
+        monkeypatch.setattr(main_module.QMessageBox, 'information',
+                            lambda *args, **kwargs: QMessageBox.Yes)
+        monkeypatch.setattr(main_module.QProcess, 'startDetached', lambda *args, **kwargs: False)
+        monkeypatch.setattr(window, 'notify', lambda *args, **kwargs: None)
+        monkeypatch.setattr(main_module.QCoreApplication, 'quit', lambda: None)
+        monkeypatch.setattr(window, 'close', lambda: None)
+
+        window.restart()
+
+        assert 'TAFOR_RESTARTED' not in os.environ
+
+    def test_a_frozen_build_relaunches_the_executable_itself(self, window, monkeypatch):
+        """Under PyInstaller there is no __main__.py on disk to hand over."""
+        starts = []
+        monkeypatch.setattr(main_module, 'root', 'C:\\no\\such\\build')
+        monkeypatch.setattr(sys, '_MEIPASS', 'C:\\no\\such\\build', raising=False)
+        monkeypatch.setattr(main_module.QMessageBox, 'information',
+                            lambda *args, **kwargs: QMessageBox.Yes)
+        monkeypatch.setattr(main_module.QProcess, 'startDetached',
+                            lambda program, args: starts.append((program, args)) or True)
+        monkeypatch.setattr(window, 'close', lambda: None)
+        monkeypatch.setattr(main_module.QCoreApplication, 'quit', lambda: None)
+
+        window.restart()
+
+        program, args = starts[0]
+        assert program == sys.executable
+        assert args == restartArgs()
 
     def test_about_reports_the_unregistered_state(self, window, monkeypatch):
         boxes = installAboutBox(monkeypatch)
