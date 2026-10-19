@@ -630,15 +630,25 @@ class TestSketchPanelHelpers:
         assert window.canvas.mode == 'polygon'
 
     def test_operation_buttons_sizing(self, window):
-        # adaptive buttons follow their text via the style size hint,
-        # the cycling mode button is pinned so it does not jump around
+        # the toolbar buttons take their height from the style, never from a
+        # pinned value; the cycling mode button only pins its width so the
+        # toolbar does not jump while the label changes
+        window.resize(800, 500)
+        window.show()
         for button in [window.refreshButton, window.layerButton, window.overlapButton]:
-            button.adjustSize()
-            assert button.height() == 24
-            assert button.width() == button.sizeHint().width()
+            assert button.height() == button.sizeHint().height()
 
-        assert window.modeButton.height() == 24
+        assert window.modeButton.height() == window.modeButton.sizeHint().height()
         assert window.modeButton.width() >= window.modeButton.sizeHint().width()
+
+        # a mode that hides buttons must not stretch or centre the rest
+        window.configureMode(designator='WS', mode='cancel')
+        window.resize(801, 500)
+        window.resize(800, 500)
+        visible = [window.refreshButton, window.layerButton]
+        assert window.toolbar.width() < window.width() // 2
+        assert [button.width() for button in visible] == [button.sizeHint().width() for button in visible]
+        assert visible[0].geometry().right() < visible[1].geometry().left()
 
     def test_corner_overlays_positioned(self, window):
         window.resize(800, 500)
@@ -658,10 +668,10 @@ class TestSketchPanelHelpers:
         assert geo.x() == (window.width() - geo.width()) // 2
         assert window.height() - geo.bottom() - 1 == 75
 
-        # zoom buttons are square and stay inside their overlay widget
+        # the zoom buttons stay square inside their overlay widget
         assert window.zoomInButton.parent() is window.zoomControl
         assert window.zoomOutButton.parent() is window.zoomControl
-        assert window.zoomInButton.width() == window.zoomInButton.height() == 24
+        assert window.zoomInButton.width() == window.zoomInButton.height()
 
     def test_corner_buttons_are_clickable(self, window, qtbot):
         # the interactive overlays float directly over the canvas without a

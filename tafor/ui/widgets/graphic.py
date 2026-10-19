@@ -711,7 +711,7 @@ class SketchPanel(QWidget):
 
         # compact square zoom buttons inside the top-left overlay
         for button in (self.zoomInButton, self.zoomOutButton):
-            button.setFixedSize(24, 24)
+            button.setFixedSize(25, 25)
 
         self.zoomControl = QWidget(self)
         self.zoomControlLayout = QVBoxLayout(self.zoomControl)
@@ -734,13 +734,11 @@ class SketchPanel(QWidget):
         self.modeButton = QPushButton(self)
         self.modeButton.setText(QCoreApplication.translate('Editor', 'Polygon'))
 
-        for button in [self.refreshButton, self.layerButton, self.overlapButton]:
-            button.setFixedHeight(24)
-
         self.toolbar = QWidget(self)
         self.toolbarLayout = QHBoxLayout(self.toolbar)
         self.toolbarLayout.setSpacing(0)
         self.toolbarLayout.setContentsMargins(0, 0, 0, 0)
+        self.toolbarLayout.addStretch()
         self.toolbarLayout.addWidget(self.refreshButton)
         self.toolbarLayout.addWidget(self.layerButton)
         self.toolbarLayout.addWidget(self.overlapButton)
@@ -869,7 +867,7 @@ class SketchPanel(QWidget):
         self.modes = cycle(icons)
         metrics = QFontMetrics(self.modeButton.font())
         width = max(metrics.horizontalAdvance(icon['title']) for icon in icons) + 20
-        self.modeButton.setFixedSize(width, 24)
+        self.modeButton.setFixedWidth(width)
         self.nextMode()
 
         if mode == 'cancel':
