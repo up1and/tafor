@@ -741,6 +741,7 @@ class SketchPanel(QWidget):
         self.toolbarLayout = QHBoxLayout(self.toolbar)
         self.toolbarLayout.setSpacing(0)
         self.toolbarLayout.setContentsMargins(0, 0, 0, 0)
+        self.toolbarLayout.addStretch()
         self.toolbarLayout.addWidget(self.refreshButton)
         self.toolbarLayout.addWidget(self.layerButton)
         self.toolbarLayout.addWidget(self.overlapButton)
