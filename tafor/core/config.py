@@ -25,13 +25,12 @@ def validateVolume(value):
 class ConfigItem:
     """Descriptor for configuration items"""
     
-    def __init__(self, key, default='', scope='immediate', bindProperty=None, group=None, validator=None):
+    def __init__(self, key, default='', scope='immediate', groups=(), validator=None):
         self.key = key
         self.default = default
         self.scope = scope
-        self.bindProperty = bindProperty  # UI control binding name
         self.validator = validator
-        self.group = group or []
+        self.groups = frozenset(groups)
         
     def __get__(self, instance, owner=None):
         if instance is None:
@@ -79,59 +78,49 @@ class Config:
     windowsStyle = ConfigItem(
         'General/WindowsStyle',
         default='System',
-        scope='restart',
-        bindProperty='windowsStyle'
+        scope='restart'
     )
     communicationProtocol = ConfigItem(
         'General/CommunicationProtocol',
         default='AFTN',
-        scope='reload',
-        bindProperty='communicationProtocol'
+        scope='reload'
     )
     interfaceScaling = ConfigItem(
         'General/InterfaceScaling',
         default=0,
-        scope='restart',
-        bindProperty='interfaceScaling'
+        scope='restart'
     )
     tafSpec = ConfigItem(
         'General/TAFSpec',
         default=0,
-        scope='restart',
-        bindProperty='tafSpecification'
+        scope='restart'
     )
     closeToMinimize = ConfigItem(
         'General/CloseToMinimize',
-        default=True,
-        bindProperty='closeToMinimize'
+        default=True
     )
     debugMode = ConfigItem(
         'General/Debug',
         default=False,
-        scope='restart',
-        bindProperty='debugMode'
+        scope='restart'
     )
     autoCompletionGroupTime = ConfigItem(
         'General/AutoCompletionGroupTime',
-        default=True,
-        bindProperty='autoCompletionGroupTime'
+        default=True
     )
     
     # Validation options
     visHas5000 = ConfigItem(
         'Validation/VisHas5000',
-        default=False,
-        bindProperty='visHas5000'
+        default=False
     )
     cloudHeightHas450 = ConfigItem(
         'Validation/CloudHeightHas450',
-        default=False,
-        bindProperty='cloudHeightHas450'
+        default=False
     )
     weakPrecipitationVerification = ConfigItem(
         'Validation/WeakPrecipitationVerification',
-        default=False,
-        bindProperty='weakPrecipitationVerification'
+        default=False
     )
     
     # Message configuration
@@ -139,225 +128,189 @@ class Config:
         'Message/Airport',
         default='YUSO',
         scope='reload',
-        bindProperty='airport',
-        group=['taf', 'sigmet']
+        groups=['taf', 'sigmet']
     )
     bulletinNumber = ConfigItem(
         'Message/BulletinNumber',
         scope='reload',
-        bindProperty='bulletinNumber',
-        group=['taf', 'sigmet']
+        groups=['taf', 'sigmet']
     )
     trendIdentifier = ConfigItem(
         'Message/TrendIdentifier',
         default='TRENDING',
         scope='reload',
-        bindProperty='trendIdentifier',
-        group=['trend']
+        groups=['trend']
     )
     weatherList = ConfigItem(
         'Message/Weather',
         default=[],
-        scope='restart',
-        bindProperty='weatherList'
+        scope='restart'
     )
     weatherWithIntensityList = ConfigItem(
         'Message/WeatherWithIntensity',
         default=[],
-        scope='restart',
-        bindProperty='weatherWithIntensityList'
+        scope='restart'
     )
     firName = ConfigItem(
         'Message/FIRName',
         default='SHANLON FIR',
         scope='reload',
-        bindProperty='firName',
-        group=['sigmet']
+        groups=['sigmet']
     )
     
     # Communication configuration - Serial port settings
     port = ConfigItem(
         'Communication/SerialPort',
         default='COM1',
-        bindProperty='port',
-        group=['core']
+        groups=['core']
     )
     baudrate = ConfigItem(
         'Communication/SerialBaudrate',
         default='9600',
-        bindProperty='baudrate',
-        group=['core']
+        groups=['core']
     )
     parity = ConfigItem(
         'Communication/SerialParity',
         default='NONE',
-        bindProperty='parity',
-        group=['core']
+        groups=['core']
     )
     bytesize = ConfigItem(
         'Communication/SerialBytesize',
         default='8',
-        bindProperty='bytesize',
-        group=['core']
+        groups=['core']
     )
     stopbits = ConfigItem(
         'Communication/SerialStopbits',
         default='1',
-        bindProperty='stopbits',
-        group=['core']
+        groups=['core']
     )
     
     # Communication configuration - AFTN settings
     channel = ConfigItem(
         'Communication/Channel',
         scope='reload',
-        bindProperty='channel',
-        group=['core']
+        groups=['core']
     )
     channelSequenceNumber = ConfigItem(
         'Communication/ChannelSequenceNumber',
         default='1',
         scope='reload',
-        bindProperty='channelSequenceNumber',
-        group=['core']
+        groups=['core']
     )
     channelSequenceLength = ConfigItem(
         'Communication/ChannelSequenceLength',
         default='4',
         scope='reload',
-        bindProperty='channelSequenceLength',
-        group=['core']
+        groups=['core']
     )
     fileSequenceNumber = ConfigItem(
         'Communication/FileSequenceNumber',
         default='1',
-        scope='reload',
-        group=['core']
+        scope='reload'
     )
     maxSendAddress = ConfigItem(
         'Communication/MaxSendAddress',
         default='10',
         scope='reload',
-        bindProperty='maxSendAddress',
-        group=['core']
+        groups=['core']
     )
     originatorAddress = ConfigItem(
         'Communication/OriginatorAddress',
         scope='reload',
-        bindProperty='originatorAddress',
-        group=['core']
+        groups=['core']
     )
     tafAddress = ConfigItem(
         'Communication/TAFAddress',
         scope='reload',
-        bindProperty='tafAddress',
-        group=['taf']
+        groups=['taf']
     )
     trendAddress = ConfigItem(
         'Communication/TrendAddress',
         scope='reload',
-        bindProperty='trendAddress',
-        group=['trend']
+        groups=['trend']
     )
     airmetAddress = ConfigItem(
         'Communication/AIRMETAddress',
         scope='reload',
-        bindProperty='airmetAddress',
-        group=['sigmet']
+        groups=['sigmet']
     )
     sigmetAddress = ConfigItem(
         'Communication/SIGMETAddress',
         scope='reload',
-        bindProperty='sigmetAddress',
-        group=['sigmet']
+        groups=['sigmet']
     )
     
     # Communication configuration - FTP settings
     ftpHost = ConfigItem(
-        'Communication/FTPHost',
-        bindProperty='ftpHost'
+        'Communication/FTPHost'
     )
 
     # Interface configuration
     rpc = ConfigItem(
         'Interface/RPC',
         default=False,
-        scope='restart',
-        bindProperty='serviceGroup'
+        scope='restart'
     )
     messageUrl = ConfigItem(
-        'Interface/MessageURL',
-        bindProperty='messageURL'
+        'Interface/MessageURL'
     )
     layerUrl = ConfigItem(
-        'Interface/LayerURL',
-        bindProperty='layerURL'
+        'Interface/LayerURL'
     )
     authToken = ConfigItem(
         'Interface/AuthToken',
-        default='VGhlIFZveWFnZSBvZiB0aGUgTW9vbg==',
-        bindProperty='token'
+        default='VGhlIFZveWFnZSBvZiB0aGUgTW9vbg=='
     )
     
     # Monitoring configuration
     delayMinutes = ConfigItem(
         'Monitor/DelayMinutes',
-        default='5',
-        bindProperty='delayMinutes'
+        default='5'
     )
     alarmVolume = ConfigItem(
         'Monitor/AlarmVolume',
         default=30,
-        validator=validateVolume,
-        bindProperty='alarmVolume'
+        validator=validateVolume
     )
     remindTaf = ConfigItem(
         'Monitor/RemindTAF',
-        default=True,
-        bindProperty='remindTaf'
+        default=True
     )
     tafVolume = ConfigItem(
         'Monitor/TAFVolume',
         default=99,
-        validator=validateVolume,
-        bindProperty='tafVolume'
+        validator=validateVolume
     )
     remindTrend = ConfigItem(
         'Monitor/RemindTrend',
-        default=True,
-        bindProperty='remindTrend'
+        default=True
     )
     trendVolume = ConfigItem(
         'Monitor/TrendVolume',
         default=99,
-        validator=validateVolume,
-        bindProperty='trendVolume'
+        validator=validateVolume
     )
     remindSigmet = ConfigItem(
         'Monitor/RemindSIGMET',
-        default=True,
-        bindProperty='remindSigmet'
+        default=True
     )
     sigmetVolume = ConfigItem(
         'Monitor/SIGMETVolume',
         default=99,
-        validator=validateVolume,
-        bindProperty='sigmetVolume'
+        validator=validateVolume
     )
     # Layer configuration
     projection = ConfigItem(
         'Layer/Projection',
         default='+proj=webmerc +datum=WGS84',
-        scope='restart',
-        bindProperty='projection'
+        scope='restart'
     )
     firBoundary = ConfigItem(
         'Layer/FIRBoundary',
         default=[],
         scope='restart',
-        bindProperty='firBoundary',
         validator=validateFirBoundary,
-        group=['sigmet']
+        groups=['sigmet']
     )
 
     sigmetEnabled = ConfigItem('General/Sigmet', default=False)
@@ -435,7 +388,7 @@ class ConfigRegistry(Config):
     def __iter__(self):
         for attr in dir(type(self)):
             item = getattr(type(self), attr)
-            if isinstance(item, ConfigItem) and item.bindProperty:
+            if isinstance(item, ConfigItem):
                 yield attr, item
 
     def handleChange(self, key, value, scope):
@@ -464,8 +417,7 @@ class ConfigRegistry(Config):
             groupsToCheck = {'core', name}
 
         for attr, item in self:
-            groups = set(item.group)
-            if groups.intersection(groupsToCheck) and not getattr(self, attr):
+            if groupsToCheck & item.groups and not getattr(self, attr):
                 return False
         return True
 

@@ -116,7 +116,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         ret = QMessageBox.information(self, title, text, QMessageBox.Yes | QMessageBox.No)
         if ret == QMessageBox.Yes:
             self.conf.authToken = secrets.token_urlsafe(24)
-            self.bindValue(self.conf.authToken, 'token')
+            self.bindValue(self.conf.authToken, self.token)
 
     def copyAuthToken(self):
         QApplication.clipboard().setText(self.conf.authToken)
@@ -134,7 +134,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         option.takeItem(option.currentRow())
 
     def showEvent(self, event):
-        self.bindValue(self.conf.channelSequenceNumber, 'channelSequenceNumber')
+        self.bindValue(self.conf.channelSequenceNumber, self.channelSequenceNumber)
 
     def testFtpLogin(self):
         self.testLoginButton.setEnabled(False)
@@ -156,6 +156,63 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.testLoginButton.setText(text)
         self.testLoginButton.setEnabled(True)
 
+    def bindings(self):
+        return {
+            'windowsStyle': self.windowsStyle,
+            'communicationProtocol': self.communicationProtocol,
+            'interfaceScaling': self.interfaceScaling,
+            'tafSpec': self.tafSpecification,
+            'closeToMinimize': self.closeToMinimize,
+            'debugMode': self.debugMode,
+            'autoCompletionGroupTime': self.autoCompletionGroupTime,
+
+            'visHas5000': self.visHas5000,
+            'cloudHeightHas450': self.cloudHeightHas450,
+            'weakPrecipitationVerification': self.weakPrecipitationVerification,
+
+            'airport': self.airport,
+            'bulletinNumber': self.bulletinNumber,
+            'trendIdentifier': self.trendIdentifier,
+            'weatherList': self.weatherList,
+            'weatherWithIntensityList': self.weatherWithIntensityList,
+            'firName': self.firName,
+
+            'port': self.port,
+            'baudrate': self.baudrate,
+            'parity': self.parity,
+            'bytesize': self.bytesize,
+            'stopbits': self.stopbits,
+
+            'channel': self.channel,
+            'channelSequenceNumber': self.channelSequenceNumber,
+            'channelSequenceLength': self.channelSequenceLength,
+            'maxSendAddress': self.maxSendAddress,
+            'originatorAddress': self.originatorAddress,
+            'tafAddress': self.tafAddress,
+            'trendAddress': self.trendAddress,
+            'airmetAddress': self.airmetAddress,
+            'sigmetAddress': self.sigmetAddress,
+
+            'ftpHost': self.ftpHost,
+
+            'rpc': self.serviceGroup,
+            'messageUrl': self.messageURL,
+            'layerUrl': self.layerURL,
+            'authToken': self.token,
+
+            'delayMinutes': self.delayMinutes,
+            'alarmVolume': self.alarmVolume,
+            'remindTaf': self.remindTaf,
+            'tafVolume': self.tafVolume,
+            'remindTrend': self.remindTrend,
+            'trendVolume': self.trendVolume,
+            'remindSigmet': self.remindSigmet,
+            'sigmetVolume': self.sigmetVolume,
+
+            'projection': self.projection,
+            'firBoundary': self.firBoundary,
+        }
+
     def save(self):
         if self.runOnStart.isChecked():
             self.autoRun.setValue('Tafor', sys.argv[0])
@@ -163,8 +220,9 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             self.autoRun.remove('Tafor')
 
         errors = []
-        for attr, config in self.conf:
-            value = self.getValue(config.default, config.bindProperty)
+        for attr, control in self.bindings().items():
+            config = getattr(type(self.conf), attr)
+            value = self.getValue(config.default, control)
             try:
                 self.conf.set(attr, value)
             except ValueError as e:
@@ -191,8 +249,8 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
         self.serviceHost.setText('http://{}:9407'.format(ipAddress()))
 
-        for attr, config in self.conf:
-            self.bindValue(self.conf.get(attr), config.bindProperty)
+        for attr, control in self.bindings().items():
+            self.bindValue(self.conf.get(attr), control)
 
     def reopen(self):
         """Reload saved values every time the dialog is opened.
@@ -204,9 +262,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.load()
         self.exec()
 
-    def bindValue(self, value, bindProperty):
-        control = getattr(self, bindProperty)
-
+    def bindValue(self, value, control):
         if isinstance(control, QLineEdit):
             control.setText(value)
 
@@ -230,9 +286,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         if isinstance(control, QSlider):
             control.setValue(value)
 
-    def getValue(self, default, bindProperty):
-        control = getattr(self, bindProperty)
-
+    def getValue(self, default, control):
         if isinstance(control, QLineEdit):
             return control.text()
 
@@ -258,7 +312,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
     def exportConf(self):
         filename = self.exportPath.text()
         try:
-            data = {attr: self.conf.get(attr) for attr, config in self.conf}
+            data = {attr: self.conf.get(attr) for attr in self.bindings()}
             with open(filename, 'w') as file:
                 json.dump(data, file)
 

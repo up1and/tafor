@@ -155,15 +155,36 @@ def test_check_completeness():
     assert conf.checkCompleteness('unknown') is True
 
 
-def test_iter_yields_bound_items_only():
+def test_iter_yields_every_config_item():
     conf = makeConf()
     items = dict(conf)
 
     assert 'windowsStyle' in items
-    assert all(isinstance(item, ConfigItem) and item.bindProperty for item in items.values())
-    assert 'license' not in items
-    assert 'unit' not in items
-    assert 'fileSequenceNumber' not in items
+    assert all(isinstance(item, ConfigItem) for item in items.values())
+    assert 'license' in items
+    assert 'unit' in items
+    assert 'fileSequenceNumber' in items
+
+
+def test_completeness_is_driven_by_group_membership():
+    conf = makeConf()
+    items = dict(conf)
+
+    assert items['airport'].groups == {'taf', 'sigmet'}
+    assert items['channel'].groups == {'core'}
+    assert items['fileSequenceNumber'].groups == frozenset()
+
+
+def test_an_ungrouped_item_cannot_block_completeness():
+    conf = makeConf()
+
+    conf.channel = 'AFTN'
+    conf.originatorAddress = 'YUSOYYXX'
+    conf.bulletinNumber = 'B001'
+    conf.tafAddress = 'YUSO3001'
+    conf.fileSequenceNumber = ''
+
+    assert conf.checkCompleteness('taf') is True
 
 
 def test_iter_does_not_cache_values_on_descriptors():

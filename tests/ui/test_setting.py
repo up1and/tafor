@@ -23,6 +23,26 @@ class TestSetting:
         qtbot.addWidget(dialog)
         return dialog
 
+    def test_bindings_reference_config_items(self, setting, conf):
+        items = dict(conf)
+        bindings = setting.bindings()
+
+        assert set(bindings) <= set(items)
+        assert all(control is not None for control in bindings.values())
+        assert bindings['tafSpec'] is setting.tafSpecification
+        assert bindings['rpc'] is setting.serviceGroup
+        assert bindings['messageUrl'] is setting.messageURL
+        assert bindings['layerUrl'] is setting.layerURL
+        assert bindings['authToken'] is setting.token
+
+    def test_every_editable_item_has_a_binding(self, setting, conf):
+        unbound = {
+            'sigmetEnabled', 'license', 'unit', 'codec',
+            'remindSnoozeMinutes', 'fileSequenceNumber',
+        }
+
+        assert set(dict(conf)) - set(setting.bindings()) == unbound
+
     def test_reset_channel_number(self, setting, conf):
         setting.channelSequenceNumber.setText('5')
         setting.resetNumberButton.click()
