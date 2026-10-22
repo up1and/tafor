@@ -48,7 +48,10 @@ class ThreadManager:
         if not reusable:
             thread.finished.connect(worker.deleteLater)
             thread.finished.connect(thread.deleteLater)
-            thread.finished.connect(lambda wid=workerId: self.unregister(wid))
+            # Unregister only once the C++ thread is gone. Dropping the last
+            # reference while it is still finishing makes ~QThread wait() with
+            # the GIL held, deadlocking against the worker's own GIL needs.
+            thread.destroyed.connect(lambda _obj, wid=workerId: self.unregister(wid))
 
         return worker, thread
 

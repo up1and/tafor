@@ -18,6 +18,7 @@ from unittest.mock import Mock
 import pytest
 import requests
 
+from PyQt5 import sip
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from tafor.ui.workers import (
@@ -126,12 +127,34 @@ class TestThreadManager:
     def test_non_reusable_worker_unregisters_on_finish(self, manager, qtbot):
         worker, thread = manager.createWorker(DummyWorker, workerId='x')
 
-        with qtbot.waitSignal(worker.finished):
-            thread.start()
-
+        thread.start()
         qtbot.waitUntil(lambda: 'x' not in manager._threads)
+
         replacement = manager.createWorker(DummyWorker, workerId='x')
         assert replacement[0] is not worker
+
+    def test_unregisters_only_after_the_thread_is_destroyed(self, manager, qtbot):
+        """Regression: popping the references on finished destroyed a QThread
+        that was still finishing. ~QThread then waited for it while the GUI
+        thread held the GIL, the worker blocked acquiring the GIL in its own
+        teardown, and the UI remained frozen for good."""
+        seen = []
+        unregister = manager.unregister
+
+        def spy(workerId):
+            seen.append(sip.isdeleted(manager._threads[workerId]))
+            unregister(workerId)
+
+        manager.unregister = spy
+        worker, thread = manager.createWorker(DummyWorker, workerId='x')
+
+        thread.start()
+        del worker, thread      # the manager must hold the last references
+
+        qtbot.waitUntil(lambda: 'x' not in manager._threads)
+
+        assert seen == [True]
+        assert manager._workers == {}
 
     def test_remove_worker_stops_and_unregisters(self, manager, qtbot):
         worker, thread = manager.createWorker(DummyWorker, workerId='x', reusable=True)
