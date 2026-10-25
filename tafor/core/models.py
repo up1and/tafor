@@ -170,12 +170,12 @@ class Sigmet(MessageMixin, Base):
 
     def expired(self):
         parser = self.parser()
-        ending = parser.valids[1]
-        return ending
+        return parser.valids[1] if parser.valids else None
 
 
     def isExpired(self):
-        return utcnow() > self.expired()
+        ending = self.expired()
+        return ending is not None and utcnow() > ending
 
 class Other(MessageMixin, Base):
     __tablename__ = 'others'

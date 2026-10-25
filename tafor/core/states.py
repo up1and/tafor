@@ -300,6 +300,10 @@ class SigmetMonitorService(StateProxyMixin):
         self.event = event
 
     def add(self, uuid, text, time):
+        # Without a validity window there is no moment to remind about;
+        # outdate() subtracts from time and would choke on None.
+        if time is None:
+            return
         self.state.entries[uuid] = {'text': text, 'time': time}
 
     def update(self, uuid, time):

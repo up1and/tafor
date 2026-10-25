@@ -216,10 +216,11 @@ class FakeSig:
 
 class FakeMessage:
 
-    def __init__(self, uuid='u1', isCnl=False, expired=None, parser=None):
+    def __init__(self, uuid='u1', isCnl=False,
+                 expired=datetime.datetime(2026, 8, 23, 16, 0), parser=None):
         self.uuid = uuid
         self._isCnl = isCnl
-        self._expired = expired or datetime.datetime(2026, 8, 23, 16, 0)
+        self._expired = expired
         self._parser = parser if parser is not None else 'SIGMET TEXT'
 
     def isCnl(self):
@@ -244,6 +245,15 @@ def test_sync_sigmet_reminder_adds_entry_on_send():
     monitor.updateReminders(message)
 
     assert monitor.entries == {'u1': {'text': 'SIGMET TEXT', 'time': expired}}
+
+
+def test_sync_sigmet_reminder_skips_entries_without_a_validity():
+    monitor = makeMonitor()
+    message = FakeMessage(uuid='u1', expired=None)
+
+    monitor.updateReminders(message)
+
+    assert monitor.entries == {}
 
 
 def test_sync_sigmet_reminder_cancel_drops_matching_entry():
