@@ -136,7 +136,7 @@ class FakeWorker:
     def prepare(self):
         pass
 
-    def stop(self):
+    def stop(self, timeout=None):
         self.stopped += 1
 
 

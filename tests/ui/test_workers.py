@@ -479,6 +479,37 @@ class TestTransmissionQueue:
         assert settled == [(job, 'serial port offline')]
         assert not queue.isBusy
 
+    def test_stop_after_timeout_settles_the_job_as_failed(self, qtbot, conf):
+        """A dead wire: busy never clears, so worker.stop() runs out of
+        time. The in-flight job must settle as a failure — an empty error
+        would archive a telegram that may be half-written on the wire."""
+        worker = TransmissionWorker()
+        worker.busy = True                      # the transmit never returns
+        queue = TransmissionQueue(worker)
+        settled = []
+
+        job = self.makeJob(conf=conf, settle=lambda j, e: settled.append((j, e)))
+        queue.submit(job)
+        queue.current = job                     # pretend it is on the wire
+
+        queue.stop(timeout=0.1)
+
+        assert len(settled) == 1
+        assert settled[0][0] is job
+        assert 'abandoned' in settled[0][1]
+        assert not queue.isBusy
+
+    def test_worker_stop_returns_immediately_once_abandoned(self, qtbot):
+        """Shutdown calls stop() twice (queue, then thread manager). The
+        second call must not burn the timeout again."""
+        worker = TransmissionWorker()
+        worker.busy = True
+
+        assert worker.stop(timeout=0.1) is False
+        started = time.monotonic()
+        assert worker.stop(timeout=30) is False
+        assert time.monotonic() - started < 1
+
 
 class TestTransmissionWorker:
 

@@ -319,7 +319,7 @@ class TransmissionQueue(QObject):
             deliver(job, error)
         self.pump()
 
-    def stop(self):
+    def stop(self, timeout=30):
         """Shutdown path: block until the wire goes quiet, then settle the
         in-flight job synchronously — the worker's done signal is never
         delivered once the event loop has exited. Undispatched jobs are
@@ -327,13 +327,16 @@ class TransmissionQueue(QObject):
 
         The outcome is trustworthy because worker.stop() returns only once
         busy is cleared, and busy is cleared in the same finally that writes
-        the error.
+        the error. When the wait runs out, the outcome stays unknown: the
+        telegram may be half-written on the wire, so the job settles as a
+        failure instead of being archived with a success it never earned.
         """
         self.jobs.clear()
-        self.worker.stop()
+        settled = self.worker.stop(timeout)
         job, self.current = self.current, None
         if job is not None:
-            deliver(job, self.worker.error)
+            error = self.worker.error if settled else 'shutdown timed out; the transmission was abandoned'
+            deliver(job, error)
 
 
 class TransmissionWorker(QObject):
@@ -350,6 +353,7 @@ class TransmissionWorker(QObject):
         super().__init__()
         self.busy = False
         self.error = ''
+        self.abandoned = False
 
     def run(self):
         pass
@@ -377,17 +381,30 @@ class TransmissionWorker(QObject):
             self.busy = False
             self.done.emit(self.error)
 
-    def stop(self):
-        """Block the caller until the wire goes quiet.
+    def stop(self, timeout=30):
+        """Block the caller until the wire goes quiet, or give up.
 
         busy is cleared in transmit()'s finally, right after the outcome is
         written to error, so a False busy means this job's result is known.
-        That is the whole contract — there is no deadline.
+        Returns True when the wait ran out and the outcome is trustworthy;
+        False when the deadline hit and the outcome must be treated as
+        unknown. Once abandoned, later stop() calls return immediately: the
+        shutdown path calls stop() twice (queue, then thread manager), and
+        each wait would otherwise burn the full timeout again.
         """
-        if self.busy:
-            logger.info('Waiting for the transmission in flight to finish')
+        if not self.busy or self.abandoned:
+            return not self.abandoned
+
+        logger.info('Waiting for the transmission in flight to finish')
+        deadline = time.monotonic() + timeout
         while self.busy:
+            if time.monotonic() >= deadline:
+                self.abandoned = True
+                logger.error('Transmission still busy after {} s; abandoning the worker'.format(timeout))
+                return False
             time.sleep(0.05)
+
+        return True
 
 
 class CheckUpgradeWorker(QObject):
