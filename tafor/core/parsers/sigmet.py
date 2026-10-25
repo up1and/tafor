@@ -87,7 +87,7 @@ class SigmetLexer:
 
             self.tokens.append({
                 'text': text,
-                'error': not recognized
+                'error': [] if recognized else ['unrecognized']
             })
 
             prevPrev = prev
@@ -158,6 +158,8 @@ class SigmetParser:
         p.renderer(style='html')
 
     """
+
+    tips = []
     grammarClass = SigmetGrammar
 
     lexerClass = SigmetLexer

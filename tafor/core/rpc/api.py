@@ -30,58 +30,42 @@ def as_bool(body, name):
         msg = 'The value of the parameter must be "true" or "false".'
         raise falcon.errors.HTTPInvalidParam(msg, name)
 
-def parse_taf(message, kwargs):
-    parser = TafParser(message, **kwargs)
-    parser.validate()
-
+def flatten_tokens(parser, elements=None):
     tokens = []
-    for e in parser.elements:
-        for k, token in e.tokens.items():
-            pairs = (token['text'], not token['error'])
-            tokens.append(pairs)
+    elements = parser.elements if elements is None else elements
+    for e in elements:
+        for token in (e.tokens.values() if isinstance(e.tokens, dict) else e.tokens):
+            tokens.append((token['text'], not token['error']))
 
+    return tokens
+
+def validations(parser, elements=None):
     data = {
         'html': parser.renderer(style='html'),
-        'tokens': tokens,
+        'tokens': flatten_tokens(parser, elements),
         'tips': parser.tips,
         'pass': parser.isValid()
     }
     return data
+
+def parse_taf(message, kwargs):
+    parser = TafParser(message, **kwargs)
+    parser.validate()
+
+    return validations(parser)
 
 def parse_metar(message, kwargs):
     parser = MetarParser(message, trendOnly=True, **kwargs)
     parser.validate()
 
-    tokens = []
-    for e in parser.elements[1:]:
-        for k, token in e.tokens.items():
-            pairs = (token['text'], not token['error'])
-            tokens.append(pairs)
-
-    data = {
-        'html': parser.renderer(style='html'),
-        'tokens': tokens,
-        'tips': parser.tips,
-        'pass': parser.isValid()
-    }
-    return data
+    # Trend publishing validates the trend groups only; the primary
+    # report is context.
+    return validations(parser, elements=parser.trends)
 
 def parse_sigmet(message, kwargs):
     parser = SigmetParser(message, **kwargs)
 
-    tokens = []
-    for e in parser.elements:
-        for token in e.tokens:
-            pairs = (token['text'], not token['error'])
-            tokens.append(pairs)
-
-    data = {
-        'html': parser.renderer(style='html'),
-        'tokens': tokens,
-        'tips': [],
-        'pass': parser.isValid()
-    }
-    return data
+    return validations(parser)
 
 def webui():
     directory = ''
@@ -222,7 +206,7 @@ class NotificationResource:
             raise falcon.HTTPBadRequest(title='Message Required', description='Please provide a notification message.')
 
         if not (message.startswith(('METAR', 'SPECI')) or 'SIGMET' in message or 'AIRMET' in message):
-            raise falcon.HTTPBadRequest(title='Invalid Message', description='Only SIGMET/AIRMET message can be supported.')
+            raise falcon.HTTPBadRequest(title='Invalid Message', description='Only METAR/SPECI, SIGMET or AIRMET message can be supported.')
 
         media = {
             'message': message,
