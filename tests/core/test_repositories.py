@@ -153,8 +153,11 @@ class TestTafRepository:
 
 
 class TestTafRepositoryStatus:
-    """status() drives the TAF alarm: freeze utcnow at 08:00 so the current
-    FC period is 1009/1018 and its issue window (07:00 + delay) has passed."""
+    """status() returns the facts the monitor predicates read.
+
+    Whether those facts mean "expired" or "due" is a function of the clock,
+    and is covered in test_states.py.
+    """
 
     @pytest.fixture
     def repos(self, database, frozen_time):
@@ -165,42 +168,42 @@ class TestTafRepositoryStatus:
             add(session, Taf, type='FC', text=text, created=created, confirmed=confirmed)
 
     def test_status_without_message(self, repos):
-        status = repos.taf.status(SpecFC, delayMinutes=0)
+        status = repos.taf.status(SpecFC)
 
         assert status['period'] == PERIOD
         assert status['message'] is None
-        assert status['isExpired'] is True
-        assert status['shouldRemind'] is True
+        assert status['confirmed'] is False
+        assert status['cancelled'] is False
 
-    def test_unconfirmed_message_keeps_alarm(self, repos, database):
+    def test_unconfirmed_message_is_reported_unconfirmed(self, repos, database):
         self.seed(database, TAF_TEXT.replace('0606/0712', PERIOD),
                   created=MOMENT - datetime.timedelta(hours=1))
 
-        status = repos.taf.status(SpecFC, delayMinutes=0)
+        status = repos.taf.status(SpecFC)
 
         assert status['message'] is not None
-        assert status['isExpired'] is True
+        assert status['confirmed'] is False
 
-    def test_confirmed_message_clears_alarm(self, repos, database):
+    def test_confirmed_message_is_reported_confirmed(self, repos, database):
         self.seed(database, TAF_TEXT.replace('0606/0712', PERIOD),
                   created=MOMENT - datetime.timedelta(hours=1),
                   confirmed=MOMENT - datetime.timedelta(minutes=30))
 
-        status = repos.taf.status(SpecFC, delayMinutes=0)
+        status = repos.taf.status(SpecFC)
 
-        assert status['isExpired'] is False
+        assert status['confirmed'] is True
 
     def test_amended_message_is_ignored(self, repos, database):
         amended = 'TAF AMD ZPPP 100800Z {} 32008G15MPS='.format(PERIOD)
         self.seed(database, amended, created=MOMENT - datetime.timedelta(hours=1),
                   confirmed=MOMENT - datetime.timedelta(minutes=30))
 
-        status = repos.taf.status(SpecFC, delayMinutes=0)
+        status = repos.taf.status(SpecFC)
 
         assert status['message'] is None
-        assert status['isExpired'] is True
+        assert status['confirmed'] is False
 
-    def test_cnl_suppresses_alarm(self, repos, database):
+    def test_cnl_is_reported(self, repos, database):
         self.seed(database, TAF_TEXT.replace('0606/0712', PERIOD),
                   created=MOMENT - datetime.timedelta(hours=1))
         # A TAF cancel message ends in CNL without a closing '=' so that
@@ -208,18 +211,14 @@ class TestTafRepositoryStatus:
         self.seed(database, 'TAF ZPPP 101000Z {} CNL'.format(PERIOD),
                   created=MOMENT - datetime.timedelta(minutes=30))
 
-        status = repos.taf.status(SpecFC, delayMinutes=0)
+        assert repos.taf.status(SpecFC)['cancelled'] is True
 
-        assert status['isExpired'] is False
-        assert status['shouldRemind'] is False
+    def test_a_cancellation_from_another_period_is_ignored(self, repos, database):
+        # The previous window's CNL must not silence this window's reminder.
+        self.seed(database, 'TAF ZPPP 100500Z 1006/1009 CNL',
+                  created=MOMENT - datetime.timedelta(hours=1))
 
-    def test_the_operator_tolerance_is_added_to_the_spec_delay(self, repos):
-        # The deadline is 07:50 at zero tolerance, so 30 minutes of tolerance
-        # pushes it to 08:20 -- past the frozen 08:00. The formula used to floor
-        # SpecFC's 50 minutes of delay to whole hours, which threw it away and
-        # left the deadline at 07:30.
-        assert repos.taf.status(SpecFC, delayMinutes=0)['isExpired'] is True
-        assert repos.taf.status(SpecFC, delayMinutes=30)['isExpired'] is False
+        assert repos.taf.status(SpecFC)['cancelled'] is False
 
 
 class TestMetarRepository:

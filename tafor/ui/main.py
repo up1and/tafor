@@ -58,8 +58,9 @@ def restartArgs():
 class ReminderPresenter(QObject):
     """Nags about TAF and SIGMET messages that are due.
 
-    Policy and dialog stay together on purpose: the policy is three lines and
-    reads better next to the question it produces.
+    A clock asks the policy, rather than a state change pushing a trigger:
+    whether a report is due depends on the time, not on whether the feed
+    happened to deliver something.
     """
 
     def __init__(self, view, context, conf, parent=None):
@@ -67,35 +68,49 @@ class ReminderPresenter(QObject):
         self.view = view
         self.context = context
         self.conf = conf
+        self.dismissed = None
 
         self.snooze = QTimer(self)
         self.snooze.setSingleShot(True)
         self.snooze.timeout.connect(self.remindTaf)
 
     def initialize(self):
-        self.context.event.tafReminderTriggered.connect(self.remindTaf)
         self.view.reminderToggled.connect(self.setReminder)
         # A sent message can bring a SIGMET reminder forward or cancel it
         self.view.messageSent.connect(self.remindSigmet)
 
         self.timer = QTimer(self)
-        self.timer.timeout.connect(self.remindSigmet)
+        self.timer.timeout.connect(self.check)
         self.timer.start(60 * 1000)
 
+    def check(self):
+        self.remindTaf()
+        self.remindSigmet()
+
     def remindTaf(self):
+        if self.snooze.isActive():
+            return
+
         if not self.conf.remindTaf or self.view.reminderVisible('taf'):
             return
 
         if not self.context.taf.shouldRemind():
             return
 
-        spec = self.context.taf.spec.designator
         period = self.context.taf.period()
+        # Dismissing keeps shouldRemind true until a report arrives, so without
+        # this the periodic check would ask again on every tick.
+        if period == self.dismissed:
+            return
+
+        spec = self.context.taf.spec.designator
         mark = spec + period[2:4] + period[7:]
         text = QCoreApplication.translate('MainWindow', 'Time to issue {}').format(mark)
 
         if self.view.showReminder('taf', text) == QMessageBox.RejectRole:
             self.snooze.start(self.conf.remindSnoozeMinutes * 60 * 1000)
+        else:
+            self.dismissed = period
 
     def remindSigmet(self):
         if not self.conf.remindSigmet or self.view.reminderVisible('sigmet'):
@@ -364,39 +379,43 @@ class BoardPresenter(QObject):
         self.builder = RecentEntryBuilder(context, conf, repositories)
 
     def initialize(self):
-        self.context.event.remoteMessageChanged.connect(self.refresh)
+        self.context.event.remoteMessageChanged.connect(lambda: self.refresh(force=True))
         self.context.event.notificationChanged.connect(self.render)
         self.context.event.currentSigmetChanged.connect(self.renderSigmetGraphic)
         self.view.notificationExpired.connect(self.expire)
-        self.view.messageSent.connect(self.refresh)
+        self.view.messageSent.connect(lambda: self.refresh(force=True))
 
-        # Deliberately not refresh(): refreshing the TAF monitor state raises
-        # context.taf.shouldRemind, which fires tafReminderTriggered and opens
-        # the reminder dialog before the window has even settled. The original
-        # startup never read the TAF status either, so this matches it.
-        self.refreshSigmet()
-        self.render()
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.refresh)
+        self.timer.start(60 * 1000)
 
-    def refresh(self):
-        """Read the database, push the monitor state, then draw."""
-        self.refreshTaf()
-        self.refreshSigmet()
-        self.render()
+        # Seed the monitor state and draw once. The reminder is evaluated by
+        # its own clock now, so loading the state here cannot open a dialog.
+        self.refresh(force=True)
+
+    def refresh(self, force=False):
+        """Refresh the monitor feed, then redraw if it moved.
+
+        Data events pass ``force`` because a new METAR changes a table without
+        changing the TAF/SIGMET monitor facts.
+        """
+        changed = any((self.refreshTaf(), self.refreshSigmet()))
+        if changed or force:
+            self.render()
 
     def refreshTaf(self):
-        status = self.repositories.taf.status(
-            self.context.taf.spec, delayMinutes=self.conf.delayMinutes
+        return self.context.taf.setState(
+            self.repositories.taf.status(self.context.taf.spec)
         )
-        self.context.taf.setState(status)
 
     def refreshSigmet(self):
         try:
             sigmets = self.repositories.sigmet.current()
         except Exception as e:
             logger.error('Sigmet cannot be updated, {}'.format(e))
-            return
+            return False
 
-        self.context.current.setState(sigmets)
+        return self.context.current.setState(sigmets)
 
     def renderSigmetGraphic(self):
         """context.current only announces a change when the set of SIGMETs

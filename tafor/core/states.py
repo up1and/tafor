@@ -3,7 +3,7 @@ import logging
 
 from tafor.core.events import Event
 from tafor.core.geometry.projection import UnsupportedProjection, WebMercator, proj
-from tafor.core.taf.spec import SpecFC, SpecFT24, SpecFT30
+from tafor.core.taf.spec import CurrentTaf, SpecFC, SpecFT24, SpecFT30
 from tafor.core.utils.time import utcnow
 
 
@@ -62,11 +62,18 @@ class LayerState:
 
 
 class TafMonitorState:
+    """The database facts the TAF monitor was last refreshed with.
+
+    Only facts live here. ``isExpired`` and ``shouldRemind`` depend on the
+    clock, so they are computed when read; caching them made the monitor
+    advance only when the remote feed happened to change.
+    """
+
     def __init__(self):
         self.period = ''
         self.message = None
-        self.isExpired = False
-        self.shouldRemind = False
+        self.confirmed = False
+        self.cancelled = False
 
 
 class SigmetMonitorState:
@@ -117,9 +124,12 @@ class CurrentSigmetService:
         oldSigmets = [s.text for s in self.state.sigmets]
         newSigmets = [s.text for s in values]
 
-        if set(oldSigmets) != set(newSigmets):
-            self.state.sigmets = list(values)
-            self.event.currentSigmetChanged.emit()
+        if set(oldSigmets) == set(newSigmets):
+            return False
+
+        self.state.sigmets = list(values)
+        self.event.currentSigmetChanged.emit()
+        return True
 
     def filterSigmets(self, sigmetFilter=None):
         from tafor.core.repositories import SigmetFilter
@@ -256,22 +266,37 @@ class LayerService(StateProxyMixin):
         self.event.layerRefreshRequested.emit()
 
 
-class TafMonitorService(StateProxyMixin):
-    fields = ['message']
+class TafMonitorService:
+    """The TAF monitor's rules, read against the current clock.
 
-    def __init__(self, state, event, conf):
+    ``setState`` stores what the repository found; every predicate below
+    combines that snapshot with the wall clock, so no data event is needed for
+    an overdue report to become overdue.
+    """
+
+    def __init__(self, state, conf):
         self.state = state
-        self.event = event
         self.conf = conf
 
     def setState(self, values):
-        oldShouldRemind = self.state.shouldRemind
+        before = self.snapshotKey()
         for key, value in values.items():
             if hasattr(self.state, key):
                 setattr(self.state, key, value)
+        return before != self.snapshotKey()
 
-        if self.state.shouldRemind and not oldShouldRemind:
-            self.event.tafReminderTriggered.emit()
+    def snapshotKey(self):
+        message = self.state.message
+        return (
+            self.state.period,
+            self.state.confirmed,
+            self.state.cancelled,
+            None if message is None else (message.id, message.text),
+        )
+
+    def isCurrent(self, window):
+        """Whether the snapshot was read for the window the clock is in now."""
+        return self.state.period == window.period()
 
     @property
     def spec(self):
@@ -282,14 +307,33 @@ class TafMonitorService(StateProxyMixin):
             return SpecFT30
         return SpecFC
 
+    @property
+    def message(self):
+        window = CurrentTaf(self.spec)
+        return self.state.message if self.isCurrent(window) else None
+
     def shouldRemind(self):
-        return self.state.shouldRemind and self.state.message is None
+        window = CurrentTaf(self.spec)
+        if not self.isCurrent(window):
+            return False
+        return (
+            window.isExpired(5)
+            and self.state.message is None
+            and not self.state.cancelled
+        )
 
     def isExpired(self):
-        return self.state.isExpired
+        window = CurrentTaf(self.spec)
+        if not self.isCurrent(window):
+            return False
+        return (
+            window.isExpired(self.conf.delayMinutes)
+            and not self.state.confirmed
+            and not self.state.cancelled
+        )
 
     def period(self):
-        return self.state.period
+        return CurrentTaf(self.spec).period()
 
 
 class SigmetMonitorService(StateProxyMixin):
@@ -462,7 +506,7 @@ class AppContext:
         self.message = RemoteMessageService(remoteMessageState, self.event)
         self.current = CurrentSigmetService(currentSigmetState, self.event)
         self.layer = LayerService(layerState, self.event, conf)
-        self.taf = TafMonitorService(tafMonitorState, self.event, conf)
+        self.taf = TafMonitorService(tafMonitorState, conf)
         self.sigmet = SigmetMonitorService(sigmetMonitorState, self.event)
         self.notification = NotificationManager(notificationStates, self.event, conf)
         self.flash = FlashService(self.event)

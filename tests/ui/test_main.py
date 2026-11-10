@@ -313,7 +313,7 @@ class TestBoardPresenter:
 
         monkeypatch.setattr(board.repositories.sigmet, 'current', explode)
 
-        board.refresh()
+        board.refresh(force=True)
 
         assert view.boards == 1
 
@@ -323,34 +323,35 @@ class TestBoardPresenter:
         assert view.boards == 1
         assert view.tables == 1
 
-    def test_initialize_does_not_raise_the_taf_reminder(self, board, context, frozen_time):
-        """Reading the TAF status flips shouldRemind, which fires
-        tafReminderTriggered and opens the reminder dialog -- with the alarm
-        looping -- before the window has settled. The startup refresh must
-        leave the TAF monitor state alone, as the original did.
-
-        frozen_time: shouldRemind only turns True once the window deadline has
-        passed, so on the real clock this assertion has teeth for under an hour
-        out of every six and is vacuously satisfied the rest of the time.
-        """
-        fired = []
-        context.event.tafReminderTriggered.connect(lambda: fired.append(True))
-
+    def test_initialize_seeds_the_monitor_without_prompting(self, board, context, frozen_time):
+        """Startup establishes the real monitor state. The reminder clock, not
+        the state load, decides when to ask -- so an overdue report is visible
+        to the alarm from the first tick instead of being skipped until the
+        feed happens to change."""
         board.initialize()
 
-        assert fired == []
-        assert context.taf.shouldRemind() is False
+        assert context.taf.isExpired() is True
+        assert context.taf.shouldRemind() is True
 
-    def test_a_later_refresh_does_raise_the_taf_reminder(self, board, context, frozen_time):
-        # frozen_time: the reminder is not due for the first 55 minutes of every
-        # window, so on the real clock this assertion depends on when the suite runs.
-        fired = []
-        context.event.tafReminderTriggered.connect(lambda: fired.append(True))
+    def test_initialize_arms_the_monitor_clock(self, board):
         board.initialize()
+
+        assert board.timer.isActive() is True
+        assert board.timer.interval() == 60 * 1000
+
+    def test_refresh_redraws_only_when_data_moves(
+            self, board, view, context, database, frozen_time):
+        board.initialize()
+        view.boards = 0
 
         board.refresh()
+        assert view.boards == 0
 
-        assert fired == [True]
+        with database.session() as session:
+            session.add(Sigmet(type='WS', text=SIGMET_ACTIVE, created=MOMENT))
+        board.refresh()
+
+        assert view.boards == 1
 
     def test_remote_message_changed_refreshes(self, board, view, context):
         board.initialize()
@@ -410,7 +411,11 @@ class TestBoardPresenter:
         assert text[2:].isdigit()
 
     def test_the_board_text_empties_once_the_report_arrives(self, board, context):
-        context.taf.setState({'message': Taf(type='FT', text='TAF YUSO=')})
+        context.taf.setState({
+            'period': context.taf.period(),
+            'message': Taf(type='FT', text='TAF YUSO='),
+            'confirmed': False,
+        })
 
         assert board.currentTaf() == ''
 
@@ -827,12 +832,20 @@ class TestReminderPresenter:
         return FakeReminderView()
 
     @pytest.fixture
-    def remind(self, remind_conf, context, view):
+    def remind(self, remind_conf, context, view, frozen_time):
         presenter = ReminderPresenter(view, context, remind_conf)
         yield presenter
         presenter.snooze.stop()
         if hasattr(presenter, 'timer'):
             presenter.timer.stop()
+
+    def seed_due_taf(self, context):
+        context.taf.setState({
+            'period': context.taf.period(),
+            'message': None,
+            'confirmed': False,
+            'cancelled': False,
+        })
 
     def test_remind_taf_returns_when_the_switch_is_off(self, remind, remind_conf, view):
         remind_conf.remindTaf = False
@@ -847,7 +860,7 @@ class TestReminderPresenter:
         assert view.prompts == []
 
     def test_remind_taf_fires_when_due(self, remind, context, view):
-        context.taf.setState({'shouldRemind': True, 'message': None})
+        self.seed_due_taf(context)
 
         remind.remindTaf()
 
@@ -856,7 +869,7 @@ class TestReminderPresenter:
         assert 'FT' in view.prompts[0][1]
 
     def test_remind_taf_snoozes_on_reject(self, remind, remind_conf, context, view):
-        context.taf.setState({'shouldRemind': True, 'message': None})
+        self.seed_due_taf(context)
         view.answer = QMessageBox.RejectRole
 
         remind.remindTaf()
@@ -865,11 +878,28 @@ class TestReminderPresenter:
         assert remind.snooze.interval() == remind_conf.remindSnoozeMinutes * 60 * 1000
 
     def test_remind_taf_does_not_snooze_on_accept(self, remind, context, view):
-        context.taf.setState({'shouldRemind': True, 'message': None})
+        self.seed_due_taf(context)
 
         remind.remindTaf()
 
         assert remind.snooze.isActive() is False
+
+    def test_an_accepted_reminder_is_not_asked_again_this_period(self, remind, context, view):
+        self.seed_due_taf(context)
+
+        remind.remindTaf()
+        remind.remindTaf()
+
+        assert len(view.prompts) == 1
+
+    def test_a_rejected_reminder_waits_for_the_snooze(self, remind, context, view):
+        self.seed_due_taf(context)
+        view.answer = QMessageBox.RejectRole
+
+        remind.remindTaf()
+        remind.remindTaf()
+
+        assert len(view.prompts) == 1
 
     def test_set_reminder_adds_and_removes(self, remind, context, view):
         sigmet = Sigmet(type='WS', heading='ZJSA SIGMET 2 VALID 100930/101430 ZJHK-',
@@ -926,22 +956,27 @@ class TestReminderPresenter:
 
         assert view.prompts == []
 
-    def test_initialize_arms_the_sigmet_timer(self, remind):
+    def test_initialize_arms_the_reminder_clock(self, remind):
         remind.initialize()
 
         assert remind.timer.isActive() is True
         assert remind.timer.interval() == 60 * 1000
 
-    def test_initialize_subscribes_to_the_taf_trigger(self, remind, context, view):
-        context.taf.setState({'shouldRemind': True, 'message': None})
+    def test_initialize_does_not_prompt_before_the_first_check(self, remind, context, view):
+        self.seed_due_taf(context)
+
         remind.initialize()
+        assert view.prompts == []
 
-        context.event.tafReminderTriggered.emit()
-
+        remind.check()
         assert len(view.prompts) == 1
 
     def test_remind_taf_returns_when_nothing_is_due(self, remind, context, view):
-        assert context.taf.shouldRemind() is False
+        context.taf.setState({
+            'period': context.taf.period(),
+            'message': Taf(type='FT', text='TAF YUSO='),
+            'confirmed': True,
+        })
 
         remind.remindTaf()
 
@@ -1157,11 +1192,19 @@ class TestSoundPresenter:
         conf.remindTrend = True
 
     @pytest.fixture
-    def sound(self, view, sound_conf, context):
+    def sound(self, view, sound_conf, context, frozen_time):
         presenter = SoundPresenter(view, context, sound_conf)
         yield presenter
         if hasattr(presenter, 'timer'):
             presenter.timer.stop()
+
+    def seed_taf(self, context, confirmed=False):
+        context.taf.setState({
+            'period': context.taf.period(),
+            'message': Taf(type='FT', text='TAF YUSO=') if confirmed else None,
+            'confirmed': confirmed,
+            'cancelled': False,
+        })
 
     def test_initialize_ticks_every_second(self, sound):
         sound.initialize()
@@ -1191,25 +1234,25 @@ class TestSoundPresenter:
 
     def test_the_alarm_channel_needs_the_switch(self, sound, view, context):
         view.alarm = False
-        context.taf.setState({'isExpired': True})
+        self.seed_taf(context)
 
         assert sound.isAlarmActive() is False
 
     def test_the_alarm_channel_needs_an_expired_taf(self, sound, view, context):
         view.alarm = True
-        context.taf.setState({'isExpired': False})
+        self.seed_taf(context, confirmed=True)
 
         assert sound.isAlarmActive() is False
 
     def test_the_alarm_channel_sounds_when_both_hold(self, sound, view, context):
         view.alarm = True
-        context.taf.setState({'isExpired': True})
+        self.seed_taf(context)
 
         assert sound.isAlarmActive() is True
 
     def test_a_tick_pushes_both_channels(self, sound, view, context):
         view.alarm = True
-        context.taf.setState({'isExpired': True})
+        self.seed_taf(context)
         context.notification.metar.setState({'message': METAR_TEXT, 'validation': True})
 
         sound.tick()

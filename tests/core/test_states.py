@@ -7,11 +7,13 @@ projection module: what to draw when the setting cannot be served is a
 configuration decision, not a geometric one.
 """
 
+import datetime
 import logging
 
 import pytest
 
 from tafor.core.geometry import projection
+from tafor.core.models import Taf
 
 
 @pytest.fixture
@@ -57,3 +59,95 @@ class TestLayerProjection:
         context.layer.projection()
 
         assert conf.projection == '+proj=lcc +lat_1=30 +lat_2=60'
+
+
+class TestTafMonitor:
+    """The monitor stores facts; time decides what they mean."""
+
+    @pytest.fixture
+    def monitor_conf(self, conf):
+        spec, delay = conf.tafSpec, conf.delayMinutes
+        yield conf
+        conf.tafSpec, conf.delayMinutes = spec, delay
+
+    @pytest.fixture
+    def monitor(self, monitor_conf, context, frozen_time):
+        monitor_conf.tafSpec = 0        # SpecFC
+        monitor_conf.delayMinutes = 0   # deadline 07:50 at the frozen 08:00
+        return context.taf
+
+    def seed(self, monitor):
+        monitor.setState({
+            'period': monitor.period(),
+            'message': None,
+            'confirmed': False,
+            'cancelled': False,
+        })
+
+    def test_the_clock_alone_flips_the_alarm(self, monitor, time_machine):
+        time_machine.move_to(datetime.datetime(2026, 6, 10, 7, 45), tick=False)
+        self.seed(monitor)
+        assert monitor.isExpired() is False
+
+        # No data event and no repository read: only the clock moved.
+        time_machine.move_to(datetime.datetime(2026, 6, 10, 8, 0), tick=False)
+        assert monitor.isExpired() is True
+        assert monitor.shouldRemind() is True
+
+    def test_the_operator_tolerance_is_added_to_the_spec_delay(self, monitor, monitor_conf):
+        # The deadline is 07:50 at zero tolerance, so 30 minutes of tolerance
+        # pushes it to 08:20 -- past the frozen 08:00.
+        self.seed(monitor)
+        assert monitor.isExpired() is True
+
+        monitor_conf.delayMinutes = 30
+        assert monitor.isExpired() is False
+
+    def test_a_confirmed_report_clears_the_alarm(self, monitor):
+        message = Taf(type='FC', text='TAF ZPPP 100800Z 1009/1018 32008MPS=')
+        self.seed(monitor)
+        monitor.setState({'message': message, 'confirmed': True})
+
+        assert monitor.isExpired() is False
+        assert monitor.shouldRemind() is False
+
+    def test_an_unconfirmed_report_keeps_the_alarm(self, monitor):
+        message = Taf(type='FC', text='TAF ZPPP 100800Z 1009/1018 32008MPS=')
+        self.seed(monitor)
+        monitor.setState({'message': message, 'confirmed': False})
+
+        assert monitor.isExpired() is True
+        assert monitor.shouldRemind() is False
+
+    def test_a_cancellation_suppresses_both(self, monitor):
+        self.seed(monitor)
+        monitor.setState({'cancelled': True})
+
+        assert monitor.isExpired() is False
+        assert monitor.shouldRemind() is False
+
+    def test_a_snapshot_from_another_period_is_ignored(self, monitor):
+        message = Taf(type='FC', text='TAF ZPPP 100800Z 1009/1018 32008MPS=')
+        monitor.setState({
+            'period': 'stale/period',
+            'message': message,
+            'confirmed': False,
+            'cancelled': False,
+        })
+
+        assert monitor.message is None
+        assert monitor.isExpired() is False
+        assert monitor.shouldRemind() is False
+
+    def test_set_state_reports_only_real_changes(self, monitor):
+        values = {
+            'period': monitor.period(),
+            'message': None,
+            'confirmed': False,
+            'cancelled': False,
+        }
+        assert monitor.setState(values) is True
+        assert monitor.setState(dict(values)) is False
+
+        values['message'] = Taf(type='FC', text='TAF ZPPP 100800Z 1009/1018 32008MPS=')
+        assert monitor.setState(values) is True

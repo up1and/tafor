@@ -129,39 +129,43 @@ class TafRepository(Repository):
         with self.database.session() as session:
             return session.query(Taf).filter_by(type=type).order_by(Taf.created.desc()).first()
 
-    def status(self, spec, delayMinutes=None):
+    def status(self, spec):
+        """The facts the TAF monitor needs, read for the current window.
+
+        Expiry and reminder decisions belong to the clock, not to a query, so
+        nothing here turns them into booleans. ``cancelled`` is scoped to the
+        same period: a cancellation from an earlier window must not silence
+        this window's reminder.
+        """
         currentTaf = CurrentTaf(spec)
         period = currentTaf.period()
 
-        shouldRemind = currentTaf.isExpired(minutes=5)
-        isExpired = False
-
-        # Ignore AMD COR message
         expired = utcnow() - datetime.timedelta(hours=32)
 
         with self.database.session() as session:
-            recent = session.query(Taf).filter(Taf.text.contains(period),  ~Taf.text.contains('AMD'),
-            ~Taf.text.contains('COR'), Taf.created > expired).order_by(Taf.created.desc()).first()
+            recent = session.query(Taf).filter(
+                Taf.text.contains(period),
+                ~Taf.text.contains('AMD'),
+                ~Taf.text.contains('COR'),
+                Taf.created > expired,
+            ).order_by(Taf.created.desc()).first()
 
-        if currentTaf.isExpired(minutes=delayMinutes):
-            if recent:
-                if not recent.confirmed:
-                    isExpired = True
-            else:
-                isExpired = True
+            cancellations = session.query(Taf).filter(
+                Taf.type == currentTaf.spec.designator,
+                Taf.text.contains(period),
+                Taf.text.contains('CNL'),
+                Taf.created > expired,
+            ).all()
 
-        # The alarm clock no longer rings after the cancel message is issued
-        latest = self.latest(currentTaf.spec.designator)
-        if latest and latest.isCnl():
-            isExpired = False
-            shouldRemind = False
+            confirmed = bool(recent and recent.confirmed)
+            cancelled = any(taf.isCnl() for taf in cancellations)
 
         return {
-                'period': period,
-                'message': recent,
-                'isExpired': isExpired,
-                'shouldRemind': shouldRemind,
-            }
+            'period': period,
+            'message': recent,
+            'confirmed': confirmed,
+            'cancelled': cancelled,
+        }
 
 
 class MetarRepository(Repository):
