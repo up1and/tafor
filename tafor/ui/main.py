@@ -154,26 +154,26 @@ class MessagePresenter(QObject):
     """Incoming telegrams: store them, alert the user, and hand a message the
     API pushed in to the sender that can show it.
 
-    Owns the message worker. The fetch runs off the GUI thread and hands its
-    payload to the bridge, which is the only door into the context.
+    Owns the message worker. The fetch runs off the GUI thread; Qt queues
+    each payload back to this presenter, which persists it before publishing.
     """
 
-    def __init__(self, view, context, conf, repositories, workers, bridge, parent=None):
+    def __init__(self, view, context, conf, repositories, workers, parent=None):
         super().__init__(parent)
         self.view = view
         self.context = context
         self.conf = conf
         self.repositories = repositories
         self.workers = workers
-        self.bridge = bridge
 
     def initialize(self):
         self.worker, self.thread = self.workers.create(
             MessageWorker, self.conf, workerId='message', reusable=True
         )
-        self.worker.fetched.connect(self.bridge.updateMessage)
+        # The presenter is a GUI-thread object, so Qt queues the worker's
+        # signal here -- no bridge hop is needed for this feed.
+        self.worker.fetched.connect(self.store)
         self.worker.failed.connect(self.connectionLost)
-        self.context.event.remoteMessageChanged.connect(self.store)
         self.context.event.otherMessageReceived.connect(self.presentCustom)
 
         self.timer = QTimer(self)
@@ -185,12 +185,30 @@ class MessagePresenter(QObject):
         if not self.thread.isRunning():
             self.thread.start()
 
-    def store(self):
-        types = subscribedTypes(self.conf.tafSpec, self.conf.sigmetEnabled)
-        messages = self.repositories.message.save(self.context.message.message(), types=types)
-        alert = False
+    def store(self, messages):
+        """The whole receive flow, in one place: persist, publish, alert.
 
-        for message in messages:
+        Publishing after the commit is what makes ordering safe -- the board
+        reads the database from its handler, and it can never run before the
+        writes. A failed save leaves the feed state untouched, so the next
+        poll retries the same payload instead of losing it.
+        """
+        if messages == self.context.message.message():
+            return
+
+        try:
+            saved = self.repositories.message.save(
+                messages,
+                types=subscribedTypes(self.conf.tafSpec, self.conf.sigmetEnabled),
+            )
+        except Exception:
+            logger.exception('Remote messages could not be stored')
+            return
+
+        self.context.message.setState(messages)
+
+        alert = False
+        for message in saved:
             if message.type in ('SA', 'SP'):
                 self.context.notification.metar.clear()
             else:
@@ -379,7 +397,7 @@ class BoardPresenter(QObject):
         self.builder = RecentEntryBuilder(context, conf, repositories)
 
     def initialize(self):
-        self.context.event.remoteMessageChanged.connect(lambda: self.refresh(force=True))
+        self.context.event.messagesStored.connect(lambda: self.refresh(force=True))
         self.context.event.notificationChanged.connect(self.render)
         self.context.event.currentSigmetChanged.connect(self.renderSigmetGraphic)
         self.view.notificationExpired.connect(self.expire)

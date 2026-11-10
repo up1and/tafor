@@ -501,8 +501,5 @@ class ContextBridge(QObject):
     def updateOther(self, message):
         self.context.event.otherMessageReceived.emit(message)
 
-    def updateMessage(self, data):
-        self.context.message.setState(data)
-
     def updateLayer(self, data):
         self.context.layer.setLayer(data)

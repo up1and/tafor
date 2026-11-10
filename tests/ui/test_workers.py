@@ -226,13 +226,6 @@ class TestContextBridge:
 
         assert received == ['transient message']
 
-    def test_update_message_sets_remote_state(self, qtbot, context):
-        bridge = ContextBridge(context)
-
-        bridge.updateMessage({'SA': METAR})
-
-        assert context.message.message() == {'SA': METAR}
-
     def test_forwards_transmission(self, qtbot, context):
         context.transmission = object()
         bridge = ContextBridge(context)

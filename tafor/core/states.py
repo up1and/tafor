@@ -110,9 +110,14 @@ class RemoteMessageService:
         return self.state.messages
 
     def setState(self, values):
-        if self.state.messages != values:
-            self.state.messages = dict(values)
-            self.event.remoteMessageChanged.emit()
+        """Publish a batch the repository has already committed.
+
+        Callers establish that the batch is new and store it first, so this
+        state always describes what is in the database -- never a payload
+        that failed to save.
+        """
+        self.state.messages = dict(values)
+        self.event.messagesStored.emit()
 
 
 class CurrentSigmetService:

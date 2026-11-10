@@ -511,7 +511,7 @@ class TestApplication:
 
         assert doubles.byRole['ReminderPresenter'][0].args == (window, runtime.context, runtime.conf)
         assert doubles.byRole['MessagePresenter'][0].args == (
-            window, runtime.context, runtime.conf, runtime.repositories, workers, runtime.bridge)
+            window, runtime.context, runtime.conf, runtime.repositories, workers)
         assert doubles.byRole['NotificationPresenter'][0].args == (
             window, runtime.context, runtime.repositories)
         assert doubles.byRole['BoardPresenter'][0].args == (

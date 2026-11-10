@@ -153,7 +153,7 @@ class Application:
         self.window = MainWindow(runtime.conf, runtime.context, runtime.repositories)
         self.presenters = [
             ReminderPresenter(self.window, self.runtime.context, self.runtime.conf),
-            MessagePresenter(self.window, self.runtime.context, self.runtime.conf, self.runtime.repositories, self.workers, self.runtime.bridge),
+            MessagePresenter(self.window, self.runtime.context, self.runtime.conf, self.runtime.repositories, self.workers),
             NotificationPresenter(self.window, self.runtime.context, self.runtime.repositories),
             BoardPresenter(self.window, self.runtime.context, self.runtime.conf, self.runtime.repositories),
             SoundPresenter(self.window, self.runtime.context, self.runtime.conf),

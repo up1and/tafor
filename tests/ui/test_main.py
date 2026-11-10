@@ -193,11 +193,7 @@ class FakeBridge(QObject):
 
     def __init__(self):
         super().__init__()
-        self.messages = []
         self.layers = []
-
-    def updateMessage(self, data):
-        self.messages.append(data)
 
     def updateLayer(self, data):
         self.layers.append(data)
@@ -353,11 +349,11 @@ class TestBoardPresenter:
 
         assert view.boards == 1
 
-    def test_remote_message_changed_refreshes(self, board, view, context):
+    def test_stored_messages_refresh(self, board, view, context):
         board.initialize()
         view.boards = 0
 
-        context.event.remoteMessageChanged.emit()
+        context.event.messagesStored.emit()
 
         assert view.boards == 1
 
@@ -653,17 +649,15 @@ class TestMessagePresenter:
         return FakeBridge()
 
     @pytest.fixture
-    def message(self, view, conf, context, repositories, bridge):
-        presenter = MessagePresenter(view, context, conf, repositories, FakePool(), bridge)
+    def message(self, view, conf, context, repositories):
+        presenter = MessagePresenter(view, context, conf, repositories, FakePool())
         yield presenter
         # initialize() arms a one-minute poll; leave no timer running
         if hasattr(presenter, 'timer'):
             presenter.timer.stop()
 
     def test_store_saves_new_messages_with_a_sound(self, message, view, database, context):
-        context.message.setState({'FT': TAF_TEXT})
-
-        message.store()
+        message.store({'FT': TAF_TEXT})
 
         assert view.sounds == [('notification', True)]
         assert view.closed == ['taf']
@@ -673,13 +667,12 @@ class TestMessagePresenter:
             assert stored is not None
             assert stored.text == TAF_TEXT
 
-    def test_store_confirms_known_messages(self, message, database, context):
+    def test_store_confirms_known_messages(self, message, database):
         created = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
         with database.session() as session:
             session.add(Taf(type='FT', text=TAF_TEXT, created=created))
-        context.message.setState({'FT': TAF_TEXT})
 
-        message.store()
+        message.store({'FT': TAF_TEXT})
 
         with database.session() as session:
             stored = session.query(Taf).filter(Taf.type == 'FT').first()
@@ -687,9 +680,8 @@ class TestMessagePresenter:
 
     def test_store_clears_metar_notification_without_sound(self, message, view, database, context):
         context.notification.metar.setState({'message': METAR_TEXT, 'validation': True})
-        context.message.setState({'SA': METAR_TEXT})
 
-        message.store()
+        message.store({'SA': METAR_TEXT})
 
         assert view.sounds == []
         assert context.notification.metar.message() is None
@@ -697,12 +689,75 @@ class TestMessagePresenter:
         with database.session() as session:
             assert session.query(Metar).filter(Metar.text == METAR_TEXT).first() is not None
 
-    def test_initialize_subscribes_to_the_remote_feed(self, message, view, context):
-        message.initialize()
-
-        context.message.setState({'FT': TAF_TEXT})
+    def test_store_ignores_an_unchanged_payload(self, message, view):
+        message.store({'FT': TAF_TEXT})
+        message.store({'FT': TAF_TEXT})
 
         assert view.sounds == [('notification', True)]
+
+    def test_the_feed_event_fires_after_the_commit(self, message, context, database):
+        seen = []
+
+        def probe():
+            with database.session() as session:
+                seen.append(session.query(Taf).filter(Taf.type == 'FT').count())
+
+        context.event.messagesStored.connect(probe)
+
+        message.store({'FT': TAF_TEXT})
+
+        assert seen == [1]
+
+    def test_a_failed_store_leaves_the_payload_for_a_retry(
+            self, message, context, database, monkeypatch):
+        attempts = []
+        save = message.repositories.message.save
+
+        def fail_once(messages, types=None):
+            attempts.append(messages)
+            if len(attempts) == 1:
+                raise RuntimeError('database is gone')
+            return save(messages, types=types)
+
+        monkeypatch.setattr(message.repositories.message, 'save', fail_once)
+
+        message.store({'FT': TAF_TEXT})
+
+        assert context.message.message() == {}
+
+        message.store({'FT': TAF_TEXT})
+
+        assert context.message.message() == {'FT': TAF_TEXT}
+        assert len(attempts) == 2
+
+        with database.session() as session:
+            assert session.query(Taf).filter(Taf.type == 'FT').first() is not None
+
+    def test_initialize_subscribes_to_the_remote_feed(self, message, view):
+        message.initialize()
+
+        message.worker.fetched.emit({'FT': TAF_TEXT})
+
+        assert view.sounds == [('notification', True)]
+
+    def test_a_board_initialized_before_the_receiver_sees_the_write(
+            self, view, conf, context, repositories, database):
+        boardView = FakeBoardView()
+        board = BoardPresenter(boardView, context, conf, repositories)
+        board.initialize()
+        boardView.boards = 0
+
+        message = MessagePresenter(view, context, conf, repositories, FakePool())
+        message.initialize()
+        try:
+            message.worker.fetched.emit({'FT': TAF_TEXT})
+        finally:
+            message.timer.stop()
+            board.timer.stop()
+
+        assert boardView.boards == 1
+        with database.session() as session:
+            assert session.query(Taf).filter(Taf.type == 'FT').first() is not None
 
     def test_initialize_starts_the_fetch(self, message):
         message.initialize()
@@ -734,15 +789,14 @@ class TestMessagePresenter:
 
         assert view.notices[0][2] == 'warning'
 
-    def test_a_successful_fetch_reports_nothing(self, message, view, context, bridge):
+    def test_a_successful_fetch_reports_nothing(self, message, view, context):
         # a legitimate empty payload is fresh silence, not a dead connection
         message.initialize()
-        bridge.messages.clear()
 
         message.worker.fetched.emit({})
 
         assert view.notices == []
-        assert bridge.messages == [{}]
+        assert context.message.message() == {}
 
 
 class TestLayerPresenter:
