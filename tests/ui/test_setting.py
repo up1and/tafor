@@ -1,10 +1,12 @@
 import json
+import datetime
 
 import pytest
 
 from PyQt5.QtWidgets import QMessageBox, QFileDialog
 
 from tafor.core.config import createConfig
+from tafor.core.states import SequenceService
 from tafor.ui.components.setting import SettingDialog
 
 from tests.mocks import MockConfig
@@ -18,8 +20,12 @@ class TestSetting:
         return createConfig(settings=MockConfig())
 
     @pytest.fixture
-    def setting(self, qtbot, conf):
-        dialog = SettingDialog(None, conf)
+    def sequence(self, conf):
+        return SequenceService(conf)
+
+    @pytest.fixture
+    def setting(self, qtbot, conf, sequence):
+        dialog = SettingDialog(None, conf, sequence)
         qtbot.addWidget(dialog)
         return dialog
 
@@ -49,6 +55,37 @@ class TestSetting:
 
         assert setting.channelSequenceNumber.text() == '1'
         assert conf.channelSequenceNumber == '1'
+
+    def test_saving_settings_does_not_rewind_an_advanced_sequence(self, setting, conf):
+        # The dialog loaded 1; a transmission settled while it was open and
+        # advanced the runtime counter. Saving another setting must not put
+        # the stale control value back.
+        conf.set('channelSequenceNumber', '9')
+
+        setting.save()
+
+        assert conf.channelSequenceNumber == '9'
+
+    def test_an_explicitly_edited_sequence_is_saved(self, setting, conf, qtbot):
+        setting.channelSequenceNumber.clear()
+        qtbot.keyClicks(setting.channelSequenceNumber, '7')
+
+        setting.save()
+
+        assert conf.channelSequenceNumber == '7'
+
+    def test_showing_after_midnight_rolls_the_counters(
+            self, qtbot, conf, frozen_time, time_machine):
+        sequence = SequenceService(conf)
+        dialog = SettingDialog(None, conf, sequence)
+        qtbot.addWidget(dialog)
+        conf.set('channelSequenceNumber', '9')
+
+        time_machine.move_to(frozen_time + datetime.timedelta(days=1))
+        dialog.show()
+
+        assert conf.channelSequenceNumber == '1'
+        assert dialog.channelSequenceNumber.text() == '1'
 
     def test_weather(self, setting):
         # The lists start pre-filled from config (load())
@@ -126,7 +163,6 @@ class TestSetting:
 
         setting.load()
         setting.save()
-        setting.checkChannelNumber()
         setting.copyAuthToken()
         setting.resetFtpLoginButton()
 

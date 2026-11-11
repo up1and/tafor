@@ -8,7 +8,7 @@ from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
 from tafor.core.parsers.metar import MetarParser
 from tafor.core.parsers.sigmet import SigmetParser
 from tafor.core.parsers.taf import TafParser
-from tafor.core.telegram.channels import canResend, createChannel
+from tafor.core.telegram.channels import canResend, counterKey, createChannel
 from tafor.core.telegram.generator import AFTNDecoder
 from tafor.core.utils.common import iconPath
 from tafor.core.utils.time import utcnow
@@ -277,6 +277,9 @@ class SenderPresenter:
         message = session.message
         sending = session.phase == 'sending'
         hasTelegram = bool(message.raw or (session.telegraph and not sending))
+        # Once a job exists it owns the line it was dispatched on; a config
+        # change mid-flight must not relabel the result or its badge.
+        protocol = session.job.protocol if session.job and session.job.protocol else session.line.protocol
 
         state.previewVisible = session.mode != 'custom'
         state.html = session.composed.html
@@ -293,7 +296,7 @@ class SenderPresenter:
         if session.phase == 'failed':
             state.telegraphTitle = QCoreApplication.translate('Sender', 'Send Failed')
         elif session.phase == 'sent':
-            if session.line.protocol == 'ftp':
+            if protocol == 'ftp':
                 state.telegraphTitle = QCoreApplication.translate('Sender', 'File has been uploaded to the host')
             else:
                 state.telegraphTitle = QCoreApplication.translate('Sender', 'Data has been sent to the serial port')
@@ -312,7 +315,7 @@ class SenderPresenter:
         state.busy = sending
         state.printVisible = bool(message.raw)
         state.switchVisible = self.view.graphic is not None and hasTelegram and not message.isCnl()
-        state.badgeProtocol = session.line.protocol
+        state.badgeProtocol = protocol
         return state
 
     def action(self, session):
@@ -425,13 +428,20 @@ class SenderPresenter:
             message.created = utcnow()
 
         message.raw = job.telegraph.toJson()
-        message.protocol = job.line.protocol
+        message.protocol = job.protocol
         self.repository.add(message)
 
         logger.debug('{} {}'.format('Resend' if resent else 'Send', message.text))
 
     def advanceSequence(self, job):
-        self.conf.set(job.line.channel.configName, str(job.telegraph.number))
+        # A read (settings, RPC state) may have rolled the counters over while
+        # this job was on the wire. Its number belongs to its dispatch day,
+        # which the telegraph has carried since generation; settling it must
+        # not advance the new day's series.
+        if job.telegraph.generated.date() != utcnow().date():
+            return
+
+        self.conf.set(counterKey(job.protocol), str(job.telegraph.number))
 
     def updateReminder(self, message):
         if message.category in ('SIGMET', 'AIRMET'):

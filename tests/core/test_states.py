@@ -14,6 +14,7 @@ import pytest
 
 from tafor.core.geometry import projection
 from tafor.core.models import Taf
+from tafor.core.states import SequenceService
 
 
 @pytest.fixture
@@ -21,6 +22,38 @@ def restore_projection(conf):
     """conf is session-scoped: restore the setting after each test."""
     yield
     conf.projection = type(conf).projection.default
+
+
+@pytest.fixture
+def sequence(conf, frozen_time):
+    """Built after the clock is frozen, so its checkpoint is the frozen day."""
+    service = SequenceService(conf)
+    yield service
+    conf.set('channelSequenceNumber', '1')
+    conf.set('fileSequenceNumber', '1')
+
+
+class TestSequenceService:
+
+    def test_rollover_resets_both_counters_once_a_day(self, conf, sequence, frozen_time, time_machine):
+        conf.set('channelSequenceNumber', '7')
+        conf.set('fileSequenceNumber', '4')
+
+        time_machine.move_to(frozen_time + datetime.timedelta(days=1))
+
+        assert sequence.rollover() is True
+        assert conf.channelSequenceNumber == '1'
+        assert conf.fileSequenceNumber == '1'
+
+    def test_rollover_is_a_no_op_within_the_same_day(self, conf, sequence, frozen_time, time_machine):
+        conf.set('channelSequenceNumber', '7')
+        conf.set('fileSequenceNumber', '4')
+
+        time_machine.move_to(frozen_time + datetime.timedelta(hours=1))
+
+        assert sequence.rollover() is False
+        assert conf.channelSequenceNumber == '7'
+        assert conf.fileSequenceNumber == '4'
 
 
 class TestLayerProjection:

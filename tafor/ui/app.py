@@ -168,7 +168,7 @@ class Application:
         # The single transmission line: the queue lives on the GUI thread,
         # the resident worker does the blocking IO on its own thread
         worker, thread = self.workers.create(TransmissionWorker, workerId='transmission', reusable=True)
-        queue = TransmissionQueue(worker)
+        queue = TransmissionQueue(worker, self.runtime.context.sequence)
         queue.dispatch.connect(worker.transmit)
         worker.done.connect(queue.finish)
         self.runtime.context.transmission = queue

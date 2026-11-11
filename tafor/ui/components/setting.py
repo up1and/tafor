@@ -5,13 +5,11 @@ import secrets
 import logging
 
 from PyQt5.QtGui import QIcon, QIntValidator, QTextCursor
-from PyQt5.QtCore import QCoreApplication, QStandardPaths, QSettings, QTimer, Qt, QObject, pyqtSignal
+from PyQt5.QtCore import QCoreApplication, QStandardPaths, QSettings, Qt, QObject, pyqtSignal
 from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QFileDialog, QMessageBox, QApplication, QCheckBox, 
                              QLineEdit, QComboBox, QPlainTextEdit, QSlider, QListWidget, QGroupBox)
 
-from tafor.core.telegram.transport import ftpComm
 from tafor.core.utils.common import iconPath, ipAddress
-from tafor.core.utils.time import utcnow
 from tafor.ui.qt import Ui_setting
 from tafor.ui.workers import FtpTestWorker, threadManager
 
@@ -22,21 +20,16 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
     statusMessage = pyqtSignal(str, int)
 
-    def __init__(self, parent=None, conf=None):
+    def __init__(self, parent, conf, sequence):
         super().__init__(parent)
         self.conf = conf
+        self.sequence = sequence
         self.setupUi(self)
         self.setWindowIcon(QIcon(iconPath('setting.png')))
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
         # Auto-start on system boot
         self.autoRun = QSettings('HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run', QSettings.NativeFormat)
-
-        self.utcCheckpoint = utcnow()
-
-        self.clockTimer = QTimer()
-        self.clockTimer.timeout.connect(self.checkChannelNumber)
-        self.clockTimer.start(1 * 1000)
 
         # Disabled items
         self.closeToMinimize.setEnabled(False)
@@ -95,17 +88,9 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.maxSendAddress.setValidator(QIntValidator(self.maxSendAddress))
         self.delayMinutes.setValidator(QIntValidator(self.delayMinutes))
 
-    def checkChannelNumber(self):
-        """Reset the sequence numbers once the UTC calendar day rolls over"""
-        utc = utcnow()
-        if utc.date() > self.utcCheckpoint.date():
-            self.utcCheckpoint = utc
-            self.resetChannelNumber()
-
     def resetChannelNumber(self):
         """Reset the sequence numbers to one"""
-        self.conf.channelSequenceNumber = '1'
-        self.conf.fileSequenceNumber = '1'
+        self.sequence.reset()
         self.channelSequenceNumber.setText('1')
         logger.info('Reset sequence number to one')
 
@@ -134,7 +119,12 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         option.takeItem(option.currentRow())
 
     def showEvent(self, event):
+        # Opening the dialog is a read of the runtime counters: roll them
+        # over first, so it shows what the next dispatch will use. setText()
+        # also clears the line edit's modified flag.
+        self.sequence.rollover()
         self.bindValue(self.conf.channelSequenceNumber, self.channelSequenceNumber)
+        super().showEvent(event)
 
     def testFtpLogin(self):
         self.testLoginButton.setEnabled(False)
@@ -221,6 +211,12 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
         errors = []
         for attr, control in self.bindings().items():
+            # The sequence belongs to the transmission runtime. It is only
+            # part of this save when the operator typed a new value; loading
+            # the dialog and the reset button clear QLineEdit's modified flag.
+            if attr == 'channelSequenceNumber' and not control.isModified():
+                continue
+
             config = getattr(type(self.conf), attr)
             value = self.getValue(config.default, control)
             try:
@@ -238,6 +234,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
                 if text not in errors:
                     errors.append(text)
 
+        self.channelSequenceNumber.setModified(False)
         self.conf.emit()
 
         if errors:

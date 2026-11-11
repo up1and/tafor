@@ -223,32 +223,33 @@ class Job:
 
     def __init__(self, message, line, parser=None, settle=None):
         self.message = message      # transient message instance, GUI thread only
-        self.line = line            # protocol (aftn/ftp), channel + conf
+        self.line = line            # live line; protocol is frozen below at dispatch
         self.parser = parser        # composed.parser, only feeds the ftp filename's valids
         self.settle = settle        # callable(job, error), runs on the GUI thread
         self.telegraph = None       # filled in by the queue at dispatch
+        self.protocol = None        # frozen at dispatch; normalized wire protocol
 
 
-def payload(job):
-    """Derive the worker's plain arguments from a job: protocol kind, the
-    telegraph text and the channel parameters, read from conf at dispatch so
-    the freshest sequence number and port settings are used"""
-    line = job.line
+def payload(job, channel):
+    """Derive the worker's plain arguments from a job: the frozen protocol,
+    the telegraph text and the connection parameters of the channel resolved
+    at dispatch. The worker and the settlement therefore agree on one line
+    even when the configuration changes while the message is on the wire."""
     text = job.telegraph.toString()
 
-    if line.protocol == 'ftp':
-        params = line.channel.ftpParams(getattr(job.parser, 'valids', None))
+    if job.protocol == 'ftp':
+        params = channel.ftpParams(getattr(job.parser, 'valids', None))
     else:
         params = {
-            'port': line.conf.port,
-            'baudrate': int(line.conf.baudrate),
-            'bytesize': line.conf.bytesize,
-            'parity': line.conf.parity,
-            'stopbits': line.conf.stopbits,
-            'codec': line.conf.codec,
+            'port': channel.conf.port,
+            'baudrate': int(channel.conf.baudrate),
+            'bytesize': channel.conf.bytesize,
+            'parity': channel.conf.parity,
+            'stopbits': channel.conf.stopbits,
+            'codec': channel.conf.codec,
         }
 
-    return line.protocol, text, params
+    return job.protocol, text, params
 
 
 def deliver(job, error):
@@ -268,17 +269,18 @@ def deliver(job, error):
 class TransmissionQueue(QObject):
     """The process-wide single transmission line.
 
-    Lives entirely on the GUI thread: submissions, telegraph generation
-    (sequence number read) and settlement (archive + sequence write-back)
-    happen here in strict FIFO order, lock-free. The resident worker on its
-    own thread only runs the blocking IO.
+    Lives entirely on the GUI thread: submissions, counter rollover,
+    telegraph generation (sequence number read) and settlement (archive +
+    sequence write-back) happen here in strict FIFO order, lock-free. The
+    resident worker on its own thread only runs the blocking IO.
     """
 
     dispatch = pyqtSignal(str, str, dict)   # kind, text, params
 
-    def __init__(self, worker, parent=None):
+    def __init__(self, worker, sequence, parent=None):
         super().__init__(parent)
         self.worker = worker
+        self.sequence = sequence
         self.jobs = deque()
         self.current = None
 
@@ -300,8 +302,17 @@ class TransmissionQueue(QObject):
 
         job = self.jobs.popleft()
         try:
+            # A new UTC day rolls the counters before this dispatch allocates a
+            # number. Reads may also roll them while a job is on the wire;
+            # the settlement ignores jobs from an earlier day for that reason.
+            self.sequence.rollover()
+
+            # The protocol is resolved once, here: settlement must describe
+            # the wire this job actually used, not whatever config says later.
+            channel = job.line.channel
+            job.protocol = channel.protocol
             job.telegraph = job.line.generate(job.message)
-            kind, text, params = payload(job)
+            kind, text, params = payload(job, channel)
         except Exception as e:
             logger.exception('Failed to generate the telegram')
             deliver(job, str(e))        # generation failure settles as a send failure
@@ -464,7 +475,8 @@ class ContextBridge(QObject):
     Lives on the GUI thread. Workers connect their fetched signals to the
     update* slots; the RPC server calls the setState/submit entry points,
     which emit Qt signals queued back to the GUI thread. The real context
-    services only ever run on the GUI thread.
+    services only ever run on the GUI thread, except the RPC state read,
+    which reconciles the transmission counters before reporting them.
 
     Submit payloads must be transient model instances (never bound to a
     session) and stay read-only on the emitting thread; the GUI side
@@ -491,6 +503,12 @@ class ContextBridge(QObject):
         """Forwarded live: the queue is injected into the context by the
         application assembly after the bridge exists"""
         return self.context.transmission
+
+    @property
+    def sequence(self):
+        """Forwarded live: the RPC state read reconciles the counters before
+        reporting what the next dispatch will use"""
+        return self.context.sequence
 
     def updateMetar(self, values):
         self.context.notification.metar.setState(values)

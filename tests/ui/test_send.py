@@ -31,6 +31,14 @@ def spySignals(sender):
 
 @pytest.fixture(autouse=True)
 def resetSequence(conf):
+    """conf is session-scoped: restore the transport settings after each test."""
+    protocol = conf.communicationProtocol
+    conf.set('channelSequenceNumber', '1')
+    conf.set('fileSequenceNumber', '1')
+
+    yield
+
+    conf.set('communicationProtocol', protocol)
     conf.set('channelSequenceNumber', '1')
     conf.set('fileSequenceNumber', '1')
 
@@ -42,7 +50,7 @@ def transmission(context):
     queue.finish(error)"""
     calls = []
     worker = SimpleNamespace(prepare=lambda: None, stop=lambda: None, error='')
-    queue = TransmissionQueue(worker)
+    queue = TransmissionQueue(worker, context.sequence)
     queue.dispatch.connect(lambda kind, text, params: calls.append(
         {'kind': kind, 'text': text, 'params': params}))
     queue.calls = calls
@@ -150,6 +158,55 @@ class TestNewMessageSend:
         assert message.raw and message.protocol == 'aftn'
         assert message.id is not None
         assert sender.conf.get('channelSequenceNumber') == '2'
+
+    def test_settlement_uses_the_dispatched_protocol(self, sender, transmission, answers, read_fixture, conf):
+        message = makeTaf(read_fixture)
+        sender.receive(message)
+        sender.presenter.send()                 # dispatched as AFTN
+
+        # The line is switched while the telegram is on the wire
+        conf.set('communicationProtocol', 'ftp')
+        transmission.finish('')
+
+        assert message.protocol == 'aftn'
+        assert conf.get('channelSequenceNumber') == '2'
+        assert conf.get('fileSequenceNumber') == '1'
+        assert sender.rawGroup.title() == 'Data has been sent to the serial port'
+
+    def test_settlement_uses_the_dispatched_file_channel(self, sender, transmission, answers, read_fixture, conf):
+        conf.set('communicationProtocol', 'ftp')
+        message = makeTaf(read_fixture)
+        sender.receive(message)
+        sender.presenter.send()
+
+        assert transmission.calls[0]['kind'] == 'ftp'
+
+        # Switching back to AFTN while the upload is in flight
+        conf.set('communicationProtocol', 'AFTN')
+        transmission.finish('')
+
+        assert message.protocol == 'ftp'
+        assert conf.get('fileSequenceNumber') == '2'
+        assert conf.get('channelSequenceNumber') == '1'
+        assert sender.rawGroup.title() == 'File has been uploaded to the host'
+
+    def test_settlement_across_midnight_does_not_advance_the_new_days_counter(
+            self, frozen_time, sender, transmission, answers, read_fixture, time_machine, conf):
+        message = makeTaf(read_fixture)
+        sender.receive(message)
+        sender.presenter.send()                 # number 1 of the frozen day
+
+        # A state read (settings or RPC) rolls the counters while the telegram
+        # is still on the wire
+        time_machine.move_to(frozen_time + datetime.timedelta(days=1))
+        sender.context.sequence.rollover()
+
+        transmission.finish('')
+
+        # Archived, but its number belongs to the previous day's series
+        assert message.id is not None
+        assert conf.get('channelSequenceNumber') == '1'
+        assert conf.get('fileSequenceNumber') == '1'
 
     def test_send_failure_then_resend(self, sender, transmission, answers, read_fixture):
         message = makeTaf(read_fixture)

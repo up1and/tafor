@@ -7,6 +7,7 @@ tests/core/test_rpc.py.
 """
 
 import csv
+import datetime
 import logging
 import os
 import threading
@@ -21,6 +22,8 @@ import requests
 from PyQt5 import sip
 from PyQt5.QtCore import QObject, pyqtSignal
 
+from tafor.core.states import SequenceService
+from tafor.core.telegram.channels import counterKey
 from tafor.ui.workers import (
     CheckUpgradeWorker, ContextBridge, ExportRecordWorker, Job, LayerWorker,
     MessageWorker, ThreadManager, TransmissionQueue, TransmissionWorker)
@@ -329,7 +332,7 @@ class TestTransmissionQueue:
     def makeQueue(self, conf):
         calls = []
         worker = SimpleNamespace(prepare=lambda: None, stop=lambda: None, error='')
-        queue = TransmissionQueue(worker)
+        queue = TransmissionQueue(worker, SequenceService(conf))
         queue.dispatch.connect(lambda kind, text, params: calls.append(
             {'kind': kind, 'text': text, 'params': params}))
         return queue, calls
@@ -381,6 +384,30 @@ class TestTransmissionQueue:
         assert second.telegraph.number == first.telegraph.number + 1
         assert len(calls) == 2
         queue.finish('')
+
+    def test_the_queue_rolls_over_before_it_allocates(self, qtbot, conf, frozen_time, time_machine):
+        time_machine.move_to(frozen_time)
+        queue, calls = self.makeQueue(conf)
+        conf.set('channelSequenceNumber', '1')
+        conf.set('fileSequenceNumber', '1')
+
+        def advance(job, error):
+            conf.set(counterKey(job.protocol), str(job.telegraph.number))
+
+        first = self.makeJob(conf=conf, settle=advance)
+        queue.submit(first)
+        queue.finish('')
+        assert conf.get('channelSequenceNumber') == '2'
+
+        # A new UTC day resets the counters before the next dispatch reads them
+        time_machine.move_to(frozen_time + datetime.timedelta(days=1))
+        second = self.makeJob(conf=conf, settle=advance)
+        queue.submit(second)
+
+        assert second.telegraph.number == 2
+        assert 'ZCZC YMC0001' in calls[1]['text']
+        queue.finish('')
+        assert conf.get('channelSequenceNumber') == '2'
 
     def test_generation_failure_settles_and_continues(self, qtbot, conf):
         queue, calls = self.makeQueue(conf)
@@ -455,7 +482,7 @@ class TestTransmissionQueue:
         """The stub worker cannot catch a wrong outcome: stop() must not read
         error before the transmit still on the wire has written it."""
         worker = TransmissionWorker()
-        queue = TransmissionQueue(worker)
+        queue = TransmissionQueue(worker, SequenceService(conf))
         settled = []
 
         job = self.makeJob(conf=conf, settle=lambda j, e: settled.append((j, e)))
@@ -478,7 +505,7 @@ class TestTransmissionQueue:
         would archive a telegram that may be half-written on the wire."""
         worker = TransmissionWorker()
         worker.busy = True                      # the transmit never returns
-        queue = TransmissionQueue(worker)
+        queue = TransmissionQueue(worker, SequenceService(conf))
         settled = []
 
         job = self.makeJob(conf=conf, settle=lambda j, e: settled.append((j, e)))

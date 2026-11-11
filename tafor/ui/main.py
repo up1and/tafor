@@ -765,7 +765,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def setupSenders(self):
         repository = self.repositories.message
-        self.settingDialog = SettingDialog(self, self.conf)
+        self.settingDialog = SettingDialog(self, self.conf, self.context.sequence)
         self.tafSender = TafSender(self, self.context, self.conf, repository=repository)
         self.trendSender = TrendSender(self, self.context, self.conf, repository=repository)
         self.sigmetSender = SigmetSender(self, self.context, self.conf, repository=repository)

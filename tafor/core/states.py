@@ -471,6 +471,34 @@ class NotificationManager:
         self.sigmet = NotificationService(states.get('sigmet'), event, conf)
 
 
+class SequenceService:
+    """Runtime policy for the transmission counters.
+
+    The counters live in config because they outlive the process, but when
+    they roll over or reset is not a window's decision. The first dispatch
+    of a new UTC day resets them; an operator reset is an explicit command.
+    Assigning and advancing a number stays on the dispatch/settlement path,
+    which knows the wire order.
+    """
+
+    def __init__(self, conf):
+        self.conf = conf
+        self.checkpoint = utcnow()
+
+    def rollover(self):
+        now = utcnow()
+        if now.date() <= self.checkpoint.date():
+            return False
+
+        self.checkpoint = now
+        self.reset()
+        return True
+
+    def reset(self):
+        self.conf.channelSequenceNumber = '1'
+        self.conf.fileSequenceNumber = '1'
+
+
 class FlashService:
     """How core asks to say something: it emits on the event bus and does
     not know a window exists."""
@@ -514,6 +542,7 @@ class AppContext:
         self.taf = TafMonitorService(tafMonitorState, conf)
         self.sigmet = SigmetMonitorService(sigmetMonitorState, self.event)
         self.notification = NotificationManager(notificationStates, self.event, conf)
+        self.sequence = SequenceService(conf)
         self.flash = FlashService(self.event)
 
         # Utilities

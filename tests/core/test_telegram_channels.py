@@ -2,7 +2,9 @@ import datetime
 import re
 
 from tafor.core.models import Other
-from tafor.core.telegram.channels import AFTNChannel, FileChannel, canResend, createChannel
+from tafor.core.telegram.channels import (
+    AFTNChannel, FileChannel, canResend, counterKey, createChannel)
+from tafor.core.telegram.generator import AFTNMessageGenerator, FileMessageGenerator
 
 
 class FakeConf:
@@ -55,6 +57,27 @@ def test_create_channel_by_protocol():
     assert isinstance(createChannel('aftn', conf), AFTNChannel)
     assert isinstance(createChannel('ftp', conf), FileChannel)
     assert isinstance(createChannel('serial', conf), AFTNChannel)
+
+    assert createChannel('aftn', conf).protocol == 'aftn'
+    assert createChannel('ftp', conf).protocol == 'ftp'
+    assert createChannel('serial', conf).protocol == 'aftn'
+
+
+def test_a_channel_resolves_its_generator_and_counter_from_its_protocol():
+    conf = makeConf()
+
+    aftn = AFTNChannel(conf)
+    assert aftn.generator is AFTNMessageGenerator
+    assert aftn.counterKey == 'channelSequenceNumber'
+
+    ftp = FileChannel(conf)
+    assert ftp.generator is FileMessageGenerator
+    assert ftp.counterKey == 'fileSequenceNumber'
+
+
+def test_counter_key_looks_up_the_config_field_by_protocol():
+    assert counterKey('aftn') == 'channelSequenceNumber'
+    assert counterKey('ftp') == 'fileSequenceNumber'
 
 
 def test_aftn_build_params_for_taf():
@@ -129,6 +152,13 @@ def test_aftn_generate_for_custom():
     assert lines[1] == 'FF YUSO YUSI'
     assert 'SOME TEXT' in generator.toString()
     assert generator.toString().endswith('NNNN')
+
+
+def test_generate_stamps_the_telegram_with_its_generation_time(frozen_time):
+    conf = makeConf()
+
+    assert AFTNChannel(conf).generate(FakeMessage()).generated == frozen_time
+    assert FileChannel(conf).generate(FakeMessage()).generated == frozen_time
 
 
 def test_file_channel_build_params():

@@ -7,11 +7,15 @@ from tafor.core.utils.time import utcnow
 
 
 class BaseChannel:
-    generator = None
-    configName = None
+    protocol = None
+    specs = {
+        'aftn': (AFTNMessageGenerator, 'channelSequenceNumber'),
+        'ftp': (FileMessageGenerator, 'fileSequenceNumber'),
+    }
 
     def __init__(self, conf):
         self.conf = conf
+        self.generator, self.counterKey = self.specs[self.protocol]
 
     def buildText(self, message, category):
         heading = self.conf.trendIdentifier if category == 'TREND' else message.heading
@@ -27,14 +31,16 @@ class BaseChannel:
         message is a Taf/Trend/Sigmet/Other instance; its category
         property selects the telegram category. Standard reports derive
         priority and address from the config, custom messages (Other)
-        require both explicitly.
+        require both explicitly. The result carries its generation time;
+        settlement dates the counter series by it.
         """
-        return self.generator(**self.buildParams(message, priority, address))
+        telegram = self.generator(**self.buildParams(message, priority, address))
+        telegram.generated = utcnow()
+        return telegram
 
 
 class AFTNChannel(BaseChannel):
-    generator = AFTNMessageGenerator
-    configName = 'channelSequenceNumber'
+    protocol = 'aftn'
 
     def buildParams(self, message, priority=None, address=None):
         category = message.category
@@ -50,7 +56,7 @@ class AFTNChannel(BaseChannel):
         return {
             'text': text,
             'channel': self.conf.channel,
-            'number': self.conf.get(self.configName),
+            'number': self.conf.get(self.counterKey),
             'priority': priority,
             'address': address,
             'originator': self.conf.originatorAddress,
@@ -60,21 +66,25 @@ class AFTNChannel(BaseChannel):
 
 
 class FileChannel(BaseChannel):
-    generator = FileMessageGenerator
-    configName = 'fileSequenceNumber'
+    protocol = 'ftp'
 
     def buildParams(self, message, priority=None, address=None):
         return {
             'text': self.buildText(message, message.category),
-            'number': self.conf.get(self.configName),
+            'number': self.conf.get(self.counterKey),
         }
 
     def ftpParams(self, valids=None):
         valids = valids or (utcnow(), utcnow())
         return {
             'url': self.conf.ftpHost,
-            'filename': fileMessageName(self.conf.airport, valids, self.conf.get(self.configName)),
+            'filename': fileMessageName(self.conf.airport, valids, self.conf.get(self.counterKey)),
         }
+
+
+def counterKey(protocol):
+    """The config field that stores the next sequence number for a protocol."""
+    return BaseChannel.specs[protocol][1]
 
 
 def createChannel(protocol, conf):

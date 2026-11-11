@@ -167,6 +167,10 @@ class StateResource:
 
     @falcon.before(authorize)
     def on_get(self, req, resp):
+        # The counters are reconciled lazily: report the values the next
+        # dispatch will use, not yesterday's series.
+        self.context.sequence.rollover()
+
         data = {
             'aftn': {
                 'channel': self.conf.channel,

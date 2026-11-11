@@ -1,4 +1,5 @@
 import base64
+import datetime
 import inspect
 import threading
 import time
@@ -101,6 +102,29 @@ def test_state_resource(client):
     assert data['busy'] is False
     assert data['aftn']['channel'] == 'YMC'
     assert data['address']['taf'] == 'YUSOYMYX'
+
+
+def test_state_read_rolls_the_counters_on_a_new_utc_day(engine, frozen_time, time_machine):
+    conf = FakeConf()
+    conf.channelSequenceNumber = '9'
+    conf.fileSequenceNumber = '8'
+    context = createContext(conf)
+    app = create_app(context=ContextBridge(context), engine=engine, conf=conf)
+    client = falcon.testing.TestClient(app)
+
+    # Same UTC day: the report is the stored series
+    time_machine.move_to(frozen_time + datetime.timedelta(hours=1))
+    data = client.simulate_get('/api/state', headers=_auth()).json
+    assert data['aftn']['number'] == '9'
+    assert data['file']['number'] == '8'
+
+    # A new UTC day: the read reports what the next dispatch will allocate
+    time_machine.move_to(frozen_time + datetime.timedelta(days=1))
+    data = client.simulate_get('/api/state', headers=_auth()).json
+    assert data['aftn']['number'] == '1'
+    assert data['file']['number'] == '1'
+    assert conf.channelSequenceNumber == '1'
+    assert conf.fileSequenceNumber == '1'
 
 
 def test_state_busy_while_transmitting(engine):
