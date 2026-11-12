@@ -42,6 +42,7 @@ class TestMessageMixin:
         assert Taf(text='TAF', protocol='aftn', raw='').rawText() == ''
 
     def test_is_cnl_detects_the_cancel_token(self):
+        assert Taf(text='TAF ZSSS CNL ABC', protocol='aftn').isCnl() is True
         assert Taf(text='TAF ZSSS 120000Z', protocol='aftn').isCnl() is False
 
     def test_is_cnl_accepts_the_message_terminator(self):

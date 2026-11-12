@@ -951,10 +951,6 @@ class SketchPanel(QWidget):
         self.layerItems = []
 
     def setLayerSelectMenu(self):
-        layers = self.context.layer.groupLayers()
-        if not layers:
-            return
-
         # This runs again on every ``layerChanged``, so start from a clean slate.
         # Without it the menu was populated exactly once and then kept offering
         # layers that had since disappeared.
@@ -966,11 +962,17 @@ class SketchPanel(QWidget):
             for action in actionGroup.actions():
                 actionGroup.removeAction(action)
 
+        layers = self.context.layer.groupLayers()
+        if not layers:
+            return
+
+        selected = set(self.context.layer.selected)
         for key, groups in layers.items():
             actionGroup = self.backgroundLayerActionGroup if key == 'standalone' else self.mixedBackgroundLayerActionGroup
             for layer in groups:
                 action = QAction(layer.name, self)
                 action.setCheckable(True)
+                action.setChecked(layer.name in selected)
                 actionGroup.addAction(action)
                 self.layerMenu.addAction(action)
                 self.layerItems.append(action)
@@ -989,6 +991,11 @@ class SketchPanel(QWidget):
         # IndexError as soon as there were no standalone overlays.
         candidates = self.backgroundLayerActionGroup.actions() + self.mixedBackgroundLayerActionGroup.actions()
         if not candidates:
+            return
+
+        # The menu renders the existing selection. Only when no selected layer
+        # survived the rebuild is there a default to compute and write back.
+        if any(action.isChecked() for action in candidates):
             return
 
         default = candidates[0]

@@ -843,3 +843,70 @@ class TestSketchPanelLayerWrites:
         panel.layerSelectionChanged.emit(['Satellite', 'Radar'])
 
         assert context.layer.selected == ['Satellite', 'Radar']
+
+
+LAYERS = [
+    {'name': 'Satellite', 'overlay': 'standalone', 'image': b'x', 'extent': [100, 10, 130, 30]},
+    {'name': 'Radar', 'overlay': 'standalone', 'image': b'y', 'extent': [100, 10, 130, 30]},
+]
+
+
+class TestLayerSelectMenu:
+    """Rebuilding the menu renders the current selection; it must not turn a
+    notification into a write that resets what the operator picked."""
+
+    @pytest.fixture
+    def panel(self, qtbot, context):
+        panel = SketchPanel(parent=None, context=context)
+        qtbot.addWidget(panel)
+        panel.updateLayer = lambda: None
+        panel.updateSigmetGraphic = lambda: None
+        return panel
+
+    @pytest.fixture
+    def presenter(self, panel, context):
+        presenter = SigmetPresenter(PanelOnlyView(panel), context, conf=None)
+        presenter.connectGraphic()
+        context.layer.setLayer(LAYERS)
+        return presenter
+
+    def action(self, panel, text):
+        for item in panel.layerItems:
+            if not item.isSeparator() and item.text() == text:
+                return item
+
+    def test_the_first_layer_is_the_default_selection(self, presenter, panel, context):
+        assert context.layer.selected == ['Satellite']
+        assert self.action(panel, 'Satellite').isChecked()
+
+    def test_choosing_another_layer_is_not_reset_by_the_rebuild(self, presenter, panel, context):
+        self.action(panel, 'Radar').trigger()
+
+        assert context.layer.selected == ['Radar']
+        assert self.action(panel, 'Radar').isChecked()
+        assert not self.action(panel, 'Satellite').isChecked()
+
+    def test_a_display_toggle_keeps_the_layer_selection(self, presenter, panel, context):
+        self.action(panel, 'Radar').trigger()
+
+        panel.showSigmetAction.setChecked(False)
+
+        assert context.layer.showSigmet is False
+        assert context.layer.selected == ['Radar']
+
+    def test_a_stale_selection_falls_back_to_the_first_layer(self, presenter, panel, context):
+        self.action(panel, 'Radar').trigger()
+
+        # the next fetch no longer carries Radar
+        context.layer.setLayer([LAYERS[0]])
+
+        assert context.layer.selected == ['Satellite']
+
+    def test_an_empty_layer_list_clears_the_menu(self, presenter, panel, context):
+        assert panel.layerItems
+
+        context.layer.setLayer([])
+
+        assert panel.layerItems == []
+        assert panel.backgroundLayerActionGroup.actions() == []
+
