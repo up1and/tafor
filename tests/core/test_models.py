@@ -38,12 +38,16 @@ class TestMessageMixin:
         assert message.rawText() == 'PLAIN TEXT'
 
     def test_missing_payload_reads_as_empty(self):
-        assert Taf(text='TAF', protocol='ftp', raw=None).rawText() == ''
-        assert Taf(text='TAF', protocol='ftp', raw='').rawText() == ''
+        assert Taf(text='TAF', protocol='aftn', raw=None).rawText() == ''
+        assert Taf(text='TAF', protocol='aftn', raw='').rawText() == ''
 
     def test_is_cnl_detects_the_cancel_token(self):
-        assert Taf(text='TAF ZSSS CNL ABC', protocol='ftp').isCnl() is True
-        assert Taf(text='TAF ZSSS 120000Z', protocol='ftp').isCnl() is False
+        assert Taf(text='TAF ZSSS 120000Z', protocol='aftn').isCnl() is False
+
+    def test_is_cnl_accepts_the_message_terminator(self):
+        # A TAF cancel ends in 'CNL='; the terminator must not hide the token
+        assert Taf(text='TAF AMD YUSO 100800Z 1009/1018 CNL=', protocol='aftn').isCnl() is True
+        assert Taf(text='TAF ZSSS 120000Z=', protocol='aftn').isCnl() is False
 
     def test_every_message_model_shares_the_mixin(self):
         for cls in [Taf, Metar, Trend, Sigmet, Other]:

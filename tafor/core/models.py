@@ -34,7 +34,9 @@ class MessageMixin:
         return self.raw
 
     def isCnl(self):
-        items = self.text.split()
+        # The terminator rides on the last token when CNL ends the message,
+        # as it does for TAF: '... 1009/1018 CNL=' must read as CNL.
+        items = (item.rstrip('=') for item in self.text.split())
         return 'CNL' in items
 
 class Taf(MessageMixin, Base):

@@ -7,7 +7,7 @@ import pytest
 
 from tafor.core.models import Metar, Sigmet, Taf, Trend
 from tafor.core.repositories import (Repositories, SigmetFilter, subscribedTypes)
-from tafor.core.taf import SpecFC
+from tafor.core.taf import PrimaryState, SpecFC, composeBody
 from tafor.core.utils.time import utcnow
 
 
@@ -206,10 +206,22 @@ class TestTafRepositoryStatus:
     def test_cnl_is_reported(self, repos, database):
         self.seed(database, TAF_TEXT.replace('0606/0712', PERIOD),
                   created=MOMENT - datetime.timedelta(hours=1))
-        # A TAF cancel message ends in CNL without a closing '=' so that
-        # Taf.isCnl() finds the CNL token
-        self.seed(database, 'TAF ZPPP 101000Z {} CNL'.format(PERIOD),
+        # The composed cancel ends in 'CNL='; the terminator must not hide it
+        self.seed(database, 'TAF AMD ZPPP 101000Z {} CNL='.format(PERIOD),
                   created=MOMENT - datetime.timedelta(minutes=30))
+
+        assert repos.taf.status(SpecFC)['cancelled'] is True
+
+    def test_a_core_composed_cancel_is_recognised(self, repos, database):
+        state = PrimaryState('MPS', icao='ZPPP', spec=SpecFC)
+        state.date = '101000'
+        state.period = PERIOD
+        state.modifier = 'CNL'
+        state.durations = (MOMENT, MOMENT + datetime.timedelta(hours=12))
+        text = composeBody(state, [])
+        assert text.endswith('CNL=')
+
+        self.seed(database, text, created=MOMENT - datetime.timedelta(minutes=30))
 
         assert repos.taf.status(SpecFC)['cancelled'] is True
 
