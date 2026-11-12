@@ -148,7 +148,6 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.setupValidator()
         self.page = 1
         self.pagination = None
-        self.total = None
         self.category = ''
         self.date = None
         self.keywords = []
@@ -208,7 +207,6 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         else:
             self.date = None
 
-        self.total = None
         self.setPage(1)
 
     def setupStyle(self):
@@ -233,7 +231,6 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
     def autoSearch(self):
         self.search.setText(self.search.text().upper())
         self.keywords = self.search.text().split()
-        self.total = None
         self.setPage(1)
 
     def hideColumns(self):
@@ -245,7 +242,6 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         else:
             if self.date:
                 self.date -= datetime.timedelta(days=1)
-                self.total = None
                 self.setPage(1)
 
     def next(self):
@@ -254,7 +250,6 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         else:
             if self.date:
                 self.date += datetime.timedelta(days=1)
-                self.total = None
                 self.setPage(1)
 
     def setPage(self, page):
@@ -270,8 +265,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
     def updateTable(self):
         self.pagination = self.repository.paginated(
             self.model, category=self.category, date=self.date, keywords=self.keywords,
-            page=self.page, perPage=self.perPage, total=self.total)
-        self.total = self.pagination.total
+            page=self.page, perPage=self.perPage)
 
         items = self.pagination.items
         self.table.setRowCount(len(items))

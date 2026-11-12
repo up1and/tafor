@@ -125,6 +125,22 @@ class TestTafTable:
         assert taf_table.page == 1
         assert taf_table.table.rowCount() == 12
 
+    def test_a_new_record_recounts_the_pages_on_repaint(self, taf_table, database):
+        for index in range(12):
+            seed_taf(database, '{} {}'.format(TAF_TEXT, index))
+
+        taf_table.updateGui()
+        assert taf_table.pagesLabel.text() == '1/1'
+
+        # a record stored after the last repaint must invalidate the old count
+        seed_taf(database, '{} 13'.format(TAF_TEXT))
+        taf_table.updateGui()
+
+        assert taf_table.pagesLabel.text() == '1/2'
+        taf_table.next()
+        assert taf_table.page == 2
+        assert taf_table.table.rowCount() == 1
+
     def test_next_at_last_page_steps_the_date(self, taf_table, database):
         seed_taf(database, TAF_TEXT)
         today = datetime.date.today()
