@@ -807,10 +807,12 @@ class SigmetGeneral(BaseSigmet, Ui_sigmet_general.Ui_Editor):
     def applyState(self):
         description = self.state.description
         phenomenon = self.state.phenomenon
+        intensityChange = self.state.intensityChange
 
         super().applyState()
         self.description.setCurrentIndex(self.description.findText(description))
         self.phenomenon.setCurrentIndex(self.phenomenon.findText(phenomenon))
+        self.intensityChange.setCurrentIndex(self.intensityChange.findText(intensityChange))
 
     def setPhenomenaDescription(self):
         self.description.addItems(self.descriptions)
@@ -857,31 +859,6 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
         self.setFcstOrObs()
         self.advisoryParser = TyphoonAdvisoryParser
 
-        # testStr = (
-        #     "TC ADVISORY\n"
-        #     "DTG: 20220702/0600Z\n"
-        #     "TCAC: TOKYO\n"
-        #     "TC: CHABA\n"
-        #     "ADVISORY NR: 2022/14 \n"
-        #     "PSN: 02/0600Z N2110 E11120 \n"
-        #     "CB: WI N1755 E11105 - N1955 E10840 - N2220 E11205 - N2110 E11330 - N1905 E11230 - N1755 E11105 TOP FL530\n"
-        #     "MOV: NNW 07KT\n"
-        #     "INTST CHANGE: WKN\n"
-        #     "C: 965HPA\n"
-        #     "MAX WIND: 70KT\n"
-        #     "FCST PSN +6 HR: 02/1200Z N2155 E11050\n"
-        #     "FCST MAX WIND +6 HR: 60KT\n"
-        #     "FCST PSN +12 HR: 02/1800Z N2235 E11010\n"
-        #     "FCST MAX WIND +12 HR: 45KT\n"
-        #     "FCST PSN +18 HR: 03/0000Z N2310 E11000\n"
-        #     "FCST MAX WIND +18 HR: NIL\n"
-        #     "FCST PSN +24 HR: 03/0600Z N2340 E10955\n"
-        #     "FCST MAX WIND +24 HR: NIL \n"
-        #     "RMK: NIL\n"
-        #     "NXT MSG: 20220702/1200Z="
-        # )
-        # self.text.setText(testStr)
-
     def bindSignal(self):
         super().bindSignal()
         self.currentLatitude.editingFinished.connect(self.handleCircleChange)
@@ -902,7 +879,7 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
     def fields(self):
         return super().fields() + [self.name, self.currentLatitude, self.currentLongitude,
                                    self.forecastLatitude, self.forecastLongitude,
-                                   self.radius, self.top]
+                                   self.radius, self.top, self.intensityChange]
 
     def collect(self):
         super().collect()
@@ -921,13 +898,21 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
         name = state.name
         top = state.top
         intensityChange = state.intensityChange
+        currentLatitude = state.currentLatitude
+        currentLongitude = state.currentLongitude
         forecastLatitude = state.forecastLatitude
         forecastLongitude = state.forecastLongitude
+        radius = state.radius
 
         super().applyState()
         self.name.setText(name)
         self.top.setText(top)
         self.intensityChange.setCurrentIndex(self.intensityChange.findText(intensityChange))
+        # Radius before the coordinates: writing the centre re-derives the
+        # circle, and the intermediate collect would otherwise drop the radius.
+        self.radius.setText(radius)
+        self.currentLatitude.setText(currentLatitude)
+        self.currentLongitude.setText(currentLongitude)
         self.forecastLatitude.setText(forecastLatitude)
         self.forecastLongitude.setText(forecastLongitude)
 
@@ -1014,7 +999,7 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
     def circle(self, location):
         state = self.state
         latitude = state.currentLatitude if location == 'initial' else state.forecastLatitude
-        longitude = state.currentLongitude if location == 'final' else state.forecastLongitude
+        longitude = state.currentLongitude if location == 'initial' else state.forecastLongitude
         return typhoonCircleFeature(latitude, longitude, state.radius, location)
 
 
@@ -1033,43 +1018,13 @@ class SigmetAsh(BaseSigmet, Ui_sigmet_ash.Ui_Editor):
         self.setFcstOrObs()
         self.advisoryParser = AshAdvisoryParser
 
-        # testStr = (
-        #     "FVFE01 RJTD 142100\n"
-        #     "VA ADVISORY\n"
-        #     "DTG: 20210814/2100Z\n"
-        #     "VAAC: TOKYO\n"
-        #     "VOLCANO: FUKUTOKU-OKA-NO-BA 284130\n"
-        #     "PSN: N2417 E14129\n"
-        #     "AREA: JAPAN\n"
-        #     "SUMMIT ELEV: -29M\n"
-        #     "ADVISORY NR: 2021/16\n"
-        #     "INFO SOURCE: HIMAWARI-8\n"
-        #     "AVIATION COLOUR CODE: NIL\n"
-        #     "ERUPTION DETAILS: VA EMISSIONS CONTINUING\n"
-        #     "OBS VA DTG: 14/2020Z\n"
-        #     "OBS VA CLD: SFC/FL480 N2433 E14132 - N2411 E14137 - N2106 E13408 -\n"
-        #     "N2030 E12501 - N1829 E11931 - N2032 E11751 - N2342 E12603 - N2314\n"
-        #     "E13222 MOV W 55KT\n"
-        #     "FCST VA CLD +6 HR: 15/0220Z SFC/FL510 N2533 E14014 - N2412 E14141 -\n"
-        #     "N2214 E13836 - N2050 E13001 - N2008 E12142 - N1633 E11431 - N1832\n"
-        #     "E11203 - N2402 E12019 - N2355 E13843\n"
-        #     "FCST VA CLD +12 HR: 15/0820Z SFC/FL520 N2608 E13902 - N2409 E14145 -\n"
-        #     "N2054 E13813 - N2019 E11914 - N1426 E10847 - N1633 E10627 - N2334\n"
-        #     "E11717 - N2504 E12425 - N2314 E13600\n"
-        #     "FCST VA CLD +18 HR: 15/1420Z SFC/FL530 N2659 E13836 - N2416 E14148 -\n"
-        #     "N1936 E13735 - N2050 E12525 - N1846 E11503 - N1134 E10322 - N1259\n"
-        #     "E10041 - N2042 E11014 - N2524 E12436 - N2352 E13446\n"
-        #     "RMK: NIL\n"
-        #     "NXT ADVISORY: 20210815/0000Z="
-        # )
-        # self.text.setText(testStr)
-
     def bindSignal(self):
         super().bindSignal()
         self.phenomenon.currentTextChanged.connect(self.setEruptionOrCloud)
 
     def fields(self):
-        return super().fields() + [self.name, self.currentLatitude, self.currentLongitude]
+        return super().fields() + [self.name, self.currentLatitude, self.currentLongitude,
+                                   self.phenomenon, self.intensityChange]
 
     def collect(self):
         super().collect()
@@ -1086,6 +1041,7 @@ class SigmetAsh(BaseSigmet, Ui_sigmet_ash.Ui_Editor):
         name = state.name
         currentLatitude = state.currentLatitude
         currentLongitude = state.currentLongitude
+        intensityChange = state.intensityChange
 
         super().applyState()
         self.name.setText(name)
@@ -1097,6 +1053,7 @@ class SigmetAsh(BaseSigmet, Ui_sigmet_ash.Ui_Editor):
         self.currentLongitudeLabel.setEnabled(isEruption)
         self.currentLatitude.setText(currentLatitude)
         self.currentLongitude.setText(currentLongitude)
+        self.intensityChange.setCurrentIndex(self.intensityChange.findText(intensityChange))
 
         index = self.phenomenon.findText(state.phenomenon)
         self.phenomenon.setCurrentIndex(index if index >= 0 else 0)
@@ -1131,6 +1088,7 @@ class SigmetAsh(BaseSigmet, Ui_sigmet_ash.Ui_Editor):
         self.currentLatitudeLabel.setEnabled(enabled)
         self.currentLongitude.setEnabled(enabled)
         self.currentLongitudeLabel.setEnabled(enabled)
+        self.state.phenomenon = text
         self.state.isEruption = enabled
         self.contentChanged.emit()
 

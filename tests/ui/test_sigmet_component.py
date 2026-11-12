@@ -238,9 +238,79 @@ class TestSigmetEditor:
     def test_the_phenomenon_switch_writes_the_state_eruption_flag(self, editor):
         editor.ashContent.phenomenon.setCurrentText('CLD')
         assert editor.ashContent.state.isEruption is False
+        assert editor.ashContent.state.phenomenon == 'CLD'
 
         editor.ashContent.phenomenon.setCurrentText('ERUPTION')
         assert editor.ashContent.state.isEruption is True
+        assert editor.ashContent.state.phenomenon == 'ERUPTION'
+
+    def test_changing_the_typhoon_intensity_reaches_the_message(self, editor):
+        editor.tropicalCyclone.click()
+        content = editor.typhoonContent
+
+        content.intensityChange.setCurrentText('INTSF')
+
+        assert content.state.intensityChange == 'INTSF'
+        assert 'INTSF' in editor.message()
+
+    def test_changing_the_ash_intensity_reaches_the_state(self, editor):
+        editor.volcanicAsh.click()
+        content = editor.ashContent
+
+        content.intensityChange.setCurrentText('WKN')
+
+        assert content.state.intensityChange == 'WKN'
+
+    def test_the_typhoon_apply_state_renders_every_state_field(self, editor):
+        editor.tropicalCyclone.click()
+        content = editor.typhoonContent
+        state = content.state
+        state.name = 'YAGI'
+        state.top = '420'
+        state.intensityChange = 'WKN'
+        state.currentLatitude = 'N2110'
+        state.currentLongitude = 'E11120'
+        state.forecastLatitude = 'N2155'
+        state.forecastLongitude = 'E11050'
+        state.radius = '300'
+
+        content.applyState()
+
+        assert content.name.text() == 'YAGI'
+        assert content.top.text() == '420'
+        assert content.intensityChange.currentText() == 'WKN'
+        assert content.currentLatitude.text() == 'N2110'
+        assert content.currentLongitude.text() == 'E11120'
+        assert content.forecastLatitude.text() == 'N2155'
+        assert content.forecastLongitude.text() == 'E11050'
+        assert content.radius.text() == '300'
+        assert content.state.currentLatitude == 'N2110'
+
+    def test_the_general_apply_state_renders_the_intensity(self, editor):
+        content = editor.generalContent
+        content.state.intensityChange = 'INTSF'
+
+        content.applyState()
+
+        assert content.intensityChange.currentText() == 'INTSF'
+        assert content.state.intensityChange == 'INTSF'
+
+    def test_the_typhoon_circles_use_each_locations_own_coordinates(self, editor):
+        # A.6: initial and final circles must not borrow each other's longitude
+        editor.tropicalCyclone.click()
+        content = editor.typhoonContent
+        state = content.state
+        state.currentLatitude = 'N1010'
+        state.currentLongitude = 'E11010'
+        state.forecastLatitude = 'N2020'
+        state.forecastLongitude = 'E12020'
+        state.radius = '300'
+
+        initial = content.circle('initial')
+        final = content.circle('final')
+
+        assert initial['geometry']['coordinates'] == pytest.approx([110 + 10 / 60, 10 + 10 / 60])
+        assert final['geometry']['coordinates'] == pytest.approx([120 + 20 / 60, 20 + 20 / 60])
 
     def test_clear_resets_the_state_and_the_text_widget(self, editor):
         # was pinned as a bug (state cleared, text widget kept stale content)
