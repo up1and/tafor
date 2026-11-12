@@ -13,7 +13,7 @@ import logging
 import pytest
 
 from tafor.core.geometry import projection
-from tafor.core.models import Taf
+from tafor.core.models import Sigmet, Taf
 from tafor.core.states import SequenceService
 
 
@@ -184,3 +184,86 @@ class TestTafMonitor:
 
         values['message'] = Taf(type='FC', text='TAF ZPPP 100800Z 1009/1018 32008MPS=')
         assert monitor.setState(values) is True
+
+
+class TestReadOnlyCollections:
+    """The service getters look read-only, so what they return must not be a
+    handle on the shared state either."""
+
+    def test_the_remote_feed_is_a_copy(self, context):
+        context.message.setState({'FT': 'TAF ZPPP 100800Z='})
+
+        context.message.message().clear()
+
+        assert context.message.message() == {'FT': 'TAF ZPPP 100800Z='}
+
+    def test_the_layer_list_is_a_copy(self, context):
+        context.layer.setLayer([{'name': 'Satellite'}])
+
+        context.layer.getLayers().clear()
+
+        assert [layer.name for layer in context.layer.getLayers()] == ['Satellite']
+
+
+class TestCurrentSigmetService:
+
+    def test_a_poll_replaces_the_instances_even_when_the_text_matches(self, context):
+        first = Sigmet(type='WS', text='WS 1')
+        context.current.setState([first])
+        refreshed = Sigmet(type='WS', text='WS 1')
+
+        assert context.current.setState([refreshed]) is False
+        # nothing to redraw, but nobody keeps reading the row it replaced
+        assert context.current.state.sigmets[0] is refreshed
+
+    def test_a_metadata_change_stays_quiet_but_replaces_the_row(self, context):
+        context.current.setState([Sigmet(type='WS', text='WS 1')])
+        seen = []
+        context.event.currentSigmetChanged.connect(lambda: seen.append(1))
+
+        confirmed = Sigmet(type='WS', text='WS 1', confirmed=datetime.datetime(2026, 6, 10, 8, 0))
+
+        assert context.current.setState([confirmed]) is False
+        assert seen == []
+        # the graphic does not read confirmation, but the recent board does
+        assert context.current.state.sigmets[0] is confirmed
+
+    def test_new_text_is_announced(self, context):
+        context.current.setState([Sigmet(type='WS', text='WS 1')])
+        seen = []
+        context.event.currentSigmetChanged.connect(lambda: seen.append(1))
+
+        assert context.current.setState([Sigmet(type='WS', text='WS 2')]) is True
+        assert seen == [1]
+
+    def test_the_filtered_list_is_a_copy(self, context):
+        context.current.setState([Sigmet(type='WS', text='WS 1')])
+
+        context.current.filterSigmets().clear()
+
+        assert len(context.current.filterSigmets()) == 1
+
+
+class TestLayerService:
+
+    def test_an_identical_fetch_stays_quiet(self, context):
+        context.layer.setLayer([{'name': 'Satellite', 'image': b'same'}])
+        first = context.layer.state.layers[0]
+        seen = []
+        context.event.layerChanged.connect(lambda: seen.append(1))
+
+        context.layer.setLayer([{'name': 'Satellite', 'image': b'same'}])
+
+        assert seen == []
+        # the instances are still fresh; only the redraw is skipped
+        assert context.layer.state.layers[0] is not first
+
+    def test_a_new_image_is_announced(self, context):
+        context.layer.setLayer([{'name': 'Satellite', 'image': b'old'}])
+        seen = []
+        context.event.layerChanged.connect(lambda: seen.append(1))
+
+        context.layer.setLayer([{'name': 'Satellite', 'image': b'new'}])
+
+        assert seen == [1]
+        assert context.layer.getLayers()[0].image == b'new'

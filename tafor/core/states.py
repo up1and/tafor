@@ -107,7 +107,7 @@ class RemoteMessageService:
         self.event = event
 
     def message(self):
-        return self.state.messages
+        return dict(self.state.messages)
 
     def setState(self, values):
         """Publish a batch the repository has already committed.
@@ -126,13 +126,13 @@ class CurrentSigmetService:
         self.event = event
 
     def setState(self, values):
-        oldSigmets = [s.text for s in self.state.sigmets]
-        newSigmets = [s.text for s in values]
+        oldTexts = [s.text for s in self.state.sigmets]
+        newTexts = [s.text for s in values]
+        self.state.sigmets = list(values)
 
-        if set(oldSigmets) == set(newSigmets):
+        if set(oldTexts) == set(newTexts):
             return False
 
-        self.state.sigmets = list(values)
         self.event.currentSigmetChanged.emit()
         return True
 
@@ -150,7 +150,7 @@ class CurrentSigmetService:
         if designators:
             candidates = [s for s in candidates if s.type in designators]
 
-        return candidates
+        return list(candidates)
 
 
 class LayerService(StateProxyMixin):
@@ -162,13 +162,20 @@ class LayerService(StateProxyMixin):
         self.conf = conf
 
     def setLayer(self, layerData):
-        layers = [Layer(data) for data in layerData]
-        oldNames = [l.name for l in self.state.layers]
-        newNames = [l.name for l in layers]
+        # A fetch that brings the same pictures changes nothing on screen.
+        # Keep the fresh instances, but announce only when the drawn content --
+        # name, overlay, projection, extent or image -- differs, so an
+        # unchanged poll does not rebuild the menu and canvas every time.
+        def contentKey(layer):
+            return (layer.name, layer.overlay, layer.proj, tuple(layer.extent), layer.image)
 
-        self.state.layers = layers
-        if oldNames != newNames:
-            self.event.layerChanged.emit()
+        oldKeys = [contentKey(layer) for layer in self.state.layers]
+        self.state.layers = [Layer(data) for data in layerData]
+
+        if oldKeys == [contentKey(layer) for layer in self.state.layers]:
+            return
+
+        self.event.layerChanged.emit()
 
     def setState(self, values):
         normalized = {}
@@ -188,7 +195,7 @@ class LayerService(StateProxyMixin):
             self.event.layerChanged.emit()
 
     def getLayers(self):
-        return self.state.layers
+        return list(self.state.layers)
 
     def findLayer(self, layerName):
         for layer in self.state.layers:

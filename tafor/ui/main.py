@@ -523,7 +523,6 @@ class LayerPresenter(QObject):
         )
         self.worker.fetched.connect(self.bridge.updateLayer)
         self.worker.failed.connect(self.connectionLost)
-        self.thread.finished.connect(self.refresh)
         self.context.event.layerRefreshRequested.connect(self.poll)
 
         self.timer = QTimer(self)
@@ -541,9 +540,6 @@ class LayerPresenter(QObject):
         """
         if self.conf.layerUrl and not self.thread.isRunning():
             self.thread.start()
-
-    def refresh(self):
-        self.view.renderLayer()
 
     def connectionLost(self):
         """The worker reported a dead connection through ``failed``; an
@@ -939,9 +935,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def renderRecent(self, entries):
         self.recentBoard.sync(entries)
-
-    def renderLayer(self):
-        self.sigmetEditor.updateLayer()
 
     def renderSigmetGraphic(self):
         self.sigmetEditor.updateGraphicCanvas()

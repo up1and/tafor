@@ -139,11 +139,7 @@ class FakeLayerView(QObject):
 
     def __init__(self):
         super().__init__()
-        self.layers = 0
         self.notices = []
-
-    def renderLayer(self):
-        self.layers += 1
 
     def notify(self, title, text, level='information'):
         self.notices.append((title, text, level))
@@ -844,12 +840,12 @@ class TestLayerPresenter:
 
         assert layer.thread.isRunning() is True
 
-    def test_refresh_hands_the_layers_to_the_editor(self, layer, view):
+    def test_a_fetch_reaches_the_bridge(self, layer, bridge):
         layer.initialize()
 
-        layer.refresh()
+        layer.worker.fetched.emit([{'name': 'Satellite'}])
 
-        assert view.layers == 1
+        assert bridge.layers == [[{'name': 'Satellite'}]]
 
     def test_a_failed_fetch_reports_a_connection_error(self, layer, view):
         layer.initialize()
@@ -868,15 +864,11 @@ class TestLayerPresenter:
 
         assert view.notices[0][2] == 'warning'
 
-    def test_refresh_without_a_layer_url_only_renders(self, layer, view, layer_conf):
+    def test_without_a_layer_url_nothing_is_fetched(self, layer, layer_conf):
         layer_conf.layerUrl = ''
         layer.initialize()
-        view.notices = []
 
-        layer.refresh()
-
-        assert view.layers == 1
-        assert view.notices == []
+        assert layer.thread.isRunning() is False
 
 
 class TestReminderPresenter:
@@ -1879,14 +1871,6 @@ class TestMainWindow:
         window.renderRecent(entries)
 
         assert board.calls == [('sync', (entries,), {})]
-
-    def test_render_layer_updates_the_editor(self, window, monkeypatch):
-        editor = FakeWidget()
-        monkeypatch.setattr(window, 'sigmetEditor', editor)
-
-        window.renderLayer()
-
-        assert editor.calls == [('updateLayer', (), {})]
 
     def test_render_sigmet_graphic_updates_the_canvas(self, window, monkeypatch):
         editor = FakeWidget()
