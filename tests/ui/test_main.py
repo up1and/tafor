@@ -28,7 +28,6 @@ from tafor.core.states import createContext
 from tafor.ui import main as main_module
 from tafor.ui.main import (
     BoardPresenter,
-    FlashPresenter,
     LayerPresenter,
     LicensePresenter,
     MainWindow,
@@ -1444,40 +1443,6 @@ class TestLicensePresenter:
         assert view.menuStates == [False, False]
 
 
-class TestFlashPresenter:
-    """The core's flash channel had no subscriber, so every message sent
-    through it went nowhere -- the trend validation warning. This test fails
-    if the presenter stops subscribing."""
-
-    @pytest.fixture
-    def view(self):
-        return FakeFlashView()
-
-    @pytest.fixture
-    def flash(self, view, context):
-        return FlashPresenter(view, context)
-
-    def test_a_system_message_reaches_the_tray(self, flash, view, context):
-        flash.initialize()
-
-        context.flash.warning('Trend Validation Failed', 'The trend has been cleared, please resend')
-
-        assert view.notices == [
-            ('Trend Validation Failed', 'The trend has been cleared, please resend', 'warning')
-        ]
-
-
-class FakeFlashView:
-    """The one method FlashPresenter calls."""
-
-    def __init__(self):
-        self.notices = []
-
-    def notify(self, title, text, level='information'):
-        self.notices.append((title, text, level))
-
-
-
 class FakeUpgradeView(QObject):
     """The methods UpgradePresenter calls."""
 
@@ -1835,6 +1800,43 @@ class TestMainWindow:
         window.notify('Title', 'Text', level)
 
         assert tray.messages == [('Title', 'Text', expected)]
+
+    def test_a_system_message_from_the_core_reaches_the_tray(self, window, monkeypatch):
+        """FlashService is how core asks to say something. It emits on the
+        event bus and knows nothing about a window; the window is the
+        subscriber, so this fails if the subscription is ever dropped.
+
+        Regression: the trend validation warning used to go nowhere at all.
+        """
+        tray = FakeTray()
+        monkeypatch.setattr(window, 'tray', tray)
+
+        window.context.flash.warning(
+            'Trend Validation Failed', 'The trend has been cleared, please resend')
+
+        assert tray.messages == [
+            ('Trend Validation Failed', 'The trend has been cleared, please resend',
+             QSystemTrayIcon.Warning)
+        ]
+
+    def test_the_log_window_starts_hidden(self, window):
+        assert not window.logPanel.isVisible()
+
+    def test_the_log_menu_entry_shows_the_window(self, window):
+        window.viewLogsAction.trigger()
+
+        assert window.logPanel.isVisible()
+
+        window.logPanel.close()
+
+    def test_shutdown_closes_the_log_window(self, window):
+        """It is one of the dialogs the app owns, so the same pass takes it
+        down and stops its timer."""
+        window.viewLogsAction.trigger()
+
+        window.closeDialogs()
+
+        assert not window.logPanel.isVisible()
 
     @pytest.fixture
     def sounds(self, window, monkeypatch):

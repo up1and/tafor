@@ -29,8 +29,8 @@ from tafor.core.states import createContext
 from tafor.core.utils.common import appInfo
 from tafor.core.utils.log import setupLogging
 from tafor.ui.fonts import uiFont
-from tafor.ui.main import (MainWindow, BoardPresenter, FlashPresenter, LayerPresenter,
-    LicensePresenter, LogPresenter, MessagePresenter, NotificationPresenter,
+from tafor.ui.main import (MainWindow, BoardPresenter, LayerPresenter,
+    LicensePresenter, MessagePresenter, NotificationPresenter,
     ReminderPresenter, SoundPresenter, UpgradePresenter)
 from tafor.ui.workers import (ContextBridge, RpcWorker, TransmissionQueue,
     TransmissionWorker, WorkerPool)
@@ -138,11 +138,9 @@ class Application:
             NotificationPresenter(self.window, self.runtime.context, self.runtime.repositories),
             BoardPresenter(self.window, self.runtime.context, self.runtime.conf, self.runtime.repositories),
             SoundPresenter(self.window, self.runtime.context, self.runtime.conf),
-            FlashPresenter(self.window, self.runtime.context),
             LayerPresenter(self.window, self.runtime.context, self.runtime.conf, self.workers, self.runtime.bridge),
             LicensePresenter(self.window, self.runtime.context, self.runtime.conf),
             UpgradePresenter(self.window, self.workers),
-            LogPresenter(self.window)
         ]
 
     def start(self):

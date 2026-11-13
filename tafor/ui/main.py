@@ -551,24 +551,6 @@ class LayerPresenter(QObject):
         )
 
 
-class FlashPresenter(QObject):
-    """Turns the core's flash channel into something the operator sees.
-
-    FlashService is how core asks to say something; it emits on the event bus
-    and does not know a window exists. Statusbar and editor messages do not
-    travel through the bus any more -- their former senders were widgets,
-    which now report through their own signals.
-    """
-
-    def __init__(self, view, context, parent=None):
-        super().__init__(parent)
-        self.view = view
-        self.context = context
-
-    def initialize(self):
-        self.context.event.systemMessage.connect(self.view.notify)
-
-
 class LicensePresenter(QObject):
     """Keeps the license menu in step with the stored license, and owns the
     verify-and-store flow the editor dialog only reports through a signal.
@@ -663,45 +645,6 @@ class UpgradePresenter(QObject):
             QDesktopServices.openUrl(QUrl('https://github.com/up1and/tafor/releases'))
 
 
-class LogPresenter(QObject):
-    """Show the log window, and keep the ring drained only while it is up.
-
-    One window for the life of the application, hidden on close rather than
-    discarded, so its filters and its scroll position survive being closed.
-    It reads the ring by itself; this owns the timer, stopped whenever
-    nobody is looking at the output.
-    """
-
-    def __init__(self, view, parent=None):
-        super().__init__(parent)
-        self.view = view
-        # Built here, not when the action is first used: the window has to
-        # belong to something that outlives the signal handler that would
-        # otherwise create it, and a QObject parented to itself is a
-        # reference cycle waiting for a garbage collector that may never run.
-        self.logPanel = LogPanel(view)
-        self.logPanel.closed.connect(self.stop)
-
-        self.timer = QTimer(self)
-        self.timer.setInterval(500)
-        self.timer.timeout.connect(self.poll)
-
-    def initialize(self):
-        self.view.viewLogsAction.triggered.connect(self.show)
-
-    def poll(self):
-        self.logPanel.poll()
-
-    def show(self):
-        self.logPanel.show()
-        self.logPanel.raise_()
-        self.logPanel.activateWindow()
-        self.timer.start()
-
-    def stop(self):
-        self.timer.stop()
-
-
 class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     """The window itself. It is handed conf, context and the repositories so
     that the widgets it builds can be given them, and for nothing else."""
@@ -733,6 +676,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.setupTables()
         self.setupSounds()
         self.setupTray()
+        self.setupLogs()
         self.bindSignal()
 
     def setupFrame(self):
@@ -834,6 +778,24 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.tray.setContextMenu(self.trayMenu)
         self.tray.setToolTip('Tafor {}'.format(__version__))
 
+    def setupLogs(self):
+        """One log window for the life of the application.
+
+        Built here rather than when the menu entry is first used: the window
+        has to belong to something that outlives the signal handler that
+        would otherwise create it, and a window parented to itself is a
+        reference cycle waiting for a garbage collector that may never run.
+        Closing hides it, so its filters and scroll position survive.
+        """
+        self.logPanel = LogPanel(self)
+        self.viewLogsAction.triggered.connect(self.showLogs)
+
+    def showLogs(self):
+        """Raise the window; it starts reading the ring on its own show."""
+        self.logPanel.show()
+        self.logPanel.raise_()
+        self.logPanel.activateWindow()
+
     def trayStyle(self):
         if self.sysInfo.startswith(('Windows 10', 'Windows 11', 'Ubuntu')):
             return 'light'
@@ -844,8 +806,10 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     def bindSignal(self):
         """Signals the window can handle itself: no state, no services.
 
-        Everything that needs the context or a worker is connected by the
-        presenter that owns it.
+        Everything else is connected by the presenter that owns it. The bus
+        subscription at the end is the exception: core asks to say something
+        by emitting systemMessage and knows nothing about a window, and
+        notify is the whole of the window's answer.
         """
         self.tafAction.triggered.connect(self.tafEditor.show)
         self.trendAction.triggered.connect(self.trendEditor.show)
@@ -878,6 +842,9 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.conf.restartRequired.connect(self.restart)
         self.conf.reloadRequired.connect(self.closeSenders)
         self.settingDialog.statusMessage.connect(self.status)
+
+        # FlashService: how core asks to say something
+        self.context.event.systemMessage.connect(self.notify)
 
     def setTrayIcon(self, style='normal'):
         files = {
@@ -1093,7 +1060,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         for dialog in (
             self.tafSender, self.trendSender, self.sigmetSender, self.customSender,
             self.tafEditor, self.trendEditor, self.sigmetEditor, self.licenseEditor,
-            self.settingDialog, self.chartViewer,
+            self.settingDialog, self.chartViewer, self.logPanel,
             *self.reminders.values(),
         ):
             dialog.close()

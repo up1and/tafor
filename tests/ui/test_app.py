@@ -15,7 +15,6 @@ from types import SimpleNamespace
 
 import pytest
 
-from PyQt5.QtWidgets import QAction
 
 from tafor.core.config import createConfig
 from tafor.core.repositories import Repositories
@@ -43,11 +42,9 @@ PRESENTERS = [
     'NotificationPresenter',
     'BoardPresenter',
     'SoundPresenter',
-    'FlashPresenter',
     'LayerPresenter',
     'LicensePresenter',
     'UpgradePresenter',
-    'LogPresenter',
 ]
 
 
@@ -77,8 +74,8 @@ class FakeWindow:
     """The MainWindow, reduced to the methods Application and the presenters
     reach for.
 
-    notify/status are here because FlashPresenter subscribes them to the
-    context's flash channels, and it does so from initialize().
+    notify/status are here because NotificationPresenter and the others
+    report through them.
     """
 
     def __init__(self, *args, **kwargs):
@@ -89,10 +86,6 @@ class FakeWindow:
         self.dialogsClosed = 0
         self.notices = []
         self.statuses = []
-
-        # LogPresenter connects to this from initialize(); the real one
-        # comes from Ui_main, which a double has no reason to run.
-        self.viewLogsAction = QAction()
 
     def show(self):
         self.shown += 1
@@ -532,13 +525,11 @@ class TestApplication:
         assert doubles.byRole['BoardPresenter'][0].args == (
             window, runtime.context, runtime.conf, runtime.repositories)
         assert doubles.byRole['SoundPresenter'][0].args == (window, runtime.context, runtime.conf)
-        assert doubles.byRole['FlashPresenter'][0].args == (window, runtime.context)
         assert doubles.byRole['LayerPresenter'][0].args == (
             window, runtime.context, runtime.conf, workers, runtime.bridge)
         assert doubles.byRole['LicensePresenter'][0].args == (
             window, runtime.context, runtime.conf)
         assert doubles.byRole['UpgradePresenter'][0].args == (window, workers)
-        assert doubles.byRole['LogPresenter'][0].args == (window,)
 
     def test_start_shows_the_window_then_initializes_every_presenter(self, application, doubles):
         application.start()

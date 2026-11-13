@@ -10,12 +10,17 @@ a signal per record would mean a queued connection from every one of them --
 and a burst of logging would then arrive as a burst of events competing with
 the painting that is already struggling. A timer reads whatever accumulated
 since the last look and costs nothing at all while the panel is closed.
+
+The timer belongs to the panel rather than to a presenter beside it: it
+serves this window and no other, and it runs exactly while the window is
+up. A class whose whole job was to start and stop it on the window's
+behalf would only be a place to keep a flag.
 """
 
 import datetime
 import logging
 
-from PyQt5.QtCore import QCoreApplication, QEvent, Qt, pyqtSignal
+from PyQt5.QtCore import QCoreApplication, QEvent, Qt, QTimer
 from PyQt5.QtGui import QColor, QPalette, QTextCharFormat, QTextCursor
 from PyQt5.QtWidgets import (QCheckBox, QComboBox, QDialog, QHBoxLayout, QLabel,
     QLineEdit, QPlainTextEdit, QVBoxLayout)
@@ -28,13 +33,12 @@ class LogPanel(QDialog):
     """One window, owned by the main window for as long as the app lives.
 
     Closing hides it rather than discarding it, so its filters and its
-    scroll position are still there next time. ``closed`` lets the presenter
-    stop reading the ring while nobody is looking. The window holds no
-    records of its own: it draws what the ring holds and forgets at
-    refiltering whatever the ring has evicted since.
+    scroll position are still there next time. It reads the ring itself, on
+    a timer that starts when the window is shown and stops when it closes:
+    nobody is polling while nobody is looking. The window holds no records
+    of its own: it draws what the ring holds and forgets at refiltering
+    whatever the ring has evicted since.
     """
-
-    closed = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -43,6 +47,10 @@ class LogPanel(QDialog):
 
         self.setupUi()
         self.bindSignal()
+
+        self.timer = QTimer(self)
+        self.timer.setInterval(500)
+        self.timer.timeout.connect(self.poll)
 
     def setupUi(self):
         self.setWindowTitle(QCoreApplication.translate('LogPanel', 'View Logs'))
@@ -102,14 +110,16 @@ class LogPanel(QDialog):
         self.filterEdit.textChanged.connect(self.refilter)
 
     def showEvent(self, event):
-        """Read what is already in the ring before the window is painted.
+        """Read what is already in the ring, then keep reading.
 
         The records were logged while the panel was closed, so waiting for
         the first tick would open an empty window and fill it half a second
-        later.
+        later. Starting the timer here rather than in __init__ is what makes
+        a closed window cost nothing.
         """
         super().showEvent(event)
         self.poll()
+        self.timer.start()
 
     def changeEvent(self, event):
         """A theme switch changes what the level hues resolve to."""
@@ -246,13 +256,12 @@ class LogPanel(QDialog):
         # inherited slot returns the event ignored, and the window then
         # survives its own close button. Closing is always welcome there.
         event.accept()
-        self.closed.emit()
+        self.timer.stop()
 
     def reject(self):
         """Send ESC and friends through close instead of hide.
 
-        A QDialog's own reject hides without a closeEvent, which would
-        strand the ``closed`` signal and leave the presenter polling for
-        an audience that has left.
+        A QDialog's own reject hides without a closeEvent, which would leave
+        the timer reading the ring for a window nobody can see.
         """
         self.close()

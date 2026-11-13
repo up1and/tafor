@@ -7,11 +7,7 @@ from collections import deque
 
 import pytest
 
-from PyQt5.QtCore import Qt
-
-from tafor.core.utils import log as log_module
 from tafor.core.utils.log import logBuffer
-from tafor.ui.main import LogPresenter
 from tafor.ui.widgets.logs import LogPanel
 
 
@@ -253,69 +249,81 @@ class TestLogPanelScrolling:
         assert bar.value() == 0
 
 
-class TestLogPresenter:
+class TestLogPanelTimer:
+    """The panel reads the ring on its own timer.
 
-    def makeView(self, qtbot):
-        from PyQt5.QtWidgets import QAction, QMainWindow
+    There used to be a presenter beside this window whose only job was to
+    start and stop that timer. The timer serves this window and no other, so
+    it moved in here: shown reads, closed stops.
+    """
 
-        class FakeView(QMainWindow):
-            pass
+    def makePanel(self, qtbot):
+        widget = LogPanel()
+        qtbot.addWidget(widget)
+        return widget
 
-        view = FakeView()
-        view.viewLogsAction = QAction(view)
-        qtbot.addWidget(view)
-        return view
+    def test_a_fresh_panel_is_not_reading(self, qtbot):
+        panel = self.makePanel(qtbot)
 
-    def test_the_action_shows_the_window_and_starts_reading(self, qtbot):
-        view = self.makeView(qtbot)
-        presenter = LogPresenter(view)
-        presenter.initialize()
+        assert not panel.timer.isActive()
 
-        view.viewLogsAction.trigger()
+    def test_showing_the_panel_starts_reading(self, qtbot):
+        panel = self.makePanel(qtbot)
 
-        assert presenter.logPanel.isVisible()
-        assert presenter.timer.isActive()
+        panel.show()
 
-    def test_the_window_starts_hidden(self, qtbot):
-        view = self.makeView(qtbot)
-        presenter = LogPresenter(view)
+        assert panel.timer.isActive()
 
-        assert not presenter.logPanel.isVisible()
-        assert not presenter.timer.isActive()
+    def test_showing_the_panel_draws_what_is_already_there(self, qtbot):
+        """Waiting for the first tick would open an empty window and fill it
+        half a second later."""
+        logBuffer.clear()
+        written(message='logged while closed')
+        panel = self.makePanel(qtbot)
 
-    def test_closing_the_window_stops_reading(self, qtbot):
-        view = self.makeView(qtbot)
-        presenter = LogPresenter(view)
-        presenter.initialize()
-        view.viewLogsAction.trigger()
+        panel.show()
 
-        presenter.logPanel.close()
+        assert 'logged while closed' in panel.text.toPlainText()
+        logBuffer.clear()
 
-        assert not presenter.timer.isActive()
+    def test_closing_the_panel_stops_reading(self, qtbot):
+        panel = self.makePanel(qtbot)
+        panel.show()
+
+        panel.close()
+
+        assert not panel.timer.isActive()
 
     def test_pressing_escape_stops_reading(self, qtbot):
-        view = self.makeView(qtbot)
-        presenter = LogPresenter(view)
-        presenter.initialize()
-        view.viewLogsAction.trigger()
+        panel = self.makePanel(qtbot)
+        panel.show()
 
         # ESC rides QDialog's reject, which by default hides without a
         # closeEvent; the panel routes it through close so the X button and
         # the keyboard reach the same stop.
-        presenter.logPanel.reject()
+        panel.reject()
 
-        assert not presenter.logPanel.isVisible()
-        assert not presenter.timer.isActive()
+        assert not panel.isVisible()
+        assert not panel.timer.isActive()
 
     def test_the_window_is_shown_again_rather_than_rebuilt(self, qtbot):
-        view = self.makeView(qtbot)
-        presenter = LogPresenter(view)
-        presenter.initialize()
+        panel = self.makePanel(qtbot)
 
-        view.viewLogsAction.trigger()
-        first = presenter.logPanel
-        presenter.logPanel.close()
-        view.viewLogsAction.trigger()
+        panel.show()
+        panel.close()
+        panel.show()
 
-        assert presenter.logPanel is first
-        assert presenter.logPanel.isVisible()
+        assert panel.isVisible()
+        assert panel.timer.isActive()
+
+    def test_a_tick_reads_the_ring(self, qtbot):
+        """The timer is connected to poll, not merely ticking."""
+        logBuffer.clear()
+        panel = self.makePanel(qtbot)
+        panel.show()
+        written(message='arrived after the window opened')
+
+        panel.timer.timeout.emit()
+
+        assert 'arrived after the window opened' in panel.text.toPlainText()
+        logBuffer.clear()
