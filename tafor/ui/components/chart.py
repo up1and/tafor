@@ -398,6 +398,11 @@ class Chart(QChart):
     def setSamples(self, series, samples):
         self.samples[series] = samples
 
+    def clearSeries(self):
+        """Drop the series and the samples behind them."""
+        self.removeAllSeries()
+        self.samples.clear()
+
     def metarAt(self, series, index):
         """The metar that produced the point at index of series, or None."""
         samples = self.samples.get(series)
@@ -435,6 +440,7 @@ class ChartView(QChartView):
         """Draws marker and symbols/labels."""
         chart = self.chart()
         if not chart.series():
+            self.marker.setVisible(False)
             return
         pos = chart.mapToScene(event.pos())
         visible = chart.plotArea().contains(pos)
@@ -720,9 +726,12 @@ class ChartViewer(QDialog, Ui_chart.Ui_Chart):
     def clearChart(self):
         for view in self.views:
             chart = view.chart()
-            chart.removeAllSeries()
+            chart.clearSeries()
             for axis in chart.axes():
                 chart.removeAxis(axis)
+            # the marker is a scene item, not a series: without this it keeps
+            # floating over an empty plot with the last tooltip it showed
+            view.marker.setVisible(False)
 
     def createSeries(self, spec, samples):
         if spec.kind == 'scatter':

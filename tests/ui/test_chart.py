@@ -510,6 +510,62 @@ class TestChartViewer:
         assert all(view.chart().series() == [] for view in viewer.views)
         assert all(view.chart().axes() == [] for view in viewer.views)
 
+    def test_a_repaint_drops_the_samples_behind_the_old_series(self, qtbot, database):
+        # clearing the chart deletes the series but the samples dict is keyed
+        # by the series object: without an explicit clear it keeps one entry
+        # per series per repaint, and metarAt() can still answer for a series
+        # that no longer exists
+        created = datetime.datetime(2026, 8, 31, 12, 0)
+        viewer = self.build_viewer(database, [
+            ('YUSO 311200Z 27015KT 9999 SCT030 28/20 Q1013', created),
+        ], created)
+        qtbot.addWidget(viewer)
+
+        charts = [view.chart() for view in viewer.views]
+        assert any(chart.samples for chart in charts)
+        count = sum(len(chart.samples) for chart in charts)
+
+        viewer.clearChart()
+
+        assert all(chart.series() == [] for chart in charts)
+        assert all(chart.samples == {} for chart in charts)
+        assert count > 0
+
+    def test_a_cleared_chart_hides_the_marker(self, qtbot, database):
+        # the marker is a scene item rather than a series, so removing the
+        # series leaves it floating over an empty plot with its last tooltip
+        created = datetime.datetime(2026, 8, 31, 12, 0)
+        viewer = self.build_viewer(database, [
+            ('YUSO 311200Z 27015KT 9999 SCT030 28/20 Q1013', created),
+        ], created)
+        qtbot.addWidget(viewer)
+
+        viewer.views[0].marker.setVisible(True)
+        viewer.clearChart()
+
+        assert all(not view.marker.isVisible() for view in viewer.views)
+
+    def test_a_window_redraw_does_not_accumulate_samples(self, qtbot, database):
+        # the full cycle the operator sees: a window with data, then the same
+        # window redrawn after the date range changes
+        created = datetime.datetime(2026, 8, 31, 12, 0)
+        viewer = self.build_viewer(database, [
+            ('YUSO 311200Z 27015KT 9999 SCT030 28/20 Q1013', created),
+        ], created)
+        qtbot.addWidget(viewer)
+
+        def counts():
+            return [(len(view.chart().series()), len(view.chart().samples))
+                    for view in viewer.views]
+
+        first = counts()
+        viewer.updateDateRange(created)
+        second = counts()
+
+        assert first == second
+        # one entry per series that carries samples, never a leftover
+        assert all(samples <= series for series, samples in second)
+
     def test_the_chart_set_can_be_replaced(self, qtbot, database):
         # specs is a default, not a fixed set: passing specs= stacks exactly
         # those charts. This is the seam for showing fewer than six.
