@@ -55,8 +55,6 @@ class CurrentSigmetState:
 class LayerState:
     def __init__(self):
         self.layers = []
-        self.showSigmet = True
-        self.trimShapes = True
         self.layerExtend = []
         self.selected = []
 
@@ -154,7 +152,7 @@ class CurrentSigmetService:
 
 
 class LayerService(StateProxyMixin):
-    fields = ['selected', 'showSigmet', 'trimShapes']
+    fields = ['selected']
 
     def __init__(self, state, event, conf):
         self.state = state
@@ -163,36 +161,54 @@ class LayerService(StateProxyMixin):
 
     def setLayer(self, layerData):
         # A fetch that brings the same pictures changes nothing on screen.
-        # Keep the fresh instances, but announce only when the drawn content --
-        # name, overlay, projection, extent or image -- differs, so an
-        # unchanged poll does not rebuild the menu and canvas every time.
+        # Keep the fresh instances, but compare the drawn content -- name,
+        # overlay, projection, extent and image -- to decide what to announce.
         def contentKey(layer):
             return (layer.name, layer.overlay, layer.proj, tuple(layer.extent), layer.image)
 
-        oldKeys = [contentKey(layer) for layer in self.state.layers]
-        self.state.layers = [Layer(data) for data in layerData]
+        layers = [Layer(data) for data in layerData]
+        names = {layer.name for layer in layers}
 
-        if oldKeys == [contentKey(layer) for layer in self.state.layers]:
-            return
+        # The selection is an invariant of this service, not something the
+        # menu repairs while rendering: a fetch that drops the selected layer
+        # also picks the replacement, before anyone is notified.
+        selected = [name for name in self.state.selected if name in names]
+        if layers and not selected:
+            selected = [self.defaultLayerName(layers)]
 
-        self.event.layerChanged.emit()
+        contentChanged = [contentKey(layer) for layer in layers] != [
+            contentKey(layer) for layer in self.state.layers
+        ]
+        selectionChanged = selected != self.state.selected
+
+        self.state.layers = layers
+        self.state.selected = selected
+
+        # The pictures and the selection they normalise travel together: the
+        # handler rebuilds the menu from the new names and reads the new
+        # selection, so one notification covers both.
+        if contentChanged or selectionChanged:
+            self.event.layersChanged.emit()
+
+    def defaultLayerName(self, layers):
+        for layer in layers:
+            if layer.overlay == 'standalone':
+                return layer.name
+
+        return layers[0].name
 
     def setState(self, values):
-        normalized = {}
-        for key, value in values.items():
-            if key == 'selected':
-                normalized[key] = list(value)
-            if key in ['showSigmet', 'trimShapes']:
-                normalized[key] = bool(value)
+        # The display switches are view state; only the selection is a service
+        # field, and a write that changes it redraws the backgrounds.
+        if 'selected' not in values:
+            return
 
-        if any(
-            getattr(self.state, key) != value
-            for key, value in normalized.items()
-        ):
-            for key, value in normalized.items():
-                setattr(self.state, key, value)
+        selected = list(values['selected'])
+        if selected == self.state.selected:
+            return
 
-            self.event.layerChanged.emit()
+        self.state.selected = selected
+        self.event.layersChanged.emit()
 
     def getLayers(self):
         return list(self.state.layers)

@@ -568,9 +568,9 @@ class SketchView(MapView):
                 bg.setOpacity(opacity)
 
     def drawLayer(self):
+        # An empty selection means "show nothing"; returning early here left
+        # the previous background on screen after the feed went empty.
         layers = [layer for layer in self.context.layer.currentLayers() if layer]
-        if not layers:
-            return
 
         items = []
         for layer in layers:
@@ -688,8 +688,6 @@ class SketchPanel(QWidget):
     overlapChanged = pyqtSignal(str)
     modeChanged = pyqtSignal(str)
     refreshClicked = pyqtSignal()
-    defaultLayerSelected = pyqtSignal(str)
-    displayToggled = pyqtSignal(str, bool)
     layerSelectionChanged = pyqtSignal(list)
 
     def __init__(self, parent=None, context=None):
@@ -697,6 +695,10 @@ class SketchPanel(QWidget):
         self.context = context
         self.designator = ''
         self.cachedSigmets = []
+        # The display switches are view state: they only change how this canvas
+        # paints the SIGMET overlay, so they are toggled and repainted here.
+        self.showSigmet = True
+        self.trimShapes = True
 
         self.canvas = SketchView(self.context)
         self.setMaximumSize(960, 620)
@@ -914,25 +916,24 @@ class SketchPanel(QWidget):
         self.cachedSigmets = sigmets
         self.updateSigmetGraphic()
 
-    def handleLayerChanged(self):
-        # pure notification: pull fresh data from the layer service,
-        # keeping menu population before the canvas redraw
-        self.setLayerSelectMenu()
-        self.updateLayer()
-        # showSigmet/trimShapes live in the same state, so the SIGMET overlay
-        # is redrawn here -- the only place that knows the write landed.
-        self.updateSigmetGraphic()
+    def handleLayersChanged(self):
+        # The pictures or which of them are shown changed: the menu structure,
+        # the backgrounds and the information overlay all follow them. The
+        # SIGMET overlay depends on neither, so it stays untouched.
+        self.updateLayerMenu()
+        self.canvas.drawLayer()
+        self.updateLayerInfoLabel()
 
     def setLayerMenu(self):
         self.layerMenu = QMenu(self)
         self.trimShapesAction = QAction(self)
         self.trimShapesAction.setText(QCoreApplication.translate('Editor', 'Trim Shapes'))
         self.trimShapesAction.setCheckable(True)
-        self.trimShapesAction.setChecked(True)
+        self.trimShapesAction.setChecked(self.trimShapes)
         self.showSigmetAction = QAction(self)
         self.showSigmetAction.setText(QCoreApplication.translate('Editor', 'Latest SIGMET/AIRMET'))
         self.showSigmetAction.setCheckable(True)
-        self.showSigmetAction.setChecked(True)
+        self.showSigmetAction.setChecked(self.showSigmet)
         self.backgroundLayerActionGroup = QActionGroup(self)
         self.mixedBackgroundLayerActionGroup = QActionGroup(self)
         self.mixedBackgroundLayerActionGroup.setExclusive(False)
@@ -946,14 +947,35 @@ class SketchPanel(QWidget):
         # and forth between actions that are about to be discarded.
         self.opacitySliderAction = QWidgetAction(self)
         self.opacitySliderAction.setDefaultWidget(self.opacitySlider)
-        # everything ``setLayerSelectMenu`` appends, so the next rebuild can
-        # take it back out again
+        # everything ``updateLayerMenu`` appends, so the next rebuild can take
+        # it back out again
         self.layerItems = []
 
-    def setLayerSelectMenu(self):
-        # This runs again on every ``layerChanged``, so start from a clean slate.
-        # Without it the menu was populated exactly once and then kept offering
-        # layers that had since disappeared.
+    def updateLayerMenu(self):
+        # Pure render: the action set follows the fetched names, the checks
+        # follow the selection the service already normalised. Nothing here
+        # writes state, so a notification never turns into a command.
+        layers = self.context.layer.groupLayers()
+        structure = sorted(
+            (layer.name, layer.overlay)
+            for groups in layers.values() for layer in groups
+        )
+        # The action groups record what the menu currently holds, so the
+        # structure is read from them instead of kept in a parallel list.
+        current = sorted(
+            [(action.text(), 'standalone') for action in self.backgroundLayerActionGroup.actions()]
+            + [(action.text(), 'mixed') for action in self.mixedBackgroundLayerActionGroup.actions()]
+        )
+
+        if structure != current:
+            self.rebuildLayerActions(layers)
+
+        selected = set(self.context.layer.selected)
+        actions = self.backgroundLayerActionGroup.actions() + self.mixedBackgroundLayerActionGroup.actions()
+        for action in actions:
+            action.setChecked(action.text() in selected)
+
+    def rebuildLayerActions(self, layers):
         for item in self.layerItems:
             self.layerMenu.removeAction(item)
         self.layerItems = []
@@ -962,17 +984,11 @@ class SketchPanel(QWidget):
             for action in actionGroup.actions():
                 actionGroup.removeAction(action)
 
-        layers = self.context.layer.groupLayers()
-        if not layers:
-            return
-
-        selected = set(self.context.layer.selected)
         for key, groups in layers.items():
             actionGroup = self.backgroundLayerActionGroup if key == 'standalone' else self.mixedBackgroundLayerActionGroup
             for layer in groups:
                 action = QAction(layer.name, self)
                 action.setCheckable(True)
-                action.setChecked(layer.name in selected)
                 actionGroup.addAction(action)
                 self.layerMenu.addAction(action)
                 self.layerItems.append(action)
@@ -986,27 +1002,9 @@ class SketchPanel(QWidget):
         else:
             self.opacitySlider.hide()
 
-        # Either group may legitimately be empty, so take the first of whatever
-        # actually survived. Subscripting both before the ``or`` raised
-        # IndexError as soon as there were no standalone overlays.
-        candidates = self.backgroundLayerActionGroup.actions() + self.mixedBackgroundLayerActionGroup.actions()
-        if not candidates:
-            return
-
-        # The menu renders the existing selection. Only when no selected layer
-        # survived the rebuild is there a default to compute and write back.
-        if any(action.isChecked() for action in candidates):
-            return
-
-        default = candidates[0]
-        default.setChecked(True)
-        self.defaultLayerSelected.emit(default.text())
-
     def changeSigmetDisplayMode(self, action, attr):
-        # No redraw here: the value only becomes true state once the presenter
-        # writes it, and that write comes back as layerChanged. Redrawing on
-        # emit would paint from a value the service may have rejected.
-        self.displayToggled.emit(attr, action.isChecked())
+        setattr(self, attr, action.isChecked())
+        self.updateSigmetGraphic()
 
     def changeLayer(self, action):
         stackable = self.context.layer.canStack(action.text())
@@ -1128,7 +1126,7 @@ class SketchPanel(QWidget):
             return
 
         sigmets = []
-        if self.context.layer.showSigmet:
+        if self.showSigmet:
             sigmets = self.cachedSigmets
 
         geometries = []
@@ -1136,7 +1134,7 @@ class SketchPanel(QWidget):
             parser = sig.parser()
 
             try:
-                geometry = parser.geo(self.context.layer.boundaries(), self.context.layer.trimShapes)
+                geometry = parser.geo(self.context.layer.boundaries(), self.trimShapes)
                 geometries.append(geometry)
             except Exception as e:
                 logger.error('Decode SIGMET graphic area error, {}, {}'.format(sig.text, e))
@@ -1146,13 +1144,6 @@ class SketchPanel(QWidget):
     def updateMixedBackgroundOpacity(self, value):
         value = value / 10
         self.canvas.setMixedBackgroundOpacity(value)
-
-    def updateLayer(self):
-        # the FIR boundary belongs to the same rebuild as the backgrounds; it
-        # used to be drawn once at load time and never revisited
-        self.canvas.drawLayer()
-        self.canvas.drawBoundaries()
-        self.updateLayerInfoLabel()
 
     def updateCoastline(self):
         self.canvas.drawCoastline()

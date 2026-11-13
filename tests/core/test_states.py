@@ -250,7 +250,7 @@ class TestLayerService:
         context.layer.setLayer([{'name': 'Satellite', 'image': b'same'}])
         first = context.layer.state.layers[0]
         seen = []
-        context.event.layerChanged.connect(lambda: seen.append(1))
+        context.event.layersChanged.connect(lambda: seen.append(1))
 
         context.layer.setLayer([{'name': 'Satellite', 'image': b'same'}])
 
@@ -261,9 +261,39 @@ class TestLayerService:
     def test_a_new_image_is_announced(self, context):
         context.layer.setLayer([{'name': 'Satellite', 'image': b'old'}])
         seen = []
-        context.event.layerChanged.connect(lambda: seen.append(1))
+        context.event.layersChanged.connect(lambda: seen.append(1))
 
         context.layer.setLayer([{'name': 'Satellite', 'image': b'new'}])
 
         assert seen == [1]
         assert context.layer.getLayers()[0].image == b'new'
+
+    def test_the_fetch_selects_the_first_standalone_layer(self, context):
+        context.layer.setLayer([
+            {'name': 'Radar', 'overlay': 'mixed'},
+            {'name': 'Satellite', 'overlay': 'standalone'},
+        ])
+
+        assert context.layer.selected == ['Satellite']
+
+    def test_a_fetch_that_drops_the_selected_layer_picks_a_replacement(self, context):
+        context.layer.setLayer([{'name': 'Satellite'}, {'name': 'Radar'}])
+        context.layer.setState({'selected': ['Radar']})
+        seen = []
+        context.event.layersChanged.connect(lambda: seen.append(1))
+
+        context.layer.setLayer([{'name': 'Satellite'}])
+
+        assert context.layer.selected == ['Satellite']
+        # the fetch is the broad notification; no second one for the selection
+        assert seen == [1]
+
+    def test_a_selection_write_is_a_layer_change(self, context):
+        context.layer.setLayer([{'name': 'Satellite'}, {'name': 'Radar'}])
+        seen = []
+        context.event.layersChanged.connect(lambda: seen.append(1))
+
+        context.layer.setState({'selected': ['Radar']})
+
+        assert context.layer.selected == ['Radar']
+        assert seen == [1]

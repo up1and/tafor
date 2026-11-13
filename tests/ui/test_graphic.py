@@ -746,41 +746,31 @@ class TestSketchPanelHelpers:
         assert window.overlapButton.isEnabled() is False
         assert window.overlapButton.isChecked() is False
 
-    def test_layer_changed_event_notifies_subscribers(self, window, context):
+    def test_a_layer_event_renders_the_layers_only(self, window, context):
         # the panel must not subscribe to the bus itself; its presenter
-        # connects layerChanged to the panel's render. Consumers pull fresh
-        # data from the layer service and run in a stable order.
+        # connects the notification to the layer render, so a fetch or a
+        # selection change never repaints the SIGMET overlay.
         presenter = SigmetPresenter(PanelOnlyView(window), context, conf=None)
         presenter.connectGraphic()
         calls = []
-        window.setLayerSelectMenu = lambda: calls.append('menu')
-        window.updateLayer = lambda: calls.append('canvas')
+        window.updateLayerMenu = lambda: calls.append('menu')
+        window.canvas.drawLayer = lambda: calls.append('canvas')
+        window.updateLayerInfoLabel = lambda: calls.append('label')
         window.updateSigmetGraphic = lambda: calls.append('sigmet')
 
-        context.event.layerChanged.emit()
+        context.event.layersChanged.emit()
+        assert calls == ['menu', 'canvas', 'label']
 
-        assert calls == ['menu', 'canvas', 'sigmet']
-
-    def test_a_display_toggle_emits_and_does_not_redraw(self, window, context):
-        # Redrawing belongs to the write landing (handleLayerChanged), never to
-        # the emit: at emit time the state still holds the old value, so a
-        # redraw here paints the overlay the service may be about to reject.
+    def test_a_display_toggle_repaints_the_overlay(self, window):
+        # The switches are view state: toggling one is the whole write, so the
+        # overlay is repainted from the new value right here.
         redraws = []
         window.updateSigmetGraphic = lambda: redraws.append(1)
 
         window.trimShapesAction.setChecked(False)
 
-        assert redraws == []
-
-    def test_the_layer_changed_handler_redraws_the_sigmet_overlay(self, window, context):
-        calls = []
-        window.setLayerSelectMenu = lambda: calls.append('menu')
-        window.updateLayer = lambda: calls.append('canvas')
-        window.updateSigmetGraphic = lambda: calls.append('sigmet')
-
-        window.handleLayerChanged()
-
-        assert calls == ['menu', 'canvas', 'sigmet']
+        assert redraws == [1]
+        assert window.trimShapes is False
 
     def test_update_position_label(self, window):
         window.updatePositionLabel((110.5, 15.25))
@@ -823,20 +813,6 @@ class TestSketchPanelLayerWrites:
 
         assert fetches == [1]
 
-    def test_the_default_layer_selection_is_written_to_state(self, presenter, panel, context):
-        presenter.connectGraphic()
-
-        panel.defaultLayerSelected.emit('Satellite')
-
-        assert context.layer.selected == ['Satellite']
-
-    def test_a_display_toggle_is_written_to_state(self, presenter, panel, context):
-        presenter.connectGraphic()
-
-        panel.displayToggled.emit('showSigmet', True)
-
-        assert context.layer.showSigmet is True
-
     def test_a_menu_selection_is_written_to_state(self, presenter, panel, context):
         presenter.connectGraphic()
 
@@ -859,7 +835,8 @@ class TestLayerSelectMenu:
     def panel(self, qtbot, context):
         panel = SketchPanel(parent=None, context=context)
         qtbot.addWidget(panel)
-        panel.updateLayer = lambda: None
+        panel.canvas.drawLayer = lambda: None
+        panel.updateLayerInfoLabel = lambda: None
         panel.updateSigmetGraphic = lambda: None
         return panel
 
@@ -891,7 +868,7 @@ class TestLayerSelectMenu:
 
         panel.showSigmetAction.setChecked(False)
 
-        assert context.layer.showSigmet is False
+        assert panel.showSigmet is False
         assert context.layer.selected == ['Radar']
 
     def test_a_stale_selection_falls_back_to_the_first_layer(self, presenter, panel, context):
