@@ -510,12 +510,13 @@ class TestApplication:
         return Application(runtime, 'app')
 
     def test_the_window_gets_the_shared_collaborators(self, application, runtime):
-        assert application.window.args == (runtime.conf, runtime.context, runtime.repositories)
+        assert application.window.args == (
+            runtime.conf, runtime.context, runtime.repositories, application.workers)
 
     def test_the_window_shares_the_pool_that_owns_the_threads(self, application):
         # the pool is the only thing in the process that may create a worker,
         # so the window has to be handed the same one Application cleans up
-        assert application.window.kwargs == {'workers': application.workers}
+        assert application.window.args[3] is application.workers
 
     def test_one_presenter_per_concern(self, application):
         assert [p.role for p in application.presenters] == PRESENTERS

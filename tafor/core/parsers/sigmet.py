@@ -261,11 +261,24 @@ class SigmetParser:
         match = pattern.search(self.message)
         return match.group(2) if match else None
 
-    def cancelSequence(self):
+    def originator(self):
+        """The unit that issued the report: the first word of the message."""
+        words = self.message.split()
+        return words[0] if words else None
+
+    def identity(self):
+        """What this report is: the unit, the product category, the sequence
+        and the validity window.
+        """
+        return self.originator(), self.category(), self.sequence(), self.validTime()
+
+    def cancelledIdentity(self):
+        """The identity of the report this message cancels, or None."""
         pattern = re.compile(r'CNL\s(SIGMET|AIRMET)\s([A-Z]?\d{1,2})\s(\d{6}/\d{6})')
         m = pattern.search(self.message)
         if m:
-            return m.group(2), m.group(3)
+            category, sequence, valid = m.groups()
+            return self.originator(), category, sequence, valid
 
     def validTime(self):
         pattern = self.grammar.valid

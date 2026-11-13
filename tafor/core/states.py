@@ -400,14 +400,17 @@ class SigmetMonitorService(StateProxyMixin):
 
     def updateReminders(self, message):
         """Align reminders with a sent message: a cancel drops the matching
-        reminder, anything else adds one expiring when the message expires."""
+        reminder, anything else adds one expiring when the message expires.
+
+        The target is matched by the parser's identity key, the same one the
+        repository uses to decide what is still current -- one rule for what
+        "the report this cancels" means, not a second copy that drifts.
+        """
         sig = message.parser()
         if message.isCnl():
-            cancelSequence = sig.cancelSequence()
+            target = sig.cancelledIdentity()
             for uuid, value in list(self.state.entries.items()):
-                parser = value['text']
-                sequence = parser.sequence(), parser.validTime()
-                if cancelSequence == sequence:
+                if target is not None and value['text'].identity() == target:
                     self.remove(uuid=uuid)
         else:
             self.add(uuid=message.uuid, text=sig, time=message.expired())

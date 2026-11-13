@@ -194,9 +194,11 @@ class TestTyphoonCircleFeature:
 
 class FakePrevParser:
 
-    def __init__(self, sequence, validTime):
+    def __init__(self, sequence, validTime, originator='ZJSA', category='SIGMET'):
         self._sequence = sequence
         self._validTime = validTime
+        self._originator = originator
+        self._category = category
 
     def sequence(self):
         return self._sequence
@@ -204,14 +206,24 @@ class FakePrevParser:
     def validTime(self):
         return self._validTime
 
+    def identity(self):
+        return self._originator, self._category, self._sequence, self._validTime
+
 
 class FakeSig:
 
-    def __init__(self, cancelSequence=None):
-        self._cancelSequence = cancelSequence
+    def __init__(self, cancelledIdentity=None):
+        self._cancelledIdentity = cancelledIdentity
 
-    def cancelSequence(self):
-        return self._cancelSequence
+    def cancelledIdentity(self):
+        return self._cancelledIdentity
+
+
+class FakeCancelSig(FakeSig):
+    """A cancellation whose originator is known, so the key is complete."""
+
+    def __init__(self, sequence, validTime, category='SIGMET', originator='ZJSA'):
+        super().__init__((originator, category, sequence, validTime))
 
 
 class FakeMessage:
@@ -256,13 +268,50 @@ def test_sync_sigmet_reminder_skips_entries_without_a_validity():
     assert monitor.entries == {}
 
 
+def test_a_cancel_leaves_the_other_product_category_alone():
+    """A SIGMET A3 and an AIRMET A3 share a number: one cancellation only
+    drops the reminder it names.
+
+    Regression: the reminder list matched on sequence + validity, so the
+    other product's reminder vanished with it.
+    """
+    monitor = makeMonitor()
+    expiry = datetime.datetime(2026, 8, 23, 16, 0)
+    monitor.add('sig', FakePrevParser('A3', '231200/231600', originator='ZJSA',
+                                      category='SIGMET'), expiry)
+    monitor.add('air', FakePrevParser('A3', '231200/231600', originator='ZJSA',
+                                      category='AIRMET'), expiry)
+
+    monitor.updateReminders(FakeMessage(uuid='u9', isCnl=True,
+                                        parser=FakeCancelSig('A3', '231200/231600',
+                                                             category='AIRMET')))
+
+    assert 'sig' in monitor.entries
+    assert 'air' not in monitor.entries
+
+
+def test_a_cancel_leaves_another_units_report_alone():
+    """Two units can issue the same number for the same window."""
+    monitor = makeMonitor()
+    expiry = datetime.datetime(2026, 8, 23, 16, 0)
+    monitor.add('ours', FakePrevParser('A3', '231200/231600', originator='ZJSA'), expiry)
+    monitor.add('theirs', FakePrevParser('A3', '231200/231600', originator='ZBPE'), expiry)
+
+    monitor.updateReminders(FakeMessage(uuid='u9', isCnl=True,
+                                        parser=FakeCancelSig('A3', '231200/231600',
+                                                             originator='ZBPE')))
+
+    assert 'ours' in monitor.entries
+    assert 'theirs' not in monitor.entries
+
+
 def test_sync_sigmet_reminder_cancel_drops_matching_entry():
     monitor = makeMonitor()
     monitor.add('u1', FakePrevParser('A3', '231200/231600'),
                 datetime.datetime(2026, 8, 23, 16, 0))
     monitor.add('u2', FakePrevParser('A4', '231200/231600'),
                 datetime.datetime(2026, 8, 23, 16, 0))
-    cancelSig = FakeSig(cancelSequence=('A3', '231200/231600'))
+    cancelSig = FakeSig(cancelledIdentity=('ZJSA', 'SIGMET', 'A3', '231200/231600'))
     message = FakeMessage(uuid='u3', isCnl=True, parser=cancelSig)
 
     monitor.updateReminders(message)

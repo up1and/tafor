@@ -243,9 +243,11 @@ class SigmetRepository(Repository):
 
             parser = sig.parser()
             isCnl = sig.isCnl()
-            # A report is addressed by its own sequence and validity; a
-            # cancellation by the pair it names. They are compared as one key.
-            key = parser.cancelSequence() if isCnl else (parser.sequence(), parser.validTime())
+            # A report is addressed by its own identity; a cancellation by the
+            # identity it names. The parser answers both in the same shape, so
+            # they are compared as one key instead of two shapes that merely
+            # look alike.
+            key = parser.cancelledIdentity() if isCnl else parser.identity()
             entries.append((sig, isCnl, key))
 
         cancelledKeys = {key for _, isCnl, key in entries if isCnl}

@@ -5,6 +5,20 @@ from tafor.core.parsers import SigmetParser, TyphoonAdvisoryParser, AshAdvisoryP
 from tafor.core.parsers.sigmet import SigmetLexer
 
 
+# The four messages the identity tests compare. A report, the cancellation
+# that names it, and two reports that merely look like the first one.
+REPORT_SIGMET = ('ZJSA SIGMET 2 VALID 100730/101430 ZJHK-\n'
+                 'ZJSA SANYA FIR OBSC TS FCST WI E11223 N1829 - E11142 N1916 TOP FL030 MOV N 300KMH NC=')
+CANCEL_SIGMET = ('ZJSA SIGMET 5 VALID 101200/101900 ZJHK-\n'
+                 'ZJSA SANYA FIR CNL SIGMET 2 100730/101430=')
+REPORT_AIRMET = ('ZJSA AIRMET 2 VALID 100730/101430 ZJHK-\n'
+                 'ZJSA SANYA FIR ISOL TS WI E11223 N1829 - E11142 N1916 TOP FL 030=')
+CANCEL_AIRMET = ('ZJSA AIRMET 7 VALID 101200/101900 ZJHK-\n'
+                 'ZJSA SANYA FIR CNL AIRMET 2 100730/101430=')
+REPORT_OTHER_UNIT = ('ZBPE SIGMET 2 VALID 100730/101430 ZBAA-\n'
+                     'ZBPE BEIJING FIR SEV TURB FCST WI N4000 E11600 - N4100 E11700 TOP FL300 MOV E 20KT NC=')
+
+
 def test_keywords_not_polluted(read_fixture):
     before = len(SigmetLexer.defaultKeywords)
     message = read_fixture('sigmet', 'va_pass')
@@ -148,6 +162,53 @@ def test_geo_without_valid_group():
     assert parser.validTime() is None
     feature = parser.geo(None)['features'][0]
     assert feature['properties']['valids'] == []
+
+
+def test_identity_pairs_a_report_with_the_cancellation_that_names_it():
+    """The two sides of a cancellation answer in the same shape.
+
+    This is the seam the repository and the reminder list both match on, so a
+    report and its cancellation have to produce an equal key.
+    """
+    report = SigmetParser(REPORT_SIGMET)
+    cancel = SigmetParser(CANCEL_SIGMET)
+
+    assert report.identity() == cancel.cancelledIdentity()
+
+
+def test_identity_carries_the_product_category():
+    """A cancellation names the class it applies to, and the class is part of
+    what identifies the target: SIGMET 2 and AIRMET 2 are different reports."""
+    sigmet = SigmetParser(REPORT_SIGMET)
+    airmet = SigmetParser(REPORT_AIRMET)
+
+    assert sigmet.identity()[:2] == ('ZJSA', 'SIGMET')
+    assert airmet.identity()[:2] == ('ZJSA', 'AIRMET')
+    assert sigmet.identity() != airmet.identity()
+
+
+def test_identity_carries_the_issuing_unit():
+    """Two units can issue the same number for the same window."""
+    ours = SigmetParser(REPORT_SIGMET).identity()
+    theirs = SigmetParser(REPORT_OTHER_UNIT).identity()
+
+    assert ours[0] == 'ZJSA'
+    assert theirs[0] == 'ZBPE'
+    assert ours != theirs
+
+
+def test_a_cancel_target_names_the_class_it_cancels():
+    assert SigmetParser(CANCEL_AIRMET).cancelledIdentity()[:2] == ('ZJSA', 'AIRMET')
+
+
+def test_a_cancel_composed_by_this_app_still_has_an_identity():
+    """The composed form carries no FIR in its text, which is why the key is
+    built on the originator rather than on fir()."""
+    text = 'ZJSA SIGMET 1 VALID 100930/101430 ZJHK-\nZJSA CNL SIGMET 1 100930/101430='
+    composed = SigmetParser(text)
+
+    assert composed.fir() is None
+    assert composed.cancelledIdentity() == ('ZJSA', 'SIGMET', '1', '100930/101430')
 
 
 def test_sigmet_accessors_return_none_for_missing_groups():

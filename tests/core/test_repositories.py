@@ -24,6 +24,20 @@ SIGMET_ORPHAN_CANCEL = ('ZJSA SIGMET 4 VALID 101200/101900 ZJHK-\n'
 SIGMET_EXPIRED = ('ZJSA SIGMET 3 VALID 100130/100230 ZJHK-\n'
                   'ZJSA SANYA FIR OBSC TS FCST WI E11223 N1829 - E11142 N1916 TOP FL030 MOV N 300KMH NC=')
 
+# Same sequence and validity as SIGMET_ACTIVE, but an AIRMET: the number
+# space is per product, so the two are distinct reports.
+AIRMET_SAME_NUMBER = ('ZJSA AIRMET 2 VALID 100730/101430 ZJHK-' + chr(92) + 'n'
+                      'ZJSA SANYA FIR ISOL TS WI E11223 N1829 - E11142 N1916 TOP FL030=')
+# A cancellation of the AIRMET above. Before the key carried the product
+# category it also matched -- and removed -- the SIGMET with the same number.
+AIRMET_CANCEL = ('ZJSA AIRMET 7 VALID 101200/101900 ZJHK-' + chr(92) + 'n'
+                 'ZJSA SANYA FIR CNL AIRMET 2 100730/101430=')
+# A report from another unit, same number and validity as SIGMET_ACTIVE.
+OTHER_FIR_REPORT = ('ZBPE SIGMET 2 VALID 100730/101430 ZBAA-' + chr(92) + 'n'
+                    'ZBPE BEIJING FIR SEV TURB FCST WI N4000 E11600 - N4100 E11700 TOP FL030 MOV E 20KT NC=')
+OTHER_FIR_CANCEL = ('ZBPE SIGMET 9 VALID 101200/101900 ZBAA-' + chr(92) + 'n'
+                    'ZBPE BEIJING FIR CNL SIGMET 2 100730/101430=')
+
 # Frozen clock (via the shared frozen_time fixture) for the time-sensitive
 # repository methods. The 08:00 moment puts the current FC period ('0918'
 # -> 1009/1018) past its issue window.
@@ -294,9 +308,9 @@ class TestSigmetRepository:
     def frozen_repos(self, database, frozen_time):
         return Repositories(database)
 
-    def seed_sigmet(self, database, text, created, confirmed=None):
+    def seed_sigmet(self, database, text, created, confirmed=None, type='WS'):
         with database.session() as session:
-            return add(session, Sigmet, type='WS', text=text, created=created, confirmed=confirmed)
+            return add(session, Sigmet, type=type, text=text, created=created, confirmed=confirmed)
 
     def test_current_keeps_active_sigmet(self, frozen_repos, database):
         stored = self.seed_sigmet(database, SIGMET_ACTIVE, created=MOMENT)
@@ -323,6 +337,40 @@ class TestSigmetRepository:
         self.seed_sigmet(database, SIGMET_EXPIRED, created=MOMENT - datetime.timedelta(hours=7))
 
         assert frozen_repos.sigmet.current() == []
+
+    def test_a_cancellation_only_cancels_its_own_product_category(
+            self, frozen_repos, database):
+        """A SIGMET 2 and an AIRMET 2 can share a number and a window.
+
+        Regression: the key was sequence + validity only, so cancelling the
+        AIRMET also took the SIGMET off the current list.
+        """
+        sigmet = self.seed_sigmet(database, SIGMET_ACTIVE, created=MOMENT, type='WS')
+        airmet = self.seed_sigmet(database, AIRMET_SAME_NUMBER, created=MOMENT, type='WA')
+
+        assert {s.id for s in frozen_repos.sigmet.current()} == {sigmet.id, airmet.id}
+
+        cancel = self.seed_sigmet(database, AIRMET_CANCEL, created=MOMENT, type='WA')
+
+        after = frozen_repos.sigmet.current()
+
+        assert [s.id for s in after] == [sigmet.id]
+        assert cancel.id not in {s.id for s in after}
+
+    def test_a_cancellation_only_cancels_its_own_unit(self, frozen_repos, database):
+        """Two units can each issue a report 2 for the same window.
+
+        Regression: without the originator in the key, one unit's
+        cancellation removed the other unit's report.
+        """
+        ours = self.seed_sigmet(database, SIGMET_ACTIVE, created=MOMENT)
+        theirs = self.seed_sigmet(database, OTHER_FIR_REPORT, created=MOMENT)
+
+        assert {s.id for s in frozen_repos.sigmet.current()} == {ours.id, theirs.id}
+
+        self.seed_sigmet(database, OTHER_FIR_CANCEL, created=MOMENT)
+
+        assert [s.id for s in frozen_repos.sigmet.current()] == [ours.id]
 
     def test_current_sorts_by_created(self, frozen_repos, database):
         active = self.seed_sigmet(database, SIGMET_ACTIVE, created=MOMENT)
