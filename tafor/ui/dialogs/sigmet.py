@@ -6,9 +6,9 @@ from tafor.core.sigmet import SigmetDraft
 from tafor.core.sigmet.compose import composeHeading
 from tafor.core.utils.time import utcnow
 from tafor.ui.qt import Ui_sigmet
-from tafor.ui.widgets import AirmetGeneral, SigmetAsh, SigmetCancel, SigmetCustom, SigmetGeneral, SigmetTyphoon
-from tafor.ui.widgets.editor import BaseEditor
-from tafor.ui.widgets.graphic import SketchPanel
+from tafor.ui.dialogs.base import BaseEditor
+from tafor.ui.forms import AirmetGeneral, SigmetAsh, SigmetCancel, SigmetCustom, SigmetGeneral, SigmetTyphoon
+from tafor.ui.map import SketchPanel
 
 
 class SigmetPresenter:

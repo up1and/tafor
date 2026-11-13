@@ -8,7 +8,7 @@ from tafor.core.utils.time import timeAgo, utcnow
 from tafor.core.utils.common import iconPath
 from tafor.ui.fonts import fixedFont
 from tafor.ui.qt import Ui_main_recent
-from tafor.ui.widgets.geometry import SigmetBackground
+from tafor.ui.map import SigmetBackground
 
 
 class ReviewModel:
@@ -34,68 +34,6 @@ class NotificationModel:
     def __init__(self, created, validations):
         self.created = created
         self.validations = validations
-
-
-class RecentBoard(QWidget):
-    """Owns the recent-message cards: diffing, ordering and the shared
-    notification countdown."""
-
-    expired = pyqtSignal(object)
-    reminderToggled = pyqtSignal(object, bool)
-    reviewRequested = pyqtSignal(object)
-    replyRequested = pyqtSignal()
-
-    def __init__(self, parent=None, conf=None, expiryMinutes=10):
-        super().__init__(parent)
-        self.conf = conf
-        self.expiryMinutes = expiryMinutes
-        self.cards = {}
-
-        layout = QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-        layout.setAlignment(Qt.AlignTop)
-        self.setLayout(layout)
-        self.cardLayout = layout
-
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.tick)
-        self.timer.start(1 * 1000)
-
-    def sync(self, models):
-        """Sync the cards with the given view models, keeping their order."""
-        incoming = {model.uuid: model for model in models}
-
-        for uuid, card in list(self.cards.items()):
-            if uuid not in incoming:
-                self.cardLayout.removeWidget(card)
-                card.deleteLater()
-                del self.cards[uuid]
-
-        for model in models:
-            if model.uuid in self.cards:
-                self.cards[model.uuid].setModel(model)
-            else:
-                card = CARD_TYPES[type(model)](self, model, conf=self.conf)
-                card.reminderToggled.connect(self.reminderToggled)
-                card.reviewRequested.connect(self.reviewRequested)
-                card.replyRequested.connect(self.replyRequested)
-                self.cards[model.uuid] = card
-                self.cardLayout.addWidget(card)
-
-        for index, model in enumerate(models):
-            self.cardLayout.insertWidget(index, self.cards[model.uuid])
-
-    def setReminderEnabled(self, uuid, enabled):
-        card = self.cards.get(uuid)
-        if card:
-            card.setReminderEnabled(enabled)
-
-    def tick(self):
-        now = utcnow()
-        expired = [uuid for uuid, card in self.cards.items() if card.tick(now, self.expiryMinutes)]
-        for uuid in expired:
-            self.expired.emit(uuid)
 
 
 class RecentCard(QWidget, Ui_main_recent.Ui_Recent):
@@ -343,7 +281,68 @@ class NotificationCard(RecentCard):
         return self.expired
 
 
-CARD_TYPES = {
-    ReviewModel: ReviewCard,
-    NotificationModel: NotificationCard,
-}
+class RecentBoard(QWidget):
+    """Owns the recent-message cards: diffing, ordering and the shared
+    notification countdown."""
+
+    expired = pyqtSignal(object)
+    reminderToggled = pyqtSignal(object, bool)
+    reviewRequested = pyqtSignal(object)
+    replyRequested = pyqtSignal()
+
+    registry = {
+        ReviewModel: ReviewCard,
+        NotificationModel: NotificationCard,
+    }
+
+    def __init__(self, parent=None, conf=None, expiryMinutes=10):
+        super().__init__(parent)
+        self.conf = conf
+        self.expiryMinutes = expiryMinutes
+        self.cards = {}
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.setAlignment(Qt.AlignTop)
+        self.setLayout(layout)
+        self.cardLayout = layout
+
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.tick)
+        self.timer.start(1 * 1000)
+
+    def sync(self, models):
+        """Sync the cards with the given view models, keeping their order."""
+        incoming = {model.uuid: model for model in models}
+
+        for uuid, card in list(self.cards.items()):
+            if uuid not in incoming:
+                self.cardLayout.removeWidget(card)
+                card.deleteLater()
+                del self.cards[uuid]
+
+        for model in models:
+            if model.uuid in self.cards:
+                self.cards[model.uuid].setModel(model)
+            else:
+                card = self.registry[type(model)](self, model, conf=self.conf)
+                card.reminderToggled.connect(self.reminderToggled)
+                card.reviewRequested.connect(self.reviewRequested)
+                card.replyRequested.connect(self.replyRequested)
+                self.cards[model.uuid] = card
+                self.cardLayout.addWidget(card)
+
+        for index, model in enumerate(models):
+            self.cardLayout.insertWidget(index, self.cards[model.uuid])
+
+    def setReminderEnabled(self, uuid, enabled):
+        card = self.cards.get(uuid)
+        if card:
+            card.setReminderEnabled(enabled)
+
+    def tick(self):
+        now = utcnow()
+        expired = [uuid for uuid, card in self.cards.items() if card.tick(now, self.expiryMinutes)]
+        for uuid in expired:
+            self.expired.emit(uuid)

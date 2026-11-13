@@ -18,7 +18,7 @@ from tafor.core.geometry.coordinate import decimalToDegree
 from tafor.core.utils.time import parseTime, utcnow
 from tafor.core.utils.common import iconPath
 from tafor.ui.qt import Ui_sigmet_ash, Ui_sigmet_cancel, Ui_sigmet_custom, Ui_sigmet_general, Ui_sigmet_typhoon
-from tafor.ui.widgets.editor import TextFieldMixin
+from tafor.ui.forms.base import TextFieldMixin
 from tafor.ui.styles import invalidTextStyle, validTextStyle
 
 logger = logging.getLogger('tafor.sigmet.information')

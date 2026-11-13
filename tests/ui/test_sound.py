@@ -1,4 +1,4 @@
-"""Tests for tafor/ui/widgets/sound.py."""
+"""Tests for tafor/ui/panels/sound.py."""
 
 import logging
 
@@ -6,8 +6,8 @@ import pytest
 
 from PyQt5.QtMultimedia import QSoundEffect
 
-from tafor.ui.widgets import sound as sound_module
-from tafor.ui.widgets.sound import Sound, toQtVolume
+from tafor.ui.panels import sound as sound_module
+from tafor.ui.panels import Sound, toQtVolume
 
 
 class FakeEffect:

@@ -1,4 +1,4 @@
-"""Tests for the SIGMET editor widgets in tafor/ui/widgets/sigmet.py.
+"""Tests for the SIGMET editor widgets in tafor/ui/forms/sigmet.py.
 
 The field-group parts are covered by test_sigmet_parts.py; here we exercise
 the BaseSigmet header behavior (period/durations/sequence) and the concrete
@@ -18,7 +18,7 @@ from tafor.core.models import Sigmet
 from tafor.core.repositories import SigmetRepository
 from tafor.core.sigmet import SigmetDraft
 from tafor.core.sigmet.compose import validDuration
-from tafor.ui.widgets.sigmet import SigmetCancel, SigmetCustom, SigmetGeneral
+from tafor.ui.forms import SigmetCancel, SigmetCustom, SigmetGeneral
 
 
 MOMENT = datetime.datetime(2026, 6, 10, 8, 0)

@@ -1,4 +1,4 @@
-"""Tests for tafor/ui/widgets/misc.py."""
+"""Tests for the window-frame parts in tafor/ui/panels/frame.py."""
 
 import datetime
 import re
@@ -8,7 +8,8 @@ import pytest
 from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QFont, QImage
 
-from tafor.ui.widgets.misc import Clock, LicenseEditor, OutlinedLabel, RemindMessageBox, TafBoard
+from tafor.ui.map import OutlinedLabel
+from tafor.ui.panels import Clock, LicenseEditor, RemindMessageBox, TafBoard
 
 
 @pytest.fixture

@@ -8,7 +8,7 @@ from collections import deque
 import pytest
 
 from tafor.core.utils.log import logBuffer
-from tafor.ui.widgets.logs import LogPanel
+from tafor.ui.panels import LogPanel
 
 
 @pytest.fixture

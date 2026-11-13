@@ -5,8 +5,7 @@ import pytest
 from tafor.core.config import createConfig
 from tafor.core.repositories import MessageRepository, TafRepository
 from tafor.core.states import createContext
-from tafor.ui.components.send import TafSender
-from tafor.ui.components.taf import TafEditor
+from tafor.ui.dialogs import TafEditor, TafSender
 from tests.mocks import MockConfig
 
 

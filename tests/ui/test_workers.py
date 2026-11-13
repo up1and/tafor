@@ -338,7 +338,7 @@ class TestTransmissionQueue:
         return queue, calls
 
     def makeJob(self, message=None, conf=None, **kwargs):
-        from tafor.ui.components.send import Line
+        from tafor.ui.dialogs.send import Line
 
         message = message or SimpleNamespace(
             text='TEST=', priority='FF', address='YUSO YUSI',

@@ -14,7 +14,7 @@ from tafor.core.utils.common import iconPath
 from tafor.core.utils.time import utcnow
 from tafor.ui.fonts import fixedFont, uiFont
 from tafor.ui.qt import Ui_send
-from tafor.ui.widgets.graphic import PreviewPanel
+from tafor.ui.map import PreviewPanel
 from tafor.ui.workers import Job
 
 logger = logging.getLogger('tafor.send')

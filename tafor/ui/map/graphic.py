@@ -17,9 +17,9 @@ from tafor.core.geometry import geojson
 from tafor.core.sigmet.compose import formatLocation
 from tafor.core.utils.common import resourcePath
 from tafor.ui.fonts import fixedFont
-from tafor.ui.widgets.sketch import SketchManager
-from tafor.ui.widgets.geometry import BackgroundImage, Coastline, Fir, Sigmet
-from tafor.ui.widgets.misc import OutlinedLabel
+from tafor.ui.map.sketch import SketchManager
+from tafor.ui.map.items import BackgroundImage, Coastline, Fir, Sigmet
+from tafor.ui.map.items import OutlinedLabel
 
 logger = logging.getLogger(__name__)
 

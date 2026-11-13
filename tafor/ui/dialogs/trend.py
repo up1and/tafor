@@ -2,8 +2,8 @@ from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLayout
 
 from tafor.core.models import Trend
-from tafor.ui.widgets import TrendSegment
-from tafor.ui.widgets.editor import BaseEditor
+from tafor.ui.dialogs.base import BaseEditor
+from tafor.ui.forms import TrendSegment
 from tafor.ui.styles import mutedStyle
 
 

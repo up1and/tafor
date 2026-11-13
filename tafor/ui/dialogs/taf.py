@@ -3,8 +3,8 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLayout
 
 from tafor.core.models import Taf
 from tafor.core.taf import TafDraft, composeHeading, composeBody
-from tafor.ui.widgets import TafBecmgSegment, TafFmSegment, TafPrimarySegment, TafTempoSegment
-from tafor.ui.widgets.editor import BaseEditor
+from tafor.ui.dialogs.base import BaseEditor
+from tafor.ui.forms import TafBecmgSegment, TafFmSegment, TafPrimarySegment, TafTempoSegment
 
 
 class TafPresenter:

@@ -23,18 +23,12 @@ from tafor.core.taf import CurrentTaf
 from tafor.core.utils.time import utcnow
 from tafor.core.utils.common import iconPath, revision, checkVersion
 from tafor.core.repositories import SigmetFilter, subscribedTypes
-from tafor.ui.components.chart import ChartViewer
-from tafor.ui.components.send import CustomSender, SigmetSender, TafSender, TrendSender
-from tafor.ui.components.setting import SettingDialog
-from tafor.ui.components.sigmet import SigmetEditor
-from tafor.ui.components.taf import TafEditor
-from tafor.ui.components.trend import TrendEditor
+from tafor.ui.dialogs import (ChartViewer, CustomSender, SettingDialog, SigmetEditor,
+    SigmetSender, TafEditor, TafSender, TrendEditor, TrendSender)
+from tafor.ui.panels import (AirmetTable, Clock, LicenseEditor, LogPanel, MetarTable,
+    NotificationModel, RecentBoard, RemindMessageBox, ReviewModel, SigmetTable, Sound,
+    TafBoard, TafTable)
 from tafor.ui.qt import Ui_main
-from tafor.ui.widgets.logs import LogPanel
-from tafor.ui.widgets.misc import Clock, LicenseEditor, RemindMessageBox, TafBoard
-from tafor.ui.widgets.recent import RecentBoard, NotificationModel, ReviewModel
-from tafor.ui.widgets.sound import Sound
-from tafor.ui.widgets.table import AirmetTable, MetarTable, SigmetTable, TafTable
 from tafor.ui.workers import CheckUpgradeWorker, LayerWorker, MessageWorker
 
 logger = logging.getLogger('tafor.main')

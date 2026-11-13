@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QMessageBox, QFileDialog
 
 from tafor.core.config import createConfig
 from tafor.core.states import SequenceService
-from tafor.ui.components.setting import SettingDialog
+from tafor.ui.dialogs import SettingDialog
 from tafor.ui.workers import WorkerPool
 
 from tests.mocks import MockConfig

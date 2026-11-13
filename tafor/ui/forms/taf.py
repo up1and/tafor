@@ -11,7 +11,7 @@ from tafor.core.taf import (GroupState, PrimaryState, SegmentState, TemperatureS
 from tafor.core.utils.time import parseDayHour, parsePeriod, parseTime, utcnow
 from tafor.core.utils.common import iconPath
 from tafor.ui.fonts import fixedFont
-from tafor.ui.widgets.editor import TextFieldMixin
+from tafor.ui.forms.base import TextFieldMixin
 from tafor.ui.qt import Ui_taf_group, Ui_taf_primary, Ui_trend
 
 

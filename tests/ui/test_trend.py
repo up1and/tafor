@@ -3,8 +3,7 @@ import datetime
 import pytest
 
 from tafor.core.repositories import MessageRepository
-from tafor.ui.components.send import TrendSender
-from tafor.ui.components.trend import TrendEditor
+from tafor.ui.dialogs import TrendEditor, TrendSender
 
 
 def futurePeriod():

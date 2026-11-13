@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QMessageBox, QStackedWidget
 
 from tafor.core.models import Other, Sigmet, Taf, Trend
 from tafor.core.repositories import MessageRepository
-from tafor.ui.components.send import CustomSender, SigmetSender, TafSender, TrendSender
+from tafor.ui.dialogs import CustomSender, SigmetSender, TafSender, TrendSender
 from tafor.ui.workers import TransmissionQueue
 
 
@@ -70,8 +70,8 @@ def answers(monkeypatch):
     def critical(parent, title, text, *args, **kwargs):
         record['errors'].append(text)
 
-    monkeypatch.setattr('tafor.ui.components.send.QMessageBox.question', question)
-    monkeypatch.setattr('tafor.ui.components.send.QMessageBox.critical', critical)
+    monkeypatch.setattr('tafor.ui.dialogs.send.QMessageBox.question', question)
+    monkeypatch.setattr('tafor.ui.dialogs.send.QMessageBox.critical', critical)
     return record
 
 
@@ -440,7 +440,7 @@ class TestSigmet:
         def brokenParser(*args, **kwargs):
             raise ValueError('broken')
 
-        monkeypatch.setattr('tafor.ui.components.send.SigmetParser', brokenParser)
+        monkeypatch.setattr('tafor.ui.dialogs.send.SigmetParser', brokenParser)
         message = makeSigmet(read_fixture)
         sigmetSender.receive(message)
 

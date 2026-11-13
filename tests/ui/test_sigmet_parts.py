@@ -1,6 +1,6 @@
 import pytest
 
-from tafor.ui.widgets.sigmet import FlightLevelPart, ForecastPart, SigmetPart
+from tafor.ui.forms import FlightLevelPart, ForecastPart, SigmetPart
 
 
 class FakeWidget:

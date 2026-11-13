@@ -1,4 +1,4 @@
-"""Tests for tafor.ui/widgets/graphic.py.
+"""Tests for tafor/ui/map/graphic.py.
 
 Covers coordinate transforms, sketch tools (polygon/line/circle/corridor/
 rectangular/entire), SketchPanel helpers and background opacity handling.
@@ -10,9 +10,9 @@ from PyQt5.QtCore import QEvent, QPointF, QPoint, QRect, QRectF, QSize, QSizeF, 
 from PyQt5.QtGui import QMouseEvent, QResizeEvent, QWheelEvent
 from PyQt5.QtWidgets import QPushButton
 
-from tafor.ui.components.sigmet import SigmetPresenter
-from tafor.ui.widgets.graphic import SketchView, SketchPanel, StaticView, PreviewPanel
-from tafor.ui.widgets.misc import OutlinedLabel
+from tafor.ui.dialogs import SigmetPresenter
+from tafor.ui.map import SketchView, SketchPanel, StaticView, PreviewPanel
+from tafor.ui.map import OutlinedLabel
 
 
 # a small triangle well inside the mock FIR boundary (107-114E, 14.5-20.5N)

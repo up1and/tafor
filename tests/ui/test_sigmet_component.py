@@ -1,4 +1,4 @@
-"""Tests for tafor/ui/components/sigmet.py.
+"""Tests for tafor/ui/dialogs/sigmet.py.
 
 SigmetEditor is constructed against a real SigmetSender like the TAF editor
 tests do; the graphic canvas loads the local FIR resources, which works
@@ -16,8 +16,8 @@ from PyQt5.QtWidgets import QComboBox, QStackedWidget
 from tafor.core.models import Sigmet
 from tafor.core.repositories import MessageRepository, SigmetRepository
 from tafor.core.sigmet.compose import validDuration
-from tafor.ui.components.send import SigmetSender
-from tafor.ui.components.sigmet import SigmetEditor, SigmetPresenter
+from tafor.ui.dialogs import SigmetSender
+from tafor.ui.dialogs import SigmetEditor, SigmetPresenter
 
 
 class StubContent:

@@ -39,7 +39,7 @@ from tafor.ui.main import (
     UpgradePresenter,
     restartArgs,
 )
-from tafor.ui.widgets.recent import (
+from tafor.ui.panels import (
     NotificationCard, NotificationModel, RecentBoard, ReviewCard, ReviewModel,
 )
 from tafor.ui.workers import CheckUpgradeWorker, WorkerPool

@@ -1,4 +1,4 @@
-"""Tests for tafor/ui/widgets/table.py.
+"""Tests for tafor/ui/panels/tables.py.
 
 The data tables query the repository directly, so every test runs against
 the in-memory database. CSV export patches the native file dialog.
@@ -14,7 +14,7 @@ from PyQt5.QtGui import QColor
 
 from tafor.core.models import Taf
 from tafor.core.repositories import Repositories
-from tafor.ui.widgets.table import ExportDialog, MetarTable, TafTable
+from tafor.ui.panels import ExportDialog, MetarTable, TafTable
 from tafor.ui.workers import WorkerPool
 
 
@@ -321,7 +321,7 @@ class TestExportDialog:
 
         target = tmp_path / 'export.csv'
         monkeypatch.setattr(
-            'tafor.ui.widgets.table.QFileDialog.getSaveFileName',
+            'tafor.ui.panels.tables.QFileDialog.getSaveFileName',
             lambda *args, **kwargs: (str(target), ''))
 
         dialog.saveButton.click()
@@ -370,7 +370,7 @@ class TestExportWorkers:
         dialog.updateExportStatus()
 
         monkeypatch.setattr(
-            'tafor.ui.widgets.table.QFileDialog.getSaveFileName',
+            'tafor.ui.panels.tables.QFileDialog.getSaveFileName',
             lambda *args, **kwargs: (str(tmp_path / 'export.csv'), ''))
         dialog.saveButton.click()
 

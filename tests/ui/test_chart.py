@@ -1,7 +1,7 @@
 import datetime
 
 from tafor.core.models import Metar
-from tafor.ui.components.chart import (
+from tafor.ui.dialogs.chart import (
     ChartSpec,
     cloudPoints,
     computeDateRange,
@@ -347,7 +347,7 @@ class TestChartSpec:
     def test_the_default_captions_are_unchanged(self):
         # the unit used to be written into each title by hand; composing it has
         # to produce exactly the same six strings the chart used to show
-        from tafor.ui.components.chart import ChartViewer
+        from tafor.ui.dialogs import ChartViewer
 
         assert [spec.caption for spec in ChartViewer.specs] == [
             'Wind / Gust (m/s)',
@@ -363,7 +363,7 @@ class TestChartViewer:
 
     def test_update_date_range_branches(self, qtbot, database):
         from tafor.core.repositories import MetarRepository
-        from tafor.ui.components.chart import ChartViewer
+        from tafor.ui.dialogs import ChartViewer
 
         viewer = ChartViewer(None, repository=MetarRepository(database))
         qtbot.addWidget(viewer)
@@ -379,7 +379,7 @@ class TestChartViewer:
 
     def test_clock_injection(self, qtbot, database):
         from tafor.core.repositories import MetarRepository
-        from tafor.ui.components.chart import ChartViewer
+        from tafor.ui.dialogs import ChartViewer
 
         def fixedClock():
             return datetime.datetime(2026, 8, 31, 14, 23)
@@ -394,7 +394,7 @@ class TestChartViewer:
     def build_viewer(self, database, texts, clock):
         from tafor.core.models import Metar
         from tafor.core.repositories import MetarRepository
-        from tafor.ui.components.chart import ChartViewer
+        from tafor.ui.dialogs import ChartViewer
 
         with database.session() as session:
             for text, created in texts:
@@ -501,7 +501,7 @@ class TestChartViewer:
     def test_charts_without_a_window_keep_no_series(self, qtbot, database):
         # an empty database must not leave stale series or axes behind
         from tafor.core.repositories import MetarRepository
-        from tafor.ui.components.chart import ChartViewer
+        from tafor.ui.dialogs import ChartViewer
 
         viewer = ChartViewer(None, repository=MetarRepository(database))
         qtbot.addWidget(viewer)
@@ -570,7 +570,8 @@ class TestChartViewer:
         # specs is a default, not a fixed set: passing specs= stacks exactly
         # those charts. This is the seam for showing fewer than six.
         from tafor.core.repositories import MetarRepository
-        from tafor.ui.components.chart import ChartSpec, ChartViewer, SeriesSpec
+        from tafor.ui.dialogs import ChartViewer
+        from tafor.ui.dialogs.chart import ChartSpec, SeriesSpec
 
         created = datetime.datetime(2026, 8, 31, 12, 0)
         with database.session() as session:

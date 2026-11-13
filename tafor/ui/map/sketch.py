@@ -3,7 +3,7 @@ from tafor.core.geometry.sketch import (
     CircleSketch, CorridorSketch, EntireSketch, LineSketch, PolygonSketch,
     RectangularSketch
 )
-from tafor.ui.widgets.geometry import SketchGraphic, StickerGraphic
+from tafor.ui.map.items import SketchGraphic, StickerGraphic
 
 
 class SketchManager:
