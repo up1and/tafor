@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QFileDialog, QMessageBox
 
 from tafor.core.utils.common import iconPath, ipAddress
 from tafor.ui.qt import Ui_setting
-from tafor.ui.workers import FtpTestWorker, threadManager
+from tafor.ui.workers import FtpTestWorker
 
 logger = logging.getLogger('tafor.setting')
 
@@ -20,10 +20,14 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
     statusMessage = pyqtSignal(str, int)
 
-    def __init__(self, parent, conf, sequence):
+    def __init__(self, parent, conf, sequence, workers):
         super().__init__(parent)
         self.conf = conf
         self.sequence = sequence
+        # Required, not defaulted: the pool that owns the threads is the pool
+        # that cleans them up, so a dialog that quietly built its own would
+        # leave a manager nobody shuts down. One place decides, and passes it.
+        self.workers = workers
         self.setupUi(self)
         self.setWindowIcon(QIcon(iconPath('setting.png')))
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
@@ -128,7 +132,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
     def testFtpLogin(self):
         self.testLoginButton.setEnabled(False)
-        worker, thread = threadManager.createWorker(FtpTestWorker, self.ftpHost.text())
+        worker, thread = self.workers.create(FtpTestWorker, self.ftpHost.text())
         worker.done.connect(self.handleFtpLoginResult)
         thread.start()
 

@@ -712,10 +712,14 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
     reminderToggled = pyqtSignal(object, bool)
     messageSent = pyqtSignal()
 
-    def __init__(self, conf, context, repositories, parent=None):
+    def __init__(self, conf, context, repositories, workers, parent=None):
         super().__init__(parent)
         self.conf = conf
         self.context = context
+        # Required: the window hands this to the widgets that start a worker of
+        # their own (the setting dialog, the export dialog). No default, so the
+        # pool that owns the threads can only be created by the assembly root.
+        self.workers = workers
         self.setupUi(self)
 
         self.sysInfo = QSysInfo.prettyProductName()
@@ -761,7 +765,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def setupSenders(self):
         repository = self.repositories.message
-        self.settingDialog = SettingDialog(self, self.conf, self.context.sequence)
+        self.settingDialog = SettingDialog(self, self.conf, self.context.sequence, self.workers)
         self.tafSender = TafSender(self, self.context, self.conf, repository=repository)
         self.trendSender = TrendSender(self, self.context, self.conf, repository=repository)
         self.sigmetSender = SigmetSender(self, self.context, self.conf, repository=repository)
@@ -787,14 +791,14 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.scrollLayout.setAlignment(Qt.AlignTop)
 
     def setupTables(self):
-        self.tafTable = TafTable(self, self.tafLayout, reviewer=self.tafSender,
-                                 repository=self.repositories.taf)
-        self.metarTable = MetarTable(self, self.metarLayout,
+        self.tafTable = TafTable(self, self.tafLayout, self.workers,
+                                 reviewer=self.tafSender, repository=self.repositories.taf)
+        self.metarTable = MetarTable(self, self.metarLayout, self.workers,
                                      repository=self.repositories.metar)
-        self.sigmetTable = SigmetTable(self, self.sigmetLayout, reviewer=self.sigmetSender,
-                                       repository=self.repositories.sigmet)
-        self.airmetTable = AirmetTable(self, self.airmetLayout, reviewer=self.sigmetSender,
-                                       repository=self.repositories.sigmet)
+        self.sigmetTable = SigmetTable(self, self.sigmetLayout, self.workers,
+                                       reviewer=self.sigmetSender, repository=self.repositories.sigmet)
+        self.airmetTable = AirmetTable(self, self.airmetLayout, self.workers,
+                                       reviewer=self.sigmetSender, repository=self.repositories.sigmet)
 
         for table in (self.tafTable, self.metarTable, self.sigmetTable, self.airmetTable):
             table.statusMessage.connect(self.status)

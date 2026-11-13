@@ -101,8 +101,30 @@ class ThreadManager:
             self.removeWorker(workerId)
 
 
-# Global thread manager instance
-threadManager = ThreadManager()
+class WorkerPool:
+    """The one thing in the ui layer that may create a worker.
+
+    A pool owns its ThreadManager rather than borrowing a module-level one:
+    whoever builds the pool also decides when it is cleaned up, which is what
+    makes a pool that runs everything inline -- or a second window -- possible
+    at all. In the app there is exactly one, built by Application and handed
+    down to the window, so the process still has a single set of threads and a
+    single cleanup.
+
+    It lives here rather than in app.py because the widgets need it and
+    app.py is the one that imports the window: the dependency points this way.
+    """
+
+    def __init__(self, manager=None):
+        self.manager = manager or ThreadManager()
+
+    def create(self, workerClass, *args, workerId=None, reusable=False, **kwargs):
+        return self.manager.createWorker(
+            workerClass, *args, workerId=workerId, reusable=reusable, **kwargs
+        )
+
+    def cleanup(self):
+        self.manager.cleanup()
 
 
 class MessageWorker(QObject):

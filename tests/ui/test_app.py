@@ -32,7 +32,7 @@ from tafor.ui.app import (
     main,
     run,
 )
-from tafor.ui.workers import ContextBridge, threadManager
+from tafor.ui.workers import ContextBridge, ThreadManager
 from tests.mocks import MockConfig
 
 
@@ -81,8 +81,9 @@ class FakeWindow:
     context's flash channels, and it does so from initialize().
     """
 
-    def __init__(self, *args):
+    def __init__(self, *args, **kwargs):
         self.args = args
+        self.kwargs = kwargs
         self.shown = 0
         self.trayHidden = 0
         self.dialogsClosed = 0
@@ -441,8 +442,16 @@ class TestRestartedCopy:
 
 class TestWorkerPool:
 
-    def test_defaults_to_the_shared_thread_manager(self):
-        assert WorkerPool().manager is threadManager
+    def test_owns_a_manager_of_its_own(self):
+        # no module-level singleton any more: the pool that owns the threads is
+        # the pool that cleans them up, which is what makes an inline pool or a
+        # second window possible
+        assert isinstance(WorkerPool().manager, ThreadManager)
+
+    def test_two_pools_do_not_share_a_manager(self):
+        first, second = WorkerPool(), WorkerPool()
+
+        assert first.manager is not second.manager
 
     def test_create_delegates_to_the_manager(self):
         calls = []
@@ -471,8 +480,8 @@ class TestApplication:
         windows = []
         pools = []
 
-        def buildWindow(*args):
-            windows.append(FakeWindow(*args))
+        def buildWindow(*args, **kwargs):
+            windows.append(FakeWindow(*args, **kwargs))
             return windows[-1]
 
         def buildPool(*args, **kwargs):
@@ -502,6 +511,11 @@ class TestApplication:
 
     def test_the_window_gets_the_shared_collaborators(self, application, runtime):
         assert application.window.args == (runtime.conf, runtime.context, runtime.repositories)
+
+    def test_the_window_shares_the_pool_that_owns_the_threads(self, application):
+        # the pool is the only thing in the process that may create a worker,
+        # so the window has to be handed the same one Application cleans up
+        assert application.window.kwargs == {'workers': application.workers}
 
     def test_one_presenter_per_concern(self, application):
         assert [p.role for p in application.presenters] == PRESENTERS

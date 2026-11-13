@@ -11,15 +11,16 @@ from tafor.core.utils.common import iconPath
 from tafor.ui.qt import Ui_main_table
 from tafor.ui.fonts import fixedFont
 from tafor.ui.styles import applyCalendarStyle, mutedStyle
-from tafor.ui.workers import ExportRecordWorker, threadManager
+from tafor.ui.workers import ExportRecordWorker
 
 
 
 class ExportDialog(QDialog):
 
-    def __init__(self, table=None):
+    def __init__(self, workers, table=None):
         super().__init__(table)
         self.table = table
+        self.workers = workers
 
         self.setupUi()
         self.bindSignal()
@@ -114,8 +115,7 @@ class ExportDialog(QDialog):
         headers = ('type', 'text', 'created')
         data = [(e.type, e.text, e.created) for e in self.filteredReport()]
 
-        # Use new worker-based approach
-        worker, thread = threadManager.createWorker(ExportRecordWorker, filename, data, headers=headers)
+        worker, thread = self.workers.create(ExportRecordWorker, filename, data, headers=headers)
         worker.finished.connect(self.close)
         thread.start()
 
@@ -138,8 +138,9 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
     chartClicked = pyqtSignal()
     statusMessage = pyqtSignal(str, int)
 
-    def __init__(self, parent, layout, repository=None):
+    def __init__(self, parent, layout, workers, repository=None):
         super().__init__(parent)
+        self.workers = workers
         self.perPage = 12
         self.hasCheckmark = False
         self.extraColumnWidths = {}
@@ -154,7 +155,7 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.color = QColor(200, 20, 40)
 
         self.repository = repository
-        self.exportDialog = ExportDialog(self)
+        self.exportDialog = ExportDialog(workers, self)
 
         self.calendarPopup = CalendarPopup(self)
         self.calendarPopup.calendar.clicked.connect(self.setCalendar)
@@ -341,8 +342,8 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
 class TafTable(BaseDataTable):
 
-    def __init__(self, parent, layout, reviewer=None, repository=None):
-        super().__init__(parent, layout, repository=repository)
+    def __init__(self, parent, layout, workers, reviewer=None, repository=None):
+        super().__init__(parent, layout, workers, repository=repository)
         self.category = 'TAF'
         self.model = Taf
         self.reviewer = reviewer
@@ -360,8 +361,8 @@ class TafTable(BaseDataTable):
 
 class MetarTable(BaseDataTable):
 
-    def __init__(self, parent, layout, repository=None):
-        super().__init__(parent, layout, repository=repository)
+    def __init__(self, parent, layout, workers, repository=None):
+        super().__init__(parent, layout, workers, repository=repository)
         self.category = 'METAR'
         self.model = Metar
         self.perPage = 24
@@ -382,8 +383,8 @@ class MetarTable(BaseDataTable):
 
 class SigmetTable(BaseDataTable):
 
-    def __init__(self, parent, layout, reviewer=None, repository=None):
-        super().__init__(parent, layout, repository=repository)
+    def __init__(self, parent, layout, workers, reviewer=None, repository=None):
+        super().__init__(parent, layout, workers, repository=repository)
         self.category = 'SIGMET'
         self.model = Sigmet
         self.reviewer = reviewer
@@ -394,6 +395,6 @@ class SigmetTable(BaseDataTable):
 
 class AirmetTable(SigmetTable):
 
-    def __init__(self, parent, layout, reviewer=None, repository=None):
-        super().__init__(parent, layout, reviewer=reviewer, repository=repository)
+    def __init__(self, parent, layout, workers, reviewer=None, repository=None):
+        super().__init__(parent, layout, workers, reviewer=reviewer, repository=repository)
         self.category = 'AIRMET'

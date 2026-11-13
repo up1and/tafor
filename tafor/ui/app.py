@@ -33,7 +33,7 @@ from tafor.ui.main import (MainWindow, BoardPresenter, FlashPresenter, LayerPres
     LicensePresenter, LogPresenter, MessagePresenter, NotificationPresenter,
     ReminderPresenter, SoundPresenter, UpgradePresenter)
 from tafor.ui.workers import (ContextBridge, RpcWorker, TransmissionQueue,
-    TransmissionWorker, threadManager)
+    TransmissionWorker, WorkerPool)
 
 logger = logging.getLogger('tafor.main')
 
@@ -117,25 +117,6 @@ class SingleInstance:
         return False
 
 
-class WorkerPool:
-    """Thin wrapper over the shared thread manager.
-
-    Wrapping it keeps the module-level singleton out of the presenters, so a
-    test can hand in a pool that runs everything inline.
-    """
-
-    def __init__(self, manager=None):
-        self.manager = manager or threadManager
-
-    def create(self, workerClass, *args, workerId=None, reusable=False, **kwargs):
-        return self.manager.createWorker(
-            workerClass, *args, workerId=workerId, reusable=reusable, **kwargs
-        )
-
-    def cleanup(self):
-        self.manager.cleanup()
-
-
 class Application:
     """The running app: one window, one worker pool, a set of presenters.
 
@@ -150,7 +131,7 @@ class Application:
         self.app = app
         self.rpc = None
         self.workers = WorkerPool()
-        self.window = MainWindow(runtime.conf, runtime.context, runtime.repositories)
+        self.window = MainWindow(runtime.conf, runtime.context, runtime.repositories, self.workers)
         self.presenters = [
             ReminderPresenter(self.window, self.runtime.context, self.runtime.conf),
             MessagePresenter(self.window, self.runtime.context, self.runtime.conf, self.runtime.repositories, self.workers),

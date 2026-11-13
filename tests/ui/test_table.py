@@ -14,19 +14,13 @@ from PyQt5.QtGui import QColor
 
 from tafor.core.models import Taf
 from tafor.core.repositories import Repositories
-from tafor.ui.widgets.table import MetarTable, TafTable
-from tafor.ui.workers import threadManager
+from tafor.ui.widgets.table import ExportDialog, MetarTable, TafTable
+from tafor.ui.workers import WorkerPool
 
 
 TAF_TEXT = 'TAF ZPPP 100800Z 1009/1018 32008G15MPS 9999 SCT020='
 AMD_TEXT = 'TAF AMD ZPPP 100900Z 1009/1018 32012MPS 9999 SCT020='
 METAR_TEXT = 'METAR ZJHK 210900Z 14004MPS 4500 -RA BKN030='
-
-
-@pytest.fixture(autouse=True)
-def clean_thread_manager():
-    yield
-    threadManager.cleanup()
 
 
 @pytest.fixture
@@ -45,19 +39,70 @@ def repos(database):
 
 
 @pytest.fixture
-def taf_table(qtbot, repos, container):
+def pool():
+    """A pool whose manager is cleaned up with the test.
+
+    A table builds its own pool when none is passed, and that pool owns a
+    ThreadManager: the CSV export test starts a real thread through it, so it
+    has to be the fixture's to shut down.
+    """
+    pool = WorkerPool()
+    yield pool
+    pool.cleanup()
+
+
+@pytest.fixture
+def taf_table(qtbot, repos, container, pool):
     widget, layout = container
-    table = TafTable(widget, layout, repository=repos.message.taf)
+    table = TafTable(widget, layout, pool, repository=repos.message.taf)
     qtbot.addWidget(table)
     return table
 
 
 @pytest.fixture
-def metar_table(qtbot, repos, container):
+def metar_table(qtbot, repos, container, pool):
     widget, layout = container
-    table = MetarTable(widget, layout, repository=repos.message.metar)
+    table = MetarTable(widget, layout, pool, repository=repos.message.metar)
     qtbot.addWidget(table)
     return table
+
+
+class FakeSignal:
+    """A pyqtSignal reduced to connect()"""
+
+    def __init__(self):
+        self.targets = []
+
+    def connect(self, target):
+        self.targets.append(target)
+
+
+class InertWorker:
+    """Enough of a worker for the dialog to connect and start it."""
+
+    def __init__(self, *args, **kwargs):
+        self.finished = FakeSignal()
+
+
+class InertThread:
+    """A thread that records the start and runs nothing."""
+
+    def __init__(self):
+        self.started = 0
+
+    def start(self):
+        self.started += 1
+
+
+class RecordingPool:
+    """A WorkerPool handed to the widgets instead of the shared manager."""
+
+    def __init__(self):
+        self.created = []
+
+    def create(self, workerClass, *args, **kwargs):
+        self.created.append((workerClass, args, kwargs))
+        return InertWorker(), InertThread()
 
 
 def seed_taf(database, text=TAF_TEXT, created=None, confirmed=None, type='FT'):
@@ -287,6 +332,58 @@ class TestExportDialog:
 
         assert rows[0] == ['type', 'text', 'created']
         assert rows[1][:2] == ['FT', TAF_TEXT]
+
+
+class TestExportWorkers:
+    """The export dialog borrows a pool instead of reaching for the shared
+    thread manager, so it can be driven without starting a real thread."""
+
+    def build(self, qtbot, workers, repository=None):
+        from PyQt5.QtWidgets import QVBoxLayout, QWidget
+
+        widget, layout = QWidget(), QVBoxLayout()
+        widget.setLayout(layout)
+        qtbot.addWidget(widget)
+        table = TafTable(widget, layout, workers, repository=repository)
+        # the caller keeps the container alive: the table is only a child of it
+        self.container = widget
+        self.table = table
+        return table
+
+    def test_the_table_hands_its_pool_to_the_export_dialog(self, qtbot):
+        pool = RecordingPool()
+
+        table = self.build(qtbot, pool)
+
+        assert table.exportDialog.workers is pool
+
+    def test_the_export_uses_the_injected_pool(self, qtbot, database, tmp_path, monkeypatch):
+        pool = RecordingPool()
+        table = self.build(qtbot, pool, repository=Repositories(database).message.taf)
+
+        seed_taf(database, TAF_TEXT)
+
+        dialog = table.exportDialog
+        today = QDate.currentDate()
+        dialog.startDate.setDate(today)
+        dialog.endDate.setDate(today)
+        dialog.updateExportStatus()
+
+        monkeypatch.setattr(
+            'tafor.ui.widgets.table.QFileDialog.getSaveFileName',
+            lambda *args, **kwargs: (str(tmp_path / 'export.csv'), ''))
+        dialog.saveButton.click()
+
+        assert len(pool.created) == 1
+        workerClass, args, kwargs = pool.created[0]
+        assert workerClass.__name__ == 'ExportRecordWorker'
+        assert kwargs == {'headers': ('type', 'text', 'created')}
+
+    def test_the_pool_is_not_optional(self, qtbot):
+        # a dialog that quietly built its own pool would leave a manager
+        # nobody ever cleans up, so omitting it has to fail loudly
+        with pytest.raises(TypeError):
+            ExportDialog()
 
 
 if __name__ == '__main__':

@@ -43,7 +43,7 @@ from tafor.ui.main import (
 from tafor.ui.widgets.recent import (
     NotificationCard, NotificationModel, RecentBoard, ReviewCard, ReviewModel,
 )
-from tafor.ui.workers import CheckUpgradeWorker
+from tafor.ui.workers import CheckUpgradeWorker, WorkerPool
 from tests.mocks import MockConfig
 
 
@@ -1666,18 +1666,19 @@ class FakeReminderBox:
         self.closed += 1
 
 
-def buildMainWindow(database, **settings):
+def buildMainWindow(database, workers=None, **settings):
     """A real MainWindow over a private conf, context and repositories.
 
     Private on purpose: the window subscribes to conf's restart and reload
     signals, so a shared conf would collect handlers pointing at every window
-    the suite ever built.
+    the suite ever built. The pool defaults to the test's own, which the
+    caller is responsible for cleaning up.
     """
     conf = createConfig(settings=MockConfig())
     for name, value in settings.items():
         setattr(conf, name, value)
 
-    return MainWindow(conf, createContext(conf), Repositories(database))
+    return MainWindow(conf, createContext(conf), Repositories(database), workers)
 
 
 @pytest.fixture(scope='class')
@@ -1688,7 +1689,15 @@ def windowDatabase():
 
 
 @pytest.fixture(scope='class')
-def sharedWindow(windowDatabase, qapp):
+def windowPool():
+    """The pool behind a class-scoped window, cleaned up with the class."""
+    pool = WorkerPool()
+    yield pool
+    pool.cleanup()
+
+
+@pytest.fixture(scope='class')
+def sharedWindow(windowDatabase, windowPool, qapp):
     """One real MainWindow for a whole test class.
 
     Building it costs about 0.4s -- five editors, four senders, six sounds --
@@ -1696,7 +1705,7 @@ def sharedWindow(windowDatabase, qapp):
     put it back. The tests below do that with monkeypatch, which restores
     automatically.
     """
-    window = buildMainWindow(windowDatabase)
+    window = buildMainWindow(windowDatabase, workers=windowPool)
     yield window
     window.hideTray()
     window.closeDialogs()
@@ -1704,16 +1713,26 @@ def sharedWindow(windowDatabase, qapp):
 
 @pytest.fixture
 def buildWindow(qtbot, database):
-    """A one-off window, for the cases that need their own conf or platform."""
+    """A one-off window, for the cases that need their own conf or platform.
+
+    Each build gets its own pool, so a window that starts a worker cannot
+    borrow another test's threads; every pool is cleaned up on teardown.
+    """
     built = []
+    pools = []
 
     def build(**settings):
-        window = buildMainWindow(database, **settings)
+        pool = WorkerPool()
+        pools.append(pool)
+        window = buildMainWindow(database, workers=pool, **settings)
         qtbot.addWidget(window)
         built.append(window)
         return window
 
     yield build
+
+    for pool in pools:
+        pool.cleanup()
 
     for window in built:
         window.hideTray()
@@ -2329,8 +2348,8 @@ class TestMainWindowWithoutSigmet:
 
     @pytest.fixture(scope='class')
     @classmethod
-    def window(cls, windowDatabase, qapp):
-        window = buildMainWindow(windowDatabase, sigmetEnabled=False)
+    def window(cls, windowDatabase, windowPool, qapp):
+        window = buildMainWindow(windowDatabase, workers=windowPool, sigmetEnabled=False)
         yield window
         window.hideTray()
         window.closeDialogs()

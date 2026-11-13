@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import QMessageBox, QFileDialog
 from tafor.core.config import createConfig
 from tafor.core.states import SequenceService
 from tafor.ui.components.setting import SettingDialog
+from tafor.ui.workers import WorkerPool
 
 from tests.mocks import MockConfig
 
@@ -24,8 +25,15 @@ class TestSetting:
         return SequenceService(conf)
 
     @pytest.fixture
-    def setting(self, qtbot, conf, sequence):
-        dialog = SettingDialog(None, conf, sequence)
+    def pool(self):
+        """A pool whose manager is shut down with the test."""
+        pool = WorkerPool()
+        yield pool
+        pool.cleanup()
+
+    @pytest.fixture
+    def setting(self, qtbot, conf, sequence, pool):
+        dialog = SettingDialog(None, conf, sequence, pool)
         qtbot.addWidget(dialog)
         return dialog
 
@@ -77,7 +85,7 @@ class TestSetting:
     def test_showing_after_midnight_rolls_the_counters(
             self, qtbot, conf, frozen_time, time_machine):
         sequence = SequenceService(conf)
-        dialog = SettingDialog(None, conf, sequence)
+        dialog = SettingDialog(None, conf, sequence, WorkerPool())
         qtbot.addWidget(dialog)
         conf.set('channelSequenceNumber', '9')
 
@@ -184,6 +192,74 @@ class TestSetting:
         assert modal == [1]
         assert setting.airport.text() == 'YUDD'
 
+
+class TestSettingWorkers:
+    """The FTP test borrows a pool instead of the shared thread manager."""
+
+    class RecordingPool:
+
+        def __init__(self):
+            self.created = []
+
+        def create(self, workerClass, *args, **kwargs):
+            self.created.append((workerClass, args, kwargs))
+            return InertWorker(), InertThread()
+
+    @pytest.fixture
+    def conf(self):
+        return createConfig(settings=MockConfig())
+
+    def build(self, qtbot, conf, workers):
+        dialog = SettingDialog(None, conf, SequenceService(conf), workers)
+        qtbot.addWidget(dialog)
+        return dialog
+
+    def test_the_dialog_uses_the_injected_pool(self, qtbot, conf):
+        pool = self.RecordingPool()
+        dialog = self.build(qtbot, conf, pool)
+
+        dialog.testFtpLogin()
+
+        assert len(pool.created) == 1
+        workerClass, args, kwargs = pool.created[0]
+        assert workerClass.__name__ == 'FtpTestWorker'
+
+    def test_the_login_button_is_disabled_while_the_test_runs(self, qtbot, conf):
+        dialog = self.build(qtbot, conf, self.RecordingPool())
+
+        dialog.testFtpLogin()
+
+        assert not dialog.testLoginButton.isEnabled()
+
+    def test_the_pool_is_not_optional(self, qtbot, conf):
+        # a dialog that quietly built its own pool would leave a manager
+        # nobody ever cleans up, so omitting it has to fail loudly
+        with pytest.raises(TypeError):
+            SettingDialog(None, conf, SequenceService(conf))
+
+
+class InertWorker:
+
+    def __init__(self, *args, **kwargs):
+        self.done = FakeSignal()
+
+
+class InertThread:
+
+    def __init__(self):
+        self.started = 0
+
+    def start(self):
+        self.started += 1
+
+
+class FakeSignal:
+
+    def __init__(self):
+        self.targets = []
+
+    def connect(self, target):
+        self.targets.append(target)
 
 if __name__ == '__main__':
     pytest.main()
