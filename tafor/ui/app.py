@@ -266,8 +266,8 @@ def main(argv=None):
             return 0
 
         application = Application(runtime, app)
-        application.start()
         try:
+            application.start()
             return app.exec()
         finally:
             application.shutdown()
