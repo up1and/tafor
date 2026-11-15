@@ -9,10 +9,9 @@ from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QToolButton
 
 from tafor.core.parsers.base import Pattern
 from tafor.core.parsers.advisory import AshAdvisoryParser, TyphoonAdvisoryParser
-from tafor.core.repositories import SigmetFilter
 from tafor.core.sigmet import (SigmetAshState, SigmetCancelState, SigmetCustomState, SigmetGeneralState,
     SigmetTyphoonState, SigmetFormValidator)
-from tafor.core.sigmet.compose import adjustCancelBeginning, nextSequence, typhoonCircleFeature, validPeriod
+from tafor.core.sigmet.compose import adjustCancelBeginning, typhoonCircleFeature, validPeriod
 from tafor.core.geometry import geojson
 from tafor.core.geometry.coordinate import decimalToDegree
 from tafor.core.utils.time import parseTime, utcnow
@@ -46,13 +45,11 @@ class BaseSigmet(TextFieldMixin, QWidget):
     # from self.parts, which holds one live instance per member.
     members = ()
 
-    def __init__(self, editor=None, conf=None, context=None, repository=None):
+    def __init__(self, editor=None, conf=None):
         super().__init__()
         self.rules = Pattern()
         self.editor = editor
         self.conf = conf
-        self.context = context
-        self.repository = repository
         self.state = None
 
     def initialize(self):
@@ -82,11 +79,22 @@ class BaseSigmet(TextFieldMixin, QWidget):
         for line in parent.findChildren(QLineEdit):
             line.setMaximumWidth(77)
 
-    def initState(self):
-        self.updateSequence()
-        self.updatePeriodTime()
+    def setSequence(self, sequence):
+        """The number the presenter handed this draft, rendered as the
+        operator sees it."""
+        self.sequence.setText(str(sequence))
+
+    def resetPeriod(self):
+        """Anchor the validity period to the draft's span, then re-derive the
+        durations from what was just written.
+
+        Re-anchoring is the point: periodTime() reads the clock, so a draft
+        rendered ten minutes after the last one must not keep the old hours.
+        """
+        beginningTime, endingTime = self.periodTime()
+        self.beginningTime.setText(beginningTime.strftime('%d%H%M'))
+        self.endingTime.setText(endingTime.strftime('%d%H%M'))
         self.updateDurations()
-        self.componentUpdate()
 
     def bindSignal(self):
         self.beginningTime.textChanged.connect(self.updateDurations)
@@ -113,12 +121,6 @@ class BaseSigmet(TextFieldMixin, QWidget):
         """Every input widget whose value feeds the state, the parts' included."""
         return [self.sequence, self.beginningTime, self.endingTime] + \
                [widget for part in self.parts for widget in part.fields()]
-
-    def componentUpdate(self):
-        """
-        This method is used to add some custom updates
-        """
-        pass
 
     def updateDurations(self):
         if self.beginningTime.hasAcceptableInput() and self.endingTime.hasAcceptableInput():
@@ -182,16 +184,6 @@ class BaseSigmet(TextFieldMixin, QWidget):
 
         for part in self.parts:
             part.setupValidator()
-
-    def updatePeriodTime(self):
-        beginningTime, endingTime = self.periodTime()
-        self.beginningTime.setText(beginningTime.strftime('%d%H%M'))
-        self.endingTime.setText(endingTime.strftime('%d%H%M'))
-
-    def updateSequence(self):
-        sigmets = self.repository.countToday(self.designator())
-        count = nextSequence([sig.heading for sig in sigmets], utcnow())
-        self.sequence.setText(str(count))
 
     def hasAcceptableInput(self):
         return self.state.isAcceptable()
@@ -780,8 +772,8 @@ class SigmetGeneral(BaseSigmet, Ui_sigmet_general.Ui_Editor):
     # Convective phenomena that take the TOP/ABV/SFC flight-level formats.
     convective = ['CB', 'TCU', 'TS', 'TSGR']
 
-    def __init__(self, editor=None, conf=None, context=None, repository=None):
-        super().__init__(editor, conf=conf, context=context, repository=repository)
+    def __init__(self, editor=None, conf=None):
+        super().__init__(editor, conf=conf)
         self.setupUi(self)
         self.state = SigmetGeneralState(unit=self.conf.units.sigmetSpeed)
         self.initialize()
@@ -850,8 +842,8 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
     locationChanged = pyqtSignal(dict)
     circleChanged = pyqtSignal(dict)
 
-    def __init__(self, editor=None, conf=None, context=None, repository=None):
-        super().__init__(editor, conf=conf, context=context, repository=repository)
+    def __init__(self, editor=None, conf=None):
+        super().__init__(editor, conf=conf)
         self.setupUi(self)
         self.state = SigmetTyphoonState(unit=self.conf.units.sigmetSpeed)
         self.initialize()
@@ -1009,8 +1001,8 @@ class SigmetAsh(BaseSigmet, Ui_sigmet_ash.Ui_Editor):
 
     locationChanged = pyqtSignal(dict)
 
-    def __init__(self, editor=None, conf=None, context=None, repository=None):
-        super().__init__(editor, conf=conf, context=context, repository=repository)
+    def __init__(self, editor=None, conf=None):
+        super().__init__(editor, conf=conf)
         self.setupUi(self)
         self.state = SigmetAshState(unit=self.conf.units.sigmetSpeed)
         self.initialize()
@@ -1122,8 +1114,8 @@ class AirmetGeneral(SigmetGeneral):
 
 class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
-    def __init__(self, editor=None, conf=None, context=None, repository=None):
-        super().__init__(editor, conf=conf, context=context, repository=repository)
+    def __init__(self, editor=None, conf=None):
+        super().__init__(editor, conf=conf)
         self.setupUi(self)
         self.state = SigmetCancelState()
         self.initialize()
@@ -1180,12 +1172,11 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
             )
             self.beginningTime.setText(beginning.strftime('%d%H%M'))
 
-    def componentUpdate(self):
-        """Refill the dropdown with the cancellable reports, each row carrying
-        its valid period as item data: same-numbered rows differ in their
-        data, not in their text."""
+    def setCandidates(self, sigmets):
+        """Refill the dropdown with the cancellable reports the presenter
+        handed over, each row carrying its valid period as item data:
+        same-numbered rows differ in their data, not in their text."""
         self.cancelSequence.clear()
-        sigmets = self.context.current.filterSigmets(SigmetFilter(designator=self.designator()))
 
         for sig in sigmets:
             parser = sig.parser()
@@ -1218,12 +1209,12 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
 class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
 
-    def __init__(self, editor=None, conf=None, context=None, repository=None):
-        super().__init__(editor, conf=conf, context=context, repository=repository)
+    def __init__(self, editor=None, conf=None):
+        super().__init__(editor, conf=conf)
         self.setupUi(self)
         self.state = SigmetCustomState()
-        self.initialize()
         self.setupApiSign()
+        self.initialize()
         self.upperTextEdit()
 
     def bindSignal(self):
@@ -1257,10 +1248,6 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         upper.setFontCapitalization(QFont.AllUppercase)
         self.text.setCurrentCharFormat(upper)
 
-    def componentUpdate(self):
-        self.setupPlaceholder()
-        self.updateText()
-
     def setupApiSign(self):
         pixmap = QPixmap(iconPath('api.png'))
         self.apiSign = QLabel(self)
@@ -1279,34 +1266,22 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         tip = tips[self.designator()]
         self.text.setPlaceholderText(tip)
 
-    def loadLocalDatabase(self):
-        last = self.repository.latest(self.designator())
+    def setLatestText(self, rv):
+        """Render the message the presenter resolved: (source, content) or
+        None. The api sign follows the source, so no message at all hides it
+        rather than leaving a stale mark from the designator before."""
+        self.setupPlaceholder()
+        self.apiSign.setVisible(bool(rv) and rv[0] == 'notification')
 
-        if last:
-            parser = last.parser()
-            return 'database', parser.content()
-
-    def loadNotification(self):
-        parser = self.context.notification.sigmet.parser()
-        if parser and self.designator() == parser.type():
-            return 'notification', parser.content()
-
-    def updateText(self):
-        rv = self.loadNotification() or self.loadLocalDatabase()
-        if rv:
-            source, message = rv
-            fir = self.conf.firName or ''
-            text = message.replace(fir, '').replace('=', '').strip()
-            self.setText(text)
-
-            if hasattr(self, 'apiSign'):
-                if source == 'notification':
-                    self.apiSign.show()
-                else:
-                    self.apiSign.hide()
-        else:
+        if not rv:
             self.text.clear()
-    
+            return
+
+        _, message = rv
+        fir = self.conf.firName or ''
+        text = message.replace(fir, '').replace('=', '').strip()
+        self.setText(text)
+
     def setText(self, message):
         self.text.setText(message)
         self.text.moveCursor(QTextCursor.End)

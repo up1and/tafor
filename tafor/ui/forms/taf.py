@@ -675,7 +675,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         if modifier is None:
             # The normal report for this period is already out: leave the field
             # empty rather than offering the same report twice.
-            return '' if self.repository.hasRecent(period) else period
+            return '' if self.repository.hasRecent(period) is not None else period
 
         return period
 

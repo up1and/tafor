@@ -78,6 +78,16 @@ def editor(qtbot, sender, conf, context, database):
     return editor
 
 
+SIGMET_TEXT = 'YUDD SIGMET 1 VALID 100730/101430 YUSO- YUDD SHANLON FIR OBSC TS='
+
+
+def store_sigmet(database, text, type='WS'):
+    sigmet = Sigmet(type=type, heading=text, text=text)
+    with database.session() as session:
+        session.add(sigmet)
+    return sigmet
+
+
 class TestSigmetPresenter:
 
     @pytest.fixture
@@ -88,6 +98,62 @@ class TestSigmetPresenter:
     def presenter(self, view, context, conf):
         presenter = SigmetPresenter(view, context, conf)
         return presenter
+
+    def test_next_sequence_continues_todays_count(self, context, conf, database, frozen_time):
+        store_sigmet(database, 'YUDD SIGMET 1 VALID 100730/101430 YUSO- YUDD SHANLON FIR OBSC TS=')
+        presenter = SigmetPresenter(None, context, conf, SigmetRepository(database))
+
+        # one series per FIR, not per designator: the stored WS takes number 1
+        # for the WV draft too; AIRMET carries its own count
+        assert presenter.nextSequence('WS') == 2
+        assert presenter.nextSequence('WV') == 2
+        assert presenter.nextSequence('WA') == 1
+
+    def test_latest_text_prefers_the_waiting_notification(self, context, conf, database):
+        store_sigmet(database, 'YUDD SIGMET 1 VALID 100730/101430 YUSO- YUDD SHANLON FIR OBSC TS=')
+        context.notification.sigmet.setState({'message': SIGMET_TEXT})
+        presenter = SigmetPresenter(None, context, conf, SigmetRepository(database))
+
+        assert presenter.latestText('WS') == ('notification', 'YUDD SHANLON FIR OBSC TS=')
+
+    def test_latest_text_falls_back_to_the_stored_report(self, context, conf, database):
+        store_sigmet(database, 'YUDD SIGMET 1 VALID 100730/101430 YUSO- YUDD SHANLON FIR OBSC TS=')
+        presenter = SigmetPresenter(None, context, conf, SigmetRepository(database))
+
+        assert presenter.latestText('WS') == ('database', 'YUDD SHANLON FIR OBSC TS=')
+
+    def test_latest_text_ignores_a_notification_for_another_designator(self, context, conf, database):
+        context.notification.sigmet.setState({'message': SIGMET_TEXT})
+        presenter = SigmetPresenter(None, context, conf, SigmetRepository(database))
+
+        assert presenter.latestText('WV') is None
+
+    def test_sigmets_are_the_ones_in_force(self, context, conf, database):
+        store_sigmet(database, SIGMET_TEXT)
+        context.current.setState(SigmetRepository(database).current())
+        presenter = SigmetPresenter(None, context, conf, SigmetRepository(database))
+
+        assert [sig.heading for sig in presenter.sigmets(designator='WS')] == [SIGMET_TEXT]
+        assert presenter.sigmets(designator='WV') == []
+
+    def test_sigmets_narrow_by_the_address_the_caller_names(self, context, conf):
+        # One code or the whole bulletin sign: WS is a designator, SIGMET is
+        # the category that also covers WC and WV. The dropdown needs the
+        # first, the canvas beside a template the second.
+        context.current.setState([
+            Sigmet(type='WS', heading='', text='A'),
+            Sigmet(type='WC', heading='', text='B'),
+            Sigmet(type='WV', heading='', text='C'),
+            Sigmet(type='WA', heading='', text='D'),
+        ])
+        presenter = SigmetPresenter(None, context, conf)
+
+        def types(sigmets):
+            return [sig.type for sig in sigmets]
+
+        assert types(presenter.sigmets(designator='WS')) == ['WS']
+        assert types(presenter.sigmets(category='SIGMET')) == ['WS', 'WC', 'WV']
+        assert types(presenter.sigmets(category='AIRMET')) == ['WA']
 
     def test_before_next_validates_and_previews(self, presenter, view, qtbot, conf):
         messages = []
@@ -563,6 +629,70 @@ class TestSigmetEditorCustomPage:
         pages = [editor.forms[name] for name in ('general', 'typhoon', 'ash', 'airmet')]
 
         assert editor.customForm.sizeHint().width() > max(p.sizeHint().width() for p in pages)
+
+
+class TestSigmetCustomText:
+    """The custom form renders the text the presenter resolved.
+
+    The source policy -- notification first, the stored report after it -- is
+    the presenter's, so these tests set up the two sources and check what the
+    form does with the answer: strip the FIR and the terminator, follow the
+    source with the api sign, and clear both when there is nothing to show.
+    """
+
+    def test_a_waiting_notification_becomes_the_text(self, editor, context):
+        context.notification.sigmet.setState({'message': SIGMET_TEXT})
+
+        editor.custom.click()
+
+        assert editor.customForm.text.toPlainText() == 'OBSC TS'
+        assert editor.customForm.state.text == 'OBSC TS'
+
+    def test_the_api_sign_follows_the_source(self, editor, context, database):
+        context.notification.sigmet.setState({'message': SIGMET_TEXT})
+        editor.custom.click()
+
+        assert not editor.customForm.apiSign.isHidden()
+
+        store_sigmet(database, SIGMET_TEXT)
+        context.notification.sigmet.clear()
+        editor.updateCustomText()
+
+        assert editor.customForm.text.toPlainText() == 'OBSC TS'
+        assert editor.customForm.apiSign.isHidden()
+
+    def test_the_stored_report_fills_the_text(self, editor, database):
+        store_sigmet(database, SIGMET_TEXT)
+
+        editor.custom.click()
+
+        assert editor.customForm.text.toPlainText() == 'OBSC TS'
+
+    def test_a_designator_with_neither_source_clears_both(self, editor, context, database):
+        context.notification.sigmet.setState({'message': SIGMET_TEXT})
+        editor.custom.click()
+        assert editor.customForm.text.toPlainText() == 'OBSC TS'
+
+        # WV has no notification and nothing stored: the icon from WS must go
+        # with the text, not outlive it. Custom keeps whichever product the
+        # hazard radios are on, so the product moves through the stack first.
+        editor.template.click()
+        editor.volcanicAsh.click()
+        editor.custom.click()
+
+        assert editor.customForm.text.toPlainText() == ''
+        assert editor.customForm.state.text == ''
+        assert editor.customForm.apiSign.isHidden()
+
+    def test_a_message_arriving_while_the_form_is_open_shows_up(self, editor, context):
+        editor.custom.click()
+        assert editor.customForm.text.toPlainText() == ''
+
+        # the monitor hands the received message over through this path
+        context.notification.sigmet.setState({'message': SIGMET_TEXT})
+        editor.updateCustomText()
+
+        assert editor.customForm.text.toPlainText() == 'OBSC TS'
 
 
 if __name__ == '__main__':

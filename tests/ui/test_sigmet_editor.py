@@ -18,6 +18,7 @@ from tafor.core.models import Sigmet
 from tafor.core.repositories import SigmetRepository
 from tafor.core.sigmet import SigmetDraft
 from tafor.core.sigmet.compose import validDuration
+from tafor.ui.dialogs import SigmetPresenter
 from tafor.ui.forms import SigmetCancel, SigmetCustom, SigmetGeneral
 
 
@@ -60,30 +61,41 @@ def editor():
 
 
 @pytest.fixture
-def general(qtbot, conf, context, database, editor, frozen_time):
-    widget = SigmetGeneral(editor=editor, conf=conf, context=context,
-                           repository=SigmetRepository(database))
-    widget.initState()
+def general(qtbot, conf, editor, frozen_time):
+    widget = SigmetGeneral(editor=editor, conf=conf)
+    render(widget, 1)
     qtbot.addWidget(widget)
     return widget
 
 
 @pytest.fixture
-def custom(qtbot, conf, context, database, editor, frozen_time):
-    widget = SigmetCustom(editor=editor, conf=conf, context=context,
-                          repository=SigmetRepository(database))
-    widget.initState()
+def custom(qtbot, conf, editor, frozen_time):
+    widget = SigmetCustom(editor=editor, conf=conf)
+    render(widget, 1)
     qtbot.addWidget(widget)
     return widget
 
 
 @pytest.fixture
-def cancel(qtbot, conf, context, database, editor, frozen_time):
-    widget = SigmetCancel(editor=editor, conf=conf, context=context,
-                          repository=SigmetRepository(database))
-    widget.initState()
+def cancel(qtbot, conf, editor, frozen_time):
+    widget = SigmetCancel(editor=editor, conf=conf)
+    render(widget, 1)
     qtbot.addWidget(widget)
     return widget
+
+
+def render(widget, sequence):
+    """The two calls the editor makes when a draft begins in this form: the
+    number, then the period. The form's own data (candidates, custom text) is
+    fed separately, by the tests that care about it."""
+    widget.setSequence(sequence)
+    widget.resetPeriod()
+
+
+def candidates(context, conf, designator='WS'):
+    """The candidate list the editor hands the dropdown, from the one source
+    the canvas reads too."""
+    return SigmetPresenter(None, context, conf).sigmets(designator=designator)
 
 
 def seed_sigmet(database, heading, text, created=None):
@@ -171,20 +183,23 @@ class TestSigmetGeneral:
     def test_the_period_follows_the_drafts_span(self, general, editor):
         editor.draft.select('typhoon')
 
-        general.initState()
+        render(general, 1)
 
         assert general.span() == validDuration('WC')
         assert general.state.durations[1] - general.state.durations[0] == datetime.timedelta(hours=6)
 
-    def test_sequence_counts_todays_sigmets(self, qtbot, conf, context, database, frozen_time):
+    def test_the_header_renders_the_sequence_it_was_handed(self, general):
+        render(general, 7)
+
+        assert general.sequence.text() == '7'
+        assert general.state.header.sequence == '7'
+
+    def test_sequence_counts_todays_sigmets(self, conf, context, database, frozen_time):
         seed_sigmet(database, 'ZJSA SIGMET 1 VALID 100730/101430 ZJHK-', 'ZJSA SANYA FIR OBSC TS=')
 
-        widget = SigmetGeneral(editor=editor_stub(), conf=conf, context=context,
-                               repository=SigmetRepository(database))
-        widget.initState()
-        qtbot.addWidget(widget)
+        presenter = SigmetPresenter(None, context, conf, SigmetRepository(database))
 
-        assert widget.sequence.text() == '2'
+        assert presenter.nextSequence('WS') == 2
 
     def test_phenomenon_list_follows_description(self, general):
         general.description.setCurrentText('SEV')
@@ -233,19 +248,19 @@ class TestSigmetCancel:
     def test_designator_follows_the_editor(self, cancel):
         assert cancel.designator() == 'WS'
 
-    def test_component_update_lists_active_sequences(self, cancel, context):
+    def test_set_candidates_lists_active_sequences(self, cancel, context, conf):
         context.current.setState([cancelEditorSigmet()])
 
-        cancel.componentUpdate()
+        cancel.setCandidates(candidates(context, conf))
 
         assert cancel.cancelSequence.count() == 1
         assert cancel.cancelSequence.itemText(0) == '2'
         assert cancel.cancelSequence.itemData(0) == '100930/101430'
         assert cancel.cancelSequence.currentText() == '2'
 
-    def test_find_valid_matches_by_sequence(self, cancel, context):
+    def test_find_valid_matches_by_sequence(self, cancel, context, conf):
         context.current.setState([cancelEditorSigmet()])
-        cancel.componentUpdate()
+        cancel.setCandidates(candidates(context, conf))
 
         assert cancel.findValid('2') == '100930/101430'
         assert cancel.findValid(0) == '100930/101430'
@@ -253,9 +268,9 @@ class TestSigmetCancel:
         assert cancel.findValid(9) is None
         assert cancel.findValid(-1) is None
 
-    def test_set_valids_fills_the_cancelled_period(self, cancel, context):
+    def test_set_valids_fills_the_cancelled_period(self, cancel, context, conf):
         context.current.setState([cancelEditorSigmet()])
-        cancel.componentUpdate()
+        cancel.setCandidates(candidates(context, conf))
 
         cancel.setValids('2')
 
@@ -263,18 +278,18 @@ class TestSigmetCancel:
         assert cancel.cancelEndingTime.text() == '101430'
         assert cancel.endingTime.text() == '101430'
 
-    def test_set_valids_unknown_sequence_clears_fields(self, cancel, context):
+    def test_set_valids_unknown_sequence_clears_fields(self, cancel, context, conf):
         context.current.setState([cancelEditorSigmet()])
-        cancel.componentUpdate()
+        cancel.setCandidates(candidates(context, conf))
 
         cancel.setValids('9')
 
         assert cancel.cancelBeginningTime.text() == ''
         assert cancel.cancelEndingTime.text() == ''
 
-    def test_same_numbered_rows_resolve_by_row(self, cancel, context):
+    def test_same_numbered_rows_resolve_by_row(self, cancel, context, conf):
         context.current.setState(dayBoundaryRecords())
-        cancel.componentUpdate()
+        cancel.setCandidates(candidates(context, conf))
 
         assert cancel.cancelSequence.itemText(0) == '2'
         assert cancel.cancelSequence.itemText(1) == '2'
@@ -287,9 +302,9 @@ class TestSigmetCancel:
         assert cancel.cancelBeginningTime.text() == '100930'
         assert cancel.cancelEndingTime.text() == '101430'
 
-    def test_switching_between_same_numbered_rows_fires(self, cancel, context):
+    def test_switching_between_same_numbered_rows_fires(self, cancel, context, conf):
         context.current.setState(dayBoundaryRecords())
-        cancel.componentUpdate()
+        cancel.setCandidates(candidates(context, conf))
 
         # Identical texts keep currentTextChanged silent between the rows;
         # only the index change carries the pick to the second record.

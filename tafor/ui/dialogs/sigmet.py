@@ -3,7 +3,7 @@ from PyQt5.QtCore import QCoreApplication, Qt
 from tafor.core.models import Sigmet
 from tafor.core.repositories import SigmetFilter
 from tafor.core.sigmet import SigmetDraft
-from tafor.core.sigmet.compose import composeHeading
+from tafor.core.sigmet.compose import composeHeading, nextSequence
 from tafor.core.utils.time import utcnow
 from tafor.ui.qt import Ui_sigmet
 from tafor.ui.dialogs.base import BaseEditor
@@ -13,13 +13,52 @@ from tafor.ui.map import SketchPanel
 
 class SigmetPresenter:
 
-    def __init__(self, view, context, conf):
+    def __init__(self, view, context, conf, repository=None):
         self.view = view
         self.context = context
         self.conf = conf
+        self.repository = repository
 
     def initialize(self):
         self.bindSignal()
+
+    def nextSequence(self, designator):
+        """The number this draft gets: today's stored reports of the same
+        designator decide where the count restarts."""
+        sigmets = self.repository.countToday(designator)
+        return nextSequence([sig.heading for sig in sigmets], utcnow())
+
+    def sigmets(self, *, designator=None, category=None):
+        """The reports in force, narrowed by how they are addressed.
+
+        A designator is one code (WS), a category is every code filed under
+        that bulletin sign (SIGMET covers WS, WC and WV). Pass exactly one of
+        the two: SigmetFilter resolves a designator before a category, so both
+        at once would silently ignore the category, and neither returns every
+        report in force.
+        """
+        return self.context.current.filterSigmets(
+            SigmetFilter(designator=designator, category=category))
+
+    def latestText(self, designator):
+        """The text the custom form starts from -- (source, content) or None.
+
+        A notification still waiting to be handled comes first: it is the
+        message the operator was just handed. The stored report is what the
+        form falls back to, and the source travels with the content because
+        the api sign shows where the text came from.
+        """
+        return self.notificationText(designator) or self.databaseText(designator)
+
+    def notificationText(self, designator):
+        parser = self.context.notification.sigmet.parser()
+        if parser and designator == parser.type():
+            return 'notification', parser.content()
+
+    def databaseText(self, designator):
+        last = self.repository.latest(designator)
+        if last:
+            return 'database', last.parser().content()
 
     def bindSignal(self):
         self.view.significantWeather.clicked.connect(self.view.changeContent)
@@ -44,7 +83,7 @@ class SigmetPresenter:
         for c in self.view.forms.values():
             c.contentChanged.connect(self.enableNextButton)
 
-        self.view.sender.succeeded.connect(self.view.updateState)
+        self.view.sender.succeeded.connect(self.view.renderForm)
 
         self.connectGraphic()
 
@@ -96,12 +135,13 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
     def __init__(self, parent=None, sender=None, conf=None, context=None, repository=None):
         super().__init__(parent, sender, conf, context)
-        self.repository = repository
         self.setupUi(self)
 
         self.draft = SigmetDraft()
 
-        self.presenter = SigmetPresenter(self, context, conf)
+        # The forms hold no queries: the presenter owns the repository and
+        # hands them the rows and text they render.
+        self.presenter = SigmetPresenter(self, context, conf, repository)
         self.initUI()
         self.presenter.initialize()
 
@@ -117,12 +157,12 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
     def initUI(self):
         self.graphic = SketchPanel(self, context=self.context)
-        self.generalContent = SigmetGeneral(self, conf=self.conf, context=self.context, repository=self.repository)
-        self.typhoonContent = SigmetTyphoon(self, conf=self.conf, context=self.context, repository=self.repository)
-        self.ashContent = SigmetAsh(self, conf=self.conf, context=self.context, repository=self.repository)
-        self.airmetContent = AirmetGeneral(self, conf=self.conf, context=self.context, repository=self.repository)
-        self.cancelContent = SigmetCancel(self, conf=self.conf, context=self.context, repository=self.repository)
-        self.customForm = SigmetCustom(self, conf=self.conf, context=self.context, repository=self.repository)
+        self.generalContent = SigmetGeneral(self, conf=self.conf)
+        self.typhoonContent = SigmetTyphoon(self, conf=self.conf)
+        self.ashContent = SigmetAsh(self, conf=self.conf)
+        self.airmetContent = AirmetGeneral(self, conf=self.conf)
+        self.cancelContent = SigmetCancel(self, conf=self.conf)
+        self.customForm = SigmetCustom(self, conf=self.conf)
 
         self.forms = {
             'general': self.generalContent,
@@ -151,18 +191,45 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         if self.draft.form == 'custom':
             return
 
+        # A cancellation is shown the reports it may address, one code at a
+        # time; a template the whole category, so the three codes that share
+        # a bulletin sign stay together.
         if self.draft.form == 'cancel':
-            sigmets = self.context.current.filterSigmets(SigmetFilter(designator=self.draft.designator))
+            sigmets = self.presenter.sigmets(designator=self.draft.designator)
         else:
-            sigmets = self.context.current.filterSigmets(SigmetFilter(category=self.category()))
+            sigmets = self.presenter.sigmets(category=self.category())
 
         self.graphic.setSigmets(sigmets)
 
-    def updateState(self):
-        self.currentForm.initState()
+    def renderForm(self):
+        """Start a draft in the current form: the number the presenter
+        computed, the period the draft's span implies, then the rows only
+        that form consumes.
+
+        The order is the render order, not a preference. The candidates carry
+        the cancelled report's own validity, and filling them rewrites the
+        period, so they have to land after the period was reset -- that is how
+        entering Cancel lands on the first candidate's period.
+
+        This is the one place a new draft begins: the form cannot discover it
+        on its own, because the switch and the successful send are the
+        editor's events, not the form's.
+        """
+        form = self.currentForm
+        form.setSequence(self.sequenceNumber())
+        form.resetPeriod()
+
+        if form is self.cancelContent:
+            form.setCandidates(self.presenter.sigmets(designator=self.designator))
+        elif form is self.customForm:
+            form.setLatestText(self.presenter.latestText(self.designator))
+
+    def sequenceNumber(self):
+        """What number today's reports give this draft."""
+        return self.presenter.nextSequence(self.designator)
 
     def updateCustomText(self):
-        self.customForm.updateText()
+        self.customForm.setLatestText(self.presenter.latestText(self.designator))
 
     def message(self):
         state = self.currentForm.state
@@ -200,7 +267,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
             self.graphic.show()
 
         if changed:
-            self.currentForm.initState()
+            self.renderForm()
             self.graphic.configureMode(self.draft.designator, 'cancel' if form == 'cancel' else 'template')
             self.updateGraphicCanvas()
 
@@ -234,7 +301,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
                                    'cancel' if self.draft.form == 'cancel' else 'template')
 
     def onFirstShow(self):
-        self.updateState()
+        self.renderForm()
 
     def onClose(self):
         self.presenter.clear()
