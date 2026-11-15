@@ -99,6 +99,14 @@ def cancelEditorSigmet():
                   text='ZJSA SANYA FIR OBSC TS=')
 
 
+def dayBoundaryRecords():
+    """A report issued before midnight still in force, and today's fresh one
+    reusing its sequence number: one '2' on two dropdown rows."""
+    older = Sigmet(type='WS', heading='ZJSA SIGMET 2 VALID 092330/100500 ZJHK-',
+                   text='ZJSA SANYA FIR OBSC TS=')
+    return [older, cancelEditorSigmet()]
+
+
 class TestSigmetGeneral:
 
     def test_initial_durations_follow_the_period(self, general):
@@ -230,18 +238,10 @@ class TestSigmetCancel:
 
         cancel.componentUpdate()
 
-        assert cancel.prevs == [('2', '100930/101430')]
+        assert cancel.cancelSequence.count() == 1
+        assert cancel.cancelSequence.itemText(0) == '2'
+        assert cancel.cancelSequence.itemData(0) == '100930/101430'
         assert cancel.cancelSequence.currentText() == '2'
-
-    def test_component_update_skips_cnl(self, cancel, context):
-        cnl = Sigmet(type='WS', heading='ZJSA SIGMET 2 VALID 100930/101430 ZJHK-',
-                     text='ZJSA SANYA FIR CNL SIGMET 1 100930/101430=')
-        context.current.setState([cnl])
-
-        cancel.componentUpdate()
-
-        assert cancel.prevs == []
-        assert cancel.cancelSequence.count() == 0
 
     def test_find_valid_matches_by_sequence(self, cancel, context):
         context.current.setState([cancelEditorSigmet()])
@@ -251,6 +251,7 @@ class TestSigmetCancel:
         assert cancel.findValid(0) == '100930/101430'
         assert cancel.findValid('9') is None
         assert cancel.findValid(9) is None
+        assert cancel.findValid(-1) is None
 
     def test_set_valids_fills_the_cancelled_period(self, cancel, context):
         context.current.setState([cancelEditorSigmet()])
@@ -270,6 +271,37 @@ class TestSigmetCancel:
 
         assert cancel.cancelBeginningTime.text() == ''
         assert cancel.cancelEndingTime.text() == ''
+
+    def test_same_numbered_rows_resolve_by_row(self, cancel, context):
+        context.current.setState(dayBoundaryRecords())
+        cancel.componentUpdate()
+
+        assert cancel.cancelSequence.itemText(0) == '2'
+        assert cancel.cancelSequence.itemText(1) == '2'
+
+        cancel.setValids(0)
+        assert cancel.cancelBeginningTime.text() == '092330'
+        assert cancel.cancelEndingTime.text() == '100500'
+
+        cancel.setValids(1)
+        assert cancel.cancelBeginningTime.text() == '100930'
+        assert cancel.cancelEndingTime.text() == '101430'
+
+    def test_switching_between_same_numbered_rows_fires(self, cancel, context):
+        context.current.setState(dayBoundaryRecords())
+        cancel.componentUpdate()
+
+        # Identical texts keep currentTextChanged silent between the rows;
+        # only the index change carries the pick to the second record.
+        cancel.cancelSequence.setCurrentIndex(1)
+
+        assert cancel.cancelBeginningTime.text() == '100930'
+        assert cancel.cancelEndingTime.text() == '101430'
+
+        cancel.cancelSequence.setCurrentIndex(0)
+
+        assert cancel.cancelBeginningTime.text() == '092330'
+        assert cancel.cancelEndingTime.text() == '100500'
 
 
 if __name__ == '__main__':

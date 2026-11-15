@@ -1133,6 +1133,8 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
         self.cancelBeginningTime.textChanged.connect(self.syncValidsTime)
         self.cancelEndingTime.textChanged.connect(self.syncValidsTime)
         self.cancelSequence.currentTextChanged.connect(self.setValids)
+        # two rows can carry the same sequence number
+        self.cancelSequence.currentIndexChanged.connect(self.setValids)
 
     def fields(self):
         return super().fields() + [self.cancelBeginningTime, self.cancelEndingTime,
@@ -1179,17 +1181,15 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
             self.beginningTime.setText(beginning.strftime('%d%H%M'))
 
     def componentUpdate(self):
-        self.prevs = []
+        """Refill the dropdown with the cancellable reports, each row carrying
+        its valid period as item data: same-numbered rows differ in their
+        data, not in their text."""
+        self.cancelSequence.clear()
         sigmets = self.context.current.filterSigmets(SigmetFilter(designator=self.designator()))
 
         for sig in sigmets:
             parser = sig.parser()
-            sequence = parser.sequence(), parser.validTime()
-            self.prevs.append(sequence)
-
-        sequences = [s[0] for s in self.prevs]
-        self.cancelSequence.clear()
-        self.cancelSequence.addItems(sequences)
+            self.cancelSequence.addItem(parser.sequence(), parser.validTime())
 
     def setValids(self, sequence):
         valid = self.findValid(sequence)
@@ -1203,15 +1203,17 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
             self.cancelEndingTime.clear()
 
     def findValid(self, sequence):
+        """The valid period of the addressed record, by combo row index or by
+        typed sequence text. The row tells same-numbered records apart; the
+        text can only ever reach the first match."""
+        combo = self.cancelSequence
         if isinstance(sequence, int):
-            try:
-                return self.prevs[sequence][1]
-            except (KeyError, IndexError):
-                pass
+            if 0 <= sequence < combo.count():
+                return combo.itemData(sequence)
         else:
-            for seq, valid in self.prevs:
-                if seq == sequence:
-                    return valid
+            for row in range(combo.count()):
+                if combo.itemText(row) == sequence:
+                    return combo.itemData(row)
 
 
 class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
