@@ -1,3 +1,5 @@
+import datetime
+
 import pytest
 
 from tafor.core.taf.states import GroupState, PrimaryState, SegmentState, TemperatureState, TrendState
@@ -209,3 +211,29 @@ class TestTrendStateIsAcceptable:
     def test_a_time_flag_demands_a_period(self, flag):
         assert trend(period='', wind='27010', **{flag: True}).isAcceptable() is False
         assert trend(period='1012/1016', wind='27010', **{flag: True}).isAcceptable() is True
+
+
+class TestStateClear:
+    """`clear()` empties everything the state owns, derived window included.
+
+    `PrimaryState` always reset `durations`; `GroupState` did not, so a cleared
+    group kept a window describing a period it no longer had. Nothing read it
+    while every clear also emptied the selection -- but "nothing reads it yet"
+    is not a contract, and the two states should not differ on it.
+    """
+
+    WINDOW = (datetime.datetime(2026, 6, 10, 6), datetime.datetime(2026, 6, 10, 12))
+
+    def test_a_cleared_group_drops_its_derived_window(self):
+        state = group()
+        state.durations = self.WINDOW
+        state.clear()
+        assert state.period == ''
+        assert state.durations is None
+
+    def test_a_cleared_primary_drops_its_derived_window(self):
+        state = primary()
+        state.durations = self.WINDOW
+        state.clear()
+        assert state.period == ''
+        assert state.durations is None

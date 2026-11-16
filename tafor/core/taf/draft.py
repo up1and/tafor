@@ -3,11 +3,18 @@ from tafor.core.utils.time import utcnow
 
 
 class TafDraft:
-    """What the editor is drafting: which report, and which change groups.
+    """What the editor is drafting: which report, which change groups, and the
+    states behind them.
 
-    Qt-free. Two pieces of knowledge that used to live in the widgets are here:
-    the period offset behind the prev/reset buttons, and the change-group
-    selection.
+    Qt-free. The pieces of knowledge that used to live in the widgets are here:
+    the period offset behind the prev/reset buttons, the change-group selection,
+    and -- since the groups read each other's windows -- the groups themselves,
+    keyed by which box they are. A group needs the primary's window and its
+    siblings' windows to make sense of its own period; asking the draft is what
+    keeps that a lookup rather than a walk up through the widgets.
+
+    The vocabulary is the one the reports use: `primary` and `groups` are the
+    states, `selected`/`selectedKeys()` are which of them are in this report.
     """
 
     # The three change-group families, in the order they are reported. A group
@@ -21,6 +28,8 @@ class TafDraft:
         self.now = now
         self.offset = 0
         self.selected = set()
+        self.primary = None   # PrimaryState, attached once the primary exists
+        self.groups = {}      # (family, number) -> GroupState
 
     def taf(self):
         """The report the current offset points at."""
@@ -30,19 +39,20 @@ class TafDraft:
         """Step one report back, no further than -2."""
         self.offset = max(self.offset - 1, -2)
 
-    def canPrev(self):
+    def hasPrevious(self):
         return self.offset > -2
 
-    def reset(self):
+    def toCurrent(self):
+        """Back to the window the clock is in now."""
         self.offset = 0
 
-    def canReset(self):
+    def isBackdated(self):
         return self.offset != 0
 
     def toggle(self, family, number):
         """Select or deselect one change group, returning an error code or None.
 
-        Three rules, in this order: at most 5 groups active; a family selected
+        Three rules, in this order: at most 5 groups selected; a family selected
         from the front and contiguously; deselecting a group also drops the
         later groups of its family. The caller turns the code into wording.
 
@@ -61,10 +71,43 @@ class TafDraft:
 
         self.selected.add((family, number))
 
-    def activeGroups(self):
-        """The active (family, number) pairs, ordered FM / BECMG / TEMPO."""
+    def selectedKeys(self):
+        """The (family, number) pairs in this report, ordered FM / BECMG / TEMPO.
+
+        Keys, not groups: `groups` is the map from a key to the state behind it,
+        so this is the "which ones" half and `selectedStates()` is the other.
+        """
         return tuple(sorted(self.selected,
                             key=lambda group: (self.families.index(group[0]), group[1])))
 
+    def attach(self, primary):
+        """Take the primary report's state: the window every group reads."""
+        self.primary = primary
+
+    def register(self, key, state):
+        """Register the state behind one change group.
+
+        The editor calls this as it builds its segments: the key is the UI's
+        knowledge (which family, which box), the state is what everyone else
+        wants to reach.
+        """
+        self.groups[key] = state
+
+    def selectedStates(self, family=None):
+        """The states of the selected groups, in reporting order."""
+        return [self.groups[key] for key in self.selectedKeys()
+                if family is None or key[0] == family]
+
     def clear(self):
+        """Empty the whole draft: the current window, no groups selected, and
+        every state cleared.
+
+        The data is cleared here rather than in the widgets so that drawing can
+        be a plain render -- there is no half-cleared state left for a widget
+        write to collect back over.
+        """
+        self.offset = 0
         self.selected.clear()
+        self.primary.clear()
+        for state in self.groups.values():
+            state.clear()

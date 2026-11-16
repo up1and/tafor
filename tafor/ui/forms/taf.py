@@ -70,18 +70,12 @@ class BaseSegment(TextFieldMixin, QWidget):
 
     contentChanged = pyqtSignal()
 
-    def editorName(self):
-        """Which notification area this segment's errors belong to.
-
-        Asked of the editor that owns the segment rather than declared
-        here, so a segment never carries a copy of its editor's name.
-        """
-        return self.editor.editorName
-
-    def __init__(self, name=None, editor=None, conf=None, context=None):
+    def __init__(self, name=None, conf=None, context=None, notify=None):
         super().__init__()
         self.rules = Pattern()
-        self.editor = editor
+        # How a segment reports a rejected value. Handed in rather than reached
+        # for: a segment knows the report it edits, not the window around it.
+        self.notify = notify
         self.conf = conf
         self.context = context
         self.indicator = name
@@ -304,18 +298,18 @@ class BaseSegment(TextFieldMixin, QWidget):
         error = TafFormValidator.checkWeather(self.state)
         if error:
             line.setCurrentIndex(-1)
-            self.editor.showNotification(self.editorName(), _translate(error))
+            self.notify(_translate(error))
 
     def validateGust(self):
         error = TafFormValidator.checkGust(self.state)
         if error:
             self.gust.clear()
-            self.editor.showNotification(self.editorName(), _translate(error))
+            self.notify(_translate(error))
 
     def validateCloud(self, line):
         error = TafFormValidator.checkCloud(self.state, line.text())
         if error:
-            self.editor.showNotification(self.editorName(), _translate(error))
+            self.notify(_translate(error))
             line.clear()
             return
 
@@ -494,10 +488,12 @@ class TemperatureGroup(TextFieldMixin, QWidget):
 
 class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
-    def __init__(self, name='PRIMARY', editor=None, conf=None, context=None, repository=None, draft=None):
-        super().__init__(name, editor, conf, context)
+    def __init__(self, name='PRIMARY', editor=None, conf=None, context=None, repository=None,
+                 draft=None, notify=None):
+        super().__init__(name, conf, context, notify)
         self.setupUi(self)
 
+        self.editor = editor
         self.repository = repository
         self.draft = draft
 
@@ -543,15 +539,6 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.state.period = self.period.text()
         self.state.sequence = self.sequence.text()
         self.state.modifier = self.modifier
-
-    def notify(self, message):
-        """Hand a message to the editor.
-
-        The temperature groups report a rejected value through this, so they do
-        not have to know that an editor exists at all -- let alone reach it
-        through this widget.
-        """
-        self.editor.showNotification('taf', message)
 
     @property
     def modifier(self):
@@ -609,7 +596,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.amd.clicked.connect(self.updateModifier)
         self.cnl.clicked.connect(self.updateModifier)
         self.prevButton.clicked.connect(lambda: self.setCurrentPeriod('prev'))
-        self.resetButton.clicked.connect(lambda: self.setCurrentPeriod('reset'))
+        self.resetButton.clicked.connect(lambda: self.setCurrentPeriod('current'))
 
         for t in self.temperatures:
             t.temperatureChanged.connect(lambda: self.contentChanged.emit())
@@ -703,11 +690,11 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.period.setText(period)
 
     def setCurrentPeriod(self, action):
-        if action == 'reset':
-            self.draft.reset()
+        if action == 'current':
+            self.draft.toCurrent()
             self.updateModifier()
-            self.resetButton.setEnabled(self.draft.canReset())
-            self.prevButton.setEnabled(self.draft.canPrev())
+            self.resetButton.setEnabled(self.draft.isBackdated())
+            self.prevButton.setEnabled(self.draft.hasPrevious())
 
         if action == 'prev':
             title = QCoreApplication.translate('Editor', 'Tips')
@@ -716,8 +703,8 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             if ret == QMessageBox.Yes:
                 self.draft.prev()
                 self.updateModifier()
-                self.resetButton.setEnabled(self.draft.canReset())
-                self.prevButton.setEnabled(self.draft.canPrev())
+                self.resetButton.setEnabled(self.draft.isBackdated())
+                self.prevButton.setEnabled(self.draft.hasPrevious())
 
     def amendNumber(self, period, modifier):
         """The sequence to offer: how many are already out is the repository's
@@ -740,7 +727,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.sequence.clear()
         self.resetButton.setEnabled(False)
         self.prevButton.setEnabled(True)
-        self.draft.reset()
+        self.draft.toCurrent()
 
     def isCancelMode(self):
         return self.modifier == 'CNL'
@@ -750,9 +737,19 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
 
 class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
+    """A change group: its own weather fields, and a period that only makes
+    sense against the primary report's validity window.
 
-    def __init__(self, name='TEMPO', editor=None, conf=None, context=None):
-        super().__init__(name, editor, conf, context)
+    `primary` is the primary report's *state*, not its widget: the window and
+    the period text are read from it live, because the operator may still be
+    moving them while this group is being filled.
+    """
+
+    def __init__(self, name='TEMPO', conf=None, context=None, primary=None, draft=None,
+                 notify=None):
+        super().__init__(name, conf, context, notify)
+        self.primary = primary
+        self.draft = draft
         self.setupUi(self)
         self.name.setText(name)
         self.setupFont()
@@ -771,6 +768,9 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         period = self.state.period
         super().applyState()
         self.period.setText(period)
+        # periodText is the auto-completion bookkeeping, not state: it tracks the
+        # text the operator can see, so a render sets it to what was just written.
+        self.periodText = period
 
     def bindSignal(self):
         super().bindSignal()
@@ -789,11 +789,11 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.period.setValidator(period)
 
     def setupPeriodPlaceholder(self):
-        if self.editor.primary.state.durations is None:
+        if self.primary.durations is None:
             self.period.setPlaceholderText('')
             return
 
-        time = self.editor.primary.state.durations[0]
+        time = self.primary.durations[0]
         self.period.setPlaceholderText('{:02d}'.format(time.day))
 
     def fillPeriod(self):
@@ -803,19 +803,19 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
             self.periodText = formatPeriodSeparator(self.period, self.periodText)
 
     def autoCompletePeriod(self):
-        if self.editor.primary.state.durations is None or not self.editor.primary.period.text():
+        if self.primary.durations is None or not self.primary.period:
             return
 
         text = self.period.text()
         if len(text) > len(self.periodText):
             if len(text) == 4:
-                if not isGroupStartAcceptable(text, self.editor.primary.state.durations):
+                if not isGroupStartAcceptable(text, self.primary.durations):
                     return
 
                 if self.indicator in ('TEMPO', 'BECMG'):
                     completed = completeGroupPeriod(
                         text,
-                        self.editor.primary.state.durations,
+                        self.primary.durations,
                         self.indicator,
                         self.context.taf.spec,
                     )
@@ -829,9 +829,9 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.periodText = text
 
     def updateDurations(self):
-        if self.period.hasAcceptableInput() and self.editor.primary.period.text():
+        if self.period.hasAcceptableInput() and self.primary.period:
             period = self.period.text()
-            basetime = self.editor.primary.state.durations[0]
+            basetime = self.primary.durations[0]
             start, end = parsePeriod(period, basetime)
             self.state.durations = (start, end)
 
@@ -849,33 +849,29 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
     def validatePeriod(self):
         span = groupSpan(self.indicator, self.context.taf.spec)
-        error = TafFormValidator.checkGroupPeriod(self.state, self.editor.primary.state, span)
+        error = TafFormValidator.checkGroupPeriod(self.state, self.primary, span)
         if error:
             self.period.clear()
-            self.editor.showNotification('taf', _translate(error, span=span))
+            self.notify(_translate(error, span=span))
 
     def validateGroupsPeriod(self):
-        siblings = [g.state for g in self.editor.activeGroups()
-                    if g is not self and g.indicator == self.indicator]
+        siblings = [state for state in self.draft.selectedStates(self.indicator)
+                    if state is not self.state]
         error = TafFormValidator.checkGroupOverlap(self.state, siblings)
         if error:
             self.period.clear()
-            self.editor.showNotification('taf', _translate(error))
+            self.notify(_translate(error))
 
     def showEvent(self, event):
         self.setupPeriodPlaceholder()
 
-    def clear(self):
-        super().clear()
-        # periodText is the auto-completion bookkeeping, not state.
-        self.period.setPlaceholderText('')
-        self.periodText = ''
 
 
 class TafFmSegment(TafGroupSegment):
 
-    def __init__(self, name='FM', editor=None, conf=None, context=None):
-        super().__init__(name, editor, conf, context)
+    def __init__(self, name='FM', conf=None, context=None, primary=None, draft=None,
+                 notify=None):
+        super().__init__(name, conf, context, primary, draft, notify)
 
     def bindSignal(self):
         super().bindSignal()
@@ -887,9 +883,9 @@ class TafFmSegment(TafGroupSegment):
         self.period.setValidator(period)
 
     def updateDurations(self):
-        if self.period.hasAcceptableInput() and self.editor.primary.period.text():
+        if self.period.hasAcceptableInput() and self.primary.period:
             period = self.period.text()
-            basetime = self.editor.primary.state.durations[0]
+            basetime = self.primary.durations[0]
             time = parseTime(period, basetime)
             self.state.durations = (time, time)
         else:
@@ -897,37 +893,39 @@ class TafFmSegment(TafGroupSegment):
 
     def validatePeriod(self):
         # Using states for validation where possible
-        error = TafFormValidator.checkFmPeriod(self.state, self.editor.primary.state)
+        error = TafFormValidator.checkFmPeriod(self.state, self.primary)
         if error:
             self.period.clear()
-            self.editor.showNotification('taf', _translate(error))
+            self.notify(_translate(error))
 
     def validateGroupsPeriod(self):
-        siblings = [g.state for g in self.editor.activeGroups() if g.indicator == 'BECMG']
+        siblings = self.draft.selectedStates('BECMG')
         error = TafFormValidator.checkFmOverlap(self.state, siblings)
         if error:
             self.period.clear()
-            self.editor.showNotification('taf', _translate(error))
+            self.notify(_translate(error))
 
 
 class TafBecmgSegment(TafGroupSegment):
 
-    def __init__(self, name='BECMG', editor=None, conf=None, context=None):
-        super().__init__(name, editor, conf, context)
+    def __init__(self, name='BECMG', conf=None, context=None, primary=None, draft=None,
+                 notify=None):
+        super().__init__(name, conf, context, primary, draft, notify)
 
 
 class TafTempoSegment(TafGroupSegment):
 
-    def __init__(self, name='TEMPO', editor=None, conf=None, context=None):
-        super().__init__(name, editor, conf, context)
+    def __init__(self, name='TEMPO', conf=None, context=None, primary=None, draft=None,
+                 notify=None):
+        super().__init__(name, conf, context, primary, draft, notify)
         self.cavok.hide()
         self.nsc.hide()
 
 
 class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
-    def __init__(self, name='TREND', editor=None, conf=None, context=None):
-        super().__init__(name, editor, conf, context)
+    def __init__(self, name='TREND', conf=None, context=None, notify=None):
+        super().__init__(name, conf, context, notify)
         self.setupUi(self)
         self.setupFont()
         self.setupValidator()
@@ -1140,7 +1138,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         error = TrendFormValidator.checkPeriod(self.period.text(), now=utcnow())
         if error:
             self.period.clear()
-            self.editor.showNotification('trend', _translate(error))
+            self.notify(_translate(error))
 
     def updateAtStatus(self):
         if self.tempo.isChecked():

@@ -65,6 +65,14 @@ class BaseEditor(QDialog):
         self.bottomBox.setLayout(bottomLayout)
         layout.addWidget(self.bottomBox)
 
+    def notify(self, message):
+        """Show a message in this editor's own notification area.
+
+        Editors hand this to their forms, so a form reports a rejected value
+        without knowing what an editor is.
+        """
+        self.showNotification(self.editorName, message)
+
     def showNotification(self, editorName, message):
         if editorName == self.editorName:
             self.notificationArea.setText(message)

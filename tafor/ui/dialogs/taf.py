@@ -8,9 +8,16 @@ from tafor.ui.forms import TafBecmgSegment, TafFmSegment, TafPrimarySegment, Taf
 
 
 class TafPresenter:
-    def __init__(self, view, context, conf):
+    """What a TAF commit consists of, in order: validate, compose, emit.
+
+    It reads the draft, not the widget tree: which report is being written and
+    which groups are in it are the draft's business, and the states it composes
+    from live there too.
+    """
+
+    def __init__(self, view, draft, conf):
         self.view = view
-        self.context = context
+        self.draft = draft
         self.conf = conf
 
     def initialize(self):
@@ -25,12 +32,13 @@ class TafPresenter:
             s.contentChanged.connect(self.enableNextButton)
 
     def previewMessage(self):
-        """Take the active segments, let core compose them, then build the model."""
-        state = self.view.primary.state
-        groups = [s.state for s in self.view.segments(activeOnly=True) if s is not self.view.primary]
+        """Take the draft's states, let core compose them, then build the model."""
+        primary = self.draft.primary
+        groups = self.draft.selectedStates()
 
-        text = composeBody(state, groups)
-        heading = composeHeading(state.spec, self.conf.bulletinNumber, state.icao, state.date, state.sequence)
+        text = composeBody(primary, groups)
+        heading = composeHeading(primary.spec, self.conf.bulletinNumber,
+                                 primary.icao, primary.date, primary.sequence)
 
         message = Taf(type=heading[0:2], heading=heading, text=text)
         self.view.finished.emit(message)
@@ -38,7 +46,7 @@ class TafPresenter:
     def beforeNext(self):
         # Validate all active segments before proceeding
         if not self.view.isCancelMode():
-            for s in self.view.segments(activeOnly=True):
+            for s in self.view.segments(selectedOnly=True):
                 s.validate()
 
         if self.hasAcceptableInput():
@@ -46,7 +54,7 @@ class TafPresenter:
 
     def hasAcceptableInput(self):
         # Check if input is acceptable for all active segments
-        return all(s.hasAcceptableInput() for s in self.view.segments(activeOnly=True))
+        return all(s.hasAcceptableInput() for s in self.view.segments(selectedOnly=True))
 
     def enableNextButton(self):
         self.view.setNextEnabled(self.hasAcceptableInput())
@@ -62,8 +70,8 @@ class TafEditor(BaseEditor):
     def __init__(self, parent=None, sender=None, conf=None, context=None, repository=None):
         super().__init__(parent, sender, conf, context)
         self.repository = repository
-        self.presenter = TafPresenter(self, context, conf)
         self.initUI()
+        self.presenter = TafPresenter(self, self.draft, conf)
         self.presenter.initialize()
         self.setWindowTitle(QCoreApplication.translate('Editor', 'Encoding Terminal Aerodrome Forecast'))
 
@@ -76,18 +84,40 @@ class TafEditor(BaseEditor):
         self.draft = TafDraft(self.context.taf.spec)
 
         self.primary = TafPrimarySegment(editor=self, conf=self.conf, context=self.context,
-                                         repository=self.repository, draft=self.draft)
-        self.fm = TafFmSegment('FM', self, conf=self.conf, context=self.context)
-        self.becmg1 = TafBecmgSegment('BECMG', self, conf=self.conf, context=self.context)
-        self.becmg2 = TafBecmgSegment('BECMG', self, conf=self.conf, context=self.context)
-        self.becmg3 = TafBecmgSegment('BECMG', self, conf=self.conf, context=self.context)
-        self.tempo1 = TafTempoSegment('TEMPO', self, conf=self.conf, context=self.context)
-        self.tempo2 = TafTempoSegment('TEMPO', self, conf=self.conf, context=self.context)
-        self.tempo3 = TafTempoSegment('TEMPO', self, conf=self.conf, context=self.context)
+                                         repository=self.repository, draft=self.draft,
+                                         notify=self.notify)
+        # Every group reads the primary report's window and period straight from
+        # its state, live: the primary has to exist before they are built.
+        kwargs = dict(conf=self.conf, context=self.context, notify=self.notify,
+                      primary=self.primary.state, draft=self.draft)
+        self.fm = TafFmSegment('FM', **kwargs)
+        self.becmg1 = TafBecmgSegment('BECMG', **kwargs)
+        self.becmg2 = TafBecmgSegment('BECMG', **kwargs)
+        self.becmg3 = TafBecmgSegment('BECMG', **kwargs)
+        self.tempo1 = TafTempoSegment('TEMPO', **kwargs)
+        self.tempo2 = TafTempoSegment('TEMPO', **kwargs)
+        self.tempo3 = TafTempoSegment('TEMPO', **kwargs)
         
         self.becmgs = [self.fm, self.becmg1, self.becmg2, self.becmg3]
         self.tempos = [self.tempo1, self.tempo2, self.tempo3]
         self.groups = self.becmgs + self.tempos
+
+        # Which box each group is, written onto the segment itself. The number
+        # is not part of the segment name -- all three BECMG segments are named
+        # 'BECMG' -- so it is read off the segment's position among its own
+        # family here, in the only layer that knows how many boxes there are.
+        for family in TafDraft.families:
+            sameFamily = [g for g in self.groups if g.indicator == family]
+            for number, segment in enumerate(sameFamily, start=1):
+                segment.key = (family, number)
+
+        # The same groups, addressed by key instead of by position. A lookup,
+        # not an ordering: the order a report is written in is the draft's.
+        self.segmentsByKey = {segment.key: segment for segment in self.groups}
+
+        self.draft.attach(self.primary.state)
+        for segment in self.groups:
+            self.draft.register(segment.key, segment.state)
         
         layout.addWidget(self.primary)
         for segment in self.groups:
@@ -97,34 +127,19 @@ class TafEditor(BaseEditor):
         self.addBottomBox(layout)
         self.setLayout(layout)
 
-    def segments(self, activeOnly=False):
-        """Return segments, optionally filtering for active ones."""
-        if activeOnly:
-            return [self.primary] + self.activeGroups()
+    def segments(self, selectedOnly=False):
+        """Return segments, optionally filtering for the selected groups."""
+        if selectedOnly:
+            return [self.primary] + self.selectedGroups()
         return [self.primary] + self.groups
 
-    def activeGroups(self):
+    def selectedGroups(self):
         """The selected change-group segments, in the order they are reported.
 
         The draft holds both halves of that, so the order is read off it rather
         than off `self.groups`.
         """
-        byKey = {self.groupKey(g): g for g in self.groups}
-        return [byKey[key] for key in self.draft.activeGroups()]
-
-    def groupKey(self, segment):
-        """The (family, number) a group segment stands for.
-
-        The number is not part of the segment name any more — all three BECMG
-        segments are named 'BECMG' — so it is read off the segment's position
-        among its own family here, in the UI, which is the only layer that knows
-        how many boxes there are. 'FM' is alone in its family, so it comes out as
-        ('FM', 1).
-
-        """
-        family = segment.indicator
-        sameFamily = [g for g in self.groups if g.indicator == family]
-        return family, sameFamily.index(segment) + 1
+        return [self.segmentsByKey[key] for key in self.draft.selectedKeys()]
 
     def getGroupCheckboxes(self):
         return self.primary.groupCheckboxs
@@ -136,25 +151,35 @@ class TafEditor(BaseEditor):
         self.nextButton.setEnabled(enabled)
 
     def clear(self):
-        """Clear all segment data, and the change-group selection."""
+        """Start a new draft: empty the data, then draw that emptiness.
+
+        The split is the point. `draft.clear()` owns the facts -- window,
+        selection, every state -- and `render()` owns the pixels, so nothing
+        here has to hope that writing one widget does not make another
+        re-collect the value it was about to clear.
+        """
         self.draft.clear()
-        for s in self.segments():
-            s.clear()
+        self.render()
+
+    def render(self):
+        """Draw the draft: each segment from its state, then the selection."""
+        for segment in self.segments():
+            segment.applyState()
 
         self.applySelection()
 
     def toggleGroup(self, checkbox):
         """A change-group checkbox was clicked: move the selection, then draw it."""
         segment = self.groups[self.primary.groupCheckboxs.index(checkbox)]
-        error = self.draft.toggle(*self.groupKey(segment))
+        error = self.draft.toggle(*segment.key)
         if error == 'too_many_groups':
-            self.showNotification('taf', QCoreApplication.translate('Editor', 'Change groups cannot be more than 5'))
+            self.notify(QCoreApplication.translate('Editor', 'Change groups cannot be more than 5'))
         self.applySelection()
 
     def applySelection(self):
         """Draw `draft.selected` into the checkboxes and the group widgets."""
         for checkbox, group in zip(self.primary.groupCheckboxs, self.groups):
-            selected = self.groupKey(group) in self.draft.selected
+            selected = group.key in self.draft.selected
             # This is a render, not a click: without blocking, the writes below
             # would come straight back through toggleGroup and fight the
             # selection they are drawing.

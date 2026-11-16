@@ -72,7 +72,7 @@ class TrendEditor(BaseEditor):
         layout = QVBoxLayout(window)
         layout.setSizeConstraint(QLayout.SetFixedSize)
         layout.setSpacing(18)
-        self.trend = TrendSegment(editor=self, conf=self.conf, context=self.context)
+        self.trend = TrendSegment(conf=self.conf, context=self.context, notify=self.notify)
         layout.addWidget(self.trend)
         self.addBottomBox(layout)
         self.setLayout(layout)

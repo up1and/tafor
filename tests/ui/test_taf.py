@@ -175,22 +175,22 @@ class TestTafEditor:
 
         checkbox.setChecked(True)
         assert editor.becmg1.isVisibleTo(editor)
-        assert editor.draft.activeGroups() == (('BECMG', 1),)
+        assert editor.draft.selectedKeys() == (('BECMG', 1),)
 
         checkbox.setChecked(False)
         assert not editor.becmg1.isVisibleTo(editor)
-        assert editor.draft.activeGroups() == ()
+        assert editor.draft.selectedKeys() == ()
 
     def test_the_change_group_cap_is_enforced(self, editor):
         primary = editor.primary
         for name in ('fmCheckbox', 'becmg1Checkbox', 'becmg2Checkbox', 'becmg3Checkbox', 'tempo1Checkbox'):
             getattr(primary, name).setChecked(True)
-        assert len(editor.draft.activeGroups()) == 5
+        assert len(editor.draft.selectedKeys()) == 5
 
         primary.tempo2Checkbox.setChecked(True)
 
         # the sixth is refused, and the render puts the checkbox back
-        assert editor.draft.activeGroups() == (('FM', 1), ('BECMG', 1), ('BECMG', 2), ('BECMG', 3),
+        assert editor.draft.selectedKeys() == (('FM', 1), ('BECMG', 1), ('BECMG', 2), ('BECMG', 3),
                                                ('TEMPO', 1))
         assert not primary.tempo2Checkbox.isChecked()
 
@@ -198,11 +198,11 @@ class TestTafEditor:
         # three segments are all named 'BECMG'; the editor numbers them by their
         # position among their own family, and heads each box with the result
         assert editor.becmg2.indicator == 'BECMG'
-        assert editor.groupKey(editor.fm) == ('FM', 1)
-        assert editor.groupKey(editor.becmg1) == ('BECMG', 1)
-        assert editor.groupKey(editor.becmg2) == ('BECMG', 2)
-        assert editor.groupKey(editor.becmg3) == ('BECMG', 3)
-        assert editor.groupKey(editor.tempo2) == ('TEMPO', 2)
+        assert editor.fm.key == ('FM', 1)
+        assert editor.becmg1.key == ('BECMG', 1)
+        assert editor.becmg2.key == ('BECMG', 2)
+        assert editor.becmg3.key == ('BECMG', 3)
+        assert editor.tempo2.key == ('TEMPO', 2)
         assert editor.becmg2.name.text() == 'BECMG'
 
     def test_cloud_and_cb_at_the_same_height_are_accepted(self, editor):
@@ -421,6 +421,38 @@ class TestTafTemperatureGroupsPerSpec:
         assert editor30.nextButton.isEnabled()
 
 
+class TestTafPeriodReanchor:
+    """Moving the primary's window clears the form, and that is what keeps a
+    group's derived window from outliving the period it was computed against.
+
+    `PrimaryState.period` has exactly one writer (`applyPeriod()`), reached only
+    from `updateModifier()`, which clears everything when the window moves. No
+    event carries the news to the groups; the clear is the news. This pins the
+    whole chain -- the reset of `GroupState.durations` itself is pinned in
+    `tests/core/test_taf_states.py::TestStateClear`, because the render path
+    would cover for it here.
+    """
+
+    def test_moving_the_period_drops_the_group_windows(self, editor):
+        primary = open_header(editor)
+        editor.primary.becmg1Checkbox.setChecked(True)
+        group = editor.becmg1
+
+        start, end = primary.state.durations
+        period = '{:02d}{:02d}/{:02d}{:02d}'.format(start.day, start.hour, end.day, end.hour)
+        group.period.setText(period)
+        assert group.state.durations is not None
+
+        # The slot asks the operator first, then steps the draft and refills the
+        # header; this is everything after the confirmation.
+        editor.primary.draft.prev()
+        editor.primary.updateModifier()
+
+        assert editor.selectedGroups() == []
+        assert group.state.period == ''
+        assert group.state.durations is None
+
+
 class TestTafTemperatureNotifications:
     """A rejected temperature still reaches the operator.
 
@@ -455,7 +487,8 @@ class TestTafTemperatureNotifications:
 class TestTafApplyState:
     """collect() is widget -> state and applyState() is state -> widget; they
     are one contract. `collect(); applyState(); collect()` must leave the state
-    alone, and clear() is nothing more than `state.clear(); applyState()`."""
+    alone, and `editor.clear()` is `draft.clear()` -- empty the data -- followed
+    by `render()`, which draws it."""
 
     def test_apply_state_is_the_inverse_of_collect(self, editor):
         for segment in editor.segments():
@@ -612,11 +645,11 @@ class TestTafPeriodClearsTheForm:
         primary.becmg1Checkbox.setChecked(True)
         fill(editor.becmg1)
         widgets = read_widgets(editor.becmg1)
-        assert editor.draft.activeGroups() == (('BECMG', 1),)
+        assert editor.draft.selectedKeys() == (('BECMG', 1),)
 
         primary.amd.click()
 
-        assert editor.draft.activeGroups() == (('BECMG', 1),)
+        assert editor.draft.selectedKeys() == (('BECMG', 1),)
         assert read_widgets(editor.becmg1) == widgets
 
     def test_the_cancel_modifier_keeps_the_form_and_still_composes_cnl(self, editor):

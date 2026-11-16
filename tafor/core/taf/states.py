@@ -76,7 +76,7 @@ class PrimaryState(SegmentState):
         self.spec = spec
         self.date = ""
         self.period = ""
-        self.durations = None  # (start, end) datetime tuple
+        self.durations = None  # (start, end) datetime tuple, derived from period
         self.modifier = None  # None (normal report), 'AMD', 'COR' or 'CNL'
         self.sequence = ""
         self.temperatures = []  # List of TemperatureState, in reporting order
@@ -158,6 +158,9 @@ class GroupState(SegmentState):
     def clear(self):
         super().clear()
         self.period = ""
+        # A derived window outliving the period it came from is a stale value
+        # nobody can see; the primary resets its own, so this one does too.
+        self.durations = None
 
 
 class TrendState(SegmentState):
