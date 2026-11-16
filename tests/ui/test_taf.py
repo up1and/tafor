@@ -421,6 +421,37 @@ class TestTafTemperatureGroupsPerSpec:
         assert editor30.nextButton.isEnabled()
 
 
+class TestTafTemperatureNotifications:
+    """A rejected temperature still reaches the operator.
+
+    The groups used to climb two hops -- `primary.editor.showNotification` --
+    to report it. They now call the callback the primary hands them, so this
+    pins the wiring (the rule itself is core's).
+    """
+
+    def test_a_rejected_temperature_time_still_reaches_the_editor(self, editor):
+        seen = []
+        editor.showNotification = lambda editorName, message: seen.append((editorName, message))
+
+        primary = open_header(editor)
+        start, _ = primary.state.durations
+        instant = (start + datetime.timedelta(hours=1)).strftime('%d%H')
+
+        first, second = primary.temperatures[:2]
+        first.tempTime.setText(instant)
+        first.validateTemperatureTime()
+        assert seen == []
+
+        # The same instant as the first group: a TX and a TN never coincide.
+        second.tempTime.setText(instant)
+        second.validateTemperatureTime()
+
+        assert len(seen) == 1
+        assert seen[0][0] == 'taf'
+        assert second.state.time == ''
+        assert second.tempTime.text() == ''
+
+
 class TestTafApplyState:
     """collect() is widget -> state and applyState() is state -> widget; they
     are one contract. `collect(); applyState(); collect()` must leave the state

@@ -340,15 +340,26 @@ class BaseSegment(TextFieldMixin, QWidget):
 
 
 class TemperatureGroup(TextFieldMixin, QWidget):
+    """One temperature group: a value, the time it happened at, and the rules
+    that tie them to the rest of the report.
+
+    `primary` is the primary report's *state*, not its widget -- this class knows
+    neither the primary segment nor the editor. It registers its own state as it
+    is built, which is how the message finds it, and it reports a rejected value
+    through `notify` rather than reaching for the editor itself.
+    """
 
     temperatureChanged = pyqtSignal()
 
-    def __init__(self, mode='max', canSwitch=False, primary=None, context=None):
-        super().__init__(primary)
+    def __init__(self, mode='max', canSwitch=False, primary=None, notify=None, parent=None):
+        super().__init__(parent)
         self.state = TemperatureState(mode)
         self.canSwitch = canSwitch
+        self.rules = Pattern()
         self.primary = primary
-        self.context = context
+        self.notify = notify
+
+        primary.addTemperature(self.state)
 
         self.setupUi()
         self.setupValidator()
@@ -399,10 +410,10 @@ class TemperatureGroup(TextFieldMixin, QWidget):
         self.state.time = self.tempTime.text() if self.tempTime.hasAcceptableInput() else ""
 
     def setupValidator(self):
-        temperature = QRegExpValidator(QRegExp(self.primary.rules.temperature, Qt.CaseInsensitive))
+        temperature = QRegExpValidator(QRegExp(self.rules.temperature, Qt.CaseInsensitive))
         self.temp.setValidator(temperature)
 
-        dayHour = QRegExpValidator(QRegExp(self.primary.rules.dayHour))
+        dayHour = QRegExpValidator(QRegExp(self.rules.dayHour))
         self.tempTime.setValidator(dayHour)
 
     def setLabel(self):
@@ -417,24 +428,23 @@ class TemperatureGroup(TextFieldMixin, QWidget):
         self.switchButton.setIcon(QIcon(iconPath('{}.png'.format(icon))))
 
     def validateTemperatureTime(self):
-        if not self.primary.period.text() or not self.tempTime.hasAcceptableInput():
+        if not self.primary.period or not self.tempTime.hasAcceptableInput():
             return
 
-        primary = self.primary.state
         error = TafFormValidator.checkTemperatureTime(
             self.state,
-            primary.temperatures,
-            primary.durations,
+            self.primary.temperatures,
+            self.primary.durations,
         )
         if error:
             self.state.time = ""
             self.tempTime.clear()
-            self.primary.editor.showNotification('taf', _translate(error))
+            self.notify(_translate(error))
             return
 
         # Time normalization can stay in UI or move to state, keep here for now as it affects UI text
-        time = parseDayHour(self.state.time[:2], self.state.time[2:], self.primary.state.durations[0], delta='month')
-        normalized = normalizeTemperatureTime(time, self.primary.state.durations)
+        time = parseDayHour(self.state.time[:2], self.state.time[2:], self.primary.durations[0], delta='month')
+        normalized = normalizeTemperatureTime(time, self.primary.durations)
         if normalized:
             self.tempTime.setText(normalized)
 
@@ -442,15 +452,14 @@ class TemperatureGroup(TextFieldMixin, QWidget):
         if not self.temp.hasAcceptableInput():
             return
 
-        primary = self.primary.state
         error = TafFormValidator.checkTemperature(
             self.state,
-            primary.temperatures,
+            self.primary.temperatures,
         )
         if error:
             self.state.value = ""
             self.temp.clear()
-            self.primary.editor.showNotification('taf', _translate(error))
+            self.notify(_translate(error))
             return
 
     def switchMode(self):
@@ -459,13 +468,10 @@ class TemperatureGroup(TextFieldMixin, QWidget):
         self.validateTemperature()
         self.validateTemperatureTime()
 
-    def composeMessage(self):
-        return self.state.composeMessage()
-
     def widgets(self):
         if self.canSwitch:
             return [self.switchButton, self.temp, self.tempTime]
-        
+
         return [self.temp, self.tempTime]
 
     def applyState(self):
@@ -505,21 +511,23 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             self.tempo1Checkbox, self.tempo2Checkbox, self.tempo3Checkbox,
         ]
 
-        self.tmax = TemperatureGroup(mode='max', primary=self, context=self.context)
-        self.tmin = TemperatureGroup(mode='min', primary=self, context=self.context)
+        # The groups register their own states with self.state as they are
+        # built; this list is only for layout, tab order and clearing.
+        self.tmax = TemperatureGroup(mode='max', primary=self.state,
+                                     notify=self.notify, parent=self)
+        self.tmin = TemperatureGroup(mode='min', primary=self.state,
+                                     notify=self.notify, parent=self)
         self.temperatureLayout.addWidget(self.tmax)
         self.temperatureLayout.addWidget(self.tmin)
         self.temperatures = [self.tmax, self.tmin]
 
         if self.context.taf.spec.duration == datetime.timedelta(hours=30):
-            self.temp = TemperatureGroup(canSwitch=True, primary=self, context=self.context)
+            self.temp = TemperatureGroup(canSwitch=True, primary=self.state,
+                                         notify=self.notify, parent=self)
             self.temperatureLayout.addWidget(self.temp)
             self.temperatures.append(self.temp)
             self.becmg3Checkbox.setStyleSheet('QCheckBox {margin-top: 4px;}')
             self.tempo3Checkbox.setStyleSheet('QCheckBox {margin-top: 4px;}')
-
-        # Link temperature states to primary state
-        self.state.temperatures = [t.state for t in self.temperatures]
 
         self.prevButton.setIcon(QIcon(iconPath('back.png')))
         self.resetButton.setIcon(QIcon(iconPath('reset.png')))
@@ -535,6 +543,15 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.state.period = self.period.text()
         self.state.sequence = self.sequence.text()
         self.state.modifier = self.modifier
+
+    def notify(self, message):
+        """Hand a message to the editor.
+
+        The temperature groups report a rejected value through this, so they do
+        not have to know that an editor exists at all -- let alone reach it
+        through this widget.
+        """
+        self.editor.showNotification('taf', message)
 
     @property
     def modifier(self):

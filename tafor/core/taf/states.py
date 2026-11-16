@@ -79,7 +79,16 @@ class PrimaryState(SegmentState):
         self.durations = None  # (start, end) datetime tuple
         self.modifier = None  # None (normal report), 'AMD', 'COR' or 'CNL'
         self.sequence = ""
-        self.temperatures = []  # List of TemperatureState
+        self.temperatures = []  # List of TemperatureState, in reporting order
+
+    def addTemperature(self, state):
+        """Register a temperature group's state.
+
+        A group registers itself as it is built, so the message composes from
+        this list without the primary report knowing how many groups there are
+        or what they look like.
+        """
+        self.temperatures.append(state)
 
     def isAcceptable(self):
         if self.modifier == "CNL":
