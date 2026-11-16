@@ -553,20 +553,37 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
                 return modifier
 
     def applyState(self):
-        """The primary segment deliberately leaves its header alone.
+        """Draw the whole header from the draft.
 
-        `date` belongs to the clock and `period` to updateModifier(); writing
-        `period` here would put a period on screen that updateModifier() did not
-        choose, and clearing the form is its decision to make. The modifier radios
-        are left alone for the same reason: PrimaryState.clear() drops the modifier
-        back to None (a normal report), and rendering that would reset the radios in
-        the middle of updateModifier()'s own re-derivation of the period.
+        Period, modifier and sequence are document facts now: draft.begin() fixes
+        them before the draw, so the render can write them like any other field. The values are read out first, for the reason given in
+        BaseSegment.applyState(): each write fires textChanged, and a collect
+        that runs before the last header field is written would read the old
+        ones back into the state. Writing every header field, last, leaves the
+        final collect agreeing with the state again.
+
+        `date` is the one field left out: it belongs to the clock, and the timer
+        in this widget owns it.
         """
+        period = self.state.period
+        modifier = self.state.modifier
         sequence = self.state.sequence
+
         super().applyState()
+        self.period.setText(period)
+        self.setModifier(modifier)
         self.sequence.setText(sequence)
         for t in self.temperatures:
             t.applyState()
+
+    def setModifier(self, modifier):
+        """Show the modifier without going back through updateModifier().
+
+        setChecked() emits toggled, not clicked, so the radio's own handler does
+        not fire; the toggled cascade is what collects the radios into the state.
+        """
+        radios = {'AMD': self.amd, 'COR': self.cor, 'CNL': self.cnl}
+        radios.get(modifier, self.normal).setChecked(True)
 
     def setOrder(self):
         orders = [self.nsc]
@@ -622,50 +639,48 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             self.tempo3Checkbox.setChecked(False)
 
     def updateModifier(self):
-        """Empty the form when the period changes, then refill the header.
+        """Re-derive the header the radios imply.
 
-        The period is the only trigger: a modifier does not move the validity
-        window, so switching the marker keeps what has been typed, and the header
-        the marker owns -- the sequence notation and its validator -- is rebuilt
-        below on every run, clear or not. Nor is the trigger "this handler ran":
-        a click on the radio that is already on must keep what has been typed.
+        The period is the only trigger for a new report: a modifier does not move
+        the validity window, so switching the marker keeps what has been typed
+        and only rebuilds the header -- the sequence notation included. Nor is
+        the trigger "this handler ran": a click on the radio that is already on
+        must keep what has been typed.
+
+        The header is one fact, so it is written by one call; whether the body
+        survives that write is the draft's decision (the period decides), not
+        this method's. What is left here is the view's own enablement: the
+        sequence field's validator and the group checkboxes.
         """
-        self.taf = self.draft.taf()
         modifier = self.modifier
-        period = self.impliedPeriod(self.taf, modifier)
+        period = self.impliedPeriod(self.draft.taf(), modifier)
+        # A cancellation is numbered like an amendment; only a correction has
+        # its own notation.
+        notation = 'COR' if modifier == 'COR' else 'AMD'
+        sequence = self.amendNumber(period, notation) if modifier else ''
 
-        if period != self.period.text():
-            self.editor.clear()
+        # The validator goes in before the draw: the render writes the sequence,
+        # and the state the draw leaves behind is judged by it.
+        self.setSequenceValidator(modifier)
+        self.draft.begin(period=period, modifier=modifier, sequence=sequence)
+        self.editor.render()
+        self.setGroupCheckboxes(modifier != 'CNL')
 
-        # A clear() drops the state back to defaults and no collect runs on the
-        # prev/reset path, so re-assert the modifier the radios are on.
-        self.state.modifier = modifier
-        self.applyPeriod(period)
-
+    def setSequenceValidator(self, modifier):
+        """The sequence field's part of the change: enabled for a marked report,
+        with the validator that matches the marker."""
         if modifier is None:
-            self.sequence.clear()
             self.sequence.setEnabled(False)
-        else:
-            aaa = QRegExpValidator(QRegExp(self.rules.aaa, Qt.CaseInsensitive))
-            ccc = QRegExpValidator(QRegExp(self.rules.ccc, Qt.CaseInsensitive))
+            return
 
-            if modifier == 'COR':
-                order = self.amendNumber(period, 'COR')
-                self.sequence.setValidator(ccc)
-            else:
-                order = self.amendNumber(period, 'AMD')
-                self.sequence.setValidator(aaa)
+        pattern = self.rules.ccc if modifier == 'COR' else self.rules.aaa
+        self.sequence.setValidator(QRegExpValidator(QRegExp(pattern, Qt.CaseInsensitive)))
+        self.sequence.setEnabled(True)
 
-            self.sequence.setEnabled(True)
-            self.sequence.setText(order)
-
-        if modifier == 'CNL':
-            for c in self.groupCheckboxs:
-                c.setEnabled(False)
-                c.setChecked(False)
-        else:
-            for c in self.groupCheckboxs:
-                c.setEnabled(True)
+    def setGroupCheckboxes(self, enabled):
+        """A cancellation carries no change groups; every other report may."""
+        for checkbox in self.groupCheckboxs:
+            checkbox.setEnabled(enabled)
 
     def impliedPeriod(self, taf, modifier):
         """The validity period the modifier implies, computed but not written.
@@ -683,18 +698,10 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
         return period
 
-    def applyPeriod(self, period):
-        """Write the validity period, and keep the durations in step with it."""
-        self.state.period = period
-        self.state.durations = self.taf.durations() if period else None
-        self.period.setText(period)
-
     def setCurrentPeriod(self, action):
         if action == 'current':
             self.draft.toCurrent()
             self.updateModifier()
-            self.resetButton.setEnabled(self.draft.isBackdated())
-            self.prevButton.setEnabled(self.draft.hasPrevious())
 
         if action == 'prev':
             title = QCoreApplication.translate('Editor', 'Tips')
@@ -703,8 +710,6 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             if ret == QMessageBox.Yes:
                 self.draft.prev()
                 self.updateModifier()
-                self.resetButton.setEnabled(self.draft.isBackdated())
-                self.prevButton.setEnabled(self.draft.hasPrevious())
 
     def amendNumber(self, period, modifier):
         """The sequence to offer: how many are already out is the repository's
@@ -720,20 +725,8 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
     def showEvent(self, event):
         self.setDate()
 
-    def clearType(self):
-        # A fresh message: the radios go back to NORMAL, and the toggled cascade
-        # collects them into the state on the way.
-        self.normal.setChecked(True)
-        self.sequence.clear()
-        self.resetButton.setEnabled(False)
-        self.prevButton.setEnabled(True)
-        self.draft.toCurrent()
-
     def isCancelMode(self):
         return self.modifier == 'CNL'
-
-    def clear(self):
-        super().clear()
 
 
 class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):

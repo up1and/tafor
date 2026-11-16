@@ -23,6 +23,7 @@ from tafor.core.sigmet.states import (
     SigmetCancelState,
     SigmetCustomState,
     SigmetGeneralState,
+    SigmetHeaderState,
     SigmetTyphoonState,
 )
 from tafor.core.sigmet.validator import SigmetFormValidator

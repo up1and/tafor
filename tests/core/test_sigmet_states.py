@@ -39,8 +39,7 @@ def header(**fields):
 
 
 def general(**fields):
-    state = SigmetGeneralState('KMH')
-    state.header = header()
+    state = SigmetGeneralState('KMH', header())
     state.description = 'SEV'
     state.phenomenon = 'TS'
     state.comeFrom = 'OBS'
@@ -56,8 +55,7 @@ def general(**fields):
 
 
 def typhoon(**fields):
-    state = SigmetTyphoonState('KMH')
-    state.header = header()
+    state = SigmetTyphoonState('KMH', header())
     state.phenomenon = 'TC'
     state.name = 'SALLY'
     state.currentLatitude = 'N1800'
@@ -74,8 +72,7 @@ def typhoon(**fields):
 
 
 def ash(**fields):
-    state = SigmetAshState('KMH')
-    state.header = header()
+    state = SigmetAshState('KMH', header())
     state.phenomenon = 'ASH'
     state.name = 'ASHVAL'
     state.currentLatitude = 'N1500'
@@ -93,8 +90,7 @@ def ash(**fields):
 
 
 def cancel(**fields):
-    state = SigmetCancelState()
-    state.header = header()
+    state = SigmetCancelState(header())
     state.cancelSequence = '1'
     state.cancelBeginningTime = '100930'
     state.cancelEndingTime = '101430'
@@ -104,8 +100,7 @@ def cancel(**fields):
 
 
 def custom(**fields):
-    state = SigmetCustomState()
-    state.header = header()
+    state = SigmetCustomState(header())
     state.text = 'TS OBS'
     for name, value in fields.items():
         setattr(state, name, value)
@@ -134,7 +129,7 @@ class TestSigmetHeaderState:
 class TestSigmetStateHelpers:
 
     def test_observation_wording_follows_come_from(self):
-        state = SigmetState('KMH')
+        state = SigmetState('KMH', header())
         state.comeFrom = 'OBS'
         state.observedTime = '100800'
         assert state.observation() == 'OBS AT 100800Z'
@@ -144,28 +139,28 @@ class TestSigmetStateHelpers:
         assert state.observation() == 'FCST AT 101000Z'
 
     def test_an_observation_without_a_time_composes_nothing(self):
-        state = SigmetState('KMH')
+        state = SigmetState('KMH', header())
         state.comeFrom = 'OBS'
         assert state.observation() == ''
 
     def test_a_forecast_without_a_time_degrades_to_the_come_from(self):
-        state = SigmetState('KMH')
+        state = SigmetState('KMH', header())
         state.comeFrom = 'FCST'
         assert state.observation() == 'FCST'
 
     def test_stationary_wins_over_any_speed(self):
-        state = SigmetState('KMH')
+        state = SigmetState('KMH', header())
         state.direction = 'STNR'
         state.speed = '25'
         assert state.movement() == 'STNR'
 
     def test_movement_without_a_speed_is_none(self):
-        state = SigmetState('KMH')
+        state = SigmetState('KMH', header())
         state.direction = 'NE'
         assert state.movement() is None
 
     def test_movement_casts_the_speed_and_appends_the_unit(self):
-        state = SigmetState('KMH')
+        state = SigmetState('KMH', header())
         state.direction = 'NE'
         state.speed = '25'
         assert state.movement() == 'MOV NE 25KMH'
@@ -177,7 +172,7 @@ class TestSigmetStateHelpers:
         ('', '', ''),
     ])
     def test_flight_level_without_a_format(self, base, top, expected):
-        state = SigmetState('KMH')
+        state = SigmetState('KMH', header())
         state.flightLevelBase = base
         state.flightLevelTop = top
         assert state.flightLevel() == expected
@@ -188,19 +183,19 @@ class TestSigmetStateHelpers:
         ('BLW', 'BLW FL120'),
     ])
     def test_top_family_formats_use_the_top(self, format, expected):
-        state = SigmetState('KMH')
+        state = SigmetState('KMH', header())
         state.flightLevelFormat = format
         state.flightLevelTop = '120'
         assert state.flightLevel() == expected
 
     def test_the_abv_format_uses_the_base(self):
-        state = SigmetState('KMH')
+        state = SigmetState('KMH', header())
         state.flightLevelFormat = 'ABV'
         state.flightLevelBase = '80'
         assert state.flightLevel() == 'ABV FL080'
 
     def test_the_sfc_format_uses_the_top(self):
-        state = SigmetState('KMH')
+        state = SigmetState('KMH', header())
         state.flightLevelFormat = 'SFC'
         state.flightLevelTop = '450'
         assert state.flightLevel() == 'SFC/FL450'
@@ -263,7 +258,7 @@ class TestSigmetGeneralState:
         assert state.flightLevelTop == ''
         assert state.direction == ''
         assert state.hasForecast is False
-        assert state.header.sequence == ''
+        assert state.header.sequence == '2'   # the header is the draft's, not the body's
         assert state.unit == 'KMH'
 
 
@@ -340,7 +335,7 @@ class TestSigmetTyphoonState:
         assert state.name == ''
         assert state.top == ''
         assert state.mode == 'polygon'
-        assert state.header.sequence == ''
+        assert state.header.sequence == '2'   # the header is the draft's, not the body's
         assert state.unit == 'KMH'
 
 
@@ -386,7 +381,7 @@ class TestSigmetAshState:
         assert state.name == ''
         assert state.currentLatitude == ''
         assert state.isEruption is True
-        assert state.header.sequence == ''
+        assert state.header.sequence == '2'   # the header is the draft's, not the body's
         assert state.unit == 'KMH'
 
 
@@ -412,7 +407,7 @@ class TestSigmetCancelState:
         assert state.cancelSequence == ''
         assert state.cancelBeginningTime == ''
         assert state.cancelEndingTime == ''
-        assert state.header.sequence == ''
+        assert state.header.sequence == '2'   # the header is the draft's, not the body's
 
 
 class TestSigmetCustomState:
@@ -434,4 +429,4 @@ class TestSigmetCustomState:
         state = custom()
         state.clear()
         assert state.text == ''
-        assert state.header.sequence == ''
+        assert state.header.sequence == '2'   # the header is the draft's, not the body's

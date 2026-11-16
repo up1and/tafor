@@ -62,7 +62,7 @@ def editor():
 
 @pytest.fixture
 def general(qtbot, conf, editor, frozen_time):
-    widget = SigmetGeneral(editor=editor, conf=conf)
+    widget = SigmetGeneral(header=editor.draft.header, editor=editor, conf=conf)
     render(widget, 1)
     qtbot.addWidget(widget)
     return widget
@@ -70,7 +70,7 @@ def general(qtbot, conf, editor, frozen_time):
 
 @pytest.fixture
 def custom(qtbot, conf, editor, frozen_time):
-    widget = SigmetCustom(editor=editor, conf=conf)
+    widget = SigmetCustom(header=editor.draft.header, editor=editor, conf=conf)
     render(widget, 1)
     qtbot.addWidget(widget)
     return widget
@@ -78,7 +78,7 @@ def custom(qtbot, conf, editor, frozen_time):
 
 @pytest.fixture
 def cancel(qtbot, conf, editor, frozen_time):
-    widget = SigmetCancel(editor=editor, conf=conf)
+    widget = SigmetCancel(header=editor.draft.header, editor=editor, conf=conf)
     render(widget, 1)
     qtbot.addWidget(widget)
     return widget

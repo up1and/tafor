@@ -1,12 +1,17 @@
-from tafor.core.sigmet.compose import category, validDuration
+from tafor.core.models import Sigmet
+from tafor.core.sigmet.compose import category, composeHeading, validDuration
+from tafor.core.sigmet.states import SigmetHeaderState
+from tafor.core.utils.time import utcnow
 
 
 class SigmetDraft:
-    """What the editor is drafting: which product, and which form.
+    """What the editor is drafting: which product, which form, and the header.
 
     Qt-free. Two pieces of knowledge that used to live in the editor are
     here: the product behind the hazard radios, and the form behind the
-    template/cancel/custom radios.
+    template/cancel/custom radios. The third is the header: the sequence, the
+    validity and the area describe the report being written, not the form that
+    happens to be on screen, so all six forms share this one object.
     """
 
     # The form each hazard radio issues, mapped to its designator. Cancel
@@ -14,9 +19,16 @@ class SigmetDraft:
     # are a different axis, not a different product.
     products = {'general': 'WS', 'typhoon': 'WC', 'ash': 'WV', 'airmet': 'WA'}
 
-    def __init__(self, designator='WS', form='general'):
+    def __init__(self, designator='WS', form='general', fir='', airport='',
+                 bulletinNumber='', now=utcnow):
         self.designator = designator
         self.form = form
+        self.fir = fir
+        self.airport = airport
+        self.bulletinNumber = bulletinNumber
+        self.now = now
+        self.header = SigmetHeaderState()
+        self.body = None
 
     def select(self, form):
         """Switch to form; returns whether anything changed.
@@ -32,6 +44,38 @@ class SigmetDraft:
         if form in self.products:
             self.designator = self.products[form]
         return True
+
+    def attach(self, body):
+        """The body the draft writes: the state behind the form on screen.
+
+        The six bodies stay with their forms; the draft only points at the one
+        it is writing, the same way `form` points at the one being shown.
+        """
+        self.body = body
+
+    def compose(self, locations=None):
+        """The message this draft is: heading, body, and nothing else.
+
+        `locations` is the sketch's answer, not the draft's: the canvas owns
+        the geometry, so the caller hands its result in.
+        """
+        heading = composeHeading(self.designator, self.bulletinNumber,
+                                 self.airport, self.now())
+
+        if self.hasSketch():
+            text = self.body.composeMessage(self.fir, locations or {})
+        else:
+            text = self.body.composeMessage(self.fir)
+
+        return Sigmet(type=self.designator, heading=heading, text=text)
+
+    def isAcceptable(self):
+        """Whether the report could be sent as it stands.
+
+        The canvas is not part of this answer: the draft owns the text, the
+        canvas owns the shape, and the editor asks both.
+        """
+        return bool(self.body) and self.body.isAcceptable()
 
     def span(self):
         return validDuration(self.designator)

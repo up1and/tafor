@@ -1,6 +1,11 @@
 """Tests for tafor/core/sigmet/draft.py, mirroring test_taf_draft.py."""
 
+import datetime
+
 from tafor.core.sigmet import SigmetDraft
+from tafor.core.sigmet.states import SigmetCustomState, SigmetGeneralState
+
+MOMENT = datetime.datetime(2026, 6, 10, 9, 30)
 
 
 def draft(form='general'):
@@ -63,3 +68,63 @@ class TestDerivedValues:
     def test_cancel_and_custom_carry_no_sketch(self):
         assert draft(form='cancel').hasSketch() is False
         assert draft(form='custom').hasSketch() is False
+
+
+class TestCompose:
+    """The draft answers what it is and whether it could go; the canvas is the
+    editor's half of the second question, not the draft's."""
+
+    def document(self, form='general'):
+        d = SigmetDraft(fir='YUDD SHANLON FIR', airport='ZJHK', bulletinNumber='2',
+                        now=lambda: MOMENT)
+        d.select(form)
+        for name, value in [('area', 'ZJSA'), ('sign', 'SIGMET'), ('sequence', '2'),
+                            ('beginningTime', '100930'), ('endingTime', '101430'),
+                            ('icao', 'ZJHK')]:
+            setattr(d.header, name, value)
+        return d
+
+    def test_the_heading_comes_from_the_drafts_own_facts(self):
+        d = self.document('custom')
+        state = SigmetCustomState(d.header)
+        state.text = 'OBSC TS'
+        d.attach(state)
+
+        message = d.compose()
+
+        assert message.type == 'WS'
+        assert message.heading == 'WS2 ZJHK 100930'
+        assert message.text == 'ZJSA SIGMET 2 VALID 100930/101430 ZJHK-\nYUDD SHANLON FIR OBSC TS='
+
+    def test_a_sketch_location_reaches_the_body(self):
+        d = self.document()
+        state = SigmetGeneralState('KMH', d.header)
+        state.description = 'SEV'
+        state.phenomenon = 'TS'
+        d.attach(state)
+
+        assert 'N2000 E11000' in d.compose({'location': 'N2000 E11000'}).text
+
+    def test_a_body_without_a_sketch_composes_with_no_locations(self):
+        d = self.document('custom')
+        state = SigmetCustomState(d.header)
+        state.text = 'OBSC TS'
+        d.attach(state)
+
+        assert d.compose().text.endswith('OBSC TS=')
+
+
+class TestAcceptability:
+
+    def test_a_draft_without_a_body_is_not_acceptable(self):
+        assert SigmetDraft().isAcceptable() is False
+
+    def test_the_attached_body_decides(self):
+        d = TestCompose().document('custom')
+        state = SigmetCustomState(d.header)
+        d.attach(state)
+
+        assert d.isAcceptable() is False
+
+        state.text = 'OBSC TS'
+        assert d.isAcceptable() is True

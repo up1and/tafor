@@ -112,6 +112,7 @@ def composeBody(primary, groups):
     in chronological order, one per line, closed with '='.
     """
     segments = [('PRIMARY', primary)] + [(group.indicator, group) for group in groups]
-    ordered = sorted(segments, key=lambda pair: segmentOrderKey(pair[0], pair[1].durations[0]))
+    ordered = sorted(segments, key=lambda pair: segmentOrderKey(
+        pair[0], pair[1].durations[0] if pair[1].durations else datetime.datetime.min))
     messages = [state.composeMessage() for _, state in ordered]
     return '\n'.join(filter(None, messages)) + '='

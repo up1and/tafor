@@ -1,8 +1,7 @@
 from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLayout
 
-from tafor.core.models import Taf
-from tafor.core.taf import TafDraft, composeHeading, composeBody
+from tafor.core.taf import TafDraft
 from tafor.ui.dialogs.base import BaseEditor
 from tafor.ui.forms import TafBecmgSegment, TafFmSegment, TafPrimarySegment, TafTempoSegment
 
@@ -31,30 +30,30 @@ class TafPresenter:
         for s in self.view.segments():
             s.contentChanged.connect(self.enableNextButton)
 
-    def previewMessage(self):
-        """Take the draft's states, let core compose them, then build the model."""
-        primary = self.draft.primary
-        groups = self.draft.selectedStates()
+    def commit(self):
+        """Read what is on screen, judge it, and hand the message on.
 
-        text = composeBody(primary, groups)
-        heading = composeHeading(primary.spec, self.conf.bulletinNumber,
-                                 primary.icao, primary.date, primary.sequence)
+        The collect comes first: a control whose signal never fired must not be
+        validated, nor composed, from the value it did not carry. compose() is
+        then a pure read of the state.
+        """
+        self.view.collect()
 
-        message = Taf(type=heading[0:2], heading=heading, text=text)
-        self.view.finished.emit(message)
-
-    def beforeNext(self):
         # Validate all active segments before proceeding
         if not self.view.isCancelMode():
             for s in self.view.segments(selectedOnly=True):
                 s.validate()
 
         if self.hasAcceptableInput():
-            self.previewMessage()
+            self.view.finished.emit(self.compose())
+
+    def compose(self):
+        """The draft composes itself; the presenter only hands the model on."""
+        return self.view.compose()
 
     def hasAcceptableInput(self):
-        # Check if input is acceptable for all active segments
-        return all(s.hasAcceptableInput() for s in self.view.segments(selectedOnly=True))
+        """Whether the draft could be sent: the primary and every selected group."""
+        return self.draft.isAcceptable()
 
     def enableNextButton(self):
         self.view.setNextEnabled(self.hasAcceptableInput())
@@ -81,7 +80,7 @@ class TafEditor(BaseEditor):
         layout.setSizeConstraint(QLayout.SetFixedSize)
         layout.setSpacing(18)
 
-        self.draft = TafDraft(self.context.taf.spec)
+        self.draft = TafDraft(self.context.taf.spec, bulletinNumber=self.conf.bulletinNumber)
 
         self.primary = TafPrimarySegment(editor=self, conf=self.conf, context=self.context,
                                          repository=self.repository, draft=self.draft,
@@ -133,6 +132,17 @@ class TafEditor(BaseEditor):
             return [self.primary] + self.selectedGroups()
         return [self.primary] + self.groups
 
+    def collect(self):
+        """Read every active segment's widgets into its state.
+
+        The commit prelude: called by the presenter's commit() so that the
+        message is composed from what is on screen, not from the last value a
+        signal happened to collect. Unselected groups are left alone -- their
+        state is not part of this report.
+        """
+        for segment in self.segments(selectedOnly=True):
+            segment.collect()
+
     def selectedGroups(self):
         """The selected change-group segments, in the order they are reported.
 
@@ -162,11 +172,21 @@ class TafEditor(BaseEditor):
         self.render()
 
     def render(self):
-        """Draw the draft: each segment from its state, then the selection."""
+        """Draw the draft: each segment from its state, then what follows from it.
+
+        One pass, in this order: the fields, the selection the draft holds, and
+        the navigation the window implies. Nothing here re-reads a widget.
+        """
         for segment in self.segments():
             segment.applyState()
 
         self.applySelection()
+        self.updatePeriodButtons()
+
+    def updatePeriodButtons(self):
+        """Prev/Reset follow the window the draft is on, not the click that moved it."""
+        self.primary.resetButton.setEnabled(self.draft.isBackdated())
+        self.primary.prevButton.setEnabled(self.draft.hasPrevious())
 
     def toggleGroup(self, checkbox):
         """A change-group checkbox was clicked: move the selection, then draw it."""
@@ -190,9 +210,19 @@ class TafEditor(BaseEditor):
 
         self.presenter.enableNextButton()
 
-    def onFirstShow(self):
+    def compose(self):
+        """The draft composes itself against the settings as they are now.
+
+        The bulletin prefix is a setting, not a document fact: syncing it here
+        is what keeps a heading composed after a settings change current.
+        """
+        self.draft.bulletinNumber = self.conf.bulletinNumber
+        return self.draft.compose()
+
+    def onOpen(self):
         self.primary.updateModifier()
 
     def onClose(self):
+        # clear() is the whole reset now: it empties the draft and draws it,
+        # radios and period buttons included.
         self.presenter.clear()
-        self.primary.clearType()

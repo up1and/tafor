@@ -1,3 +1,5 @@
+from tafor.core.models import Taf
+from tafor.core.taf.compose import composeBody, composeHeading
 from tafor.core.taf.spec import CurrentTaf
 from tafor.core.utils.time import utcnow
 
@@ -23,9 +25,10 @@ class TafDraft:
     # a name.
     families = ('FM', 'BECMG', 'TEMPO')
 
-    def __init__(self, spec, now=utcnow):
+    def __init__(self, spec, bulletinNumber='', now=utcnow):
         self.spec = spec
         self.now = now
+        self.bulletinNumber = bulletinNumber
         self.offset = 0
         self.selected = set()
         self.primary = None   # PrimaryState, attached once the primary exists
@@ -98,15 +101,63 @@ class TafDraft:
         return [self.groups[key] for key in self.selectedKeys()
                 if family is None or key[0] == family]
 
+    def compose(self):
+        """The message this draft is: its own heading and body, no widgets.
+
+        This is the draft answering the third criterion -- delete every control
+        and the report is still here. What the draft cannot know stays with the
+        caller: the model wrapper and where the message goes.
+        """
+        primary = self.primary
+        heading = composeHeading(self.spec, self.bulletinNumber,
+                                 primary.icao, primary.date, primary.sequence)
+
+        return Taf(type=heading[0:2], heading=heading,
+                   text=composeBody(primary, self.selectedStates()))
+
+    def isAcceptable(self):
+        """Whether this report could be sent as it stands."""
+        return (self.primary.isAcceptable()
+                and all(state.isAcceptable() for state in self.selectedStates()))
+
     def clear(self):
-        """Empty the whole draft: the current window, no groups selected, and
-        every state cleared.
+        """Empty the whole draft: back to the current window, nothing kept.
 
         The data is cleared here rather than in the widgets so that drawing can
         be a plain render -- there is no half-cleared state left for a widget
         write to collect back over.
         """
         self.offset = 0
+        self.discard()
+        self.begin()
+
+    def begin(self, period='', modifier=None, sequence=''):
+        """Start the report this header belongs to.
+
+        One header, written as one fact: a report at this period has one answer
+        for period, durations, modifier and sequence. What has been typed
+        survives unless the window moved -- switching the marker on the same
+        window re-labels the report, it does not start another one. The caller
+        does not pick between the two: the period decides.
+
+        `offset` is left alone on purpose: stepping back one window and then
+        beginning a report must not also step the window forward again.
+        """
+        if period != self.primary.period:
+            self.discard()
+
+        self.primary.period = period
+        self.primary.durations = self.taf().durations() if period else None
+        self.primary.modifier = modifier
+        self.primary.sequence = sequence
+
+        if modifier == 'CNL':
+            # A cancellation carries no change groups.
+            self.selected.clear()
+
+    def discard(self):
+        """Throw away the report's body -- the primary and every group -- and
+        which groups were selected, leaving the header for the caller to set."""
         self.selected.clear()
         self.primary.clear()
         for state in self.groups.values():

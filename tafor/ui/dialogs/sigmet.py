@@ -1,9 +1,8 @@
 from PyQt5.QtCore import QCoreApplication, Qt
 
-from tafor.core.models import Sigmet
 from tafor.core.repositories import SigmetFilter
 from tafor.core.sigmet import SigmetDraft
-from tafor.core.sigmet.compose import composeHeading, nextSequence
+from tafor.core.sigmet.compose import nextSequence
 from tafor.core.utils.time import utcnow
 from tafor.ui.qt import Ui_sigmet
 from tafor.ui.dialogs.base import BaseEditor
@@ -83,8 +82,6 @@ class SigmetPresenter:
         for c in self.view.forms.values():
             c.contentChanged.connect(self.enableNextButton)
 
-        self.view.sender.succeeded.connect(self.view.renderForm)
-
         self.connectGraphic()
 
     def connectGraphic(self):
@@ -102,24 +99,21 @@ class SigmetPresenter:
     def selectLayers(self, selected):
         self.context.layer.setState({'selected': selected})
 
-    def beforeNext(self):
+    def commit(self):
+        # Read the form before judging it: see TafPresenter.commit().
+        self.view.collect()
         self.view.currentForm.validate()
 
         if self.hasAcceptableInput():
-            self.previewMessage()
+            self.view.finished.emit(self.compose())
 
-    def previewMessage(self):
-        designator = self.view.designator
-        heading = composeHeading(designator, self.conf.bulletinNumber or '', self.conf.airport, utcnow())
-        message = Sigmet(type=designator, heading=heading, text=self.view.message())
-        self.view.finished.emit(message)
+    def compose(self):
+        """The draft composes itself; the presenter only hands the model on."""
+        return self.view.compose()
 
     def hasAcceptableInput(self):
-        items = [self.view.currentForm.hasAcceptableInput()]
-        if self.view.hasGraphicWindow():
-            items.append(self.view.graphic.hasAcceptableGraphic())
-
-        return all(items)
+        """The view answers: the draft's verdict plus the canvas's."""
+        return self.view.isAcceptable()
 
     def enableNextButton(self):
         self.view.nextButton.setEnabled(self.hasAcceptableInput())
@@ -137,7 +131,13 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         super().__init__(parent, sender, conf, context)
         self.setupUi(self)
 
-        self.draft = SigmetDraft()
+        # The heading's facts are the document's, so the draft is built with
+        # them: compose() should not have to be handed what never changes.
+        self.draft = SigmetDraft(
+            fir=self.conf.firName,
+            airport=self.conf.airport,
+            bulletinNumber=self.conf.bulletinNumber or '',
+        )
 
         # The forms hold no queries: the presenter owns the repository and
         # hands them the rows and text they render.
@@ -157,12 +157,12 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
     def initUI(self):
         self.graphic = SketchPanel(self, context=self.context)
-        self.generalContent = SigmetGeneral(self, conf=self.conf)
-        self.typhoonContent = SigmetTyphoon(self, conf=self.conf)
-        self.ashContent = SigmetAsh(self, conf=self.conf)
-        self.airmetContent = AirmetGeneral(self, conf=self.conf)
-        self.cancelContent = SigmetCancel(self, conf=self.conf)
-        self.customForm = SigmetCustom(self, conf=self.conf)
+        self.generalContent = SigmetGeneral(header=self.draft.header, editor=self, conf=self.conf)
+        self.typhoonContent = SigmetTyphoon(header=self.draft.header, editor=self, conf=self.conf)
+        self.ashContent = SigmetAsh(header=self.draft.header, editor=self, conf=self.conf)
+        self.airmetContent = AirmetGeneral(header=self.draft.header, editor=self, conf=self.conf)
+        self.cancelContent = SigmetCancel(header=self.draft.header, editor=self, conf=self.conf)
+        self.customForm = SigmetCustom(header=self.draft.header, editor=self, conf=self.conf)
 
         self.forms = {
             'general': self.generalContent,
@@ -231,17 +231,39 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
     def updateCustomText(self):
         self.customForm.setLatestText(self.presenter.latestText(self.designator))
 
-    def message(self):
-        state = self.currentForm.state
-        if self.draft.hasSketch():
-            return state.composeMessage(self.conf.firName, self.graphic.location())
-        return state.composeMessage(self.conf.firName)
+    def collect(self):
+        """Read the current form's widgets into its state -- the commit prelude.
+
+        Only the form on screen: the other five keep their own drafts but they
+        are not part of the report being composed.
+        """
+        self.currentForm.collect()
+
+    def compose(self):
+        """The draft composes itself, against the settings and the sketch as
+        they are now: the bulletin prefix, the airport and the FIR are settings,
+        not facts frozen when the editor was built.
+        """
+        self.draft.fir = self.conf.firName
+        self.draft.airport = self.conf.airport
+        self.draft.bulletinNumber = self.conf.bulletinNumber or ''
+
+        locations = self.graphic.location() if self.draft.hasSketch() else None
+        return self.draft.compose(locations)
 
     def category(self):
         return self.draft.category()
 
-    def hasGraphicWindow(self):
-        return self.draft.hasSketch()
+    def isGraphicAcceptable(self):
+        """Whether the canvas is finished -- the one input the draft cannot own.
+
+        True when this report needs no drawing: nothing to answer for.
+        """
+        return not self.draft.hasSketch() or self.graphic.hasAcceptableGraphic()
+
+    def isAcceptable(self):
+        """Whether this draft could go: the document's verdict, then the canvas's."""
+        return self.draft.isAcceptable() and self.isGraphicAcceptable()
 
     def setOverlapMode(self, mode):
         if self.draft.hasSketch():
@@ -254,6 +276,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         form = self.current()
         changed = self.draft.select(form)
         self.currentForm = self.forms[form]
+        self.draft.attach(self.currentForm.state)
 
         # Custom takes the canvas's place, so it is shown instead of the pair.
         if self.currentForm is self.customForm:
@@ -290,6 +313,10 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         return 'general'
 
     def clear(self):
+        # The header belongs to the draft, so the draft empties it here; each
+        # form then clears its own body and renders the empty header.
+        self.draft.header.clear()
+
         for c in self.forms.values():
             c.clear()
 
@@ -300,7 +327,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.graphic.configureMode(self.draft.designator,
                                    'cancel' if self.draft.form == 'cancel' else 'template')
 
-    def onFirstShow(self):
+    def onOpen(self):
         self.renderForm()
 
     def onClose(self):

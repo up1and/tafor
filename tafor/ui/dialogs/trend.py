@@ -25,20 +25,19 @@ class TrendPresenter:
     def enableNextButton(self):
         self.view.nextButton.setEnabled(self.hasAcceptableInput())
 
-    def beforeNext(self):
+    def commit(self):
         self.view.trend.validate()
 
         if self.view.isPeriodActive():
             self.view.trend.validatePeriod()
 
         if self.hasAcceptableInput():
-            self.previewMessage()
+            self.view.finished.emit(self.compose())
 
-    def previewMessage(self):
-        message = self.view.trend.message()
-        self.view.text = message + '='
-        message = Trend(text=self.view.text)
-        self.view.finished.emit(message)
+    def compose(self):
+        text = self.view.trend.message()
+        self.view.text = text + '='
+        return Trend(text=self.view.text)
 
     def loadFromMetar(self):
         """Seed the form from the live METAR's trend group.

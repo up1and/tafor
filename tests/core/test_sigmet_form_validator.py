@@ -2,7 +2,7 @@
 
 import datetime
 
-from tafor.core.sigmet.states import SigmetGeneralState
+from tafor.core.sigmet.states import SigmetGeneralState, SigmetHeaderState
 from tafor.core.sigmet.validator import SigmetFormValidator
 
 
@@ -11,7 +11,7 @@ NOW = datetime.datetime(2026, 6, 10, 8, 0)
 
 def state(durations=None):
     """A message state whose only varying field is the period."""
-    s = SigmetGeneralState('KMH')
+    s = SigmetGeneralState('KMH', SigmetHeaderState())
     s.durations = durations
     return s
 

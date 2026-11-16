@@ -34,19 +34,27 @@ class SigmetHeaderState:
 
 class MessageState:
 
-    def __init__(self):
-        self.header = SigmetHeaderState()
+    def __init__(self, header):
+        # The header is the document's, not this body's: the editor hands the
+        # same object to all six forms, so there is one sequence, one validity
+        # and one area.
+        self.header = header
         self.durations = None
 
     def clear(self):
-        self.header.clear()
+        """Empty the body's own fields.
+
+        The header is not the body's to empty: the draft owns it, and
+        SigmetEditor.clear() is the one place that empties it. A body cleared
+        on its own therefore keeps the header it was rendered against.
+        """
         self.durations = None
 
 
 class SigmetState(MessageState):
 
-    def __init__(self, unit):
-        super().__init__()
+    def __init__(self, unit, header):
+        super().__init__(header)
         self.comeFrom = ''
         self.observedTime = ''
         self.flightLevelFormat = ''
@@ -126,8 +134,8 @@ class SigmetState(MessageState):
 
 class SigmetGeneralState(SigmetState):
 
-    def __init__(self, unit):
-        super().__init__(unit)
+    def __init__(self, unit, header):
+        super().__init__(unit, header)
         self.description = ''
         self.phenomenon = ''
 
@@ -170,8 +178,8 @@ class SigmetGeneralState(SigmetState):
 
 class SigmetTyphoonState(SigmetState):
 
-    def __init__(self, unit):
-        super().__init__(unit)
+    def __init__(self, unit, header):
+        super().__init__(unit, header)
         self.phenomenon = ''
         self.name = ''
         self.currentLatitude = ''
@@ -275,8 +283,8 @@ class SigmetTyphoonState(SigmetState):
 
 class SigmetAshState(SigmetState):
 
-    def __init__(self, unit):
-        super().__init__(unit)
+    def __init__(self, unit, header):
+        super().__init__(unit, header)
         self.phenomenon = ''
         self.name = ''
         self.currentLatitude = ''
@@ -337,8 +345,8 @@ class SigmetAshState(SigmetState):
 
 class SigmetCancelState(MessageState):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, header):
+        super().__init__(header)
         self.cancelSequence = ''
         self.cancelBeginningTime = ''
         self.cancelEndingTime = ''
@@ -367,8 +375,8 @@ class SigmetCancelState(MessageState):
 
 class SigmetCustomState(MessageState):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, header):
+        super().__init__(header)
         self.text = ''
 
     def composeMessage(self, fir):

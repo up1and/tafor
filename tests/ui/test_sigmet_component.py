@@ -5,12 +5,11 @@ tests do; the graphic canvas loads the local FIR resources, which works
 offscreen.
 """
 
-import re
 from types import SimpleNamespace
 
 import pytest
 
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtCore import QObject, QSignalBlocker, pyqtSignal
 from PyQt5.QtWidgets import QComboBox, QStackedWidget
 
 from tafor.core.models import Sigmet
@@ -45,19 +44,23 @@ class StubView(QObject):
     def __init__(self):
         super().__init__()
         self.designator = 'WS'
-        self.message = lambda: 'ZJSA SANYA FIR OBSC TS='
+        self.compose = lambda: Sigmet(type='WS', heading='', text='ZJSA SANYA FIR OBSC TS=')
         self.currentForm = StubContent()
         self.graphic = SimpleNamespace(hasAcceptableGraphic=lambda: True)
-        self.graphicWindow = False
         self.enabled = None
+        self.acceptable = True
         self.cleared = False
+        self.collected = False
         self.nextButton = SimpleNamespace(setEnabled=self.setEnabled)
 
     def setEnabled(self, enabled):
         self.enabled = enabled
 
-    def hasGraphicWindow(self):
-        return self.graphicWindow
+    def collect(self):
+        self.collected = True
+
+    def isAcceptable(self):
+        return self.acceptable
 
     def clear(self):
         self.cleared = True
@@ -155,45 +158,40 @@ class TestSigmetPresenter:
         assert types(presenter.sigmets(category='SIGMET')) == ['WS', 'WC', 'WV']
         assert types(presenter.sigmets(category='AIRMET')) == ['WA']
 
-    def test_before_next_validates_and_previews(self, presenter, view, qtbot, conf):
+    def test_before_next_validates_and_previews(self, presenter, view, qtbot):
         messages = []
         view.finished.connect(messages.append)
 
-        presenter.beforeNext()
+        presenter.commit()
 
         assert view.currentForm.validated is True
         assert len(messages) == 1
-        message = messages[0]
-        assert isinstance(message, Sigmet)
-        assert message.type == 'WS'
-        pattern = r'^WS{} {} \d{{6}}$'.format(conf.bulletinNumber or '', conf.airport)
-        assert re.match(pattern, message.heading)
-        assert message.text == 'ZJSA SANYA FIR OBSC TS='
+        # The presenter no longer builds the message: the draft does, and the
+        # presenter only hands on what the view composed.
+        assert messages[0].type == 'WS'
+        assert messages[0].text == 'ZJSA SANYA FIR OBSC TS='
 
     def test_before_next_skips_preview_when_input_rejected(self, presenter, view, qtbot):
         messages = []
         view.finished.connect(messages.append)
-        view.currentForm.acceptable = False
+        view.acceptable = False
 
-        presenter.beforeNext()
+        presenter.commit()
 
         assert view.currentForm.validated is True
         assert messages == []
 
-    def test_has_acceptable_input_aggregates_graphic(self, presenter, view):
+    def test_has_acceptable_input_is_the_views_answer(self, presenter, view):
         assert presenter.hasAcceptableInput() is True
 
-        view.graphicWindow = True
-        assert presenter.hasAcceptableInput() is True
-
-        view.graphic.hasAcceptableGraphic = lambda: False
+        view.acceptable = False
         assert presenter.hasAcceptableInput() is False
 
     def test_enable_next_button_mirrors_input(self, presenter, view):
         presenter.enableNextButton()
         assert view.enabled is True
 
-        view.currentForm.acceptable = False
+        view.acceptable = False
         presenter.enableNextButton()
         assert view.enabled is False
 
@@ -214,6 +212,38 @@ class TestSigmetEditor:
         assert editor.template.isChecked() is True
         assert editor.currentForm is editor.generalContent
         assert editor.graphic.isVisibleTo(editor)
+
+    def test_the_forms_share_the_documents_header(self, editor):
+        # one sequence, one validity, one area: the header describes the report
+        # being written, not the form that happens to be on screen
+        for form in editor.forms.values():
+            assert form.state.header is editor.draft.header
+
+    def test_opening_the_editor_seeds_the_draft(self, editor, frozen_time):
+        """The open path is the only thing that starts a draft.
+
+        It is what makes a success handler unnecessary: a sent report ends by
+        closing the editor, and the next open seeds number and period again.
+        """
+        editor.onOpen()
+
+        assert editor.generalContent.sequence.text() == '1'
+        assert editor.draft.header.sequence == '1'
+        # the window is anchored to the clock, so pin that it was written and
+        # that it is the draft's span, not the exact minute
+        assert len(editor.generalContent.beginningTime.text()) == 6
+        assert len(editor.generalContent.endingTime.text()) == 6
+        assert editor.draft.header.beginningTime == editor.generalContent.beginningTime.text()
+
+    def test_clear_empties_the_documents_header(self, editor):
+        # A body's clear() leaves the header alone -- it is the draft's. The
+        # editor is the one place that empties the document.
+        editor.generalContent.state.header.sequence = '7'
+
+        editor.clear()
+
+        assert editor.draft.header.sequence == ''
+        assert editor.generalContent.sequence.text() == ''
 
     def test_cancel_mode_keeps_the_graphic_visible(self, editor):
         # unlike the message composition, the canvas stays visible in
@@ -264,9 +294,9 @@ class TestSigmetEditor:
         editor.custom.click()
         editor.customForm.text.setPlainText('ZJSA SANYA FIR OBSC TS')
 
-        message = editor.message()
+        message = editor.compose()
 
-        assert message.endswith('ZJSA SANYA FIR OBSC TS=')
+        assert message.text.endswith('ZJSA SANYA FIR OBSC TS=')
 
     def test_message_composes_from_the_current_state(self, editor, conf):
         state = editor.generalContent.state
@@ -287,12 +317,27 @@ class TestSigmetEditor:
         state.speed = '25'
         state.intensityChange = 'NC'
 
-        message = editor.message()
+        message = editor.compose()
 
-        assert message == '\n'.join([
+        assert message.text == '\n'.join([
             'ZJSA SIGMET 2 VALID 100930/101430 ZJHK-',
             '{} SEV TS OBS AT 100800Z FL080/120 MOV NE 25KMH NC='.format(conf.firName),
         ])
+
+    def test_a_field_that_never_collected_is_read_before_the_commit(self, editor):
+        """The same guard as the TAF editor: a control whose signal never fired
+        must still reach the message, because the commit entry reads it."""
+        general = editor.generalContent
+        general.direction.setCurrentIndex(general.direction.findText('N'))
+        general.speed.setText('20')
+
+        with QSignalBlocker(general.speed):
+            general.speed.setText('45')
+
+        editor.commit()
+
+        assert general.state.speed == '45'
+        assert 'MOV N 45' in editor.compose().text
 
     def test_the_overlap_mode_writes_the_state_forecast_flag(self, editor):
         editor.generalContent.setOverlapMode('final')
@@ -317,7 +362,7 @@ class TestSigmetEditor:
         content.intensityChange.setCurrentText('INTSF')
 
         assert content.state.intensityChange == 'INTSF'
-        assert 'INTSF' in editor.message()
+        assert 'INTSF' in editor.compose().text
 
     def test_changing_the_ash_intensity_reaches_the_state(self, editor):
         editor.volcanicAsh.click()

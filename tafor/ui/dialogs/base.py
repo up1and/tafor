@@ -57,7 +57,7 @@ class BaseEditor(QDialog):
         self.nextButton = QPushButton()
         self.nextButton.setEnabled(False)
         self.nextButton.setText(QCoreApplication.translate('Editor', 'Next'))
-        self.nextButton.clicked.connect(self.beforeNext)
+        self.nextButton.clicked.connect(self.commit)
         self.notificationArea = QLabel()
         self.notificationArea.setStyleSheet(mutedStyle)
         bottomLayout.addWidget(self.notificationArea)
@@ -78,11 +78,16 @@ class BaseEditor(QDialog):
             self.notificationArea.setText(message)
             QTimer.singleShot(10 * 1000, self.notificationArea.clear)
 
-    def beforeNext(self):
+    def commit(self):
         if self.presenter:
-            self.presenter.beforeNext()
+            self.presenter.commit()
 
-    def onFirstShow(self):
+    def onOpen(self):
+        """A fresh open: the editor was shown to start a report.
+
+        Not called when returning from the sender with a failed report --
+        that path must keep what the operator typed.
+        """
         pass
 
     def onClose(self):
@@ -90,7 +95,7 @@ class BaseEditor(QDialog):
 
     def keyPressEvent(self, event):
         if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_Return:
-            self.beforeNext()
+            self.commit()
 
     def showEvent(self, event):
         if self.editorName and not self.conf.checkCompleteness(self.editorName):
@@ -98,7 +103,7 @@ class BaseEditor(QDialog):
             return
 
         if not self.isStaged:
-            self.onFirstShow()
+            self.onOpen()
 
     def closeEvent(self, event):
         self.isStaged = False

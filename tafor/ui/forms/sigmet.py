@@ -772,10 +772,10 @@ class SigmetGeneral(BaseSigmet, Ui_sigmet_general.Ui_Editor):
     # Convective phenomena that take the TOP/ABV/SFC flight-level formats.
     convective = ['CB', 'TCU', 'TS', 'TSGR']
 
-    def __init__(self, editor=None, conf=None):
+    def __init__(self, header, editor=None, conf=None):
         super().__init__(editor, conf=conf)
         self.setupUi(self)
-        self.state = SigmetGeneralState(unit=self.conf.units.sigmetSpeed)
+        self.state = SigmetGeneralState(unit=self.conf.units.sigmetSpeed, header=header)
         self.initialize()
         self.setPhenomenaDescription()
         self.setPhenomena()
@@ -842,10 +842,10 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
     locationChanged = pyqtSignal(dict)
     circleChanged = pyqtSignal(dict)
 
-    def __init__(self, editor=None, conf=None):
+    def __init__(self, header, editor=None, conf=None):
         super().__init__(editor, conf=conf)
         self.setupUi(self)
-        self.state = SigmetTyphoonState(unit=self.conf.units.sigmetSpeed)
+        self.state = SigmetTyphoonState(unit=self.conf.units.sigmetSpeed, header=header)
         self.initialize()
         self.setPhenomena()
         self.setFcstOrObs()
@@ -1001,10 +1001,10 @@ class SigmetAsh(BaseSigmet, Ui_sigmet_ash.Ui_Editor):
 
     locationChanged = pyqtSignal(dict)
 
-    def __init__(self, editor=None, conf=None):
+    def __init__(self, header, editor=None, conf=None):
         super().__init__(editor, conf=conf)
         self.setupUi(self)
-        self.state = SigmetAshState(unit=self.conf.units.sigmetSpeed)
+        self.state = SigmetAshState(unit=self.conf.units.sigmetSpeed, header=header)
         self.initialize()
         self.setPhenomena()
         self.setFcstOrObs()
@@ -1114,10 +1114,10 @@ class AirmetGeneral(SigmetGeneral):
 
 class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
-    def __init__(self, editor=None, conf=None):
+    def __init__(self, header, editor=None, conf=None):
         super().__init__(editor, conf=conf)
         self.setupUi(self)
-        self.state = SigmetCancelState()
+        self.state = SigmetCancelState(header=header)
         self.initialize()
 
     def bindSignal(self):
@@ -1209,10 +1209,10 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
 class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
 
-    def __init__(self, editor=None, conf=None):
+    def __init__(self, header, editor=None, conf=None):
         super().__init__(editor, conf=conf)
         self.setupUi(self)
-        self.state = SigmetCustomState()
+        self.state = SigmetCustomState(header=header)
         self.setupApiSign()
         self.initialize()
         self.upperTextEdit()

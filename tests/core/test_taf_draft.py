@@ -164,3 +164,57 @@ class TestSelectedStates:
 
         assert [state.indicator for state in d.selectedStates('BECMG')] == ['BECMG']
         assert d.selectedStates('FM') == []
+
+
+class TestCompose:
+    """The draft answers two questions on its own: what it is, and whether it
+    could go. Both used to be the presenter's, assembled from the states there.
+    """
+
+    def filled(self):
+        d = ready()
+        p = d.primary
+        p.icao = 'ZUUU'
+        p.date = '100800'
+        p.period = '1009/1018'
+        p.durations = d.taf().durations()
+        p.wind = '24008'
+        p.visibility = '9999'
+        p.clouds = ['SCT020']
+        return d
+
+    def test_the_draft_composes_its_own_heading_and_body(self):
+        message = self.filled().compose()
+
+        assert message.type == 'FC'
+        assert message.heading == 'FC ZUUU 100800'
+        assert message.text == 'TAF ZUUU 100800Z 1009/1018 24008KT 9999 SCT020='
+        assert message.text.endswith('=')
+
+    def test_an_unselected_group_stays_out_of_the_body(self):
+        d = self.filled()
+
+        assert 'BECMG' not in d.compose().text
+
+    def test_a_selected_group_joins_the_body(self):
+        d = self.filled()
+        d.toggle('BECMG', 1)
+        group = d.groups[('BECMG', 1)]
+        group.period = '1012/1014'
+        group.durations = (d.taf().durations()[0], d.taf().durations()[1])
+        group.wind = '30010'
+
+        assert 'BECMG 1012/1014' in d.compose().text
+
+    def test_a_report_with_a_header_and_weather_is_acceptable(self):
+        assert self.filled().isAcceptable() is True
+
+    def test_an_empty_draft_is_not_acceptable(self):
+        assert ready().isAcceptable() is False
+
+    def test_a_selected_group_has_to_be_acceptable_too(self):
+        d = self.filled()
+        d.toggle('BECMG', 1)
+
+        # the group has no period and no weather yet
+        assert d.isAcceptable() is False

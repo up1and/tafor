@@ -2,6 +2,8 @@ import datetime
 
 import pytest
 
+from PyQt5.QtCore import QSignalBlocker
+
 from tafor.core.config import createConfig
 from tafor.core.repositories import MessageRepository, TafRepository
 from tafor.core.states import createContext
@@ -9,9 +11,12 @@ from tafor.ui.dialogs import TafEditor, TafSender
 from tests.mocks import MockConfig
 
 
+# Field values, not message groups: the wind box holds five digits (the unit
+# comes from the settings) and the gust box holds two. '24008MPS' looks right in
+# a message but is not acceptable input, and a collect() drops it from the state.
 CONTENT = {
-    'wind': '24008MPS',
-    'gust': '24015MPS',
+    'wind': '24008',
+    'gust': '15',
     'vis': '9999',
     'weather': 'TS',
     'weatherWithIntensity': '-RA',
@@ -39,11 +44,11 @@ def open_header(editor):
     """Build the header the way the first show does.
 
     `TafPrimarySegment.showEvent` sets the date and `TafEditor.showEvent` calls
-    `onFirstShow()`, which runs `updateModifier()`. Clicking a radio instead would
+    `onOpen()`, which runs `updateModifier()`. Clicking a radio instead would
     reach the same slot through a signal the real path never fires.
     """
     editor.primary.setDate()
-    editor.onFirstShow()
+    editor.onOpen()
     return editor.primary
 
 
@@ -147,6 +152,24 @@ class TestTafEditor:
         primary.amd.click()
 
         assert primary.state.modifier == 'AMD'
+
+    def test_a_field_that_never_collected_is_read_before_the_commit(self, editor):
+        """A widget whose signal never fired (blocked here, missing wiring in
+        the field) must not vanish from the message.
+
+        The commit entry collects before it judges, so the text the report is
+        built from is what is on screen. Whether the whole form is then
+        acceptable is a separate question, proved by the temperature tests.
+        """
+        primary = fill_without_temperature(editor)
+
+        with QSignalBlocker(primary.wind):
+            primary.wind.setText('09010')
+
+        editor.commit()
+
+        assert primary.state.wind == '09010'
+        assert '09010' in primary.message()
 
     def test_normal_is_the_absence_of_a_marker(self, editor):
         # NORMAL is not a fifth value next to AMD/COR/CNL: it is the lack of a
@@ -425,12 +448,12 @@ class TestTafPeriodReanchor:
     """Moving the primary's window clears the form, and that is what keeps a
     group's derived window from outliving the period it was computed against.
 
-    `PrimaryState.period` has exactly one writer (`applyPeriod()`), reached only
-    from `updateModifier()`, which clears everything when the window moves. No
-    event carries the news to the groups; the clear is the news. This pins the
-    whole chain -- the reset of `GroupState.durations` itself is pinned in
-    `tests/core/test_taf_states.py::TestStateClear`, because the render path
-    would cover for it here.
+    `PrimaryState.period` is written by `TafDraft.begin()`,
+    reached only from `updateModifier()`, which clears everything when the
+    window moves. No event carries the news to the groups; the clear is the
+    news. This pins the whole chain -- the reset of `GroupState.durations`
+    itself is pinned in `tests/core/test_taf_states.py::TestStateClear`,
+    because the render path would cover for it here.
     """
 
     def test_moving_the_period_drops_the_group_windows(self, editor):
@@ -490,6 +513,41 @@ class TestTafApplyState:
     alone, and `editor.clear()` is `draft.clear()` -- empty the data -- followed
     by `render()`, which draws it."""
 
+    def test_a_render_draws_the_header_from_the_state(self, editor):
+        """The header is part of the document: a render writes it like any other
+        field, instead of leaving it to whoever called clear()."""
+        primary = fill_without_temperature(editor)
+
+        primary.state.period = '0918'
+        primary.state.sequence = 'AAB'
+        primary.state.modifier = 'AMD'
+
+        primary.applyState()
+
+        assert primary.period.text() == '0918'
+        assert primary.sequence.text() == 'AAB'
+        assert primary.amd.isChecked()
+
+    def test_a_render_of_a_changed_state_converges(self, editor):
+        """The D invariant: every field the render writes ends up in both places.
+
+        Several fields are changed behind the widgets at once, so the writes
+        interleave with the collects they trigger; the render is finished only
+        when the last write leaves the state agreeing with the screen.
+        """
+        primary = fill_without_temperature(editor)
+
+        primary.state.wind = '09010'
+        primary.state.visibility = '4000'
+        primary.state.clouds = ['FEW010']
+
+        primary.applyState()
+
+        assert (primary.wind.text(), primary.vis.text(), primary.cloud1.text()) == ('09010', '4000', 'FEW010')
+        assert primary.state.wind == '09010'
+        assert primary.state.visibility == '4000'
+        assert primary.state.clouds == ['FEW010']
+
     def test_apply_state_is_the_inverse_of_collect(self, editor):
         for segment in editor.segments():
             fill(segment)
@@ -527,32 +585,37 @@ class TestTafApplyState:
         for segment in editor.segments():
             assert read_widgets(segment) == ('',) * 9
 
-    def test_clear_keeps_the_primary_header(self, editor):
+    def test_clear_empties_the_header_and_the_next_begin_fills_it(self, editor, frozen_time):
         primary = editor.primary
         primary.date.setText('101200')
-        editor.onFirstShow()
+        editor.onOpen()
         period = primary.period.text()
         assert period and primary.state.durations is not None
 
         editor.clear()
 
-        # The date belongs to the clock and the period to updateModifier();
-        # clear() must not put a period on screen that updateModifier() did not
-        # choose, and it is updateModifier() that decides to clear the form.
-        assert primary.date.text() == '101200'
-        assert primary.period.text() == period
+        # The header is part of the document now: clear() empties it like any
+        # other field, and updateModifier() re-derives it on the next show.
+        assert primary.period.text() == ''
+        assert primary.state.period == ''
+        assert primary.date.text() == '101200'   # the clock owns the date
 
-    def test_clear_leaves_the_message_type_radio_alone(self, editor):
+        primary.updateModifier()
+
+        assert primary.period.text() == period
+        assert primary.state.durations is not None
+
+    def test_clear_returns_the_radios_to_normal(self, editor):
         primary = editor.primary
         primary.date.setText('101200')
         primary.amd.click()
+        assert primary.amd.isChecked()
 
         editor.clear()
 
-        # PrimaryState.clear() drops the modifier back to None, but rendering that
-        # would reset the radios in the middle of updateModifier()'s own
-        # re-derivation of the period.
-        assert primary.amd.isChecked()
+        # The radios are part of the rendered header: clearing it draws NORMAL.
+        assert primary.normal.isChecked()
+        assert primary.state.modifier is None
 
     def test_clear_leaves_vertical_visibility_mode(self, editor):
         # setVv used to hang off cloud1.textEdited, which a programmatic write
@@ -706,6 +769,22 @@ class TestTafPeriodClearsTheForm:
         assert primary.state.modifier == 'AMD'
         assert primary.state.sequence == 'AAA'
 
+    def test_beginning_a_report_keeps_the_window_the_draft_is_on(self, editor, frozen_time):
+        """begin() must not step the window back to the current one.
+
+        The prev button exists to write about another window; a begin() that
+        also reset the offset would silently turn the backdated report into
+        today's.
+        """
+        editor.draft.prev()
+        primary = editor.primary
+
+        primary.updateModifier()
+
+        assert editor.draft.isBackdated()
+        assert primary.period.text()
+        assert primary.state.period == primary.period.text()
+
     def test_switching_between_two_amend_modifiers_keeps_the_form(self, editor):
         """AMD -> COR implies the same period, so nothing is cleared.
 
@@ -728,21 +807,21 @@ class TestTafPeriodClearsTheForm:
         assert primary.state.modifier == 'COR'
         assert primary.sequence.text() == 'CCA'
 
-    def test_clear_type_forgets_the_applied_modifier(self, editor):
+    def test_clear_forgets_the_applied_modifier(self, editor):
         """A fresh message leaves nothing pending in the state.
 
-        clearType() puts the radios back to NORMAL; the toggles() wiring collects
-        them into the state on the way, so `state.modifier` follows without a
-        hand-written reset.
+        The header is drawn from the draft now, so clearing it is what puts the
+        radios back to NORMAL -- there is no separate clearType() step.
         """
         primary = self.start_filled(editor)
 
         primary.amd.click()
         assert primary.state.modifier == 'AMD'
 
-        primary.clearType()
+        editor.clear()
 
         assert primary.state.modifier is None
+        assert primary.normal.isChecked()
 
 
 if __name__ == '__main__':
