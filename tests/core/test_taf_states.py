@@ -38,6 +38,11 @@ def trend(period='1012/1016', **fields):
     return state
 
 
+def tokens(**texts):
+    """The parser's token dicts, as a lexed group hands them over."""
+    return {key: {'text': text, 'error': []} for key, text in texts.items()}
+
+
 def primary(**fields):
     """A primary that satisfies everything a test does not change."""
     state = PrimaryState('MPS')
@@ -211,6 +216,70 @@ class TestTrendStateIsAcceptable:
     def test_a_time_flag_demands_a_period(self, flag):
         assert trend(period='', wind='27010', **{flag: True}).isAcceptable() is False
         assert trend(period='1012/1016', wind='27010', **{flag: True}).isAcceptable() is True
+
+
+class TestTrendStateFromTokens:
+    """A parsed trend group's tokens, read into the state the form renders."""
+
+    def test_nosig_is_carried_over(self):
+        assert TrendState.fromTokens(tokens(nosig='NOSIG'), 'MPS', []).isNosig is True
+
+    @pytest.mark.parametrize('sign', ['BECMG', 'TEMPO'])
+    def test_the_sign_becomes_the_indicator(self, sign):
+        assert TrendState.fromTokens(tokens(sign=sign), 'MPS', []).indicator == sign
+
+    def test_fm_and_tl_share_one_period(self):
+        state = TrendState.fromTokens(tokens(fmtl='FM0912 TL1016'), 'MPS', [])
+        assert (state.fmChecked, state.tlChecked, state.atChecked) == (True, True, False)
+        assert state.period == '0912/1016'
+
+    @pytest.mark.parametrize('flag,prefix', [('atChecked', 'AT'), ('fmChecked', 'FM'), ('tlChecked', 'TL')])
+    def test_a_single_time_keeps_its_prefix_as_the_flag(self, flag, prefix):
+        state = TrendState.fromTokens(tokens(fmtl=prefix + '0912'), 'MPS', [])
+        assert getattr(state, flag) is True
+        assert state.period == '0912'
+
+    def test_the_wind_loses_its_unit_and_keeps_the_gust_apart(self):
+        state = TrendState.fromTokens(tokens(wind='24008G15MPS'), 'MPS', [])
+        assert (state.wind, state.gust) == ('24008', '15')
+
+    def test_the_wind_unit_comes_off_in_either_system(self):
+        assert TrendState.fromTokens(tokens(wind='24008KT'), 'KT', []).wind == '24008'
+
+    def test_weather_is_split_by_the_configured_phenomena(self):
+        state = TrendState.fromTokens(tokens(weather='-RA BR'), 'MPS', ['RA'])
+        assert state.weatherWithIntensity == '-RA'
+        assert state.weather == 'BR'
+
+    def test_an_unsigned_phenomenon_follows_the_settings(self):
+        # 'RA' may be listed either way; the settings decide the box,
+        # because only the box that lists it keeps it on the next collect().
+        state = TrendState.fromTokens(tokens(weather='RA'), 'MPS', ['RA'])
+        assert state.weatherWithIntensity == 'RA'
+
+    def test_a_cb_layer_keeps_its_suffix(self):
+        state = TrendState.fromTokens(tokens(cloud='SCT020 BKN030CB'), 'MPS', [])
+        assert state.clouds == ['SCT020', 'BKN030CB']
+
+    def test_a_towering_cumulus_layer_stays_a_layer(self):
+        # The CB box re-suffixes what it holds with 'CB', so TCU cannot go
+        # there without turning into CB on the way back to the message.
+        state = TrendState.fromTokens(tokens(cloud='BKN030TCU'), 'MPS', [])
+        assert state.clouds == ['BKN030TCU']
+
+    def test_nsc_does_not_become_a_layer(self):
+        state = TrendState.fromTokens(tokens(cloud='NSC'), 'MPS', [])
+        assert state.isNsc is True
+        assert state.clouds == []
+
+    def test_sky_clear_stays_a_layer(self):
+        # Only NSC has a box of its own; SKC would be lost if dropped here.
+        state = TrendState.fromTokens(tokens(cloud='SKC'), 'MPS', [])
+        assert state.clouds == ['SKC']
+        assert state.isNsc is False
+
+    def test_cavok_is_carried_over(self):
+        assert TrendState.fromTokens(tokens(cavok='CAVOK'), 'MPS', []).isCavok is True
 
 
 class TestStateClear:

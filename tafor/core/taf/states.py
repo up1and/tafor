@@ -174,6 +174,72 @@ class TrendState(SegmentState):
         self.tlChecked = False
         self.period = ""
 
+    @classmethod
+    def fromTokens(cls, tokens, unit, intensityWeather):
+        """Read a parsed trend group's tokens into a state.
+
+        The token vocabulary is the parser's and the state is the editor's;
+        this is the one place a message becomes form state, so a load goes
+        through here and populate() instead of through the widgets.
+
+        ``intensityWeather`` is the configured phenomena that belong in the
+        intensity box; the box is the one whose validator will keep them.
+        """
+        state = cls(unit)
+        state.isNosig = 'nosig' in tokens
+
+        if 'sign' in tokens:
+            state.indicator = 'BECMG' if tokens['sign']['text'] == 'BECMG' else 'TEMPO'
+
+        if 'fmtl' in tokens:
+            groups = tokens['fmtl']['text'].split()
+            if len(groups) == 2:
+                state.fmChecked = state.tlChecked = True
+                state.period = '{}/{}'.format(groups[0][2:], groups[1][2:])
+            else:
+                prefix, period = groups[0][:2], groups[0][2:]
+                state.atChecked = prefix == 'AT'
+                state.fmChecked = prefix == 'FM'
+                state.tlChecked = prefix == 'TL'
+                state.period = period
+
+        if 'wind' in tokens:
+            # The widget holds the digits; the unit comes from the settings.
+            wind = tokens['wind']['text'].replace('MPS', '').replace('KT', '')
+            if 'G' in wind:
+                state.wind, state.gust = wind.split('G')
+            else:
+                state.wind = wind
+
+        if 'vis' in tokens:
+            state.visibility = tokens['vis']['text']
+
+        if 'weather' in tokens:
+            # Which box a phenomenon belongs in is the settings' call, not
+            # the sign's: only the box that lists it will keep it on the
+            # next collect(). One phenomenon per box, so a later group
+            # replaces an earlier one.
+            for weather in tokens['weather']['text'].split():
+                if weather.lstrip('+-') in intensityWeather:
+                    state.weatherWithIntensity = weather
+                else:
+                    state.weather = weather
+
+        if 'cloud' in tokens:
+            clouds = tokens['cloud']['text'].split()
+            state.isNsc = 'NSC' in clouds
+            # The CB layer is a `clouds` entry marked by its suffix; TCU
+            # stays a layer, because the CB box re-suffixes with 'CB'. SKC
+            # stays one too: only NSC has a box of its own.
+            state.clouds = [cloud for cloud in clouds
+                            if cloud != 'NSC' and not cloud.endswith('CB')]
+            cb = next((cloud for cloud in clouds if cloud.endswith('CB')), None)
+            if cb:
+                state.clouds.append(cb)
+
+        state.isCavok = 'cavok' in tokens
+        return state
+
     def isAcceptable(self):
         if self.isNosig:
             return True

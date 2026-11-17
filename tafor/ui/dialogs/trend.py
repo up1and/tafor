@@ -41,15 +41,12 @@ class TrendPresenter:
         return Trend(text=self.view.text)
 
     def loadFromMetar(self):
-        """Seed the form from the live METAR's trend group.
-        """
+        """Seed the form from the live METAR's trend group."""
         parser = self.context.notification.metar.parser()
-        if parser is None:
+        if parser is None or not parser.trends:
             return
 
-        for i, part in enumerate(parser.trends):
-            if i == 0:
-                self.view.trend.populateFromTokens(part.tokens)
+        self.view.trend.load(parser.trends[0].tokens)
 
     def clear(self):
         self.view.trend.clear()

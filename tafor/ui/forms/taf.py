@@ -1115,68 +1115,18 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         self.period.clear()
         self.setupPeriodValidator()
 
-    def populateFromTokens(self, tokens):
-        if 'sign' in tokens:
-            sign = tokens['sign']['text']
-            if sign == 'BECMG':
-                self.becmg.setChecked(True)
-            else:
-                self.tempo.setChecked(True)
+    def load(self, tokens):
+        """Seed the form from a parsed trend group: state first, then render.
 
-        if 'fmtl' in tokens:
-            periods = tokens['fmtl']['text'].split()
-            if len(periods) == 2:
-                self.fm.setChecked(True)
-                self.tl.setChecked(True)
-                period = periods[0][2:] + '/' + periods[1][2:]
-                self.period.setText(period)
-            else:
-                period = periods[0]
-                if period.startswith('TL'):
-                    self.tl.setChecked(True)
-                if period.startswith('FM'):
-                    self.fm.setChecked(True)
-                if period.startswith('AT'):
-                    self.at.setChecked(True)
-
-                self.period.setText(period[2:])
-
-        if 'wind' in tokens:
-            wind = tokens['wind']['text'].replace('MPS', '')
-            if 'G' in wind:
-                wind, gust = wind.split('G')
-                self.gust.setText(gust)
-
-            self.wind.setText(wind)
-
-        if 'vis' in tokens:
-            vis = tokens['vis']['text']
-            self.vis.setText(vis)
-
-        if 'weather' in tokens:
-            weathers = tokens['weather']['text'].split()
-            for weather in weathers:
-                self.weatherWithIntensity.setCurrentIndex(self.weatherWithIntensity.findText(weather))
-                self.weather.setCurrentIndex(self.weather.findText(weather))
-
-        if 'cloud' in tokens:
-            clouds = tokens['cloud']['text']
-            if 'NSC' in clouds:
-                self.nsc.setChecked(True)
-            else:
-                clouds = clouds.split(' ')
-                lines = [self.cloud3, self.cloud2, self.cloud1]
-                for cloud in clouds:
-                    if 'TCU' in cloud or 'CB' in cloud:
-                        self.cb.setText(cloud[:6])
-                    elif lines:
-                        line = lines.pop()
-                        line.setText(cloud)
-
-        if 'cavok' in tokens:
-            self.cavok.setChecked(True)
-
-        self.reload()
+        The tokens become state and populate() renders it; nothing is read
+        back, so collect() stays the reader for what the operator types. A
+        load is not a user edit, but it is a content change, so it announces
+        itself the way reload() does.
+        """
+        self.state = TrendState.fromTokens(tokens, self.conf.units.tafSpeed,
+                                           self.conf.weatherWithIntensityList)
+        self.populate()
+        self.contentChanged.emit()
 
     def formatPeriod(self):
         if (self.at.isChecked() or self.fm.isChecked() and not self.tl.isChecked()) and self.period.text() == '2400':

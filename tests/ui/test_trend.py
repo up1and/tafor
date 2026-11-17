@@ -15,19 +15,21 @@ def futurePeriod():
     return period
 
 
+@pytest.fixture
+def sender(qtbot, context, conf, database):
+    sender = TrendSender(None, context, conf, repository=MessageRepository(database))
+    qtbot.addWidget(sender)
+    return sender
+
+
+@pytest.fixture
+def editor(qtbot, sender, conf, context):
+    editor = TrendEditor(None, sender=sender, conf=conf, context=context)
+    qtbot.addWidget(editor)
+    return editor
+
+
 class TestTrendEditor:
-
-    @pytest.fixture
-    def sender(self, qtbot, context, conf, database):
-        sender = TrendSender(None, context, conf, repository=MessageRepository(database))
-        qtbot.addWidget(sender)
-        return sender
-
-    @pytest.fixture
-    def editor(self, qtbot, sender, conf, context):
-        editor = TrendEditor(None, sender=sender, conf=conf, context=context)
-        qtbot.addWidget(editor)
-        return editor
 
     def test_construct(self, editor):
         assert editor.trend.state is not None
@@ -107,6 +109,63 @@ class TestTrendEditor:
         assert editor.trend.message() == 'BECMG'
         assert not editor.trend.hasAcceptableInput()
         assert not editor.nextButton.isEnabled()
+
+
+class TestTrendLoading:
+    """The form seeds itself from the live METAR's trend group.
+
+    The seed used to go through the widgets: the tokens wrote them, reload()
+    read them back, and whatever the widgets could not hold was dropped on
+    the way. The tokens now become the state, and populate() renders it.
+    """
+
+    def seed(self, context, message):
+        context.notification.metar.setState({'message': message, 'validation': True})
+
+    def test_a_trend_group_fills_the_form_and_enables_next(self, editor, context):
+        self.seed(context, 'METAR ZJHK 210900Z 14004MPS 4500 TEMPO 24008G15MPS -RA BKN030CB=')
+
+        editor.presenter.loadFromMetar()
+
+        trend = editor.trend
+        assert trend.wind.text() == '24008'
+        assert trend.gust.text() == '15'
+        assert trend.weatherWithIntensity.currentText() == '-RA'
+        assert trend.cb.text() == 'BKN030'
+        assert trend.message() == 'TEMPO 24008G15MPS -RA BKN030CB'
+        assert editor.nextButton.isEnabled()
+
+    def test_a_nosig_metar_checks_nosig(self, editor, context):
+        self.seed(context, 'METAR ZJHK 210900Z 14004MPS 4500 BR NSC NOSIG=')
+
+        editor.presenter.loadFromMetar()
+
+        assert editor.trend.nosig.isChecked()
+        assert editor.trend.message() == 'NOSIG'
+        assert editor.nextButton.isEnabled()
+
+    def test_a_time_group_lands_in_the_period(self, editor, context):
+        self.seed(context, 'METAR ZJHK 210900Z 14004MPS 4500 TEMPO FM0915 TL1000 -RA=')
+
+        editor.presenter.loadFromMetar()
+
+        trend = editor.trend
+        assert (trend.fm.isChecked(), trend.tl.isChecked()) == (True, True)
+        assert trend.period.text() == '0915/1000'
+
+    def test_a_second_load_replaces_what_the_first_wrote(self, editor, context):
+        self.seed(context, 'METAR ZJHK 210900Z 14004MPS 4500 TEMPO 24008G15MPS -RA BKN030CB=')
+        editor.presenter.loadFromMetar()
+        assert editor.trend.cb.text()
+
+        self.seed(context, 'METAR ZJHK 211000Z 25006MPS 9999 TEMPO BR=')
+        editor.presenter.loadFromMetar()
+
+        trend = editor.trend
+        assert trend.wind.text() == ''
+        assert trend.gust.text() == ''
+        assert trend.cb.text() == ''
+        assert trend.weather.currentText() == 'BR'
 
 
 if __name__ == '__main__':
