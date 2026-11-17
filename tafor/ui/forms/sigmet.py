@@ -4,8 +4,8 @@ import logging
 from itertools import cycle
 
 from PyQt5.QtGui import QRegExpValidator, QIntValidator, QTextCharFormat, QTextCursor, QFont, QPixmap, QIcon
-from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QToolButton
+from PyQt5.QtCore import Qt, QRegExp, QCoreApplication, QSignalBlocker, pyqtSignal
+from PyQt5.QtWidgets import QComboBox, QWidget, QLabel, QLineEdit, QToolButton
 
 from tafor.core.parsers.base import Pattern
 from tafor.core.parsers.advisory import AshAdvisoryParser, TyphoonAdvisoryParser
@@ -104,18 +104,27 @@ class BaseSigmet(TextFieldMixin, QWidget):
 
         for widget in self.fields():
             if isinstance(widget, QLineEdit):
-                widget.textChanged.connect(self.onContentChanged)
-                widget.textEdited.connect(lambda _, current=widget: self.upperText(current))
                 widget.textChanged.connect(lambda _, current=widget: self.coloredText(current))
+                widget.textEdited.connect(lambda _, current=widget: self.upperText(current))
+                widget.textEdited.connect(self.onUserEdited)
+            elif isinstance(widget, QComboBox):
+                # The templates only expose non-editable combos; a user pick
+                # fires activated. The one editable combo, cancelSequence,
+                # contributes its line edit to fields() itself and takes the
+                # branch above.
+                widget.activated.connect(self.onUserEdited)
             else:
-                widget.currentTextChanged.connect(self.onContentChanged)
+                raise TypeError('Unsupported input widget: {}'.format(type(widget).__name__))
 
         for part in self.parts:
             part.bindSignal()
 
-    def onContentChanged(self):
-        self.collect()
-        self.contentChanged.emit()
+    def onUserEdited(self, *args):
+        sender = self.sender()
+        if sender in (self.beginningTime, self.endingTime):
+            self.updateDurations()
+
+        self.reload()
 
     def fields(self):
         """Every input widget whose value feeds the state, the parts' included."""
@@ -194,28 +203,24 @@ class BaseSigmet(TextFieldMixin, QWidget):
     def span(self):
         return self.editor.span
 
-    def applyState(self):
+    def populate(self):
         """Write the header fields back from the state, the inverse of collect().
 
-        Read the state out first: every write below fires textChanged, which
-        re-enters collect() and rewrites self.state from the widgets that have
-        not been written yet, so rendering straight from self.state would make
-        the result depend on the order of the writes.
+        These are programmatic writes: derived textChanged handlers still run,
+        but textEdited/activated do not, so the header cannot collect the parts
+        before they get their turn.
         """
-        sequence = self.state.header.sequence
-        beginningTime = self.state.header.beginningTime
-        endingTime = self.state.header.endingTime
-
-        self.sequence.setText(sequence)
-        self.beginningTime.setText(beginningTime)
-        self.endingTime.setText(endingTime)
+        self.sequence.setText(self.state.header.sequence)
+        self.beginningTime.setText(self.state.header.beginningTime)
+        self.endingTime.setText(self.state.header.endingTime)
 
         for part in self.parts:
-            part.applyState()
+            part.populate()
 
     def clear(self):
         self.state.clear()
-        self.applyState()
+        self.populate()
+        self.contentChanged.emit()
 
         for part in self.parts:
             part.clear()
@@ -252,7 +257,7 @@ class SigmetPart:
     def collect(self):
         pass
 
-    def applyState(self):
+    def populate(self):
         pass
 
     def setupValidator(self):
@@ -285,15 +290,10 @@ class FlightLevelPart(SigmetPart):
         self.widget.state.flightLevelBase = self.base.text()
         self.widget.state.flightLevelTop = self.top.text()
 
-    def applyState(self):
-        state = self.widget.state
-        flightLevelFormat = state.flightLevelFormat
-        base = state.flightLevelBase
-        top = state.flightLevelTop
-
-        self.format.setCurrentIndex(self.format.findText(flightLevelFormat))
-        self.base.setText(base)
-        self.top.setText(top)
+    def populate(self):
+        self.format.setCurrentIndex(self.format.findText(self.widget.state.flightLevelFormat))
+        self.base.setText(self.widget.state.flightLevelBase)
+        self.top.setText(self.widget.state.flightLevelTop)
 
     def setupValidator(self):
         self.base.setValidator(QIntValidator(1, 999, self.base))
@@ -357,13 +357,9 @@ class MovementPart(SigmetPart):
         self.widget.state.direction = self.direction.currentText()
         self.widget.state.speed = self.speed.text() if self.speed.hasAcceptableInput() else ''
 
-    def applyState(self):
-        state = self.widget.state
-        direction = state.direction
-        speed = state.speed
-
-        self.direction.setCurrentIndex(self.direction.findText(direction))
-        self.speed.setText(speed)
+    def populate(self):
+        self.direction.setCurrentIndex(self.direction.findText(self.widget.state.direction))
+        self.speed.setText(self.widget.state.speed)
 
     def setupValidator(self):
         self.speed.setValidator(QIntValidator(1, 99, self.speed))
@@ -398,13 +394,9 @@ class ObservationPart(SigmetPart):
         self.widget.state.comeFrom = self.comeFrom.currentText()
         self.widget.state.observedTime = self.observedTime.text() if self.observedTime.hasAcceptableInput() else ''
 
-    def applyState(self):
-        state = self.widget.state
-        comeFrom = state.comeFrom
-        observedTime = state.observedTime
-
-        self.comeFrom.setCurrentIndex(self.comeFrom.findText(comeFrom))
-        self.observedTime.setText(observedTime)
+    def populate(self):
+        self.comeFrom.setCurrentIndex(self.comeFrom.findText(self.widget.state.comeFrom))
+        self.observedTime.setText(self.widget.state.observedTime)
 
     def setupValidator(self):
         self.observedTime.setValidator(QRegExpValidator(QRegExp(self.widget.rules.time)))
@@ -441,14 +433,12 @@ class ForecastPart(SigmetPart):
     def collect(self):
         self.widget.state.forecastTime = self.forecastTime.text()
 
-    def applyState(self):
-        state = self.widget.state
-        hasForecast = state.hasForecast
-        forecastTime = state.forecastTime
+    def populate(self):
+        hasForecast = self.widget.state.hasForecast
 
         self.forecastTime.setEnabled(hasForecast)
         self.forecastTimeLabel.setEnabled(hasForecast)
-        self.forecastTime.setText(forecastTime)
+        self.forecastTime.setText(self.widget.state.forecastTime)
 
     def setupValidator(self):
         self.forecastTime.setValidator(QRegExpValidator(QRegExp(self.widget.rules.time)))
@@ -781,6 +771,7 @@ class SigmetGeneral(BaseSigmet, Ui_sigmet_general.Ui_Editor):
         self.setPhenomena()
         self.setFcstOrObs()
         self.setFlightLevelFormat('TS')
+        self.collect()
 
     def bindSignal(self):
         super().bindSignal()
@@ -796,15 +787,11 @@ class SigmetGeneral(BaseSigmet, Ui_sigmet_general.Ui_Editor):
         self.state.phenomenon = self.phenomenon.currentText()
         self.state.intensityChange = self.intensityChange.currentText()
 
-    def applyState(self):
-        description = self.state.description
-        phenomenon = self.state.phenomenon
-        intensityChange = self.state.intensityChange
-
-        super().applyState()
-        self.description.setCurrentIndex(self.description.findText(description))
-        self.phenomenon.setCurrentIndex(self.phenomenon.findText(phenomenon))
-        self.intensityChange.setCurrentIndex(self.intensityChange.findText(intensityChange))
+    def populate(self):
+        super().populate()
+        self.description.setCurrentIndex(self.description.findText(self.state.description))
+        self.phenomenon.setCurrentIndex(self.phenomenon.findText(self.state.phenomenon))
+        self.intensityChange.setCurrentIndex(self.intensityChange.findText(self.state.intensityChange))
 
     def setPhenomenaDescription(self):
         self.description.addItems(self.descriptions)
@@ -850,6 +837,7 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
         self.setPhenomena()
         self.setFcstOrObs()
         self.advisoryParser = TyphoonAdvisoryParser
+        self.collect()
 
     def bindSignal(self):
         super().bindSignal()
@@ -885,28 +873,18 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
         self.state.top = self.top.text() if self.top.hasAcceptableInput() else ''
         self.state.intensityChange = self.intensityChange.currentText()
 
-    def applyState(self):
-        state = self.state
-        name = state.name
-        top = state.top
-        intensityChange = state.intensityChange
-        currentLatitude = state.currentLatitude
-        currentLongitude = state.currentLongitude
-        forecastLatitude = state.forecastLatitude
-        forecastLongitude = state.forecastLongitude
-        radius = state.radius
-
-        super().applyState()
-        self.name.setText(name)
-        self.top.setText(top)
-        self.intensityChange.setCurrentIndex(self.intensityChange.findText(intensityChange))
-        # Radius before the coordinates: writing the centre re-derives the
-        # circle, and the intermediate collect would otherwise drop the radius.
-        self.radius.setText(radius)
-        self.currentLatitude.setText(currentLatitude)
-        self.currentLongitude.setText(currentLongitude)
-        self.forecastLatitude.setText(forecastLatitude)
-        self.forecastLongitude.setText(forecastLongitude)
+    def populate(self):
+        super().populate()
+        self.name.setText(self.state.name)
+        self.top.setText(self.state.top)
+        self.intensityChange.setCurrentIndex(self.intensityChange.findText(self.state.intensityChange))
+        # Radius before the centre: moving the centre re-derives the forecast
+        # position, and that derivation reads the radius from the state.
+        self.radius.setText(self.state.radius)
+        self.currentLatitude.setText(self.state.currentLatitude)
+        self.currentLongitude.setText(self.state.currentLongitude)
+        self.forecastLatitude.setText(self.state.forecastLatitude)
+        self.forecastLongitude.setText(self.state.forecastLongitude)
 
     def setupValidator(self):
         super().setupValidator()
@@ -1009,6 +987,7 @@ class SigmetAsh(BaseSigmet, Ui_sigmet_ash.Ui_Editor):
         self.setPhenomena()
         self.setFcstOrObs()
         self.advisoryParser = AshAdvisoryParser
+        self.collect()
 
     def bindSignal(self):
         super().bindSignal()
@@ -1027,27 +1006,21 @@ class SigmetAsh(BaseSigmet, Ui_sigmet_ash.Ui_Editor):
         self.state.intensityChange = self.intensityChange.currentText()
         self.state.isEruption = self.phenomenon.currentText() == 'ERUPTION'
 
-    def applyState(self):
-        state = self.state
-        isEruption = state.isEruption
-        name = state.name
-        currentLatitude = state.currentLatitude
-        currentLongitude = state.currentLongitude
-        intensityChange = state.intensityChange
-
-        super().applyState()
-        self.name.setText(name)
+    def populate(self):
+        isEruption = self.state.isEruption
+        super().populate()
+        self.name.setText(self.state.name)
         self.name.setEnabled(isEruption)
         self.nameLabel.setEnabled(isEruption)
         self.currentLatitude.setEnabled(isEruption)
         self.currentLatitudeLabel.setEnabled(isEruption)
         self.currentLongitude.setEnabled(isEruption)
         self.currentLongitudeLabel.setEnabled(isEruption)
-        self.currentLatitude.setText(currentLatitude)
-        self.currentLongitude.setText(currentLongitude)
-        self.intensityChange.setCurrentIndex(self.intensityChange.findText(intensityChange))
+        self.currentLatitude.setText(self.state.currentLatitude)
+        self.currentLongitude.setText(self.state.currentLongitude)
+        self.intensityChange.setCurrentIndex(self.intensityChange.findText(self.state.intensityChange))
 
-        index = self.phenomenon.findText(state.phenomenon)
+        index = self.phenomenon.findText(self.state.phenomenon)
         self.phenomenon.setCurrentIndex(index if index >= 0 else 0)
 
     def setupValidator(self):
@@ -1119,6 +1092,7 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
         self.setupUi(self)
         self.state = SigmetCancelState(header=header)
         self.initialize()
+        self.collect()
 
     def bindSignal(self):
         super().bindSignal()
@@ -1138,15 +1112,22 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
         self.state.cancelBeginningTime = self.cancelBeginningTime.text()
         self.state.cancelEndingTime = self.cancelEndingTime.text()
 
-    def applyState(self):
-        cancelSequence = self.state.cancelSequence
-        cancelBeginningTime = self.state.cancelBeginningTime
-        cancelEndingTime = self.state.cancelEndingTime
+    def onUserEdited(self, *args):
+        # Typing in the editable sequence fires textEdited before the combo's
+        # currentTextChanged, so fill the cancelled period before collecting it.
+        sender = self.sender()
+        if sender is self.cancelSequence.lineEdit():
+            self.setValids(self.cancelSequence.currentText())
+        elif sender in (self.cancelBeginningTime, self.cancelEndingTime):
+            self.syncValidsTime()
 
-        super().applyState()
-        self.cancelSequence.setCurrentIndex(self.cancelSequence.findText(cancelSequence))
-        self.cancelBeginningTime.setText(cancelBeginningTime)
-        self.cancelEndingTime.setText(cancelEndingTime)
+        super().onUserEdited(*args)
+
+    def populate(self):
+        super().populate()
+        self.cancelSequence.setCurrentIndex(self.cancelSequence.findText(self.state.cancelSequence))
+        self.cancelBeginningTime.setText(self.state.cancelBeginningTime)
+        self.cancelEndingTime.setText(self.state.cancelEndingTime)
 
     def setupValidator(self):
         super().setupValidator()
@@ -1216,21 +1197,26 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         self.setupApiSign()
         self.initialize()
         self.upperTextEdit()
+        self.collect()
 
     def bindSignal(self):
         super().bindSignal()
-        self.text.textChanged.connect(self.filterText)
-        self.text.textChanged.connect(self.onContentChanged)
+        self.text.textChanged.connect(self.onUserEdited)
+
+    def onUserEdited(self, *args):
+        # The filter is part of the commit: let the text edited by the operator
+        # settle into its allowed form, then read that form into the state.
+        self.filterText()
+        super().onUserEdited()
 
     def collect(self):
         super().collect()
         self.state.text = self.text.toPlainText().strip()
 
-    def applyState(self):
-        text = self.state.text
-
-        super().applyState()
-        self.text.setPlainText(text)
+    def populate(self):
+        super().populate()
+        with QSignalBlocker(self.text):
+            self.text.setPlainText(self.state.text)
 
     def filterText(self):
         origin = self.text.toPlainText()
@@ -1239,7 +1225,8 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         if origin != text:
             cursor = self.text.textCursor()
             pos = cursor.position()
-            self.text.setText(text)
+            with QSignalBlocker(self.text):
+                self.text.setText(text)
             cursor.movePosition(QTextCursor.Left, QTextCursor.MoveAnchor, len(text) - pos)
             self.text.setTextCursor(cursor)
 
@@ -1274,16 +1261,16 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         self.apiSign.setVisible(bool(rv) and rv[0] == 'notification')
 
         if not rv:
-            self.text.clear()
+            self.setText('')
             return
 
         _, message = rv
         fir = self.conf.firName or ''
-        text = message.replace(fir, '').replace('=', '').strip()
-        self.setText(text)
+        self.setText(message.replace(fir, '').replace('=', '').strip())
 
     def setText(self, message):
-        self.text.setText(message)
+        with QSignalBlocker(self.text):
+            self.text.setText(message)
         self.text.moveCursor(QTextCursor.End)
 
     def resizeEvent(self, event):

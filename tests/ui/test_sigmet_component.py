@@ -91,6 +91,16 @@ def store_sigmet(database, text, type='WS'):
     return sigmet
 
 
+def choose(combo, text):
+    index = combo.findText(text)
+    combo.setCurrentIndex(index)
+    combo.activated.emit(index)
+
+
+def user_edit(widget, text):
+    widget.setPlainText(text)
+
+
 class TestSigmetPresenter:
 
     @pytest.fixture
@@ -280,7 +290,7 @@ class TestSigmetEditor:
         assert editor.currentForm.span() == validDuration('WC')
 
     def test_reclicking_the_checked_radio_does_not_reset_the_canvas(self, editor, monkeypatch):
-        # radio clicked fires even on the already-checked radio; the render
+        # radio clicked fires even on the already-checked radio; the path
         # gated on draft.select() must not re-run configureMode, which
         # clears the drawn sketch
         calls = []
@@ -292,7 +302,7 @@ class TestSigmetEditor:
 
     def test_message_from_custom_content_appends_equals(self, editor):
         editor.custom.click()
-        editor.customForm.text.setPlainText('ZJSA SANYA FIR OBSC TS')
+        user_edit(editor.customForm.text, 'ZJSA SANYA FIR OBSC TS')
 
         message = editor.compose()
 
@@ -347,11 +357,11 @@ class TestSigmetEditor:
         assert editor.generalContent.state.hasForecast is False
 
     def test_the_phenomenon_switch_writes_the_state_eruption_flag(self, editor):
-        editor.ashContent.phenomenon.setCurrentText('CLD')
+        choose(editor.ashContent.phenomenon, 'CLD')
         assert editor.ashContent.state.isEruption is False
         assert editor.ashContent.state.phenomenon == 'CLD'
 
-        editor.ashContent.phenomenon.setCurrentText('ERUPTION')
+        choose(editor.ashContent.phenomenon, 'ERUPTION')
         assert editor.ashContent.state.isEruption is True
         assert editor.ashContent.state.phenomenon == 'ERUPTION'
 
@@ -359,7 +369,7 @@ class TestSigmetEditor:
         editor.tropicalCyclone.click()
         content = editor.typhoonContent
 
-        content.intensityChange.setCurrentText('INTSF')
+        choose(content.intensityChange, 'INTSF')
 
         assert content.state.intensityChange == 'INTSF'
         assert 'INTSF' in editor.compose().text
@@ -368,7 +378,7 @@ class TestSigmetEditor:
         editor.volcanicAsh.click()
         content = editor.ashContent
 
-        content.intensityChange.setCurrentText('WKN')
+        choose(content.intensityChange, 'WKN')
 
         assert content.state.intensityChange == 'WKN'
 
@@ -385,7 +395,7 @@ class TestSigmetEditor:
         state.forecastLongitude = 'E11050'
         state.radius = '300'
 
-        content.applyState()
+        content.populate()
 
         assert content.name.text() == 'YAGI'
         assert content.top.text() == '420'
@@ -401,7 +411,7 @@ class TestSigmetEditor:
         content = editor.generalContent
         content.state.intensityChange = 'INTSF'
 
-        content.applyState()
+        content.populate()
 
         assert content.intensityChange.currentText() == 'INTSF'
         assert content.state.intensityChange == 'INTSF'
@@ -425,7 +435,7 @@ class TestSigmetEditor:
 
     def test_clear_resets_the_state_and_the_text_widget(self, editor):
         # was pinned as a bug (state cleared, text widget kept stale content)
-        # until applyState() gave clear() its render direction
+        # until populate() gave clear() its write direction
         editor.customForm.text.setPlainText('SOME TEXT')
         editor.clear()
 
@@ -468,9 +478,13 @@ class TestSigmetEditor:
             if isinstance(widget, QComboBox):
                 if widget.count() < 2:
                     continue
-                widget.setCurrentIndex(1 if widget.currentIndex() == 0 else 0)
+                index = 1 if widget.currentIndex() == 0 else 0
+                widget.setCurrentIndex(index)
+                widget.activated.emit(index)
             else:
-                widget.setText(widget.text() + 'X')
+                text = widget.text() + 'X'
+                widget.setText(text)
+                widget.textEdited.emit(text)
             assert changed, '{} did not announce'.format(widget.objectName())
 
     def test_general_inputs_announce_content_changed(self, editor, qtbot):
@@ -491,7 +505,7 @@ class TestSigmetEditor:
 
         changed = []
         editor.customForm.contentChanged.connect(lambda: changed.append(1))
-        editor.customForm.text.setPlainText('X')
+        user_edit(editor.customForm.text, 'X')
         assert changed
 
     def test_close_clears_sigmet_notification(self, editor, context):

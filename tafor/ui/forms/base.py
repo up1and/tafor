@@ -22,6 +22,17 @@ class TextFieldMixin:
         else:
             line.setStyleSheet(invalidTextStyle)
 
+    def reload(self):
+        """Adopt what the widgets now say: read them into the state, announce.
+
+        Filling widgets is not a user edit, so textEdited does not fire; whoever
+        wrote the widgets has to say so here. Every programmatic write that
+        the editor cares about ends with this call -- state has one writer,
+        collect(), and this is the pair that tells the editor it happened.
+        """
+        self.collect()
+        self.contentChanged.emit()
+
     def setupFont(self):
         font = fixedFont()
         for line in self.findChildren(QLineEdit):

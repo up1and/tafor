@@ -59,6 +59,7 @@ class TestTrendEditor:
         trend.cavok.click()
         trend.at.click()
         trend.period.setText(period)
+        trend.period.textEdited.emit(period)
 
         assert editor.nextButton.isEnabled()
         assert trend.message() == 'BECMG AT{} CAVOK'.format(period)

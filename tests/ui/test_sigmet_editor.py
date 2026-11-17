@@ -63,7 +63,7 @@ def editor():
 @pytest.fixture
 def general(qtbot, conf, editor, frozen_time):
     widget = SigmetGeneral(header=editor.draft.header, editor=editor, conf=conf)
-    render(widget, 1)
+    begin(widget, 1)
     qtbot.addWidget(widget)
     return widget
 
@@ -71,7 +71,7 @@ def general(qtbot, conf, editor, frozen_time):
 @pytest.fixture
 def custom(qtbot, conf, editor, frozen_time):
     widget = SigmetCustom(header=editor.draft.header, editor=editor, conf=conf)
-    render(widget, 1)
+    begin(widget, 1)
     qtbot.addWidget(widget)
     return widget
 
@@ -79,17 +79,33 @@ def custom(qtbot, conf, editor, frozen_time):
 @pytest.fixture
 def cancel(qtbot, conf, editor, frozen_time):
     widget = SigmetCancel(header=editor.draft.header, editor=editor, conf=conf)
-    render(widget, 1)
+    begin(widget, 1)
     qtbot.addWidget(widget)
     return widget
 
 
-def render(widget, sequence):
-    """The two calls the editor makes when a draft begins in this form: the
-    number, then the period. The form's own data (candidates, custom text) is
-    fed separately, by the tests that care about it."""
+def begin(widget, sequence):
+    """The calls the editor makes when a draft begins in this form: the number,
+    then the period, then the one read-back that adopts them.
+
+    The setters only write widgets -- writing is not a user edit, so nothing
+    collects them on its own. reload() is that step, and it is the editor's.
+    """
     widget.setSequence(sequence)
     widget.resetPeriod()
+    widget.reload()
+
+
+def choose(combo, text):
+    """Pick a combo entry the way the operator does."""
+    index = combo.findText(text)
+    combo.setCurrentIndex(index)
+    combo.activated.emit(index)
+
+
+def user_edit(widget, text):
+    """Type into the plain text edit, the way an operator does."""
+    widget.setPlainText(text)
 
 
 def candidates(context, conf, designator='WS'):
@@ -183,16 +199,48 @@ class TestSigmetGeneral:
     def test_the_period_follows_the_drafts_span(self, general, editor):
         editor.draft.select('typhoon')
 
-        render(general, 1)
+        begin(general, 1)
 
         assert general.span() == validDuration('WC')
         assert general.state.durations[1] - general.state.durations[0] == datetime.timedelta(hours=6)
 
     def test_the_header_renders_the_sequence_it_was_handed(self, general):
-        render(general, 7)
+        begin(general, 7)
 
         assert general.sequence.text() == '7'
         assert general.state.header.sequence == '7'
+
+    def test_a_header_change_does_not_revert_the_parts_being_rendered(self, general):
+        # The header is written before the parts. A header write must not
+        # collect the parts from their old widgets and undo what populate() wrote.
+        general.state.header.sequence = '7'
+        general.state.comeFrom = 'OBS'
+        general.state.observedTime = '0750'
+        general.state.flightLevelFormat = 'TOP'
+        general.state.flightLevelTop = '360'
+        general.state.direction = 'W'
+        general.state.speed = '20'
+
+        general.populate()
+
+        assert general.sequence.text() == '7'
+        assert general.comeFrom.currentText() == 'OBS'
+        assert general.observedTime.text() == '0750'
+        assert general.format.currentText() == 'TOP'
+        assert general.top.text() == '360'
+        assert general.direction.currentText() == 'W'
+        assert general.speed.text() == '20'
+        assert general.state.observedTime == '0750'
+        assert general.state.flightLevelTop == '360'
+        assert general.state.speed == '20'
+
+    def test_a_programmatic_write_does_not_commit(self, general):
+        general.observedTime.setText('0750')
+
+        assert general.state.observedTime == ''
+
+        general.observedTime.textEdited.emit('0750')
+        assert general.state.observedTime == '0750'
 
     def test_sequence_counts_todays_sigmets(self, conf, context, database, frozen_time):
         seed_sigmet(database, 'ZJSA SIGMET 1 VALID 100730/101430 ZJHK-', 'ZJSA SANYA FIR OBSC TS=')
@@ -202,12 +250,12 @@ class TestSigmetGeneral:
         assert presenter.nextSequence('WS') == 2
 
     def test_phenomenon_list_follows_description(self, general):
-        general.description.setCurrentText('SEV')
+        choose(general.description, 'SEV')
         phenomena = [general.phenomenon.itemText(i) for i in range(general.phenomenon.count())]
         assert 'TURB' in phenomena
         assert general.state.description == 'SEV'
 
-        general.description.setCurrentText('HVY')
+        choose(general.description, 'HVY')
         phenomena = [general.phenomenon.itemText(i) for i in range(general.phenomenon.count())]
         assert phenomena == ['DS', 'SS']
 
@@ -227,18 +275,18 @@ class TestSigmetCustom:
         assert custom.sequence.text() == '1'
 
     def test_filter_text_uppercases_and_keeps_allowed_characters(self, custom):
-        custom.text.setPlainText('embd ts (obs) 12,3 a-b.c/d')
+        user_edit(custom.text, 'embd ts (obs) 12,3 a-b.c/d')
 
         assert custom.text.toPlainText() == 'EMBD TS (OBS) 12,3 A-B.C/D'
 
     def test_filter_text_strips_unwanted_characters(self, custom):
         # '=' must not survive: the state closes the message with it
-        custom.text.setPlainText('AB#CD$12=')
+        user_edit(custom.text, 'AB#CD$12=')
 
         assert custom.text.toPlainText() == 'ABCD12'
 
     def test_sync_to_state_strips_whitespace(self, custom):
-        custom.text.setPlainText(' TS OBS ')
+        user_edit(custom.text, ' TS OBS ')
 
         assert custom.state.text == 'TS OBS'
 
@@ -317,6 +365,20 @@ class TestSigmetCancel:
 
         assert cancel.cancelBeginningTime.text() == '092330'
         assert cancel.cancelEndingTime.text() == '100500'
+
+    def test_typing_a_cancel_sequence_commits_the_candidate_period(
+            self, cancel, qtbot, context, conf):
+        context.current.setState([cancelEditorSigmet()])
+        cancel.setCandidates(candidates(context, conf))
+
+        line = cancel.cancelSequence.lineEdit()
+        line.clear()
+        line.setFocus()
+        qtbot.keyClicks(line, '2')
+
+        assert cancel.state.cancelSequence == '2'
+        assert cancel.state.cancelBeginningTime == '100930'
+        assert cancel.state.cancelEndingTime == '101430'
 
 
 if __name__ == '__main__':

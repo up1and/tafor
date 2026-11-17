@@ -38,6 +38,7 @@ def fill(segment):
     segment.cloud1.setText(CONTENT['cloud1'])
     segment.cloud2.setText(CONTENT['cloud2'])
     segment.cb.setText(CONTENT['cb'])
+    segment.collect()
 
 
 def open_header(editor):
@@ -144,9 +145,8 @@ class TestTafEditor:
         assert primary.state.sequence == 'AAA'
 
     def test_the_modifier_radio_collects_on_its_own(self, editor):
-        # the radios emit toggled before clicked, and toggles() is wired to
-        # onContentChanged, so the state follows them without waiting for a
-        # hand-written collect()
+        # the radios are wired through clicked, the user-intent signal, so the
+        # state follows them without waiting for a hand-written collect()
         primary = editor.primary
         primary.setDate()
         primary.amd.click()
@@ -212,7 +212,7 @@ class TestTafEditor:
 
         primary.tempo2Checkbox.setChecked(True)
 
-        # the sixth is refused, and the render puts the checkbox back
+        # the sixth is refused, and populating puts the checkbox back
         assert editor.draft.selectedKeys() == (('FM', 1), ('BECMG', 1), ('BECMG', 2), ('BECMG', 3),
                                                ('TEMPO', 1))
         assert not primary.tempo2Checkbox.isChecked()
@@ -234,6 +234,7 @@ class TestTafEditor:
         primary = editor.primary
         primary.cloud1.setText('SCT020')
         primary.cb.setText('SCT020')
+        primary.collect()
 
         primary.validateCloud(primary.cloud1)
         primary.validateCloud(primary.cb)
@@ -242,12 +243,26 @@ class TestTafEditor:
         assert primary.cb.text() == 'SCT020'
         assert primary.state.clouds == ['SCT020', 'SCT020CB']
 
+    def test_a_user_edit_runs_its_cross_field_derivation_before_committing(self, editor):
+        # textEdited fires before textChanged. A zero wind clears the gust
+        # through textChanged, so the commit must run that derivation first.
+        primary = open_header(editor)
+        primary.gust.setText('15')
+        primary.collect()
+
+        with QSignalBlocker(primary.wind):
+            primary.wind.setText('00000')
+        primary.wind.textEdited.emit('00000')
+
+        assert primary.gust.text() == ''
+        assert primary.state.gust == ''
+
 
 class TestTafGroupOverlap:
     """The overlap checks take their siblings from the draft's selection, not
     from `isVisible()` (design 5.4).
 
-    Visibility is the render's business, and it is false for every group while
+    Visibility belongs to populate(), and it is false for every group while
     the editor is off screen — which is every run of this file. Reading it there
     made both checks unreachable rather than merely untested.
     """
@@ -386,6 +401,7 @@ class TestTafTemperatureIsRequired:
         for temperature, value, time in zip(primary.temperatures, ('12', 'M03'), ('1012', '1015')):
             temperature.temp.setText(value)
             temperature.tempTime.setText(time)
+            temperature.onUserEdited()
 
         assert editor.presenter.hasAcceptableInput() is True
         assert editor.nextButton.isEnabled()
@@ -426,6 +442,7 @@ class TestTafTemperatureGroupsPerSpec:
         for temperature, value, time in zip(primary.temperatures, ('12', 'M03'), ('1012', '1015')):
             temperature.temp.setText(value)
             temperature.tempTime.setText(time)
+            temperature.onUserEdited()
 
         assert [t.state.isAcceptable() for t in primary.temperatures] == [True, True, False]
         assert editor30.presenter.hasAcceptableInput() is False
@@ -438,6 +455,7 @@ class TestTafTemperatureGroupsPerSpec:
                                             ('1012', '1015', '1018')):
             temperature.temp.setText(value)
             temperature.tempTime.setText(time)
+            temperature.onUserEdited()
 
         assert [t.state.isAcceptable() for t in primary.temperatures] == [True, True, True]
         assert editor30.presenter.hasAcceptableInput() is True
@@ -453,7 +471,7 @@ class TestTafPeriodReanchor:
     window moves. No event carries the news to the groups; the clear is the
     news. This pins the whole chain -- the reset of `GroupState.durations`
     itself is pinned in `tests/core/test_taf_states.py::TestStateClear`,
-    because the render path would cover for it here.
+    because populating would cover for it here.
     """
 
     def test_moving_the_period_drops_the_group_windows(self, editor):
@@ -464,6 +482,7 @@ class TestTafPeriodReanchor:
         start, end = primary.state.durations
         period = '{:02d}{:02d}/{:02d}{:02d}'.format(start.day, start.hour, end.day, end.hour)
         group.period.setText(period)
+        group.collect()          # a programmatic fill is read by collect()
         assert group.state.durations is not None
 
         # The slot asks the operator first, then steps the draft and refills the
@@ -474,6 +493,31 @@ class TestTafPeriodReanchor:
         assert editor.selectedGroups() == []
         assert group.state.period == ''
         assert group.state.durations is None
+
+
+class TestTafGroupPeriodCommit:
+    """One keystroke in a group period commits once, after the completion.
+
+    The period used to be wired twice: the generic textEdited -> onUserEdited
+    read the half-typed text, then the completion wrote the full period and
+    read again. Both fired, so the state was briefly the thing the operator
+    had not finished typing.
+    """
+
+    def test_typing_in_the_period_announces_once(self, editor):
+        primary = open_header(editor)
+        primary.becmg1Checkbox.setChecked(True)
+        group = editor.becmg1
+
+        changed = []
+        group.contentChanged.connect(lambda: changed.append(group.state.period))
+
+        group.period.setText('1009/10')
+        group.period.textEdited.emit('1009/10')
+
+        assert len(changed) == 1
+        assert changed[0] == group.period.text()
+        assert group.state.period == group.period.text()
 
 
 class TestTafTemperatureNotifications:
@@ -494,11 +538,13 @@ class TestTafTemperatureNotifications:
 
         first, second = primary.temperatures[:2]
         first.tempTime.setText(instant)
+        first.collect()
         first.validateTemperatureTime()
         assert seen == []
 
         # The same instant as the first group: a TX and a TN never coincide.
         second.tempTime.setText(instant)
+        second.collect()
         second.validateTemperatureTime()
 
         assert len(seen) == 1
@@ -508,13 +554,13 @@ class TestTafTemperatureNotifications:
 
 
 class TestTafApplyState:
-    """collect() is widget -> state and applyState() is state -> widget; they
-    are one contract. `collect(); applyState(); collect()` must leave the state
+    """collect() is widget -> state and populate() is state -> widget; they
+    are one contract. `collect(); populate(); collect()` must leave the state
     alone, and `editor.clear()` is `draft.clear()` -- empty the data -- followed
-    by `render()`, which draws it."""
+    by `populate()`, which draws it."""
 
     def test_a_render_draws_the_header_from_the_state(self, editor):
-        """The header is part of the document: a render writes it like any other
+        """The header is part of the document: populating writes it like any other
         field, instead of leaving it to whoever called clear()."""
         primary = fill_without_temperature(editor)
 
@@ -522,17 +568,17 @@ class TestTafApplyState:
         primary.state.sequence = 'AAB'
         primary.state.modifier = 'AMD'
 
-        primary.applyState()
+        primary.populate()
 
         assert primary.period.text() == '0918'
         assert primary.sequence.text() == 'AAB'
         assert primary.amd.isChecked()
 
     def test_a_render_of_a_changed_state_converges(self, editor):
-        """The D invariant: every field the render writes ends up in both places.
+        """The D invariant: every field populate() writes ends up in both places.
 
         Several fields are changed behind the widgets at once, so the writes
-        interleave with the collects they trigger; the render is finished only
+        interleave with the collects they trigger; populating is finished only
         when the last write leaves the state agreeing with the screen.
         """
         primary = fill_without_temperature(editor)
@@ -541,7 +587,7 @@ class TestTafApplyState:
         primary.state.visibility = '4000'
         primary.state.clouds = ['FEW010']
 
-        primary.applyState()
+        primary.populate()
 
         assert (primary.wind.text(), primary.vis.text(), primary.cloud1.text()) == ('09010', '4000', 'FEW010')
         assert primary.state.wind == '09010'
@@ -554,7 +600,7 @@ class TestTafApplyState:
             segment.collect()
             before = read_state(segment)
 
-            segment.applyState()
+            segment.populate()
             segment.collect()
 
             assert read_state(segment) == before
@@ -574,8 +620,8 @@ class TestTafApplyState:
             assert read_state(segment) == EMPTY
 
     def test_clear_twice_changes_nothing(self, editor):
-        # applyState() writes widgets, and those writes re-enter collect();
-        # a second clear must not find anything to resurrect
+        # populate() writes widgets without collecting them back; a second
+        # clear must not find anything to resurrect
         for segment in editor.segments():
             fill(segment)
 
@@ -633,12 +679,12 @@ class TestTafApplyState:
         assert primary.cb.isEnabled()
 
     def test_apply_state_enters_vertical_visibility_mode(self, editor):
-        # the render direction must re-derive the enablement too, or a state
+        # the write direction must re-derive the enablement too, or a state
         # loaded from elsewhere would not be able to show a VV at all
         primary = editor.primary
         primary.state.clouds = ['VV005']
 
-        primary.applyState()
+        primary.populate()
 
         assert primary.cloud1.text() == 'VV005'
         assert not primary.cloud2.isEnabled()

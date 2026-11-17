@@ -224,12 +224,18 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         elif form is self.customForm:
             form.setLatestText(self.presenter.latestText(self.designator))
 
+        # Everything above only wrote widgets. Read it back once, here, so the
+        # draft's header is filled by the same collect() a user edit uses.
+        form.reload()
+        self.presenter.enableNextButton()
+
     def sequenceNumber(self):
         """What number today's reports give this draft."""
         return self.presenter.nextSequence(self.designator)
 
     def updateCustomText(self):
         self.customForm.setLatestText(self.presenter.latestText(self.designator))
+        self.customForm.reload()
 
     def collect(self):
         """Read the current form's widgets into its state -- the commit prelude.
@@ -326,6 +332,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         # the canvas agree instead of drifting until the next form switch
         self.graphic.configureMode(self.draft.designator,
                                    'cancel' if self.draft.form == 'cancel' else 'template')
+        self.presenter.enableNextButton()
 
     def onOpen(self):
         self.renderForm()

@@ -26,6 +26,7 @@ class TrendPresenter:
         self.view.nextButton.setEnabled(self.hasAcceptableInput())
 
     def commit(self):
+        self.view.trend.collect()
         self.view.trend.validate()
 
         if self.view.isPeriodActive():

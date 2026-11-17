@@ -164,21 +164,21 @@ class TafEditor(BaseEditor):
         """Start a new draft: empty the data, then draw that emptiness.
 
         The split is the point. `draft.clear()` owns the facts -- window,
-        selection, every state -- and `render()` owns the pixels, so nothing
+        selection, every state -- and `populate()` owns the widgets, so nothing
         here has to hope that writing one widget does not make another
         re-collect the value it was about to clear.
         """
         self.draft.clear()
-        self.render()
+        self.populate()
 
-    def render(self):
+    def populate(self):
         """Draw the draft: each segment from its state, then what follows from it.
 
         One pass, in this order: the fields, the selection the draft holds, and
         the navigation the window implies. Nothing here re-reads a widget.
         """
         for segment in self.segments():
-            segment.applyState()
+            segment.populate()
 
         self.applySelection()
         self.updatePeriodButtons()
@@ -200,7 +200,7 @@ class TafEditor(BaseEditor):
         """Draw `draft.selected` into the checkboxes and the group widgets."""
         for checkbox, group in zip(self.primary.groupCheckboxs, self.groups):
             selected = group.key in self.draft.selected
-            # This is a render, not a click: without blocking, the writes below
+            # This is populating, not a click: without blocking, the writes below
             # would come straight back through toggleGroup and fight the
             # selection they are drawing.
             checkbox.blockSignals(True)

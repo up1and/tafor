@@ -90,10 +90,20 @@ class BaseSegment(TextFieldMixin, QWidget):
         else:
             self.state = SegmentState(unit=unit)
 
-    def onContentChanged(self):
-        """The single entry point: a widget changed, so re-read the state."""
-        self.collect()
-        self.contentChanged.emit()
+    def onUserEdited(self, *args):
+        """The commit entry point: the operator changed a widget."""
+        # textEdited is emitted before textChanged. The cross-field writers
+        # below normally hang off textChanged, so run the same derivation here
+        # before reading the fields they may clear.
+        sender = self.sender()
+        if sender is self.wind:
+            self.setGust()
+        elif sender is self.weather.lineEdit():
+            self.setWeatherWithIntensity(sender.text())
+        elif sender is self.cloud1:
+            self.setVv()
+
+        self.reload()
 
     def fields(self):
         """The line edits whose text feeds the state."""
@@ -104,6 +114,23 @@ class BaseSegment(TextFieldMixin, QWidget):
     def toggles(self):
         """The check boxes and radio buttons whose value feeds the state."""
         return [self.cavok, self.nsc] if hasattr(self, 'cavok') else []
+
+    def deferred(self):
+        """Fields whose edit needs more than a read: they commit themselves.
+
+        A deferred field writes before the state is read -- a completion, a
+        separator -- so it goes through resolve() instead of onUserEdited(),
+        and the state is read once, after that write.
+        """
+        return []
+
+    def resolve(self, *args):
+        """Finish a deferred field's edit, then read it: its own commit.
+
+        Declared in deferred(); a field that needs one implements it in the
+        same class that lists it.
+        """
+        raise NotImplementedError
 
     def bindSignal(self):
         if hasattr(self, 'cavok'):
@@ -122,12 +149,13 @@ class BaseSegment(TextFieldMixin, QWidget):
         self.cb.editingFinished.connect(lambda: self.validateCloud(self.cb))
 
         for line in self.fields():
-            line.textChanged.connect(self.onContentChanged)
-            line.textEdited.connect(lambda _, current=line: self.upperText(current))
             line.textChanged.connect(lambda _, current=line: self.coloredText(current))
+            line.textEdited.connect(lambda _, current=line: self.upperText(current))
+            slot = self.resolve if line in self.deferred() else self.onUserEdited
+            line.textEdited.connect(slot)
 
         for toggle in self.toggles():
-            toggle.toggled.connect(self.onContentChanged)
+            toggle.clicked.connect(self.onUserEdited)
 
     def collect(self):
         """Read the widgets into the state."""
@@ -148,42 +176,34 @@ class BaseSegment(TextFieldMixin, QWidget):
             self.state.isCavok = self.cavok.isChecked()
             self.state.isNsc = self.nsc.isChecked()
 
-    def applyState(self):
+    def populate(self):
         """Write the state back into the widgets, the inverse of collect().
 
-        `collect(); applyState(); collect()` leaves the state unchanged, which
+        `collect(); populate(); collect()` leaves the state unchanged, which
         is the property that keeps the two directions honest. Each subclass
         writes the fields it owns and leaves the rest alone.
 
-        Read the state out first. Every write below fires textChanged, which
-        re-enters collect() and rewrites self.state from the widgets that have
-        not been written yet, so rendering straight from self.state would make
-        the result depend on the order of the writes.
+        This is a programmatic write: textChanged still drives the derived
+        widget behaviour, but textEdited does not fire, so it cannot collect
+        the fields that have not been rendered yet.
         """
-        wind = self.state.wind
-        gust = self.state.gust
-        visibility = self.state.visibility
-        weather = self.state.weather
-        weatherWithIntensity = self.state.weatherWithIntensity
         # The CB layer is an entry with a 'CB' suffix; the widget holds the
         # bare six characters, so the suffix comes off again on the way back.
         layers = [cloud for cloud in self.state.clouds if not cloud.endswith('CB')]
         cb = next((cloud for cloud in self.state.clouds if cloud.endswith('CB')), '')
-        isCavok = self.state.isCavok
-        isNsc = self.state.isNsc
 
-        self.wind.setText(wind)
-        self.gust.setText(gust)
-        self.vis.setText(visibility)
-        self.weather.setCurrentText(weather)
-        self.weatherWithIntensity.setCurrentText(weatherWithIntensity)
+        self.wind.setText(self.state.wind)
+        self.gust.setText(self.state.gust)
+        self.vis.setText(self.state.visibility)
+        self.weather.setCurrentText(self.state.weather)
+        self.weatherWithIntensity.setCurrentText(self.state.weatherWithIntensity)
         self.cb.setText(cb[:-2])
         for index, line in enumerate((self.cloud1, self.cloud2, self.cloud3)):
             line.setText(layers[index] if index < len(layers) else '')
 
         if hasattr(self, 'cavok'):
-            self.cavok.setChecked(isCavok)
-            self.nsc.setChecked(isNsc)
+            self.cavok.setChecked(self.state.isCavok)
+            self.nsc.setChecked(self.state.isNsc)
 
     def setupPeriodPlaceholder(self):
         raise NotImplementedError
@@ -328,9 +348,10 @@ class BaseSegment(TextFieldMixin, QWidget):
         return self.state.isAcceptable()
 
     def clear(self):
-        """Empty the state, then re-render it."""
+        """Empty the state, then populate it again."""
         self.state.clear()
-        self.applyState()
+        self.populate()
+        self.contentChanged.emit()
 
 
 class TemperatureGroup(TextFieldMixin, QWidget):
@@ -391,10 +412,9 @@ class TemperatureGroup(TextFieldMixin, QWidget):
         # The temperature lines carry their own cosmetic policy: the primary
         # segment no longer sweeps them up.
         for line in (self.temp, self.tempTime):
-            line.textChanged.connect(self.collect)
-            line.textChanged.connect(self.temperatureChanged.emit)
-            line.textEdited.connect(lambda _, current=line: self.upperText(current))
             line.textChanged.connect(lambda _, current=line: self.coloredText(current))
+            line.textEdited.connect(lambda _, current=line: self.upperText(current))
+            line.textEdited.connect(self.onUserEdited)
 
         self.tempTime.editingFinished.connect(self.validateTemperatureTime)
         self.temp.editingFinished.connect(self.validateTemperature)
@@ -402,6 +422,10 @@ class TemperatureGroup(TextFieldMixin, QWidget):
     def collect(self):
         self.state.value = self.temp.text() if self.temp.hasAcceptableInput() else ""
         self.state.time = self.tempTime.text() if self.tempTime.hasAcceptableInput() else ""
+
+    def onUserEdited(self, *args):
+        self.collect()
+        self.temperatureChanged.emit()
 
     def setupValidator(self):
         temperature = QRegExpValidator(QRegExp(self.rules.temperature, Qt.CaseInsensitive))
@@ -468,22 +492,19 @@ class TemperatureGroup(TextFieldMixin, QWidget):
 
         return [self.temp, self.tempTime]
 
-    def applyState(self):
+    def populate(self):
         """The inverse of collect().
 
         The mode is not rendered: switchMode() owns it, and
-        TemperatureState.clear() deliberately leaves it alone. The values are
-        read out first, for the reason given in BaseSegment.applyState().
+        TemperatureState.clear() deliberately leaves it alone.
         """
-        value = self.state.value
-        time = self.state.time
-        self.temp.setText(value)
-        self.tempTime.setText(time)
+        self.temp.setText(self.state.value)
+        self.tempTime.setText(self.state.time)
 
     def clear(self):
-        """Empty the state, then re-render it."""
+        """Empty the state, then populate it again."""
         self.state.clear()
-        self.applyState()
+        self.populate()
 
 
 class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
@@ -552,35 +573,29 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
             if radio.isChecked():
                 return modifier
 
-    def applyState(self):
+    def populate(self):
         """Draw the whole header from the draft.
 
         Period, modifier and sequence are document facts now: draft.begin() fixes
-        them before the draw, so the render can write them like any other field. The values are read out first, for the reason given in
-        BaseSegment.applyState(): each write fires textChanged, and a collect
-        that runs before the last header field is written would read the old
-        ones back into the state. Writing every header field, last, leaves the
-        final collect agreeing with the state again.
+        them before the draw, so populating can write them like any other field.
+        They are programmatic writes, so they do not collect the header that has
+        not been written yet.
 
         `date` is the one field left out: it belongs to the clock, and the timer
         in this widget owns it.
         """
-        period = self.state.period
-        modifier = self.state.modifier
-        sequence = self.state.sequence
-
-        super().applyState()
-        self.period.setText(period)
-        self.setModifier(modifier)
-        self.sequence.setText(sequence)
+        super().populate()
+        self.period.setText(self.state.period)
+        self.setModifier(self.state.modifier)
+        self.sequence.setText(self.state.sequence)
         for t in self.temperatures:
-            t.applyState()
+            t.populate()
 
     def setModifier(self, modifier):
         """Show the modifier without going back through updateModifier().
 
-        setChecked() emits toggled, not clicked, so the radio's own handler does
-        not fire; the toggled cascade is what collects the radios into the state.
+        setChecked() emits toggled, not clicked, so it populates rather than
+        a commit.
         """
         radios = {'AMD': self.amd, 'COR': self.cor, 'CNL': self.cnl}
         radios.get(modifier, self.normal).setChecked(True)
@@ -659,11 +674,11 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         notation = 'COR' if modifier == 'COR' else 'AMD'
         sequence = self.amendNumber(period, notation) if modifier else ''
 
-        # The validator goes in before the draw: the render writes the sequence,
+        # The validator goes in before the draw: populating writes the sequence,
         # and the state the draw leaves behind is judged by it.
         self.setSequenceValidator(modifier)
         self.draft.begin(period=period, modifier=modifier, sequence=sequence)
-        self.editor.render()
+        self.editor.populate()
         self.setGroupCheckboxes(modifier != 'CNL')
 
     def setSequenceValidator(self, modifier):
@@ -756,19 +771,32 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
     def collect(self):
         super().collect()
         self.state.period = self.period.text()
+        self.state.durations = self.durations()
 
-    def applyState(self):
-        period = self.state.period
-        super().applyState()
-        self.period.setText(period)
+    def durations(self):
+        """The window this period spells, against the primary's base time.
+
+        Derived where it is read, not where the text changed: the same text
+        always gives the same window, and collect() is the one place a field
+        is read.
+        """
+        if not (self.period.hasAcceptableInput() and self.primary.period):
+            return None
+
+        return parsePeriod(self.period.text(), self.primary.durations[0])
+
+    def populate(self):
+        super().populate()
+        self.period.setText(self.state.period)
         # periodText is the auto-completion bookkeeping, not state: it tracks the
-        # text the operator can see, so a render sets it to what was just written.
-        self.periodText = period
+        # text the operator can see, so populating sets it to what was just written.
+        self.periodText = self.state.period
+
+    def deferred(self):
+        return [self.period]
 
     def bindSignal(self):
         super().bindSignal()
-        self.period.textEdited.connect(self.fillPeriod)
-        self.period.textChanged.connect(self.updateDurations)
         self.period.editingFinished.connect(self.validatePeriod)
         self.period.editingFinished.connect(self.validateGroupsPeriod)
 
@@ -789,11 +817,23 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         time = self.primary.durations[0]
         self.period.setPlaceholderText('{:02d}'.format(time.day))
 
-    def fillPeriod(self):
+    def resolve(self, *args):
+        """The period's own commit: complete it, then read it back once."""
         if self.conf.autoCompletionGroupTime:
             self.autoCompletePeriod()
         else:
             self.periodText = formatPeriodSeparator(self.period, self.periodText)
+
+        # A period ending at 00 the next day is written as the 24 of the day
+        # before: two spellings, one instant, and this one fits the window.
+        if self.period.hasAcceptableInput() and self.primary.period:
+            start, end = parsePeriod(self.period.text(), self.primary.durations[0])
+            if end.hour == 0 and not self.period.text().endswith('24'):
+                self.period.setText('{:02d}{:02d}/{}'.format(
+                    start.day, start.hour, formatValidityEnd(end)))
+                self.periodText = self.period.text()
+
+        self.reload()
 
     def autoCompletePeriod(self):
         if self.primary.durations is None or not self.primary.period:
@@ -820,20 +860,6 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
             self.period.setText(text)
 
         self.periodText = text
-
-    def updateDurations(self):
-        if self.period.hasAcceptableInput() and self.primary.period:
-            period = self.period.text()
-            basetime = self.primary.durations[0]
-            start, end = parsePeriod(period, basetime)
-            self.state.durations = (start, end)
-
-            if end.hour == 0 and not period.endswith('24'):
-                text = '{:02d}{:02d}/{}'.format(start.day, start.hour, formatValidityEnd(end))
-                self.period.setText(text)
-                end -= datetime.timedelta(minutes=1)
-        else:
-            self.state.durations = None
 
     def validate(self):
         super().validate()
@@ -866,23 +892,21 @@ class TafFmSegment(TafGroupSegment):
                  notify=None):
         super().__init__(name, conf, context, primary, draft, notify)
 
-    def bindSignal(self):
-        super().bindSignal()
-        self.period.textEdited.disconnect(self.fillPeriod)
+    def resolve(self, *args):
+        """FM's period is a single time: nothing to complete, just read it."""
+        self.reload()
 
     def setupValidator(self):
         super().setupValidator()
         period = QRegExpValidator(QRegExp(self.rules.fmPeriod))
         self.period.setValidator(period)
 
-    def updateDurations(self):
-        if self.period.hasAcceptableInput() and self.primary.period:
-            period = self.period.text()
-            basetime = self.primary.durations[0]
-            time = parseTime(period, basetime)
-            self.state.durations = (time, time)
-        else:
-            self.state.durations = None
+    def durations(self):
+        if not (self.period.hasAcceptableInput() and self.primary.period):
+            return None
+
+        time = parseTime(self.period.text(), self.primary.durations[0])
+        return (time, time)
 
     def validatePeriod(self):
         # Using states for validation where possible
@@ -941,27 +965,20 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         self.state.tlChecked = self.tl.isChecked()
         self.state.period = self.period.text()
 
-    def applyState(self):
-        # Read first: these writes fire toggled/textChanged, which re-enter
-        # collect() and rewrite self.state from the widgets that have not been
-        # written yet. See BaseSegment.applyState().
-        isNosig = self.state.isNosig
-        isBecmg = self.state.indicator == 'BECMG'
-        atChecked = self.state.atChecked
-        fmChecked = self.state.fmChecked
-        tlChecked = self.state.tlChecked
-        period = self.state.period
-
-        super().applyState()
-        self.nosig.setChecked(isNosig)
-        self.becmg.setChecked(isBecmg)
-        self.tempo.setChecked(not isBecmg)
-        self.at.setChecked(atChecked)
-        self.fm.setChecked(fmChecked)
-        self.tl.setChecked(tlChecked)
+    def populate(self):
+        super().populate()
+        self.nosig.setChecked(self.state.isNosig)
+        self.becmg.setChecked(self.state.indicator == 'BECMG')
+        self.tempo.setChecked(self.state.indicator != 'BECMG')
+        self.at.setChecked(self.state.atChecked)
+        self.fm.setChecked(self.state.fmChecked)
+        self.tl.setChecked(self.state.tlChecked)
         # Last: unchecking at/fm/tl clears and disables the period through
         # setAt()/setFmTl(), and setNosig() re-derives what is enabled.
-        self.period.setText(period)
+        self.period.setText(self.state.period)
+
+    def deferred(self):
+        return [self.period]
 
     def bindSignal(self):
         super().bindSignal()
@@ -973,7 +990,6 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         self.becmg.clicked.connect(self.updateAtStatus)
         self.tempo.clicked.connect(self.updateAtStatus)
 
-        self.period.textEdited.connect(self.autoFormatPeriod)
         self.period.editingFinished.connect(self.validatePeriod)
 
     def setupFont(self):
@@ -982,9 +998,11 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         self.becmg.setFont(font)
         self.tempo.setFont(font)
 
-    def autoFormatPeriod(self):
-        if self.fm.isChecked() and self.tl.isChecked():   
+    def resolve(self, *args):
+        """The trend period's own commit: separate the hours, then read them."""
+        if self.fm.isChecked() and self.tl.isChecked():
             self.periodText = formatPeriodSeparator(self.period, self.periodText)
+        self.reload()
 
     def setupValidator(self):
         super().setupValidator()
@@ -1119,6 +1137,8 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         if 'cavok' in tokens:
             self.cavok.setChecked(True)
 
+        self.reload()
+
     def formatPeriod(self):
         if (self.at.isChecked() or self.fm.isChecked() and not self.tl.isChecked()) and self.period.text() == '2400':
             self.period.setText('0000')
@@ -1128,6 +1148,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
 
     def validatePeriod(self):
         self.formatPeriod()
+        self.collect()
         error = TrendFormValidator.checkPeriod(self.period.text(), now=utcnow())
         if error:
             self.period.clear()
