@@ -15,17 +15,35 @@ from tafor.ui.forms.base import TextFieldMixin
 from tafor.ui.qt import Ui_taf_group, Ui_taf_primary, Ui_trend
 
 
-def formatPeriodSeparator(line, previous):
-    """Append the '/' separator after the 4-digit day while typing.
+def separatePeriod(text, previous):
+    """Append the '/' separator after the four-digit day while typing.
 
-    ``previous`` is the caller's snapshot of the text from the last keystroke;
-    the caller keeps it on its own instance. Returns the new snapshot.
+    ``previous`` is the text from the last keystroke; the caller keeps that
+    snapshot on its own instance.
     """
-    text = line.text()
-    if len(text) > len(previous):
-        if len(text) == 4:
-            text += '/'
-        line.setText(text)
+    if len(text) > len(previous) and len(text) == 4:
+        return text + '/'
+    return text
+
+
+def normalizePeriod(text, previous, window):
+    """Spell the typed period the one way the field accepts.
+
+    Two respellings, both of the same instant: the separator after a
+    four-digit day, and an end at midnight 00 written as 24 of the day
+    before, the spelling that fits the validity window. Completion is not
+    here: that adds what the operator has not typed, not how it is written.
+
+    ``window`` is the (start, end) the text spells, as read from the state,
+    or None when the field cannot read it yet.
+    """
+    text = separatePeriod(text, previous)
+
+    if window is not None:
+        start, end = window
+        if end.hour == 0 and not text.endswith('24'):
+            return '{:02d}{:02d}/{}'.format(start.day, start.hour, formatValidityEnd(end))
+
     return text
 
 
@@ -818,32 +836,39 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.period.setPlaceholderText('{:02d}'.format(time.day))
 
     def resolve(self, *args):
-        """The period's own commit: complete it, then read it back once."""
-        if self.conf.autoCompletionGroupTime:
-            self.autoCompletePeriod()
-        else:
-            self.periodText = formatPeriodSeparator(self.period, self.periodText)
-
-        # A period ending at 00 the next day is written as the 24 of the day
-        # before: two spellings, one instant, and this one fits the window.
-        if self.period.hasAcceptableInput() and self.primary.period:
-            start, end = parsePeriod(self.period.text(), self.primary.durations[0])
-            if end.hour == 0 and not self.period.text().endswith('24'):
-                self.period.setText('{:02d}{:02d}/{}'.format(
-                    start.day, start.hour, formatValidityEnd(end)))
-                self.periodText = self.period.text()
-
+        """The period's own commit: normalize its text, then read it once."""
+        self.normalizePeriod()
         self.reload()
 
-    def autoCompletePeriod(self):
-        if self.primary.durations is None or not self.primary.period:
+    def normalizePeriod(self):
+        """Bring the typed period to the form the field accepts.
+
+        Completion adds what the operator has not typed yet; normalisation
+        only writes the same instant another way. Both write the line, so
+        reload() still does the one read.
+        """
+        if self.conf.autoCompletionGroupTime and not self.autoCompletePeriod():
             return
+
+        text = normalizePeriod(self.period.text(), self.periodText, self.durations())
+        if text != self.period.text():
+            self.period.setText(text)
+        self.periodText = text
+
+    def autoCompletePeriod(self):
+        """Complete a freshly typed four-digit start into a full period.
+
+        Returns False when the text must be left as typed: there is no window
+        to complete against, or the start does not fit in it.
+        """
+        if self.primary.durations is None or not self.primary.period:
+            return False
 
         text = self.period.text()
         if len(text) > len(self.periodText):
             if len(text) == 4:
                 if not isGroupStartAcceptable(text, self.primary.durations):
-                    return
+                    return False
 
                 if self.indicator in ('TEMPO', 'BECMG'):
                     completed = completeGroupPeriod(
@@ -853,13 +878,14 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
                         self.context.taf.spec,
                     )
                     if completed is None:
-                        return
+                        return False
 
                     text = completed
 
             self.period.setText(text)
 
         self.periodText = text
+        return True
 
     def validate(self):
         super().validate()
@@ -893,7 +919,7 @@ class TafFmSegment(TafGroupSegment):
         super().__init__(name, conf, context, primary, draft, notify)
 
     def resolve(self, *args):
-        """FM's period is a single time: nothing to complete, just read it."""
+        """FM's period is a single time: nothing to finish, just read it."""
         self.reload()
 
     def setupValidator(self):
@@ -999,10 +1025,23 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         self.tempo.setFont(font)
 
     def resolve(self, *args):
-        """The trend period's own commit: separate the hours, then read them."""
-        if self.fm.isChecked() and self.tl.isChecked():
-            self.periodText = formatPeriodSeparator(self.period, self.periodText)
+        """The trend period's own commit: normalize it, then read it once."""
+        self.normalizePeriod()
         self.reload()
+
+    def normalizePeriod(self):
+        """Separate the hours when the trend spells both ends.
+
+        A trend with FM and TL spells DDHH/DDHH; with AT it is a single time
+        and needs no separator.
+        """
+        if not (self.fm.isChecked() and self.tl.isChecked()):
+            return
+
+        text = separatePeriod(self.period.text(), self.periodText)
+        if text != self.period.text():
+            self.period.setText(text)
+        self.periodText = text
 
     def setupValidator(self):
         super().setupValidator()

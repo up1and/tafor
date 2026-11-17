@@ -8,6 +8,7 @@ from tafor.core.config import createConfig
 from tafor.core.repositories import MessageRepository, TafRepository
 from tafor.core.states import createContext
 from tafor.ui.dialogs import TafEditor, TafSender
+from tafor.ui.forms.taf import normalizePeriod, separatePeriod
 from tests.mocks import MockConfig
 
 
@@ -504,6 +505,26 @@ class TestTafGroupPeriodCommit:
     had not finished typing.
     """
 
+    @pytest.fixture
+    def editorNoCompletion(self, qtbot, database):
+        """An editor that only separates the period, never completes it.
+
+        A stack of its own: `conf` is session-scoped, and this test needs the
+        other branch of normalizePeriod().
+        """
+        settings = MockConfig()
+        settings.setValue('General/AutoCompletionGroupTime', 'false')
+        conf = createConfig(settings=settings)
+        context = createContext(conf)
+
+        sender = TafSender(None, context, conf, repository=MessageRepository(database))
+        qtbot.addWidget(sender)
+
+        editor = TafEditor(None, sender=sender, conf=conf, context=context,
+                           repository=TafRepository(database))
+        qtbot.addWidget(editor)
+        return editor
+
     def test_typing_in_the_period_announces_once(self, editor):
         primary = open_header(editor)
         primary.becmg1Checkbox.setChecked(True)
@@ -518,6 +539,60 @@ class TestTafGroupPeriodCommit:
         assert len(changed) == 1
         assert changed[0] == group.period.text()
         assert group.state.period == group.period.text()
+
+    def test_the_separator_is_written_before_the_read(self, editorNoCompletion):
+        editor = editorNoCompletion
+        primary = open_header(editor)
+        primary.becmg1Checkbox.setChecked(True)
+        group = editor.becmg1
+
+        group.period.setText('1012')
+        group.period.textEdited.emit('1012')
+
+        assert group.period.text() == '1012/'
+        assert group.state.period == '1012/'
+
+    def test_a_refused_start_does_not_stop_the_next_attempt(self, editor):
+        primary = open_header(editor)
+        primary.becmg1Checkbox.setChecked(True)
+        group = editor.becmg1
+
+        group.period.setText('9999')
+        group.period.textEdited.emit('9999')
+        assert group.period.text() == '9999'
+
+        # Replacing a digit is not growth, so completion only retries if the
+        # refused start left the bookkeeping it compares against alone.
+        start = primary.state.durations[0]
+        group.period.setText('{:02d}{:02d}'.format(start.day, start.hour))
+        group.period.textEdited.emit(group.period.text())
+
+        assert group.period.text().startswith('{:02d}{:02d}/'.format(start.day, start.hour))
+
+
+class TestPeriodSpelling:
+    """The rules that turn typed text into the accepted spelling.
+
+    Pure text in, text out, so they are pinned without a widget: the group
+    and the trend both build on them.
+    """
+
+    def test_the_day_gets_its_separator_while_typing(self):
+        assert separatePeriod('1012', '101') == '1012/'
+
+    def test_a_deleted_character_does_not_add_the_separator(self):
+        assert separatePeriod('1012', '1012/') == '1012'
+
+    def test_a_midnight_end_is_spelled_as_24_of_the_day_before(self):
+        window = (datetime.datetime(2026, 8, 10, 12), datetime.datetime(2026, 8, 12, 0))
+        assert normalizePeriod('1012/1200', '1012/120', window) == '1012/1124'
+
+    def test_a_period_already_spelled_as_24_is_left_alone(self):
+        window = (datetime.datetime(2026, 8, 10, 12), datetime.datetime(2026, 8, 12, 0))
+        assert normalizePeriod('1012/1124', '1012/112', window) == '1012/1124'
+
+    def test_a_window_the_field_cannot_read_leaves_the_text_alone(self):
+        assert normalizePeriod('1012/1200', '1012/120', None) == '1012/1200'
 
 
 class TestTafTemperatureNotifications:
