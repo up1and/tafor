@@ -1895,11 +1895,12 @@ class TestMainWindow:
 
     def test_render_sigmet_graphic_updates_the_canvas(self, window, monkeypatch):
         editor = FakeWidget()
+        editor.presenter = FakeWidget()
         monkeypatch.setattr(window, 'sigmetEditor', editor)
 
         window.renderSigmetGraphic()
 
-        assert editor.calls == [('updateGraphicCanvas', (), {})]
+        assert editor.presenter.calls == [('updateSigmetGraphic', (), {})]
 
     def test_render_sigmet_text_updates_the_custom_text(self, window, monkeypatch):
         editor = FakeWidget()

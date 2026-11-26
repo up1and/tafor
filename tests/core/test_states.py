@@ -297,3 +297,21 @@ class TestLayerService:
 
         assert context.layer.selected == ['Radar']
         assert seen == [1]
+
+    def test_can_stack_checks_projection_compatibility(self, context):
+        context.layer.setLayer([
+            {'name': 'SatA', 'overlay': 'standalone', 'proj': 'webmerc', 'image': b'a'},
+            {'name': 'SatB', 'overlay': 'standalone', 'proj': 'eqc', 'image': b'b'},
+            {'name': 'RadarA', 'overlay': 'mixed', 'proj': 'webmerc', 'image': b'r'},
+        ])
+
+        assert context.layer.canStack('RadarA') is True
+        assert context.layer.canStack('Missing') is False
+
+        context.layer.setState({'selected': ['SatB']})
+        assert context.layer.canStack('RadarA') is False
+
+        assert context.layer.filterSelected(['SatA', 'RadarA']) == ['SatA', 'RadarA']
+        assert context.layer.filterSelected(['SatB', 'RadarA']) == ['SatB']
+        assert context.layer.filterSelected(['RadarA']) == ['RadarA']
+        assert context.layer.filterSelected(['SatA', 'Missing']) == ['SatA']

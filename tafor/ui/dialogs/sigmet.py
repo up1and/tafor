@@ -1,3 +1,5 @@
+import logging
+
 from PyQt5.QtCore import QCoreApplication, Qt
 
 from tafor.core.repositories import SigmetFilter
@@ -8,6 +10,8 @@ from tafor.ui.qt import Ui_sigmet
 from tafor.ui.dialogs.base import BaseEditor
 from tafor.ui.forms import AirmetGeneral, SigmetAsh, SigmetCancel, SigmetCustom, SigmetGeneral, SigmetTyphoon
 from tafor.ui.map import SketchPanel
+
+logger = logging.getLogger(__name__)
 
 
 class SigmetPresenter:
@@ -83,22 +87,78 @@ class SigmetPresenter:
             c.contentChanged.connect(self.updateNextButton)
             c.notified.connect(lambda message: self.view.showNotification(message))
 
-        self.connectGraphic()
+        self.bindGraphic()
 
-    def connectGraphic(self):
-        """The sketch panel only reads context; every layer write it asks for
-        comes back through these signals and lands here."""
+    def bindGraphic(self):
+        """The sketch panel holds no context; every layer write and geometry
+        parse comes through these signals and lands here."""
         self.view.graphic.refreshClicked.connect(self.refreshLayers)
         self.view.graphic.layerSelectionChanged.connect(self.selectLayers)
-        # The display switches are view state, so the panel repaints them on
-        # its own; a fetch or a selection change arrives from the service.
-        self.context.event.layersChanged.connect(self.view.graphic.handleLayersChanged)
+        self.view.graphic.trimChanged.connect(self.updateSigmetGraphic)
+        # The Show Latest toggle is view state on SceneLayer, so the panel
+        # handles it locally; layer fetches, selections and trim changes push
+        # fresh data down from here.
+        self.context.event.layersChanged.connect(self.updateLayers)
+        if self.context.layer.getLayers():
+            self.updateLayers()
+
+    def sigmetGeometries(self, *, designator=None, category=None, trim=True):
+        boundaries = self.context.layer.boundaries()
+        if not boundaries:
+            return []
+
+        geometries = []
+        for sig in self.sigmets(designator=designator, category=category):
+            parser = sig.parser()
+            try:
+                geometries.append(parser.geo(boundaries, trim))
+            except Exception as e:
+                logger.error('Decode SIGMET graphic area error, {}, {}'.format(sig.text, e))
+        return geometries
+
+    def updateSigmetGraphic(self, trim=None):
+        if trim is None:
+            trim = self.view.graphic.trimShapes
+
+        if not hasattr(self.view, 'draft') or self.view.draft.form == 'custom':
+            return
+
+        if self.view.draft.form == 'cancel':
+            geometries = self.sigmetGeometries(designator=self.view.draft.designator, trim=trim)
+        else:
+            geometries = self.sigmetGeometries(category=self.view.category(), trim=trim)
+
+        self.view.graphic.setSigmets(geometries)
+
+    def updateLayers(self):
+        groups = self.context.layer.groupLayers()
+        selected = list(self.context.layer.selected)
+        active = self.context.layer.currentLayers()
+        stackable = {
+            layer.name
+            for layer in groups.get('mixed', [])
+            if self.context.layer.canStack(layer.name)
+        }
+        maxExtent = self.context.layer.maxExtent()
+        self.view.graphic.setLayers(
+            groups=groups,
+            selected=selected,
+            active=active,
+            stackable=stackable,
+            maxExtent=maxExtent,
+        )
 
     def refreshLayers(self):
         self.context.layer.refreshLayers()
 
     def selectLayers(self, selected):
-        self.context.layer.setState({'selected': selected})
+        filtered = self.context.layer.filterSelected(selected)
+        if filtered == self.context.layer.selected:
+            if filtered != list(selected):
+                self.updateLayers()
+            return
+
+        self.context.layer.setState({'selected': filtered})
 
     def commit(self):
         # Read the form before judging it: see TafPresenter.commit().
@@ -157,7 +217,11 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         return self.draft.span()
 
     def initUI(self):
-        self.graphic = SketchPanel(self, context=self.context)
+        self.graphic = SketchPanel(
+            self,
+            projection=self.context.layer.projection(),
+            boundaries=self.context.layer.boundaries(),
+        )
         self.generalContent = SigmetGeneral(header=self.draft.header, editor=self, conf=self.conf)
         self.typhoonContent = SigmetTyphoon(header=self.draft.header, editor=self, conf=self.conf)
         self.ashContent = SigmetAsh(header=self.draft.header, editor=self, conf=self.conf)
@@ -187,20 +251,6 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
         self.changeContent()
         self.addBottomBox(self.mainLayout)
-
-    def updateGraphicCanvas(self):
-        if self.draft.form == 'custom':
-            return
-
-        # A cancellation is shown the reports it may address, one code at a
-        # time; a template the whole category, so the three codes that share
-        # a bulletin sign stay together.
-        if self.draft.form == 'cancel':
-            sigmets = self.presenter.sigmets(designator=self.draft.designator)
-        else:
-            sigmets = self.presenter.sigmets(category=self.category())
-
-        self.graphic.setSigmets(sigmets)
 
     def renderForm(self):
         """Start a draft in the current form: the number the presenter
@@ -299,7 +349,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         if changed:
             self.renderForm()
             self.graphic.configureMode(self.draft.designator, 'cancel' if form == 'cancel' else 'template')
-            self.updateGraphicCanvas()
+            self.presenter.updateSigmetGraphic()
 
     def current(self):
         if self.cancel.isChecked():

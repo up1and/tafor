@@ -244,15 +244,19 @@ class LayerService(StateProxyMixin):
 
     def canStack(self, layerName):
         layer = self.findLayer(layerName)
-        standalone = self.currentStandaloneLayer()
         if not layer:
             return False
 
-        if standalone:
-            if layer.proj != standalone.proj:
-                return False
+        standalone = self.currentStandaloneLayer()
+        return not standalone or layer.proj == standalone.proj
 
-        return True
+    def filterSelected(self, selected):
+        layers = [layer for name in selected if (layer := self.findLayer(name))]
+        standalone = next((layer for layer in layers if layer.overlay == 'standalone'), None)
+        return [
+            layer.name for layer in layers
+            if layer.overlay == 'standalone' or not standalone or layer.proj == standalone.proj
+        ]
 
     def maxExtent(self):
         layers = self.state.layers

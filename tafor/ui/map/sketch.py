@@ -3,7 +3,7 @@ from tafor.core.geometry.sketch import (
     CircleSketch, CorridorSketch, EntireSketch, LineSketch, PolygonSketch,
     RectangularSketch
 )
-from tafor.ui.map.items import SketchGraphic, StickerGraphic
+from tafor.ui.map.items import SceneLayer, SketchGraphic, StickerGraphic
 
 
 class SketchManager:
@@ -20,7 +20,7 @@ class SketchManager:
     def __init__(self, canvas, sketchNames=None):
         self.mode = 'polygon'
         self.canvas = canvas
-        self.graphics = []
+        self.layer = SceneLayer(canvas, z=3)
         self.sketchNames = sketchNames if sketchNames else []
         self.index = 0
 
@@ -88,10 +88,6 @@ class SketchManager:
         self.update()
 
     def update(self):
-        if self.graphics:
-            self.graphics = []
-            self.canvas.scene.removeItem(self.graphicsGroup)
-
         sketchGeometries = []
         stickerGeometries = []
         for sketch in self.sketches:
@@ -101,11 +97,8 @@ class SketchManager:
 
         graphic = SketchGraphic()
         graphic.updateGeometry(geojson.geometryCollection(sketchGeometries), self.canvas)
-        self.graphics.append(graphic)
 
         sticker = StickerGraphic()
         sticker.updateGeometry(geojson.geometryCollection(stickerGeometries), self.canvas)
-        self.graphics.append(sticker)
 
-        self.graphicsGroup = self.canvas.scene.createItemGroup(self.graphics)
-        self.graphicsGroup.setZValue(3)
+        self.layer.replace([graphic, sticker])

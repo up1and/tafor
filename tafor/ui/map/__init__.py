@@ -14,6 +14,7 @@ from tafor.ui.map.items import (
     Fir,
     OutlinedLabel,
     Polygon,
+    SceneLayer,
     Sigmet,
     SigmetBackground,
     SketchGraphic,

@@ -760,6 +760,41 @@ class TestSigmetCustomText:
 
         assert editor.notificationArea.text() == 'Valid period more than the permitted hours'
 
+    def test_trim_toggle_recomputes_sigmet_geometries_through_presenter(self, editor, context, monkeypatch):
+        sig = Sigmet(
+            type='WS',
+            heading='YUDD SIGMET 1 VALID 100730/101430 YUSO-',
+            text='YUDD SHANLON FIR OBSC TS=',
+        )
+        context.current.setState([sig])
+        seen_trims = []
+        monkeypatch.setattr(
+            editor.presenter,
+            'sigmetGeometries',
+            lambda **kwargs: (seen_trims.append(kwargs['trim']) or []),
+        )
+
+        editor.graphic.trimShapesAction.setChecked(False)
+
+        assert seen_trims == [False]
+
+    def test_presenter_sigmet_geometries_respects_trim_flag(self, context, conf):
+        text = 'YUDD SHANLON FIR OBSC TS WI N1400 E10800 - N1400 E11000 - N1600 E11000 - N1600 E10800 - N1400 E10800='
+        sig = Sigmet(
+            type='WS',
+            heading='YUDD SIGMET 1 VALID 100730/101430 YUSO-',
+            text=text,
+        )
+        context.current.setState([sig])
+        presenter = SigmetPresenter(None, context, conf)
+
+        trimmed = presenter.sigmetGeometries(category='SIGMET', trim=True)
+        untrimmed = presenter.sigmetGeometries(category='SIGMET', trim=False)
+
+        assert len(trimmed) == 1
+        assert len(untrimmed) == 1
+        assert trimmed[0] != untrimmed[0]
+
 
 if __name__ == '__main__':
     pytest.main([__file__])

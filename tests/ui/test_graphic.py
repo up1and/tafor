@@ -10,8 +10,10 @@ from PyQt5.QtCore import QEvent, QPointF, QPoint, QRect, QRectF, QSize, QSizeF, 
 from PyQt5.QtGui import QMouseEvent, QResizeEvent, QWheelEvent
 from PyQt5.QtWidgets import QPushButton
 
+from tafor.core.geometry import geojson
 from tafor.ui.dialogs import SigmetPresenter
-from tafor.ui.map import SketchView, SketchPanel, StaticView, PreviewPanel
+from tafor.ui.map import graphic
+from tafor.ui.map import SketchView, SketchPanel, StaticView, PreviewPanel, SceneLayer
 from tafor.ui.map import OutlinedLabel
 
 
@@ -81,7 +83,7 @@ class FakeRubberBand:
 
 @pytest.fixture
 def canvas(qtbot, context):
-    view = SketchView(context)
+    view = SketchView(context.layer.projection(), context.layer.boundaries())
     qtbot.addWidget(view)
     return view
 
@@ -131,7 +133,7 @@ class TestCenterOnLayer:
     def sized(self, qtbot, context):
         # fitInView needs a real viewport: an unattached view reports 0x0
         # and Qt leaves the transform alone.
-        view = SketchView(context)
+        view = SketchView(context.layer.projection(), context.layer.boundaries())
         qtbot.addWidget(view)
         view.resize(640, 480)
         view.show()
@@ -164,7 +166,7 @@ class TestCenterOnLayer:
     def test_fitting_replaces_the_initial_scale(self, sized, qtbot):
         # StaticView declares initialScale = 0.4096; once a layer is fitted
         # that constant must no longer be what the transform says
-        fitted = StaticView(sized.context)
+        fitted = StaticView(sized.projection, sized.boundaries)
         qtbot.addWidget(fitted)
         fitted.resize(640, 480)
         fitted.show()
@@ -200,7 +202,7 @@ class TestCenterOnLayer:
     def test_static_view_keeps_its_initial_scale_while_blank(self, qtbot, context):
         # the guard above is what preserves this: a preview with no FIR is
         # still drawn at the scale StaticView declares
-        view = StaticView(context)
+        view = StaticView(context.layer.projection(), context.layer.boundaries())
         qtbot.addWidget(view)
         view.resize(640, 480)
 
@@ -212,7 +214,7 @@ class TestFitMargin:
 
     @pytest.fixture
     def shown(self, qtbot, context):
-        view = SketchView(context)
+        view = SketchView(context.layer.projection(), context.layer.boundaries())
         qtbot.addWidget(view)
         view.resize(640, 480)
         view.show()
@@ -261,7 +263,11 @@ class TestStaticViewZoomPolicy:
 
     @pytest.fixture
     def preview(self, qtbot, context):
-        panel = PreviewPanel(parent=None, context=context)
+        panel = PreviewPanel(
+            parent=None,
+            projection=context.layer.projection(),
+            boundaries=context.layer.boundaries(),
+        )
         qtbot.addWidget(panel)
         panel.resize(812, 300)
         panel.show()
@@ -312,7 +318,11 @@ class TestCentringWhenTheViewportGrows:
     @pytest.fixture
     def panel(self, qtbot, context):
         # deliberately not shown yet: load() already fitted the placeholder
-        panel = SketchPanel(parent=None, context=context)
+        panel = SketchPanel(
+            parent=None,
+            projection=context.layer.projection(),
+            boundaries=context.layer.boundaries(),
+        )
         qtbot.addWidget(panel)
         return panel
 
@@ -357,7 +367,7 @@ class TestCentringWhenTheViewportGrows:
 
     def test_a_resize_does_not_refit_a_blank_view(self, qtbot, context):
         # nothing drawn yet, so initialScale is still what the user sees
-        view = SketchView(context)
+        view = SketchView(context.layer.projection(), context.layer.boundaries())
         qtbot.addWidget(view)
         view.resize(640, 480)
 
@@ -503,7 +513,7 @@ class TestEntireTool:
     def test_set_mode_restores_entire_fir(self, canvas):
         # setMode('entire') activates EntireTool, which restores the FIR
         # boundary onto the sketch
-        boundaries = canvas.context.layer.boundaries()
+        boundaries = canvas.boundaries
         canvas.setMode('entire')
 
         sketch = canvas.sketchManager.currentSketch()
@@ -531,7 +541,7 @@ class TestMixedBackgroundOpacity:
 def makeWindow(canvas, designator='WS'):
     window = SketchPanel.__new__(SketchPanel)
     window.canvas = canvas
-    window.context = canvas.context
+    window.boundaries = canvas.boundaries
     window.designator = designator
     window.overlapButton = QPushButton()
     window.overlapButton.setCheckable(True)
@@ -613,7 +623,11 @@ class TestSketchPanelHelpers:
 
     @pytest.fixture
     def window(self, qtbot, context):
-        view = SketchPanel(parent=None, context=context)
+        view = SketchPanel(
+            parent=None,
+            projection=context.layer.projection(),
+            boundaries=context.layer.boundaries(),
+        )
         qtbot.addWidget(view)
         return view
 
@@ -751,26 +765,81 @@ class TestSketchPanelHelpers:
         # connects the notification to the layer render, so a fetch or a
         # selection change never repaints the SIGMET overlay.
         presenter = SigmetPresenter(PanelOnlyView(window), context, conf=None)
-        presenter.connectGraphic()
+        presenter.bindGraphic()
         calls = []
-        window.updateLayerMenu = lambda: calls.append('menu')
-        window.canvas.drawLayer = lambda: calls.append('canvas')
-        window.updateLayerInfoLabel = lambda: calls.append('label')
-        window.updateSigmetGraphic = lambda: calls.append('sigmet')
+        window.updateLayerMenu = lambda *args: calls.append('menu')
+        window.canvas.drawLayer = lambda layers: calls.append('canvas')
+        window.updateLayerInfoLabel = lambda layers: calls.append('label')
+        window.setSigmets = lambda geos: calls.append('sigmet')
 
         context.event.layersChanged.emit()
         assert calls == ['menu', 'canvas', 'label']
 
-    def test_a_display_toggle_repaints_the_overlay(self, window):
-        # The switches are view state: toggling one is the whole write, so the
-        # overlay is repainted from the new value right here.
-        redraws = []
-        window.updateSigmetGraphic = lambda: redraws.append(1)
+    def test_a_trim_toggle_updates_flag_and_emits_signal(self, window):
+        emitted = []
+        window.trimChanged.connect(emitted.append)
 
         window.trimShapesAction.setChecked(False)
 
-        assert redraws == [1]
         assert window.trimShapes is False
+        assert emitted == [False]
+
+    def test_a_show_sigmet_toggle_hides_scene_layer_without_recomputing(self, window):
+        # Show/hide toggles the SceneLayer in place and does not emit trimChanged
+        trimmed = []
+        window.trimChanged.connect(trimmed.append)
+        geo = geojson.featureCollection([
+            geojson.feature(geojson.polygon(TRIANGLE), hazard='ts', location='initial', sequence='1')
+        ])
+        window.setSigmets([geo])
+        assert window.canvas.sigmets.group.isVisible() is True
+
+        window.showSigmetAction.setChecked(False)
+        assert window.showSigmet is False
+        assert window.canvas.sigmets.isVisible() is False
+        assert window.canvas.sigmets.group.isVisible() is False
+
+        # replacing items while hidden keeps the hidden state
+        window.setSigmets([geo])
+        assert window.canvas.sigmets.group.isVisible() is False
+
+        window.showSigmetAction.setChecked(True)
+        assert window.canvas.sigmets.isVisible() is True
+        assert window.canvas.sigmets.group.isVisible() is True
+        assert trimmed == []
+
+    def test_set_advisory_graphic_does_not_mutate_input_collection(self, window):
+        collection = geojson.featureCollection([
+            geojson.feature(geojson.polygon(TRIANGLE), type='sketch', location='initial')
+        ])
+
+        window.setAdvisoryGraphic(collection)
+
+        assert collection['features'][0]['properties']['type'] == 'sketch'
+
+    def test_sketch_manager_reuses_scene_layer(self, canvas):
+        canvas.sketchManager.first().restore(coordinates=TRIANGLE)
+        first_group = canvas.sketchManager.layer.group
+        assert first_group is not None
+        assert first_group.zValue() == 3
+
+        canvas.sketchManager.first().clear()
+        assert canvas.sketchManager.layer.group is not None
+        assert canvas.sketchManager.layer.group is not first_group
+        assert first_group.scene() is None
+
+    def test_scene_layer_visibility_tracks_across_replace(self, canvas):
+        layer = SceneLayer(canvas, z=5)
+        item = canvas.scene.addRect(0, 0, 10, 10)
+        canvas.scene.removeItem(item)
+        layer.setVisible(False)
+        layer.replace([item])
+
+        assert layer.isVisible() is False
+        assert layer.group.isVisible() is False
+
+        layer.setVisible(True)
+        assert layer.group.isVisible() is True
 
     def test_update_position_label(self, window):
         window.updatePositionLabel((110.5, 15.25))
@@ -794,7 +863,11 @@ class TestSketchPanelLayerWrites:
 
     @pytest.fixture
     def panel(self, qtbot, context):
-        panel = SketchPanel(parent=None, context=context)
+        panel = SketchPanel(
+            parent=None,
+            projection=context.layer.projection(),
+            boundaries=context.layer.boundaries(),
+        )
         qtbot.addWidget(panel)
         return panel
 
@@ -805,7 +878,7 @@ class TestSketchPanelLayerWrites:
         return SigmetPresenter(PanelOnlyView(panel), context, conf=None)
 
     def test_a_refresh_click_triggers_the_fetch(self, presenter, panel, context):
-        presenter.connectGraphic()
+        presenter.bindGraphic()
         fetches = []
         context.event.layerRefreshRequested.connect(lambda: fetches.append(1))
 
@@ -814,11 +887,28 @@ class TestSketchPanelLayerWrites:
         assert fetches == [1]
 
     def test_a_menu_selection_is_written_to_state(self, presenter, panel, context):
-        presenter.connectGraphic()
+        context.layer.setLayer([
+            {'name': 'Satellite', 'overlay': 'standalone', 'proj': 'webmerc', 'image': b'x', 'extent': [100, 10, 130, 30]},
+            {'name': 'Radar', 'overlay': 'mixed', 'proj': 'webmerc', 'image': b'y', 'extent': [100, 10, 130, 30]},
+        ])
+        presenter.bindGraphic()
 
         panel.layerSelectionChanged.emit(['Satellite', 'Radar'])
 
         assert context.layer.selected == ['Satellite', 'Radar']
+
+    def test_switching_standalone_drops_incompatible_mixed_layer(self, presenter, panel, context):
+        context.layer.setLayer([
+            {'name': 'SatA', 'overlay': 'standalone', 'proj': 'webmerc', 'image': b'x', 'extent': [100, 10, 130, 30]},
+            {'name': 'SatB', 'overlay': 'standalone', 'proj': 'eqc', 'image': b'y', 'extent': [100, 10, 130, 30]},
+            {'name': 'CloudsA', 'overlay': 'mixed', 'proj': 'webmerc', 'image': b'z', 'extent': [100, 10, 130, 30]},
+        ])
+        presenter.bindGraphic()
+        panel.layerSelectionChanged.emit(['SatA', 'CloudsA'])
+        assert context.layer.selected == ['SatA', 'CloudsA']
+
+        panel.layerSelectionChanged.emit(['SatB', 'CloudsA'])
+        assert context.layer.selected == ['SatB']
 
 
 LAYERS = [
@@ -833,17 +923,21 @@ class TestLayerSelectMenu:
 
     @pytest.fixture
     def panel(self, qtbot, context):
-        panel = SketchPanel(parent=None, context=context)
+        panel = SketchPanel(
+            parent=None,
+            projection=context.layer.projection(),
+            boundaries=context.layer.boundaries(),
+        )
         qtbot.addWidget(panel)
-        panel.canvas.drawLayer = lambda: None
-        panel.updateLayerInfoLabel = lambda: None
-        panel.updateSigmetGraphic = lambda: None
+        panel.canvas.drawLayer = lambda layers: None
+        panel.updateLayerInfoLabel = lambda layers: None
+        panel.setSigmets = lambda geos: None
         return panel
 
     @pytest.fixture
     def presenter(self, panel, context):
         presenter = SigmetPresenter(PanelOnlyView(panel), context, conf=None)
-        presenter.connectGraphic()
+        presenter.bindGraphic()
         context.layer.setLayer(LAYERS)
         return presenter
 
@@ -886,4 +980,48 @@ class TestLayerSelectMenu:
 
         assert panel.layerItems == []
         assert panel.backgroundLayerActionGroup.actions() == []
+
+    def test_incompatible_mixed_layer_is_disabled_in_menu(self, presenter, panel, context):
+        context.layer.setLayer([
+            {'name': 'SatA', 'overlay': 'standalone', 'proj': 'webmerc', 'image': b'x', 'extent': [100, 10, 130, 30]},
+            {'name': 'MixedOk', 'overlay': 'mixed', 'proj': 'webmerc', 'image': b'y', 'extent': [100, 10, 130, 30]},
+            {'name': 'MixedBad', 'overlay': 'mixed', 'proj': 'eqc', 'image': b'z', 'extent': [100, 10, 130, 30]},
+        ])
+
+        assert self.action(panel, 'MixedOk').isEnabled() is True
+        assert self.action(panel, 'MixedBad').isEnabled() is False
+
+
+class TestLoadCoastlineCache:
+
+    def test_load_coastline_returns_non_empty_geometries(self):
+        graphic.loadCoastline.cache_clear()
+        shapes = graphic.loadCoastline()
+
+        assert isinstance(shapes, tuple)
+        assert len(shapes) > 0
+        assert all(isinstance(s, shapely.geometry.base.BaseGeometry) for s in shapes)
+
+    def test_load_coastline_caches_reader_calls_per_path(self, monkeypatch):
+        graphic.loadCoastline.cache_clear()
+        calls = []
+        real_reader = graphic.shapefile.Reader
+
+        def counting_reader(path):
+            calls.append(path)
+            return real_reader(path)
+
+        monkeypatch.setattr(graphic.shapefile, 'Reader', counting_reader)
+
+        first = graphic.loadCoastline()
+        second = graphic.loadCoastline()
+
+        assert first is second
+        assert len(calls) == 1
+
+        graphic.loadCoastline.cache_clear()
+        third = graphic.loadCoastline()
+
+        assert len(calls) == 2
+        assert third == first
 

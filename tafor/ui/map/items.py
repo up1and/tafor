@@ -451,3 +451,48 @@ class SigmetBackground(QWidget, ColorMixin):
             painter.setPen(Qt.NoPen)
             painter.setBrush(brush)
             painter.drawPolygon(geo)
+
+
+class SceneLayer:
+    """One group of graphics items, replaceable as a unit.
+
+    Every rebuild in this module used to hand-roll its own "drop the old items,
+    then make a group" dance, and one of them forgot the first half -- which is
+    why the FIR boundary accumulated another group on every redraw. There is now
+    a single place that can get it wrong.
+    """
+
+    def __init__(self, view, z=0):
+        self.view = view
+        self.z = z
+        self.items = []
+        self.group = None
+        self.visible = True
+
+    def replace(self, items):
+        self.clear()
+        self.items = list(items)
+
+        if self.items:
+            self.group = self.view.scene.createItemGroup(self.items)
+            self.group.setZValue(self.z)
+            self.group.setVisible(self.visible)
+
+    def clear(self):
+        if self.group is not None:
+            self.view.scene.removeItem(self.group)
+            self.group = None
+
+        self.items = []
+
+    def setVisible(self, visible):
+        self.visible = bool(visible)
+        if self.group is not None:
+            self.group.setVisible(self.visible)
+
+    def isVisible(self):
+        return self.visible
+
+    def boundingRect(self):
+        if self.group is not None:
+            return self.group.boundingRect()

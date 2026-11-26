@@ -673,7 +673,11 @@ class SigmetSender(BaseSender):
 
     def __init__(self, parent=None, context=None, conf=None, repository=None):
         super().__init__(parent, context, conf, repository)
-        self.graphic = PreviewPanel(self, context=self.context)
+        self.graphic = PreviewPanel(
+            self,
+            projection=self.context.layer.projection(),
+            boundaries=self.context.layer.boundaries(),
+        )
         self.canvasLayout.addWidget(self.graphic)
         self.switchButton.clicked.connect(self.presenter.toggle)
 

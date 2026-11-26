@@ -902,7 +902,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         self.recentBoard.sync(entries)
 
     def renderSigmetGraphic(self):
-        self.sigmetEditor.updateGraphicCanvas()
+        self.sigmetEditor.presenter.updateSigmetGraphic()
 
     def renderSigmetText(self):
         self.sigmetEditor.updateCustomText()

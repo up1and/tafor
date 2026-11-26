@@ -1,27 +1,34 @@
 import os
-import logging
+from functools import lru_cache
+from itertools import cycle
 
 import shapefile
 import shapely.geometry
 from shapely.affinity import scale
-
-from itertools import cycle
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView, QGraphicsScene, QRubberBand,
     QStyleOptionGraphicsItem, QPushButton, QLabel, QMenu, QActionGroup, QAction, QWidgetAction, QSlider, QSpacerItem, QSizePolicy)
 from PyQt5.QtGui import QFontMetrics, QPainter
 from PyQt5.QtCore import QCoreApplication, Qt, QRect, QRectF, QSize, pyqtSignal
 
-from tafor.core.geometry.coordinate import degTodms
 from tafor.core.geometry import geojson
+from tafor.core.geometry.coordinate import degTodms
+from tafor.core.geometry.projection import WebMercator
 from tafor.core.sigmet.compose import formatLocation
 from tafor.core.utils.common import resourcePath
 from tafor.ui.fonts import fixedFont
 from tafor.ui.map.sketch import SketchManager
-from tafor.ui.map.items import BackgroundImage, Coastline, Fir, Sigmet
+from tafor.ui.map.items import BackgroundImage, Coastline, Fir, SceneLayer, Sigmet
 from tafor.ui.map.items import OutlinedLabel
 
-logger = logging.getLogger(__name__)
+
+@lru_cache(maxsize=1)
+def loadCoastline(filename=None):
+    """Load coastline polygons from a shapefile, cached by path."""
+    if filename is None:
+        filename = os.path.join(resourcePath('shapes'), 'coastline.shp')
+    with shapefile.Reader(filename) as reader:
+        return tuple(shapely.geometry.shape(s) for s in reader.shapes())
 
 
 class ToolContext:
@@ -165,41 +172,6 @@ class EntireTool(SketchTool):
         self.sketch.restore(boundaries=list(self.context.boundary()))
 
 
-class SceneLayer:
-    """One group of graphics items, replaceable as a unit.
-
-    Every rebuild in this module used to hand-roll its own "drop the old items,
-    then make a group" dance, and one of them forgot the first half -- which is
-    why the FIR boundary accumulated another group on every redraw. There is now
-    a single place that can get it wrong.
-    """
-
-    def __init__(self, view, z=0):
-        self.view = view
-        self.z = z
-        self.items = []
-        self.group = None
-
-    def replace(self, items):
-        self.clear()
-        self.items = list(items)
-
-        if self.items:
-            self.group = self.view.scene.createItemGroup(self.items)
-            self.group.setZValue(self.z)
-
-    def clear(self):
-        if self.group is not None:
-            self.view.scene.removeItem(self.group)
-            self.group = None
-
-        self.items = []
-
-    def boundingRect(self):
-        if self.group is not None:
-            return self.group.boundingRect()
-
-
 class MapView(QGraphicsView):
     """Shared map view: projection, the item layers, pan and zoom.
 
@@ -215,16 +187,16 @@ class MapView(QGraphicsView):
 
     mouseMoved = pyqtSignal(tuple)
 
-    def __init__(self, context):
+    def __init__(self, projection, boundaries=None):
         super().__init__()
-        self.context = context
         self.extent = []
+        self.boundaries = list(boundaries) if boundaries else []
 
         self.coastlines = SceneLayer(self)
         self.firs = SceneLayer(self, z=1)
         self.sigmets = SceneLayer(self, z=2)
 
-        self.projection = self.context.layer.projection()
+        self.projection = projection
         if self.projection.geographic:
             self.ratio = 100
         else:
@@ -254,16 +226,9 @@ class MapView(QGraphicsView):
         return bound
 
     def drawCoastline(self):
-        filename = os.path.join(resourcePath('shapes'), 'coastline.shp')
-        shapes = shapefile.Reader(filename).shapes()
-
-        if not self.extent:
-            self.setExtent(self.context.layer.maxExtent())
-
         bound = self.bbox()
         items = []
-        for shape in shapes:
-            polygon = shapely.geometry.shape(shape)
+        for polygon in loadCoastline():
             if bound:
                 polygon = bound.intersection(polygon)
 
@@ -280,13 +245,12 @@ class MapView(QGraphicsView):
         self.setSceneRect(self.scene.itemsBoundingRect())
 
     def drawBoundaries(self):
-        boundaries = self.context.layer.boundaries()
-        if not boundaries:
+        if not self.boundaries:
             self.firs.clear()
             return
 
         items = []
-        Fir(geojson.polygon(boundaries)).addTo(self, items)
+        Fir(geojson.polygon(self.boundaries)).addTo(self, items)
         self.firs.replace(items)
 
     def drawSigmets(self, geometries):
@@ -295,7 +259,7 @@ class MapView(QGraphicsView):
             Sigmet(geo=geometry).addTo(self, items)
         self.sigmets.replace(items)
 
-        if not self.context.layer.boundaries():
+        if not self.boundaries:
             self.centerOnLayer(self.sigmets)
 
     def centerOnLayer(self, layer):
@@ -398,11 +362,12 @@ class SketchView(MapView):
     maxZoom = 5
     minZoom = 0.15
 
-    def __init__(self, context):
-        super().__init__(context)
+    def __init__(self, projection, boundaries=None):
+        super().__init__(projection, boundaries)
         self.backgrounds = []
         self.backgroundOpacity = 0.5
-        self.maxLayerExtent = self.context.layer.maxExtent()
+        self.maxLayerExtent = []
+        self._needsRedraw = False
         self.backgroundLayer = SceneLayer(self, z=-1)
 
         self.setMouseTracking(True)
@@ -413,7 +378,7 @@ class SketchView(MapView):
             registry=self.sketchManager,
             toGeo=self.toGeographicalPoint,
             toView=self.toViewPoint,
-            boundary=self.context.layer.boundaries,
+            boundary=lambda: self.boundaries,
             band=lambda: self.rubberBand,
         )
         self.tools = {
@@ -454,8 +419,20 @@ class SketchView(MapView):
         maxx, maxy = self.toCanvasCoordinates(maxlon, maxlat)
         return minx, miny, maxx, maxy
 
+    def setMaxLayerExtent(self, extent):
+        extent = list(extent) if extent else []
+        if extent == self.maxLayerExtent:
+            return
+
+        self.maxLayerExtent = extent
+        self.setExtent(extent)
+        if self.isVisible():
+            self.redraw()
+        else:
+            self._needsRedraw = True
+
     def maxZoomFactor(self):
-        extent = self.context.layer.maxExtent()
+        extent = self.maxLayerExtent
         if not extent:
             return 0
 
@@ -567,13 +544,13 @@ class SketchView(MapView):
             if bg.layer.overlay == 'mixed': 
                 bg.setOpacity(opacity)
 
-    def drawLayer(self):
+    def drawLayer(self, layers):
         # An empty selection means "show nothing"; returning early here left
         # the previous background on screen after the feed went empty.
-        layers = [layer for layer in self.context.layer.currentLayers() if layer]
+        active = [layer for layer in layers if layer]
 
         items = []
-        for layer in layers:
+        for layer in active:
             opacity = self.backgroundOpacity if layer.overlay == 'mixed' else 1                
             background = BackgroundImage(layer, opacity)
             background.addTo(self, items)
@@ -585,9 +562,9 @@ class SketchView(MapView):
         self.sketchManager.clear()
 
     def showEvent(self, event):
-        extent = self.context.layer.maxExtent()
-        if extent != self.maxLayerExtent:
-            self.maxLayerExtent = extent
+        super().showEvent(event)
+        if self._needsRedraw:
+            self._needsRedraw = False
             self.redraw()
 
 
@@ -650,10 +627,10 @@ class LayerInfoOverlay(QWidget):
 
 class PreviewPanel(QWidget):
 
-    def __init__(self, parent=None, context=None):
+    def __init__(self, parent=None, projection=None, boundaries=None):
         super().__init__(parent)
-        self.context = context
-        self.canvas = StaticView(self.context)
+        self.boundaries = list(boundaries) if boundaries else []
+        self.canvas = StaticView(projection or WebMercator(), self.boundaries)
         self.verticalLayout = QVBoxLayout(self)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout.addWidget(self.canvas)
@@ -664,7 +641,10 @@ class PreviewPanel(QWidget):
         self.canvas.redraw()
 
     def extent(self):
-        boundary = shapely.geometry.Polygon(self.context.layer.boundaries())
+        if not self.boundaries:
+            return []
+
+        boundary = shapely.geometry.Polygon(self.boundaries)
         bbox = boundary.envelope
         bbox = scale(bbox, xfact=4, yfact=2)
         return list(bbox.bounds)
@@ -689,18 +669,19 @@ class SketchPanel(QWidget):
     modeChanged = pyqtSignal(str)
     refreshClicked = pyqtSignal()
     layerSelectionChanged = pyqtSignal(list)
+    trimChanged = pyqtSignal(bool)
 
-    def __init__(self, parent=None, context=None):
+    def __init__(self, parent=None, projection=None, boundaries=None):
         super().__init__(parent)
-        self.context = context
+        self.boundaries = list(boundaries) if boundaries else []
+        self.selectedLayers = []
         self.designator = ''
-        self.cachedSigmets = []
         # The display switches are view state: they only change how this canvas
         # paints the SIGMET overlay, so they are toggled and repainted here.
         self.showSigmet = True
         self.trimShapes = True
 
-        self.canvas = SketchView(self.context)
+        self.canvas = SketchView(projection or WebMercator(), self.boundaries)
         self.setMaximumSize(960, 620)
         self.canvasLayout = QVBoxLayout(self)
         self.canvasLayout.setContentsMargins(0, 8, 0, 0)
@@ -780,8 +761,8 @@ class SketchPanel(QWidget):
 
         self.sketchChanged.connect(self.updateLocationLabel)
 
-        self.trimShapesAction.toggled.connect(lambda: self.changeSigmetDisplayMode(self.trimShapesAction, 'trimShapes'))
-        self.showSigmetAction.toggled.connect(lambda: self.changeSigmetDisplayMode(self.showSigmetAction, 'showSigmet'))
+        self.trimShapesAction.toggled.connect(self.handleTrimShapes)
+        self.showSigmetAction.toggled.connect(self.handleShowSigmet)
         self.backgroundLayerActionGroup.triggered.connect(self.changeLayer)
         self.mixedBackgroundLayerActionGroup.triggered.connect(self.changeLayer)
         self.opacitySlider.valueChanged.connect(self.updateMixedBackgroundOpacity)
@@ -807,7 +788,7 @@ class SketchPanel(QWidget):
     def formattedCoordinates(self):
         messages = []
         for s in self.canvas.sketchManager.sketches:
-            messages.append(formatLocation(s, self.context.layer.boundaries()))
+            messages.append(formatLocation(s, self.boundaries))
         return messages
 
     def circleCoordinates(self):
@@ -828,14 +809,13 @@ class SketchPanel(QWidget):
         moment either side gained a third entry.
         """
         manager = self.canvas.sketchManager
-        boundaries = self.context.layer.boundaries()
         keys = {'location': 'initial', 'forecastLocation': 'final'}
 
         locations = {}
         for key, name in keys.items():
             sketch = manager.get(name)
             if sketch.done:
-                locations[key] = formatLocation(sketch, boundaries)
+                locations[key] = formatLocation(sketch, self.boundaries)
 
         return locations
 
@@ -843,10 +823,9 @@ class SketchPanel(QWidget):
         initial = self.canvas.sketchManager.first()
         final = self.canvas.sketchManager.last()
 
-        boundaries = self.context.layer.boundaries()
-        sketches = [initial.done and formatLocation(initial, boundaries)]
+        sketches = [initial.done and formatLocation(initial, self.boundaries)]
         if self.canvas.sketchManager.currentSketch() == final:
-            sketches.append(final.done and formatLocation(final, boundaries))
+            sketches.append(final.done and formatLocation(final, self.boundaries))
 
         return all(sketches)
 
@@ -912,17 +891,18 @@ class SketchPanel(QWidget):
             self.modeButton.setEnabled(True)
             self.overlapChanged.emit('initial')
 
-    def setSigmets(self, sigmets):
-        self.cachedSigmets = sigmets
-        self.updateSigmetGraphic()
+    def setSigmets(self, geometries):
+        self.canvas.drawSigmets(geometries)
 
-    def handleLayersChanged(self):
+    def setLayers(self, groups, selected=(), active=(), stackable=None, maxExtent=None):
         # The pictures or which of them are shown changed: the menu structure,
         # the backgrounds and the information overlay all follow them. The
         # SIGMET overlay depends on neither, so it stays untouched.
-        self.updateLayerMenu()
-        self.canvas.drawLayer()
-        self.updateLayerInfoLabel()
+        self.selectedLayers = list(selected)
+        self.updateLayerMenu(groups, selected, stackable)
+        self.canvas.setMaxLayerExtent(maxExtent)
+        self.canvas.drawLayer(active)
+        self.updateLayerInfoLabel(active)
 
     def setLayerMenu(self):
         self.layerMenu = QMenu(self)
@@ -951,11 +931,10 @@ class SketchPanel(QWidget):
         # it back out again
         self.layerItems = []
 
-    def updateLayerMenu(self):
+    def updateLayerMenu(self, layers, selected, stackable=None):
         # Pure render: the action set follows the fetched names, the checks
-        # follow the selection the service already normalised. Nothing here
-        # writes state, so a notification never turns into a command.
-        layers = self.context.layer.groupLayers()
+        # follow the selection the presenter pushed. Nothing here writes
+        # state, so a notification never turns into a command.
         structure = sorted(
             (layer.name, layer.overlay)
             for groups in layers.values() for layer in groups
@@ -970,10 +949,16 @@ class SketchPanel(QWidget):
         if structure != current:
             self.rebuildLayerActions(layers)
 
-        selected = set(self.context.layer.selected)
-        actions = self.backgroundLayerActionGroup.actions() + self.mixedBackgroundLayerActionGroup.actions()
-        for action in actions:
-            action.setChecked(action.text() in selected)
+        selectedSet = set(selected)
+        stackableSet = None if stackable is None else set(stackable)
+
+        for action in self.backgroundLayerActionGroup.actions():
+            action.setChecked(action.text() in selectedSet)
+
+        for action in self.mixedBackgroundLayerActionGroup.actions():
+            enabled = True if stackableSet is None else (action.text() in stackableSet)
+            action.setEnabled(enabled)
+            action.setChecked(enabled and action.text() in selectedSet)
 
     def rebuildLayerActions(self, layers):
         for item in self.layerItems:
@@ -1002,18 +987,19 @@ class SketchPanel(QWidget):
         else:
             self.opacitySlider.hide()
 
-    def changeSigmetDisplayMode(self, action, attr):
-        setattr(self, attr, action.isChecked())
-        self.updateSigmetGraphic()
+    def handleTrimShapes(self, checked):
+        self.trimShapes = checked
+        self.trimChanged.emit(checked)
+
+    def handleShowSigmet(self, checked):
+        self.showSigmet = checked
+        self.canvas.sigmets.setVisible(checked)
 
     def changeLayer(self, action):
-        stackable = self.context.layer.canStack(action.text())
-        if stackable:
-            selected = [action.text() for action in self.backgroundLayerActionGroup.actions() + self.mixedBackgroundLayerActionGroup.actions() if action.isChecked()]
-            if selected != self.context.layer.selected:
-                self.layerSelectionChanged.emit(selected)
-        else:
-            action.setChecked(False)
+        actions = self.backgroundLayerActionGroup.actions() + self.mixedBackgroundLayerActionGroup.actions()
+        selected = [item.text() for item in actions if item.isChecked()]
+        if selected != self.selectedLayers:
+            self.layerSelectionChanged.emit(selected)
 
     def updatePositionLabel(self, pos):
         if pos:
@@ -1023,8 +1009,7 @@ class SketchPanel(QWidget):
         else:
             self.positionLabel.clear()
 
-    def updateLayerInfoLabel(self):
-        layers = self.context.layer.currentLayers()
+    def updateLayerInfoLabel(self, layers):
         words = []
         for layer in layers:
             updated = layer.updatedTime()
@@ -1079,10 +1064,9 @@ class SketchPanel(QWidget):
         final = self.canvas.sketchManager.last()
 
         def restore(sketch, feature):
-            boundaries = self.context.layer.boundaries()
             if feature['geometry']['type'] == 'Polygon':
                 sketch.restore(coordinates=feature['geometry']['coordinates'])
-                sketch.clip(boundaries)
+                sketch.clip(self.boundaries)
             if feature['geometry']['type'] == 'Point':
                 sketch.restore(center=feature['geometry']['coordinates'],
                                radius=feature['properties']['radius'])
@@ -1101,7 +1085,6 @@ class SketchPanel(QWidget):
                         if final.done:
                             self.overlapButton.setChecked(True)
                             self.overlapButton.setEnabled(True)
-                feature['properties']['type'] = 'exterior'
 
         stickers = {'initial': [], 'final': []}
         for feature in collections['features']:
@@ -1120,26 +1103,6 @@ class SketchPanel(QWidget):
             final.clear()
 
         self.updateOverlapButton()
-
-    def updateSigmetGraphic(self):
-        if not self.context.layer.boundaries():
-            return
-
-        sigmets = []
-        if self.showSigmet:
-            sigmets = self.cachedSigmets
-
-        geometries = []
-        for sig in sigmets:
-            parser = sig.parser()
-
-            try:
-                geometry = parser.geo(self.context.layer.boundaries(), self.trimShapes)
-                geometries.append(geometry)
-            except Exception as e:
-                logger.error('Decode SIGMET graphic area error, {}, {}'.format(sig.text, e))
-
-        self.canvas.drawSigmets(geometries)
 
     def updateMixedBackgroundOpacity(self, value):
         value = value / 10
