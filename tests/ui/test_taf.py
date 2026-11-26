@@ -46,8 +46,9 @@ def open_header(editor):
     """Build the header the way the first show does.
 
     `TafPrimarySegment.showEvent` sets the date and `TafEditor.showEvent` calls
-    `onOpen()`, which runs `updateModifier()`. Clicking a radio instead would
-    reach the same slot through a signal the real path never fires.
+    `onOpen()`, which asks `TafPresenter` to update the header. Clicking a
+    radio instead would reach the same slot through a signal the real path
+    never fires.
     """
     editor.primary.setDate()
     editor.onOpen()
@@ -269,11 +270,10 @@ class TestTafGroupOverlap:
     """
 
     def messages(self, editor):
-        """The editor addresses its notifications with showNotification();
-        the old editorMessage bus channel is gone. Spy on the method the
-        groups call."""
+        """The editor addresses its notifications via showNotification();
+        groups emit periodFinished and the presenter reports overlap there."""
         seen = []
-        editor.showNotification = lambda editorName, message: seen.append((editorName, message))
+        editor.showNotification = lambda message: seen.append(message)
         return seen
 
     def openPeriod(self, editor):
@@ -298,9 +298,9 @@ class TestTafGroupOverlap:
                                          start + datetime.timedelta(hours=6))
 
         seen = self.messages(editor)
-        editor.becmg2.validateGroupsPeriod()
+        editor.becmg2.periodFinished.emit()
 
-        assert seen == [('taf', 'Change group time is overlap')]
+        assert seen == ['Change group time is overlap']
 
     def test_touching_siblings_pass(self, editor, context):
         primary = self.openPeriod(editor)
@@ -314,7 +314,7 @@ class TestTafGroupOverlap:
                                          start + datetime.timedelta(hours=8))
 
         seen = self.messages(editor)
-        editor.becmg2.validateGroupsPeriod()
+        editor.becmg2.periodFinished.emit()
 
         assert seen == []
 
@@ -330,7 +330,7 @@ class TestTafGroupOverlap:
                                          start + datetime.timedelta(hours=6))
 
         seen = self.messages(editor)
-        editor.becmg1.validateGroupsPeriod()
+        editor.becmg1.periodFinished.emit()
 
         assert seen == []
 
@@ -346,7 +346,7 @@ class TestTafGroupOverlap:
                                          start + datetime.timedelta(hours=6))
 
         seen = self.messages(editor)
-        editor.becmg1.validateGroupsPeriod()
+        editor.becmg1.periodFinished.emit()
 
         assert seen == []
 
@@ -362,9 +362,9 @@ class TestTafGroupOverlap:
                                          start + datetime.timedelta(hours=5))
 
         seen = self.messages(editor)
-        editor.fm.validateGroupsPeriod()
+        editor.fm.periodFinished.emit()
 
-        assert seen == [('taf', 'Change group time is overlap')]
+        assert seen == ['Change group time is overlap']
 
 
 class TestTafTemperatureIsRequired:
@@ -488,8 +488,7 @@ class TestTafPeriodReanchor:
 
         # The slot asks the operator first, then steps the draft and refills the
         # header; this is everything after the confirmation.
-        editor.primary.draft.prev()
-        editor.primary.updateModifier()
+        editor.presenter.shiftPeriod('prev')
 
         assert editor.selectedGroups() == []
         assert group.state.period == ''
@@ -599,13 +598,13 @@ class TestTafTemperatureNotifications:
     """A rejected temperature still reaches the operator.
 
     The groups used to climb two hops -- `primary.editor.showNotification` --
-    to report it. They now call the callback the primary hands them, so this
-    pins the wiring (the rule itself is core's).
+    to report it. They now emit `notified`, which propagates through the
+    primary segment to the editor.
     """
 
     def test_a_rejected_temperature_time_still_reaches_the_editor(self, editor):
         seen = []
-        editor.showNotification = lambda editorName, message: seen.append((editorName, message))
+        editor.showNotification = lambda message: seen.append(message)
 
         primary = open_header(editor)
         start, _ = primary.state.durations
@@ -622,8 +621,7 @@ class TestTafTemperatureNotifications:
         second.collect()
         second.validateTemperatureTime()
 
-        assert len(seen) == 1
-        assert seen[0][0] == 'taf'
+        assert seen == ['The time of temperature is not correct']
         assert second.state.time == ''
         assert second.tempTime.text() == ''
 
@@ -716,12 +714,12 @@ class TestTafApplyState:
         editor.clear()
 
         # The header is part of the document now: clear() empties it like any
-        # other field, and updateModifier() re-derives it on the next show.
+        # other field, and updateHeader() re-derives it on the next show.
         assert primary.period.text() == ''
         assert primary.state.period == ''
         assert primary.date.text() == '101200'   # the clock owns the date
 
-        primary.updateModifier()
+        editor.presenter.updateHeader()
 
         assert primary.period.text() == period
         assert primary.state.durations is not None
@@ -870,22 +868,19 @@ class TestTafPeriodClearsTheForm:
         primary = self.start_filled(editor)
         period = primary.period.text()
 
-        editor.draft.prev()
-        primary.updateModifier()
+        editor.presenter.shiftPeriod('prev')
 
         assert read_widgets(primary) == ('',) * 9
         assert primary.period.text() and primary.period.text() != period
 
     def test_stepping_to_another_period_keeps_the_modifier_in_the_state(self, editor):
-        # the clear() inside updateModifier() wipes the state, and no collect
-        # runs after it on this path -- the re-assertion in updateModifier() is
-        # what keeps `state.modifier` on the radios' value
+        # draft.begin() clears the body while keeping the modifier from the
+        # radios; populate() draws that back to screen.
         primary = open_header(editor)
         primary.amd.click()
         assert primary.state.modifier == 'AMD'
 
-        editor.draft.prev()
-        primary.updateModifier()
+        editor.presenter.shiftPeriod('prev')
 
         assert primary.state.modifier == 'AMD'
         assert primary.state.sequence == 'AAA'
@@ -900,7 +895,7 @@ class TestTafPeriodClearsTheForm:
         editor.draft.prev()
         primary = editor.primary
 
-        primary.updateModifier()
+        editor.presenter.updateHeader()
 
         assert editor.draft.isBackdated()
         assert primary.period.text()
@@ -943,6 +938,113 @@ class TestTafPeriodClearsTheForm:
 
         assert primary.state.modifier is None
         assert primary.normal.isChecked()
+
+
+class TestTafFormDecoupling:
+
+    def test_segments_do_not_hold_editor_repository_or_draft(self, editor):
+        primary = editor.primary
+        assert not hasattr(primary, 'repository')
+        assert not hasattr(primary, 'draft')
+        assert not hasattr(primary, 'editor')
+        assert not hasattr(primary, 'notify')
+
+        for group in editor.groups:
+            assert not hasattr(group, 'draft')
+            assert not hasattr(group, 'editor')
+            assert not hasattr(group, 'notify')
+
+    def test_primary_timer_starts_when_shown_and_stops_when_hidden_or_closed(self, editor):
+        assert not editor.primary.timer.isActive()
+
+        editor.show()
+        assert editor.primary.timer.isActive()
+
+        editor.hide()
+        assert not editor.primary.timer.isActive()
+
+        editor.show()
+        assert editor.primary.timer.isActive()
+
+        editor.close()
+        assert not editor.primary.timer.isActive()
+
+    def test_notifications_flow_through_notified_signal_to_editor_area(self, editor, frozen_time):
+        primary = open_header(editor)
+        primary.wind.setText('24008')
+        primary.gust.setText('10')
+        primary.collect()
+        primary.validateGust()
+        assert editor.notificationArea.text() == 'Gust speed must be greater than wind speed by at least 5'
+
+        primary.becmg1Checkbox.setChecked(True)
+        editor.becmg1.wind.setText('24008')
+        editor.becmg1.gust.setText('10')
+        editor.becmg1.collect()
+        editor.becmg1.validateGust()
+        assert editor.notificationArea.text() == 'Gust speed must be greater than wind speed by at least 5'
+
+        end = primary.state.durations[1]
+        start = end - datetime.timedelta(hours=2)
+        editor.becmg1.period.setText('{:02d}{:02d}/{:02d}{:02d}'.format(
+            start.day, start.hour, end.day, end.hour))
+        editor.becmg1.collect()
+        editor.becmg1.period.editingFinished.emit()
+        assert editor.becmg1.period.text() == ''
+        assert editor.notificationArea.text() == 'End time of change group is not correct'
+
+    def test_toggle_group_by_semantic_key_updates_selection(self, editor):
+        editor.presenter.toggleGroup('BECMG', 1)
+
+        assert editor.presenter.draft.selectedKeys() == (('BECMG', 1),)
+        assert editor.primary.becmg1Checkbox.isChecked()
+        assert editor.becmg1.isVisibleTo(editor)
+
+        editor.presenter.toggleGroup('BECMG', 1)
+
+        assert editor.presenter.draft.selectedKeys() == ()
+        assert not editor.primary.becmg1Checkbox.isChecked()
+        assert not editor.becmg1.isVisibleTo(editor)
+
+    def test_shift_period_toggles_buttons_and_updates_period(self, editor):
+        primary = open_header(editor)
+        initial_period = primary.period.text()
+        assert primary.prevButton.isEnabled()
+        assert not primary.resetButton.isEnabled()
+
+        editor.presenter.shiftPeriod('prev')
+        assert primary.period.text() != initial_period
+        assert primary.resetButton.isEnabled()
+
+        editor.presenter.shiftPeriod('current')
+        assert primary.period.text() == initial_period
+        assert not primary.resetButton.isEnabled()
+
+    def test_commit_catches_overlapping_groups(self, editor, frozen_time):
+        primary = fill_without_temperature(editor)
+        for temperature, value, time in zip(primary.temperatures, ('12', 'M03'), ('1012', '1015')):
+            temperature.temp.setText(value)
+            temperature.tempTime.setText(time)
+            temperature.onUserEdited()
+
+        primary.becmg1Checkbox.setChecked(True)
+        primary.becmg2Checkbox.setChecked(True)
+        fill(editor.becmg1)
+        fill(editor.becmg2)
+
+        start = primary.state.durations[0]
+        p1_start = start + datetime.timedelta(hours=1)
+        p1_end = start + datetime.timedelta(hours=3)
+        editor.becmg1.period.setText('{:02d}{:02d}/{:02d}{:02d}'.format(
+            p1_start.day, p1_start.hour, p1_end.day, p1_end.hour))
+
+        p2_start = start + datetime.timedelta(hours=2)
+        p2_end = start + datetime.timedelta(hours=4)
+        editor.becmg2.period.setText('{:02d}{:02d}/{:02d}{:02d}'.format(
+            p2_start.day, p2_start.hour, p2_end.day, p2_end.hour))
+
+        editor.commit()
+        assert editor.notificationArea.text() == 'Change group time is overlap'
 
 
 if __name__ == '__main__':

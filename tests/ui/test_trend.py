@@ -167,6 +167,17 @@ class TestTrendLoading:
         assert trend.cb.text() == ''
         assert trend.weather.currentText() == 'BR'
 
+    def test_invalid_period_notifies_editor_area(self, editor):
+        trend = editor.trend
+        trend.becmg.click()
+        trend.at.click()
+        far = (datetime.datetime.utcnow() + datetime.timedelta(hours=5)).strftime('%H%M')
+        trend.period.setText(far)
+        trend.period.editingFinished.emit()
+
+        assert trend.period.text() == ''
+        assert editor.notificationArea.text() == 'Trend valid time is not correct'
+
 
 if __name__ == '__main__':
     pytest.main()

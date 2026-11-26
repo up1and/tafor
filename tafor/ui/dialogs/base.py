@@ -8,9 +8,7 @@ class BaseEditor(QDialog):
 
     finished = pyqtSignal(object)
 
-    # The name this editor answers to. Segments address their validation
-    # messages by it, and it also selects the conf groups checked before
-    # the editor can show. Subclass sets it.
+    # Selects the conf groups checked before the editor can show. Subclass sets it.
     editorName = None
 
     def __init__(self, parent=None, sender=None, conf=None, context=None):
@@ -65,18 +63,9 @@ class BaseEditor(QDialog):
         self.bottomBox.setLayout(bottomLayout)
         layout.addWidget(self.bottomBox)
 
-    def notify(self, message):
-        """Show a message in this editor's own notification area.
-
-        Editors hand this to their forms, so a form reports a rejected value
-        without knowing what an editor is.
-        """
-        self.showNotification(self.editorName, message)
-
-    def showNotification(self, editorName, message):
-        if editorName == self.editorName:
-            self.notificationArea.setText(message)
-            QTimer.singleShot(10 * 1000, self.notificationArea.clear)
+    def showNotification(self, message):
+        self.notificationArea.setText(message)
+        QTimer.singleShot(10 * 1000, self.notificationArea.clear)
 
     def commit(self):
         if self.presenter:

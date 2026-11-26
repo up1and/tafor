@@ -124,6 +124,9 @@ class TafFormValidator:
         if not groupState.period or not primaryState.period:
             return None
 
+        if groupState.durations is None or primaryState.durations is None:
+            return None
+
         # The indicator is the group's own, so no caller can hand in a flag that
         # disagrees with the state it is asking about. `span` stays an argument:
         # the UI also needs it for the wording of the error.

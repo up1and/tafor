@@ -68,8 +68,8 @@ class SigmetPresenter:
         self.view.custom.clicked.connect(self.view.changeContent)
         self.view.cancel.clicked.connect(self.view.changeContent)
 
-        self.view.graphic.sketchChanged.connect(self.enableNextButton)
-        self.view.graphic.overlapChanged.connect(self.enableNextButton)
+        self.view.graphic.sketchChanged.connect(self.updateNextButton)
+        self.view.graphic.overlapChanged.connect(self.updateNextButton)
         self.view.graphic.overlapChanged.connect(self.view.setOverlapMode)
         self.view.graphic.modeChanged.connect(self.view.setLocationMode)
 
@@ -80,7 +80,8 @@ class SigmetPresenter:
         self.view.typhoonContent.locationChanged.connect(self.view.graphic.setAdvisoryGraphic)
 
         for c in self.view.forms.values():
-            c.contentChanged.connect(self.enableNextButton)
+            c.contentChanged.connect(self.updateNextButton)
+            c.notified.connect(lambda message: self.view.showNotification(message))
 
         self.connectGraphic()
 
@@ -115,7 +116,7 @@ class SigmetPresenter:
         """The view answers: the draft's verdict plus the canvas's."""
         return self.view.isAcceptable()
 
-    def enableNextButton(self):
+    def updateNextButton(self):
         self.view.nextButton.setEnabled(self.hasAcceptableInput())
 
     def clear(self):
@@ -227,7 +228,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         # Everything above only wrote widgets. Read it back once, here, so the
         # draft's header is filled by the same collect() a user edit uses.
         form.reload()
-        self.presenter.enableNextButton()
+        self.presenter.updateNextButton()
 
     def sequenceNumber(self):
         """What number today's reports give this draft."""
@@ -332,7 +333,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         # the canvas agree instead of drifting until the next form switch
         self.graphic.configureMode(self.draft.designator,
                                    'cancel' if self.draft.form == 'cancel' else 'template')
-        self.presenter.enableNextButton()
+        self.presenter.updateNextButton()
 
     def onOpen(self):
         self.renderForm()

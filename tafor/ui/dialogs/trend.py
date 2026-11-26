@@ -17,12 +17,13 @@ class TrendPresenter:
         self.bindSignal()
 
     def bindSignal(self):
-        self.view.trend.contentChanged.connect(self.enableNextButton)
+        self.view.trend.contentChanged.connect(self.updateNextButton)
+        self.view.trend.notified.connect(lambda message: self.view.showNotification(message))
 
     def hasAcceptableInput(self):
         return self.view.trend.hasAcceptableInput()
 
-    def enableNextButton(self):
+    def updateNextButton(self):
         self.view.nextButton.setEnabled(self.hasAcceptableInput())
 
     def commit(self):
@@ -69,7 +70,7 @@ class TrendEditor(BaseEditor):
         layout = QVBoxLayout(window)
         layout.setSizeConstraint(QLayout.SetFixedSize)
         layout.setSpacing(18)
-        self.trend = TrendSegment(conf=self.conf, context=self.context, notify=self.notify)
+        self.trend = TrendSegment(conf=self.conf, context=self.context)
         layout.addWidget(self.trend)
         self.addBottomBox(layout)
         self.setLayout(layout)

@@ -40,6 +40,7 @@ def _translate(code):
 class BaseSigmet(TextFieldMixin, QWidget):
 
     contentChanged = pyqtSignal()
+    notified = pyqtSignal(str)
 
     # Concrete classes declare their field-group members here. Kept apart
     # from self.parts, which holds one live instance per member.
@@ -152,7 +153,7 @@ class BaseSigmet(TextFieldMixin, QWidget):
                 self.beginningTime.clear()
             elif error in (SigmetFormValidator.END_NOT_GREATER, SigmetFormValidator.PERIOD_TOO_LONG):
                 self.endingTime.clear()
-            self.editor.showNotification('sigmet', _translate(error))
+            self.notified.emit(_translate(error))
 
     def collect(self):
         self.state.header.area = self.conf.firName.split()[0] if self.conf.firName else ''
@@ -327,7 +328,7 @@ class FlightLevelPart(SigmetPart):
         error = SigmetFormValidator.validateFlightLevel(self.base.text(), self.top.text())
         if error:
             line.clear()
-            self.widget.editor.showNotification('sigmet', _translate(error))
+            self.widget.notified.emit(_translate(error))
 
     def clear(self):
         self.top.clear()
@@ -526,7 +527,7 @@ class AdvisoryImport(SigmetPart):
             self.applyAdvisoryData()
             self.text.setStyleSheet(validTextStyle)
         except Exception as e:
-            self.widget.editor.showNotification('sigmet', QCoreApplication.translate('Editor', 'Advisory message can not be decoded'))
+            self.widget.notified.emit(QCoreApplication.translate('Editor', 'Advisory message can not be decoded'))
             self.text.setStyleSheet(invalidTextStyle)
             logger.error('Advisory message can not be decoded, {}, {}'.format(text, e))
 

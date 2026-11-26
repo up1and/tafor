@@ -198,11 +198,11 @@ class TestSigmetPresenter:
         assert presenter.hasAcceptableInput() is False
 
     def test_enable_next_button_mirrors_input(self, presenter, view):
-        presenter.enableNextButton()
+        presenter.updateNextButton()
         assert view.enabled is True
 
         view.acceptable = False
-        presenter.enableNextButton()
+        presenter.updateNextButton()
         assert view.enabled is False
 
     def test_clear_delegates_to_view(self, presenter, view):
@@ -752,6 +752,13 @@ class TestSigmetCustomText:
         editor.updateCustomText()
 
         assert editor.customForm.text.toPlainText() == 'OBSC TS'
+
+    def test_form_notified_updates_editor_notification_area(self, editor, frozen_time):
+        editor.generalContent.beginningTime.setText('100800')
+        editor.generalContent.endingTime.setText('102300')
+        editor.generalContent.validatePeriod()
+
+        assert editor.notificationArea.text() == 'Valid period more than the permitted hours'
 
 
 if __name__ == '__main__':

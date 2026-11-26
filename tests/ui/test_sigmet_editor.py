@@ -34,7 +34,6 @@ class EditorStub:
 
     def __init__(self, draft=None):
         self.draft = draft or SigmetDraft()
-        self.notifications = []
 
     @property
     def designator(self):
@@ -46,9 +45,6 @@ class EditorStub:
 
     def category(self):
         return self.draft.category()
-
-    def showNotification(self, editorName, message):
-        self.notifications.append((editorName, message))
 
 
 def editor_stub(designator='WS'):
@@ -179,14 +175,14 @@ class TestSigmetGeneral:
         assert general.beginningTime.text() == '100800'
 
     def test_validate_period_too_long_shows_a_message(self, general):
+        seen = []
+        general.notified.connect(seen.append)
         general.beginningTime.setText('100800')
         general.endingTime.setText('102300')
 
         general.validatePeriod()
 
-        assert general.editor.notifications == [
-            ('sigmet', 'Valid period more than the permitted hours')
-        ]
+        assert seen == ['Valid period more than the permitted hours']
 
     def test_validate_period_clears_far_future_start(self, general):
         general.beginningTime.setText('200800')
