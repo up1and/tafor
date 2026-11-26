@@ -36,7 +36,7 @@ calendarSheet = """
     }
 
     QCalendarWidget QAbstractItemView:disabled /* date previous/next month */ {
-        color: palette(placeholdertext);
+        color: palette(dark);
     }
 
     QCalendarWidget #qt_calendar_navigationbar {
@@ -89,7 +89,7 @@ calendarSheet = """
     /* weekday header */
     QCalendarWidget QHeaderView::section {
         background: palette(base);
-        color: palette(placeholdertext);
+        color: palette(dark);
         border: 0;
         font-weight: normal;
     }
@@ -149,10 +149,10 @@ def applyCalendarStyle(calendar):
 
 
 #: Secondary text: hints, counts and other labels that should recede.
-mutedStyle = 'QLabel {color: palette(placeholdertext);}'
+mutedStyle = 'QLabel {color: palette(dark);}'
 
 #: An input whose contents are complete and acceptable.
 validTextStyle = 'color: palette(text);'
 
 #: An input whose contents are still missing something.
-invalidTextStyle = 'color: palette(placeholdertext);'
+invalidTextStyle = 'color: palette(dark);'

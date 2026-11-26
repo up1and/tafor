@@ -11,7 +11,7 @@ import pytest
 
 from PyQt5.QtCore import QObject, Qt
 from PyQt5.QtGui import QColor, QPalette
-from PyQt5.QtWidgets import QCalendarWidget, QLabel
+from PyQt5.QtWidgets import QCalendarWidget, QLabel, QLineEdit
 
 from tafor.ui import styles
 from tafor.ui.styles import (
@@ -259,26 +259,36 @@ class TestTheWatcher:
 class TestEditorsUseTheStyles:
     """The three text styles reach the editors through the same names."""
 
-    def test_a_valid_field_asks_for_the_text_role(self, qtbot):
-        line = QLabel()
+    def test_a_valid_field_asks_for_the_text_role(self, qtbot, qapp, restore_palette):
+        switch_to(qapp, light_palette())
+        line = QLineEdit()
         qtbot.addWidget(line)
         line.setStyleSheet(validTextStyle)
+        line.ensurePolished()
 
         assert 'palette(text)' in line.styleSheet()
+        assert line.palette().color(QPalette.Text).name() == '#000000'
 
-    def test_an_invalid_field_asks_for_the_muted_role(self, qtbot):
-        line = QLabel()
+    def test_an_invalid_field_asks_for_the_muted_role(self, qtbot, qapp, restore_palette):
+        switch_to(qapp, light_palette())
+        line = QLineEdit()
         qtbot.addWidget(line)
         line.setStyleSheet(invalidTextStyle)
+        line.ensurePolished()
 
-        assert 'palette(placeholdertext)' in line.styleSheet()
+        assert 'palette(dark)' in line.styleSheet()
+        assert line.palette().color(QPalette.Text).name() == '#9f9f9f'
+        assert line.palette().color(QPalette.Text).name() != line.palette().color(QPalette.Text).fromRgb(0, 0, 0).name()
 
-    def test_muted_labels_ask_for_the_muted_role(self, qtbot):
+    def test_muted_labels_ask_for_the_muted_role(self, qtbot, qapp, restore_palette):
+        switch_to(qapp, light_palette())
         label = QLabel('UTC')
         qtbot.addWidget(label)
         label.setStyleSheet(mutedStyle)
+        label.ensurePolished()
 
-        assert 'palette(placeholdertext)' in label.styleSheet()
+        assert 'palette(dark)' in label.styleSheet()
+        assert label.palette().color(QPalette.WindowText).name() == '#9f9f9f'
 
 
 class TestModuleSurface:
