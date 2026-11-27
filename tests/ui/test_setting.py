@@ -1,3 +1,4 @@
+import os
 import json
 import datetime
 
@@ -8,9 +9,43 @@ from PyQt5.QtWidgets import QMessageBox, QFileDialog
 from tafor.core.config import createConfig
 from tafor.core.states import SequenceService
 from tafor.ui.dialogs import SettingDialog
+from tafor.ui.dialogs.setting import AutoStart, WindowsAutoStart
 from tafor.ui.workers import WorkerPool
 
 from tests.mocks import MockConfig
+
+
+class FakeAutoStart:
+
+    supported = True
+
+    def __init__(self, enabled=False):
+        self.enabled = enabled
+        self.calls = []
+
+    def isEnabled(self):
+        return self.enabled
+
+    def setEnabled(self, enabled):
+        self.enabled = enabled
+        self.calls.append(enabled)
+
+
+class FakeRegistrySettings:
+
+    def __init__(self, store=None):
+        self.store = dict(store or {})
+        self.removed = []
+
+    def contains(self, key):
+        return key in self.store
+
+    def setValue(self, key, value):
+        self.store[key] = value
+
+    def remove(self, key):
+        self.removed.append(key)
+        self.store.pop(key, None)
 
 
 class TestSetting:
@@ -32,7 +67,8 @@ class TestSetting:
         pool.cleanup()
 
     @pytest.fixture
-    def setting(self, qtbot, conf, sequence, pool):
+    def setting(self, qtbot, conf, sequence, pool, monkeypatch):
+        monkeypatch.setattr('tafor.ui.dialogs.setting.WindowsAutoStart', FakeAutoStart)
         dialog = SettingDialog(None, conf, sequence, pool)
         qtbot.addWidget(dialog)
         return dialog
@@ -191,6 +227,71 @@ class TestSetting:
 
         assert modal == [1]
         assert setting.airport.text() == 'YUDD'
+
+    def test_non_windows_disables_run_on_start_without_registry(
+            self, qtbot, conf, sequence, pool, monkeypatch):
+        def failQSettings(*args, **kwargs):
+            raise AssertionError('QSettings should not be created on non-Windows platforms')
+
+        monkeypatch.setattr('tafor.ui.dialogs.setting.sys.platform', 'linux')
+        monkeypatch.setattr('tafor.ui.dialogs.setting.QSettings', failQSettings)
+
+        dialog = SettingDialog(None, conf, sequence, pool)
+        qtbot.addWidget(dialog)
+
+        assert type(dialog.autoStart) is AutoStart
+        assert not dialog.runOnStart.isEnabled()
+        assert not dialog.runOnStart.isChecked()
+
+        dialog.airport.setText('YUDD')
+        dialog.save()
+        assert conf.airport == 'YUDD'
+
+        dialog.load()
+        assert not dialog.runOnStart.isChecked()
+
+    def test_windows_syncs_auto_start_with_dialog(
+            self, qtbot, conf, sequence, pool, monkeypatch):
+        autoStart = FakeAutoStart(enabled=True)
+        monkeypatch.setattr('tafor.ui.dialogs.setting.sys.platform', 'win32')
+        monkeypatch.setattr('tafor.ui.dialogs.setting.WindowsAutoStart', lambda: autoStart)
+
+        dialog = SettingDialog(None, conf, sequence, pool)
+        qtbot.addWidget(dialog)
+
+        assert dialog.runOnStart.isEnabled()
+        assert dialog.runOnStart.isChecked()
+
+        dialog.runOnStart.setChecked(False)
+        dialog.save()
+        assert autoStart.calls == [False]
+        assert not autoStart.isEnabled()
+
+        dialog.runOnStart.setChecked(True)
+        dialog.save()
+        assert autoStart.calls == [False, True]
+        assert autoStart.isEnabled()
+
+    def test_windows_auto_start_reads_writes_and_quotes_commands(self, monkeypatch):
+        registry = FakeRegistrySettings({'Tafor': '"C:/old.exe"'})
+        adapter = WindowsAutoStart(settings=registry)
+        assert adapter.supported
+        assert adapter.isEnabled()
+
+        adapter.setEnabled(False)
+        assert registry.removed == ['Tafor']
+        assert not adapter.isEnabled()
+
+        monkeypatch.setattr('tafor.ui.dialogs.setting.sys.executable', 'C:/Program Files/Tafor/tafor.exe')
+        monkeypatch.setattr('tafor.ui.dialogs.setting.sys.frozen', True, raising=False)
+        adapter.setEnabled(True)
+        assert registry.store['Tafor'] == '"C:/Program Files/Tafor/tafor.exe"'
+
+        monkeypatch.delattr('tafor.ui.dialogs.setting.sys.frozen', raising=False)
+        monkeypatch.setattr('tafor.ui.dialogs.setting.sys.executable', 'C:/Python 311/python.exe')
+        monkeypatch.setattr('tafor.ui.dialogs.setting.sys.argv', ['main.py'])
+        adapter.setEnabled(True)
+        assert registry.store['Tafor'] == '"C:/Python 311/python.exe" "{}"'.format(os.path.abspath('main.py'))
 
 
 class TestSettingWorkers:

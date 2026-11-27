@@ -16,6 +16,43 @@ from tafor.ui.workers import FtpTestWorker
 logger = logging.getLogger('tafor.setting')
 
 
+class AutoStart:
+    """Default no-op startup integration for platforms without auto-start support."""
+
+    supported = False
+
+    def isEnabled(self):
+        return False
+
+    def setEnabled(self, enabled):
+        pass
+
+
+class WindowsAutoStart(AutoStart):
+    """Manage the per-user Windows Run registry entry for auto-start."""
+
+    supported = True
+    path = 'HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run'
+
+    def __init__(self, settings=None):
+        self.settings = settings if settings is not None else QSettings(self.path, QSettings.NativeFormat)
+
+    def command(self):
+        if getattr(sys, 'frozen', False):
+            return '"{}"'.format(sys.executable)
+
+        return '"{}" "{}"'.format(sys.executable, os.path.abspath(sys.argv[0]))
+
+    def isEnabled(self):
+        return self.settings.contains('Tafor')
+
+    def setEnabled(self, enabled):
+        if enabled:
+            self.settings.setValue('Tafor', self.command())
+        else:
+            self.settings.remove('Tafor')
+
+
 class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
     statusMessage = pyqtSignal(str, int)
@@ -33,7 +70,8 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
         # Auto-start on system boot
-        self.autoRun = QSettings('HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run', QSettings.NativeFormat)
+        self.autoStart = WindowsAutoStart() if sys.platform == 'win32' else AutoStart()
+        self.runOnStart.setEnabled(self.autoStart.supported)
 
         # Disabled items
         self.closeToMinimize.setEnabled(False)
@@ -208,10 +246,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
         }
 
     def save(self):
-        if self.runOnStart.isChecked():
-            self.autoRun.setValue('Tafor', sys.argv[0])
-        else:
-            self.autoRun.remove('Tafor')
+        self.autoStart.setEnabled(self.runOnStart.isChecked())
 
         errors = []
         for attr, control in self.bindings().items():
@@ -246,7 +281,7 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             QMessageBox.warning(self, title, '\n\n'.join(errors))
 
     def load(self):
-        self.runOnStart.setChecked(self.autoRun.contains('Tafor'))
+        self.runOnStart.setChecked(self.autoStart.isEnabled())
 
         self.serviceHost.setText('http://{}:9407'.format(ipAddress()))
 
