@@ -6,12 +6,16 @@ so the panel never has to open, follow or parse a file that is rotating
 underneath it -- and keeps working when that file cannot be written at all.
 """
 
+import os
 import sys
 import logging
+import threading
 
 from collections import deque
 from logging import Formatter
 from logging.handlers import RotatingFileHandler
+
+from tafor.core import root
 
 
 class LogRecord:
@@ -36,7 +40,7 @@ class LogRecord:
 
 
 class LogBuffer:
-    """A ring of the last ``capacity`` records.
+    """A thread-safe ring of the last ``capacity`` records.
 
     Old records fall off the front once it is full. That is the point: the
     panel shows what just happened, and a shift's worth of records is all it
@@ -44,14 +48,16 @@ class LogBuffer:
     """
 
     def __init__(self, capacity=500):
+        self.lock = threading.Lock()
         self.records = deque(maxlen=capacity)
         self.seq = 0
 
     def append(self, level, name, created, message, traceback='', levelname=None):
-        self.seq += 1
-        record = LogRecord(self.seq, level, name, created, message, traceback, levelname)
-        self.records.append(record)
-        return record
+        with self.lock:
+            self.seq += 1
+            record = LogRecord(self.seq, level, name, created, message, traceback, levelname)
+            self.records.append(record)
+            return record
 
     def since(self, seq=0):
         """Every record appended after ``seq``, oldest first.
@@ -60,13 +66,18 @@ class LogBuffer:
         the caller asked for 'everything newer than X' and the honest answer
         is everything still held.
         """
-        return [record for record in self.records if record.seq > seq]
+        with self.lock:
+            if seq == 0:
+                return list(self.records)
+            return [record for record in self.records if record.seq > seq]
 
     def clear(self):
-        self.records.clear()
+        with self.lock:
+            self.records.clear()
 
     def __len__(self):
-        return len(self.records)
+        with self.lock:
+            return len(self.records)
 
 
 class BufferHandler(logging.Handler):
@@ -106,19 +117,23 @@ logBuffer = LogBuffer()
 
 
 def setupLogging(debug=False, name='tafor'):
-    logLevel = logging.DEBUG if debug else logging.INFO
-    _format = '[%(asctime)s] %(levelname)s [%(name)s] %(message)s'
-    formatter = logging.Formatter(_format)
-
+    """Configure console, rotating file, and in-memory ring logging handlers."""
     logger = logging.getLogger(name)
     if logger.handlers:
         return
+
+    logLevel = logging.DEBUG if debug else logging.INFO
+    formatter = logging.Formatter('[%(asctime)s] %(levelname)s [%(name)s] %(message)s')
+
+    directory = os.path.join(root, 'logs')
+    os.makedirs(directory, exist_ok=True)
+    filename = os.path.join(directory, '{}.log'.format(name))
 
     ch = logging.StreamHandler(sys.stdout)
     ch.setLevel(logging.DEBUG)
     ch.setFormatter(formatter)
 
-    fh = RotatingFileHandler('{}.log'.format(name), maxBytes=1024*1024, backupCount=5)
+    fh = RotatingFileHandler(filename, maxBytes=1024*1024, backupCount=5, encoding='utf-8')
     fh.setLevel(logLevel)
     fh.setFormatter(formatter)
 

@@ -3,54 +3,55 @@
 import datetime
 import logging
 
-from collections import deque
-
 import pytest
 
-from tafor.core.utils.log import logBuffer
+from tafor.core.utils.log import LogBuffer, logBuffer
 from tafor.ui.panels import LogPanel
 
 
 @pytest.fixture
-def panel(qtbot):
-    """A panel over an empty ring.
+def buffer():
+    """An isolated ring per test."""
+    return LogBuffer()
 
-    The ring is process-wide and other tests log into it, so it is emptied
-    here; the panel reads it by identity, not by copy.
-    """
-    logBuffer.clear()
-    widget = LogPanel()
+
+@pytest.fixture
+def panel(qtbot, buffer):
+    """A panel over its own isolated ring."""
+    widget = LogPanel(buffer=buffer)
     qtbot.addWidget(widget)
-    yield widget
-    logBuffer.clear()
+    return widget
 
 
 #: A two-line traceback for the tests that need one.
 TEARDOWN = 'Traceback (most recent call last):' + chr(10) + 'KeyError: k'
 
 
-def written(level=logging.INFO, message='a line', name='tafor.test', traceback=''):
-    return logBuffer.append(level, name, 1000.0, message, traceback)
+@pytest.fixture
+def write(buffer):
+    def _write(level=logging.INFO, message='a line', name='tafor.test', traceback=''):
+        return buffer.append(level, name, 1000.0, message, traceback)
+    return _write
 
 
 class TestLogPanelReading:
 
-    def test_a_record_written_after_a_poll_appears_on_the_next_one(self, panel):
-        written(message='first')
+    def test_a_record_written_after_a_poll_appears_on_the_next_one(self, panel, write):
+        write(message='first')
         panel.poll()
-        written(message='second')
+        write(message='second')
         panel.poll()
 
         assert 'first' in panel.text.toPlainText()
         assert 'second' in panel.text.toPlainText()
 
-    def test_records_from_two_polls_are_separate_lines(self, panel):
+    def test_records_from_two_polls_are_separate_lines(self, panel, write):
         # A run of records appended in one poll and a second run appended
         # later must not end up in the same block, which would read as a
         # single line with the timestamps run together.
-        written(message='from the first poll')
+        write(message='from the first poll')
         panel.poll()
-        written(message='from the second')
+        write(message='from the second')
         panel.poll()
 
         lines = panel.text.toPlainText().splitlines()
@@ -58,22 +59,22 @@ class TestLogPanelReading:
         assert lines[0].endswith('from the first poll')
         assert lines[1].endswith('from the second')
 
-    def test_every_record_gets_its_own_line(self, panel):
+    def test_every_record_gets_its_own_line(self, panel, write):
         for index in range(5):
-            written(message='line {}'.format(index))
+            write(message='line {}'.format(index))
         panel.poll()
 
         assert panel.text.document().blockCount() == 5
 
-    def test_a_poll_does_not_repeat_what_it_already_read(self, panel):
-        written(message='only once')
+    def test_a_poll_does_not_repeat_what_it_already_read(self, panel, write):
+        write(message='only once')
         panel.poll()
         panel.poll()
 
         assert panel.text.toPlainText().count('only once') == 1
 
-    def test_a_poll_with_nothing_new_changes_nothing(self, panel):
-        written(message='before')
+    def test_a_poll_with_nothing_new_changes_nothing(self, panel, write):
+        write(message='before')
         panel.poll()
         before = panel.text.toPlainText()
 
@@ -81,17 +82,17 @@ class TestLogPanelReading:
 
         assert panel.text.toPlainText() == before
 
-    def test_opening_the_panel_shows_what_was_logged_while_it_was_closed(self, panel):
+    def test_opening_the_panel_shows_what_was_logged_while_it_was_closed(self, panel, write):
         # Records logged before the window is ever shown are what the
         # operator opens it to find.
-        written(message='from before it opened')
+        write(message='from before it opened')
 
         panel.show()
 
         assert 'from before it opened' in panel.text.toPlainText()
 
-    def test_a_line_carries_its_time_level_logger_and_message(self, panel):
-        record = written(level=logging.WARNING, message='careful', name='tafor.channel')
+    def test_a_line_carries_its_time_level_logger_and_message(self, panel, write):
+        record = write(level=logging.WARNING, message='careful', name='tafor.channel')
         line = panel.format(record)
         stamp = datetime.datetime.fromtimestamp(1000.0).strftime('%m-%d %H:%M:%S')
 
@@ -100,39 +101,68 @@ class TestLogPanelReading:
         assert 'careful' in line
         assert line.startswith('{} WARNING'.format(stamp))   # 1000.0 epoch, local
 
-    def test_a_traceback_keeps_its_own_lines(self, panel):
-        record = written(message='it broke', traceback=TEARDOWN)
+    def test_a_traceback_keeps_its_own_lines(self, panel, write):
+        record = write(message='it broke', traceback=TEARDOWN)
 
         line = panel.format(record)
 
         assert line.splitlines()[0].endswith('it broke')
         assert 'KeyError: k' in line
 
-    def test_the_ring_filling_up_does_not_clear_the_window(self, panel):
+    def test_the_ring_filling_up_does_not_clear_the_window(self, qtbot):
         # The window keeps what it drew; the ring dropping old records is
-        # not the same thing as the operator losing them from view. The
-        # capacity is traded down to five so the fill is real: while the
+        # not the same thing as the operator losing them from view. While the
         # second batch is written and before the next poll, m4..m14 fall
         # off the ring. Nobody polled in between, so they were never drawn
         # precisely because they were evicted, and the panel has no copy
         # of its own to resurrect them with.
-        was = logBuffer.records
-        try:
-            logBuffer.records = deque(maxlen=5)
-            for index in range(5):
-                written(message='m{}'.format(index))
-            panel.poll()
+        small = LogBuffer(capacity=5)
+        panel = LogPanel(buffer=small)
+        qtbot.addWidget(panel)
 
-            for index in range(5, 20):
-                written(message='m{}'.format(index))
-            panel.poll()
+        for index in range(5):
+            small.append(logging.INFO, 'tafor.test', 1000.0, 'm{}'.format(index))
+        panel.poll()
 
-            assert len(logBuffer.records) == 5
-            assert 'm0' in panel.text.toPlainText()
-            assert 'm19' in panel.text.toPlainText()
-            assert 'm10' not in panel.text.toPlainText()
-        finally:
-            logBuffer.records = was
+        for index in range(5, 20):
+            small.append(logging.INFO, 'tafor.test', 1000.0, 'm{}'.format(index))
+        panel.poll()
+
+        assert len(small) == 5
+        assert 'm0' in panel.text.toPlainText()
+        assert 'm19' in panel.text.toPlainText()
+        assert 'm10' not in panel.text.toPlainText()
+
+    def test_separate_panels_with_separate_buffers_do_not_leak(self, qtbot):
+        first = LogBuffer()
+        second = LogBuffer()
+        panelA = LogPanel(buffer=first)
+        panelB = LogPanel(buffer=second)
+        qtbot.addWidget(panelA)
+        qtbot.addWidget(panelB)
+
+        first.append(logging.INFO, 'tafor.test', 1000.0, 'only in first')
+        panelA.poll()
+        panelB.poll()
+
+        assert 'only in first' in panelA.text.toPlainText()
+        assert 'only in first' not in panelB.text.toPlainText()
+
+    def test_refilter_advances_seq_so_next_poll_does_not_duplicate(self, panel, write):
+        write(message='before')
+        panel.poll()
+        write(message='during')
+
+        panel.refilter()
+        panel.poll()
+
+        assert panel.text.toPlainText().count('during') == 1
+
+    def test_default_buffer_uses_module_log_buffer(self, qtbot):
+        widget = LogPanel()
+        qtbot.addWidget(widget)
+
+        assert widget.buffer is logBuffer
 
 
 class TestLogPanelFiltering:
@@ -151,9 +181,9 @@ class TestLogPanelFiltering:
         assert data == [logging.DEBUG, logging.INFO, logging.WARNING,
                         logging.ERROR, logging.CRITICAL]
 
-    def test_the_level_filter_hides_what_is_below_it(self, panel):
-        written(level=logging.INFO, message='routine')
-        written(level=logging.ERROR, message='urgent')
+    def test_the_level_filter_hides_what_is_below_it(self, panel, write):
+        write(level=logging.INFO, message='routine')
+        write(level=logging.ERROR, message='urgent')
         panel.poll()
 
         panel.levelBox.setCurrentText('ERROR')
@@ -162,8 +192,8 @@ class TestLogPanelFiltering:
         assert 'urgent' in text
         assert 'routine' not in text
 
-    def test_lowering_the_level_brings_the_lines_back(self, panel):
-        written(level=logging.INFO, message='routine')
+    def test_lowering_the_level_brings_the_lines_back(self, panel, write):
+        write(level=logging.INFO, message='routine')
         panel.poll()
         panel.levelBox.setCurrentText('ERROR')
         assert 'routine' not in panel.text.toPlainText()
@@ -172,9 +202,9 @@ class TestLogPanelFiltering:
 
         assert 'routine' in panel.text.toPlainText()
 
-    def test_the_keyword_filter_matches_the_message(self, panel):
-        written(message='connection is down')
-        written(message='message sent')
+    def test_the_keyword_filter_matches_the_message(self, panel, write):
+        write(message='connection is down')
+        write(message='message sent')
         panel.poll()
 
         panel.filterEdit.setText('down')
@@ -183,9 +213,9 @@ class TestLogPanelFiltering:
         assert 'connection is down' in text
         assert 'message sent' not in text
 
-    def test_the_keyword_filter_matches_the_logger_name(self, panel):
-        written(message='anything', name='tafor.rpc')
-        written(message='anything', name='tafor.layer')
+    def test_the_keyword_filter_matches_the_logger_name(self, panel, write):
+        write(message='anything', name='tafor.rpc')
+        write(message='anything', name='tafor.layer')
         panel.poll()
 
         panel.filterEdit.setText('rpc')
@@ -193,16 +223,16 @@ class TestLogPanelFiltering:
         assert 'tafor.rpc' in panel.text.toPlainText()
         assert 'tafor.layer' not in panel.text.toPlainText()
 
-    def test_the_keyword_filter_ignores_case(self, panel):
-        written(message='Connection Error')
+    def test_the_keyword_filter_ignores_case(self, panel, write):
+        write(message='Connection Error')
         panel.poll()
 
         panel.filterEdit.setText('connection error')
 
         assert 'Connection Error' in panel.text.toPlainText()
 
-    def test_clearing_the_keyword_filter_brings_the_lines_back(self, panel):
-        written(message='connection is down')
+    def test_clearing_the_keyword_filter_brings_the_lines_back(self, panel, write):
+        write(message='connection is down')
         panel.poll()
         panel.filterEdit.setText('nothing matches')
         assert 'connection is down' not in panel.text.toPlainText()
@@ -211,10 +241,10 @@ class TestLogPanelFiltering:
 
         assert 'connection is down' in panel.text.toPlainText()
 
-    def test_a_new_record_is_filtered_as_it_arrives(self, panel):
+    def test_a_new_record_is_filtered_as_it_arrives(self, panel, write):
         panel.filterEdit.setText('keep me')
-        written(message='keep me')
-        written(message='drop me')
+        write(message='keep me')
+        write(message='drop me')
         panel.poll()
 
         text = panel.text.toPlainText()
@@ -224,18 +254,18 @@ class TestLogPanelFiltering:
 
 class TestLogPanelScrolling:
 
-    def test_following_scrolls_to_the_newest_line(self, panel):
+    def test_following_scrolls_to_the_newest_line(self, panel, write):
         panel.followBox.setChecked(True)
         for index in range(60):
-            written(message='line {}'.format(index))
+            write(message='line {}'.format(index))
             panel.poll()
 
         bar = panel.text.verticalScrollBar()
         assert bar.value() == bar.maximum()
 
-    def test_not_following_leaves_the_reading_position_where_it_was(self, panel):
+    def test_not_following_leaves_the_reading_position_where_it_was(self, panel, write):
         for index in range(60):
-            written(message='line {}'.format(index))
+            write(message='line {}'.format(index))
         panel.poll()
 
         bar = panel.text.verticalScrollBar()
@@ -243,7 +273,7 @@ class TestLogPanelScrolling:
         panel.followBox.setChecked(False)
 
         for index in range(60, 80):
-            written(message='line {}'.format(index))
+            write(message='line {}'.format(index))
         panel.poll()
 
         assert bar.value() == 0
@@ -257,8 +287,8 @@ class TestLogPanelTimer:
     it moved in here: shown reads, closed stops.
     """
 
-    def makePanel(self, qtbot):
-        widget = LogPanel()
+    def makePanel(self, qtbot, buffer=None):
+        widget = LogPanel(buffer=LogBuffer() if buffer is None else buffer)
         qtbot.addWidget(widget)
         return widget
 
@@ -277,14 +307,13 @@ class TestLogPanelTimer:
     def test_showing_the_panel_draws_what_is_already_there(self, qtbot):
         """Waiting for the first tick would open an empty window and fill it
         half a second later."""
-        logBuffer.clear()
-        written(message='logged while closed')
-        panel = self.makePanel(qtbot)
+        buffer = LogBuffer()
+        buffer.append(logging.INFO, 'tafor.test', 1000.0, 'logged while closed')
+        panel = self.makePanel(qtbot, buffer)
 
         panel.show()
 
         assert 'logged while closed' in panel.text.toPlainText()
-        logBuffer.clear()
 
     def test_closing_the_panel_stops_reading(self, qtbot):
         panel = self.makePanel(qtbot)
@@ -318,12 +347,11 @@ class TestLogPanelTimer:
 
     def test_a_tick_reads_the_ring(self, qtbot):
         """The timer is connected to poll, not merely ticking."""
-        logBuffer.clear()
-        panel = self.makePanel(qtbot)
+        buffer = LogBuffer()
+        panel = self.makePanel(qtbot, buffer)
         panel.show()
-        written(message='arrived after the window opened')
+        buffer.append(logging.INFO, 'tafor.test', 1000.0, 'arrived after the window opened')
 
         panel.timer.timeout.emit()
 
         assert 'arrived after the window opened' in panel.text.toPlainText()
-        logBuffer.clear()

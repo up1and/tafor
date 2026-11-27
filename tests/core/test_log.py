@@ -5,7 +5,8 @@ import threading
 
 import pytest
 
-from tafor.core.utils.log import BufferHandler, LogBuffer
+from tafor.core.utils import log as log_module
+from tafor.core.utils.log import BufferHandler, LogBuffer, setupLogging
 
 
 def emitting(buffer, level=logging.NOTSET):
@@ -61,6 +62,59 @@ class TestLogBuffer:
 
         assert len(buffer) == 0
         assert buffer.seq == 1
+
+    def test_since_returns_a_snapshot_list(self):
+        buffer = LogBuffer()
+        buffer.append(logging.INFO, 'tafor', 0.0, 'm0')
+
+        snapshot = buffer.since()
+
+        assert isinstance(snapshot, list)
+        snapshot.clear()
+        assert len(buffer) == 1
+
+    def test_concurrent_reads_and_writes_stay_consistent(self):
+        buffer = LogBuffer(capacity=20)
+        stop = threading.Event()
+        errors = []
+
+        def write(worker):
+            try:
+                for index in range(250):
+                    buffer.append(logging.INFO, 'tafor', float(index), 'w{}-{}'.format(worker, index))
+            except Exception as exc:
+                errors.append(exc)
+
+        def read():
+            try:
+                last = 0
+                while not stop.is_set():
+                    snapshot = buffer.since()
+                    seqs = [record.seq for record in snapshot]
+                    assert seqs == sorted(seqs)
+                    recent = buffer.since(last)
+                    recent_seqs = [record.seq for record in recent]
+                    assert recent_seqs == sorted(recent_seqs)
+                    if recent_seqs:
+                        assert recent_seqs[0] > last
+                        last = recent_seqs[-1]
+                    _ = len(buffer)
+            except Exception as exc:
+                errors.append(exc)
+
+        readers = [threading.Thread(target=read) for _ in range(2)]
+        writers = [threading.Thread(target=write, args=(n,)) for n in range(4)]
+        for thread in readers + writers:
+            thread.start()
+        for thread in writers:
+            thread.join()
+        stop.set()
+        for thread in readers:
+            thread.join()
+
+        assert errors == []
+        assert buffer.seq == 1000
+        assert len(buffer) == 20
 
 
 class TestBufferHandler:
@@ -157,3 +211,54 @@ class TestBufferHandler:
         seqs = [r.seq for r in buffer.records]
         assert seqs == sorted(seqs)
         assert len(set(seqs)) == 400
+
+
+class TestSetupLogging:
+
+    def test_writes_utf8_logs_under_root_logs_directory_and_feeds_buffer(self, monkeypatch, tmp_path):
+        fresh = LogBuffer()
+        monkeypatch.setattr(log_module, 'root', str(tmp_path))
+        monkeypatch.setattr(log_module, 'logBuffer', fresh)
+
+        name = 'tafor.test.setup.returns'
+        logger = logging.getLogger(name)
+        logger.handlers.clear()
+        logger.propagate = False
+        try:
+            setupLogging(debug=True, name=name)
+            logger.debug('setup works 中文日志')
+
+            logFile = tmp_path / 'logs' / '{}.log'.format(name)
+            assert logFile.is_file()
+            assert 'setup works 中文日志' in logFile.read_text(encoding='utf-8')
+            assert [r.message for r in fresh.records] == ['setup works 中文日志']
+
+            fileHandlers = [
+                h for h in logger.handlers if isinstance(h, logging.handlers.RotatingFileHandler)
+            ]
+            assert len(fileHandlers) == 1
+            assert fileHandlers[0].encoding == 'utf-8'
+        finally:
+            for handler in list(logger.handlers):
+                handler.close()
+            logger.handlers.clear()
+
+    def test_does_not_add_duplicate_handlers_when_already_configured(self, monkeypatch, tmp_path):
+        fresh = LogBuffer()
+        monkeypatch.setattr(log_module, 'root', str(tmp_path))
+        monkeypatch.setattr(log_module, 'logBuffer', fresh)
+
+        name = 'tafor.test.setup.idempotent'
+        logger = logging.getLogger(name)
+        logger.handlers.clear()
+        logger.propagate = False
+        try:
+            setupLogging(name=name)
+            count = len(logger.handlers)
+            setupLogging(name=name)
+
+            assert len(logger.handlers) == count
+        finally:
+            for handler in list(logger.handlers):
+                handler.close()
+            logger.handlers.clear()

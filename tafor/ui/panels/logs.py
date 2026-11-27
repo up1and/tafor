@@ -1,8 +1,9 @@
 """The log window.
 
-A read-only view of the ring in ``core.utils.log``. It never opens the log
-file: the file rotates, may not be writable, and is someone else's business.
-The panel asks the ring what is new on a timer and draws that.
+A read-only view of the ring in ``core.utils.log`` (or an injected
+``LogBuffer``). It never opens the log file: the file rotates, may not be
+writable, and is someone else's business. The panel asks the ring what is
+new on a timer and draws that.
 
 Pulling rather than pushing is deliberate. Records are written from worker
 threads and from the RPC server's threads as well as from the GUI thread, so
@@ -40,9 +41,10 @@ class LogPanel(QDialog):
     whatever the ring has evicted since.
     """
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, buffer=None):
         super().__init__(parent)
 
+        self.buffer = logBuffer if buffer is None else buffer
         self.seq = 0            # how far into the ring this panel has read
 
         self.setupUi()
@@ -129,7 +131,7 @@ class LogPanel(QDialog):
 
     def poll(self):
         """Take whatever the ring has and draw it."""
-        new = logBuffer.since(self.seq)
+        new = self.buffer.since(self.seq)
         if not new:
             return
 
@@ -244,8 +246,11 @@ class LogPanel(QDialog):
         redraw of it: widening the filter brings lines back, and the lines
         the ring has already evicted stay gone for good.
         """
+        records = self.buffer.since()
         self.text.setPlainText('')
-        self.append(logBuffer.records)
+        if records:
+            self.seq = records[-1].seq
+        self.append(records)
 
     def atBottom(self):
         bar = self.text.verticalScrollBar()
