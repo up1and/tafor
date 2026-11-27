@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from PyQt5.QtWidgets import QMessageBox, QStackedWidget
+from PyQt5.QtWidgets import QDialog, QMessageBox, QStackedWidget
 
 from tafor.core.models import Other, Sigmet, Taf, Trend
 from tafor.core.repositories import MessageRepository
@@ -559,3 +559,87 @@ class TestSenderPanes:
 
         assert not shown.paneContent.isVisibleTo(shown)
         assert self.visiblePanes(shown) == []
+
+
+class TestPrintMessage:
+
+    @pytest.fixture
+    def printSpy(self, monkeypatch):
+        printed = []
+
+        class FakePrintDialog:
+            def __init__(self, printer, parent=None):
+                self.printer = printer
+
+            def exec(self):
+                return QDialog.Accepted
+
+        class FakeDocument:
+            def setDefaultFont(self, font):
+                self.font = font
+
+        class FakeTextEdit:
+            def __init__(self):
+                self._doc = FakeDocument()
+                self._html = ''
+
+            def document(self):
+                return self._doc
+
+            def setHtml(self, html):
+                self._html = html
+
+            def print(self, printer):
+                printed.append({'html': self._html, 'printer': printer})
+
+        monkeypatch.setattr('tafor.ui.dialogs.send.QPrinter', lambda: object())
+        monkeypatch.setattr('tafor.ui.dialogs.send.QPrintDialog', FakePrintDialog)
+        monkeypatch.setattr('tafor.ui.dialogs.send.QTextEdit', FakeTextEdit)
+        return printed
+
+    def test_print_ftp_message_skips_aftn_decoder(self, sender, transmission, answers, read_fixture, conf, monkeypatch, printSpy):
+        conf.set('communicationProtocol', 'ftp')
+        message = makeTaf(read_fixture)
+        sender.receive(message)
+        sender.presenter.send()
+        transmission.finish('')
+
+        assert message.protocol == 'ftp'
+
+        def failDecoder(*args, **kwargs):
+            raise AssertionError('AFTNDecoder should not be called for non-AFTN messages')
+
+        monkeypatch.setattr('tafor.ui.dialogs.send.AFTNDecoder', failDecoder)
+        sender.print()
+
+        assert len(printSpy) == 1
+        html = printSpy[0]['html']
+        assert 'Message Content' in html
+        assert 'Raw Data' in html
+        assert 'Sent Time' in html
+        assert 'NNNN' in html
+        assert '{} UTC'.format(message.created) in html
+        assert 'Priority Indicator' not in html
+        assert 'Send Address' not in html
+        assert 'Originator Address' not in html
+
+    def test_print_aftn_message_includes_aftn_headers(self, sender, transmission, answers, read_fixture, printSpy):
+        message = makeTaf(read_fixture)
+        sender.receive(message)
+        sender.presenter.send()
+        transmission.finish('')
+
+        assert message.protocol == 'aftn'
+
+        sender.print()
+
+        assert len(printSpy) == 1
+        html = printSpy[0]['html']
+        assert 'Priority Indicator' in html
+        assert 'Send Address' in html
+        assert 'Originator Address' in html
+        assert 'Message Content' in html
+        assert 'Raw Data' in html
+        assert 'Sent Time' in html
+        assert 'ZCZC' in html
+        assert '{} UTC'.format(message.created) in html

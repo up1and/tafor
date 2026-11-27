@@ -604,23 +604,28 @@ class BaseSender(QDialog, Ui_send.Ui_Sender):
             return
 
         message = session.message
-        aftn = AFTNDecoder(message.raw)
 
-        priority = QCoreApplication.translate('Sender', 'Priority Indicator')
-        address = QCoreApplication.translate('Sender', 'Send Address')
-        originator = QCoreApplication.translate('Sender', 'Originator Address')
+        items = []
+        if message.protocol == 'aftn':
+            aftn = AFTNDecoder(message.raw)
+            priority = QCoreApplication.translate('Sender', 'Priority Indicator')
+            address = QCoreApplication.translate('Sender', 'Send Address')
+            originator = QCoreApplication.translate('Sender', 'Originator Address')
+            items.extend([
+                (priority, aftn.priority),
+                (address, aftn.address),
+                (originator, aftn.originator),
+            ])
+
         content = QCoreApplication.translate('Sender', 'Message Content')
         time = QCoreApplication.translate('Sender', 'Sent Time')
         raw = QCoreApplication.translate('Sender', 'Raw Data')
 
-        items = [
-            (priority, aftn.priority),
-            (address, aftn.address),
-            (originator, aftn.originator),
+        items.extend([
             (content, message.report),
             (raw, message.rawText()),
             (time, '{} UTC'.format(message.created)),
-        ]
+        ])
 
         blocks = ['<p><b>{}</b><br>{}</p>'.format(title, '<br>'.join(str(value).split('\n')))
                   for title, value in items if value]
