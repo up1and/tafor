@@ -107,6 +107,15 @@ class TestClock:
         finally:
             clock.timer.stop()
 
+    def test_timer_is_parented_to_clock(self, qtbot, container):
+        widget, layout = container
+        clock = Clock(widget, layout)
+        qtbot.addWidget(clock)
+        try:
+            assert clock.timer.parent() is clock
+        finally:
+            clock.timer.stop()
+
 
 class TestLicenseEditor:
     """The editor normalises the typed key and reports it; verification and

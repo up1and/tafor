@@ -74,7 +74,7 @@ class Clock(QWidget):
         layout.addWidget(self.zone)
         layout.addWidget(self.label)
 
-        self.timer = QTimer()
+        self.timer = QTimer(self)
         self.timer.timeout.connect(self.updateGui)
         self.timer.start(1 * 1000)
 

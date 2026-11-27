@@ -898,7 +898,7 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
         self.forecastLongitude.setValidator(longitude)
 
         self.top.setValidator(QIntValidator(100, 999, self.top))
-        self.radius.setMaxLength(3)
+        self.top.setMaxLength(3)
 
         time = QRegExpValidator(QRegExp(self.rules.time))
         self.forecastTime.setValidator(time)
@@ -921,6 +921,7 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
         if not collections['features']:
             return
 
+        radius = None
         for feature in collections['features']:
             location = feature['properties']['location']
             if location == 'initial':

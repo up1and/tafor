@@ -796,5 +796,33 @@ class TestSigmetCustomText:
         assert trimmed[0] != untrimmed[0]
 
 
+class TestSigmetTyphoon:
+
+    def test_top_and_radius_limit_length_to_three(self, editor):
+        typhoon = editor.typhoonContent
+        assert typhoon.top.maxLength() == 3
+        assert typhoon.radius.maxLength() == 3
+
+    def test_set_typhoon_location_with_only_final_feature_clears_radius(self, editor):
+        typhoon = editor.typhoonContent
+        typhoon.radius.setText('150')
+
+        collections = {
+            'type': 'FeatureCollection',
+            'features': [
+                {
+                    'type': 'Feature',
+                    'properties': {'location': 'final'},
+                    'geometry': {'type': 'Point', 'coordinates': [120.0, 20.0]},
+                }
+            ],
+        }
+        typhoon.setTyphoonLocation(collections)
+
+        assert typhoon.forecastLongitude.text() != ''
+        assert typhoon.forecastLatitude.text() != ''
+        assert typhoon.radius.text() == ''
+
+
 if __name__ == '__main__':
     pytest.main([__file__])
