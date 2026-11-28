@@ -70,20 +70,25 @@ class Repository:
             queryset = self.queryset(session, model, category=category, date=date, keywords=keywords)
             return paginate(queryset, page, perPage=perPage, total=total)
 
+    def export(self, session, model, category=None, start=None, end=None):
+        query = session.query(model)
+
+        if category == 'SIGMET':
+            query = query.filter(model.type != 'WA')
+
+        if category == 'AIRMET':
+            query = query.filter(model.type == 'WA')
+
+        return query.filter(
+            model.created >= start, model.created < end + datetime.timedelta(hours=24)).order_by(model.created.desc())
+
     def filtered(self, model, category=None, start=None, end=None):
         with self.database.session() as session:
-            query = session.query(model)
+            return self.export(session, model, category=category, start=start, end=end).all()
 
-            if category == 'SIGMET':
-                query = query.filter(model.type != 'WA')
-
-            if category == 'AIRMET':
-                query = query.filter(model.type == 'WA')
-
-            query = query.filter(
-                model.created >= start, model.created < end + datetime.timedelta(hours=24)).order_by(model.created.desc())
-
-            return query.all()
+    def count(self, model, category=None, start=None, end=None):
+        with self.database.session() as session:
+            return self.export(session, model, category=category, start=start, end=end).count()
 
 
 class TafRepository(Repository):

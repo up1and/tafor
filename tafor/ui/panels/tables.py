@@ -2,9 +2,11 @@ import os
 import datetime
 
 from PyQt5.QtGui import QIcon, QRegExpValidator, QColor, QPixmap
-from PyQt5.QtCore import QCoreApplication, QStandardPaths, QRegExp, QDate, QEvent, Qt, QPoint, pyqtSignal
-from PyQt5.QtWidgets import (QDialog, QFileDialog, QWidget, QDialogButtonBox, QTableWidgetItem, QHeaderView, QLabel, QCalendarWidget,
-    QVBoxLayout, QFormLayout, QLabel, QDateEdit, QHBoxLayout, QLayout, QApplication)
+from PyQt5.QtCore import (QCoreApplication, QStandardPaths, QRegExp, QDate, QEvent, Qt, QPoint, QRect,
+                          QAbstractTableModel, QModelIndex, QTimer, pyqtSignal)
+from PyQt5.QtWidgets import (QDialog, QFileDialog, QWidget, QDialogButtonBox, QHeaderView, QLabel, QCalendarWidget,
+    QVBoxLayout, QFormLayout, QLabel, QDateEdit, QHBoxLayout, QLayout, QApplication,
+    QStyle, QStyledItemDelegate, QStyleOptionViewItem)
 
 from tafor.core.models import Metar, Sigmet, Taf
 from tafor.core.utils.common import iconPath
@@ -83,8 +85,9 @@ class ExportDialog(QDialog):
         self.countLabel.setText('')
 
     def updateExportStatus(self):
-        results = self.filteredReport()
-        count = len(results)
+        start, end = self.startDate.date().toPyDate(), self.endDate.date().toPyDate()
+        count = self.table.repository.count(
+            self.table.model, category=self.table.category, start=start, end=end)
 
         if count == 0:
             self.countLabel.setText('')
@@ -133,6 +136,113 @@ class CalendarPopup(QWidget):
         layout.addWidget(self.calendar)
 
 
+class RecordTableModel(QAbstractTableModel):
+    """One page of records, rendered by role instead of by widgets.
+
+    Paging and searching happen in the repository, so the model only ever
+    holds the current page. Sorting is deliberately left alone: re-ordering
+    one page would not re-order the result set.
+    """
+
+    def __init__(self, display, color=None, parent=None):
+        super().__init__(parent)
+        self.records = []
+        self.display = display
+        self.color = color or (lambda item: None)
+        self.icons = {
+            True: self.icon('checkmark.png'),
+            False: self.icon('questionmark.png'),
+        }
+
+    @staticmethod
+    def icon(name):
+        return QPixmap(iconPath(name)).scaled(20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+
+    def setRecords(self, records):
+        self.beginResetModel()
+        self.records = list(records)
+        self.endResetModel()
+
+    def record(self, index):
+        return self.records[index.row()] if index.isValid() else None
+
+    def rowCount(self, parent=QModelIndex()):
+        return 0 if parent.isValid() else len(self.records)
+
+    def columnCount(self, parent=QModelIndex()):
+        return 0 if parent.isValid() else 4
+
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        if orientation != Qt.Horizontal or role != Qt.DisplayRole:
+            return None
+
+        # The literals stay at the call site: lupdate extracts source strings
+        # from translate() arguments, not from a table they are read out of.
+        if section == 0:
+            return QCoreApplication.translate('DataTable', 'Type')
+        if section == 1:
+            return QCoreApplication.translate('DataTable', 'Message Content')
+        if section == 2:
+            return QCoreApplication.translate('DataTable', 'Sent Time')
+        if section == 3:
+            return QCoreApplication.translate('DataTable', 'Check')
+
+        return None
+
+    def data(self, index, role=Qt.DisplayRole):
+        if not index.isValid():
+            return None
+
+        item = self.records[index.row()]
+        column = index.column()
+
+        if role == Qt.DisplayRole:
+            if column == 0:
+                return item.type
+            if column == 1:
+                return self.display(item)
+            if column == 2:
+                return item.created.strftime('%Y-%m-%d %H:%M:%S') if item.created else ''
+            return None
+
+        if role == Qt.TextAlignmentRole and column in (0, 2, 3):
+            return Qt.AlignCenter
+
+        if role == Qt.ForegroundRole and column < 3:
+            return self.color(item)
+
+        if role == Qt.DecorationRole and column == 3:
+            return self.icons[bool(item.confirmed)]
+
+        return None
+
+    def flags(self, index):
+        return Qt.ItemIsEnabled | Qt.ItemIsSelectable
+
+
+class CenteredIconDelegate(QStyledItemDelegate):
+    """Draws a decoration centred in its cell; Qt pins it to the left edge."""
+
+    def paint(self, painter, option, index):
+        opt = QStyleOptionViewItem(option)
+        self.initStyleOption(opt, index)
+        pixmap = index.data(Qt.DecorationRole)
+        if not isinstance(pixmap, QPixmap) or pixmap.isNull():
+            super().paint(painter, option, index)
+            return
+
+        # Let the style draw the background and selection, then place the
+        # icon ourselves: drawing it through the option pins it left.
+        opt.icon = QIcon()
+        opt.text = ''
+        style = opt.widget.style() if opt.widget else QApplication.style()
+        style.drawControl(QStyle.CE_ItemViewItem, opt, painter, opt.widget)
+
+        rect = QRect(QPoint(0, 0), pixmap.size())
+        rect.moveCenter(opt.rect.center())
+        painter.drawPixmap(rect, pixmap)
+
+
 class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
     chartClicked = pyqtSignal()
@@ -142,9 +252,10 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         super().__init__(parent)
         self.workers = workers
         self.perPage = 12
-        self.hasCheckmark = False
         self.extraColumnWidths = {}
         self.setupUi(self)
+        self.records = RecordTableModel(self.displayText, self.rowColor, self)
+        self.table.setModel(self.records)
         self.setupStyle()
         self.setupValidator()
         self.page = 1
@@ -161,6 +272,11 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.calendarPopup.calendar.clicked.connect(self.setCalendar)
         self.calendarPopup.installEventFilter(self)
 
+        self.searchTimer = QTimer(self)
+        self.searchTimer.setSingleShot(True)
+        self.searchTimer.setInterval(200)
+        self.searchTimer.timeout.connect(self.applySearch)
+
         font = fixedFont()
         font.setPointSize(10)
         self.table.setFont(font)
@@ -170,10 +286,10 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
 
     def bindSignal(self):
         self.search.textEdited.connect(self.autoSearch)
-        self.table.itemDoubleClicked.connect(self.copySelected)
+        self.table.doubleClicked.connect(self.copySelected)
         self.prevButton.clicked.connect(self.prev)
         self.nextButton.clicked.connect(self.next)
-        self.table.itemSelectionChanged.connect(self.updateInfoButton)
+        self.table.selectionModel().selectionChanged.connect(lambda *_: self.updateInfoButton())
         self.infoButton.clicked.connect(self.view)
         self.calendarButton.clicked.connect(self.showCalendarPopup)
         self.chartButton.clicked.connect(self.chartClicked.emit)
@@ -213,7 +329,8 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
     def setupStyle(self):
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(1, QHeaderView.Stretch)
-        self.table.setStyleSheet('QTableWidget {border: 0;} QTableWidget::item {padding: 5px 0;}')
+        self.table.setItemDelegateForColumn(3, CenteredIconDelegate(self.table))
+        self.table.setStyleSheet('QTableView {border: 0;} QTableView::item {padding: 5px 0;}')
 
         self.prevButton.setIcon(QIcon(iconPath('prev.png')))
         self.nextButton.setIcon(QIcon(iconPath('next.png')))
@@ -230,7 +347,17 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         self.search.setValidator(word)
 
     def autoSearch(self):
-        self.search.setText(self.search.text().upper())
+        # Case conversion is instant so the field never shows lowercase;
+        # only the query is debounced.
+        text = self.search.text()
+        upper = text.upper()
+        if upper != text:
+            position = self.search.cursorPosition()
+            self.search.setText(upper)
+            self.search.setCursorPosition(position)
+        self.searchTimer.start()
+
+    def applySearch(self):
         self.keywords = self.search.text().split()
         self.setPage(1)
 
@@ -268,57 +395,44 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
             self.model, category=self.category, date=self.date, keywords=self.keywords,
             page=self.page, perPage=self.perPage)
 
-        items = self.pagination.items
-        self.table.setRowCount(len(items))
+        self.records.setRecords(self.pagination.items)
+
         self.table.setColumnWidth(0, 50)
         self.table.setColumnWidth(2, 140)
         for column, width in self.extraColumnWidths.items():
             self.table.setColumnWidth(column, width)
 
-        for row, item in enumerate(items):
-            self.table.setItem(row, 0, QTableWidgetItem(item.type))
-            self.table.setItem(row, 1, QTableWidgetItem(self.displayText(item)))
-            if item.created:
-                created = item.created.strftime('%Y-%m-%d %H:%M:%S')
-                self.table.setItem(row, 2, QTableWidgetItem(created))
-
-            if self.hasCheckmark:
-                self.table.setCellWidget(row, 3, self.checkmarkLabel(item))
-
-            self.decorateRow(row, item)
-
-            self.table.item(row, 0).setTextAlignment(Qt.AlignCenter)
-            self.table.item(row, 2).setTextAlignment(Qt.AlignCenter)
-
+        # Wrapped message text decides its own height; a fixed row height
+        # clips long reports.
         self.table.resizeRowsToContents()
 
     def displayText(self, item):
         return item.text
 
-    def decorateRow(self, row, item):
-        pass
+    def rowColor(self, item):
+        """The foreground for a record, or None for the default."""
+        return None
 
     def updatePages(self):
         text = '{}/{}'.format(self.page, self.pagination.pages or 1)
         self.pagesLabel.setText(text)
 
     def updateInfoButton(self):
-        items = self.table.selectedItems()
-        if len(items) != 1:
+        indexes = self.table.selectionModel().selectedIndexes()
+        if len(indexes) != 1:
             self.selected = None
             self.infoButton.hide()
             return
 
-        index = items[0].row()
-        self.selected = self.pagination.items[index]
+        self.selected = self.records.record(indexes[0])
         self.infoButton.show()
 
     def updateCalendarButton(self):
         source = 'calendar.png' if self.date else 'search.png'
         self.calendarButton.setIcon(QIcon(iconPath(source)))
 
-    def copySelected(self, item):
-        QApplication.clipboard().setText(item.text())
+    def copySelected(self, index):
+        QApplication.clipboard().setText(index.data())
         self.statusMessage.emit(
             QCoreApplication.translate('MainWindow', 'Selected message has been copied'), 5000)
 
@@ -326,18 +440,6 @@ class BaseDataTable(QWidget, Ui_main_table.Ui_DataTable):
         message = self.selected
         self.reviewer.receive(message)
         self.reviewer.show()
-
-    def checkmarkLabel(self, item):
-        if item.confirmed:
-            iconSrc = iconPath('checkmark.png')
-        else:
-            iconSrc = iconPath('questionmark.png')
-
-        label = QLabel()
-        icon = QPixmap(iconSrc)
-        label.setPixmap(icon.scaled(20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-        label.setAlignment(Qt.AlignCenter)
-        return label
 
 
 class TafTable(BaseDataTable):
@@ -347,16 +449,16 @@ class TafTable(BaseDataTable):
         self.category = 'TAF'
         self.model = Taf
         self.reviewer = reviewer
-        self.hasCheckmark = True
         self.extraColumnWidths = {3: 50}
 
     def displayText(self, item):
         return item.flattenedText()
 
-    def decorateRow(self, row, item):
+    def rowColor(self, item):
         if 'COR' in item.text or 'AMD' in item.text:
-            for column in (0, 1, 2):
-                self.table.item(row, column).setForeground(self.color)
+            return self.color
+
+        return None
 
 
 class MetarTable(BaseDataTable):
@@ -372,10 +474,11 @@ class MetarTable(BaseDataTable):
     def hideColumns(self):
         self.table.setColumnHidden(3, True)
 
-    def decorateRow(self, row, item):
+    def rowColor(self, item):
         if item.type == 'SP':
-            for column in (0, 1, 2):
-                self.table.item(row, column).setForeground(self.color)
+            return self.color
+
+        return None
 
     def updateInfoButton(self):
         self.infoButton.hide()
@@ -389,7 +492,6 @@ class SigmetTable(BaseDataTable):
         self.model = Sigmet
         self.reviewer = reviewer
         self.perPage = 8
-        self.hasCheckmark = True
         self.extraColumnWidths = {3: 50}
 
 
