@@ -5,8 +5,6 @@ tests do; the graphic canvas loads the local FIR resources, which works
 offscreen.
 """
 
-from types import SimpleNamespace
-
 import pytest
 
 from PyQt5.QtCore import QObject, QSignalBlocker, pyqtSignal
@@ -14,53 +12,133 @@ from PyQt5.QtWidgets import QComboBox, QStackedWidget
 
 from tafor.core.models import Sigmet
 from tafor.core.repositories import MessageRepository, SigmetRepository
+from tafor.core.sigmet import SigmetHeaderState
 from tafor.core.sigmet.compose import validDuration
-from tafor.ui.dialogs import SigmetSender
-from tafor.ui.dialogs import SigmetEditor, SigmetPresenter
+from tafor.core.sigmet.states import (
+    SigmetCancelState,
+    SigmetCustomState,
+    SigmetGeneralState,
+    SigmetTyphoonState,
+)
+from tafor.ui.dialogs import SigmetEditor, SigmetPresenter, SigmetSender
 
 
-class StubContent:
+class StubGraphic(QObject):
 
-    def __init__(self, acceptable=True):
-        self.acceptable = acceptable
-        self.validated = False
-        self.cleared = False
-
-    def validate(self):
-        self.validated = True
-
-    def hasAcceptableInput(self):
-        return self.acceptable
-
-    def clear(self):
-        self.cleared = True
-
-
-class StubView(QObject):
-    """Just the surface SigmetPresenter touches."""
-
-    finished = pyqtSignal(object)
+    refreshClicked = pyqtSignal()
+    layerSelectionChanged = pyqtSignal(list)
+    trimChanged = pyqtSignal(bool)
 
     def __init__(self):
         super().__init__()
-        self.designator = 'WS'
-        self.compose = lambda: Sigmet(type='WS', heading='', text='ZJSA SANYA FIR OBSC TS=')
-        self.currentForm = StubContent()
-        self.graphic = SimpleNamespace(hasAcceptableGraphic=lambda: True)
-        self.enabled = None
+        self.trimShapes = True
         self.acceptable = True
-        self.cleared = False
-        self.collected = False
-        self.nextButton = SimpleNamespace(setEnabled=self.setEnabled)
+        self.locations = {'location': 'N2000 E11000'}
+        self.modes = []
+        self.sigmets = []
+        self.layers = []
 
-    def setEnabled(self, enabled):
-        self.enabled = enabled
+    def configureMode(self, designator, mode):
+        self.modes.append((designator, mode))
+
+    def location(self):
+        return self.locations
+
+    def hasAcceptableGraphic(self):
+        return self.acceptable
+
+    def setSigmets(self, geometries):
+        self.sigmets.append(geometries)
+
+    def setLayers(self, **kwargs):
+        self.layers.append(kwargs)
+
+
+class StubView(QObject):
+    """Pure passive view surface for headless SigmetPresenter tests."""
+
+    formSelected = pyqtSignal(str)
+    contentChanged = pyqtSignal()
+    opened = pyqtSignal()
+    closed = pyqtSignal()
+    submitted = pyqtSignal()
+    finished = pyqtSignal(object)
+
+    def __init__(self, unit='KMH'):
+        super().__init__()
+        self.unit = unit
+        self.graphic = StubGraphic()
+        self.setHeader(SigmetHeaderState())
+        self.shownForm = None
+        self.seeded = None
+        self.customText = None
+        self.collected = False
+        self.validated = False
+        self.cleared = False
+        self.enabled = None
+
+    def setHeader(self, header):
+        self.header = header
+        self.states = {
+            'general': self._make_general_state(self.unit),
+            'typhoon': SigmetTyphoonState(self.unit, self.header),
+            'ash': SigmetGeneralState(self.unit, self.header),
+            'airmet': self._make_general_state(self.unit),
+            'cancel': self._make_cancel_state(),
+            'custom': self._make_custom_state(),
+        }
+
+    def _make_general_state(self, unit):
+        state = SigmetGeneralState(unit, self.header)
+        state.description = 'OBSC'
+        state.phenomenon = 'TS'
+        state.comeFrom = 'OBS'
+        state.observedTime = '100800'
+        state.flightLevelTop = '120'
+        state.direction = 'NE'
+        state.speed = '25'
+        return state
+
+    def _make_cancel_state(self):
+        state = SigmetCancelState(self.header)
+        state.cancelSequence = '1'
+        state.cancelBeginningTime = '100930'
+        state.cancelEndingTime = '101430'
+        return state
+
+    def _make_custom_state(self):
+        state = SigmetCustomState(self.header)
+        state.text = 'ZJSA SANYA FIR OBSC TS'
+        return state
+
+    def fillHeader(self, sign='SIGMET'):
+        self.header.area = 'ZJSA'
+        self.header.sign = sign
+        self.header.sequence = '1'
+        self.header.beginningTime = '100930'
+        self.header.endingTime = '101430'
+        self.header.icao = 'ZJHK'
+
+    def formState(self, name):
+        return self.states[name]
+
+    def showForm(self, name):
+        self.shownForm = name
+
+    def seedForm(self, sequence, candidates=None, latestText=None):
+        self.seeded = (sequence, candidates, latestText)
+
+    def setCustomText(self, latest):
+        self.customText = latest
 
     def collect(self):
         self.collected = True
 
-    def isAcceptable(self):
-        return self.acceptable
+    def validate(self):
+        self.validated = True
+
+    def setNextEnabled(self, enabled):
+        self.enabled = enabled
 
     def clear(self):
         self.cleared = True
@@ -79,6 +157,11 @@ def editor(qtbot, sender, conf, context, database):
                           repository=SigmetRepository(database))
     qtbot.addWidget(editor)
     return editor
+
+
+@pytest.fixture
+def presenter(editor):
+    return editor.presenter
 
 
 SIGMET_TEXT = 'YUDD SIGMET 1 VALID 100730/101430 YUSO- YUDD SHANLON FIR OBSC TS='
@@ -108,8 +191,9 @@ class TestSigmetPresenter:
         return StubView()
 
     @pytest.fixture
-    def presenter(self, view, context, conf):
-        presenter = SigmetPresenter(view, context, conf)
+    def presenter(self, view, context, conf, database):
+        presenter = SigmetPresenter(view, context, conf, SigmetRepository(database))
+        view.setHeader(presenter.draft.header)
         return presenter
 
     def test_next_sequence_continues_todays_count(self, context, conf, database, frozen_time):
@@ -168,103 +252,206 @@ class TestSigmetPresenter:
         assert types(presenter.sigmets(category='SIGMET')) == ['WS', 'WC', 'WV']
         assert types(presenter.sigmets(category='AIRMET')) == ['WA']
 
-    def test_before_next_validates_and_previews(self, presenter, view, qtbot):
+    def test_initialize_attaches_initial_body_and_shows_general_without_seeding(self, presenter, view):
+        presenter.initialize()
+
+        assert presenter.draft.body is view.states['general']
+        assert view.shownForm == 'general'
+        assert view.seeded is None
+
+    def test_select_form_updates_draft_renders_form_and_reconfigures_graphic(self, presenter, view, context):
+        sig = Sigmet(type='WC', heading='YUDD SIGMET 1 VALID 100730/101430 YUSO-', text='YUDD SHANLON FIR TC=')
+        context.current.setState([sig])
+        presenter.initialize()
+
+        view.formSelected.emit('typhoon')
+
+        assert presenter.draft.form == 'typhoon'
+        assert presenter.draft.designator == 'WC'
+        assert presenter.draft.header.designator == 'WC'
+        assert presenter.draft.body is view.states['typhoon']
+        assert view.shownForm == 'typhoon'
+        assert view.seeded == (1, None, None)
+        assert view.graphic.modes == [('WC', 'template')]
+        assert len(view.graphic.sigmets) == 1
+
+    def test_reselecting_current_form_is_a_noop(self, presenter, view):
+        presenter.initialize()
+
+        view.formSelected.emit('general')
+
+        assert view.seeded is None
+        assert view.graphic.modes == []
+        assert view.graphic.sigmets == []
+
+    def test_select_cancel_loads_candidates_and_custom_loads_latest_text(self, presenter, view, context, database):
+        store_sigmet(database, SIGMET_TEXT)
+        sig = Sigmet(type='WS', heading='YUDD SIGMET 1 VALID 100730/101430 YUSO-', text='YUDD SHANLON FIR OBSC TS=')
+        context.current.setState([sig])
+        presenter.initialize()
+
+        view.formSelected.emit('cancel')
+        assert view.seeded == (1, [sig], None)
+        assert view.graphic.modes == [('WS', 'cancel')]
+
+        view.formSelected.emit('custom')
+        assert view.seeded == (1, None, ('database', 'YUDD SHANLON FIR OBSC TS='))
+
+        presenter.updateCustomText()
+        assert view.customText == ('database', 'YUDD SHANLON FIR OBSC TS=')
+
+    def test_before_next_validates_and_previews(self, presenter, view):
+        presenter.initialize()
+        view.fillHeader()
         messages = []
         view.finished.connect(messages.append)
 
-        presenter.commit()
+        view.submitted.emit()
 
-        assert view.currentForm.validated is True
+        assert view.collected is True
+        assert view.validated is True
         assert len(messages) == 1
-        # The presenter no longer builds the message: the draft does, and the
-        # presenter only hands on what the view composed.
         assert messages[0].type == 'WS'
-        assert messages[0].text == 'ZJSA SANYA FIR OBSC TS='
+        assert 'N2000 E11000' in messages[0].text
 
-    def test_before_next_skips_preview_when_input_rejected(self, presenter, view, qtbot):
+    def test_before_next_skips_preview_when_draft_or_graphic_rejected(self, presenter, view):
+        presenter.initialize()
+        view.fillHeader()
         messages = []
         view.finished.connect(messages.append)
-        view.acceptable = False
 
-        presenter.commit()
-
-        assert view.currentForm.validated is True
+        view.graphic.acceptable = False
+        view.submitted.emit()
         assert messages == []
 
-    def test_has_acceptable_input_is_the_views_answer(self, presenter, view):
+        view.graphic.acceptable = True
+        view.header.sequence = ''
+        view.submitted.emit()
+        assert view.validated is True
+        assert messages == []
+
+    def test_has_acceptable_input_requires_graphic_only_for_sketch_forms(self, presenter, view):
+        presenter.initialize()
+        view.fillHeader()
         assert presenter.hasAcceptableInput() is True
 
-        view.acceptable = False
+        view.graphic.acceptable = False
         assert presenter.hasAcceptableInput() is False
 
+        view.formSelected.emit('custom')
+        assert presenter.hasAcceptableInput() is True
+
     def test_enable_next_button_mirrors_input(self, presenter, view):
-        presenter.updateNextButton()
+        presenter.initialize()
+        view.fillHeader()
+
+        view.contentChanged.emit()
         assert view.enabled is True
 
-        view.acceptable = False
-        presenter.updateNextButton()
+        view.graphic.acceptable = False
+        view.contentChanged.emit()
         assert view.enabled is False
 
-    def test_clear_delegates_to_view(self, presenter, view):
-        presenter.clear()
+    def test_clear_empties_notification_header_view_and_resets_graphic(self, presenter, view, context):
+        context.notification.sigmet.setState({'message': SIGMET_TEXT})
+        presenter.initialize()
+        view.fillHeader()
+
+        view.closed.emit()
+
+        assert context.notification.sigmet.message() is None
+        assert presenter.draft.header.sequence == ''
         assert view.cleared is True
+        assert view.graphic.modes == [('WS', 'template')]
+        assert view.enabled is False
+
+    def test_current_sigmet_changed_event_redraws_graphic(self, presenter, view, context):
+        sig = Sigmet(type='WS', heading='YUDD SIGMET 1 VALID 100730/101430 YUSO-', text='YUDD SHANLON FIR OBSC TS=')
+        presenter.initialize()
+        view.graphic.sigmets.clear()
+
+        context.current.setState([sig])
+
+        assert len(view.graphic.sigmets) == 1
+
+    def test_notification_changed_updates_custom_text_only_when_on_custom_form(
+            self, presenter, view, context, database):
+        presenter.initialize()
+
+        context.notification.sigmet.setState({'message': SIGMET_TEXT})
+        assert view.customText is None
+
+        view.formSelected.emit('custom')
+        view.customText = None
+        other = 'YUDD SIGMET 2 VALID 100730/101430 YUSO- YUDD SHANLON FIR SEV TS='
+        context.notification.sigmet.setState({'message': other})
+
+        assert view.customText == ('notification', 'YUDD SHANLON FIR SEV TS=')
 
 
 class TestSigmetEditor:
 
-    def test_category_follows_designator(self, editor):
-        assert editor.category() == 'SIGMET'
+    def test_view_and_forms_hold_no_back_references(self, editor):
+        assert not hasattr(editor, 'draft')
+        assert not hasattr(editor, 'header')
+        assert all(not hasattr(form, 'editor') for form in editor.forms.values())
+        assert all(form.state.header is editor.presenter.draft.header for form in editor.forms.values())
+
+    def test_category_follows_designator(self, editor, presenter):
+        assert presenter.draft.category() == 'SIGMET'
 
         editor.airmansWeather.click()
-        assert editor.category() == 'AIRMET'
+        assert presenter.draft.category() == 'AIRMET'
 
     def test_template_mode_starts_with_general_content(self, editor):
         assert editor.template.isChecked() is True
         assert editor.currentForm is editor.generalContent
         assert editor.graphic.isVisibleTo(editor)
 
-    def test_the_forms_share_the_documents_header(self, editor):
+    def test_the_forms_share_the_documents_header(self, editor, presenter):
         # one sequence, one validity, one area: the header describes the report
         # being written, not the form that happens to be on screen
         for form in editor.forms.values():
-            assert form.state.header is editor.draft.header
+            assert form.state.header is presenter.draft.header
 
-    def test_opening_the_editor_seeds_the_draft(self, editor, frozen_time):
+    def test_opening_the_editor_seeds_the_draft(self, editor, presenter, frozen_time):
         """The open path is the only thing that starts a draft.
 
         It is what makes a success handler unnecessary: a sent report ends by
         closing the editor, and the next open seeds number and period again.
         """
-        editor.onOpen()
+        editor.opened.emit()
 
         assert editor.generalContent.sequence.text() == '1'
-        assert editor.draft.header.sequence == '1'
+        assert presenter.draft.header.sequence == '1'
         # the window is anchored to the clock, so pin that it was written and
         # that it is the draft's span, not the exact minute
         assert len(editor.generalContent.beginningTime.text()) == 6
         assert len(editor.generalContent.endingTime.text()) == 6
-        assert editor.draft.header.beginningTime == editor.generalContent.beginningTime.text()
+        assert presenter.draft.header.beginningTime == editor.generalContent.beginningTime.text()
 
-    def test_clear_empties_the_documents_header(self, editor):
-        # A body's clear() leaves the header alone -- it is the draft's. The
-        # editor is the one place that empties the document.
-        editor.generalContent.state.header.sequence = '7'
+    def test_view_clear_leaves_header_to_presenter(self, editor, presenter):
+        # A view clear empties only forms/graphic; presenter.clear() is the one
+        # place that empties the shared document header and notification.
+        presenter.draft.header.sequence = '7'
 
         editor.clear()
+        assert presenter.draft.header.sequence == '7'
 
-        assert editor.draft.header.sequence == ''
+        presenter.clear()
+        assert presenter.draft.header.sequence == ''
         assert editor.generalContent.sequence.text() == ''
 
-    def test_cancel_mode_keeps_the_graphic_visible(self, editor):
+    def test_cancel_mode_keeps_the_graphic_visible(self, editor, presenter):
         # unlike the message composition, the canvas stays visible in
         # cancel mode; only custom content hides it
         editor.cancel.click()
 
         assert editor.currentForm is editor.cancelContent
         assert editor.graphic.isVisibleTo(editor)
-        assert editor.designator == 'WS'
+        assert presenter.draft.designator == 'WS'
 
-    def test_leaving_cancel_mode_needs_the_template_radio(self, editor):
+    def test_leaving_cancel_mode_needs_the_template_radio(self, editor, presenter):
         # the template/custom/cancel radios form one exclusive group while
         # the hazard radios live in another, so clicking a hazard radio
         # cannot leave cancel mode
@@ -277,19 +464,19 @@ class TestSigmetEditor:
         assert editor.currentForm is editor.generalContent
         assert editor.graphic.isVisibleTo(editor)
 
-    def test_custom_mode_hides_graphic(self, editor):
+    def test_custom_mode_hides_graphic(self, editor, presenter):
         editor.custom.click()
 
         assert editor.currentForm is editor.customForm
         assert not editor.graphic.isVisibleTo(editor)
 
-    def test_selecting_a_form_updates_span_of_current_content(self, editor):
+    def test_selecting_a_form_updates_span_of_current_content(self, editor, presenter):
         editor.tropicalCyclone.click()
 
-        assert editor.draft.designator == 'WC'
+        assert presenter.draft.designator == 'WC'
         assert editor.currentForm.span() == validDuration('WC')
 
-    def test_reclicking_the_checked_radio_does_not_reset_the_canvas(self, editor, monkeypatch):
+    def test_reclicking_the_checked_radio_does_not_reset_the_canvas(self, editor, presenter, monkeypatch):
         # radio clicked fires even on the already-checked radio; the path
         # gated on draft.select() must not re-run configureMode, which
         # clears the drawn sketch
@@ -300,15 +487,15 @@ class TestSigmetEditor:
 
         assert calls == []
 
-    def test_message_from_custom_content_appends_equals(self, editor):
+    def test_message_from_custom_content_appends_equals(self, editor, presenter):
         editor.custom.click()
         user_edit(editor.customForm.text, 'ZJSA SANYA FIR OBSC TS')
 
-        message = editor.compose()
+        message = presenter.compose()
 
         assert message.text.endswith('ZJSA SANYA FIR OBSC TS=')
 
-    def test_message_composes_from_the_current_state(self, editor, conf):
+    def test_message_composes_from_the_current_state(self, editor, presenter, conf):
         state = editor.generalContent.state
         state.header.area = 'ZJSA'
         state.header.sign = 'SIGMET'
@@ -327,14 +514,14 @@ class TestSigmetEditor:
         state.speed = '25'
         state.intensityChange = 'NC'
 
-        message = editor.compose()
+        message = presenter.compose()
 
         assert message.text == '\n'.join([
             'ZJSA SIGMET 2 VALID 100930/101430 ZJHK-',
             '{} SEV TS OBS AT 100800Z FL080/120 MOV NE 25KMH NC='.format(conf.firName),
         ])
 
-    def test_a_field_that_never_collected_is_read_before_the_commit(self, editor):
+    def test_a_field_that_never_collected_is_read_before_the_commit(self, editor, presenter):
         """The same guard as the TAF editor: a control whose signal never fired
         must still reach the message, because the commit entry reads it."""
         general = editor.generalContent
@@ -344,10 +531,10 @@ class TestSigmetEditor:
         with QSignalBlocker(general.speed):
             general.speed.setText('45')
 
-        editor.commit()
+        editor.submitted.emit()
 
         assert general.state.speed == '45'
-        assert 'MOV N 45' in editor.compose().text
+        assert 'MOV N 45' in presenter.compose().text
 
     def test_the_overlap_mode_writes_the_state_forecast_flag(self, editor):
         editor.generalContent.setOverlapMode('final')
@@ -365,16 +552,16 @@ class TestSigmetEditor:
         assert editor.ashContent.state.isEruption is True
         assert editor.ashContent.state.phenomenon == 'ERUPTION'
 
-    def test_changing_the_typhoon_intensity_reaches_the_message(self, editor):
+    def test_changing_the_typhoon_intensity_reaches_the_message(self, editor, presenter):
         editor.tropicalCyclone.click()
         content = editor.typhoonContent
 
         choose(content.intensityChange, 'INTSF')
 
         assert content.state.intensityChange == 'INTSF'
-        assert 'INTSF' in editor.compose().text
+        assert 'INTSF' in presenter.compose().text
 
-    def test_changing_the_ash_intensity_reaches_the_state(self, editor):
+    def test_changing_the_ash_intensity_reaches_the_state(self, editor, presenter):
         editor.volcanicAsh.click()
         content = editor.ashContent
 
@@ -382,7 +569,7 @@ class TestSigmetEditor:
 
         assert content.state.intensityChange == 'WKN'
 
-    def test_the_typhoon_apply_state_renders_every_state_field(self, editor):
+    def test_the_typhoon_apply_state_renders_every_state_field(self, editor, presenter):
         editor.tropicalCyclone.click()
         content = editor.typhoonContent
         state = content.state
@@ -416,7 +603,7 @@ class TestSigmetEditor:
         assert content.intensityChange.currentText() == 'INTSF'
         assert content.state.intensityChange == 'INTSF'
 
-    def test_the_typhoon_circles_use_each_locations_own_coordinates(self, editor):
+    def test_the_typhoon_circles_use_each_locations_own_coordinates(self, editor, presenter):
         # A.6: initial and final circles must not borrow each other's longitude
         editor.tropicalCyclone.click()
         content = editor.typhoonContent
@@ -433,36 +620,36 @@ class TestSigmetEditor:
         assert initial['geometry']['coordinates'] == pytest.approx([110 + 10 / 60, 10 + 10 / 60])
         assert final['geometry']['coordinates'] == pytest.approx([120 + 20 / 60, 20 + 20 / 60])
 
-    def test_clear_resets_the_state_and_the_text_widget(self, editor):
+    def test_clear_resets_the_state_and_the_text_widget(self, editor, presenter):
         # was pinned as a bug (state cleared, text widget kept stale content)
         # until populate() gave clear() its write direction
         editor.customForm.text.setPlainText('SOME TEXT')
-        editor.clear()
+        presenter.clear()
 
         assert editor.customForm.state.text == ''
         assert editor.customForm.text.toPlainText() == ''
 
-    def test_clear_empties_the_cancel_fields(self, editor):
+    def test_clear_empties_the_cancel_fields(self, editor, presenter):
         editor.cancel.click()
         editor.cancelContent.cancelBeginningTime.setText('100930')
 
-        editor.clear()
+        presenter.clear()
 
         assert editor.cancelContent.cancelBeginningTime.text() == ''
         assert editor.cancelContent.cancelSequence.currentText() == ''
 
-    def test_clear_disables_the_forecast_time(self, editor):
+    def test_clear_disables_the_forecast_time(self, editor, presenter):
         editor.generalContent.setOverlapMode('final')
-        editor.clear()
+        presenter.clear()
 
         assert not editor.generalContent.forecastTime.isEnabled()
         assert editor.generalContent.forecastTime.text() == ''
 
-    def test_clear_resets_the_typhoon_canvas_tool(self, editor):
+    def test_clear_resets_the_typhoon_canvas_tool(self, editor, presenter):
         editor.tropicalCyclone.click()
         editor.graphic.modeButton.click()
 
-        editor.clear()
+        presenter.clear()
 
         assert editor.graphic.canvas.mode == 'circle'
         assert editor.typhoonContent.state.mode == 'circle'
@@ -496,7 +683,7 @@ class TestSigmetEditor:
     def test_ash_inputs_announce_content_changed(self, editor, qtbot):
         self._assert_every_input_announces(qtbot, editor.ashContent)
 
-    def test_cancel_inputs_announce_content_changed(self, editor, qtbot):
+    def test_cancel_inputs_announce_content_changed(self, editor, presenter, qtbot):
         editor.cancel.click()
         self._assert_every_input_announces(qtbot, editor.cancelContent)
 
@@ -508,10 +695,10 @@ class TestSigmetEditor:
         user_edit(editor.customForm.text, 'X')
         assert changed
 
-    def test_close_clears_sigmet_notification(self, editor, context):
+    def test_close_clears_sigmet_notification(self, editor, presenter, context):
         context.notification.sigmet.setState({'message': 'ZJSA SIGMET 1 VALID 100930/101430 ZJHK-'})
 
-        editor.onClose()
+        editor.closed.emit()
 
         assert context.notification.sigmet.message() is None
 
@@ -531,7 +718,7 @@ class TestSigmetEditorPageSwitching:
     """
 
     @pytest.fixture
-    def shown(self, qtbot, editor):
+    def shown(self, qtbot, editor, presenter):
         editor.show()
         qtbot.waitExposed(editor)
         return editor
@@ -618,7 +805,7 @@ class TestSigmetEditorCustomPage:
     """
 
     @pytest.fixture
-    def shown(self, qtbot, editor):
+    def shown(self, qtbot, editor, presenter):
         editor.show()
         qtbot.waitExposed(editor)
         return editor
@@ -699,7 +886,7 @@ class TestSigmetCustomText:
     source with the api sign, and clear both when there is nothing to show.
     """
 
-    def test_a_waiting_notification_becomes_the_text(self, editor, context):
+    def test_a_waiting_notification_becomes_the_text(self, editor, presenter, context):
         context.notification.sigmet.setState({'message': SIGMET_TEXT})
 
         editor.custom.click()
@@ -707,7 +894,7 @@ class TestSigmetCustomText:
         assert editor.customForm.text.toPlainText() == 'OBSC TS'
         assert editor.customForm.state.text == 'OBSC TS'
 
-    def test_the_api_sign_follows_the_source(self, editor, context, database):
+    def test_the_api_sign_follows_the_source(self, editor, presenter, context, database):
         context.notification.sigmet.setState({'message': SIGMET_TEXT})
         editor.custom.click()
 
@@ -715,19 +902,19 @@ class TestSigmetCustomText:
 
         store_sigmet(database, SIGMET_TEXT)
         context.notification.sigmet.clear()
-        editor.updateCustomText()
+        presenter.updateCustomText()
 
         assert editor.customForm.text.toPlainText() == 'OBSC TS'
         assert editor.customForm.apiSign.isHidden()
 
-    def test_the_stored_report_fills_the_text(self, editor, database):
+    def test_the_stored_report_fills_the_text(self, editor, presenter, database):
         store_sigmet(database, SIGMET_TEXT)
 
         editor.custom.click()
 
         assert editor.customForm.text.toPlainText() == 'OBSC TS'
 
-    def test_a_designator_with_neither_source_clears_both(self, editor, context, database):
+    def test_a_designator_with_neither_source_clears_both(self, editor, presenter, context, database):
         context.notification.sigmet.setState({'message': SIGMET_TEXT})
         editor.custom.click()
         assert editor.customForm.text.toPlainText() == 'OBSC TS'
@@ -743,13 +930,12 @@ class TestSigmetCustomText:
         assert editor.customForm.state.text == ''
         assert editor.customForm.apiSign.isHidden()
 
-    def test_a_message_arriving_while_the_form_is_open_shows_up(self, editor, context):
+    def test_a_message_arriving_while_the_form_is_open_shows_up(self, editor, presenter, context):
         editor.custom.click()
         assert editor.customForm.text.toPlainText() == ''
 
-        # the monitor hands the received message over through this path
+        # the monitor hands the received message over through the notification event
         context.notification.sigmet.setState({'message': SIGMET_TEXT})
-        editor.updateCustomText()
 
         assert editor.customForm.text.toPlainText() == 'OBSC TS'
 
@@ -760,7 +946,7 @@ class TestSigmetCustomText:
 
         assert editor.notificationArea.text() == 'Valid period more than the permitted hours'
 
-    def test_trim_toggle_recomputes_sigmet_geometries_through_presenter(self, editor, context, monkeypatch):
+    def test_trim_toggle_recomputes_sigmet_geometries_through_presenter(self, editor, presenter, context, monkeypatch):
         sig = Sigmet(
             type='WS',
             heading='YUDD SIGMET 1 VALID 100730/101430 YUSO-',
@@ -769,7 +955,7 @@ class TestSigmetCustomText:
         context.current.setState([sig])
         seen_trims = []
         monkeypatch.setattr(
-            editor.presenter,
+            presenter,
             'sigmetGeometries',
             lambda **kwargs: (seen_trims.append(kwargs['trim']) or []),
         )

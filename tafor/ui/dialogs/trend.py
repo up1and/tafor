@@ -17,6 +17,8 @@ class TrendPresenter:
         self.bindSignal()
 
     def bindSignal(self):
+        self.view.closed.connect(self.clear)
+        self.view.submitted.connect(self.commit)
         self.view.trend.contentChanged.connect(self.updateNextButton)
         self.view.trend.notified.connect(lambda message: self.view.showNotification(message))
 
@@ -24,7 +26,7 @@ class TrendPresenter:
         return self.view.trend.hasAcceptableInput()
 
     def updateNextButton(self):
-        self.view.nextButton.setEnabled(self.hasAcceptableInput())
+        self.view.setNextEnabled(self.hasAcceptableInput())
 
     def commit(self):
         self.view.trend.collect()
@@ -51,7 +53,7 @@ class TrendPresenter:
 
     def clear(self):
         self.view.trend.clear()
-        self.view.nextButton.setEnabled(False)
+        self.view.setNextEnabled(False)
 
 
 class TrendEditor(BaseEditor):
@@ -83,6 +85,3 @@ class TrendEditor(BaseEditor):
 
     def isPeriodActive(self):
         return self.trend.isPeriodActive()
-
-    def onClose(self):
-        self.presenter.clear()

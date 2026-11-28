@@ -338,6 +338,17 @@ class TestSettingWorkers:
         with pytest.raises(TypeError):
             SettingDialog(None, conf, SequenceService(conf))
 
+    def test_volume_slider_emits_preview_without_firing_on_load(self, qtbot, conf):
+        dialog = self.build(qtbot, conf, self.RecordingPool())
+        previews = []
+        dialog.volumePreviewRequested.connect(lambda name, value: previews.append((name, value)))
+
+        dialog.load()
+        assert previews == []
+
+        dialog.tafVolume.setValue(42)
+        assert previews == [('taf', 42)]
+
 
 class InertWorker:
 

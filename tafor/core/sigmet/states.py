@@ -5,7 +5,8 @@ from tafor.core.utils.time import parseTime
 
 class SigmetHeaderState:
 
-    def __init__(self):
+    def __init__(self, designator='WS'):
+        self.designator = designator
         self.area = ''
         self.sign = ''
         self.sequence = ''
@@ -45,7 +46,7 @@ class MessageState:
         """Empty the body's own fields.
 
         The header is not the body's to empty: the draft owns it, and
-        SigmetEditor.clear() is the one place that empties it. A body cleared
+        SigmetPresenter.clear() is the one place that empties it. A body cleared
         on its own therefore keeps the header it was rendered against.
         """
         self.durations = None

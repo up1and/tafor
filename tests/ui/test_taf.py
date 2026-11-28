@@ -45,13 +45,13 @@ def fill(segment):
 def open_header(editor):
     """Build the header the way the first show does.
 
-    `TafPrimarySegment.showEvent` sets the date and `TafEditor.showEvent` calls
-    `onOpen()`, which asks `TafPresenter` to update the header. Clicking a
+    `TafPrimarySegment.showEvent` sets the date and `TafEditor.showEvent` emits
+    `opened`, which asks `TafPresenter` to update the header. Clicking a
     radio instead would reach the same slot through a signal the real path
     never fires.
     """
     editor.primary.setDate()
-    editor.onOpen()
+    editor.opened.emit()
     return editor.primary
 
 
@@ -168,7 +168,7 @@ class TestTafEditor:
         with QSignalBlocker(primary.wind):
             primary.wind.setText('09010')
 
-        editor.commit()
+        editor.submitted.emit()
 
         assert primary.state.wind == '09010'
         assert '09010' in primary.message()
@@ -707,7 +707,7 @@ class TestTafApplyState:
     def test_clear_empties_the_header_and_the_next_begin_fills_it(self, editor, frozen_time):
         primary = editor.primary
         primary.date.setText('101200')
-        editor.onOpen()
+        editor.opened.emit()
         period = primary.period.text()
         assert period and primary.state.durations is not None
 
@@ -1043,7 +1043,7 @@ class TestTafFormDecoupling:
         editor.becmg2.period.setText('{:02d}{:02d}/{:02d}{:02d}'.format(
             p2_start.day, p2_start.hour, p2_end.day, p2_end.hour))
 
-        editor.commit()
+        editor.submitted.emit()
         assert editor.notificationArea.text() == 'Change group time is overlap'
 
 

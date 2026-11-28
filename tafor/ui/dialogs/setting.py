@@ -5,7 +5,7 @@ import secrets
 import logging
 
 from PyQt5.QtGui import QIcon, QIntValidator, QTextCursor
-from PyQt5.QtCore import QCoreApplication, QStandardPaths, QSettings, Qt, QObject, pyqtSignal
+from PyQt5.QtCore import QCoreApplication, QStandardPaths, QSettings, QSignalBlocker, Qt, pyqtSignal
 from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QFileDialog, QMessageBox, QApplication, QCheckBox, 
                              QLineEdit, QComboBox, QPlainTextEdit, QSlider, QListWidget, QGroupBox)
 
@@ -56,6 +56,7 @@ class WindowsAutoStart(AutoStart):
 class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
     statusMessage = pyqtSignal(str, int)
+    volumePreviewRequested = pyqtSignal(str, int)
 
     def __init__(self, parent, conf, sequence, workers):
         super().__init__(parent)
@@ -123,6 +124,12 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
 
         self.buttonBox.accepted.connect(self.save)
         self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.save)
+
+        for name in ('alarm', 'taf', 'trend', 'sigmet'):
+            slider = getattr(self, name + 'Volume')
+            slider.valueChanged.connect(
+                lambda value, channel=name: self.volumePreviewRequested.emit(channel, value)
+            )
 
     def setupValidator(self):
         self.baudrate.setValidator(QIntValidator(self.baudrate))
@@ -320,7 +327,8 @@ class SettingDialog(QDialog, Ui_setting.Ui_Settings):
             control.setCurrentIndex(index)
 
         if isinstance(control, QSlider):
-            control.setValue(value)
+            with QSignalBlocker(control):
+                control.setValue(value)
 
     def getValue(self, default, control):
         if isinstance(control, QLineEdit):

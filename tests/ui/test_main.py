@@ -88,7 +88,6 @@ class FakeBoardView(QObject):
         super().__init__()
         self.boards = 0
         self.tables = 0
-        self.graphics = 0
         self.entries = None
         self.boardTexts = []
         self.bells = []
@@ -102,9 +101,6 @@ class FakeBoardView(QObject):
 
     def renderRecent(self, entries):
         self.entries = entries
-
-    def renderSigmetGraphic(self):
-        self.graphics += 1
 
     def setSigmetReminder(self, uuid, enabled):
         self.bells.append((uuid, enabled))
@@ -360,22 +356,26 @@ class TestBoardPresenter:
 
         assert view.boards == 1
 
-    def test_changed_sigmets_redraw_the_graphic(self, board, view, context, database, frozen_time):
+    def test_changed_sigmets_emit_current_sigmet_changed(self, board, context, database, frozen_time):
+        seen = []
+        context.event.currentSigmetChanged.connect(lambda: seen.append(True))
         board.initialize()
 
         with database.session() as session:
             session.add(Sigmet(type='WS', text=SIGMET_ACTIVE, created=MOMENT))
         board.refreshSigmet()
 
-        assert view.graphics == 1
+        assert seen == [True]
 
-    def test_an_unchanged_sigmet_set_does_not_redraw(self, board, view):
+    def test_an_unchanged_sigmet_set_does_not_emit(self, board, context):
+        seen = []
+        context.event.currentSigmetChanged.connect(lambda: seen.append(True))
         board.initialize()
 
         # Nothing was added, so setState sees no change and stays quiet
         board.refreshSigmet()
 
-        assert view.graphics == 0
+        assert seen == []
 
     def test_expired_notification_falls_back_to_the_stored_metar(self, board, view, context):
         context.notification.metar.setState({'message': METAR_TEXT, 'validation': True})
@@ -1055,12 +1055,8 @@ class FakeNotificationView(QObject):
 
     def __init__(self):
         super().__init__()
-        self.sigmetTexts = 0
         self.sounds = []
         self.notices = []
-
-    def renderSigmetText(self):
-        self.sigmetTexts += 1
 
     def updateSound(self, name, playing):
         self.sounds.append((name, playing))
@@ -1132,14 +1128,12 @@ class TestNotificationPresenter:
         context.notification.metar.setState({'message': 'NOT A WEATHER REPORT', 'validation': True})
 
         assert reloads == []
-        assert view.sigmetTexts == 0
 
-    def test_a_sigmet_notification_refreshes_the_editor_and_alerts(self, notification, view, context):
+    def test_a_sigmet_notification_alerts(self, notification, view, context):
         notification.initialize()
 
         context.notification.sigmet.setState({'message': SIGMET_ACTIVE})
 
-        assert view.sigmetTexts == 1
         assert view.sounds == [('incoming', True)]
         assert view.notices[0][1] == 'Received a SIGMET message'
 
@@ -1150,7 +1144,6 @@ class TestNotificationPresenter:
 
         context.notification.sigmet.setState({'message': airmet})
 
-        assert view.sigmetTexts == 1
         assert view.notices[0][1] == 'Received a AIRMET message'
 
     def test_a_stored_observation_clears_the_notification(self, notification, context, repositories):
@@ -1201,10 +1194,9 @@ class TestNotificationPresenter:
         assert messages == []
         assert reloads == [True]
 
-    def test_a_sigmet_notification_without_a_message_only_refreshes(self, notification, view):
+    def test_a_sigmet_notification_without_a_message_stays_silent(self, notification, view):
         notification.notifySigmet()
 
-        assert view.sigmetTexts == 1
         assert view.sounds == []
         assert view.notices == []
 
@@ -1563,12 +1555,16 @@ class FakeSound:
     def __init__(self):
         self.plays = 0
         self.stops = 0
+        self.previews = []
 
     def play(self):
         self.plays += 1
 
     def stop(self):
         self.stops += 1
+
+    def preview(self, volume):
+        self.previews.append(volume)
 
 
 class FakeTray:
@@ -1893,22 +1889,11 @@ class TestMainWindow:
 
         assert board.calls == [('sync', (entries,), {})]
 
-    def test_render_sigmet_graphic_updates_the_canvas(self, window, monkeypatch):
-        editor = FakeWidget()
-        editor.presenter = FakeWidget()
-        monkeypatch.setattr(window, 'sigmetEditor', editor)
+    def test_volume_preview_signal_previews_matching_sound_channel(self, window, sounds):
+        window.settingDialog.volumePreviewRequested.emit('taf', 60)
 
-        window.renderSigmetGraphic()
-
-        assert editor.presenter.calls == [('updateSigmetGraphic', (), {})]
-
-    def test_render_sigmet_text_updates_the_custom_text(self, window, monkeypatch):
-        editor = FakeWidget()
-        monkeypatch.setattr(window, 'sigmetEditor', editor)
-
-        window.renderSigmetText()
-
-        assert editor.calls == [('updateCustomText', (), {})]
+        assert sounds['taf'].previews == [60]
+        assert sounds['alarm'].previews == []
 
     def test_a_reminder_starts_hidden(self, window):
         assert window.reminderVisible('taf') is False

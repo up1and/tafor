@@ -11,7 +11,13 @@ from tafor.core.parsers.base import Pattern
 from tafor.core.parsers.advisory import AshAdvisoryParser, TyphoonAdvisoryParser
 from tafor.core.sigmet import (SigmetAshState, SigmetCancelState, SigmetCustomState, SigmetGeneralState,
     SigmetTyphoonState, SigmetFormValidator)
-from tafor.core.sigmet.compose import adjustCancelBeginning, typhoonCircleFeature, validPeriod
+from tafor.core.sigmet.compose import (
+    adjustCancelBeginning,
+    category,
+    typhoonCircleFeature,
+    validDuration,
+    validPeriod,
+)
 from tafor.core.geometry import geojson
 from tafor.core.geometry.coordinate import decimalToDegree
 from tafor.core.utils.time import parseTime, utcnow
@@ -46,10 +52,9 @@ class BaseSigmet(TextFieldMixin, QWidget):
     # from self.parts, which holds one live instance per member.
     members = ()
 
-    def __init__(self, editor=None, conf=None):
+    def __init__(self, conf=None):
         super().__init__()
         self.rules = Pattern()
-        self.editor = editor
         self.conf = conf
         self.state = None
 
@@ -157,7 +162,7 @@ class BaseSigmet(TextFieldMixin, QWidget):
 
     def collect(self):
         self.state.header.area = self.conf.firName.split()[0] if self.conf.firName else ''
-        self.state.header.sign = self.editor.category()
+        self.state.header.sign = category(self.designator())
         self.state.header.sequence = self.sequence.text()
         self.state.header.beginningTime = self.beginningTime.text()
         self.state.header.endingTime = self.endingTime.text()
@@ -199,10 +204,10 @@ class BaseSigmet(TextFieldMixin, QWidget):
         return self.state.isAcceptable()
 
     def designator(self):
-        return self.editor.designator
+        return self.state.header.designator
 
     def span(self):
-        return self.editor.span
+        return validDuration(self.designator())
 
     def populate(self):
         """Write the header fields back from the state, the inverse of collect().
@@ -763,8 +768,8 @@ class SigmetGeneral(BaseSigmet, Ui_sigmet_general.Ui_Editor):
     # Convective phenomena that take the TOP/ABV/SFC flight-level formats.
     convective = ['CB', 'TCU', 'TS', 'TSGR']
 
-    def __init__(self, header, editor=None, conf=None):
-        super().__init__(editor, conf=conf)
+    def __init__(self, header, conf=None):
+        super().__init__(conf=conf)
         self.setupUi(self)
         self.state = SigmetGeneralState(unit=self.conf.units.sigmetSpeed, header=header)
         self.initialize()
@@ -830,8 +835,8 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
     locationChanged = pyqtSignal(dict)
     circleChanged = pyqtSignal(dict)
 
-    def __init__(self, header, editor=None, conf=None):
-        super().__init__(editor, conf=conf)
+    def __init__(self, header, conf=None):
+        super().__init__(conf=conf)
         self.setupUi(self)
         self.state = SigmetTyphoonState(unit=self.conf.units.sigmetSpeed, header=header)
         self.initialize()
@@ -981,8 +986,8 @@ class SigmetAsh(BaseSigmet, Ui_sigmet_ash.Ui_Editor):
 
     locationChanged = pyqtSignal(dict)
 
-    def __init__(self, header, editor=None, conf=None):
-        super().__init__(editor, conf=conf)
+    def __init__(self, header, conf=None):
+        super().__init__(conf=conf)
         self.setupUi(self)
         self.state = SigmetAshState(unit=self.conf.units.sigmetSpeed, header=header)
         self.initialize()
@@ -1089,8 +1094,8 @@ class AirmetGeneral(SigmetGeneral):
 
 class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
-    def __init__(self, header, editor=None, conf=None):
-        super().__init__(editor, conf=conf)
+    def __init__(self, header, conf=None):
+        super().__init__(conf=conf)
         self.setupUi(self)
         self.state = SigmetCancelState(header=header)
         self.initialize()
@@ -1192,8 +1197,8 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
 class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
 
-    def __init__(self, header, editor=None, conf=None):
-        super().__init__(editor, conf=conf)
+    def __init__(self, header, conf=None):
+        super().__init__(conf=conf)
         self.setupUi(self)
         self.state = SigmetCustomState(header=header)
         self.setupApiSign()

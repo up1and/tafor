@@ -236,8 +236,8 @@ class NotificationPresenter(QObject):
     has not been stored yet.
 
     METAR: clear the notification once the same observation has been stored,
-    otherwise validate the trend group. SIGMET: refresh the editor's custom
-    text and alert the user.
+    otherwise validate the trend group. SIGMET: alert the user when a live
+    message arrives.
 
     Deliberately does not touch the trend sound. SoundPresenter owns every
     continuous channel, so there is exactly one writer per audio stream.
@@ -281,8 +281,6 @@ class NotificationPresenter(QObject):
         self.context.event.trendReloadRequested.emit()
 
     def notifySigmet(self):
-        self.view.renderSigmetText()
-
         if not self.context.notification.sigmet.message():
             return
 
@@ -393,7 +391,6 @@ class BoardPresenter(QObject):
     def initialize(self):
         self.context.event.messagesStored.connect(lambda: self.refresh(force=True))
         self.context.event.notificationChanged.connect(self.render)
-        self.context.event.currentSigmetChanged.connect(self.renderSigmetGraphic)
         self.view.notificationExpired.connect(self.expire)
         self.view.messageSent.connect(lambda: self.refresh(force=True))
 
@@ -428,11 +425,6 @@ class BoardPresenter(QObject):
             return False
 
         return self.context.current.setState(sigmets)
-
-    def renderSigmetGraphic(self):
-        """context.current only announces a change when the set of SIGMETs
-        actually differs, so this fires on real edits and not on every poll."""
-        self.view.renderSigmetGraphic()
 
     def render(self, *args):
         entries = self.builder.build()
@@ -755,9 +747,7 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         # A slider previews its own sound at the volume it is being dragged to,
         # which is why the preview takes the control's value and not the one
         # the channel falls back on
-        for name in ('alarm', 'taf', 'trend', 'sigmet'):
-            control = getattr(self.settingDialog, name + 'Volume')
-            control.valueChanged.connect(self.sounds[name].preview)
+        self.settingDialog.volumePreviewRequested.connect(self.previewSound)
 
     def setupTray(self):
         self.tray = QSystemTrayIcon(self)
@@ -888,6 +878,9 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
         else:
             sound.stop()
 
+    def previewSound(self, name, volume):
+        self.sounds[name].preview(volume)
+
     def alarmEnabled(self):
         return self.warnTafAction.isChecked()
 
@@ -900,12 +893,6 @@ class MainWindow(QMainWindow, Ui_main.Ui_MainWindow):
 
     def renderRecent(self, entries):
         self.recentBoard.sync(entries)
-
-    def renderSigmetGraphic(self):
-        self.sigmetEditor.presenter.updateSigmetGraphic()
-
-    def renderSigmetText(self):
-        self.sigmetEditor.updateCustomText()
 
     def notify(self, title, text, level='information'):
         """Show a tray notification at the given level.

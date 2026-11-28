@@ -19,16 +19,22 @@ class SigmetDraft:
     # are a different axis, not a different product.
     products = {'general': 'WS', 'typhoon': 'WC', 'ash': 'WV', 'airmet': 'WA'}
 
-    def __init__(self, designator='WS', form='general', fir='', airport='',
+    def __init__(self, form='general', fir='', airport='',
                  bulletinNumber='', now=utcnow):
-        self.designator = designator
+        if form not in self.products:
+            raise ValueError('Initial form must be a product form: {!r}'.format(form))
+
         self.form = form
         self.fir = fir
         self.airport = airport
         self.bulletinNumber = bulletinNumber
         self.now = now
-        self.header = SigmetHeaderState()
+        self.header = SigmetHeaderState(designator=self.products[form])
         self.body = None
+
+    @property
+    def designator(self):
+        return self.header.designator
 
     def select(self, form):
         """Switch to form; returns whether anything changed.
@@ -42,7 +48,7 @@ class SigmetDraft:
 
         self.form = form
         if form in self.products:
-            self.designator = self.products[form]
+            self.header.designator = self.products[form]
         return True
 
     def attach(self, body):

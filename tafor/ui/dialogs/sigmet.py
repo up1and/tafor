@@ -1,6 +1,6 @@
 import logging
 
-from PyQt5.QtCore import QCoreApplication, Qt
+from PyQt5.QtCore import QCoreApplication, Qt, pyqtSignal
 
 from tafor.core.repositories import SigmetFilter
 from tafor.core.sigmet import SigmetDraft
@@ -21,9 +21,16 @@ class SigmetPresenter:
         self.context = context
         self.conf = conf
         self.repository = repository
+        self.draft = SigmetDraft(
+            fir=conf.firName if conf else '',
+            airport=conf.airport if conf else '',
+            bulletinNumber=(conf.bulletinNumber or '') if conf else '',
+        )
 
     def initialize(self):
         self.bindSignal()
+        self.draft.attach(self.view.formState(self.draft.form))
+        self.view.showForm(self.draft.form)
 
     def nextSequence(self, designator):
         """The number this draft gets: today's stored reports of the same
@@ -64,30 +71,18 @@ class SigmetPresenter:
             return 'database', last.parser().content()
 
     def bindSignal(self):
-        self.view.significantWeather.clicked.connect(self.view.changeContent)
-        self.view.tropicalCyclone.clicked.connect(self.view.changeContent)
-        self.view.volcanicAsh.clicked.connect(self.view.changeContent)
-        self.view.airmansWeather.clicked.connect(self.view.changeContent)
-        self.view.template.clicked.connect(self.view.changeContent)
-        self.view.custom.clicked.connect(self.view.changeContent)
-        self.view.cancel.clicked.connect(self.view.changeContent)
-
-        self.view.graphic.sketchChanged.connect(self.updateNextButton)
-        self.view.graphic.overlapChanged.connect(self.updateNextButton)
-        self.view.graphic.overlapChanged.connect(self.view.setOverlapMode)
-        self.view.graphic.modeChanged.connect(self.view.setLocationMode)
-
-        self.view.graphic.circleChanged.connect(self.view.typhoonContent.setTyphoonLocation)
-        self.view.typhoonContent.circleChanged.connect(self.view.graphic.setTyphoonGraphic)
-
-        self.view.ashContent.locationChanged.connect(self.view.graphic.setAdvisoryGraphic)
-        self.view.typhoonContent.locationChanged.connect(self.view.graphic.setAdvisoryGraphic)
-
-        for c in self.view.forms.values():
-            c.contentChanged.connect(self.updateNextButton)
-            c.notified.connect(lambda message: self.view.showNotification(message))
-
+        self.view.formSelected.connect(self.selectForm)
+        self.view.contentChanged.connect(self.updateNextButton)
+        self.view.opened.connect(self.renderForm)
+        self.view.closed.connect(self.clear)
+        self.view.submitted.connect(self.commit)
+        self.context.event.currentSigmetChanged.connect(self.updateSigmetGraphic)
+        self.context.event.notificationChanged.connect(self.onNotificationChanged)
         self.bindGraphic()
+
+    def onNotificationChanged(self, category):
+        if category in ('SIGMET', 'AIRMET') and self.draft.form == 'custom':
+            self.updateCustomText()
 
     def bindGraphic(self):
         """The sketch panel holds no context; every layer write and geometry
@@ -101,6 +96,29 @@ class SigmetPresenter:
         self.context.event.layersChanged.connect(self.updateLayers)
         if self.context.layer.getLayers():
             self.updateLayers()
+
+    def selectForm(self, form):
+        changed = self.draft.select(form)
+        self.draft.attach(self.view.formState(form))
+        self.view.showForm(form)
+
+        if changed:
+            self.renderForm()
+            self.view.graphic.configureMode(
+                self.draft.designator,
+                'cancel' if form == 'cancel' else 'template',
+            )
+            self.updateSigmetGraphic()
+
+    def renderForm(self):
+        sequence = self.nextSequence(self.draft.designator)
+        candidates = self.sigmets(designator=self.draft.designator) if self.draft.form == 'cancel' else None
+        latestText = self.latestText(self.draft.designator) if self.draft.form == 'custom' else None
+        self.view.seedForm(sequence, candidates=candidates, latestText=latestText)
+        self.updateNextButton()
+
+    def updateCustomText(self):
+        self.view.setCustomText(self.latestText(self.draft.designator))
 
     def sigmetGeometries(self, *, designator=None, category=None, trim=True):
         boundaries = self.context.layer.boundaries()
@@ -120,13 +138,13 @@ class SigmetPresenter:
         if trim is None:
             trim = self.view.graphic.trimShapes
 
-        if not hasattr(self.view, 'draft') or self.view.draft.form == 'custom':
+        if self.draft.form == 'custom':
             return
 
-        if self.view.draft.form == 'cancel':
-            geometries = self.sigmetGeometries(designator=self.view.draft.designator, trim=trim)
+        if self.draft.form == 'cancel':
+            geometries = self.sigmetGeometries(designator=self.draft.designator, trim=trim)
         else:
-            geometries = self.sigmetGeometries(category=self.view.category(), trim=trim)
+            geometries = self.sigmetGeometries(category=self.draft.category(), trim=trim)
 
         self.view.graphic.setSigmets(geometries)
 
@@ -163,71 +181,73 @@ class SigmetPresenter:
     def commit(self):
         # Read the form before judging it: see TafPresenter.commit().
         self.view.collect()
-        self.view.currentForm.validate()
+        self.view.validate()
 
         if self.hasAcceptableInput():
             self.view.finished.emit(self.compose())
 
     def compose(self):
-        """The draft composes itself; the presenter only hands the model on."""
-        return self.view.compose()
+        """The draft composes itself against the settings and the sketch as
+        they are now: the bulletin prefix, the airport and the FIR are settings,
+        not facts frozen when the presenter was built.
+        """
+        self.draft.fir = self.conf.firName
+        self.draft.airport = self.conf.airport
+        self.draft.bulletinNumber = self.conf.bulletinNumber or ''
+
+        locations = self.view.graphic.location() if self.draft.hasSketch() else None
+        return self.draft.compose(locations)
 
     def hasAcceptableInput(self):
-        """The view answers: the draft's verdict plus the canvas's."""
-        return self.view.isAcceptable()
+        """Whether this draft could go: the document's verdict, then the canvas's."""
+        return self.draft.isAcceptable() and (
+            not self.draft.hasSketch() or self.view.graphic.hasAcceptableGraphic()
+        )
 
     def updateNextButton(self):
-        self.view.nextButton.setEnabled(self.hasAcceptableInput())
+        self.view.setNextEnabled(self.hasAcceptableInput())
 
     def clear(self):
         self.context.notification.sigmet.clear()
+        self.draft.header.clear()
         self.view.clear()
+        # re-render the canvas tool from the draft: modeChanged carries the
+        # designator default back into state.mode, so the cleared state and
+        # the canvas agree instead of drifting until the next form switch
+        self.view.graphic.configureMode(
+            self.draft.designator,
+            'cancel' if self.draft.form == 'cancel' else 'template',
+        )
+        self.updateNextButton()
 
 
 class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
     editorName = 'sigmet'
+    formSelected = pyqtSignal(str)
+    contentChanged = pyqtSignal()
 
     def __init__(self, parent=None, sender=None, conf=None, context=None, repository=None):
         super().__init__(parent, sender, conf, context)
         self.setupUi(self)
-
-        # The heading's facts are the document's, so the draft is built with
-        # them: compose() should not have to be handed what never changes.
-        self.draft = SigmetDraft(
-            fir=self.conf.firName,
-            airport=self.conf.airport,
-            bulletinNumber=self.conf.bulletinNumber or '',
-        )
-
-        # The forms hold no queries: the presenter owns the repository and
-        # hands them the rows and text they render.
         self.presenter = SigmetPresenter(self, context, conf, repository)
-        self.initUI()
+        self.initUI(self.presenter.draft.header)
+        self.bindSignal()
         self.presenter.initialize()
-
         self.setWindowTitle(QCoreApplication.translate('Editor', 'Encoding Significant Meteorological Information'))
 
-    @property
-    def designator(self):
-        return self.draft.designator
-
-    @property
-    def span(self):
-        return self.draft.span()
-
-    def initUI(self):
+    def initUI(self, header):
         self.graphic = SketchPanel(
             self,
             projection=self.context.layer.projection(),
             boundaries=self.context.layer.boundaries(),
         )
-        self.generalContent = SigmetGeneral(header=self.draft.header, editor=self, conf=self.conf)
-        self.typhoonContent = SigmetTyphoon(header=self.draft.header, editor=self, conf=self.conf)
-        self.ashContent = SigmetAsh(header=self.draft.header, editor=self, conf=self.conf)
-        self.airmetContent = AirmetGeneral(header=self.draft.header, editor=self, conf=self.conf)
-        self.cancelContent = SigmetCancel(header=self.draft.header, editor=self, conf=self.conf)
-        self.customForm = SigmetCustom(header=self.draft.header, editor=self, conf=self.conf)
+        self.generalContent = SigmetGeneral(header=header, conf=self.conf)
+        self.typhoonContent = SigmetTyphoon(header=header, conf=self.conf)
+        self.ashContent = SigmetAsh(header=header, conf=self.conf)
+        self.airmetContent = AirmetGeneral(header=header, conf=self.conf)
+        self.cancelContent = SigmetCancel(header=header, conf=self.conf)
+        self.customForm = SigmetCustom(header=header, conf=self.conf)
 
         self.forms = {
             'general': self.generalContent,
@@ -249,91 +269,41 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         self.contentLayout.setAlignment(self.graphic, Qt.AlignTop)
         self.contentLayout.addStretch()
 
-        self.changeContent()
+        self.showForm('general')
         self.addBottomBox(self.mainLayout)
 
-    def renderForm(self):
-        """Start a draft in the current form: the number the presenter
-        computed, the period the draft's span implies, then the rows only
-        that form consumes.
+    def bindSignal(self):
+        for radio in (
+            self.significantWeather,
+            self.tropicalCyclone,
+            self.volcanicAsh,
+            self.airmansWeather,
+            self.template,
+            self.custom,
+            self.cancel,
+        ):
+            radio.clicked.connect(lambda: self.formSelected.emit(self.current()))
 
-        The order is the render order, not a preference. The candidates carry
-        the cancelled report's own validity, and filling them rewrites the
-        period, so they have to land after the period was reset -- that is how
-        entering Cancel lands on the first candidate's period.
+        self.graphic.sketchChanged.connect(lambda _: self.contentChanged.emit())
+        self.graphic.overlapChanged.connect(self.setOverlapMode)
+        self.graphic.overlapChanged.connect(lambda _: self.contentChanged.emit())
+        self.graphic.modeChanged.connect(self.setLocationMode)
 
-        This is the one place a new draft begins: the form cannot discover it
-        on its own, because the switch and the successful send are the
-        editor's events, not the form's.
-        """
-        form = self.currentForm
-        form.setSequence(self.sequenceNumber())
-        form.resetPeriod()
+        self.graphic.circleChanged.connect(self.typhoonContent.setTyphoonLocation)
+        self.typhoonContent.circleChanged.connect(self.graphic.setTyphoonGraphic)
 
-        if form is self.cancelContent:
-            form.setCandidates(self.presenter.sigmets(designator=self.designator))
-        elif form is self.customForm:
-            form.setLatestText(self.presenter.latestText(self.designator))
+        self.ashContent.locationChanged.connect(self.graphic.setAdvisoryGraphic)
+        self.typhoonContent.locationChanged.connect(self.graphic.setAdvisoryGraphic)
 
-        # Everything above only wrote widgets. Read it back once, here, so the
-        # draft's header is filled by the same collect() a user edit uses.
-        form.reload()
-        self.presenter.updateNextButton()
+        for form in self.forms.values():
+            form.contentChanged.connect(self.contentChanged.emit)
+            form.notified.connect(self.showNotification)
 
-    def sequenceNumber(self):
-        """What number today's reports give this draft."""
-        return self.presenter.nextSequence(self.designator)
+    def formState(self, name):
+        return self.forms[name].state
 
-    def updateCustomText(self):
-        self.customForm.setLatestText(self.presenter.latestText(self.designator))
-        self.customForm.reload()
-
-    def collect(self):
-        """Read the current form's widgets into its state -- the commit prelude.
-
-        Only the form on screen: the other five keep their own drafts but they
-        are not part of the report being composed.
-        """
-        self.currentForm.collect()
-
-    def compose(self):
-        """The draft composes itself, against the settings and the sketch as
-        they are now: the bulletin prefix, the airport and the FIR are settings,
-        not facts frozen when the editor was built.
-        """
-        self.draft.fir = self.conf.firName
-        self.draft.airport = self.conf.airport
-        self.draft.bulletinNumber = self.conf.bulletinNumber or ''
-
-        locations = self.graphic.location() if self.draft.hasSketch() else None
-        return self.draft.compose(locations)
-
-    def category(self):
-        return self.draft.category()
-
-    def isGraphicAcceptable(self):
-        """Whether the canvas is finished -- the one input the draft cannot own.
-
-        True when this report needs no drawing: nothing to answer for.
-        """
-        return not self.draft.hasSketch() or self.graphic.hasAcceptableGraphic()
-
-    def isAcceptable(self):
-        """Whether this draft could go: the document's verdict, then the canvas's."""
-        return self.draft.isAcceptable() and self.isGraphicAcceptable()
-
-    def setOverlapMode(self, mode):
-        if self.draft.hasSketch():
-            self.currentForm.setOverlapMode(mode)
-
-    def setLocationMode(self, mode):
-        self.currentForm.setLocationMode(mode)
-
-    def changeContent(self):
-        form = self.current()
-        changed = self.draft.select(form)
-        self.currentForm = self.forms[form]
-        self.draft.attach(self.currentForm.state)
+    def showForm(self, name):
+        self.currentForm = self.forms[name]
 
         # Custom takes the canvas's place, so it is shown instead of the pair.
         if self.currentForm is self.customForm:
@@ -346,10 +316,47 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
             self.formStack.setCurrentWidget(self.currentForm)
             self.graphic.show()
 
-        if changed:
-            self.renderForm()
-            self.graphic.configureMode(self.draft.designator, 'cancel' if form == 'cancel' else 'template')
-            self.presenter.updateSigmetGraphic()
+    def seedForm(self, sequence, candidates=None, latestText=None):
+        """Start a draft in the current form: sequence, span-derived period,
+        and any form-specific seed before one read-back via reload()."""
+        form = self.currentForm
+        form.setSequence(sequence)
+        form.resetPeriod()
+
+        if form is self.cancelContent:
+            form.setCandidates(candidates)
+        elif form is self.customForm:
+            form.setLatestText(latestText)
+
+        form.reload()
+
+    def setCustomText(self, latest):
+        self.customForm.setLatestText(latest)
+        self.customForm.reload()
+
+    def collect(self):
+        """Read the current form's widgets into its state -- the commit prelude.
+
+        Only the form on screen: the other five keep their own drafts but they
+        are not part of the report being composed.
+        """
+        self.currentForm.collect()
+
+    def validate(self):
+        self.currentForm.validate()
+
+    def setOverlapMode(self, mode):
+        if self.currentForm not in (self.cancelContent, self.customForm):
+            self.currentForm.setOverlapMode(mode)
+
+    def setLocationMode(self, mode):
+        self.currentForm.setLocationMode(mode)
+
+    def clear(self):
+        for form in self.forms.values():
+            form.clear()
+
+        self.graphic.clear()
 
     def current(self):
         if self.cancel.isChecked():
@@ -368,25 +375,3 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
             return 'airmet'
 
         return 'general'
-
-    def clear(self):
-        # The header belongs to the draft, so the draft empties it here; each
-        # form then clears its own body and renders the empty header.
-        self.draft.header.clear()
-
-        for c in self.forms.values():
-            c.clear()
-
-        self.graphic.clear()
-        # re-render the canvas tool from the draft: modeChanged carries the
-        # designator default back into state.mode, so the cleared state and
-        # the canvas agree instead of drifting until the next form switch
-        self.graphic.configureMode(self.draft.designator,
-                                   'cancel' if self.draft.form == 'cancel' else 'template')
-        self.presenter.updateNextButton()
-
-    def onOpen(self):
-        self.renderForm()
-
-    def onClose(self):
-        self.presenter.clear()

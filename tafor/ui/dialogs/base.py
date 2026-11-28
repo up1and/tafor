@@ -7,6 +7,9 @@ from tafor.ui.styles import mutedStyle
 class BaseEditor(QDialog):
 
     finished = pyqtSignal(object)
+    opened = pyqtSignal()
+    closed = pyqtSignal()
+    submitted = pyqtSignal()
 
     # Selects the conf groups checked before the editor can show. Subclass sets it.
     editorName = None
@@ -16,7 +19,6 @@ class BaseEditor(QDialog):
         self.sender = sender
         self.conf = conf
         self.context = context
-        self.presenter = None
         self.isStaged = False
 
         self.defaultAction()
@@ -55,7 +57,7 @@ class BaseEditor(QDialog):
         self.nextButton = QPushButton()
         self.nextButton.setEnabled(False)
         self.nextButton.setText(QCoreApplication.translate('Editor', 'Next'))
-        self.nextButton.clicked.connect(self.commit)
+        self.nextButton.clicked.connect(self.submitted)
         self.notificationArea = QLabel()
         self.notificationArea.setStyleSheet(mutedStyle)
         bottomLayout.addWidget(self.notificationArea)
@@ -63,37 +65,26 @@ class BaseEditor(QDialog):
         self.bottomBox.setLayout(bottomLayout)
         layout.addWidget(self.bottomBox)
 
+    def setNextEnabled(self, enabled):
+        self.nextButton.setEnabled(enabled)
+
     def showNotification(self, message):
         self.notificationArea.setText(message)
         QTimer.singleShot(10 * 1000, self.notificationArea.clear)
 
-    def commit(self):
-        if self.presenter:
-            self.presenter.commit()
-
-    def onOpen(self):
-        """A fresh open: the editor was shown to start a report.
-
-        Not called when returning from the sender with a failed report --
-        that path must keep what the operator typed.
-        """
-        pass
-
-    def onClose(self):
-        pass
-
     def keyPressEvent(self, event):
         if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_Return:
-            self.commit()
+            self.submitted.emit()
 
     def showEvent(self, event):
         if self.editorName and not self.conf.checkCompleteness(self.editorName):
             QTimer.singleShot(0, self.showConfigError)
             return
 
+        # Fresh open only: returning from sender keeps what the operator typed.
         if not self.isStaged:
-            self.onOpen()
+            self.opened.emit()
 
     def closeEvent(self, event):
         self.isStaged = False
-        self.onClose()
+        self.closed.emit()

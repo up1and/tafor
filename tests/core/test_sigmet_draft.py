@@ -2,6 +2,8 @@
 
 import datetime
 
+import pytest
+
 from tafor.core.sigmet import SigmetDraft
 from tafor.core.sigmet.states import SigmetCustomState, SigmetGeneralState
 
@@ -48,6 +50,30 @@ class TestFormSelection:
         assert d.select('custom') is True
         assert d.form == 'custom'
         assert d.designator == 'WV'
+        assert d.header.designator == 'WV'
+
+    def test_selecting_a_product_syncs_header_designator(self):
+        d = SigmetDraft()
+
+        assert d.header.designator == 'WS'
+
+        d.select('typhoon')
+        assert d.header.designator == 'WC'
+
+        d.select('cancel')
+        assert d.header.designator == 'WC'
+
+        d.select('airmet')
+        assert d.header.designator == 'WA'
+
+    def test_initial_form_sets_designator_and_rejects_non_product_form(self):
+        d = SigmetDraft(form='typhoon')
+        assert d.form == 'typhoon'
+        assert d.designator == 'WC'
+        assert d.header.designator == 'WC'
+
+        with pytest.raises(ValueError):
+            SigmetDraft(form='cancel')
 
 
 class TestDerivedValues:

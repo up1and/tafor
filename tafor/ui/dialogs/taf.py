@@ -26,6 +26,9 @@ class TafPresenter:
 
     def bindSignal(self):
         self.view.groupToggled.connect(self.toggleGroup)
+        self.view.opened.connect(self.updateHeader)
+        self.view.closed.connect(self.clear)
+        self.view.submitted.connect(self.commit)
 
         for s in self.view.segments():
             s.contentChanged.connect(self.updateNextButton)
@@ -245,9 +248,6 @@ class TafEditor(BaseEditor):
     def isCancelMode(self):
         return self.primary.isCancelMode()
 
-    def setNextEnabled(self, enabled):
-        self.nextButton.setEnabled(enabled)
-
     def clear(self):
         """Start a new draft: empty the data, then draw that emptiness."""
         self.presenter.clear()
@@ -289,11 +289,3 @@ class TafEditor(BaseEditor):
         """
         self.draft.bulletinNumber = self.conf.bulletinNumber
         return self.draft.compose()
-
-    def onOpen(self):
-        self.presenter.updateHeader()
-
-    def onClose(self):
-        # clear() is the whole reset now: it empties the draft and draws it,
-        # radios and period buttons included.
-        self.presenter.clear()

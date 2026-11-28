@@ -25,56 +25,30 @@ from tafor.ui.forms import SigmetCancel, SigmetCustom, SigmetGeneral
 MOMENT = datetime.datetime(2026, 6, 10, 8, 0)
 
 
-class EditorStub:
-    """The slice of SigmetEditor the widgets read: the draft-derived facts.
-
-    Qt-free, and derived from a real draft so that switching the form here
-    moves the designator and the span exactly as the editor does.
-    """
-
-    def __init__(self, draft=None):
-        self.draft = draft or SigmetDraft()
-
-    @property
-    def designator(self):
-        return self.draft.designator
-
-    @property
-    def span(self):
-        return self.draft.span()
-
-    def category(self):
-        return self.draft.category()
-
-
-def editor_stub(designator='WS'):
-    return EditorStub(SigmetDraft(designator=designator))
+@pytest.fixture
+def draft():
+    return SigmetDraft()
 
 
 @pytest.fixture
-def editor():
-    return editor_stub()
-
-
-@pytest.fixture
-def general(qtbot, conf, editor, frozen_time):
-    widget = SigmetGeneral(header=editor.draft.header, editor=editor, conf=conf)
+def general(qtbot, conf, draft, frozen_time):
+    widget = SigmetGeneral(header=draft.header, conf=conf)
     begin(widget, 1)
     qtbot.addWidget(widget)
     return widget
 
 
 @pytest.fixture
-def custom(qtbot, conf, editor, frozen_time):
-    widget = SigmetCustom(header=editor.draft.header, editor=editor, conf=conf)
+def custom(qtbot, conf, draft, frozen_time):
+    widget = SigmetCustom(header=draft.header, conf=conf)
     begin(widget, 1)
     qtbot.addWidget(widget)
     return widget
 
 
 @pytest.fixture
-def cancel(qtbot, conf, editor, frozen_time):
-    widget = SigmetCancel(header=editor.draft.header, editor=editor, conf=conf)
+def cancel(qtbot, conf, draft, frozen_time):
+    widget = SigmetCancel(header=draft.header, conf=conf)
     begin(widget, 1)
     qtbot.addWidget(widget)
     return widget
@@ -192,8 +166,8 @@ class TestSigmetGeneral:
 
         assert general.beginningTime.text() == ''
 
-    def test_the_period_follows_the_drafts_span(self, general, editor):
-        editor.draft.select('typhoon')
+    def test_the_period_follows_the_drafts_span(self, general, draft):
+        draft.select('typhoon')
 
         begin(general, 1)
 

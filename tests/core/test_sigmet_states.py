@@ -125,6 +125,15 @@ class TestSigmetHeaderState:
         for field in HEADER_FIELDS:
             assert getattr(state, field) == ''
 
+    def test_header_tracks_designator_with_ws_default(self):
+        assert SigmetHeaderState().designator == 'WS'
+        assert SigmetHeaderState('WC').designator == 'WC'
+
+    def test_clear_preserves_selected_designator(self):
+        state = header(designator='WC')
+        state.clear()
+        assert state.designator == 'WC'
+
 
 class TestSigmetStateHelpers:
 
