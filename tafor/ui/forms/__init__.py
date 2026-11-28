@@ -1,4 +1,12 @@
-from tafor.ui.forms.base import TextFieldMixin
+from tafor.ui.forms.base import (
+    TextFieldMixin,
+    setChecked,
+    setComboOptions,
+    setComboText,
+    setLineText,
+    setPlainText,
+)
+from tafor.ui.forms.pipeline import FormPipeline
 from tafor.ui.forms.sigmet import (
     AdvisoryImport,
     AirmetFlightLevelPart,
