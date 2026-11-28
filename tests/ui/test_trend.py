@@ -176,7 +176,79 @@ class TestTrendLoading:
         trend.period.editingFinished.emit()
 
         assert trend.period.text() == ''
+        assert trend.state.period == ''
+        assert not editor.nextButton.isEnabled()
         assert editor.notificationArea.text() == 'Trend valid time is not correct'
+
+    def test_nosig_restore_preserves_derived_widget_enablement(self, editor):
+        trend = editor.trend
+        trend.tempo.click()
+        trend.wind.setText('00000')
+        trend.wind.textEdited.emit('00000')
+        trend.weather.activated[str].emit('NSW')
+        trend.cloud1.setText('VV005')
+        trend.cloud1.textEdited.emit('VV005')
+
+        assert not trend.at.isEnabled()
+        assert not trend.gust.isEnabled()
+        assert not trend.weatherWithIntensity.isEnabled()
+        assert not trend.cloud2.isEnabled()
+
+        trend.nosig.click()
+        assert trend.state.isNosig
+        assert not trend.wind.isEnabled()
+        assert not trend.typeGroup.isEnabled()
+
+        trend.nosig.click()
+        assert not trend.state.isNosig
+        assert trend.wind.isEnabled()
+        assert trend.typeGroup.isEnabled()
+        assert not trend.at.isEnabled()
+        assert not trend.gust.isEnabled()
+        assert not trend.weatherWithIntensity.isEnabled()
+        assert not trend.cloud2.isEnabled()
+        assert trend.cloud1Label.text() == 'Vertical Visibility'
+
+    def test_loading_tempo_disables_at_checkbox(self, editor, context):
+        self.seed(context, 'METAR ZJHK 210900Z 14004MPS 4500 TEMPO 24008MPS -RA=')
+
+        editor.presenter.loadFromMetar()
+
+        assert editor.trend.tempo.isChecked()
+        assert not editor.trend.at.isEnabled()
+
+    def test_fm_tl_period_separator_and_midnight_formatting(self, editor, monkeypatch):
+        fixedNow = datetime.datetime(2026, 8, 10, 23, 0)
+        monkeypatch.setattr('tafor.ui.forms.taf.utcnow', lambda: fixedNow)
+        trend = editor.trend
+
+        trend.becmg.click()
+        trend.fm.click()
+        trend.tl.click()
+        trend.period.setText('2315')
+        trend.period.textEdited.emit('2315')
+        assert trend.period.text() == '2315/'
+        assert trend.state.period == '2315/'
+
+        trend.period.setText('2315')
+        trend.period.textEdited.emit('2315')
+        assert trend.period.text() == '2315'
+
+        trend.tl.click()
+        assert trend.period.text() == ''
+        assert trend.state.period == ''
+
+        trend.period.setText('2400')
+        trend.period.editingFinished.emit()
+        assert trend.period.text() == '0000'
+        assert trend.state.period == '0000'
+
+        trend.fm.click()
+        trend.tl.click()
+        trend.period.setText('0000')
+        trend.period.editingFinished.emit()
+        assert trend.period.text() == '2400'
+        assert trend.state.period == '2400'
 
 
 if __name__ == '__main__':

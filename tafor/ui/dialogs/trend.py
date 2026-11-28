@@ -32,9 +32,6 @@ class TrendPresenter:
         self.view.trend.collect()
         self.view.trend.validate()
 
-        if self.view.isPeriodActive():
-            self.view.trend.validatePeriod()
-
         if self.hasAcceptableInput():
             self.view.finished.emit(self.compose())
 

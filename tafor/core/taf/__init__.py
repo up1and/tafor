@@ -1,4 +1,12 @@
 from tafor.core.taf.draft import TafDraft
+from tafor.core.taf.rules import (
+    formatTrendPeriod,
+    groupPeriodRules,
+    normalizePeriod,
+    segmentRules,
+    separatePeriod,
+    trendRules,
+)
 from tafor.core.taf.spec import CurrentTaf, SpecFC, SpecFT24, SpecFT30
 from tafor.core.taf.states import GroupState, PrimaryState, SegmentState, TemperatureState, TrendState
 from tafor.core.taf.validator import (

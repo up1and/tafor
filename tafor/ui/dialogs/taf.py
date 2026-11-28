@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLayout
 from tafor.core.taf import TafDraft, TafFormValidator, amendSequence, groupSpan
 from tafor.ui.dialogs.base import BaseEditor
 from tafor.ui.forms import TafBecmgSegment, TafFmSegment, TafPrimarySegment, TafTempoSegment
+from tafor.ui.forms.base import setChecked
 from tafor.ui.forms.taf import _translate
 
 
@@ -73,12 +74,8 @@ class TafPresenter:
         notation = 'COR' if modifier == 'COR' else 'AMD'
         sequence = self.amendNumber(period, notation) if modifier else ''
 
-        # The validator goes in before the draw: populating writes the sequence,
-        # and the state the draw leaves behind is judged by it.
-        self.view.primary.setSequenceValidator(modifier)
         self.draft.begin(period=period, modifier=modifier, sequence=sequence)
         self.view.populate()
-        self.view.primary.setGroupCheckboxes(modifier != 'CNL')
         self.updateNextButton()
 
     def shiftPeriod(self, action):
@@ -215,7 +212,7 @@ class TafEditor(BaseEditor):
 
         for checkbox, group in zip(self.primary.groupCheckboxs, self.groups):
             key = group.key
-            checkbox.toggled.connect(lambda _, key=key: self.groupToggled.emit(*key))
+            checkbox.clicked.connect(lambda _, key=key: self.groupToggled.emit(*key))
             
         self.addBottomBox(layout)
         self.setLayout(layout)
@@ -273,12 +270,7 @@ class TafEditor(BaseEditor):
         """Draw `draft.selected` into the checkboxes and the group widgets."""
         for checkbox, group in zip(self.primary.groupCheckboxs, self.groups):
             selected = group.key in self.draft.selected
-            # This is populating, not a click: without blocking, the writes below
-            # would come straight back through toggleGroup and fight the
-            # selection they are drawing.
-            checkbox.blockSignals(True)
-            checkbox.setChecked(selected)
-            checkbox.blockSignals(False)
+            setChecked(checkbox, selected)
             group.setVisible(selected)
 
     def compose(self):

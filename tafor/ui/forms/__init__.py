@@ -1,5 +1,6 @@
 from tafor.ui.forms.base import (
     TextFieldMixin,
+    isAcceptable,
     setChecked,
     setComboOptions,
     setComboText,

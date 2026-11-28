@@ -1,8 +1,23 @@
 from PyQt5.QtCore import QSignalBlocker
+from PyQt5.QtGui import QValidator
 from PyQt5.QtWidgets import QCheckBox, QComboBox, QLineEdit, QTextEdit
 
 from tafor.ui.fonts import fixedFont
 from tafor.ui.styles import invalidTextStyle, validTextStyle
+
+
+def isAcceptable(widget, text):
+    """Return True when ``text`` satisfies ``widget``'s validator (or no validator exists)."""
+    if isinstance(widget, QComboBox):
+        validator = widget.validator() or (widget.lineEdit().validator() if widget.isEditable() else None)
+    else:
+        validator = widget.validator()
+
+    if validator is None:
+        return True
+
+    text = '' if text is None else str(text)
+    return validator.validate(text, 0)[0] == QValidator.Acceptable
 
 
 def setLineText(line, text):
@@ -96,10 +111,9 @@ class TextFieldMixin:
 
     @classmethod
     def coloredText(cls, line):
-        if line.hasAcceptableInput():
-            line.setStyleSheet(validTextStyle)
-        else:
-            line.setStyleSheet(invalidTextStyle)
+        style = validTextStyle if line.hasAcceptableInput() else invalidTextStyle
+        if line.styleSheet() != style:
+            line.setStyleSheet(style)
 
     def reload(self):
         """Adopt what the widgets now say: read them into the state, announce.

@@ -7,8 +7,8 @@ from PyQt5.QtCore import QSignalBlocker
 from tafor.core.config import createConfig
 from tafor.core.repositories import MessageRepository, TafRepository
 from tafor.core.states import createContext
+from tafor.core.taf import normalizePeriod, separatePeriod
 from tafor.ui.dialogs import TafEditor, TafSender
-from tafor.ui.forms.taf import normalizePeriod, separatePeriod
 from tests.mocks import MockConfig
 
 
@@ -198,21 +198,21 @@ class TestTafEditor:
         primary = editor.primary
         checkbox = primary.becmg1Checkbox
 
-        checkbox.setChecked(True)
+        checkbox.click()
         assert editor.becmg1.isVisibleTo(editor)
         assert editor.draft.selectedKeys() == (('BECMG', 1),)
 
-        checkbox.setChecked(False)
+        checkbox.click()
         assert not editor.becmg1.isVisibleTo(editor)
         assert editor.draft.selectedKeys() == ()
 
     def test_the_change_group_cap_is_enforced(self, editor):
         primary = editor.primary
         for name in ('fmCheckbox', 'becmg1Checkbox', 'becmg2Checkbox', 'becmg3Checkbox', 'tempo1Checkbox'):
-            getattr(primary, name).setChecked(True)
+            getattr(primary, name).click()
         assert len(editor.draft.selectedKeys()) == 5
 
-        primary.tempo2Checkbox.setChecked(True)
+        primary.tempo2Checkbox.click()
 
         # the sixth is refused, and populating puts the checkbox back
         assert editor.draft.selectedKeys() == (('FM', 1), ('BECMG', 1), ('BECMG', 2), ('BECMG', 3),
@@ -238,8 +238,7 @@ class TestTafEditor:
         primary.cb.setText('SCT020')
         primary.collect()
 
-        primary.validateCloud(primary.cloud1)
-        primary.validateCloud(primary.cb)
+        primary.validate()
 
         assert primary.cloud1.text() == 'SCT020'
         assert primary.cb.text() == 'SCT020'
@@ -284,8 +283,8 @@ class TestTafGroupOverlap:
 
     def test_overlapping_siblings_are_rejected_off_screen(self, editor, context):
         primary = self.openPeriod(editor)
-        editor.primary.becmg1Checkbox.setChecked(True)
-        editor.primary.becmg2Checkbox.setChecked(True)
+        editor.primary.becmg1Checkbox.click()
+        editor.primary.becmg2Checkbox.click()
 
         # Nothing is visible: the old isVisible() filter saw no siblings at all
         assert not editor.isVisible()
@@ -304,8 +303,8 @@ class TestTafGroupOverlap:
 
     def test_touching_siblings_pass(self, editor, context):
         primary = self.openPeriod(editor)
-        editor.primary.becmg1Checkbox.setChecked(True)
-        editor.primary.becmg2Checkbox.setChecked(True)
+        editor.primary.becmg1Checkbox.click()
+        editor.primary.becmg2Checkbox.click()
 
         start = primary.state.durations[0]
         editor.becmg1.state.durations = (start + datetime.timedelta(hours=2),
@@ -320,7 +319,7 @@ class TestTafGroupOverlap:
 
     def test_unselected_groups_are_not_siblings(self, editor, context):
         primary = self.openPeriod(editor)
-        editor.primary.becmg1Checkbox.setChecked(True)
+        editor.primary.becmg1Checkbox.click()
 
         start = primary.state.durations[0]
         editor.becmg1.state.durations = (start + datetime.timedelta(hours=2),
@@ -336,8 +335,8 @@ class TestTafGroupOverlap:
 
     def test_another_family_is_not_a_sibling(self, editor, context):
         primary = self.openPeriod(editor)
-        editor.primary.becmg1Checkbox.setChecked(True)
-        editor.primary.tempo1Checkbox.setChecked(True)
+        editor.primary.becmg1Checkbox.click()
+        editor.primary.tempo1Checkbox.click()
 
         start = primary.state.durations[0]
         editor.becmg1.state.durations = (start + datetime.timedelta(hours=2),
@@ -352,8 +351,8 @@ class TestTafGroupOverlap:
 
     def test_fm_compares_against_the_selected_becmg_groups(self, editor, context):
         primary = self.openPeriod(editor)
-        editor.primary.fmCheckbox.setChecked(True)
-        editor.primary.becmg1Checkbox.setChecked(True)
+        editor.primary.fmCheckbox.click()
+        editor.primary.becmg1Checkbox.click()
 
         start = primary.state.durations[0]
         inside = start + datetime.timedelta(hours=3)
@@ -401,8 +400,9 @@ class TestTafTemperatureIsRequired:
         primary = fill_without_temperature(editor)
         for temperature, value, time in zip(primary.temperatures, ('12', 'M03'), ('1012', '1015')):
             temperature.temp.setText(value)
+            temperature.temp.textEdited.emit(value)
             temperature.tempTime.setText(time)
-            temperature.onUserEdited()
+            temperature.tempTime.textEdited.emit(time)
 
         assert editor.presenter.hasAcceptableInput() is True
         assert editor.nextButton.isEnabled()
@@ -442,8 +442,9 @@ class TestTafTemperatureGroupsPerSpec:
         primary = fill_without_temperature(editor30)
         for temperature, value, time in zip(primary.temperatures, ('12', 'M03'), ('1012', '1015')):
             temperature.temp.setText(value)
+            temperature.temp.textEdited.emit(value)
             temperature.tempTime.setText(time)
-            temperature.onUserEdited()
+            temperature.tempTime.textEdited.emit(time)
 
         assert [t.state.isAcceptable() for t in primary.temperatures] == [True, True, False]
         assert editor30.presenter.hasAcceptableInput() is False
@@ -455,8 +456,9 @@ class TestTafTemperatureGroupsPerSpec:
                                             ('12', 'M03', 'M01'),
                                             ('1012', '1015', '1018')):
             temperature.temp.setText(value)
+            temperature.temp.textEdited.emit(value)
             temperature.tempTime.setText(time)
-            temperature.onUserEdited()
+            temperature.tempTime.textEdited.emit(time)
 
         assert [t.state.isAcceptable() for t in primary.temperatures] == [True, True, True]
         assert editor30.presenter.hasAcceptableInput() is True
@@ -477,7 +479,7 @@ class TestTafPeriodReanchor:
 
     def test_moving_the_period_drops_the_group_windows(self, editor):
         primary = open_header(editor)
-        editor.primary.becmg1Checkbox.setChecked(True)
+        editor.primary.becmg1Checkbox.click()
         group = editor.becmg1
 
         start, end = primary.state.durations
@@ -526,7 +528,7 @@ class TestTafGroupPeriodCommit:
 
     def test_typing_in_the_period_announces_once(self, editor):
         primary = open_header(editor)
-        primary.becmg1Checkbox.setChecked(True)
+        primary.becmg1Checkbox.click()
         group = editor.becmg1
 
         changed = []
@@ -542,7 +544,7 @@ class TestTafGroupPeriodCommit:
     def test_the_separator_is_written_before_the_read(self, editorNoCompletion):
         editor = editorNoCompletion
         primary = open_header(editor)
-        primary.becmg1Checkbox.setChecked(True)
+        primary.becmg1Checkbox.click()
         group = editor.becmg1
 
         group.period.setText('1012')
@@ -553,7 +555,7 @@ class TestTafGroupPeriodCommit:
 
     def test_a_refused_start_does_not_stop_the_next_attempt(self, editor):
         primary = open_header(editor)
-        primary.becmg1Checkbox.setChecked(True)
+        primary.becmg1Checkbox.click()
         group = editor.becmg1
 
         group.period.setText('9999')
@@ -613,13 +615,13 @@ class TestTafTemperatureNotifications:
         first, second = primary.temperatures[:2]
         first.tempTime.setText(instant)
         first.collect()
-        first.validateTemperatureTime()
+        first.tempTime.editingFinished.emit()
         assert seen == []
 
         # The same instant as the first group: a TX and a TN never coincide.
         second.tempTime.setText(instant)
         second.collect()
-        second.validateTemperatureTime()
+        second.tempTime.editingFinished.emit()
 
         assert seen == ['The time of temperature is not correct']
         assert second.state.time == ''
@@ -737,11 +739,10 @@ class TestTafApplyState:
         assert primary.state.modifier is None
 
     def test_clear_leaves_vertical_visibility_mode(self, editor):
-        # setVv used to hang off cloud1.textEdited, which a programmatic write
-        # never fires, so clear() left the label on "Vertical Visibility" and
-        # cloud2/3/cb disabled — with no way back except typing in cloud1.
+        # Programmatic clear must reset Vertical Visibility label and enable all cloud fields.
         primary = editor.primary
         primary.cloud1.setText('VV005')
+        primary.cloud1.textEdited.emit('VV005')
         assert not primary.cloud2.isEnabled()
 
         editor.clear()
@@ -824,7 +825,7 @@ class TestTafPeriodClearsTheForm:
 
     def test_changing_the_modifier_keeps_the_change_groups(self, editor):
         primary = self.start_filled(editor)
-        primary.becmg1Checkbox.setChecked(True)
+        primary.becmg1Checkbox.click()
         fill(editor.becmg1)
         widgets = read_widgets(editor.becmg1)
         assert editor.draft.selectedKeys() == (('BECMG', 1),)
@@ -974,14 +975,14 @@ class TestTafFormDecoupling:
         primary.wind.setText('24008')
         primary.gust.setText('10')
         primary.collect()
-        primary.validateGust()
+        primary.gust.editingFinished.emit()
         assert editor.notificationArea.text() == 'Gust speed must be greater than wind speed by at least 5'
 
-        primary.becmg1Checkbox.setChecked(True)
+        primary.becmg1Checkbox.click()
         editor.becmg1.wind.setText('24008')
         editor.becmg1.gust.setText('10')
         editor.becmg1.collect()
-        editor.becmg1.validateGust()
+        editor.becmg1.gust.editingFinished.emit()
         assert editor.notificationArea.text() == 'Gust speed must be greater than wind speed by at least 5'
 
         end = primary.state.durations[1]
@@ -1024,11 +1025,12 @@ class TestTafFormDecoupling:
         primary = fill_without_temperature(editor)
         for temperature, value, time in zip(primary.temperatures, ('12', 'M03'), ('1012', '1015')):
             temperature.temp.setText(value)
+            temperature.temp.textEdited.emit(value)
             temperature.tempTime.setText(time)
-            temperature.onUserEdited()
+            temperature.tempTime.textEdited.emit(time)
 
-        primary.becmg1Checkbox.setChecked(True)
-        primary.becmg2Checkbox.setChecked(True)
+        primary.becmg1Checkbox.click()
+        primary.becmg2Checkbox.click()
         fill(editor.becmg1)
         fill(editor.becmg2)
 
@@ -1047,5 +1049,165 @@ class TestTafFormDecoupling:
         assert editor.notificationArea.text() == 'Change group time is overlap'
 
 
-if __name__ == '__main__':
-    pytest.main()
+class TestBaseSegmentPipeline:
+    """Stage 2 regressions: unidirectional pipeline behaviour in BaseSegment."""
+
+    def test_rejected_gust_weather_and_cloud_clear_both_widget_and_state(self, editor):
+        primary = fill_without_temperature(editor)
+
+        primary.gust.setText('10')
+        primary.collect()
+        primary.gust.editingFinished.emit()
+        assert primary.gust.text() == ''
+        assert primary.state.gust == ''
+        assert editor.notificationArea.text() == 'Gust speed must be greater than wind speed by at least 5'
+
+        primary.weather.setCurrentText('TS')
+        primary.weatherWithIntensity.setCurrentText('-TSRA')
+        primary.collect()
+        primary.weather.lineEdit().editingFinished.emit()
+        assert primary.weather.currentText() == ''
+        assert primary.state.weather == ''
+        assert editor.notificationArea.text() == 'Weather phenomena conflict'
+
+        primary.cloud1.setText('SCT020')
+        primary.cloud2.setText('BKN020')
+        primary.collect()
+        primary.validate()
+        assert primary.cloud2.text() == ''
+        assert primary.cloud1.text() == 'SCT020'
+        assert primary.state.clouds == ['SCT020', 'BKN030CB']
+        assert editor.notificationArea.text() == 'Cloud cover with different oktas should not at the same height'
+
+    def test_weather_activated_nsw_disables_and_clears_intensity(self, editor):
+        editor.primary.becmg1Checkbox.click()
+        group = editor.becmg1
+        group.weatherWithIntensity.setCurrentText('-RA')
+        group.collect()
+
+        group.weather.activated[str].emit('NSW')
+
+        assert group.weather.currentText() == 'NSW'
+        assert group.state.weather == 'NSW'
+        assert group.weatherWithIntensity.currentText() == ''
+        assert group.state.weatherWithIntensity == ''
+        assert not group.weatherWithIntensity.isEnabled()
+
+    def test_vv_and_nsc_interaction_stays_consistent(self, editor):
+        primary = editor.primary
+        primary.cloud1.setText('VV005')
+        primary.cloud1.textEdited.emit('VV005')
+
+        assert primary.cloud1Label.text() == 'Vertical Visibility'
+        assert not primary.cloud2.isEnabled()
+        assert not primary.cb.isEnabled()
+
+        primary.nsc.click()
+        assert primary.state.isNsc is True
+        assert primary.state.clouds == []
+        assert primary.cloud1Label.text() == 'Cloud'
+        assert not primary.cloud1.isEnabled()
+
+        primary.nsc.click()
+        assert primary.state.isNsc is False
+        assert primary.cloud1.isEnabled()
+        assert primary.cloud2.isEnabled()
+        assert primary.cloud3.isEnabled()
+        assert primary.cb.isEnabled()
+
+
+class TestStage3Pipeline:
+    """Stage 3 regressions: primary, group, temperature, and checkbox pipeline."""
+
+    def test_set_date_updates_state_and_cnl_enables_next_without_collect(self, editor, frozen_time):
+        primary = editor.primary
+        primary.setDate()
+
+        assert primary.state.date == primary.date.text()
+
+        primary.cnl.click()
+
+        assert primary.state.modifier == 'CNL'
+        assert primary.state.date == primary.date.text()
+        assert primary.state.period
+        assert primary.state.sequence == 'AAA'
+        assert editor.nextButton.isEnabled()
+
+    def test_clear_from_cnl_disables_sequence_and_enables_group_checkboxes(self, editor):
+        primary = editor.primary
+        primary.setDate()
+        primary.cnl.click()
+        assert primary.sequence.isEnabled()
+        assert all(not c.isEnabled() for c in primary.groupCheckboxs)
+
+        editor.clear()
+
+        assert primary.normal.isChecked()
+        assert not primary.sequence.isEnabled()
+        assert primary.sequence.text() == ''
+        assert all(c.isEnabled() for c in primary.groupCheckboxs)
+
+    def test_temperature_time_normalization_syncs_state_and_widget(self, editor, frozen_time):
+        primary = open_header(editor)
+        end = primary.state.durations[1]
+        if end.hour != 0:
+            offset = (24 - end.hour) % 24
+            end = end + datetime.timedelta(hours=offset)
+            primary.state.durations = (primary.state.durations[0], end)
+
+        first = primary.temperatures[0]
+        rawMidnight = '{:02d}00'.format(end.day)
+        expected = '{:02d}24'.format((end - datetime.timedelta(hours=1)).day)
+
+        first.tempTime.setText(rawMidnight)
+        first.tempTime.textEdited.emit(rawMidnight)
+        first.tempTime.editingFinished.emit()
+
+        assert first.tempTime.text() == expected
+        assert first.state.time == expected
+
+    def test_switch_mode_emits_content_changed_and_revalidates(self, editor30, frozen_time):
+        primary = fill_without_temperature(editor30)
+        start, _ = primary.state.durations
+        t1 = (start + datetime.timedelta(hours=1)).strftime('%d%H')
+        t2 = (start + datetime.timedelta(hours=2)).strftime('%d%H')
+
+        tmax, tmin, third = primary.temperatures
+        tmax.temp.setText('20')
+        tmax.temp.textEdited.emit('20')
+        tmax.tempTime.setText(t1)
+        tmax.tempTime.textEdited.emit(t1)
+
+        tmin.temp.setText('10')
+        tmin.temp.textEdited.emit('10')
+        tmin.tempTime.setText(t2)
+        tmin.tempTime.textEdited.emit(t2)
+
+        # In max mode, 05 <= min(10) fails validation on switch; choose a time on another day
+        t3 = (start + datetime.timedelta(hours=25)).strftime('%d%H')
+        third.temp.setText('05')
+        third.temp.textEdited.emit('05')
+        third.tempTime.setText(t3)
+        third.tempTime.textEdited.emit(t3)
+
+        changed = []
+        third.contentChanged.connect(lambda: changed.append(third.state.mode))
+
+        # Initially max (20 -> min is 10, third is max=05): switching to min is valid;
+        # switching back to max fails TEMP_MAX_LESS_MIN and clears value
+        third.switchMode()
+        assert third.state.mode == 'min'
+        assert changed == ['min']
+        assert third.state.value == '05'
+
+        third.switchMode()
+        assert third.state.mode == 'max'
+        assert third.state.value == ''
+        assert third.temp.text() == ''
+        assert changed[-1] == 'max'
+
+    def test_programmatic_group_checkbox_set_checked_does_not_toggle_draft(self, editor):
+        editor.primary.becmg1Checkbox.setChecked(True)
+
+        assert editor.draft.selectedKeys() == ()
+        assert not editor.becmg1.isVisibleTo(editor)
