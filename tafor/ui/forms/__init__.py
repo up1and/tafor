@@ -1,11 +1,12 @@
 from tafor.ui.forms.base import (
-    TextFieldMixin,
+    coloredText,
     isAcceptable,
     setChecked,
     setComboOptions,
     setComboText,
     setLineText,
     setPlainText,
+    setupFont,
 )
 from tafor.ui.forms.pipeline import FormPipeline
 from tafor.ui.forms.sigmet import (

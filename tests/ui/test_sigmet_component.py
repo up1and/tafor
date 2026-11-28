@@ -942,7 +942,8 @@ class TestSigmetCustomText:
     def test_form_notified_updates_editor_notification_area(self, editor, frozen_time):
         editor.generalContent.beginningTime.setText('100800')
         editor.generalContent.endingTime.setText('102300')
-        editor.generalContent.validatePeriod()
+        editor.generalContent.collect()
+        editor.generalContent.validate()
 
         assert editor.notificationArea.text() == 'Valid period more than the permitted hours'
 
@@ -1008,6 +1009,105 @@ class TestSigmetTyphoon:
         assert typhoon.forecastLongitude.text() != ''
         assert typhoon.forecastLatitude.text() != ''
         assert typhoon.radius.text() == ''
+
+
+class TestSigmetPipeline:
+    """Stage 4 regressions: unidirectional pipeline behaviour in SIGMET forms."""
+
+    def test_typhoon_map_update_syncs_state_without_circle_echo_or_forecast_overwrite(self, editor, frozen_time):
+        editor.tropicalCyclone.click()
+        typhoon = editor.typhoonContent
+        typhoon.setLocationMode('circle')
+        typhoon.speed.setText('20')
+        typhoon.speed.textEdited.emit('20')
+        typhoon.observedTime.setText('0800')
+        typhoon.observedTime.textEdited.emit('0800')
+        typhoon.forecastTime.setText('1400')
+        typhoon.forecastTime.textEdited.emit('1400')
+
+        emitted = []
+        typhoon.circleChanged.connect(emitted.append)
+
+        collections = {
+            'type': 'FeatureCollection',
+            'features': [
+                {
+                    'type': 'Feature',
+                    'properties': {'location': 'initial', 'radius': 200},
+                    'geometry': {'type': 'Point', 'coordinates': [115.0, 20.0]},
+                },
+                {
+                    'type': 'Feature',
+                    'properties': {'location': 'final'},
+                    'geometry': {'type': 'Point', 'coordinates': [120.0, 22.0]},
+                },
+            ],
+        }
+        typhoon.setTyphoonLocation(collections)
+
+        assert emitted == []
+        assert typhoon.state.currentLongitude == 'E11500'
+        assert typhoon.state.currentLatitude == 'N2000'
+        assert typhoon.state.forecastLongitude == 'E12000'
+        assert typhoon.state.forecastLatitude == 'N2200'
+        assert typhoon.state.radius == '200'
+
+    def test_typhoon_user_speed_edit_updates_forecast_state_and_emits_circle_changed(self, editor, frozen_time):
+        editor.tropicalCyclone.click()
+        typhoon = editor.typhoonContent
+        typhoon.setLocationMode('circle')
+        typhoon.setOverlapMode('final')
+        typhoon.currentLatitude.setText('N2000')
+        typhoon.currentLatitude.textEdited.emit('N2000')
+        typhoon.currentLongitude.setText('E11500')
+        typhoon.currentLongitude.textEdited.emit('E11500')
+        typhoon.radius.setText('150')
+        typhoon.radius.textEdited.emit('150')
+        typhoon.observedTime.setText('0800')
+        typhoon.observedTime.textEdited.emit('0800')
+        typhoon.forecastTime.setText('1400')
+        typhoon.forecastTime.textEdited.emit('1400')
+
+        emitted = []
+        typhoon.circleChanged.connect(emitted.append)
+
+        typhoon.speed.setText('20')
+        typhoon.speed.textEdited.emit('20')
+
+        assert typhoon.forecastLatitude.text() != ''
+        assert typhoon.state.forecastLatitude == typhoon.forecastLatitude.text()
+        assert typhoon.state.forecastLongitude == typhoon.forecastLongitude.text()
+        assert len(emitted) == 1
+
+    def test_overlap_mode_final_syncs_observation_and_forecast_state(self, editor, frozen_time):
+        editor.opened.emit()
+        general = editor.generalContent
+
+        editor.setOverlapMode('final')
+
+        assert general.state.comeFrom == 'OBS'
+        assert general.state.observedTime == general.beginningTime.text()[2:]
+        assert general.state.hasForecast is True
+        assert general.state.forecastTime == general.endingTime.text()[2:]
+        assert general.forecastTime.isEnabled()
+
+    def test_advisory_import_commits_state_immediately(self, editor):
+        editor.tropicalCyclone.click()
+        typhoon = editor.typhoonContent
+        typhoon.text.setPlainText(
+            'TC ADVISORY\n'
+            'DTG: 20260610/0600Z\n'
+            'TC: YAGI\n'
+            'OBS PSN: 20260610/0600Z N2000 E11500\n'
+            'MOV: W 15KT\n'
+            'FCST PSN +06HR: 20260610/1200Z N2100 E11400\n'
+        )
+        assert typhoon.state.name == 'YAGI'
+        assert typhoon.name.text() == 'YAGI'
+        assert typhoon.state.comeFrom == 'OBS'
+        assert typhoon.state.observedTime == '0600'
+        assert typhoon.state.currentLatitude == 'N2000'
+        assert typhoon.state.currentLongitude == 'E11500'
 
 
 if __name__ == '__main__':

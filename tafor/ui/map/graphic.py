@@ -1050,7 +1050,9 @@ class SketchPanel(QWidget):
             names.append(name)
             sketch = self.canvas.sketchManager.get(name)
             sketch.restore(
-                center=feature['geometry']['coordinates'], radius=feature['properties']['radius'])
+                center=feature['geometry']['coordinates'],
+                radius=feature['properties'].get('radius', 0),
+            )
 
         for sketch in self.canvas.sketchManager:
             if sketch.name not in names:

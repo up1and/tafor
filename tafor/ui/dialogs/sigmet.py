@@ -318,7 +318,7 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
 
     def seedForm(self, sequence, candidates=None, latestText=None):
         """Start a draft in the current form: sequence, span-derived period,
-        and any form-specific seed before one read-back via reload()."""
+        and any form-specific seed."""
         form = self.currentForm
         form.setSequence(sequence)
         form.resetPeriod()
@@ -328,11 +328,8 @@ class SigmetEditor(BaseEditor, Ui_sigmet.Ui_Editor):
         elif form is self.customForm:
             form.setLatestText(latestText)
 
-        form.reload()
-
     def setCustomText(self, latest):
         self.customForm.setLatestText(latest)
-        self.customForm.reload()
 
     def collect(self):
         """Read the current form's widgets into its state -- the commit prelude.

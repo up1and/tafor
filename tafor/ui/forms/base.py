@@ -98,44 +98,19 @@ def setChecked(button, checked):
     return True
 
 
-class TextFieldMixin:
-    """Shared text-field behaviour for the message editors.
+def coloredText(widget):
+    """Style a QLineEdit (or editable QComboBox) according to validator acceptability."""
+    line = widget.lineEdit() if isinstance(widget, QComboBox) else widget
+    if line is None:
+        return
+    style = validTextStyle if line.hasAcceptableInput() else invalidTextStyle
+    if line.styleSheet() != style:
+        line.setStyleSheet(style)
 
-    The methods here walk the widget tree of whatever editor mixes them in,
-    so they assume nothing beyond a QWidget host.
-    """
 
-    @classmethod
-    def upperText(cls, line):
-        line.setText(line.text().upper())
-
-    @classmethod
-    def coloredText(cls, line):
-        style = validTextStyle if line.hasAcceptableInput() else invalidTextStyle
-        if line.styleSheet() != style:
-            line.setStyleSheet(style)
-
-    def reload(self):
-        """Adopt what the widgets now say: read them into the state, announce.
-
-        Filling widgets is not a user edit, so textEdited does not fire; whoever
-        wrote the widgets has to say so here. Every programmatic write that
-        the editor cares about ends with this call -- state has one writer,
-        collect(), and this is the pair that tells the editor it happened.
-        """
-        self.collect()
-        self.contentChanged.emit()
-
-    def setupFont(self):
-        font = fixedFont()
-        for line in self.findChildren(QLineEdit):
-            line.setFont(font)
-
-        for combox in self.findChildren(QComboBox):
-            combox.setFont(font)
-
-        for checkbox in self.findChildren(QCheckBox):
-            checkbox.setFont(font)
-
-        for text in self.findChildren(QTextEdit):
-            text.setFont(font)
+def setupFont(widget):
+    """Apply the fixed-width font to form input controls inside ``widget``."""
+    font = fixedFont()
+    for cls in (QLineEdit, QComboBox, QCheckBox, QTextEdit):
+        for child in widget.findChildren(cls):
+            child.setFont(font)

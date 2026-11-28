@@ -19,7 +19,7 @@ from tafor.core.repositories import SigmetRepository
 from tafor.core.sigmet import SigmetDraft
 from tafor.core.sigmet.compose import validDuration
 from tafor.ui.dialogs import SigmetPresenter
-from tafor.ui.forms import SigmetCancel, SigmetCustom, SigmetGeneral
+from tafor.ui.forms import SigmetAsh, SigmetCancel, SigmetCustom, SigmetGeneral
 
 
 MOMENT = datetime.datetime(2026, 6, 10, 8, 0)
@@ -56,14 +56,9 @@ def cancel(qtbot, conf, draft, frozen_time):
 
 def begin(widget, sequence):
     """The calls the editor makes when a draft begins in this form: the number,
-    then the period, then the one read-back that adopts them.
-
-    The setters only write widgets -- writing is not a user edit, so nothing
-    collects them on its own. reload() is that step, and it is the editor's.
-    """
+    then the period."""
     widget.setSequence(sequence)
     widget.resetPeriod()
-    widget.reload()
 
 
 def choose(combo, text):
@@ -113,19 +108,25 @@ class TestSigmetGeneral:
 
     def test_update_durations_parses_both_times(self, general):
         general.beginningTime.setText('100800')
+        general.beginningTime.textEdited.emit('100800')
         general.endingTime.setText('101400')
+        general.endingTime.textEdited.emit('101400')
 
         assert general.state.durations == (MOMENT, MOMENT + datetime.timedelta(hours=6))
 
     def test_incomplete_times_clear_durations(self, general):
         general.beginningTime.setText('100800')
+        general.beginningTime.textEdited.emit('100800')
         general.endingTime.setText('101400')
+        general.endingTime.textEdited.emit('101400')
         general.endingTime.clear()
+        general.endingTime.textEdited.emit('')
 
         assert general.state.durations is None
 
     def test_validate_period_accepts_the_suggested_period(self, general):
-        general.validatePeriod()
+        general.collect()
+        general.validate()
 
         assert general.beginningTime.text()
         assert general.endingTime.text()
@@ -134,7 +135,8 @@ class TestSigmetGeneral:
         general.beginningTime.setText('100800')
         general.endingTime.setText('100800')
 
-        general.validatePeriod()
+        general.collect()
+        general.validate()
 
         assert general.endingTime.text() == ''
 
@@ -143,7 +145,8 @@ class TestSigmetGeneral:
         general.beginningTime.setText('100800')
         general.endingTime.setText('102300')
 
-        general.validatePeriod()
+        general.collect()
+        general.validate()
 
         assert general.endingTime.text() == ''
         assert general.beginningTime.text() == '100800'
@@ -154,7 +157,8 @@ class TestSigmetGeneral:
         general.beginningTime.setText('100800')
         general.endingTime.setText('102300')
 
-        general.validatePeriod()
+        general.collect()
+        general.validate()
 
         assert seen == ['Valid period more than the permitted hours']
 
@@ -162,7 +166,8 @@ class TestSigmetGeneral:
         general.beginningTime.setText('200800')
         general.endingTime.setText('201400')
 
-        general.validatePeriod()
+        general.collect()
+        general.validate()
 
         assert general.beginningTime.text() == ''
 
@@ -230,11 +235,10 @@ class TestSigmetGeneral:
         assert phenomena == ['DS', 'SS']
 
     def test_flight_level_format_follows_phenomenon(self, general):
-        general.setFlightLevelFormat('TS')
         formats = [general.format.itemText(i) for i in range(general.format.count())]
         assert 'TOP' in formats
 
-        general.setFlightLevelFormat('TURB')
+        choose(general.description, 'SEV')
         formats = [general.format.itemText(i) for i in range(general.format.count())]
         assert 'TOP' not in formats
 
@@ -286,21 +290,26 @@ class TestSigmetCancel:
         assert cancel.findValid(9) is None
         assert cancel.findValid(-1) is None
 
-    def test_set_valids_fills_the_cancelled_period(self, cancel, context, conf):
+    def test_choosing_a_row_fills_the_cancelled_period(self, cancel, context, conf):
         context.current.setState([cancelEditorSigmet()])
         cancel.setCandidates(candidates(context, conf))
 
-        cancel.setValids('2')
+        line = cancel.cancelSequence.lineEdit()
+        line.setText('1')
+        line.textEdited.emit('1')
+        cancel.cancelSequence.activated[int].emit(0)
 
         assert cancel.cancelBeginningTime.text() == '100930'
         assert cancel.cancelEndingTime.text() == '101430'
         assert cancel.endingTime.text() == '101430'
 
-    def test_set_valids_unknown_sequence_clears_fields(self, cancel, context, conf):
+    def test_typed_unknown_sequence_clears_the_cancelled_period(self, cancel, context, conf):
         context.current.setState([cancelEditorSigmet()])
         cancel.setCandidates(candidates(context, conf))
 
-        cancel.setValids('9')
+        line = cancel.cancelSequence.lineEdit()
+        line.setText('9')
+        line.textEdited.emit('9')
 
         assert cancel.cancelBeginningTime.text() == ''
         assert cancel.cancelEndingTime.text() == ''
@@ -312,26 +321,28 @@ class TestSigmetCancel:
         assert cancel.cancelSequence.itemText(0) == '2'
         assert cancel.cancelSequence.itemText(1) == '2'
 
-        cancel.setValids(0)
-        assert cancel.cancelBeginningTime.text() == '092330'
-        assert cancel.cancelEndingTime.text() == '100500'
-
-        cancel.setValids(1)
+        cancel.cancelSequence.activated[int].emit(1)
         assert cancel.cancelBeginningTime.text() == '100930'
         assert cancel.cancelEndingTime.text() == '101430'
+
+        cancel.cancelSequence.activated[int].emit(0)
+        assert cancel.cancelBeginningTime.text() == '092330'
+        assert cancel.cancelEndingTime.text() == '100500'
 
     def test_switching_between_same_numbered_rows_fires(self, cancel, context, conf):
         context.current.setState(dayBoundaryRecords())
         cancel.setCandidates(candidates(context, conf))
 
-        # Identical texts keep currentTextChanged silent between the rows;
-        # only the index change carries the pick to the second record.
+        # Identical texts keep the text channel silent between the rows; the
+        # pick carries the index, and the index names the record.
         cancel.cancelSequence.setCurrentIndex(1)
+        cancel.cancelSequence.activated[int].emit(1)
 
         assert cancel.cancelBeginningTime.text() == '100930'
         assert cancel.cancelEndingTime.text() == '101430'
 
         cancel.cancelSequence.setCurrentIndex(0)
+        cancel.cancelSequence.activated[int].emit(0)
 
         assert cancel.cancelBeginningTime.text() == '092330'
         assert cancel.cancelEndingTime.text() == '100500'
@@ -349,6 +360,89 @@ class TestSigmetCancel:
         assert cancel.state.cancelSequence == '2'
         assert cancel.state.cancelBeginningTime == '100930'
         assert cancel.state.cancelEndingTime == '101430'
+
+
+class TestStage4SigmetPipeline:
+    """Stage 4 regressions: period/flight-level validation, populate order, and clear defaults."""
+
+    def test_validate_period_clears_both_widget_and_state_without_ghost_commit(self, general):
+        general.beginningTime.setText('100800')
+        general.beginningTime.textEdited.emit('100800')
+        general.endingTime.setText('102300')
+        general.endingTime.textEdited.emit('102300')
+
+        general.endingTime.editingFinished.emit()
+
+        assert general.endingTime.text() == ''
+        assert general.state.header.endingTime == ''
+        assert general.state.durations is None
+
+    def test_flight_level_validation_clears_both_widget_and_state_and_notifies(self, general):
+        seen = []
+        general.notified.connect(seen.append)
+        choose(general.format, '')
+        general.base.setText('360')
+        general.base.textEdited.emit('360')
+        general.top.setText('200')
+        general.top.textEdited.emit('200')
+
+        general.top.editingFinished.emit()
+
+        assert general.top.text() == ''
+        assert general.state.flightLevelTop == ''
+        assert seen == ['The top flight level needs to be greater than the base flight level']
+
+    def test_general_populate_preserves_flight_level_across_description_change(self, general):
+        general.state.description = 'SEV'
+        general.state.phenomenon = 'TURB'
+        general.state.flightLevelFormat = 'ABV'
+        general.state.flightLevelBase = '120'
+        general.state.flightLevelTop = ''
+
+        general.populate()
+
+        assert general.description.currentText() == 'SEV'
+        assert general.phenomenon.currentText() == 'TURB'
+        assert general.format.currentText() == 'ABV'
+        assert general.base.text() == '120'
+        assert general.state.flightLevelFormat == 'ABV'
+        assert general.state.flightLevelBase == '120'
+
+    def test_ash_populate_does_not_mutate_state_or_emit_content_changed(self, qtbot, conf, draft):
+        ash = SigmetAsh(header=draft.header, conf=conf)
+        qtbot.addWidget(ash)
+        ash.state.phenomenon = 'CLD'
+        ash.state.isEruption = False
+        ash.state.flightLevelFormat = 'SFC'
+        ash.state.flightLevelTop = '300'
+
+        changed = []
+        ash.contentChanged.connect(lambda: changed.append(True))
+
+        ash.populate()
+
+        assert changed == []
+        assert ash.phenomenon.currentText() == 'CLD'
+        assert not ash.name.isEnabled()
+        assert ash.state.isEruption is False
+        assert ash.state.flightLevelTop == '300'
+
+    def test_clear_keeps_default_combos_and_state_in_agreement(self, general):
+        choose(general.description, 'SEV')
+        choose(general.direction, 'STNR')
+
+        general.clear()
+
+        assert general.description.currentText() == 'EMBD'
+        assert general.state.description == 'EMBD'
+        assert general.phenomenon.currentText() == 'TS'
+        assert general.state.phenomenon == 'TS'
+        assert general.format.currentText() == 'TOP'
+        assert general.state.flightLevelFormat == 'TOP'
+        assert general.direction.currentText() == 'N'
+        assert general.state.direction == 'N'
+        assert general.intensityChange.currentText() == 'NC'
+        assert general.state.intensityChange == 'NC'
 
 
 if __name__ == '__main__':

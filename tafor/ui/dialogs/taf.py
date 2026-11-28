@@ -74,8 +74,13 @@ class TafPresenter:
         notation = 'COR' if modifier == 'COR' else 'AMD'
         sequence = self.amendNumber(period, notation) if modifier else ''
 
-        self.draft.begin(period=period, modifier=modifier, sequence=sequence)
-        self.view.populate()
+        discarded = self.draft.begin(period=period, modifier=modifier, sequence=sequence)
+        if discarded:
+            self.view.populate()
+        else:
+            self.view.primary.setHeader(period, modifier, sequence)
+            self.view.applySelection()
+            self.view.updatePeriodButtons()
         self.updateNextButton()
 
     def shiftPeriod(self, action):

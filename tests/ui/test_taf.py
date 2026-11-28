@@ -709,6 +709,7 @@ class TestTafApplyState:
     def test_clear_empties_the_header_and_the_next_begin_fills_it(self, editor, frozen_time):
         primary = editor.primary
         primary.date.setText('101200')
+        primary.date.textEdited.emit('101200')
         editor.opened.emit()
         period = primary.period.text()
         assert period and primary.state.durations is not None
@@ -1211,3 +1212,36 @@ class TestStage3Pipeline:
 
         assert editor.draft.selectedKeys() == ()
         assert not editor.becmg1.isVisibleTo(editor)
+
+    def test_switching_modifier_preserves_uncommitted_raw_input(self, editor, frozen_time):
+        primary = open_header(editor)
+        primary.wind.setText('240')
+        primary.wind.textEdited.emit('240')
+        assert primary.state.wind == ''
+        assert primary.pipeline.value('wind') == '240'
+
+        primary.amd.click()
+
+        assert primary.state.modifier == 'AMD'
+        assert primary.sequence.text() == 'AAA'
+        assert primary.wind.text() == '240'
+        assert primary.pipeline.value('wind') == '240'
+
+        primary.cor.click()
+
+        assert primary.state.modifier == 'COR'
+        assert primary.sequence.text() == 'CCA'
+        assert primary.wind.text() == '240'
+        assert primary.pipeline.value('wind') == '240'
+
+    def test_switching_modifier_renders_once(self, editor, monkeypatch):
+        primary = open_header(editor)
+        calls = []
+        original = primary.populate
+        monkeypatch.setattr(primary, 'populate', lambda raw=None: (calls.append(raw), original(raw))[1])
+
+        primary.amd.click()
+
+        assert len(calls) == 1
+        assert calls[0] is not None
+        assert primary.state.modifier == 'AMD'

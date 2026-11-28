@@ -9,8 +9,11 @@ from PyQt5.QtWidgets import QComboBox, QWidget, QLabel, QLineEdit, QToolButton
 
 from tafor.core.parsers.base import Pattern
 from tafor.core.parsers.advisory import AshAdvisoryParser, TyphoonAdvisoryParser
-from tafor.core.sigmet import (SigmetAshState, SigmetCancelState, SigmetCustomState, SigmetGeneralState,
-    SigmetTyphoonState, SigmetFormValidator)
+from tafor.core.sigmet import (
+    SigmetAshState, SigmetCancelState, SigmetCustomState, SigmetGeneralState,
+    SigmetTyphoonState, SigmetFormValidator, ashRules, cancelRules, customRules,
+    filterCustomText, flightLevelFormats, generalRules, typhoonRules,
+)
 from tafor.core.sigmet.compose import (
     adjustCancelBeginning,
     category,
@@ -23,7 +26,10 @@ from tafor.core.geometry.coordinate import decimalToDegree
 from tafor.core.utils.time import parseTime, utcnow
 from tafor.core.utils.common import iconPath
 from tafor.ui.qt import Ui_sigmet_ash, Ui_sigmet_cancel, Ui_sigmet_custom, Ui_sigmet_general, Ui_sigmet_typhoon
-from tafor.ui.forms.base import TextFieldMixin
+from tafor.ui.forms.base import (
+    coloredText, isAcceptable, setComboOptions, setComboText, setLineText, setPlainText, setupFont,
+)
+from tafor.ui.forms.pipeline import FormPipeline
 from tafor.ui.styles import invalidTextStyle, validTextStyle
 
 logger = logging.getLogger('tafor.sigmet.information')
@@ -43,7 +49,7 @@ def _translate(code):
     return messages.get(code, code)
 
 
-class BaseSigmet(TextFieldMixin, QWidget):
+class BaseSigmet(QWidget):
 
     contentChanged = pyqtSignal()
     notified = pyqtSignal(str)
@@ -52,9 +58,11 @@ class BaseSigmet(TextFieldMixin, QWidget):
     # from self.parts, which holds one live instance per member.
     members = ()
 
+    defaults = {}
+
     def __init__(self, conf=None):
         super().__init__()
-        self.rules = Pattern()
+        self.patterns = Pattern()
         self.conf = conf
         self.state = None
 
@@ -63,10 +71,26 @@ class BaseSigmet(TextFieldMixin, QWidget):
         self.switchButton.hide()
         self.headingGroup.setMinimumWidth(77 * 3 + 32)
         self.parts = [member(self) for member in self.members]
-        self.setupFont()
+        setupFont(self)
         self.setupMainElementWidth()
         self.setupValidator()
+        self.pipeline = FormPipeline(
+            initial=self.fromState(),
+            apply=self.apply,
+            rules=self.rules,
+            validator=self.check,
+            render=lambda: self.populate(self.pipeline.raw),
+            notify=self.notified.emit,
+            changed=self.contentChanged.emit,
+            effect=self.effect,
+        )
         self.bindSignal()
+
+    def rules(self, raw, previous, changed, source):
+        pass
+
+    def effect(self, changed, source):
+        pass
 
     def part(self, cls):
         for part in self.parts:
@@ -88,7 +112,7 @@ class BaseSigmet(TextFieldMixin, QWidget):
     def setSequence(self, sequence):
         """The number the presenter handed this draft, rendered as the
         operator sees it."""
-        self.sequence.setText(str(sequence))
+        self.pipeline.edit({'sequence': str(sequence)}, source='seed', force=True)
 
     def resetPeriod(self):
         """Anchor the validity period to the draft's span, then re-derive the
@@ -98,103 +122,148 @@ class BaseSigmet(TextFieldMixin, QWidget):
         rendered ten minutes after the last one must not keep the old hours.
         """
         beginningTime, endingTime = self.periodTime()
-        self.beginningTime.setText(beginningTime.strftime('%d%H%M'))
-        self.endingTime.setText(endingTime.strftime('%d%H%M'))
-        self.updateDurations()
+        self.pipeline.edit({
+            'beginningTime': beginningTime.strftime('%d%H%M'),
+            'endingTime': endingTime.strftime('%d%H%M'),
+        }, source='seed', force=True)
+
+    def bindings(self):
+        """Pairs of ``(widget, fieldName)`` managed by the pipeline."""
+        return [
+            (self.sequence, 'sequence'),
+            (self.beginningTime, 'beginningTime'),
+            (self.endingTime, 'endingTime'),
+        ] + [binding for part in self.parts for binding in part.bindings()]
+
+    def fields(self):
+        """Every input widget whose value feeds the state, the parts' included."""
+        return [widget for widget, _ in self.bindings()]
+
+    def fromState(self):
+        raw = {
+            'sequence': self.state.header.sequence,
+            'beginningTime': self.state.header.beginningTime,
+            'endingTime': self.state.header.endingTime,
+        }
+        for part in self.parts:
+            raw.update(part.fromState())
+        return raw
+
+    def fromWidgets(self):
+        raw = {
+            'sequence': self.sequence.text(),
+            'beginningTime': self.beginningTime.text(),
+            'endingTime': self.endingTime.text(),
+        }
+        for part in self.parts:
+            raw.update(part.fromWidgets())
+        return raw
+
+    def apply(self, raw):
+        self.state.header.area = self.conf.firName.split()[0] if self.conf.firName else ''
+        self.state.header.sign = category(self.designator())
+        self.state.header.icao = self.conf.airport
+        self.state.header.sequence = raw.get('sequence', '')
+        beginText = raw.get('beginningTime', '')
+        endText = raw.get('endingTime', '')
+        self.state.header.beginningTime = beginText
+        self.state.header.endingTime = endText
+
+        if isAcceptable(self.beginningTime, beginText) and isAcceptable(self.endingTime, endText):
+            self.state.durations = (parseTime(beginText), parseTime(endText))
+        else:
+            self.state.durations = None
+
+        for part in self.parts:
+            part.apply(raw)
+
+    def editText(self, field, line, text):
+        upper = text.upper()
+        if upper != text:
+            setLineText(line, upper)
+        self.pipeline.edit({field: upper})
+
+    def editCombo(self, field, combo, index):
+        text = combo.itemText(index) if 0 <= index < combo.count() else combo.currentText()
+        self.pipeline.edit({field: text})
+
+    def finishText(self, field, line, scope=None):
+        if not line.isEnabled():
+            return
+        self.editText(field, line, line.text())
+        self.pipeline.validate(scope or field)
 
     def bindSignal(self):
-        self.beginningTime.textChanged.connect(self.updateDurations)
-        self.endingTime.textChanged.connect(self.updateDurations)
-        self.beginningTime.editingFinished.connect(self.validatePeriod)
-        self.endingTime.editingFinished.connect(self.validatePeriod)
+        self.beginningTime.editingFinished.connect(
+            lambda: self.finishText('beginningTime', self.beginningTime, scope='period')
+        )
+        self.endingTime.editingFinished.connect(
+            lambda: self.finishText('endingTime', self.endingTime, scope='period')
+        )
 
-        for widget in self.fields():
+        for widget, field in self.bindings():
             if isinstance(widget, QLineEdit):
-                widget.textChanged.connect(lambda _, current=widget: self.coloredText(current))
-                widget.textEdited.connect(lambda _, current=widget: self.upperText(current))
-                widget.textEdited.connect(self.onUserEdited)
+                widget.textEdited.connect(lambda text, f=field, w=widget: self.editText(f, w, text))
             elif isinstance(widget, QComboBox):
-                # The templates only expose non-editable combos; a user pick
-                # fires activated. The one editable combo, cancelSequence,
-                # contributes its line edit to fields() itself and takes the
-                # branch above.
-                widget.activated.connect(self.onUserEdited)
+                widget.activated[int].connect(lambda index, f=field, w=widget: self.editCombo(f, w, index))
             else:
                 raise TypeError('Unsupported input widget: {}'.format(type(widget).__name__))
 
         for part in self.parts:
             part.bindSignal()
 
-    def onUserEdited(self, *args):
-        sender = self.sender()
-        if sender in (self.beginningTime, self.endingTime):
-            self.updateDurations()
-
-        self.reload()
-
-    def fields(self):
-        """Every input widget whose value feeds the state, the parts' included."""
-        return [self.sequence, self.beginningTime, self.endingTime] + \
-               [widget for part in self.parts for widget in part.fields()]
-
-    def updateDurations(self):
-        if self.beginningTime.hasAcceptableInput() and self.endingTime.hasAcceptableInput():
-            beginText = self.beginningTime.text()
-            endText = self.endingTime.text()
-            start = parseTime(beginText)
-            end = parseTime(endText)
-            self.state.durations = (start, end)
-        else:
-            self.state.durations = None
-
     def periodTime(self):
         self.time = utcnow()
         return validPeriod(self.designator(), self.span(), self.time)
 
-    def validatePeriod(self):
-        error = SigmetFormValidator.validatePeriod(self.state, self.span())
-        if error:
+    def check(self, scope):
+        if scope == 'period':
+            error = SigmetFormValidator.validatePeriod(self.state, self.span())
             if error == SigmetFormValidator.START_TOO_FAR:
-                self.beginningTime.clear()
-            elif error in (SigmetFormValidator.END_NOT_GREATER, SigmetFormValidator.PERIOD_TOO_LONG):
-                self.endingTime.clear()
-            self.notified.emit(_translate(error))
+                return ({'beginningTime': ''}, [_translate(error)])
+            if error in (SigmetFormValidator.END_NOT_GREATER, SigmetFormValidator.PERIOD_TOO_LONG):
+                return ({'endingTime': ''}, [_translate(error)])
+            return ({}, [])
+
+        for part in self.parts:
+            patch, errors = part.check(scope)
+            if patch or errors:
+                return (patch, errors)
+
+        return ({}, [])
 
     def collect(self):
-        self.state.header.area = self.conf.firName.split()[0] if self.conf.firName else ''
-        self.state.header.sign = category(self.designator())
-        self.state.header.sequence = self.sequence.text()
-        self.state.header.beginningTime = self.beginningTime.text()
-        self.state.header.endingTime = self.endingTime.text()
-        self.state.header.icao = self.conf.airport
-
-        for part in self.parts:
-            part.collect()
+        self.pipeline.sync(self.fromWidgets(), source='collect', derive=True, changed=False)
 
     def validate(self):
-        self.validatePeriod()
+        self.pipeline.validate('period')
+        for part in self.parts:
+            for scope in part.scopes:
+                self.pipeline.validate(scope)
 
     def setOverlapMode(self, mode):
-        if mode == 'final':
-            observation = self.part(ObservationPart)
-            if observation:
-                observation.setSource('OBS')
-
-        for part in self.parts:
-            part.setOverlapMode(mode)
+        patch = {'hasForecast': mode == 'final'}
+        if mode == 'final' and self.part(ObservationPart):
+            patch['comeFrom'] = 'OBS'
+        self.pipeline.edit(patch, source='overlap')
 
     def setLocationMode(self, mode):
-        self.state.mode = mode
+        # Only the typhoon body composes from its mode, so only it carries the
+        # field in raw; the other bodies keep this canvas fact on the state.
+        if 'mode' in self.pipeline.raw:
+            self.pipeline.edit({'mode': mode}, source='map')
+        else:
+            self.state.mode = mode
 
         for part in self.parts:
             part.setLocationMode(mode)
 
     def setupValidator(self):
-        date = QRegExpValidator(QRegExp(self.rules.date))
+        date = QRegExpValidator(QRegExp(self.patterns.date))
         self.beginningTime.setValidator(date)
         self.endingTime.setValidator(date)
 
-        sequence = QRegExpValidator(QRegExp(self.rules.sequence, Qt.CaseInsensitive))
+        sequence = QRegExpValidator(QRegExp(self.patterns.sequence, Qt.CaseInsensitive))
         self.sequence.setValidator(sequence)
 
         for part in self.parts:
@@ -209,24 +278,25 @@ class BaseSigmet(TextFieldMixin, QWidget):
     def span(self):
         return validDuration(self.designator())
 
-    def populate(self):
-        """Write the header fields back from the state, the inverse of collect().
+    def populate(self, raw=None):
+        """Write the header fields back from the state, the inverse of collect()."""
+        if raw is None:
+            self.pipeline.sync(self.fromState())
+            return
 
-        These are programmatic writes: derived textChanged handlers still run,
-        but textEdited/activated do not, so the header cannot collect the parts
-        before they get their turn.
-        """
-        self.sequence.setText(self.state.header.sequence)
-        self.beginningTime.setText(self.state.header.beginningTime)
-        self.endingTime.setText(self.state.header.endingTime)
+        setLineText(self.sequence, raw.get('sequence', ''))
+        setLineText(self.beginningTime, raw.get('beginningTime', ''))
+        setLineText(self.endingTime, raw.get('endingTime', ''))
+        coloredText(self.sequence)
+        coloredText(self.beginningTime)
+        coloredText(self.endingTime)
 
         for part in self.parts:
-            part.populate()
+            part.populate(raw)
 
     def clear(self):
         self.state.clear()
-        self.populate()
-        self.contentChanged.emit()
+        self.pipeline.sync({**self.fromState(), **self.defaults}, source='clear', derive=True, changed=True)
 
         for part in self.parts:
             part.clear()
@@ -241,6 +311,7 @@ class SigmetPart:
 
     widgets = ()
     optional = ()
+    scopes = ()
 
     def __init__(self, widget):
         missing = [name for name in self.widgets if not hasattr(widget, name)]
@@ -257,22 +328,28 @@ class SigmetPart:
     def bindSignal(self):
         pass
 
-    def fields(self):
+    def bindings(self):
         return []
 
-    def collect(self):
+    def fromState(self):
+        return {}
+
+    def fromWidgets(self):
+        return {}
+
+    def apply(self, raw):
         pass
 
-    def populate(self):
+    def populate(self, raw=None):
         pass
+
+    def check(self, scope):
+        return ({}, [])
 
     def setupValidator(self):
         pass
 
     def clear(self):
-        pass
-
-    def setOverlapMode(self, mode):
         pass
 
     def setLocationMode(self, mode):
@@ -282,24 +359,56 @@ class SigmetPart:
 class FlightLevelPart(SigmetPart):
 
     widgets = ('format', 'base', 'top', 'baseLabel', 'topLabel')
+    scopes = ('flightLevelTop',)
 
     def bindSignal(self):
-        self.format.currentTextChanged.connect(self.setFlightLevel)
-        self.base.editingFinished.connect(lambda: self.validateBaseTop(self.base))
-        self.top.editingFinished.connect(lambda: self.validateBaseTop(self.top))
+        self.base.editingFinished.connect(lambda: self.widget.finishText('flightLevelBase', self.base))
+        self.top.editingFinished.connect(lambda: self.widget.finishText('flightLevelTop', self.top))
 
-    def fields(self):
-        return [self.base, self.top, self.format]
+    def bindings(self):
+        return [
+            (self.base, 'flightLevelBase'),
+            (self.top, 'flightLevelTop'),
+            (self.format, 'flightLevelFormat'),
+        ]
 
-    def collect(self):
-        self.widget.state.flightLevelFormat = self.format.currentText()
-        self.widget.state.flightLevelBase = self.base.text()
-        self.widget.state.flightLevelTop = self.top.text()
+    def fromState(self):
+        return {
+            'flightLevelFormat': self.widget.state.flightLevelFormat,
+            'flightLevelBase': self.widget.state.flightLevelBase,
+            'flightLevelTop': self.widget.state.flightLevelTop,
+        }
 
-    def populate(self):
-        self.format.setCurrentIndex(self.format.findText(self.widget.state.flightLevelFormat))
-        self.base.setText(self.widget.state.flightLevelBase)
-        self.top.setText(self.widget.state.flightLevelTop)
+    def fromWidgets(self):
+        return {
+            'flightLevelFormat': self.format.currentText(),
+            'flightLevelBase': self.base.text(),
+            'flightLevelTop': self.top.text(),
+        }
+
+    def apply(self, raw):
+        self.widget.state.flightLevelFormat = raw.get('flightLevelFormat', '')
+        self.widget.state.flightLevelBase = raw.get('flightLevelBase', '')
+        self.widget.state.flightLevelTop = raw.get('flightLevelTop', '')
+
+    def populate(self, raw=None):
+        if raw is None:
+            raw = self.fromState()
+
+        fmt = raw.get('flightLevelFormat', '')
+        setComboText(self.format, fmt)
+        setLineText(self.base, raw.get('flightLevelBase', ''))
+        setLineText(self.top, raw.get('flightLevelTop', ''))
+
+        baseEnabled = fmt not in ('TOP', 'TOP ABV', 'SFC', 'BLW')
+        topEnabled = fmt != 'ABV'
+        self.base.setEnabled(baseEnabled)
+        self.baseLabel.setEnabled(baseEnabled)
+        self.top.setEnabled(topEnabled)
+        self.topLabel.setEnabled(topEnabled)
+
+        coloredText(self.base)
+        coloredText(self.top)
 
     def setupValidator(self):
         self.base.setValidator(QIntValidator(1, 999, self.base))
@@ -307,38 +416,19 @@ class FlightLevelPart(SigmetPart):
         self.base.setMaxLength(3)
         self.top.setMaxLength(3)
 
-    def setFlightLevel(self, text):
-        if text in ['TOP', 'TOP ABV', 'SFC', 'BLW']:
-            self.base.setEnabled(False)
-            self.top.setEnabled(True)
-            self.baseLabel.setEnabled(False)
-            self.topLabel.setEnabled(True)
-            self.base.clear()
-        elif text in ['ABV']:
-            self.base.setEnabled(True)
-            self.top.setEnabled(False)
-            self.baseLabel.setEnabled(True)
-            self.topLabel.setEnabled(False)
-            self.top.clear()
-        else:
-            self.base.setEnabled(True)
-            self.top.setEnabled(True)
-            self.baseLabel.setEnabled(True)
-            self.topLabel.setEnabled(True)
+    def check(self, scope):
+        if scope not in ('flightLevelBase', 'flightLevelTop'):
+            return ({}, [])
 
-    def validateBaseTop(self, line):
         if not (self.base.isEnabled() and self.top.isEnabled()):
-            return
+            return ({}, [])
 
-        error = SigmetFormValidator.validateFlightLevel(self.base.text(), self.top.text())
+        base = self.widget.pipeline.value('flightLevelBase')
+        top = self.widget.pipeline.value('flightLevelTop')
+        error = SigmetFormValidator.validateFlightLevel(base, top)
         if error:
-            line.clear()
-            self.widget.notified.emit(_translate(error))
-
-    def clear(self):
-        self.top.clear()
-        self.base.clear()
-
+            return ({scope: ''}, [_translate(error)])
+        return ({}, [])
 
 class AirmetFlightLevelPart(FlightLevelPart):
 
@@ -353,79 +443,87 @@ class MovementPart(SigmetPart):
 
     widgets = ('direction', 'speed', 'speedLabel')
 
-    def bindSignal(self):
-        self.direction.currentTextChanged.connect(self.setSpeed)
+    def bindings(self):
+        return [(self.speed, 'speed'), (self.direction, 'direction')]
 
-    def fields(self):
-        return [self.speed, self.direction]
+    def fromState(self):
+        return {
+            'direction': self.widget.state.direction,
+            'speed': self.widget.state.speed,
+        }
 
-    def collect(self):
-        self.widget.state.direction = self.direction.currentText()
-        self.widget.state.speed = self.speed.text() if self.speed.hasAcceptableInput() else ''
+    def fromWidgets(self):
+        return {
+            'direction': self.direction.currentText(),
+            'speed': self.speed.text(),
+        }
 
-    def populate(self):
-        self.direction.setCurrentIndex(self.direction.findText(self.widget.state.direction))
-        self.speed.setText(self.widget.state.speed)
+    def apply(self, raw):
+        self.widget.state.direction = raw.get('direction', '')
+        speed = raw.get('speed', '')
+        self.widget.state.speed = speed if isAcceptable(self.speed, speed) else ''
+
+    def populate(self, raw=None):
+        if raw is None:
+            raw = self.fromState()
+
+        direction = raw.get('direction', '')
+        setComboText(self.direction, direction)
+        setLineText(self.speed, raw.get('speed', ''))
+
+        moving = direction != 'STNR'
+        self.speed.setEnabled(moving)
+        self.speedLabel.setEnabled(moving)
+        coloredText(self.speed)
 
     def setupValidator(self):
         self.speed.setValidator(QIntValidator(1, 99, self.speed))
         self.speed.setMaxLength(2)
-
-    def setSpeed(self, text):
-        if text == 'STNR':
-            self.speed.setEnabled(False)
-            self.speedLabel.setEnabled(False)
-            self.speed.clear()
-        else:
-            self.speed.setEnabled(True)
-            self.speedLabel.setEnabled(True)
-
-    def clear(self):
-        self.direction.setCurrentIndex(0)
-        self.speed.clear()
 
 
 class ObservationPart(SigmetPart):
 
     widgets = ('comeFrom', 'observedTime', 'observedTimeLabel', 'beginningTime')
 
-    def bindSignal(self):
-        self.comeFrom.currentTextChanged.connect(self.updateObservation)
-        self.beginningTime.textChanged.connect(self.updateObservation)
+    def bindings(self):
+        return [(self.observedTime, 'observedTime'), (self.comeFrom, 'comeFrom')]
 
-    def fields(self):
-        return [self.observedTime, self.comeFrom]
+    def fromState(self):
+        return {
+            'comeFrom': self.widget.state.comeFrom,
+            'observedTime': self.widget.state.observedTime,
+        }
 
-    def collect(self):
-        self.widget.state.comeFrom = self.comeFrom.currentText()
-        self.widget.state.observedTime = self.observedTime.text() if self.observedTime.hasAcceptableInput() else ''
+    def fromWidgets(self):
+        return {
+            'comeFrom': self.comeFrom.currentText(),
+            'observedTime': self.observedTime.text(),
+        }
 
-    def populate(self):
-        self.comeFrom.setCurrentIndex(self.comeFrom.findText(self.widget.state.comeFrom))
-        self.observedTime.setText(self.widget.state.observedTime)
+    def apply(self, raw):
+        self.widget.state.comeFrom = raw.get('comeFrom', '')
+        observedTime = raw.get('observedTime', '')
+        self.widget.state.observedTime = observedTime if isAcceptable(self.observedTime, observedTime) else ''
+
+    def populate(self, raw=None):
+        if raw is None:
+            raw = self.fromState()
+
+        comeFrom = raw.get('comeFrom', '')
+        setComboText(self.comeFrom, comeFrom)
+        setLineText(self.observedTime, raw.get('observedTime', ''))
+
+        label = (
+            QCoreApplication.translate('Editor', 'Observed Time')
+            if comeFrom == 'OBS'
+            else QCoreApplication.translate('Editor', 'Forecast Time')
+        )
+        if self.observedTimeLabel.text() != label:
+            self.observedTimeLabel.setText(label)
+        coloredText(self.observedTime)
 
     def setupValidator(self):
-        self.observedTime.setValidator(QRegExpValidator(QRegExp(self.widget.rules.time)))
-
-    def setSource(self, source):
-        """Switch the observation source ('OBS' / 'FCST')."""
-        index = self.comeFrom.findText(source)
-        if index >= 0:
-            self.comeFrom.setCurrentIndex(index)
-
-    def updateObservation(self):
-        text = self.comeFrom.currentText()
-        if text == 'OBS':
-            self.observedTime.setText(self.beginningTime.text()[2:])
-            self.observedTimeLabel.setText(QCoreApplication.translate('Editor', 'Observed Time'))
-        else:
-            self.observedTimeLabel.setText(QCoreApplication.translate('Editor', 'Forecast Time'))
-            if self.beginningTime.text()[2:] == self.observedTime.text():
-                self.observedTime.clear()
-
-    def clear(self):
-        self.observedTime.clear()
-        self.comeFrom.setCurrentIndex(0)
+        self.observedTime.setValidator(QRegExpValidator(QRegExp(self.widget.patterns.time)))
 
 
 class ForecastPart(SigmetPart):
@@ -433,47 +531,40 @@ class ForecastPart(SigmetPart):
     widgets = ('forecastTime', 'forecastTimeLabel')
     optional = ('finalPositionGroup',)
 
-    def fields(self):
-        return [self.forecastTime]
+    def bindings(self):
+        return [(self.forecastTime, 'forecastTime')]
 
-    def collect(self):
-        self.widget.state.forecastTime = self.forecastTime.text()
+    def fromState(self):
+        return {
+            'forecastTime': self.widget.state.forecastTime,
+            'hasForecast': self.widget.state.hasForecast,
+        }
 
-    def populate(self):
-        hasForecast = self.widget.state.hasForecast
+    def fromWidgets(self):
+        return {
+            'forecastTime': self.forecastTime.text(),
+            'hasForecast': self.widget.state.hasForecast,
+        }
 
+    def apply(self, raw):
+        self.widget.state.hasForecast = bool(raw.get('hasForecast'))
+        self.widget.state.forecastTime = raw.get('forecastTime', '')
+
+    def populate(self, raw=None):
+        if raw is None:
+            raw = self.fromState()
+
+        hasForecast = bool(raw.get('hasForecast'))
         self.forecastTime.setEnabled(hasForecast)
         self.forecastTimeLabel.setEnabled(hasForecast)
-        self.forecastTime.setText(self.widget.state.forecastTime)
+        if self.finalPositionGroup is not None:
+            self.finalPositionGroup.setEnabled(hasForecast)
+
+        setLineText(self.forecastTime, raw.get('forecastTime', ''))
+        coloredText(self.forecastTime)
 
     def setupValidator(self):
-        self.forecastTime.setValidator(QRegExpValidator(QRegExp(self.widget.rules.time)))
-
-    def setForecastTime(self):
-        if self.widget.state.durations is None or not self.widget.endingTime.text() or not self.forecastTime.isEnabled():
-            return
-
-        text = self.widget.endingTime.text()[2:]
-        self.forecastTime.setText(text)
-
-    def setOverlapMode(self, mode):
-        if mode == 'final':
-            self.forecastTime.setEnabled(True)
-            self.forecastTimeLabel.setEnabled(True)
-            self.setForecastTime()
-            if self.finalPositionGroup is not None:
-                self.finalPositionGroup.setEnabled(True)
-        else:
-            self.forecastTime.setEnabled(False)
-            self.forecastTimeLabel.setEnabled(False)
-            self.forecastTime.clear()
-            if self.finalPositionGroup is not None:
-                self.finalPositionGroup.setEnabled(False)
-
-        self.widget.state.hasForecast = mode == 'final'
-
-    def clear(self):
-        self.forecastTime.clear()
+        self.forecastTime.setValidator(QRegExpValidator(QRegExp(self.widget.patterns.time)))
 
 
 class AdvisoryImport(SigmetPart):
@@ -500,9 +591,12 @@ class AdvisoryImport(SigmetPart):
     def bindSignal(self):
         self.switchButton.clicked.connect(self.switchGroup)
         self.text.textChanged.connect(self.parseText)
-        self.initial.currentTextChanged.connect(self.updateFinalOption)
-        self.initial.currentTextChanged.connect(self.updateLocation)
-        self.final.currentTextChanged.connect(self.updateLocation)
+        self.initial.activated[int].connect(self.onInitialChanged)
+        self.final.activated[int].connect(self.updateLocation)
+
+    def onInitialChanged(self):
+        self.updateFinalOption()
+        self.updateLocation()
 
     def switchGroup(self):
         self.group = next(self.groupNames)
@@ -527,52 +621,57 @@ class AdvisoryImport(SigmetPart):
         try:
             self.parser = self.widget.advisoryParser(text)
             options = self.parser.availableLocations()
-            self.initial.clear()
-            self.initial.addItems(options)
-            self.applyAdvisoryData()
+            setComboOptions(self.initial, options)
+            self.updateFinalOption()
+            self.fill()
             self.text.setStyleSheet(validTextStyle)
         except Exception as e:
             self.widget.notified.emit(QCoreApplication.translate('Editor', 'Advisory message can not be decoded'))
             self.text.setStyleSheet(invalidTextStyle)
             logger.error('Advisory message can not be decoded, {}, {}'.format(text, e))
 
-    def applyAdvisoryData(self):
+    def extract(self):
+        patch = {}
         name = self.parser.name()
         if name:
-            self.name.setText(name)
+            patch['name'] = name
 
         initial = self.initial.currentText()
         if 'OBS' in initial:
-            self.widget.part(ObservationPart).setSource('OBS')
-
+            patch['comeFrom'] = 'OBS'
         if 'FCST' in initial:
-            self.widget.part(ObservationPart).setSource('FCST')
+            patch['comeFrom'] = 'FCST'
 
         features = self.parser.location(initial)
         if features and 'time' in features['properties']:
             time = features['properties']['time']
-            self.widget.observedTime.setText(time.strftime('%H%M'))
-
-        features = self.parser.location(self.final.currentText())
-        if features and 'time' in features['properties']:
-            time = features['properties']['time']
-            self.widget.forecastTime.setText(time.strftime('%H%M'))
-            self.widget.forecastTime.setEnabled(True)
-            self.widget.forecastTimeLabel.setEnabled(True)
-        else:
-            self.widget.forecastTime.setEnabled(False)
-            self.widget.forecastTimeLabel.setEnabled(False)
+            patch['observedTime'] = time.strftime('%H%M')
 
         final = self.final.currentText()
+        features = self.parser.location(final)
+        if features and 'time' in features['properties']:
+            time = features['properties']['time']
+            patch['forecastTime'] = time.strftime('%H%M')
+            patch['hasForecast'] = True
+        else:
+            patch['forecastTime'] = ''
+            patch['hasForecast'] = False
+
         movement = self.parser.movement()
         if movement:
-            self.widget.direction.setCurrentIndex(self.widget.direction.findText(movement))
-
+            patch['direction'] = movement
             if not final and movement != 'STNR':
-                speed = str(self.parser.speed() or '')
-                self.widget.speed.setText(speed)
+                patch['speed'] = str(self.parser.speed() or '')
             else:
-                self.widget.speed.clear()
+                patch['speed'] = ''
+
+        return patch
+
+    def fill(self):
+        patch = self.extract()
+        if patch:
+            self.widget.pipeline.edit(patch, source='advisory')
+        self.handleLocationChange()
 
     def locationFeatures(self, initial, final=None):
         """Advisory locations tagged for the sketch canvas."""
@@ -603,8 +702,7 @@ class AdvisoryImport(SigmetPart):
         if index + 1 < self.initial.count():
             rests.append(self.initial.itemText(index + 1))
 
-        self.final.clear()
-        self.final.addItems(rests)
+        setComboOptions(self.final, rests)
 
     def updateVisibility(self):
         if self.group == 'main':
@@ -616,7 +714,7 @@ class AdvisoryImport(SigmetPart):
 
     def updateLocation(self):
         try:
-            self.applyAdvisoryData()
+            self.fill()
         except Exception as e:
             logger.error('Auto fill location from advisory message failed, {}'.format(e))
 
@@ -637,47 +735,46 @@ class AdvisoryImport(SigmetPart):
             self.advisory.hide()
             self.main.show()
 
-        self.text.clear()
-        self.initial.clear()
-        self.final.clear()
+        setPlainText(self.text, '')
+        setComboOptions(self.initial, [])
+        setComboOptions(self.final, [])
         self.parser = None
 
 
 class TyphoonAdvisoryImport(AdvisoryImport):
 
-    def applyAdvisoryData(self):
-        super().applyAdvisoryData()
+    def extract(self):
+        patch = super().extract()
 
         height = self.parser.height()
         if height:
-            self.widget.top.setText(height)
+            patch['top'] = height
 
         intensity = self.parser.intensity()
         if intensity:
-            self.widget.intensityChange.setCurrentIndex(self.widget.intensityChange.findText(intensity))
+            patch['intensityChange'] = intensity
 
         radius = self.parser.radius()
         if radius:
-            self.widget.radius.setText(str(radius))
+            patch['radius'] = str(radius)
 
         position = self.parser.formattedPosition(self.initial.currentText())
         if position:
             lat, lon = position
-            self.widget.currentLatitude.setText(lat)
-            self.widget.currentLongitude.setText(lon)
+            patch['currentLatitude'] = lat
+            patch['currentLongitude'] = lon
 
         position = self.parser.formattedPosition(self.final.currentText())
         if position:
             lat, lon = position
-            self.widget.forecastLatitude.setText(lat)
-            self.widget.forecastLongitude.setText(lon)
-            self.widget.finalPositionGroup.setEnabled(True)
+            patch['forecastLatitude'] = lat
+            patch['forecastLongitude'] = lon
+            patch['hasForecast'] = True
         else:
-            self.widget.forecastLongitude.clear()
-            self.widget.forecastLatitude.clear()
-            self.widget.finalPositionGroup.setEnabled(False)
+            patch['forecastLatitude'] = ''
+            patch['forecastLongitude'] = ''
 
-        self.handleLocationChange()
+        return patch
 
     def handleLocationChange(self):
         locations = []
@@ -686,11 +783,8 @@ class TyphoonAdvisoryImport(AdvisoryImport):
         if not self.widget.state.mode == 'polygon':
             locations += self.locationFeatures(self.initial.currentText(), self.final.currentText())
 
+        radius = int(self.widget.state.radius) if self.widget.state.radius else 0
         for feature in locations:
-            if self.widget.radius.hasAcceptableInput():
-                radius = int(self.widget.radius.text())
-            else:
-                radius = 0
             feature['properties']['radius'] = radius
 
         properties = {
@@ -717,14 +811,14 @@ class TyphoonAdvisoryImport(AdvisoryImport):
 
 class AshAdvisoryImport(AdvisoryImport):
 
-    def applyAdvisoryData(self):
-        super().applyAdvisoryData()
+    def extract(self):
+        patch = super().extract()
 
         position = self.parser.position()
         if position:
             lat, lon = position
-            self.widget.currentLatitude.setText(lat)
-            self.widget.currentLongitude.setText(lon)
+            patch['currentLatitude'] = lat
+            patch['currentLongitude'] = lon
 
         initial = self.initial.currentText()
         features = self.parser.location(initial)
@@ -735,16 +829,16 @@ class AshAdvisoryImport(AdvisoryImport):
             if base:
                 m = pattern.search(base)
                 if m:
-                    self.widget.base.setText(m.group())
+                    patch['flightLevelBase'] = m.group()
                 else:
-                    self.widget.format.setCurrentIndex(self.widget.format.findText(base))
+                    patch['flightLevelFormat'] = base
 
             if top:
                 m = pattern.search(top)
                 if m:
-                    self.widget.top.setText(m.group())
+                    patch['flightLevelTop'] = m.group()
 
-        self.handleLocationChange()
+        return patch
 
 
 class SigmetGeneral(BaseSigmet, Ui_sigmet_general.Ui_Editor):
@@ -764,68 +858,83 @@ class SigmetGeneral(BaseSigmet, Ui_sigmet_general.Ui_Editor):
     }
 
     descriptions = ['OBSC', 'EMBD', 'FRQ', 'SQL', 'SEV', 'HVY', 'RDOACT']
+    defaultPhenomena = ['TS', 'TSGR']
 
-    # Convective phenomena that take the TOP/ABV/SFC flight-level formats.
-    convective = ['CB', 'TCU', 'TS', 'TSGR']
+    defaults = {
+        'description': 'EMBD',
+        'phenomenon': 'TS',
+        'comeFrom': 'FCST',
+        'flightLevelFormat': 'TOP',
+        'direction': 'N',
+        'intensityChange': 'NC',
+    }
 
     def __init__(self, header, conf=None):
         super().__init__(conf=conf)
         self.setupUi(self)
         self.state = SigmetGeneralState(unit=self.conf.units.sigmetSpeed, header=header)
         self.initialize()
-        self.setPhenomenaDescription()
-        self.setPhenomena()
-        self.setFcstOrObs()
-        self.setFlightLevelFormat('TS')
-        self.collect()
+        setComboOptions(self.description, self.descriptions)
+        setComboOptions(self.comeFrom, ['FCST', 'OBS'])
+        self.pipeline.sync({**self.fromState(), **self.defaults}, source='init', derive=True)
 
-    def bindSignal(self):
-        super().bindSignal()
-        self.description.currentTextChanged.connect(self.setPhenomena)
-        self.phenomenon.currentTextChanged.connect(self.setFlightLevelFormat)
+    def rules(self, raw, previous, changed, source):
+        generalRules(
+            raw,
+            previous,
+            changed,
+            source,
+            phenomenaMap=self.phenomena,
+            defaultPhenomena=self.defaultPhenomena,
+            hasDurations=self.state.durations is not None,
+        )
 
-    def fields(self):
-        return super().fields() + [self.description, self.phenomenon, self.intensityChange]
+    def bindings(self):
+        return super().bindings() + [
+            (self.description, 'description'),
+            (self.phenomenon, 'phenomenon'),
+            (self.intensityChange, 'intensityChange'),
+        ]
 
-    def collect(self):
-        super().collect()
-        self.state.description = self.description.currentText()
-        self.state.phenomenon = self.phenomenon.currentText()
-        self.state.intensityChange = self.intensityChange.currentText()
+    def fromState(self):
+        raw = super().fromState()
+        raw.update({
+            'description': self.state.description,
+            'phenomenon': self.state.phenomenon,
+            'intensityChange': self.state.intensityChange,
+        })
+        return raw
 
-    def populate(self):
-        super().populate()
-        self.description.setCurrentIndex(self.description.findText(self.state.description))
-        self.phenomenon.setCurrentIndex(self.phenomenon.findText(self.state.phenomenon))
-        self.intensityChange.setCurrentIndex(self.intensityChange.findText(self.state.intensityChange))
+    def fromWidgets(self):
+        raw = super().fromWidgets()
+        raw.update({
+            'description': self.description.currentText(),
+            'phenomenon': self.phenomenon.currentText(),
+            'intensityChange': self.intensityChange.currentText(),
+        })
+        return raw
 
-    def setPhenomenaDescription(self):
-        self.description.addItems(self.descriptions)
-        # Was setCurrentIndex(1), i.e. the second entry. Named rather than
-        # indexed so reordering `descriptions` cannot silently change it.
-        self.description.setCurrentText('EMBD')
+    def apply(self, raw):
+        super().apply(raw)
+        self.state.description = raw.get('description', '')
+        self.state.phenomenon = raw.get('phenomenon', '')
+        self.state.intensityChange = raw.get('intensityChange', '')
 
-    def setPhenomena(self, text='OBSC'):
-        self.phenomenon.clear()
-        # Unknown codes fall back to the convective list rather than
-        # silently landing in an else branch.
-        self.phenomenon.addItems(self.phenomena.get(text, ['TS', 'TSGR']))
+    def populate(self, raw=None):
+        if raw is None:
+            self.pipeline.sync(self.fromState())
+            return
 
-    def setFcstOrObs(self):
-        observations = ['FCST', 'OBS']
-        self.comeFrom.addItems(observations)
+        description = raw.get('description', '')
+        phenomenon = raw.get('phenomenon', '')
+        setComboOptions(self.phenomenon, self.phenomena.get(description, self.defaultPhenomena))
+        setComboOptions(self.format, flightLevelFormats(phenomenon))
 
-    def setFlightLevelFormat(self, text):
-        self.format.clear()
+        super().populate(raw)
 
-        if text in self.convective:
-            formats = ['', 'TOP', 'ABV', 'SFC', 'TOP ABV']
-            self.format.addItems(formats)
-            self.format.setCurrentIndex(self.format.findText('TOP'))
-        else:
-            formats = ['', 'ABV', 'BLW', 'SFC']
-            self.format.addItems(formats)
-            self.format.setCurrentIndex(-1)
+        setComboText(self.description, description)
+        setComboText(self.phenomenon, phenomenon)
+        setComboText(self.intensityChange, raw.get('intensityChange', ''))
 
 
 class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
@@ -835,77 +944,162 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
     locationChanged = pyqtSignal(dict)
     circleChanged = pyqtSignal(dict)
 
+    defaults = {
+        'phenomenon': 'TC',
+        'comeFrom': 'OBS',
+        'direction': 'N',
+        'intensityChange': 'NC',
+        'mode': 'polygon',
+    }
+
     def __init__(self, header, conf=None):
         super().__init__(conf=conf)
         self.setupUi(self)
         self.state = SigmetTyphoonState(unit=self.conf.units.sigmetSpeed, header=header)
         self.initialize()
-        self.setPhenomena()
-        self.setFcstOrObs()
+        setComboOptions(self.phenomenon, ['TC'])
+        setComboOptions(self.comeFrom, ['OBS', 'FCST'])
         self.advisoryParser = TyphoonAdvisoryParser
-        self.collect()
+        self.pipeline.sync({**self.fromState(), **self.defaults}, source='init', derive=True)
 
-    def bindSignal(self):
-        super().bindSignal()
-        self.currentLatitude.editingFinished.connect(self.handleCircleChange)
-        self.currentLongitude.editingFinished.connect(self.handleCircleChange)
-        self.forecastLatitude.editingFinished.connect(self.handleCircleChange)
-        self.forecastLongitude.editingFinished.connect(self.handleCircleChange)
-        self.radius.textEdited.connect(self.handleCircleChange)
+    def rules(self, raw, previous, changed, source):
+        typhoonRules(
+            raw,
+            previous,
+            changed,
+            source,
+            hasDurations=self.state.durations is not None,
+            calcForecast=self.state.calcForecastPosition,
+        )
 
-        self.currentLatitude.textChanged.connect(self.updateForecastPosition)
-        self.currentLongitude.textChanged.connect(self.updateForecastPosition)
-        self.speed.textEdited.connect(self.updateForecastPosition)
-        self.direction.currentTextChanged.connect(self.updateForecastPosition)
-        self.forecastTime.textChanged.connect(self.updateForecastPosition)
-        self.beginningTime.textEdited.connect(self.updateForecastPosition)
-        self.observedTime.textEdited.connect(self.updateForecastPosition)
-        self.endingTime.textChanged.connect(self.part(ForecastPart).setForecastTime)
+    def effect(self, changed, source):
+        circleKeys = (
+            'currentLatitude',
+            'currentLongitude',
+            'forecastLatitude',
+            'forecastLongitude',
+            'radius',
+        )
+        circleChanged = any(
+            self.pipeline.raw.get(key) != self.pipeline.previous.get(key)
+            for key in circleKeys
+        )
+        if source not in ('map', 'clear', 'system') and circleChanged:
+            self.handleCircleChange()
 
-    def fields(self):
-        return super().fields() + [self.name, self.currentLatitude, self.currentLongitude,
-                                   self.forecastLatitude, self.forecastLongitude,
-                                   self.radius, self.top, self.intensityChange]
+    def bindings(self):
+        return super().bindings() + [
+            (self.name, 'name'),
+            (self.currentLatitude, 'currentLatitude'),
+            (self.currentLongitude, 'currentLongitude'),
+            (self.forecastLatitude, 'forecastLatitude'),
+            (self.forecastLongitude, 'forecastLongitude'),
+            (self.radius, 'radius'),
+            (self.top, 'top'),
+            (self.intensityChange, 'intensityChange'),
+        ]
 
-    def collect(self):
-        super().collect()
-        self.state.phenomenon = self.phenomenon.currentText()
-        self.state.name = self.name.text()
-        self.state.currentLatitude = self.currentLatitude.text() if self.currentLatitude.hasAcceptableInput() else ''
-        self.state.currentLongitude = self.currentLongitude.text() if self.currentLongitude.hasAcceptableInput() else ''
-        self.state.forecastLatitude = self.forecastLatitude.text() if self.forecastLatitude.hasAcceptableInput() else ''
-        self.state.forecastLongitude = self.forecastLongitude.text() if self.forecastLongitude.hasAcceptableInput() else ''
-        self.state.radius = self.radius.text() if self.radius.hasAcceptableInput() else ''
-        self.state.top = self.top.text() if self.top.hasAcceptableInput() else ''
-        self.state.intensityChange = self.intensityChange.currentText()
+    def fromState(self):
+        raw = super().fromState()
+        raw.update({
+            'phenomenon': self.state.phenomenon,
+            'name': self.state.name,
+            'currentLatitude': self.state.currentLatitude,
+            'currentLongitude': self.state.currentLongitude,
+            'forecastLatitude': self.state.forecastLatitude,
+            'forecastLongitude': self.state.forecastLongitude,
+            'radius': self.state.radius,
+            'top': self.state.top,
+            'intensityChange': self.state.intensityChange,
+            'mode': self.state.mode,
+        })
+        return raw
 
-    def populate(self):
-        super().populate()
-        self.name.setText(self.state.name)
-        self.top.setText(self.state.top)
-        self.intensityChange.setCurrentIndex(self.intensityChange.findText(self.state.intensityChange))
-        # Radius before the centre: moving the centre re-derives the forecast
-        # position, and that derivation reads the radius from the state.
-        self.radius.setText(self.state.radius)
-        self.currentLatitude.setText(self.state.currentLatitude)
-        self.currentLongitude.setText(self.state.currentLongitude)
-        self.forecastLatitude.setText(self.state.forecastLatitude)
-        self.forecastLongitude.setText(self.state.forecastLongitude)
+    def fromWidgets(self):
+        raw = super().fromWidgets()
+        raw.update({
+            'phenomenon': self.phenomenon.currentText(),
+            'name': self.name.text(),
+            'currentLatitude': self.currentLatitude.text(),
+            'currentLongitude': self.currentLongitude.text(),
+            'forecastLatitude': self.forecastLatitude.text(),
+            'forecastLongitude': self.forecastLongitude.text(),
+            'radius': self.radius.text(),
+            'top': self.top.text(),
+            'intensityChange': self.intensityChange.currentText(),
+            'mode': self.state.mode,
+        })
+        return raw
+
+    def apply(self, raw):
+        super().apply(raw)
+        self.state.phenomenon = raw.get('phenomenon', '') or self.phenomenon.currentText()
+        self.state.name = raw.get('name', '')
+        self.state.currentLatitude = (
+            raw.get('currentLatitude', '')
+            if isAcceptable(self.currentLatitude, raw.get('currentLatitude', ''))
+            else ''
+        )
+        self.state.currentLongitude = (
+            raw.get('currentLongitude', '')
+            if isAcceptable(self.currentLongitude, raw.get('currentLongitude', ''))
+            else ''
+        )
+        self.state.forecastLatitude = (
+            raw.get('forecastLatitude', '')
+            if isAcceptable(self.forecastLatitude, raw.get('forecastLatitude', ''))
+            else ''
+        )
+        self.state.forecastLongitude = (
+            raw.get('forecastLongitude', '')
+            if isAcceptable(self.forecastLongitude, raw.get('forecastLongitude', ''))
+            else ''
+        )
+        self.state.radius = raw.get('radius', '') if isAcceptable(self.radius, raw.get('radius', '')) else ''
+        self.state.top = raw.get('top', '') if isAcceptable(self.top, raw.get('top', '')) else ''
+        self.state.intensityChange = raw.get('intensityChange', '')
+        self.state.mode = raw.get('mode', self.state.mode)
+
+    def populate(self, raw=None):
+        if raw is None:
+            self.pipeline.sync(self.fromState())
+            return
+
+        super().populate(raw)
+        setLineText(self.name, raw.get('name', ''))
+        setLineText(self.top, raw.get('top', ''))
+        setComboText(self.intensityChange, raw.get('intensityChange', ''))
+        setLineText(self.radius, raw.get('radius', ''))
+        setLineText(self.currentLatitude, raw.get('currentLatitude', ''))
+        setLineText(self.currentLongitude, raw.get('currentLongitude', ''))
+        setLineText(self.forecastLatitude, raw.get('forecastLatitude', ''))
+        setLineText(self.forecastLongitude, raw.get('forecastLongitude', ''))
+
+        for line in (
+            self.name,
+            self.top,
+            self.radius,
+            self.currentLatitude,
+            self.currentLongitude,
+            self.forecastLatitude,
+            self.forecastLongitude,
+        ):
+            coloredText(line)
 
     def setupValidator(self):
         super().setupValidator()
-        latitude = QRegExpValidator(QRegExp(self.rules.latitude, Qt.CaseInsensitive))
+        latitude = QRegExpValidator(QRegExp(self.patterns.latitude, Qt.CaseInsensitive))
         self.currentLatitude.setValidator(latitude)
         self.forecastLatitude.setValidator(latitude)
 
-        longitude = QRegExpValidator(QRegExp(self.rules.longitude, Qt.CaseInsensitive))
+        longitude = QRegExpValidator(QRegExp(self.patterns.longitude, Qt.CaseInsensitive))
         self.currentLongitude.setValidator(longitude)
         self.forecastLongitude.setValidator(longitude)
 
         self.top.setValidator(QIntValidator(100, 999, self.top))
         self.top.setMaxLength(3)
 
-        time = QRegExpValidator(QRegExp(self.rules.time))
+        time = QRegExpValidator(QRegExp(self.patterns.time))
         self.forecastTime.setValidator(time)
 
         self.radius.setValidator(QIntValidator(1, 999, self.radius))
@@ -915,52 +1109,31 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
         self.name.setValidator(name)
         self.name.setMaxLength(20)
 
-    def setPhenomena(self, text='TC'):
-        self.phenomenon.addItems(['TC'])
-
-    def setFcstOrObs(self):
-        observations = ['OBS', 'FCST']
-        self.comeFrom.addItems(observations)
-
     def setTyphoonLocation(self, collections):
         if not collections['features']:
             return
 
+        patch = {}
         radius = None
         for feature in collections['features']:
             location = feature['properties']['location']
             if location == 'initial':
-                longitude, latitude = self.currentLongitude, self.currentLatitude
+                lonKey, latKey = 'currentLongitude', 'currentLatitude'
                 radius = feature['properties']['radius']
             else:
-                longitude, latitude = self.forecastLongitude, self.forecastLatitude
+                lonKey, latKey = 'forecastLongitude', 'forecastLatitude'
 
             center = feature['geometry']['coordinates']
             if center:
                 lon, lat = center
-                lon, lat = decimalToDegree(lon, fmt='longitude'), decimalToDegree(lat)
-                longitude.setText(lon)
-                latitude.setText(lat)
-            else:
-                if longitude.hasAcceptableInput() and latitude.hasAcceptableInput():
-                    longitude.clear()
-                    latitude.clear()
+                patch[lonKey] = decimalToDegree(lon, fmt='longitude')
+                patch[latKey] = decimalToDegree(lat)
+            elif self.pipeline.value(lonKey) and self.pipeline.value(latKey):
+                patch[lonKey] = ''
+                patch[latKey] = ''
 
-        if radius:
-            self.radius.setText(str(radius))
-        else:
-            self.radius.clear()
-
-    def updateForecastPosition(self):
-        positions = self.state.calcForecastPosition()
-        if positions:
-            forecastLatitude, forecastLongitude = positions
-            self.forecastLatitude.setText(forecastLatitude)
-            self.forecastLongitude.setText(forecastLongitude)
-        else:
-            self.forecastLatitude.clear()
-            self.forecastLongitude.clear()
-        self.handleCircleChange()
+        patch['radius'] = str(radius) if radius else ''
+        self.pipeline.edit(patch, source='map', force=True)
 
     def handleCircleChange(self):
         if self.state.mode == 'circle':
@@ -986,56 +1159,118 @@ class SigmetAsh(BaseSigmet, Ui_sigmet_ash.Ui_Editor):
 
     locationChanged = pyqtSignal(dict)
 
+    defaults = {
+        'phenomenon': 'ERUPTION',
+        'isEruption': True,
+        'comeFrom': 'FCST',
+        'flightLevelFormat': '',
+        'direction': 'N',
+        'intensityChange': 'NC',
+    }
+
     def __init__(self, header, conf=None):
         super().__init__(conf=conf)
         self.setupUi(self)
         self.state = SigmetAshState(unit=self.conf.units.sigmetSpeed, header=header)
         self.initialize()
-        self.setPhenomena()
-        self.setFcstOrObs()
+        setComboOptions(self.phenomenon, ['ERUPTION', 'CLD'])
+        setComboOptions(self.comeFrom, ['FCST', 'OBS'])
         self.advisoryParser = AshAdvisoryParser
-        self.collect()
+        self.pipeline.sync({**self.fromState(), **self.defaults}, source='init', derive=True)
 
-    def bindSignal(self):
-        super().bindSignal()
-        self.phenomenon.currentTextChanged.connect(self.setEruptionOrCloud)
+    def rules(self, raw, previous, changed, source):
+        ashRules(
+            raw,
+            previous,
+            changed,
+            source,
+            hasDurations=self.state.durations is not None,
+        )
 
-    def fields(self):
-        return super().fields() + [self.name, self.currentLatitude, self.currentLongitude,
-                                   self.phenomenon, self.intensityChange]
+    def bindings(self):
+        return super().bindings() + [
+            (self.name, 'name'),
+            (self.currentLatitude, 'currentLatitude'),
+            (self.currentLongitude, 'currentLongitude'),
+            (self.phenomenon, 'phenomenon'),
+            (self.intensityChange, 'intensityChange'),
+        ]
 
-    def collect(self):
-        super().collect()
-        self.state.phenomenon = self.phenomenon.currentText()
-        self.state.name = self.name.text()
-        self.state.currentLatitude = self.currentLatitude.text() if self.currentLatitude.hasAcceptableInput() else ''
-        self.state.currentLongitude = self.currentLongitude.text() if self.currentLongitude.hasAcceptableInput() else ''
-        self.state.intensityChange = self.intensityChange.currentText()
-        self.state.isEruption = self.phenomenon.currentText() == 'ERUPTION'
+    def fromState(self):
+        raw = super().fromState()
+        raw.update({
+            'phenomenon': self.state.phenomenon,
+            'name': self.state.name,
+            'currentLatitude': self.state.currentLatitude,
+            'currentLongitude': self.state.currentLongitude,
+            'intensityChange': self.state.intensityChange,
+            'isEruption': self.state.isEruption,
+        })
+        return raw
 
-    def populate(self):
-        isEruption = self.state.isEruption
-        super().populate()
-        self.name.setText(self.state.name)
+    def fromWidgets(self):
+        raw = super().fromWidgets()
+        phenomenon = self.phenomenon.currentText()
+        raw.update({
+            'phenomenon': phenomenon,
+            'name': self.name.text(),
+            'currentLatitude': self.currentLatitude.text(),
+            'currentLongitude': self.currentLongitude.text(),
+            'intensityChange': self.intensityChange.currentText(),
+            'isEruption': phenomenon == 'ERUPTION',
+        })
+        return raw
+
+    def apply(self, raw):
+        super().apply(raw)
+        phenomenon = raw.get('phenomenon', 'ERUPTION')
+        self.state.phenomenon = phenomenon
+        self.state.name = raw.get('name', '')
+        self.state.currentLatitude = (
+            raw.get('currentLatitude', '')
+            if isAcceptable(self.currentLatitude, raw.get('currentLatitude', ''))
+            else ''
+        )
+        self.state.currentLongitude = (
+            raw.get('currentLongitude', '')
+            if isAcceptable(self.currentLongitude, raw.get('currentLongitude', ''))
+            else ''
+        )
+        self.state.intensityChange = raw.get('intensityChange', '')
+        self.state.isEruption = bool(raw.get('isEruption', phenomenon == 'ERUPTION'))
+
+    def populate(self, raw=None):
+        if raw is None:
+            self.pipeline.sync(self.fromState())
+            return
+
+        super().populate(raw)
+        isEruption = bool(raw.get('isEruption', True))
         self.name.setEnabled(isEruption)
         self.nameLabel.setEnabled(isEruption)
         self.currentLatitude.setEnabled(isEruption)
         self.currentLatitudeLabel.setEnabled(isEruption)
         self.currentLongitude.setEnabled(isEruption)
         self.currentLongitudeLabel.setEnabled(isEruption)
-        self.currentLatitude.setText(self.state.currentLatitude)
-        self.currentLongitude.setText(self.state.currentLongitude)
-        self.intensityChange.setCurrentIndex(self.intensityChange.findText(self.state.intensityChange))
 
-        index = self.phenomenon.findText(self.state.phenomenon)
-        self.phenomenon.setCurrentIndex(index if index >= 0 else 0)
+        setLineText(self.name, raw.get('name', ''))
+        setLineText(self.currentLatitude, raw.get('currentLatitude', ''))
+        setLineText(self.currentLongitude, raw.get('currentLongitude', ''))
+        setComboText(self.intensityChange, raw.get('intensityChange', ''))
+
+        phenomenon = raw.get('phenomenon', 'ERUPTION')
+        setComboText(self.phenomenon, phenomenon if self.phenomenon.findText(phenomenon) >= 0 else 'ERUPTION')
+
+        coloredText(self.name)
+        coloredText(self.currentLatitude)
+        coloredText(self.currentLongitude)
 
     def setupValidator(self):
         super().setupValidator()
-        latitude = QRegExpValidator(QRegExp(self.rules.latitude, Qt.CaseInsensitive))
+        latitude = QRegExpValidator(QRegExp(self.patterns.latitude, Qt.CaseInsensitive))
         self.currentLatitude.setValidator(latitude)
 
-        longitude = QRegExpValidator(QRegExp(self.rules.longitude, Qt.CaseInsensitive))
+        longitude = QRegExpValidator(QRegExp(self.patterns.longitude, Qt.CaseInsensitive))
         self.currentLongitude.setValidator(longitude)
 
         self.speed.setValidator(QIntValidator(1, 200, self.speed))
@@ -1044,25 +1279,6 @@ class SigmetAsh(BaseSigmet, Ui_sigmet_ash.Ui_Editor):
         name = QRegExpValidator(QRegExp(r'[A-Za-z0-9-]+'))
         self.name.setValidator(name)
         self.name.setMaxLength(20)
-
-    def setPhenomena(self, text='ERUPTION'):
-        self.phenomenon.addItems(['ERUPTION', 'CLD'])
-
-    def setFcstOrObs(self):
-        observations = ['FCST', 'OBS']
-        self.comeFrom.addItems(observations)
-
-    def setEruptionOrCloud(self, text='ERUPTION'):
-        enabled = text == 'ERUPTION'
-        self.name.setEnabled(enabled)
-        self.nameLabel.setEnabled(enabled)
-        self.currentLatitude.setEnabled(enabled)
-        self.currentLatitudeLabel.setEnabled(enabled)
-        self.currentLongitude.setEnabled(enabled)
-        self.currentLongitudeLabel.setEnabled(enabled)
-        self.state.phenomenon = text
-        self.state.isEruption = enabled
-        self.contentChanged.emit()
 
 
 class AirmetGeneral(SigmetGeneral):
@@ -1079,17 +1295,16 @@ class AirmetGeneral(SigmetGeneral):
     }
 
     descriptions = ['ISOL', 'OCNL', 'FRQ', 'MOD']
+    defaultPhenomena = ['CB', 'TCU', 'TS', 'TSGR']
 
-    def setPhenomenaDescription(self):
-        self.description.addItems(self.descriptions)
-        # ISOL is the default below; name it rather than lean on index 0.
-        self.description.setCurrentText('ISOL')
-
-    def setPhenomena(self, text='ISOL'):
-        self.phenomenon.clear()
-        self.phenomenon.addItems(
-            self.phenomena.get(text, ['CB', 'TCU', 'TS', 'TSGR'])
-        )
+    defaults = {
+        'description': 'ISOL',
+        'phenomenon': 'CB',
+        'comeFrom': 'FCST',
+        'flightLevelFormat': 'TOP',
+        'direction': 'N',
+        'intensityChange': 'NC',
+    }
 
 
 class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
@@ -1097,89 +1312,142 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
     def __init__(self, header, conf=None):
         super().__init__(conf=conf)
         self.setupUi(self)
+        self.cancelSequenceLine = self.cancelSequence.lineEdit()
         self.state = SigmetCancelState(header=header)
         self.initialize()
-        self.collect()
+        self.pipeline.sync({**self.fromState(), **self.defaults}, source='init', derive=True)
 
     def bindSignal(self):
         super().bindSignal()
-        self.cancelBeginningTime.textChanged.connect(self.syncValidsTime)
-        self.cancelEndingTime.textChanged.connect(self.syncValidsTime)
-        self.cancelSequence.currentTextChanged.connect(self.setValids)
-        # two rows can carry the same sequence number
-        self.cancelSequence.currentIndexChanged.connect(self.setValids)
+        self.cancelSequence.activated[int].connect(self.selectCancelIndex)
 
-    def fields(self):
-        return super().fields() + [self.cancelBeginningTime, self.cancelEndingTime,
-                                   self.cancelSequence.lineEdit()]
+    def selectCancelIndex(self, index):
+        if index < 0 or index == self.pipeline.value('cancelIndex', None):
+            return
+        text = self.cancelSequence.itemText(index)
+        self.pipeline.edit({'cancelIndex': index, 'cancelSequence': text}, source='user', force=True)
 
-    def collect(self):
-        super().collect()
-        self.state.cancelSequence = self.cancelSequence.currentText().strip()
-        self.state.cancelBeginningTime = self.cancelBeginningTime.text()
-        self.state.cancelEndingTime = self.cancelEndingTime.text()
+    def editText(self, field, line, text):
+        if field == 'cancelSequence':
+            upper = text.upper()
+            if upper != text:
+                setLineText(line, upper)
+            self.pipeline.edit({'cancelSequence': upper, 'cancelIndex': None})
+            return
 
-    def onUserEdited(self, *args):
-        # Typing in the editable sequence fires textEdited before the combo's
-        # currentTextChanged, so fill the cancelled period before collecting it.
-        sender = self.sender()
-        if sender is self.cancelSequence.lineEdit():
-            self.setValids(self.cancelSequence.currentText())
-        elif sender in (self.cancelBeginningTime, self.cancelEndingTime):
-            self.syncValidsTime()
+        super().editText(field, line, text)
 
-        super().onUserEdited(*args)
+    def rules(self, raw, previous, changed, source):
+        cancelRules(
+            raw,
+            previous,
+            changed,
+            source,
+            resolveValid=self.findValid,
+            adjustBeginning=self.adjustCancelTimes,
+        )
 
-    def populate(self):
-        super().populate()
-        self.cancelSequence.setCurrentIndex(self.cancelSequence.findText(self.state.cancelSequence))
-        self.cancelBeginningTime.setText(self.state.cancelBeginningTime)
-        self.cancelEndingTime.setText(self.state.cancelEndingTime)
+    def adjustCancelTimes(self, raw, cancelBegin, cancelEnd):
+        if isAcceptable(self.cancelEndingTime, cancelEnd):
+            raw['endingTime'] = cancelEnd
+
+        if isAcceptable(self.cancelBeginningTime, cancelBegin):
+            start, _ = self.periodTime()
+            beginning = adjustCancelBeginning(
+                cancelBegin,
+                start,
+                raw.get('endingTime', ''),
+                utcnow(),
+            )
+            raw['beginningTime'] = beginning.strftime('%d%H%M')
+
+    def bindings(self):
+        return super().bindings() + [
+            (self.cancelBeginningTime, 'cancelBeginningTime'),
+            (self.cancelEndingTime, 'cancelEndingTime'),
+            (self.cancelSequence.lineEdit(), 'cancelSequence'),
+        ]
+
+    def fromState(self):
+        raw = super().fromState()
+        raw.update({
+            'cancelIndex': None,
+            'cancelSequence': self.state.cancelSequence,
+            'cancelBeginningTime': self.state.cancelBeginningTime,
+            'cancelEndingTime': self.state.cancelEndingTime,
+        })
+        return raw
+
+    def fromWidgets(self):
+        raw = super().fromWidgets()
+        index = self.cancelSequence.currentIndex()
+        text = self.cancelSequence.currentText()
+        matchedIndex = index if 0 <= index < self.cancelSequence.count() and self.cancelSequence.itemText(index) == text else None
+        raw.update({
+            'cancelIndex': matchedIndex,
+            'cancelSequence': text,
+            'cancelBeginningTime': self.cancelBeginningTime.text(),
+            'cancelEndingTime': self.cancelEndingTime.text(),
+        })
+        return raw
+
+    def apply(self, raw):
+        super().apply(raw)
+        self.state.cancelSequence = raw.get('cancelSequence', '').strip()
+        self.state.cancelBeginningTime = raw.get('cancelBeginningTime', '')
+        self.state.cancelEndingTime = raw.get('cancelEndingTime', '')
+
+    def populate(self, raw=None):
+        if raw is None:
+            self.pipeline.sync(self.fromState())
+            return
+
+        super().populate(raw)
+        cancelIndex = raw.get('cancelIndex')
+        cancelSequence = raw.get('cancelSequence', '')
+        with QSignalBlocker(self.cancelSequence):
+            if cancelIndex is not None and 0 <= cancelIndex < self.cancelSequence.count():
+                if self.cancelSequence.currentIndex() != cancelIndex:
+                    self.cancelSequence.setCurrentIndex(cancelIndex)
+            elif cancelSequence == '' and self.cancelSequence.currentIndex() != -1:
+                self.cancelSequence.setCurrentIndex(-1)
+        setLineText(self.cancelSequence.lineEdit(), cancelSequence)
+        setLineText(self.cancelBeginningTime, raw.get('cancelBeginningTime', ''))
+        setLineText(self.cancelEndingTime, raw.get('cancelEndingTime', ''))
+        coloredText(self.cancelSequence.lineEdit())
+        coloredText(self.cancelBeginningTime)
+        coloredText(self.cancelEndingTime)
 
     def setupValidator(self):
         super().setupValidator()
-        sequence = QRegExpValidator(QRegExp(self.rules.sequence, Qt.CaseInsensitive))
+        sequence = QRegExpValidator(QRegExp(self.patterns.sequence, Qt.CaseInsensitive))
         self.cancelSequence.setValidator(sequence)
 
-        date = QRegExpValidator(QRegExp(self.rules.date))
+        date = QRegExpValidator(QRegExp(self.patterns.date))
         self.cancelBeginningTime.setValidator(date)
         self.cancelEndingTime.setValidator(date)
-
-    def syncValidsTime(self):
-        if self.cancelEndingTime.hasAcceptableInput():
-            endingText = self.cancelEndingTime.text()
-            self.endingTime.setText(endingText)
-
-        if self.cancelBeginningTime.hasAcceptableInput():
-            start, _ = self.periodTime()
-            beginning = adjustCancelBeginning(
-                self.cancelBeginningTime.text(),
-                start,
-                self.endingTime.text(),
-                utcnow(),
-            )
-            self.beginningTime.setText(beginning.strftime('%d%H%M'))
 
     def setCandidates(self, sigmets):
         """Refill the dropdown with the cancellable reports the presenter
         handed over, each row carrying its valid period as item data:
         same-numbered rows differ in their data, not in their text."""
-        self.cancelSequence.clear()
-
+        options = []
         for sig in sigmets:
             parser = sig.parser()
-            self.cancelSequence.addItem(parser.sequence(), parser.validTime())
+            options.append((parser.sequence(), parser.validTime()))
 
-    def setValids(self, sequence):
-        valid = self.findValid(sequence)
-        if valid:
-            begin, end = valid.split('/')
-            self.cancelBeginningTime.setText(begin)
-            self.cancelEndingTime.setText(end)
-            self.syncValidsTime()
+        with QSignalBlocker(self.cancelSequence):
+            setComboOptions(self.cancelSequence, options)
+
+        if options:
+            self.pipeline.edit({'cancelIndex': 0, 'cancelSequence': options[0][0]}, source='seed', force=True)
         else:
-            self.cancelBeginningTime.clear()
-            self.cancelEndingTime.clear()
+            self.pipeline.edit({
+                'cancelIndex': None,
+                'cancelSequence': '',
+                'cancelBeginningTime': '',
+                'cancelEndingTime': '',
+            }, source='seed', force=True)
 
     def findValid(self, sequence):
         """The valid period of the addressed record, by combo row index or by
@@ -1197,6 +1465,8 @@ class SigmetCancel(BaseSigmet, Ui_sigmet_cancel.Ui_Editor):
 
 class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
 
+    rules = staticmethod(customRules)
+
     def __init__(self, header, conf=None):
         super().__init__(conf=conf)
         self.setupUi(self)
@@ -1204,38 +1474,33 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         self.setupApiSign()
         self.initialize()
         self.upperTextEdit()
-        self.collect()
+        self.pipeline.sync({**self.fromState(), **self.defaults}, source='init', derive=True)
 
     def bindSignal(self):
         super().bindSignal()
-        self.text.textChanged.connect(self.onUserEdited)
+        self.text.textChanged.connect(lambda: self.pipeline.edit({'text': self.text.toPlainText()}))
 
-    def onUserEdited(self, *args):
-        # The filter is part of the commit: let the text edited by the operator
-        # settle into its allowed form, then read that form into the state.
-        self.filterText()
-        super().onUserEdited()
+    def fromState(self):
+        raw = super().fromState()
+        raw['text'] = self.state.text
+        return raw
 
-    def collect(self):
-        super().collect()
-        self.state.text = self.text.toPlainText().strip()
+    def fromWidgets(self):
+        raw = super().fromWidgets()
+        raw['text'] = self.text.toPlainText()
+        return raw
 
-    def populate(self):
-        super().populate()
-        with QSignalBlocker(self.text):
-            self.text.setPlainText(self.state.text)
+    def apply(self, raw):
+        super().apply(raw)
+        self.state.text = raw.get('text', '').strip()
 
-    def filterText(self):
-        origin = self.text.toPlainText()
-        text = re.sub(r'[^A-Za-z0-9)(\/\.\s,-]+', '', origin)
-        text = text.upper()
-        if origin != text:
-            cursor = self.text.textCursor()
-            pos = cursor.position()
-            with QSignalBlocker(self.text):
-                self.text.setText(text)
-            cursor.movePosition(QTextCursor.Left, QTextCursor.MoveAnchor, len(text) - pos)
-            self.text.setTextCursor(cursor)
+    def populate(self, raw=None):
+        if raw is None:
+            self.pipeline.sync(self.fromState())
+            return
+
+        super().populate(raw)
+        setPlainText(self.text, raw.get('text', ''))
 
     def upperTextEdit(self):
         upper = QTextCharFormat()
@@ -1267,18 +1532,16 @@ class SigmetCustom(BaseSigmet, Ui_sigmet_custom.Ui_Editor):
         self.setupPlaceholder()
         self.apiSign.setVisible(bool(rv) and rv[0] == 'notification')
 
-        if not rv:
-            self.setText('')
-            return
+        if rv:
+            _, message = rv
+            fir = self.conf.firName or ''
+            text = filterCustomText(message.replace(fir, '').replace('=', '').strip())
+        else:
+            text = ''
 
-        _, message = rv
-        fir = self.conf.firName or ''
-        self.setText(message.replace(fir, '').replace('=', '').strip())
-
-    def setText(self, message):
-        with QSignalBlocker(self.text):
-            self.text.setText(message)
-        self.text.moveCursor(QTextCursor.End)
+        self.pipeline.edit({'text': text}, source='seed', force=True)
+        if text:
+            self.text.moveCursor(QTextCursor.End)
 
     def resizeEvent(self, event):
         self.apiSign.move(self.width() - 43, 80)

@@ -143,7 +143,8 @@ class TafDraft:
         `offset` is left alone on purpose: stepping back one window and then
         beginning a report must not also step the window forward again.
         """
-        if period != self.primary.period:
+        discarded = period != self.primary.period
+        if discarded:
             self.discard()
 
         self.primary.period = period
@@ -155,10 +156,14 @@ class TafDraft:
             # A cancellation carries no change groups.
             self.selected.clear()
 
+        return discarded
+
     def discard(self):
         """Throw away the report's body -- the primary and every group -- and
-        which groups were selected, leaving the header for the caller to set."""
+        which groups were selected, leaving the clock date and header for the caller."""
+        date = self.primary.date
         self.selected.clear()
         self.primary.clear()
+        self.primary.date = date
         for state in self.groups.values():
             state.clear()

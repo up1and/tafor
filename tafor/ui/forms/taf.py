@@ -13,7 +13,14 @@ from tafor.core.taf import (
 from tafor.core.utils.time import parseDayHour, parsePeriod, parseTime, utcnow
 from tafor.core.utils.common import iconPath
 from tafor.ui.fonts import fixedFont
-from tafor.ui.forms.base import TextFieldMixin, isAcceptable, setChecked, setComboText, setLineText
+from tafor.ui.forms.base import (
+    coloredText,
+    isAcceptable,
+    setChecked,
+    setComboText,
+    setLineText,
+    setupFont,
+)
 from tafor.ui.forms.pipeline import FormPipeline
 from tafor.ui.qt import Ui_taf_group, Ui_taf_primary, Ui_trend
 
@@ -55,7 +62,7 @@ def _translate(code, **kwargs):
     return messages.get(code, code)
 
 
-class BaseSegment(TextFieldMixin, QWidget):
+class BaseSegment(QWidget):
 
     contentChanged = pyqtSignal()
     notified = pyqtSignal(str)
@@ -268,7 +275,7 @@ class BaseSegment(TextFieldMixin, QWidget):
             self.cloud1Label.setText(label)
 
         for widget, _ in BaseSegment.fields(self):
-            self.coloredText(widget.lineEdit() if isinstance(widget, QComboBox) else widget)
+            coloredText(widget)
 
     def setupPeriodPlaceholder(self):
         raise NotImplementedError
@@ -352,7 +359,7 @@ class BaseSegment(TextFieldMixin, QWidget):
         self.pipeline.sync(self.fromState(), source='clear', derive=False, changed=True)
 
 
-class TemperatureGroup(TextFieldMixin, QWidget):
+class TemperatureGroup(QWidget):
     """One temperature group: a value, the time it happened at, and the rules
     that tie them to the rest of the report.
 
@@ -539,8 +546,8 @@ class TemperatureGroup(TextFieldMixin, QWidget):
         self.setLabel(raw.get('mode', self.state.mode))
         setLineText(self.temp, raw.get('value', ''))
         setLineText(self.tempTime, raw.get('time', ''))
-        self.coloredText(self.temp)
-        self.coloredText(self.tempTime)
+        coloredText(self.temp)
+        coloredText(self.tempTime)
 
     def clear(self):
         """Empty the state, then populate it again."""
@@ -584,7 +591,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         self.prevButton.setIcon(QIcon(iconPath('back.png')))
         self.resetButton.setIcon(QIcon(iconPath('reset.png')))
 
-        self.setupFont()
+        setupFont(self)
         self.bindSignal()
         self.initMessageSpec()
         self.setOrder()
@@ -592,9 +599,8 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
 
     def fromState(self):
         raw = super().fromState()
-        date = self.state.date or (self.date.text() if hasattr(self, 'date') else '')
         raw.update({
-            'date': date,
+            'date': self.state.date,
             'period': self.state.period,
             'sequence': self.state.sequence,
             'modifier': self.state.modifier,
@@ -605,9 +611,9 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         raw = super().fromWidgets()
         raw.update({
             'date': self.date.text(),
-            'period': self.period.text(),
+            'period': self.state.period,
             'sequence': self.sequence.text(),
-            'modifier': self.modifier,
+            'modifier': self.state.modifier,
         })
         return raw
 
@@ -615,12 +621,17 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         super().apply(raw)
         date = raw.get('date', '')
         self.state.date = date if isAcceptable(self.date, date) else ''
-        self.state.period = raw.get('period', '')
-        modifier = raw.get('modifier')
-        self.state.modifier = modifier
         sequence = raw.get('sequence', '')
         self.state.sequence = (
-            sequence if (modifier is not None and isAcceptable(self.sequence, sequence)) else ''
+            sequence if (self.state.modifier is not None and isAcceptable(self.sequence, sequence)) else ''
+        )
+
+    def setHeader(self, period, modifier, sequence):
+        self.setSequenceValidator(modifier)
+        self.pipeline.edit(
+            {'period': period, 'modifier': modifier, 'sequence': sequence},
+            source='header',
+            force=True,
         )
 
     def collect(self):
@@ -643,9 +654,6 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
     def populate(self, raw=None):
         """Draw the whole header from the draft or render ``raw`` into widgets."""
         if raw is None:
-            if not self.state.date and self.date.text():
-                text = self.date.text()
-                self.state.date = text if isAcceptable(self.date, text) else ''
             self.pipeline.sync(self.fromState())
             for t in self.temperatures:
                 t.populate()
@@ -660,8 +668,8 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
         setLineText(self.sequence, raw.get('sequence', ''))
         radios = {'AMD': self.amd, 'COR': self.cor, 'CNL': self.cnl}
         setChecked(radios.get(modifier, self.normal), True)
-        self.coloredText(self.date)
-        self.coloredText(self.sequence)
+        coloredText(self.date)
+        coloredText(self.sequence)
 
     def setOrder(self):
         orders = [self.nsc]
@@ -680,16 +688,7 @@ class TafPrimarySegment(BaseSegment, Ui_taf_primary.Ui_Editor):
     def fields(self):
         return super().fields() + [
             (self.date, 'date'),
-            (self.period, 'period'),
             (self.sequence, 'sequence'),
-        ]
-
-    def toggles(self):
-        return super().toggles() + [
-            (self.normal, lambda _: {'modifier': None}),
-            (self.cor, lambda _: {'modifier': 'COR'}),
-            (self.amd, lambda _: {'modifier': 'AMD'}),
-            (self.cnl, lambda _: {'modifier': 'CNL'}),
         ]
 
     def bindSignal(self):
@@ -789,7 +788,8 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
         self.primary = primary
         self.setupUi(self)
         self.name.setText(name)
-        self.setupFont()
+        setupFont(self)
+        self.name.setFont(fixedFont())
         self.setupValidator()
         self.bindSignal()
         self.populate(self.pipeline.raw)
@@ -848,15 +848,11 @@ class TafGroupSegment(BaseSegment, Ui_taf_group.Ui_Editor):
 
         super().populate(raw)
         setLineText(self.period, raw.get('period', ''))
-        self.coloredText(self.period)
+        coloredText(self.period)
 
     def bindSignal(self):
         super().bindSignal()
         self.period.editingFinished.connect(self.periodFinished.emit)
-
-    def setupFont(self):
-        super().setupFont()
-        self.name.setFont(fixedFont())
 
     def setupValidator(self):
         super().setupValidator()
@@ -920,7 +916,10 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
     def __init__(self, name='TREND', conf=None, context=None):
         super().__init__(name, conf, context)
         self.setupUi(self)
-        self.setupFont()
+        setupFont(self)
+        font = fixedFont()
+        self.becmg.setFont(font)
+        self.tempo.setFont(font)
         self.setupValidator()
         self.bindSignal()
         self.populate(self.pipeline.raw)
@@ -975,12 +974,6 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         super().bindSignal()
         self.period.editingFinished.connect(lambda: self.finishText('period', self.period))
 
-    def setupFont(self):
-        super().setupFont()
-        font = fixedFont()
-        self.becmg.setFont(font)
-        self.tempo.setFont(font)
-
     def setupValidator(self):
         super().setupValidator()
         self.setPeriodValidator(False)
@@ -1032,7 +1025,7 @@ class TrendSegment(BaseSegment, Ui_trend.Ui_Editor):
         elif self.period.placeholderText():
             self.period.setPlaceholderText('')
 
-        self.coloredText(self.period)
+        coloredText(self.period)
 
     def load(self, tokens):
         """Seed the form from a parsed trend group: state first, then render."""
