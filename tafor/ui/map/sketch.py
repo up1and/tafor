@@ -23,6 +23,10 @@ class SketchManager:
         self.layer = SceneLayer(canvas, z=3)
         self.sketchNames = sketchNames if sketchNames else []
         self.index = 0
+        # Advisory annotations drawn alongside the sketches, by sketch name.
+        # They are presentation, not part of the geometry, so they live here
+        # rather than on the core Sketch.
+        self.stickers = {}
 
         self.sketchCache = {}
         for mode, cls in self.sketchTypes.items():
@@ -77,9 +81,22 @@ class SketchManager:
     def last(self):
         return self.sketches[-1]
 
+    def setStickers(self, stickers):
+        """Record the advisory annotations shown with each sketch, by name.
+
+        Only locations that bring geometry replace what they had; an empty
+        entry leaves the current stickers alone. ``update`` renders them only
+        while the sketch they belong to is drawn, and drops them once it is
+        empty.
+        """
+        for name, geometries in stickers.items():
+            if geometries:
+                self.stickers[name] = geometries
+
     def clear(self):
         for s in self.sketches:
             s.empty()
+        self.stickers = {}
         self.index = 0
 
     def setMode(self, mode):
@@ -91,9 +108,12 @@ class SketchManager:
         sketchGeometries = []
         stickerGeometries = []
         for sketch in self.sketches:
+            if not sketch:
+                self.stickers.pop(sketch.name, None)
+                continue
             collections = sketch.geometry()
             sketchGeometries += collections['geometries']
-            stickerGeometries += sketch.stickers
+            stickerGeometries += self.stickers.get(sketch.name, [])
 
         graphic = SketchGraphic()
         graphic.updateGeometry(geojson.geometryCollection(sketchGeometries), self.canvas)

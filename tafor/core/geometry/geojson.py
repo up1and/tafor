@@ -54,6 +54,26 @@ def geometryCollection(geometries):
     return {'type': 'GeometryCollection', 'geometries': list(geometries)}
 
 
+def rings(geometry):
+    """The polygon rings of ``geometry``; none for anything that is not a polygon.
+
+    ``Polygon`` holds a bare ring and ``MultiPolygon`` a list of rings. That
+    asymmetry is this module's business: readers ask for rings instead of
+    branching on the type to find the nesting.
+    """
+    if geometry['type'] == 'Polygon':
+        return [geometry['coordinates']]
+    if geometry['type'] == 'MultiPolygon':
+        return list(geometry['coordinates'])
+    return []
+
+
+def position(geometry):
+    """The ``(lon, lat)`` of a Point geometry, ``None`` for any other type."""
+    if geometry['type'] == 'Point':
+        return geometry['coordinates']
+
+
 def hasGeometry(feature):
     """Whether a feature -- or the ``None`` the parsers return -- draws."""
     return bool(feature) and 'geometry' in feature

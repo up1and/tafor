@@ -21,7 +21,6 @@ class Sketch:
         self.coordinates = []
         self.radius = 0
         self.done = False
-        self.stickers = []
         self.changed = Signal()
         self.finished = Signal()
 
@@ -60,7 +59,6 @@ class Sketch:
         self.done = False
         self.radius = 0
         self.coordinates = []
-        self.stickers = []
 
     def clear(self):
         self.empty()
@@ -84,8 +82,6 @@ class PathSketch(Sketch):
             self.radius = 0
         elif self.coordinates:
             self.coordinates.pop()
-        if self.stickers:
-            self.stickers = []
         self.changed.emit()
 
 
@@ -185,8 +181,6 @@ class CircleSketch(Sketch):
             self.done = False
         elif self.coordinates:
             self.coordinates.pop()
-        if self.stickers:
-            self.stickers = []
         self.changed.emit()
 
     def resize(self, ratio):
@@ -246,8 +240,6 @@ class CorridorSketch(PathSketch):
             self.done = False
         elif self.coordinates:
             self.coordinates.pop()
-        if self.stickers:
-            self.stickers = []
         self.changed.emit()
 
     def resize(self, ratio):
@@ -316,8 +308,6 @@ class RectangularSketch(Sketch):
     def removePoint(self):
         self.coordinates = []
         self.done = False
-        if self.stickers:
-            self.stickers = []
         self.changed.emit()
 
     def clip(self, boundaries):

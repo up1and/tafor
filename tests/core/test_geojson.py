@@ -51,6 +51,37 @@ class TestConstruction:
         assert geojson.polygon(ring)['coordinates'] == [(0, 0), (1, 0), (1, 1)]
 
 
+class TestRings:
+
+    def test_a_polygon_has_one_ring(self):
+        ring = [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0)]
+        assert geojson.rings(geojson.polygon(ring)) == [ring]
+
+    def test_a_multi_polygon_has_one_ring_per_area(self):
+        rings = [[(0.0, 0.0), (1.0, 0.0), (1.0, 1.0)], [(5.0, 5.0), (6.0, 5.0), (6.0, 6.0)]]
+        assert geojson.rings(geojson.multiPolygon(rings)) == rings
+
+    @pytest.mark.parametrize('geometry', [
+        geojson.point((1.0, 2.0)),
+        geojson.lineString([(1.0, 2.0), (3.0, 4.0)]),
+    ])
+    def test_other_geometries_have_no_rings(self, geometry):
+        assert geojson.rings(geometry) == []
+
+
+class TestPosition:
+
+    def test_a_point_reports_its_coordinates(self):
+        assert geojson.position(geojson.point((110.0, 20.0))) == [110.0, 20.0]
+
+    @pytest.mark.parametrize('geometry', [
+        geojson.polygon([(0.0, 0.0), (1.0, 0.0), (1.0, 1.0)]),
+        geojson.lineString([(1.0, 2.0), (3.0, 4.0)]),
+    ])
+    def test_other_geometries_have_no_position(self, geometry):
+        assert geojson.position(geometry) is None
+
+
 class TestHasGeometry:
 
     def test_the_missing_sentinel_has_nothing_to_draw(self):

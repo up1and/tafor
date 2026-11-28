@@ -227,7 +227,7 @@ class SketchGraphic(QGraphicsItem, CanvasMixin):
 
     def boundingRect(self):
         rect = QRectF()
-        for g in self.geometries:
+        for g, _ in self.geometries:
             if isinstance(g, QPointF):
                 grect = QRectF(g.x(), g.y(), 1, 1).normalized()
             else:
@@ -237,7 +237,7 @@ class SketchGraphic(QGraphicsItem, CanvasMixin):
 
     def paint(self, painter, option, widget):
         defaultBrush = painter.brush()
-        for g in self.geometries:
+        for g, properties in self.geometries:
             if isinstance(g, QPointF):
                 radius = 2
                 rect = QRectF(g.x() - radius, g.y() - radius, radius * 2.0, radius * 2.0)
@@ -250,7 +250,7 @@ class SketchGraphic(QGraphicsItem, CanvasMixin):
                     'initial': QColor(240, 156, 0, 178),
                     'final': QColor(154, 205, 50, 100)
                 }
-                color = colors[g.properties['location']]
+                color = colors[properties['location']]
                 brush = QBrush(color)
                 painter.setBrush(brush)
                 painter.setPen(QPen(Qt.white))
@@ -267,26 +267,20 @@ class SketchGraphic(QGraphicsItem, CanvasMixin):
         self.geo = geo
         self.geometries = []
         for i, geo in enumerate(self.geo['geometries']):
-            geometries = []
-            if geo['type'] == 'MultiPolygon':
-                for coords in geo['coordinates']:
-                    geometries.append(geojson.polygon(coords))
-            else:
-                geometries = [geo]
+            geometries = [geojson.polygon(ring) for ring in geojson.rings(geo)] or [geo]
 
             location = 'initial' if i == 0 else 'final'
             properties = {'location': location}
 
             for geometry in geometries:
                 shape = self.toCanvasGeometry(canvas, geometry)
-                shape.properties = properties
-                self.geometries.append(shape)
+                self.geometries.append((shape, properties))
 
 
 class StickerGraphic(SketchGraphic):
 
     def paint(self, painter, option, widget):
-        for g in self.geometries:
+        for g, _ in self.geometries:
             if isinstance(g, QPolygonF):
                 painter.setPen(QPen(QColor(0, 0, 0, 127), 2, Qt.DashLine))
                 painter.drawPolygon(g)
@@ -315,21 +309,21 @@ class Sigmet(QGraphicsItem, CanvasMixin, ColorMixin):
 
     def boundingRect(self):
         rect = QRectF()
-        for g in self.geometries:
+        for g, _ in self.geometries:
             rect = rect.united(g.boundingRect())
         return rect
 
     def paint(self, painter, option, widget):
-        for geo in self.geometries:
-            hazard = geo.properties['hazard']
-            location = geo.properties['location']
+        for geo, properties in self.geometries:
+            hazard = properties['hazard']
+            location = properties['location']
             pen, brush = self.findPalette(hazard, location)
             painter.setPen(pen)
             painter.setBrush(brush)
             painter.drawPolygon(geo)
 
             if location == 'initial':
-                sequence = geo.properties['sequence']
+                sequence = properties['sequence']
                 font = QFont()
                 font.setBold(True)
                 font.setPointSize(16)
@@ -350,15 +344,9 @@ class Sigmet(QGraphicsItem, CanvasMixin, ColorMixin):
 
     def addTo(self, canvas, group):
         for feature in self.geo['features']:
-            if feature['geometry']['type'] == 'Polygon':
-                polygons = [feature['geometry']['coordinates']]
-            else:
-                polygons = feature['geometry']['coordinates']
-
-            for polygon in polygons:
-                geo = self.toCanvasGeometry(canvas, geojson.polygon(polygon))
-                geo.properties = feature['properties']
-                self.geometries.append(geo)
+            for ring in geojson.rings(feature['geometry']):
+                geo = self.toCanvasGeometry(canvas, geojson.polygon(ring))
+                self.geometries.append((geo, feature['properties']))
                 
         group.append(self)
 
@@ -391,12 +379,7 @@ class SigmetBackground(QWidget, ColorMixin):
     def fitSize(self):
 
         def toPolygons(feature):
-            if feature['geometry']['type'] == 'Polygon':
-                polygons = [feature['geometry']['coordinates']]
-            else:
-                polygons = feature['geometry']['coordinates']
-
-            return polygons
+            return geojson.rings(feature['geometry'])
 
         box = shapely.geometry.Polygon()
         for feature in self.geo['features']:
@@ -419,8 +402,7 @@ class SigmetBackground(QWidget, ColorMixin):
             polygons = toPolygons(feature)
             for polygon in polygons:
                 geom = self.scaled(polygon)
-                geom.properties = feature['properties']
-                self.geometries.append(geom)
+                self.geometries.append((geom, feature['properties']))
 
         # The FIR boundary is an overlay reference: it reuses the centroid,
         # ratio and rect derived from the SIGMET envelope, so it never affects
@@ -444,9 +426,9 @@ class SigmetBackground(QWidget, ColorMixin):
             painter.setBrush(Qt.NoBrush)
             painter.drawPolygon(geo)
 
-        for geo in self.geometries:
-            hazard = geo.properties['hazard']
-            location = geo.properties['location']
+        for geo, properties in self.geometries:
+            hazard = properties['hazard']
+            location = properties['location']
             _, brush = self.findPalette(hazard, location)
             painter.setPen(Qt.NoPen)
             painter.setBrush(brush)

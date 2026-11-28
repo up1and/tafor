@@ -1050,7 +1050,7 @@ class SketchPanel(QWidget):
             names.append(name)
             sketch = self.canvas.sketchManager.get(name)
             sketch.restore(
-                center=feature['geometry']['coordinates'],
+                center=geojson.position(feature['geometry']),
                 radius=feature['properties'].get('radius', 0),
             )
 
@@ -1066,11 +1066,13 @@ class SketchPanel(QWidget):
         final = self.canvas.sketchManager.last()
 
         def restore(sketch, feature):
-            if feature['geometry']['type'] == 'Polygon':
-                sketch.restore(coordinates=feature['geometry']['coordinates'])
+            rings = geojson.rings(feature['geometry'])
+            if rings:
+                sketch.restore(coordinates=rings[0])
                 sketch.clip(self.boundaries)
-            if feature['geometry']['type'] == 'Point':
-                sketch.restore(center=feature['geometry']['coordinates'],
+            center = geojson.position(feature['geometry'])
+            if center:
+                sketch.restore(center=center,
                                radius=feature['properties']['radius'])
 
         locations = []
@@ -1094,10 +1096,7 @@ class SketchPanel(QWidget):
             if location in stickers:
                 stickers[location].append(feature['geometry'])
 
-        for key, geometries in stickers.items():
-            if geometries:
-                sketch = initial if key == 'initial' else final
-                sketch.stickers = geometries
+        self.canvas.sketchManager.setStickers(stickers)
 
         if 'initial' not in locations:
             initial.clear()

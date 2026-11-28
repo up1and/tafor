@@ -911,6 +911,40 @@ class TestSketchPanelLayerWrites:
         assert context.layer.selected == ['SatB']
 
 
+class TestStickerOwnership:
+    """Advisory stickers are canvas annotations; the manager owns them."""
+
+    STICKER = geojson.point((110.0, 16.0))
+
+    def test_stickers_are_held_by_the_manager_not_the_sketch(self, canvas):
+        canvas.sketchManager.setStickers({'initial': [self.STICKER]})
+        assert canvas.sketchManager.stickers == {'initial': [self.STICKER]}
+        assert not hasattr(canvas.sketchManager.first(), 'stickers')
+
+    def test_an_empty_location_leaves_the_previous_stickers_alone(self, canvas):
+        canvas.sketchManager.setStickers({'initial': [self.STICKER]})
+        canvas.sketchManager.setStickers({'initial': []})
+        assert canvas.sketchManager.stickers == {'initial': [self.STICKER]}
+
+    def test_an_emptied_sketch_drops_its_stickers(self, canvas):
+        canvas.sketchManager.first().restore(coordinates=TRIANGLE)
+        canvas.sketchManager.setStickers({'initial': [self.STICKER]})
+        canvas.sketchManager.first().clear()
+        assert canvas.sketchManager.stickers == {}
+
+    def test_switching_mode_clears_the_stickers_with_the_sketches(self, canvas):
+        canvas.sketchManager.setStickers({'initial': [self.STICKER]})
+        canvas.setMode('line')
+        assert canvas.sketchManager.stickers == {}
+
+    def test_update_renders_the_stickers_alongside_the_sketches(self, canvas):
+        canvas.sketchManager.first().restore(coordinates=TRIANGLE)
+        canvas.sketchManager.setStickers({'initial': [self.STICKER]})
+        canvas.sketchManager.update()
+        sticker = canvas.sketchManager.layer.items[1]
+        assert len(sticker.geometries) == 1
+
+
 LAYERS = [
     {'name': 'Satellite', 'overlay': 'standalone', 'image': b'x', 'extent': [100, 10, 130, 30]},
     {'name': 'Radar', 'overlay': 'standalone', 'image': b'y', 'extent': [100, 10, 130, 30]},

@@ -132,7 +132,7 @@ class AdvisoryParser:
         if not geojson.hasGeometry(feature):
             return
 
-        coordinates = feature['geometry']['coordinates']
+        coordinates = geojson.position(feature['geometry'])
         if not coordinates:
             return
 

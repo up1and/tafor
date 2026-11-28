@@ -787,24 +787,14 @@ class TyphoonAdvisoryImport(AdvisoryImport):
         for feature in locations:
             feature['properties']['radius'] = radius
 
-        properties = {
-            'type': 'exterior',
-            'location': 'initial'
-        }
-
         route = self.parser.route()
         if route:
-            locations.append(geojson.feature(route, **properties))
+            locations.append(geojson.feature(route, type='exterior', location='initial'))
 
         polygon = self.parser.polygon()
         if polygon:
-            if self.widget.state.mode == 'polygon':
-                properties = {
-                    'type': 'sketch',
-                    'location': 'initial'
-                }
-
-            locations.append(geojson.feature(polygon, **properties))
+            type = 'sketch' if self.widget.state.mode == 'polygon' else 'exterior'
+            locations.append(geojson.feature(polygon, type=type, location='initial'))
 
         self.widget.locationChanged.emit(geojson.featureCollection(locations))
 
@@ -1123,7 +1113,7 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
             else:
                 lonKey, latKey = 'forecastLongitude', 'forecastLatitude'
 
-            center = feature['geometry']['coordinates']
+            center = geojson.position(feature['geometry'])
             if center:
                 lon, lat = center
                 patch[lonKey] = decimalToDegree(lon, fmt='longitude')
