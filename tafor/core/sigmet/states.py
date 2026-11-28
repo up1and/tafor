@@ -179,8 +179,9 @@ class SigmetGeneralState(SigmetState):
 
 class SigmetTyphoonState(SigmetState):
 
-    def __init__(self, unit, header):
+    def __init__(self, unit, header, length):
         super().__init__(unit, header)
+        self.length = length
         self.phenomenon = ''
         self.name = ''
         self.currentLatitude = ''
@@ -222,7 +223,7 @@ class SigmetTyphoonState(SigmetState):
         if self.mode == 'circle':
             location = 'WI {radius}{unit} OF TC CENTRE'.format(
                 radius=int(self.radius) if self.radius else '',
-                unit='KM',
+                unit=self.length,
             )
         else:
             location = locations.get('location', '')

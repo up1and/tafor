@@ -139,12 +139,14 @@ class TestTafTable:
         taf_table.search.setText('taf zppp')
         taf_table.autoSearch()
         assert taf_table.searchTimer.isActive()
+        # the case conversion is immediate, the query waits for the debounce
+        assert taf_table.search.text() == 'TAF ZPPP'
+        assert taf_table.keywords == []
 
         # the test database goes away before the debounce would fire
         taf_table.searchTimer.stop()
         taf_table.applySearch()
 
-        assert taf_table.search.text() == 'TAF ZPPP'
         assert taf_table.keywords == ['TAF', 'ZPPP']
 
     def test_search_filters_rows(self, taf_table, database):

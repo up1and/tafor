@@ -54,8 +54,8 @@ def general(**fields):
     return state
 
 
-def typhoon(**fields):
-    state = SigmetTyphoonState('KMH', header())
+def typhoon(length='KM', **fields):
+    state = SigmetTyphoonState('KMH', header(), length)
     state.phenomenon = 'TC'
     state.name = 'SALLY'
     state.currentLatitude = 'N1800'
@@ -290,6 +290,10 @@ class TestSigmetTyphoonState:
             HEADER_LINE,
             'ZJSA TC SALLY PSN N1800 E11500 CB OBS AT 100800Z WI 200KM OF TC CENTRE TOP FL500 MOV W 20KMH NC=',
         ])
+
+    def test_the_circle_radius_uses_the_configured_length_unit(self):
+        message = typhoon(length='NM', mode='circle', radius='200').composeMessage(FIR, {})
+        assert 'WI 200NM OF TC CENTRE' in message
 
     def test_compose_message_branches_on_the_forecast_position_not_forecast_mode(self):
         # CURRENT BEHAVIOR, pinned: the forecast branch is chosen by the

@@ -81,7 +81,7 @@ class StubView(QObject):
         self.header = header
         self.states = {
             'general': self._make_general_state(self.unit),
-            'typhoon': SigmetTyphoonState(self.unit, self.header),
+            'typhoon': SigmetTyphoonState(self.unit, self.header, 'KM'),
             'ash': SigmetGeneralState(self.unit, self.header),
             'airmet': self._make_general_state(self.unit),
             'cancel': self._make_cancel_state(),

@@ -955,7 +955,7 @@ class SigmetTyphoon(BaseSigmet, Ui_sigmet_typhoon.Ui_Editor):
     def __init__(self, header, conf=None):
         super().__init__(conf=conf)
         self.setupUi(self)
-        self.state = SigmetTyphoonState(unit=self.conf.units.sigmetSpeed, header=header)
+        self.state = SigmetTyphoonState(unit=self.conf.units.sigmetSpeed, length=self.conf.units.length, header=header)
         self.initialize()
         setComboOptions(self.phenomenon, ['TC'])
         setComboOptions(self.comeFrom, ['OBS', 'FCST'])
